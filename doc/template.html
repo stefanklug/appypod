@@ -1,0 +1,64 @@
+<html>
+  <head>
+    <title>Appy framework</title>
+
+    <script language="JAVASCRIPT">
+    function sendMail(domain, user) {
+      var loc = 'mailto:' + user + '@' + domain;
+      parent.location = loc;
+    }
+    </script>
+
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+  <table align="center" width="100%">
+    <tr>
+      <td>
+        <table width="100%" align="left">
+          <tr>
+            <td class="borders">
+              <table cellspacing="0" cellpadding="0" width="100%">
+                <tr>
+                  <td colspan="2" class="siteTitle">The <b>Appy</b> framework
+                  <span class="tabs" align="left">
+                    <a href="/"><img src="img/home.png"/>&nbsp;Home</a>
+                    <a href="version.html"><img src="img/download.gif"/>&nbsp;Download</a>
+                    <a href="javascript:sendMail('appyframework.org', 'info')"><img src="img/contact.gif"/>&nbsp;Contact</a>
+                    <a href="todo.html"><img src="img/todo.gif"/>&nbsp;To do</a>
+                  </span>
+                  </td>
+                  <td align="right" rowspan="2"><img src="img/advisory.png"/>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="doc" colspan="3"><a href="docToc.html">Documentation</a> | <a href="gen.html">gen</a> - creating <a href="genCreatingBasicClasses.html">basic</a> and <a href="genCreatingAdvancedClasses.html">advanced</a> classes - <a href="genSecurityAndWorkflows.html">security and workflows</a> | <a href="pod.html">pod</a> -  creating <a href="podWritingTemplates.html">basic</a> and <a href="podWritingAdvancedTemplates.html">advanced</a> templates - <a href="podRenderingTemplates.html">rendering</a> templates</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="borders headerStrip" valign="top">{{ title }}</td>
+          </tr>
+          <tr>
+            <td class="borders" valign="top">{{ content }}</td>
+          </tr>
+          <tr>
+            <td class="borders bottomStrip"><a href="version.html"><img src="img/download.gif"/>&nbsp;Download and install</a></td>
+          </tr>
+          <tr>
+            <td>
+              <table cellpadding="0" cellspacing="0" align="right">
+                <tr>
+                  <td valign="bottom" class="footer"> All software on this site is distributed under the <br/><a href="http://www.gnu.org/copyleft/gpl.html">GNU General Public License (GPL)</a>.</td>
+                  <td align="right"><img src="img/gnu.png"/><img src="img/python.gif"/></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  </body>
+</html>

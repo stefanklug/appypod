@@ -1,0 +1,35 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      i18n:domain="<!applicationName!>"
+      lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="here/main_template/macros/master">
+
+  <head><title></title></head>
+
+  <tal:comment replace="nothing">Disable standard Plone green tabs</tal:comment>
+  <div metal:fill-slot="top_slot">
+    <metal:block metal:use-macro="here/global_defines/macros/defines" />
+    <div tal:define="dummy python:request.set('disable_border', 1)" />
+  </div>
+
+  <tal:comment replace="nothing">Fill main slot of Plone main_template</tal:comment>
+  <body>
+    <metal:fill fill-slot="main"
+      tal:define="contextObj python:context;
+                  portal_type python:here.getPortalTypeName().lower().replace(' ', '_');
+                  errors python:request.get('errors', {});
+                  isEdit python:False;
+                  tool contextObj/getTool;
+                  flavour python: tool.getFlavour(contextObj);
+                  phaseInfo python: contextObj.getAppyPhases(currentOnly=True, forPlone=False);
+                  phase request/phase|phaseInfo/name;
+                  pageName python: contextObj.getAppyPage(isEdit, phaseInfo);
+                  showWorkflow python: flavour.getAttr('showWorkflowFor' + contextObj.meta_type)">
+      <div metal:use-macro="here/<!macros!>/macros/showPagePrologue"/>
+      <div metal:use-macro="here/<!macros!>/macros/showPageHeader"/>
+      <div metal:use-macro="here/<!macros!>/macros/listFields" />
+      <div metal:use-macro="here/<!macros!>/macros/showPageFooter"/>
+    </metal:fill>
+  </body>
+</html>

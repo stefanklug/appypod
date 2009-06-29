@@ -1,0 +1,265 @@
+<html>
+  <head>
+    <title><b>pod</b> - Writing advanced templates</title>
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+    <h1><a name="fromClause"></a>Inserting arbitrary content: the <span class="code">from</span> clause</h1>
+
+    <p>In the section <a href="podWritingTemplates.html">"Writing templates"</a>, you've learned how to write pod statements (<span class="code">if</span>, <span class="code">for</span>). Every pod statement is linked to a given part of the pod template (a text paragraph, a title, a table, a table row, etc) and conditions how this part is rendered in the result (the <span class="code">if</span> statement, for example, renders the part only if the related condition is <span class="code">True</span>). This way to work has its limits. Indeed, you can't insert what you want into the result: you are forced to use the part of the document that is the target of the statement. Of course, in this part, you can still write funny things like Python expressions and statements, but it may not be sufficient.</p>
+
+    <p>This is why a special <span class="code">from</span> clause may be added to every pod statement. A statement containing such a clause will replace the content of the targeted document part by the result of the <span class="code">from</span> clause. This clause must specify a Python expression that must produce a valid chunk of ODT content.</p>
+
+    <p>In the example below, the statement has a <span class="code">from</span> clause that produces a simple paragraph containing 'Hello'.</p>
+
+    <p><img src="img/SimpleFrom.png"/></p>
+
+    <p>In the result, the targeted paragraph has been replaced by the chunk of odt content specified in the <span class="code">from</span> expression. Note that the <span class="code">from</span> clause MUST start on a new line in the note. Else, it will be considered as part of statement and will probably produce an error.</p>
+
+    <p><img src="img/SimpleFrom.res.png"/></p>
+
+    <p>Surprise! This statement is neither a 'if' not a 'for' statement... It is a "null" statement whose sole objective is to replace the target by the content of the <span class="code">from</span> expression. But you can also add <span class="code">from</span> clauses to 'if' and 'for' statements. Here is an example with a 'for' statement.</p>
+
+    <p><img src="img/FromWithFor.png"/></p>
+
+    <p>Here's the result. Note that within the <span class="code">from</span> clause you may use the iterator variable (<span class="code">i</span>, in this case) defined by the <span class="code">for</span> statement.</p>
+
+    <p><img src="img/FromWithFor.res.png"/></p>
+
+    <p>Actually, when you don't specify a <span class="code">from</span> clause in a statement, pod generates an implicit <span class="code">from</span> clause whose result comes from the odt chunk that is the target of the statement.</p>
+
+    <p>I agree with you: these examples are not very useful. Moreover, it requires you to have some knowledge of the ODF syntax. You also have to take care about the namespaces you specify (text:, style:, fo:, etc): they must match the ones used in your pod template. But these examples illustrate how <span class="code">from</span> clauses work and how you may go further by yourself if pod does not implement (yet ;-)) what you need.</p>
+
+    <p>The remaining of this page presents much more useful use cases, in the form of built-in pod functions that you may use within <span class="code">from</span> clauses. Indeed, a bunch of functions is inserted by default to every context given to the pod renderer.</p>
+
+    <h1><a name="xhtml"></a>Managing XHTML input: the <span class="code">xhtml</span> function</h1>
+
+    <p>One of these functions is the <span class="code">xhtml</span> function, that allows to convert chunks of XHTML documents (given as strings in the context) into chunks of OpenDocument within the resulting OpenDocument. This functionality is useful, for example, when using pod with systems like Plone, that maintain a part of their data in XHTML format (Kupu fields, for example).</p>
+
+    <p>Suppose you want to render this chunk of XHTML code at some place in your pod result:</p>
+    <table align="center">
+      <tr>
+        <th>XHTML code</th>
+        <th>XHTML rendering (Plone)</th>
+      </tr>
+      <tr valign="top">
+        <td class="code">
+            &lt;p&gt;Te&lt;b&gt;s&lt;/b&gt;t1 : &lt;b&gt;bold&lt;/b&gt;, i&lt;i&gt;tal&lt;/i&gt;ics, exponent&lt;sup&gt;34&lt;/sup&gt;, sub&lt;sub&gt;45&lt;/sub&gt;.&lt;/p&gt;<br>
+            &lt;p&gt;An &lt;a href="http://www.google.com"&gt;hyperlink&lt;/a&gt; to Google.&lt;/p&gt;<br>
+            &lt;ol&gt;&lt;li&gt;Number list, item 1&lt;/li&gt;<br>
+            &lt;ol&gt;&lt;li&gt;Sub-item 1&lt;/li&gt;&lt;li&gt;Sub-Item 2&lt;/li&gt;<br>
+            &lt;ol&gt;&lt;li&gt;Sub-sub-item A&lt;/li&gt;&lt;li&gt;Sub-sub-item B &lt;i&gt;italic&lt;/i&gt;.&lt;/li&gt;&lt;/ol&gt;<br>
+            &lt;/ol&gt;<br>
+            &lt;/ol&gt;<br>
+            &lt;ul&gt;&lt;li&gt;A bullet&lt;/li&gt;<br>
+            &lt;ul&gt;&lt;li&gt;A sub-bullet&lt;/li&gt;<br>
+            &lt;ul&gt;&lt;li&gt;A sub-sub-bullet&lt;/li&gt;&lt;/ul&gt;<br>
+            &lt;ol&gt;&lt;li&gt;A sub-sub number&lt;/li&gt;&lt;li&gt;Another.&lt;br /&gt;&lt;/li&gt;&lt;/ol&gt;<br>
+            &lt;/ul&gt;<br>
+            &lt;/ul&gt;<br>
+            &lt;h2&gt;Heading&lt;br /&gt;&lt;/h2&gt;<br>
+            Heading Blabla.&lt;br /&gt;<br>
+            &lt;h3&gt;SubHeading&lt;/h3&gt;<br>
+            Subheading blabla.&lt;br /&gt;
+        </td>
+        <td>
+          <img src="img/xhtmlChunk.png"/>
+        </td>
+      </tr>
+    </table>
+
+    <p>pod comes with a function named <span class="code">xhtml</span> that you may use within your pod templates, like this:</p>
+
+    <p align="center"><img src="img/xhtmlTemplate.png"/></p>
+
+    <p>In this example, the name <span class="code">dummy</span> is available in the context, and <span class="code">dummy.getAt1()</span> produces a Python string that contains the XHTML chunk shown above. This string is given as paremeter of the built-in pod <span class="code">xhtml</span> function.</p>
+
+    <p>Note that if you specify a key "xhtml" in the context given to the pod renderer, the default "xhtml" function will be overridden by the value specified in the context.</p>
+
+    <p>The rendering produces this document:</p>
+
+    <p align="center"><img src="img/xhtmlResult.png"/></p>
+
+    <p>The OpenDocument rendering is a bit different than the XHTML rendering shown above. This is because pod uses the styles found in the pod template and tries to make a correspondence between style information in the XHTML chunk and styles present in the pod template. By default, when pod encounters a XHTML element:</p>
+    <ul>
+      <li>it checks if a "class" attribute is defined on this element. If yes, and if a style with the same "display name" is found in the OpenDocument template, this style will be used. The "display name" of an OpenDocument style is the name of the style as it appears in OpenOffice, for example;</li>
+      <li>if no "class" attribute is present, and if the XHTML element is a heading (h1 to h6), pod tries to find an OpenDocument style which has the same "outline level". For example, "h1" may be mapped to "Heading 1". This is what happened in the example above;
+      </li>
+      <li>else, no style at all is applied.
+      </li>
+    </ul>
+
+    <p>You have the possibility to customize this behaviour by defining styles mappings (see below).</p>
+
+    <h2>Defining styles mappings</h2>
+
+    <p>You can define styles mappings at two different levels. First, when you create a renderer instance, you may give a styles mapping to the parameter <span class="code">stylesMapping</span>, which is the <i>global style mapping</i> (The renderer's constructor is defined <a href="podRenderingTemplates.html">here</a>). A styles mapping is a Python dictionary whose keys are either CSS class names or XHTML element names, and whose values are "display names" of OpenDocument styles that must be present in the pod template. Every time you invoke the <span class="code">xhtml</span> function in a pod template, the global styles mapping comes into play.</p>
+
+    <p>Note that in an OpenDocument document, OpenOffice stores only the styles that are used in the document (I don't know how others OpenDocument-compliant word processors behave). The styles names ("Heading 1", "Standard"...) that appear when opening your template with OpenOffice, for example, are thus a super-set of the styles that are really recorded into your document. You may consult the list of available styles in your pod template programmatically by calling your pod renderer's <span class="code">getStyles</span> method.</p>
+
+    <p>In a styles mapping you can also define a special key, <span class="code">h*</span>, and define a positive or negative integer as value. When pod tries to establish a style correspondance based on outline level, it will use this number. For example, if you specify a styles mapping = <span class="code">{'h*' : -1}</span>, when encountering element <span class="code">h2</span> (that does not define a "class" attribute), if an OpenDocument with an outlevel of 2-1 is found (ie "Heading 1"), it will be used.</p>
+
+    <p>Second, each time you invoke the <span class="code">xhtml</span> function in a pod template, you may specify a local styles mapping in the parameter named <span class="code">stylesMapping</span>, like shown below.</p>
+
+    <p align="center"><img src="img/xhtmlStylesMapping.png"/></p>
+
+    <p>Local styles mappings override what you have (potentially) defined in the global styles mapping.</p>
+
+    <p>At present, the XHTML elements listed below may not be "styled-mapped" (they may not be present in styles mappings) because pod uses it own automatically-generated OpenDocument styles:</p>
+
+    <ul>
+      <li class="code">ol</li>
+      <li class="code">ul</li>
+      <li class="code">li</li>
+      <li class="code">a</li>
+    </ul>
+
+    <p>This can be problematic if, for instance, you want to use special style-related attributes, specially for <span class="code">li</span> elements that correspond to paragraphs. This is why any pod template includes some predefined styles that may apply to these elements. The following table shows them, grouped by element type.</p>
+
+    <table>
+     <tr>
+       <th>Element</th>
+       <th>Available style(s)</th>
+       <th>Description</th>
+     </tr>
+     <tr>
+       <td class="code">ol</td>
+       <td>The default pod style only.</td>
+       <td>No pod-specific style is proposed at present. The unique default pod style of this element will always be used.</td>
+     </tr>
+     <tr>
+       <td class="code">ul</td>
+       <td>The default pod style only.</td>
+       <td>No pod-specific style is proposed at present. The unique default pod style of this element will always be used.</td>
+     </tr>
+     <tr>
+       <td class="code">li</td>
+       <td>podItemKeepWithNext</td>
+       <td>This specific style adds the characteristic "Keep with next" to the target <span class="code">li</span> paragraph. This way, the paragraph will always be present. This works for <span class="code">li</span>s inside <span class="code">ul</span>s or <span class="code">ol</span>s.</td>
+     </tr>
+     <tr>
+       <td class="code">a</td>
+       <td>The default pod style only.</td>
+       <td>No pod-specific style is proposed at present. The unique default pod style of this element will be used.</td>
+     </tr>
+    </table>
+
+    <p>In order to use one of those styles, you can specify its name in the "class" attribute of the target element, or you can go through a global or local styles mapping. For example, if you need a <span class="code">li</span> element that will always stay on the same page as the paragraph below him, you can write <span class="code">&lt;li class="podItemKeepWithNext"&gt;&lt;/li&gt;</span>.</p>
+
+    <h2>Managing XHTML entities</h2>
+
+    <p>By default, the <span class="code">xhtml</span> function uses a standard XML parser (the Python "expatreader" parser) for parsing the XHTML code. This parser knows only about the 5 legal XML entities: <span class="code">&amp;amp;</span> (&amp;), <span class="code">&amp;quote;</span> (&quot;), <span class="code">&amp;apos;</span> (&apos;), <span class="code">&amp;lt;</span> (&lt;) and <span class="code">&amp;gt;</span> (&gt;). If an XHTML entity is encountered (like <span class="code">&amp;eacute;</span>), the XML parser produces an error (numeric entities like <span class="code">&amp;#234</span>; seem to be supported). For solving this problem, pod may use another parser that comes with PyXML and resides in <span class="code">xml.sax.drivers2</span>. If this parser is available in your Python interpreter, pod will use it and configure it: XHTML entities will then be supported and correctly converted. Type <span class="code"><b>import</b> xml.sax.drivers2</span> in your Python shell; if no exception is raised, the parser is installed and will be used by pod.</p>
+
+    <h1><a name="document"></a>Integrating external files or images into the result: the <span class="code">document</span> function</h1>
+
+    <p>The <span class="code">document</span> function allows you to integrate, into the ODT result, images or files that come from external sources. Here is the function signature; the table below explains each parameter. Examples follow.</p>
+
+    <p class="code">document(content=None, at=None, format=None, anchor='as-char')</p>
+
+    <table>
+      <tr>
+        <th>Parameter</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td class="code">content</td>
+        <td>If you have the image or file content available in memory or via a file handler, use this parameter. <span class="code">content</span> may hold the whole (binary) image or file content, or be an (opened) Python <span class="code">file</span> instance (a Python <span class="code">file</span> instance is obtained by calling the built-in Python method <span class="code">file</span> or <span class="code">open</span> (<span class="code">open</span> being an alias for <span class="code">file</span>).</td>
+      </tr>
+      <tr>
+        <td class="code">at</td>
+        <td>If your image or file is available on disk, do not use the previous parameter and specify the file path in this parameter.</td>
+      </tr>
+      <tr>
+        <td class="code">format</td>
+        <td>When using parameter <span class="code">at</span>, pod guesses the file format based on file extension. But if you use parameter <span class="code">content</span>, you must specify the file format here. The format may be a file extension (without the leading dot) or a MIME type. The currently supported formats are:<br/><br/>
+          <table>
+            <tr>
+              <th>Parameter value</th>
+              <th>Description</th>
+            </tr>
+            <tr>
+              <td><span class="code">odt</span> or <span class="code">application/vnd.oasis.opendocument.text</span>&nbsp;&nbsp;</td>
+              <td>An OpenDocument Text document.</td>
+            </tr>
+            <tr>
+              <td><span class="code">pdf</span> or <span class="code">application/pdf</span></td>
+              <td>Adobe PDF document. Note that pod needs Ghostscript installed for integrating PDFs into a pod result. It means that the program <span class="code">gs</span> must be installed and available in the path. pod integrates a PDF file into the ODT result like this: (1) pod calls gs to split the PDF into images (one image per page); (2) pod uses internally function <span class="code">document</span> to integrate every image into the pod result.</td>
+            </tr>
+            <tr>
+              <td><span class="code">png</span> or <span class="code">image/png</span></td>
+              <td>An image in PNG format.</td>
+            </tr>
+            <tr>
+              <td><span class="code">jpeg</span>, <span class="code">jpg</span> or <span class="code">image/jpeg</span></td>
+              <td>An image in JPEG format.</td>
+            </tr>
+            <tr>
+              <td><span class="code">gif</span> or <span class="code">image/gif</span></td>
+              <td>An image in GIF format.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td class="code">anchor</td>
+        <td>This parameter is used for images only. It determines the way to anchor the image in the result. Possible values are:<br/><br/>
+          <table>
+            <tr>
+              <th>Parameter value</th>
+              <th>Description</th>
+            </tr>
+            <tr>
+              <td class="code">page</td>
+              <td>To the page.</td>
+            </tr>
+            <tr>
+              <td class="code">paragraph</td>
+              <td>To the paragraph.</td>
+            </tr>
+            <tr>
+              <td class="code">char</td>
+              <td>To the character.</td>
+            </tr>
+            <tr>
+              <td class="code">as-char</td>
+              <td>As character.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <p>The following example shows a POD template part that integrates a PNG image from disk.</p>
+
+    <p align="center"><img src="img/documentFunction1.png"/></p>
+
+    <p>(Note that the <span class="code">from</span> clause must be on a single line.). This could be rendered this way for example:</p>
+
+    <p align="center"><img src="img/documentFunction2.png"/></p>
+
+    <p>The following ODT template part reads PDF and ODT files from a database (The ZODB; it is a Plone site) and integrates them in the pod result.</p>
+
+    <p align="center"><img src="img/documentFunction3.png"/></p>
+
+    <p>For those who know Plone, <span class="code">annex</span> is an instance of <span class="code">ATFile</span>: <span class="code">annex.data</span> returns its binary content, while <span class="code">annex.getContentType()</span> returns is MIME type.</p>
+
+    <p>In future Appy releases:</p>
+
+    <ul>
+      <li>more formats will be supported (mainly, the Microsoft formats: doc, xls, etc);</li>
+      <li>more "protocols" will be supported for accessing the external file or image (HTTP, FTP, etc);</li>
+      <li>images or documents referenced in XHTML code that is imported through function <span class="code">xhtml</span> will be integrated into the POD result.</li>
+    </ul>
+
+    <h1><a name="notInExpressions"></a>Do not use built-in pod functions in pod expressions !</h1>
+
+    <p>Pod built-in functions are designed to be used within pod statements (<span class="code">from</span> clauses). If you try to use them in pod expressions, you will get strange results. The example below uses the <span class="code">xhtml</span> function in a pod expression.</p>
+
+    <p align="center"><img src="img/builtinFunctionInPodExpression.png"/></p>
+
+    <p>If <span class="code">dummy.getAt1()</span> produces the XHTML chunk <span class="code">&lt;p&gt;Test1&lt;br/&gt;&lt;/p&gt;</span>, the result will look like this:</p>
+
+    <p align="center"><img src="img/builtinFunctionInPodExpression.res.png"/></p>
+
+  </body>
+</html>

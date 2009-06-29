@@ -1,0 +1,264 @@
+/* <dtml-var "enableHTTPCompression(request=REQUEST, debug=1, css=1)"> (this is for http compression) */
+/* <dtml-with base_properties> (do not remove this :) */
+/* <dtml-call "REQUEST.set('portal_url', portal_url())"> (not this either :) */
+
+#portal-breadcrumbs {
+  display: none;
+}
+
+.appyPod {
+  float:right;
+}
+
+.appyTabs {
+  margin-bottom: 1em;
+}
+
+.appyTabs li a {
+  border-bottom:1px solid transparent;
+  font-size: 90%;
+}
+
+.appyTabs li a:visited {
+  color: #578308;
+}
+
+.appyTitle {
+  padding-top: 0.5em;
+  font-size: 110%;
+}
+
+.appyLabel {
+  font-weight: bold;
+  padding-right: 0.4em;
+}
+
+.appyPhase {
+  border-style: solid;
+  border-width: thin;
+  text-align: center;
+  padding: 0 1em 0 1.3em;
+}
+
+.appyState {
+  font-size: 85%;
+  font-style: normal;
+  border-style: solid;
+  border-width: thin;
+  text-align: center;
+  padding: 0.1em 1em 0.1em 1.3em;
+}
+
+/* stepxx classes are used for displaying status of a phase or state. */
+.stepDone {
+  background-color: #cde2a7;
+  background-image: url(&dtml-portal_url;/done.png);
+  background-repeat: no-repeat;
+  background-position: center left;
+}
+
+.stepCurrent {
+  background-color: #ffce7b;
+  background-image: url(&dtml-portal_url;/current.png);
+  background-repeat: no-repeat;
+  background-position: center left;
+}
+
+.stepFuture {
+  background-color: #ffffff;
+  color: #C8C8C8;
+  border-style: dashed;
+}
+
+.stepUnselected {
+  background-color: #ffffff;
+}
+
+.appyPlusImg {
+  vertical-align: top;
+  position: relative;
+  left: -1.4em;
+  top: -0.55em;
+}
+
+.appyRefEdit {
+  line-height: 1.5em;
+}
+
+.appyCommonInfo {
+  border-color: #ffa500;
+  background-color: &dtml-evenRowBackgroundColor;;
+  border-style: solid;
+  border-width: 2px;
+  margin-bottom: 1em;
+}
+
+.appyWorkflow {
+  text-align: center;
+  background-color: &dtml-globalBackgroundColor;;
+}
+
+dl.expandedInlineCollapsible dt.collapsibleHeader, dl.expandedBlockCollapsible dt.collapsibleHeader {
+  background:#dee7ec url(treeExpanded.gif) no-repeat scroll 6px 50%;
+  border-width 1px;
+  border-color: #8cacbb;
+  border-style: solid;
+  border-width: thin;
+}
+
+/* With fields layout in columns, standard error frame is too large */
+.error {
+  padding: 0.4em;
+}
+
+/* Table styles */
+.no-style-table {
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.no-style-table td {
+  border: 0 !important;
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
+
+/* Minor layout changes in fieldsets and tables */
+fieldset {
+  margin: 0em 0em;
+  line-height: 1.0em;
+}
+
+/* Group fieldsets */
+.appyGroup {
+  border-width: 2px;
+}
+
+.imageInput {
+  border-width: 0px;
+  background: none;
+}
+
+.noPadding {
+  padding-right: 0em !important;
+  padding-left: 0em !important;
+  padding-top: 0em !important;
+  padding-bottom: 0em !important;
+}
+
+.appyButton {
+  background: &dtml-globalBackgroundColor; url(&dtml-portal_url;/linkOpaque.gif) 5px 1px no-repeat;
+  cursor: pointer;
+  font-size: &dtml-fontSmallSize;;
+  padding: 1px 1px 1px 12px;
+  text-transform: &dtml-textTransform;;
+  /* overflow: visible; IE produces ugly results with this */
+}
+
+.listing {
+  margin: 0em 0em;
+}
+
+.listing td, .stx table td {
+  padding-right: 0.1em;
+  padding-left: 0.3em;
+  padding-top: 0.3em;
+  padding-bottom: 0em;
+}
+
+.vertical td {
+  padding-left: 0.3em;
+}
+
+.innerAppyTable {
+  border-width: 0px;
+}
+
+.innerAppyTable td {
+  border-top: 0px;
+  border-bottom: 1px solid #8CACBB;
+  border-right: 0px;
+  padding: 0.4em 0em 0em 0em;
+  border-collapse: separate;
+}
+
+.innerAppyTable th {
+  border-right: 0px;
+}
+
+.innerAppyFieldset {
+  margin: 0em 1em;
+  line-height: 1.0em;
+}
+
+/* Portlet elements */
+.portletAppyItem {
+  margin: 0;
+  padding: 1px 0.5em;
+  border-left: 1px solid #8cacbb;
+  border-right: 1px solid #8cacbb;
+  font-weight: normal;
+}
+
+/* Uncomment this if you want to hide breadcrumbs */
+/*
+#portal-breadcrumbs {
+  display: none;
+}
+*/
+
+/* </dtml-with> */
+
+/* image-right, but without border */
+.image-right {
+  border:0px solid Black;
+  clear:both;
+  float:right;
+  margin:0.5em;
+}
+
+/* DOCUMENTATION ON PRE-DEFINED PROPERTIES FROM PLONE */
+
+ /* You can insert colors and other variables from Plone's 
+    base_properties by doing:
+    & dtml-variableName ; (without the spaces, excluded here to not make it render)
+
+    Example:
+    myLink {
+        color: & dtml-fontColor ;   (again, without the spaces)
+    }
+   This means you can generate your own elements that use Plone's defaults,
+   and respect any customizations people have done. See base_properties for
+   the default values.
+
+   These are the available properties:
+   logoName - the file name of the portal logo. 
+   fontFamily - the font family used for all text that is not headers
+   fontBaseSize - the base font size that everything is calculated from
+   fontColor - the main font color
+   backgroundColor - the background color 
+   linkColor - the color used on normal links
+   linkActiveColor - color used on active links
+   linkVisitedColor - color used on visited links
+   borderWidth - the width of most borders in Plone
+   borderStyle - the style of the border lines, normally solid
+   borderStyleAnnotations - style of border lines on comments etc
+   globalBorderColor - the border color used on the main tabs, the portlets etc
+   globalBackgroundColor - background color for the selected tabs, portlet headings etc
+   globalFontColor - the color of the font in the tabs and in portlet headings
+   headingFontFamily - font family for h1/h2/h3/h4/h5/h6 headlines.
+   headingFontBaseSize - the base size used when calculating the different headline sizes
+   contentViewBorderColor - the content view tabs border color
+   contentViewBackgroundColor - the content view tabs background color
+   contentViewFontColor - the font color used in the content view tabs
+   textTransform - whether to lowercase text in portlets, tabs etc.
+   evenRowBackgroundColor - the background color of even rows in listings
+   oddRowBackgroundColor - the background color of even rows in listings
+   notifyBorderColor - border color of notification elements like the status message, the calendar focus
+   notifyBackgroundColor - background color of notification elements like the status message, the calendar focus
+   discreetColor:string=#999999
+   helpBackgroundColor:string=#ffffe1
+ */
+
+

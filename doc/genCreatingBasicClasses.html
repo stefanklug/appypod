@@ -1,0 +1,644 @@
+<html>
+  <head>
+    <title><b>gen</b> - Creating basic classes</title>
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+    <h1><a name="genApplications"></a>Gen-applications</h1>
+
+    <p>A gen-application is a simple Python module (a single Python file) or package (a hierarchy of folders where every (sub-)folder contains a file named __init__.py). In the <a href="gen.html">main gen presentation page</a>, we've created a simple application in the form of a Python module, we've run it by installing Zope and Plone and by generating a Plone product. Working with a Python package instead of a Python module is quite easy: instead of creating MyModule.py in <a class="code">[myZopeInstance]/lib/python</a> you simply create a folder "MyPackage" at the same place.</p>
+
+    <p>Within your Python module or package, you create standard Python classes. Those classes do not need to inherit from any base class provided by gen. If you want to turn a given class into a "gen-class" (= a class whose instances will be visualized, created and edited throug-the-web with Plone), you need to provide static attributes that will represent the associated data you need to edit and/or view through-the-web. Those attributes must be instances of any sub-class of <span class="code">appy.gen.Type</span>. We will see that some attribute and method names are "reserved" for specific uses; all other methods and attributes you will define on "gen-classes" will be kept untouched by gen. "gen-classes" do not need any constructor at all, because instances will be created throug-the-web or via some gen-specific mechanisms that we will explain later.</p>
+
+    <p>What gen tries to do is to be as invisible as possible, by leaving your Python classes as "pure" as possible.</p>
+
+    <h1><a name="classesAndAttributes"></a>Gen-classes and attributes</h1>
+
+    <p>The code below shows an example of a gen-class.</p>
+
+    <p class="code">
+    <b>from</b> appy.gen <b>import</b> *<br/>
+    <b>class</b> A:<br/>
+    &nbsp;&nbsp;at1 = String()<br/>
+    &nbsp;&nbsp;at2 = Integer()<br/>
+    &nbsp;&nbsp;at3 = Float()<br/>
+    &nbsp;&nbsp;at4 = Date()<br/>
+    &nbsp;&nbsp;at5 = 'Hello'<br/>
+    &nbsp;&nbsp;<b>def</b> sayHello(self):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>print</b> self.at5 + str(self.at2)<br/>
+    </p>
+
+    <p><span class="code">String</span>, <span class="code">Integer</span>, <span class="code">Float</span> and <span class="code">Date</span> all inherit from <span class="code">appy.gen.Type</span>. You may still define standard Python attributes like <span class="code">at5</span> and methods like <span class="code">sayHello</span>. The list of basic types provided by gen is shown below.</p>
+
+    <table class="appyTable">
+      <tr>
+        <td class="code">Integer&nbsp;</td>
+        <td>Holds an integer value.</td>
+      </tr>
+      <tr>
+        <td class="code">Float&nbsp;</td>
+        <td>Holds a floating-point number.</td>
+      </tr>
+      <tr>
+        <td class="code">String&nbsp;</td>
+        <td>Holds a string value (entered by the user, selected from a drop-down list, etc).</td>
+      </tr>
+      <tr>
+        <td class="code">Boolean&nbsp;</td>
+        <td>Holds a boolean value (typically rendered as a checkbox).</td>
+      </tr>
+      <tr>
+        <td class="code">Date&nbsp;</td>
+        <td>Holds a date (with or without hours and minutes).</td>
+      </tr>
+      <tr>
+        <td class="code">File&nbsp;</td>
+        <td>Holds a binary file.</td>
+      </tr>
+      <tr>
+        <td class="code">Ref&nbsp;</td>
+        <td>Holds references to one or more other objects.</td>
+      </tr>
+      <tr>
+        <td class="code">Computed&nbsp;</td>
+        <td>Holds nothing; the field value is computed from a specified Python method.</td>
+      </tr>
+      <tr>
+        <td class="code">Action&nbsp;</td>
+        <td>Holds nothing; the field represents a button or icon that triggers a function specified as a Python method.</td>
+      </tr>
+    </table>
+
+    <p>When defining instances of those types, you will typically give some parameters to it. Below is the list of parameters that are common to all types. In the next sections, we will see into more detail every type with its specificities.</p>
+    <table class="appyTable">
+      <tr>
+        <th>parameter</th>
+        <th>default value</th>
+        <th>explanation</th>
+      </tr>
+      <tr>
+        <td class="code">validator</td>
+        <td class="code">None</td>
+        <td>A validator is something that restricts the valid range of values that the field may hold. It can be:
+          <ul>
+            <li>A Python (instance) method belonging to the class defining the field (or one of its parents). Every time an object is created or updated, this method will be called, with a single argument containing the new value the user has entered for the field. If this method returns a string (more precisely, an instance of <span class="code">basestring</span>), validation will fail and this string will be shown to the user as error message. Else, validation will succeed if the return value is True (or equivalent value) and will fail else. In this latter case, the error message that the user will get will correspond to i18n label <span class="code">[full_class_name]_[field_name]_valid</span> in the application-specific i18n domain, where <span class="code">[full_class_name]</span> is the class name including the package prefix where dots have been replaced with underscores. More information about i18n may be found <a href="genCreatingAdvancedClasses.html#i18n">here</a>. Examples are presented hereafter.</li>
+            <li>A list of string values. It only applies for <span class="code">String</span> fields. This list contains the possible values the field may hold.</li>
+            <li>A regular expression (under the form of a compiled regular expression generated with <span class="code">re.compile</span>).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td class="code">multiplicity</td>
+        <td class="code">(0,1)</td>
+        <td>Multiplicity is a 2-tuple that represents the minimum and maximum number of values the field may hold. <span class="code">(0,1)</span> means that the field may be empty or contain one value. <span class="code">(1,1)</span> means that a value is required. For all types excepted <span class="code">Ref</span> and some <span class="code">String</span>s, the maximum value must be 1. The Python value <span class="code">None</span> is used for representing an unbounded value: <span class="code">(1,None)</span> means "at least 1" (no upper bound).</td>
+      </tr>
+      <tr>
+        <td class="code">default</td>
+        <td class="code">None</td>
+        <td>The default value for the field. The default value must be a Python value that corresponds to the Appy type. Correspondence with Python and Appy types is given here:
+          <table class="appyTable" align="center">
+            <tr>
+              <th>Appy type</th>
+              <th>Python type</th>
+            </tr>
+            <tr>
+              <td class="code">Integer</td>
+              <td class="code">int, long</td>
+            </tr>
+            <tr>
+              <td class="code">Float</td>
+              <td class="code">float</td>
+            </tr>
+            <tr>
+              <td class="code">String</td>
+              <td class="code">str, unicode</td>
+            </tr>
+            <tr>
+              <td class="code">Boolean</td>
+              <td class="code">bool</td>
+            </tr>
+            <tr>
+              <td class="code">Date</td>
+              <td>The Date type shipped with Zope (class <span class="code">DateTime.DateTime</span>). The corresponding type from standard <span class="code">datetime</span> package is less sexy.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td class="code">optional</td>
+        <td class="code">False</td>
+        <td>When you define a field as <span class="code">optional</span>, you may turn this field on or off in every flavour (a specific widget will be included in the flavour for this). If you turn the field on, it will appear in view/edit pages; else, it will completely disappear. This is one of the features that allow to tackle <i>variability</i>: in a given organisation the field may be used, in another one it may not. Or even within the same application, the field can be enabled in a given flavour and disabled in another. More information about this parameter may be found <a href="genCreatingAdvancedClasses.html#optional">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">editDefault</td>
+        <td class="code">False</td>
+        <td>When <span class="code">editDefault = True</span>, a special widget will be present in every flavour; it will allow you to enter or edit the default value for the field. Instead of "hardcoding" the default value through parameter <span class="code">default</span>, using <span class="code">editDefault</span> allows to do it through-the-web, flavour by flavour. More information about this parameter may be found <a href="genCreatingAdvancedClasses.html#editDefault">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">show</td>
+        <td class="code">True</td>
+        <td>You may specify here a special condition under which the field will be visible or not. This condition may be:
+          <ul>
+            <li>a simple boolean value;</li>
+            <li>a Python (instance) method that returns True, False (one any other equivalent value). This method does not take any argument.</li>
+          </ul>
+          Note that visibility of a given field does not only depend on this parameter. It also depends on its optionality (see parameter <span class="code">optional</span>) and on the user having or not the permission to view and/or edit the field (see parameters <span class="code">specificReadPermission</span> and <span class="code">specificWritePermission</span> below).
+        </td>
+      </tr>
+      <tr>
+        <td class="code">page</td>
+        <td class="code">main</td>
+        <td>By default, for every gen-class you define, gen will produce 2 views: one for consulting information about an instance, one for editing this information. If you have a limited number of fields, a single page is sufficient for displaying all fields on both views. You may also decide to create several pages. The default page is named "main". If, for this parameter, you specify another page, gen will automatically create it (on both views) and allow the user to navigate from one page to the other while consulting or editing an instance (every page will be represented as a tab). If you define several pages for a given class, the main page will take the internationalized name of the class (it corresponds to i18n label <span class="code">[full_class_name]</span> in i18n domain <span class="code">plone</span>, where <span class="code">[full_class_name]</span> is the class name including the package prefix where dots have been replaced with underscores), and the other pages will take their names from i18n label <span class="code">[full_class_name]_page_[page_name]</span> again in i18n domain <span class="code">plone</span>. More information about pages may be found <a href="genCreatingAdvancedClasses.html#pagesAndGroups">here</a>; more information about i18n may be found <a href="genCreatingAdvancedClasses.html#i18n">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">group</td>
+        <td class="code">None</td>
+        <td>Within every page, you may put widgets into "groups" that will be graphically rendered as fieldsets. Normally, widgets are rendered in the same order as the order of their declaration in the Python class; putting them into groups may change this behaviour. If you specify a string here, a group will be created and this field will be rendered into it on both views (consult/edit). The name of the group will correspond to i18n label <span class="code">[full_class_name]_group_[group_name]</span> in i18n domain <span class="code">plone</span>, where <span class="code">[full_class_name]</span> is the class name including the package prefix where dots have been replaced with underscores. More information about i18n may be found <a href="genCreatingAdvancedClasses.html#i18n">here</a>. If you add something like <span class="code">_[number]</span> to the group name, widgets from the group will be rendered into columns; <span class="code">number</span> being the number of columns in the group. For example, if you define several fields with parameter <span class="code">group="groupA_3"</span>, field values will be put in group <span class="code">groupA</span> that will span 3 columns. If you specify different number of columns every time you use the group parameter for different fields, all numbers will be ignored excepted the one of the first field declaration. For subsequent field declarations, you don't need to specify the columns number again. More information about pages and groups may be found <a href="genCreatingAdvancedClasses.html#pagesAndGroups">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">move</td>
+        <td class="code">0</td>
+        <td>Normally, fields are rendered in consult/edit pages in the order of their declaration in the Python class. You may change this by specifying an integer value for the parameter <span class="code">move</span>. For example, specifing <span class="code">move=-2</span> for a given field will move the field up to 2 positions in the list of field declarations. This feature may be useful when you have a class hierarchy and you want to place fields from a child class at a given position among the fields from a parent class.</td>
+      </tr>
+      <tr>
+        <td class="code">searchable</td>
+        <td class="code">False</td>
+        <td>When defining a field as <span class="code">searchable</span>, the field declaration will be registered in the low-level indexing mechanisms provided by Zope and Plone, allowing fast queries based on this field; the searches performed via the global "search" in Plone will take the field into account, too.</td>
+      </tr>
+      <tr>
+        <td class="code">specificReadPermission</td>
+        <td class="code">None</td>
+        <td>By default, permission to read every field declared in a class is granted if the user has the right to read class instances as a whole. If you want this field to get its own "read" permission, set this parameter to <span class="code">True</span>. More information about security may be found <a href="genSecurityAndWorkflows.html">here</a>; specific details about usage of this field may be found <a href="genSecurityAndWorkflows.html#specificFieldPermissions">here</a>.
+        </td>
+      </tr>
+      <tr>
+        <td class="code">specificWritePermission</td>
+        <td class="code">None</td>
+        <td>By default, permission to write (=edit) every field declared in a class is granted if the user has the right to create an edit instances as a whole. If you want this field to get its own "write" permission, set this parameter to <span class="code">True</span>. More information about security may be found <a href="genSecurityAndWorkflows.html">here</a>; specific details about usage of this field may be found <a href="genSecurityAndWorkflows.html#specificFieldPermissions">here</a>.
+        </td>
+      </tr>
+      <tr>
+        <td class="code">width</td>
+        <td class="code">None</td>
+        <td>An integer value that represents the width of a widget. For the moment, it is only used for <span class="code">String</span>s whose format is <span class="code">String.LINE</span>. For those Strings, default value is 50.</td>
+      </tr>
+      <tr>
+        <td class="code">master</td>
+        <td class="code">None</td>
+        <td>Another field that will in some manner influence the current field (display it or not, for example). More information about master/slave relationships between fields may be found <a href="genCreatingAdvancedClasses.html#mastersAndSlaves">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">masterValue</td>
+        <td class="code">None</td>
+        <td>If a <span class="code">master</span> is specified (see previous parameter), this parameter specifies the value of the master field that will influence the current field (display it or not, for example). More information about master/slave relationships between fields may be found <a href="genCreatingAdvancedClasses.html#mastersAndSlaves">here</a>.</td>
+      </tr>
+    </table>
+
+    <h1><a name="integersAndFloats"></a>Integers and Floats</h1>
+
+    <p>Integers and floats have no additional parameters. In this section, we will simply illustrate, on Integers and Floats, some parameters defined in the previous section. Let's consider the following class:</p>
+
+    <p class="code"><b>from</b> appy.gen <b>import</b> *<br/>
+    <b>class</b> Zzz:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;<b>def</b> show_f1(self): <b>return</b> True<br/>
+    &nbsp;&nbsp;<b>def</b> validate_i2(self, value):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> (value != None) <b>and</b> (value < 10):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> 'Value must be higher or equal to 10.'<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> True<br/>
+    &nbsp;&nbsp;i1 = Integer(show=False)<br/>
+    &nbsp;&nbsp;i2 = Integer(validator = validate_i2)<br/>
+    &nbsp;&nbsp;f1 = Float(show=show_f1, page='other')<br/>
+    &nbsp;&nbsp;f2 = Float(multiplicity=(1,1))<br/>
+    </p>
+
+    <p>Recall from <a href="gen.html">the introduction</a> that a class declared as <span class="code">root</span> is of special importance: it represents a "main" concept in your application. For every root class, a tab is available in the dashboard for viewing, editing and deleting objects of this class.</p>
+
+    <p>Because <span class="code">i1</span> is defined with <span class="code">show=False</span>, it will never appear on Appy views. <span class="code">i2</span> illustrates a validator method that prevents entered values to be lower than 10 (be careful: because the value is not mandatory (default multiplicity=(0,1)), <span class="code">validate_i2</span> will still be called even if <span class="code">value</span> is <span class="code">None</span>. <span class="code">f1</span> illustrates how to define a Python method for the <span class="code">show</span> parameter; because this is a silly method that always return True, <span class="code">f1</span> will always be displayed. <span class="code">f1</span> will be displayed on another page named <span class="code">other</span>. <span class="code">f2</span> will be mandatory. So when creating an instance of <span class="code">Zzz</span> through-the-web, you get the following screen:</p>
+
+    <p align="center"><img src="img/integersFloats1.png"></p>
+
+    <p>Plone needs a field named <span class="code">title</span>; because you did not had any field named <span class="code">title</span> in your class, Plone has added one automatically. This is because at several places Plone and gen use the title of objects. If you don't care about this, simply create an attribute <span class="code">title=String(multiplicity=(0,1), show=False)</span>. The field will disappear (don't forget to specify this multiplicity; else, the field will not show up but will still be mandatory: it will produce an error and you will be blocked); an internal title will be generated instead that will produce ugly results at some places: so it is not recommanded to do it. Let's see how the validation system behaves if we type a wrong value in <span class="code">i2</span> and nothing in <span class="code">f2</span>:</p>
+
+    <p align="center"><img src="img/integersFloats2.png"></p>
+
+    <p>If we enter a value lower than 10 in i2 we get our specific error message:</p>
+
+    <p align="center"><img src="img/integersFloats3.png"></p>
+
+    <p>After corrections have been made, clicking on "next" will bring us to the second page where <span class="code">f1</span> lies.</p>
+
+    <p align="center"><img src="img/integersFloats4.png"></p>
+
+    <p>Now, through the green tabs, you may browse the 2 pages for any Zzz instance. Clicking into the tab will display the consult view, while clicking on the pen will bring the edit view. Going from one edit page to the other can also be done through "next" and "previous" buttons.</p>
+
+    <p>Beyond validation of specific fields, gen also allows to perform global, "inter-field" validation. More information <a href="genCreatingAdvancedClasses.html#specialMethods">here</a>.</p>
+
+    <h1><a name="strings"></a>Strings</h1>
+
+    <p>Strings have an additional attribute named <span class="code">format</span> which may take the following values:</p>
+
+    <table class="appyTable">
+      <tr>
+        <th>value</th>
+        <th>default?</th>
+        <th>example</th>
+        <th>result (edit view)</th>
+        <th>result (consult view)</th>
+      </tr>
+      <tr>
+        <td class="code">String.LINE</td>
+        <td>yes</td>
+        <td class="code">oneLineString = String()</td>
+        <td><img src="img/strings1.png"></td>
+        <td><img src="img/strings2.png"></td>
+      </tr>
+      <tr>
+        <td class="code">String.TEXT</td>
+        <td>no</td>
+        <td class="code">textString = String(format=String.TEXT)</td>
+        <td><img src="img/strings3.png"></td>
+        <td><img src="img/strings4.png"></td>
+      </tr>
+      <tr>
+        <td class="code">String.XHTML</td>
+        <td>no</td>
+        <td class="code">textXhtml = String(format=String.XHTML)</td>
+        <td><img src="img/strings5.png"></td>
+        <td><img src="img/strings6.png"></td>
+      </tr>
+    </table>
+
+    <p>With <span class="code">String</span>s, adequate use of arguments <span class="code">validator</span> and <span class="code">multiplicity</span> may produce more widgets and/or behaviours. Consider the following class:</p>
+
+    <p class="code">
+    <b>class</b> SeveralStrings:<br/>
+    &nbsp;&nbsp;root=True<br/>
+    &nbsp;&nbsp;anEmail = String(validator=String.EMAIL)<br/>
+    &nbsp;&nbsp;anUrl = String(validator=String.URL)<br/>
+    &nbsp;&nbsp;anAlphanumericValue = String(validator=String.ALPHANUMERIC)<br/>
+    &nbsp;&nbsp;aSingleSelectedValue = String(validator=['valueA', 'valueB', 'valueC'])<br/>
+    &nbsp;&nbsp;aSingleMandatorySelectedValue = String(<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;validator=['valueX', 'valueY', 'valueZ'], multiplicity=(1,1))<br/>
+    &nbsp;&nbsp;aMultipleSelectedValue = String(<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;validator=['valueS', 'valueT', 'valueU', 'valueV'],<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;multiplicity=(1,None), searchable=True)<br/>
+    </p>
+
+    <p>The edit view generated from this class looks like this:</p>
+
+    <p align="center"><img src="img/strings7.png"></p>
+
+    <p>For field <span class="code">anEmail</span>, a valid email was entered so the validation machinery does not complain. For <span class="code">anUrl</span> and <span class="code">anAlphanumericValue</span> (the 2 other predefined regular expressions for validating String fields shipped with gen) an error message is generated. The field <span class="code">aSingleSelectedValue</span> uses a list of strings as validator and maximum multiplicity is 1: the generated widget is a listbox where a single value may be selected. The field <span class="code">aSingleMandatorySelectedValue</span> is mandatory because of the <span class="code">multiplicity</span> parameter being <span class="code">(1,1)</span>; a validation error is generated because no value was selected. The field <span class="code">aMultipleSelectedValue</span> does not limit the maximum number of chosen values (<span class="code">multiplicity=(1,None)</span>): the widget is a listbox where several values may be selected.</p>
+
+    <p>Field <span class="code">aMultipleSelectedValue</span> has also been specified as <span class="code">searchable</span>. Suppose we have created this instance of <span class="code">SeveralStrings</span>:</p>
+
+    <p align="center"><img src="img/strings8.png"></p>
+
+    <p>When using the Plone global search in the right top corner, you will notice that entering "Value u" will produce a match for our instance:</p>
+
+    <p align="center"><img src="img/strings9.png"></p>
+
+    <p>Entering "Value x" for example will produce no match at all because <span class="code">aSingleMandatorySelectedValue</span> was not specified as <span class="code">searchable</span>. Note that <span class="code">title</span> fields are automatically set as <span class="code">searchable</span>.</p>
+
+    <h1><a name="booleans"></a>Booleans</h1>
+
+    <p>Booleans have no additional parameters. Specifying <span class="code">aBooleanValue = Boolean(default=True)</span> will produce this on the edit view:</p>
+
+    <p align="center"><img src="img/booleans1.png"></p>
+
+    <h1><a name="dates"></a>Dates</h1>
+
+    <p>Dates have an additional attribute named <span class="code">format</span> which may take the following values:</p>
+
+    <table class="appyTable">
+      <tr>
+        <th>value</th>
+        <th>default?</th>
+        <th>example</th>
+        <th>result (edit view)</th>
+        <th>result (consult view)</th>
+      </tr>
+      <tr>
+        <td class="code">Date.WITH_HOUR</td>
+        <td>yes</td>
+        <td class="code">dateWithHour = Date()</td>
+        <td><img src="img/dates1.png"></td>
+        <td><img src="img/dates2.png"></td>
+      </tr>
+      <tr>
+        <td class="code">Date.WITHOUT_HOUR</td>
+        <td>no</td>
+        <td class="code">dateWithoutHour = Date(format=Date.WITHOUT_HOUR)</td>
+        <td><img src="img/dates3.png"></td>
+        <td><img src="img/dates4.png"></td>
+      </tr>
+    </table>
+
+    <p>When editing a <span class="code">Date</span> in any format, instead of using the listboxes for selecting values for year, month and day, you may click on the icon with a "12" on it: a nice <span class="code">Date</span> chooser written in Javascript will pop up as shown above.</p>
+
+    <h1><a name="files"></a>Files</h1>
+
+    <p>When specifying this: <span class="code">anAttachedFile = File()</span> you get this result on the edit view when an object is being created:</p>
+
+    <p align="center"><img src="img/files1.png"></p>
+
+    <p>("Parcourir" means "Browse" in french). You get this result on the consult view:</p>
+
+    <p align="center"><img src="img/files2.png"></p>
+
+    <p>If you want to edit the corresponding object, you will get this:</p>
+
+    <p align="center"><img src="img/files3.png"></p>
+
+    <p>Any kind of file may be uploaded in <span class="code">File</span> fields, but for png, jpg and gif files, you may specify an additional parameter <span class="code">isImage=True</span> and your gen-ified Plone will render the image. Let's define this field:</p>
+
+    <p class="code">anAttachedImage = File(isImage=True)</p>
+
+    <p>The consult view will render the image like on this example:</p>
+
+    <p align="center"><img src="img/files4.png"></p>
+
+    <p>On the edit view, the widget that allows to modify the image will look like this:</p>
+
+    <p align="center"><img src="img/files5.png"></p>
+
+    <h1><a name="references"></a>References</h1>
+
+    <p>References allow to specify associations between classes in order to build webs of interrelated objects. Suppose you want to implement this association:</p>
+
+    <p align="center"><img src="img/refs1.png"></p>
+
+    <p>The corresponding gen model looks like this:</p>
+
+    <p class="code">
+    <b>class</b> Order:<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    <br/>
+    <b>class</b> Client:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;title = String(show=False)<br/>
+    &nbsp;&nbsp;firstName = String()<br/>
+    &nbsp;&nbsp;name = String()<br/>
+    &nbsp;&nbsp;orders = Ref(Order, add=True, link=False, multiplicity=(0,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='client'))<br/>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.title = self.firstName + ' ' + self.name<br/>
+    </p>
+
+    <p>Such an association is expressed in gen by 2 "crossed" <span class="code">Ref</span> instances (see definition of attribute <span class="code">orders</span>):
+      <ul>
+        <li>the attribute named <span class="code">orders</span> specifies the "main" or "forward" reference;</li>
+        <li>the attribute named <span class="code">client</span> specifies the "secondary" or "backward" reference.</li>
+      </ul>
+    </p>
+
+    <p>As implemented in gen, an association is always dyssymmetric: one association end is more "important" than the other and provides some functionalities like adding or linking objects. In the above example, the association end named <span class="code">orders</span> allows to create and add new <span class="code">Order</span> instances (<span class="code">add=True</span>). In the generated product, once you have created a <span class="code">Client</span> instance, for field <span class="code">orders</span> you will get the following consult view:</p>
+
+    <p align="center"><img src="img/refs2.png"></p>
+
+    <p>Remember that you can't get rid of the <span class="code">title</span> field. So one elegant solution is to specify it as invisible <span class="code">(show=False)</span> and compute it from other fields every time an object is created or updated (special method <span class="code">onEdit</span>: when an object was just created, parameter <span class="code">created</span> is <span class="code">True</span>; when an object was just modified, <span class="code">created</span> is <span class="code">False</span>). Here, in both cases, we update the value of field <span class="code">title</span> with <span class="code">firstName + ' ' + name</span>.</p>
+
+    <p>On this view, because you specified <span class="code">add=True</span> for field <span class="code">orders</span>, the corresponding widget displays a "plus" icon for creating new <span class="code">Order</span> instances and link them to you this client. Clicking on it will bring you to the edit view for <span class="code">Order</span>:</p>
+
+    <p align="center"><img src="img/refs3.png"></p>
+
+    <p>Saving the order brings you to the consult view for this order:</p>
+
+    <p align="center"><img src="img/refs4.png"></p>
+
+    <p>On this view, a specific widget was added (it corresponds to backward reference <span class="code">client</span>) that allows you to walk to the linked object. Clicking on "Gaetan Delannay" will bring you back to him. After repeating this process several times, you will get a result that will look like this:</p>
+
+    <p align="center"><img src="img/refs5.png"></p>
+
+    <p>If you had specified <span class="code">multiplicity=(0,4)</span> for field <span class="code">orders</span>, the "plus" icon would have disappeared, preventing you from creating an invalid fifth order. Unlike standard Plone references, gen <span class="code">Ref</span> fields are <b>ordered</b>; the arrows allow you to move them up or down. The other icons allow you to edit and delete them.</p>
+
+    <p>Besides the "add" functionality, association ends may also provide the "link" functionality. This produces another widget that allows you to link an object to existing ones instead of creating + linking them. Suppose you extend you model with the concept of <span class="code">Product</span>: an order may now specify one or several products. The model would include the new <span class="code">Product</span> class and the <span class="code">Order</span> class would get an additional <span class="code">Ref</span> field:</p>
+
+    <p class="code">
+    <b>class</b> Product:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    <br/>
+    <b>class</b> Order:<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    &nbsp;&nbsp;products = Ref(Product, add=False, link=True, multiplicity=(1,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='orders'))<br/>
+    </p>
+
+    <p>Tip: when making changes to you model, re-generate it, relaunch Zope, go to "site setup"-> Add/Remove Products" and reinstall the generated product. Another tip: any change you make to your Python code needs a Zope restart; else it will not be taken into account.</p>
+
+    <p>So now you are able to create products. Because you specified class <span class="code">Product</span> with <span class="code">root=True</span>, on the main dashboard for you application you get a new tab that allows you to consult and create products. After some product creations you will get a setting like this:</p>
+
+    <p align="center"><img src="img/refs6.png"></p>
+
+    <p>Now, if you go back to the first order made by Gaetan Delannay, and go to the edit view by clicking on the pen, a new widget will allow to select which products are concerned by this order:</p>
+
+    <p align="center"><img src="img/refs7.png"></p>
+
+    <p>Clicking on "save" will bring you back to the consult view for this order:</p>
+
+    <p align="center"><img src="img/refs8.png"></p>
+
+    <p>What is a bit annoying for the moment is that the <span class="code">Ref</span> widget configured with <span class="code">add=True</span> is rendered only on the consult view, while the <span class="code">Ref</span> widget configured with <span class="code">link=True</span> behaves "normally" and renders on both edit and consult views. This is a technical limitation; we will try to improve this in the near future. Another improvement will be to be able to select both <span class="code">add=True</span> and <span class="code">link=True</span> (this is not possible right now).</p>
+
+    <p>You will also notice that when defining an association, both <span class="code">Ref</span> instances are defined in one place (=at the forward reference, like in <span class="code">products = Ref(Product, add=False, link=True, multiplicity=(1,None),back=Ref(attribute='orders'))</span>). The main reason for this choice is to be able in the future to link gen-classes with external, standard Plone content types. The name of the backward reference is given in the <span class="code">attribute</span> parameter of the backward <span class="code">Ref</span> instance. For example, from a Product instance <span class="code">p</span> you may get all orders related to it by typing <span class="code">p.orders</span>. The consult view uses this feature and displays it:</p>
+
+    <p align="center"><img src="img/refs9.png"></p>
+
+    <p>Rendering of backward references is currently less polished than forward references. If, for any reason, you don't want a backward reference to be visible, you can simply configure it like any other widget: <span class="code">back=Ref(attribute='orders', show=False)</span></p>
+
+    <p>Until now, all examples are done using the "admin" user. So for example all actions that one may trigger on objects (edit, delete, change order of references, etc) are enabled. We will present the security model that underlies Plone and gen later on; then we will be able to configure security.</p>
+
+    <p>For references, 2 more parameters allow to customize the way they are rendered: the boolean <span class="code">showHeaders</span> and <span class="code">shownInfo</span>. Let's consider again the consult view for a client (5 pictures above: gold client "Gaetan Delannay"). Beyond order's titles, I would like to display their description, too, in another column. But If I have several columns, it would be nice to get some columns headers. You may achieve the desired result by changing the definition of the field <span class="code">orders</span> this way:</p>
+
+    <p class="code">
+    &nbsp;&nbsp;orders = Ref(Order, add=True, link=False, multiplicity=(0,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='client'), showHeaders=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',))<br/>
+    </p>
+
+    <p><span class="code">showHeaders</span> simply tells gen to display or not headers for the table; <span class="code">shownInfo</span> specifies (in a list or tuple) names of fields to display for the referenced objects. By default, field <span class="code">title</span> is always displayed; you don't have to specify it in <span class="code">shownInfo</span>. Here's the result:</p>
+
+    <p align="center"><img src="img/refs10.png"></p>
+
+    <p>The <span class="code">shownInfo</span> parameter may also be used with <span class="code">Ref</span>s specifying <span class="code">link=True</span>. For <span class="code">Ref</span> field <span class="code">products</span> of class <span class="code">Order</span>, specifying <span class="code">shownInfo=('description',)</span> will produce this, when creating a new <span class="code">Order</span>:</p>
+
+    <p align="center"><img src="img/refs10b.png"></p>
+
+    <p>The title/name of the referred object always appears; here, the <span class="code">description</span> also appears. If you want the <span class="code">title</span> to appear at a different place, simply specify it in the <span class="code">shownInfo</span> parameter. For example, specifying <span class="code">shownInfo=('description','title')</span> will produce:</p>
+
+    <p align="center"><img src="img/refs10c.png"></p>
+
+    <p> By adding parameter <span class="code">wide=True</span>, <span class="code">Ref</span> tables take all available space. Returning to the previous example, specifying this parameter will produce this:</p>
+
+    <p align="center"><img src="img/refs11.png"></p>
+
+    <p>When using <span class="code">shownInfo</span>, you may specify any field name, including <span class="code">Ref</span> fields. If you specify <span class="code">shownInfo=('description', 'products')</span> for the field <span class="code">orders</span> of class <span class="code">Client</span> and modify rendering of field <span class="code">products</span> from class <span class="code">Order</span> this way:</p>
+
+    <p class="code">
+    <b>class</b> Order:<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    &nbsp;&nbsp;products = Ref(Product, add=False, link=True, multiplicity=(1,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='orders'), showHeaders=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',))
+    </p>
+
+    <p>You will get this result:</p>
+
+    <p align="center"><img src="img/refs12.png"></p>
+
+    <p>If, for field <span class="code">products</span>, <span class="code">add=True</span> was specified, on this screen you would have been able to add directly new products to orders through specific "plus" icons:</p>
+
+    <p align="center"><img src="img/refs13.png"></p>
+
+    <p>Let's consider again attribute <span class="code">products</span> of class <span class="code">Order</span> (with <span class="code">add=False</span> and <span class="code">link=True</span>). When specifying this, gen allows every <span class="code">Order</span> to be associated with any <span class="code">Product</span> defined in the whole Plone site (in this case, <span class="code">Product A</span>, <span class="code">Product B</span> and <span class="code">Product C</span>):</p>
+
+    <p align="center"><img src="img/refs14.png"></p>
+
+    <p>You may want to filter only some products instead of gathering all defined products. The <span class="code">select</span> parameter may be used for this. Here is an example:</p>
+
+    <p class="code">
+    <b>class</b> Order:<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    &nbsp;&nbsp;<b>def</b> filterProducts(self, allProducts):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;return [f <b>for</b> f <b>in</b> allProducts <b>if</b> f.description.find('Descr') != -1]<br/>
+    &nbsp;&nbsp;products = Ref(Product, add=False, link=True, multiplicity=(1,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='orders'), showHeaders=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',), select=filterProducts)<br/>
+    </p>
+
+    <p>This silly example only selects products whose description contains the word "Descr", which is only the case for Products <span class="code">Product B</span> and <span class="code">Product C</span>. So the "Products" widget will not contain <span class="code">Product A</span> anymore:</p>
+
+    <p align="center"><img src="img/refs15.png"></p>
+
+    <p>The use of the <span class="code">select</span> attribute may cause performance problems for large numbers of objects; an alternative attribute may appear in the future.</p>
+
+    <h1><a name="computed"></a>Computed fields</h1>
+
+    <p>If you want to define a field whose value is not hardcoded in the database, but depends on some computation, then you must use a <span class="code">Computed</span> field. Computed fields have two main purposes:</p>
+
+    <ul>
+      <li>displaying fields whose values are computed from other fields or other data (like the "reference" of an item, that includes some elements like a category's acronym, a year, etc);</li>
+      <li>producing nice representations of a field (for example, the computation may produce a graphical representation of the field value).</li>
+    </ul>
+
+    <p>Because computed fields, like any other field, may be displayed on dashboards, it allows you to make the latters even more appealing! (please note how good I am at marketing gen)</p>
+
+    <p>Let's try it on our example. Suppose we want to produce nice references for orders, based on some random number (yes, it would have been better to use some incremental number: it it really easy to do this with gen, but you need to know how to customize the configuration panel, which is explained later). We need to define a field <span class="code">number</span> that will hold the order number and will be invisible. Then, we will define a <span class="code">Computed</span> field named <span class="code">reference</span> that will produce the reference based on some prefix and the order number. Class <span class="code">Order</span> need to be updated like this:</p>
+
+    <p class="code">
+    <b>class</b> Order:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;number = Float(show=False)<br/>
+    &nbsp;&nbsp;<i># Reference field</i><br/>
+    &nbsp;&nbsp;<b>def</b> getReference(self): <b>return</b> 'OR-%f' % self.number<br/>
+    &nbsp;&nbsp;reference = Computed(method=getReference)<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> created:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>import</b> random<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.number = random.random()<br/>
+    </p>
+
+    <p>Method <span class="code">onEdit</span> is used to generate the order number when the order is created. The <span class="code">reference</span> field is a <span class="code">Computed</span> field: parameter <span class="code">method</span> specifies the Python method that will compute the field value. In this case, this value is simply the order <span class="code">number</span> with some prefix. Now, let's create this order and see what happens:</p>
+
+    <p align="center"><img src="img/computed1.png"></p>
+
+    <p><span class="code">Computed</span> fields do not appear on edit views, only on consult views. Clicking on "Save" will bring you to the following consult view:</p>
+
+    <p align="center"><img src="img/computed2.png"></p>
+
+    <p>Like any other field, <span class="code">Computed</span> fields may appear on <span class="code">Ref</span> fields or on dashboards. For example, if we change the definition of <span class="code">Ref</span> field <span class="code">orders</span> on class <span class="code">Client</span> this way:</p>
+
+    <p class="code">
+    <b>class</b> Client:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;orders = Ref(Order, add=True, link=False, multiplicity=(0,None),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='client'), showHeaders=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('reference', 'description', 'products'), wide=True)<br/>
+    </p>
+
+    <p>order references will appear on the corresponding consult view:</p>
+
+    <p align="center"><img src="img/computed3.png"></p>
+
+    <p>Python methods specified in attribute <span class="code">with</span> may return HTML code.</p>
+
+    <h1><a name="actions"></a>Actions</h1>
+
+    <p>Actions are special fields that allow to trigger functions. For the moment, they are represented as buttons and are shown only on consult views (not on edit views). Let's take an example. Suppose we modify class <span class="code">Product</span> this way:</p>
+
+    <p class="code">
+    <b>class</b> Product:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    &nbsp;&nbsp;stock = Integer()<br/>
+    &nbsp;&nbsp;<b>def</b> needOrder(self): <b>return</b> self.stock &lt; 3<br/>
+    &nbsp;&nbsp;<b>def</b> orderProduct(self): self.stock = 3<br/>
+    &nbsp;&nbsp;order = Action(action=orderProduct, show=needOrder)<br/>
+    </p>
+
+    <p>Firstly, we have added attribute <span class="code">stock</span>, that allows us to know how many <span class="code">Product</span> items we have in stock. Then, we have added a dummy action named <span class="code">order</span> that allows us to re-order a product when the stock is too low. Suppose we have defined this product:</p>
+
+    <p align="center"><img src="img/actions1.png"></p>
+
+    <p>Because the stock is lower than 3, the <span class="code">order</span> action (every action is defined as an instance of <span class="code">appy.gen.Action</span>) is visible (because of parameter <span class="code">show</span> of action <span class="code">order</span>). The triggered behaviour is specified by a Python method given in parameter <span class="code">action</span>. In this silly example, the action as the direct effect of setting stock to value 3. Clicking on button "order" will have this effect:</p>
+
+    <p align="center"><img src="img/actions2.png"></p>
+
+    <p><span class="code">stock</span> is equal to 3; the <span class="code">order</span> action is not visible anymore (because the method specified in parameter <span class="code">show</span> returns <span class="code">False</span>.</p>
+
+    <p>Considering actions as "fields" is quite different from other frameworks or standard Plone. This has several advantages:</p>
+
+    <ul>
+      <li>You may reuse the security machinery linked to fields;</li>
+      <li>You may render them where you want, on any page/group, on <span class="code">Ref</span> fields, or on dashboards.</li>
+    </ul>
+
+    <p>Note that the <span class="code">action</span> parameter may hold a list/tuple of Python methods instead of a single method (like in the previous example).</p>
+
+    <p>In the example, you've seen that a standard message was rendered: "The action has been successfully executed.". If you want to change this message, please read the <a href="genCreatingAdvancedClasses.html#i18n">section on i18n</a> first. In fact, for every action field, gen generates 2 i18n labels: <span class="code">[full_class_name]_[field_name]_action_ok</span> and <span class="code">[full_class_name]_[field_name]_action_ko</span>. The first is rendered when the action succeeds; the second one is rendered when the action fails. The action succeeds when the Python method given in the <span class="code">action</span> parameter:</p>
+
+    <ul>
+      <li>returns nothing (or <span class="code">None</span>) (it was the case in the example);<li>
+      <li>returns the boolean value <span class="code">True</span> or any Python equivalent.</li>
+    </ul>
+
+    <p>The action fails when the Python method returns <span class="code">False</span> or if it raises an exception. In this latter case, the exception message is part of the rendered message.</p>
+
+    <p>If the <span class="code">action</span> parameter specifies several Python methods, the action succeeds if all Python methods succeed.</p>
+
+    <p>If you need to render different messages under different circumstances, the 2 labels generated by gen may not be sufficient. This is why a Python method specified in an <span class="code">action</span> parameter may return a 2-tuple instead of <span class="code">None</span>, <span class="code">True</span> or <span class="code">False</span>. The first element of this tuple determines if the method succeeded or not (<span class="code">True</span> or <span class="code">False</span>); the second element is a string containing the specific message to render. If this latter must be i18n'ed, you can create your own i18n label and use the method <span class="code">translate</span> as described <a href="genCreatingAdvancedClasses.html#i18n">here</a> (near the end of the section). In the case of multiple Python methods, messages returned are concatenated.</p>
+
+    <p>The installation procedure for your gen-application is defined as an action. More information about this <a href="genCreatingAdvancedClasses.html#customToolAndFlavour">here</a>.</p>
+
+    <p>In future gen releases, you will be able to define an icon as an alternative way to render the action. We will also add the concept of action <i>parameters</i>.</p>
+
+    <h1><a name="objectStorage"></a>Some thoughts about how gen-controlled objects are stored</h1>
+
+    <p>Remember that the ZODB is a kind of folder hierarchy; the Plone site itself is a "folderish" object within that hierarchy. For every gen-application, a folder is created within the Plone site object. All objects created through this application (with the exception of objects tied to the application "configuration", more info <a href="genCreatingAdvancedClasses.html#customToolAndFlavour">here</a>) will be created within this folder.</p>
+
+    <p align="center"><img src="img/objectStorage1.png"></p>
+
+    <p>This screenshot shows the ZMI (Zope Management Interface) available at http://localhost:8080/manage. You see that within the <span class="code">Appy</span> object (which is a Plone site) you have, among some predefined Plone objects like <span class="code">MailHost</span> or <span class="code">Members</span>, 2 folders named <span class="code">ZopeComponent</span> and <span class="code">Zzz</span>. Each of these 2 folders correspond to a gen-application that has the same name. Those folders are an Appy adaptation of the Plone standard content type named "Large Plone Folder", which is used for storing a large number of objects. If you click on this folder you will see its content (=all objects created through the corresponding gen-application). For several reasons, you may want to put more structure among this folder. Firstly, if you reach a large number of objects, it could lead to performance problems. Secondly, if you use the standard Plone "navigation" portlet, you will see in it all your objects in a single long and unstructured list under a single folder entry named according to your application. The solution is to tell gen that some classes are "folderish". You simply tell this by specifying <span class="code">folder=True</span> on your class. Suppose you do this on class <span class="code">Client</span>:</p>
+
+    <p class="code">
+    <b>class</b> Client:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;folder = True<br/>
+    &nbsp;&nbsp;title = String(show=False)<br/>
+    &nbsp;&nbsp;firstName = String()<br/>
+    &nbsp;&nbsp;...
+    </p>
+
+    <p>If now I start from a database with 3 products and 1 client and I add a new order I will get this:</p>
+
+    <p align="center"><img src="img/objectStorage2.png"></p>
+
+    <p>You see in the "navigation" portlet on the left that "Gaetan Delannay" is now a folder that "contains" the order "First order".</p>
+
+    <p>Note that instances of classes tagged with <span class="code">root=True</span> will always be created in the root application folder.</p>
+  </body>
+
+</html>

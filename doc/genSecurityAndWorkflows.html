@@ -1,0 +1,371 @@
+<html>
+  <head>
+    <title><b>gen</b> - Security and workflows</title>
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+    <h1><a name="principles"></a>The principles</h1>
+
+    <p>The security model behinds gen-applications is similar to what Zope and Plone offer; simply, gen tries to simplify the way to declare and manage security within your applications. According to this model, <b>users</b> are put into <b>groups</b>; groups have some <b>roles</b>; roles are granted basic <b>permissions</b> on objects (create, read, write, delete, etc). Permissions-to-roles mappings may vary according to the <b>state</b> of objects.</p>
+
+    <h1><a name="noMorePrinciples"></a>Yes! We are done with the principles</h1>
+
+    <p>In this chapter, we will use the <span class="code">ZopeComponent</span> example, first introduced <a href="gen.html">here</a> and refined <a href="genCreatingAdvancedClasses.html">here</a>. Our company developing Zope 3 components hires some lucky managers: they understand almost nothing to Zope but they are well paid. Then, there are some project leaders, still lucky and incompetent. Finally, one or two guys are Zope/Python developers.</p>
+
+    <p>According to the principles introduced above, we will begin by creating some users. Although the standard Plone interface for managing users, groups and roles is not perfect, gen has not (yet?) re-worked it; we will then use it now. In a standard Plone site, users register themselves. We need to change this setting in order to create users ourselves. Log in to Plone as administrator, go to "Site setup" and click on "Portal settings" and configure the "password policy" this way:</p>
+
+    <p align="center"><img src="img/workflow1.png"></p>
+
+    <p>Now, go to "Users and Groups Administration" (still in "Site setup") and add the following users using the button "add new user" (do not check "Send a mail with the password" and enter a dummy email):</p>
+
+    <table>
+      <tr>
+        <th>User Name</th>
+        <th>Password</th>
+      </tr>
+      <tr>
+        <td>sydney</th>
+        <td>sydney</th>
+      </tr>
+      <tr>
+        <td>ludovic</th>
+        <td>ludovic</th>
+      </tr>
+    </table>
+
+    <p>Now, we need groups. Guess what? We will not create groups. Why? Because gen will generate groups automatically for you!</p>
+
+    <p>Now that we have users and groups, it is time to create roles. Guess what? We will not do it. Why? Because it is simply not needed. gen will scan your code and find every role you mention and will create them automatically at the Zope/Plone level if they do not exist yet. We will use the following roles:</p>
+
+    <table>
+      <tr>
+        <th>role name</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">ZManager</td>
+        <td>Manager in our company that creates Zope components</td>
+      </tr>
+      <tr>
+        <td class="code">ZLeader</td>
+        <td>Project leader in our company</td>
+      </tr>
+      <tr>
+        <td class="code">ZDeveloper</td>
+        <td>Zope/Python developer</td>
+      </tr>
+    </table>
+
+    <p>gen will create one group for every role defined in your application; the group will be granted only the corresponding role. Note that we will probably not use the role <span class="code">ZDeveloper</span>. Indeed, developers work. They will probably not use a management tool. Now, let's tackle permissions. Again, it is not needed to create permissions (at least now): gen provides the following default permissions:</p>
+
+    <table>
+      <tr>
+        <th>name</th>
+        <th>corresponding code object</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td>create</td>
+        <td class="code">-</td>
+        <td>Permission to create an object</td>
+      </tr>
+      <tr>
+        <td>read</td>
+        <td class="code">appy.gen.r</td>
+        <td>Permission to access/view the content (=field values) of an object</td>
+      </tr>
+      <tr>
+        <td>write</td>
+        <td class="code">appy.gen.w</td>
+        <td>Permission to edit/modify the content (=field values) of an object</td>
+      </tr>
+      <tr>
+        <td>delete</td>
+        <td class="code">appy.gen.d</td>
+        <td>Permission to delete an object</td>
+      </tr>
+    </table>
+
+    <p>All the security ingredients are now ready (users, groups, roles and permissions): we will now see how to use them to define security on a gen-application.</p>
+
+    <h1><a name="createPermission"></a>Managing the <span class="code">create</span> permission</h1>
+
+    <p>Permission to <span class="code">create</span> objects is done at 2 levels. First, you may define a global list of roles that will, by default, be allowed to create any object of any class in your gen-application. In our company, <span class="code">ZLeader</span>s are responsible for creating Zope components. You declare this global list in attribute <span class="code">defaultCreators</span> of your <span class="code">appy.gen.Config</span> instance introduced while <a href="genCreatingAdvancedClasses.html#i18n">presenting i18n</a>:</p>
+
+    <p class="code">
+    c = Config()<br/>
+    c.languages = ('en', 'fr')<br/>
+    c.defaultCreators += ['ZLeader']<br/>
+    </p>
+
+    <p>Why do I write <span class="code">+=</span> and not <span class="code">=</span> ? Because the <span class="code">defaultCreators</span> attribute is already initialised with this list of default Plone roles: <span class="code">['Manager', 'Owner']</span>. <span class="code">Manager</span> is the role granted to any Plone/Zope administrator (like the <span class="code">admin</span> user we have used in our examples so far); <span class="code">Owner</span> is a special role that is granted to the user that created a given object.</p>
+
+    <p>Defining default creator roles for every class of your application may not be subtle enough. This is why gen allows you do it per class, with static attribute <span class="code">creators</span>. For example, you may use this attribute on class ZopeComponent:</p>
+
+    <p class="code">
+    class ZopeComponent:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;creators = c.defaultCreators + ['ZLeader']<br/>
+    </p>
+
+    <p>With this piece of code, <span class="code">Manager</span>s and <span class="code">ZLeader</span>s will be able to create <span class="code">ZopeComponent</span>s; only <span class="code">Manager</span>s will be able to create instances of other classes in your application (provided no specific <span class="code">creators</span> attribute is defined on them). Note that the <span class="code">creators</span> attribute infringes the classical rules of class inheritance: If you have non abstract classes <span class="code">A</span> and <span class="code">B(A)</span>, defining attribute <span class="code">creators</span> on <span class="code">A</span> will have absolutely no effect on <span class="code">B</span>.
+
+    <h1><a name="workflows"></a>Managing all other permissions: defining workflows</h1>
+
+    <p>For granting all other permissions (like read, write and delete, in short <span class="code">r, w, d</span>), we will not use the same approach as for the <span class="code">create</span> permission. Indeed, the permissions-to-roles mapping for a given object may depend on its <i>state</i>. For example, at some point in the object's life, we would like some users to be able to edit it; after a while (once the object has been validated by a manager, for example), we would like to prevent further modifications (at least for persons having certain roles). This is why we will use the concept of <i>workflow</I> as provided by Zope and Plone. This concept is simple: for a given gen-class, you may define several <i>states</i> (like "created", "validated", "ongoing" or whatever you want); for every state, you define a permissions-to-role mapping (while an object is in this state, what roles are granted what permissions on that object?). Finally, you need to decide what will be the <i>initial</i> state of the object and what are the valid state changes (= <i>transitions</i>).</p>
+
+    <p>Workflows are defined on a per-class basis. At present, if you don't define any workflow for one of your gen-classes, a default workflow provided by Plone will be used. As Plone is not really made for building web applications, this workflow will probably not be relevant for your class (it is a workflow for publishing web pages on a collaborative web site, with states like "under creation", "under validation" or "published"). In future gen releases, I will probably add an attribute <span class="code">defaultWorkflow</span> in the <span class="code">Config</span> instance and even provide some kind of web-application-minded default workflow (with some states like "active" and "inactive"). Hey I realize that it is useful to write documentation! It forces you to explore in a systematic way every aspect of the thing you have developed! Is it the birth of a new quality paradigm? Beuaaahhrk: I have written the word "quality".</p>
+
+    <p>So let's define a simple workflow for our class <span class="code">ZopeComponent</span>. Until now our class looks like this:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponent:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;<b>def</b> showDate(self):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> True<br/>
+    &nbsp;&nbsp;<b>def</b> validateDescription(self, value):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;res = True<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> value.find('simple') != -1:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = self.translate('zope_3_is_not_simple')<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> res<br/>
+    &nbsp;&nbsp;description = String(editDefault=True)<br/>
+    &nbsp;&nbsp;technicalDescription = String(format=String.XHTML,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;validator=validateDescription)<br/>
+    &nbsp;&nbsp;status = String(validator=['underDevelopement', 'stillSomeWorkToPerform',<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;'weAreAlmostFinished', 'alphaReleaseIsBugged', 'whereIsTheClient'],<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;optional=True, editDefault=True)<br/>
+    &nbsp;&nbsp;funeralDate = Date(optional=True)<br/>
+    &nbsp;&nbsp;responsibleBunch = Ref(BunchOfGeek, multiplicity=(1,1), add=False,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;link=True, back=Ref(attribute='components'))<br/>
+    </p>
+
+    <p>Field <span class="code">status</span> seems to be a kind of workflow embryo. So we will remove it and create a workflow whose states will look like values of this field:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentWorkflow:<br/>
+    &nbsp;&nbsp;<i># Roles</i><br/>
+    &nbsp;&nbsp;zManager = 'ZManager'<br/>
+    &nbsp;&nbsp;zLeader = 'ZLeader'<br/>
+    &nbsp;&nbsp;managerM = (zManager, 'Manager')<br/>
+    &nbsp;&nbsp;leaderM = (zLeader, 'Manager')<br/>
+    &nbsp;&nbsp;everybody = (zManager, zLeader, 'Manager')<br/>
+    &nbsp;&nbsp;<i># States</i><br/>
+    &nbsp;&nbsp;created = State({r:leaderM, w:leaderM, d:leaderM}, initial=True)<br/>
+    &nbsp;&nbsp;validated = State({r:everybody, w:everybody, d:None})<br/>
+    &nbsp;&nbsp;underDevelopment = State({r:everybody, w:leaderM, d:None})<br/>
+    &nbsp;&nbsp;whereIsTheClient = State({r:everybody, w:managerM, d:None})<br/>
+    &nbsp;&nbsp;<i># Transitions</i><br/>
+    &nbsp;&nbsp;validate = Transition( (created, validated), condition=managerM )<br/>
+    &nbsp;&nbsp;startDevelopment = Transition( (validated, underDevelopment),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;condition=leaderM)<br/>
+    &nbsp;&nbsp;cancelDevelopment = Transition( (underDevelopment, whereIsTheClient),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;condition=managerM)<br/>
+    &nbsp;&nbsp;cancel = Transition( ( (whereIsTheClient, underDevelopment),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;(underDevelopment, validated),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;(validated, created)), condition='Manager')<br/>
+    <br/>
+    <b>class</b> ZopeComponent:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;workflow = ZopeComponentWorkflow<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>21 lines of code for the workflow ! (including 3 lines of comments and several lines splitted because of this silly 80-characters-length constraint). Sorry, the states do not correspond exactly to the values of the removed status <span class="code">field</span>; this is because I felt myself guilty about being so ironic.</p>
+
+    <p>Like gen-classes, gen-workflows do not inherit from any base class provided by gen. Simply, static fields are instances of classes provided by gen like <span class="code">appy.gen.State</span> and <span class="code">appy.gen.Transition</span>. gen will decide if your class is a gen-class or a gen-workflow by analysing its static attributes. So please avoid creating hybrid classes mixing field definitions (<span class="code">String</span>, <span class="code">Ref</span>, etc) and workflow definitions (<span class="code">State</span>, <span class="code">Transition</span>, etc).</p>
+
+    <p>As shown in the last lines of the example, associating a gen-workflow to a gen-class is done through the <span class="code">workflow</span> attribute of a gen-class. The same workflow may be associated to different gen-classes. A gen-class defining no workflow inherits from a potential workflow association defined on a parent.</p>
+
+    <p>Let's analyse the workflow in itself. We begin by putting some roles in variables. It is not really necessary (this is not a role "registration" at all); I do it in order to avoid writing syntax errors within role names because it would lead to the creation of silly roles.</p>
+
+    <p>Then, we have the definitions of states. The first paramater is the permissions-to-roles mapping, that indicates, for every permission defined on the associated class, what role(s) have the permission. This parameter is a dictionary whose keys are permissions (remember that <span class="code">r</span>, <span class="code">w</span>, and <span class="code">d</span> correspond to read, write and delete permissions; I can use them as is because of the clause <span class="code">from appy.gen import *</span>) and whose values are, as suggested by the example, either a tuple/list of roles, a single role, or <span class="code">None</span>. For example, when the component is <span class="code">underDevelopment</span>, only project leaders (and administrators) may modify them; when it is in state <span class="code">whereIsTheClient</span>, only managers (and administrators) may edit them. As soon as a component is <span class="code">validated</span>, nobody may delete it: permission <span class="code">d</span> is granted to <span class="code">None</span> (=nobody). The parameter <span class="code">initial=True</span> indicates that the first state is the one the object gets as soon as it is created. Avoid specifying this for more than one state.</p>
+
+    <p>Definitions of transitions are based on state definitions. Indeed, when defining a transition, the first parameter is a 2-tuple <span class="code">(startState, endState)</span>. So a transition is simply a specified way to go to from one state to the other. Additional parameter <span class="code">condition</span> specifies under what circumstances the transition may be "triggered". In the example, only persons having roles <span class="code">Manager</span> or <span class="code">ZManager</span> are allowed to trigger transition <span class="code">validate</span>, that will change object state from <span class="code">created</span> to <span class="code">validated</span>. It is also possible to define <i>multi-transitions</i>, which are transitions having multiple 2-tuples <span class="code">(startState, endState)</span> (grouped in one big tuple) like transition <span class="code">cancel</span>. Multi-transitions may be seen as a shortcut that allows you to write several similar transitions in only one. In the example, <span class="code">cancel</span> transitions are used to "go backward", if a user triggered a transition by error.</p>
+
+    <p>Such a workflow is called a <i>state machine</i>. The following diagram represents the workflow defined above.</p>
+
+    <p align="center"><img src="img/workflow2.png"></p>
+
+    <p>Other frameworks allow you to define your workflows this way, with tools like ArgoUML. This is the case for ArchGenXML for example. I have been a ArchGenXML user for 2 years, and this is why I decided to create a code-based approach for defining workflows in gen. Why? As <a href="gen.html">already mentioned</a>, working with a UML model gives you an additional dependency (towards a tool and a format), prevents collaborative work, cut &amp; paste or more powerful subtleties like multi-transitions or workflow inheritance (see below). Moreover, a model is (when you compare it with code) a much poorer way to describe things. It abstracts a lot of "details", that you are forced to add in an unnatural way (like defining permissions-to-roles mappings in UML tagged values that you can't represent on the diagram), or, worse, that you can't simply put in the model (like the actions triggered by the workflow or specific conditions that you define with Python methods, like explained hereafter). The conclusion is: when using a model approach, you are always forced to complete it with a code approach (this is what happens typically with ArchGenXML: specific actions and conditions are written in additional Python scripts. It implies spreading and duplicating information about the workflow, augmenting complexity and the maintainability effort. That said, diagrams may represent a good way to <i>communicate</i> your ideas. This is why we plan to integrate in future gen releases the possibility to generate diagrams from gen-workflows and gen-classes.</p>
+
+    <h1><a name="grantingRoles"></a>Granting roles</h1>
+
+    <p>In order to see our workflow at work, we need to perform a last action: granting roles to our users. Because gen managed automatically groups, roles, and their links, the only action we need to perform is to put <span class="code">sidney</span> and <span class="code">ludovic</span> in the right groups.</p>
+
+    <p>Re-generate your product, restart Zope, go to "Site setup", re-install your Plone product, go to "Site setup" -> "Users and Groups Administration" and click on tab "groups". You will get this screen:</p>
+
+    <p align="center"><img src="img/workflow3.png"></p>
+
+    <p>Groups "Administrators" and "Reviewers" are default Plone groups. Your gen-application has added groups "ZManager_group" and "ZLeader_group": each one has the corresponding role. Click on "ZManager_group": there is nobody in it. Click on "show all": Ludovic and Sidney appear. Check the checkbox besides Sydney and add her to the group. In a similar way, add Ludovic to group "ZLeader_group".</p>
+
+    <p>We will first walk through the application as user <span class="code">admin</span>, as usual. According to the workflow, <span class="code">admin</span>, as <span class="code">Manager</span>, is God: he can do everything. Besides this pleasant feeling, it will allow us to trigger all workflow transitions.</p>
+
+    <p>Because role <span class="code">Manager</span> may add <span class="code">ZopeComponent</span> instances (thanks to <span class="code">Config.defaultCreators</span>), on the dashboard, the "plus" icon is available in tab "Zope component". Create a new Zope component: the consult view will look like this:</p>
+
+    <p align="center"><img src="img/workflow4.png"></p>
+
+    <p>Besides the component title, its state appears (here: "Created"). According to the workflow, the only possible transition to trigger from this state is <span class="code">validate</span>; as <span class="code">Manager</span> I have the right to trigger it, so the corresponding button appears on the bottom of the page. Please enter a nice comment in the field and click on button "validate": the component will go in state <span class="code">validated</span> as dictated by the workflow. The consult view has now evolved accordingly:</p>
+
+    <p align="center"><img src="img/workflow5.png"></p>
+
+    <p>Component state is now "Validated". I have expanded the plus icon "History": all workflow actions triggered on the component appear in a table, with the (optional) comments entered by the triggering user(s). Again, according to the workflow, 2 actions may now be triggered, and I have te rights to trigger both: 2 new buttons appear... I guess you understand now how the workflow works: try now by yourself, walk through the state machine by triggering available actions and see how the history evolves.</p>
+
+    <p>The following screenshot shows how the dashboard may evolve according to permissions:</p>
+
+    <p align="center"><img src="img/workflow6.png"></p>
+
+    <p>Because the workflow says that nobody may delete Zope components once they are validated, the delete icon is not available for component named "New component". By the way, you can display the workflow state in the dashboard: go to the corresponding flavour, click on tab "user interface" and, for class <span class="code">ZopeComponent</span>, select "workflow state" in field "Columns to display while showing query results".</p>
+
+    <p>Now, please log out (a link is available in the top-right corner, within the blue strip) and log in as <span class="code">ludovic</span>. Because <span class="code">ZLeader</span>s are among default creators, as Ludovic we may create a new Zope component. If you do so, you will then get a consult view like this one:</p>
+
+    <p align="center"><img src="img/workflow7.png"></p>
+
+    <p>No workflow action is shown because Ludovic has not the right to validate the component. Reconnect now as Sidney. First of all, let's view the dashboard as it is shown to her:</p>
+
+    <p align="center"><img src="img/workflow8.png"></p>
+
+    <p>Sidney is not among <span class="code">ZopeComponent</span> <span class="code">creator</span>s, so the "plus" icon is not shown in the corresponding tab. Moreover, according to the workflow, she does not have the right to modify components in state "Created": the "pen" icon is not available for component "Aaaa". But if you go to the consult view for this component, Sidney will be able to <span class="code">validate</span> it:</p>
+
+    <p align="center"><img src="img/workflow9.png"></p>
+
+    <p>We have now finished our first security tour. An important remark is that we have granted roles "globally" to groups: any user of the group has always the globally granted role, under all circumstances, on any related object in your gen-application. In our example, Ludovic and all potential other project leaders have the right to edit all <span class="code">created</span> components. This may not be the desired behaviour. Maybe would you prefer any project leader to be able to edit his own components but not components created by other project leaders. This is where "local roles" come into play. A local role is a role that a user or group has, but only on a given object. The default Plone role "Owner" is an example of local role: this is not a role that you grant "globally" to a user or group (like the ones shown in tab "groups" or "users" of "Site setup -> Users and Groups Administration"); this is a role that is granted on an object to the user that created it. You may of course reference local roles within gen-workflows. For example, if you want to restrict component modifications to <span class="code">Owner</span>s and <span class="code">Manager</span>s when the component is <span class="code">created</span>, you may modify the workflow state <span class="code">created</span> like this:</p>
+
+    <p class="code">created = State({r:leaderM, w:('Owner', 'Manager'), d:leaderM}, initial=True)
+    </p>
+
+    <p>Re-generate your product and re-install it. The Plone procedure for re-installing a product updates the workflow definition but does not update the permissions-to-roles mappings defined on existing objects. In order to synchronize them with the new workflow definition, you need to go, through the ZMI, in object "portal_workflow" within your Plone site. At the bottom of the page, you will find a button "Update security settings". Click on it. This may take a long time if you have a large number of objects in your database. In future gen releases, you will be able to re-install your product directly from your tool. This specific procedure will ask you if you want to "Update workflow settings on existing objects" or not.</p>
+
+    <p>Now, log in as Ludovic. Consider the following dashboard as seen by him:</p>
+
+    <p align="center"><img src="img/workflow10.png"></p>
+
+    <p>Components "ZC1" and "Aaaa" were created by <span class="code">admin</span>: Ludovic may not edit them. He can only edit the one he has created itself (= the last one in the table).</p>
+
+    <p>In future gen releases, you will be able to define and manage "custom" local roles.</p>
+
+    <h1><a name="conditionsAndActions"></a>Conditions and actions linked to transitions</h1>
+
+    <p>Until now, we have seen that, as transition <span class="code">condition</span>, you can specify role(s) (one, as a string, or a tuple of roles). You can also specify Python method(s) the same way, and even mix roles and Python methods. Specified Python method(s) must belong to your gen-workflow (or one of its parents, yes, we will soon talk about workflow inheritance!). With such methods, more complex conditions may be defined. Let's show it by refining our previous example. Suppose that components can be <span class="code">validated</span> only if a funeral date (which is not a mandatory field) has been specified. Transition <span class="code">validate</span> need to evolve:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentWorkflow:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;<b>def</b> funeralOk(self, obj): <b>return</b> obj.funeralDate<br/>
+    &nbsp;&nbsp;validate = Transition( (created, validated), condition=managerM + (funeralOk,))<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>It means that beyond having one of the roles defined in <span class="code">managerM</span>, method <span class="code">funeralOk</span> must also return <span class="code">True</span> (or an equivalent value) as prerequisite for triggering transition <span class="code">validate</span>. This kind of method takes a single parameter: the related object. In short: a transition may be triggered if the user has at least one of the roles specified <i>and</i> all specified methods return <span class="code">True</span>. So gen computes an <b>or</b>-operator on roles and an <b>and</b>-operator on methods.</p>
+
+    <p>One may also define action(s) (as Python method(s)) that are executed after any transition has been triggered. Let's suppose we want to reinitialise the component <span class="code">description</span> when we start its development. This is completely silly of course. But I like to force you doing silly things, it is a pleasant feeling. So let's update transition <span class="code">startDevelopment</span>:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentWorkflow:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;<b>def</b> updateDescription(self, obj):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;obj.description = 'Description edited by my manager was silly.'<br/>
+    &nbsp;&nbsp;startDevelopment = Transition( (validated, underDevelopment),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;condition=leaderM, action=updateDescription)<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>We have specified a Python method in a new parameter named <span class="code">action</span>. Now, try to click on button "startDevelopment" and you will see the <span class="code">description</span> changing. As for conditions, actions need to be Python methods defined on the gen-workflow or one of its parents. Those methods take only one parameter: the related object. As already announced, the <span class="code">action</span> parameter may also take a list or tuple of methods instead of a single method.</p>
+
+    <h1><a name="specificFieldPermissions"></a>Specific field permissions</h1>
+
+    <p>Until now, we have considered security as an homogeneous layer encompassing a whole gen-class: when someone may read or write objects of a gen-class, she may read or write <i>any field</i> on this object. In some cases, though, we may need to be more subtle, and define specific read or write permissions on individual fields. As <a href="genCreatingBasicClasses.html">already mentioned</a>, this can be done at the time of field definition, with boolean parameters <span class="code">specificReadPermission</span> and <span class="code">specificWritePermission</span>. For every field for which you do not declare using a specific read or write permission, the gen-class-wide read or write permission will come into play for protecting it.</p>
+
+    <p>Let's try it on our class <span class="code">ZopeComponent</span>. Suppose we need a specific write permission on field <span class="code">funeralDate</span> and a specific read permission on field <span class="code">responsibleBunch</span>:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponent:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;funeralDate = Date(optional=True, specificWritePermission=True)<br/>
+    &nbsp;&nbsp;responsibleBunch = Ref(BunchOfGeek, multiplicity=(1,1), add=False,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;link=True, back=Ref(attribute='components'),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;specificReadPermission=True)<br/>
+    &nbsp;&nbsp;...
+    </p>
+
+    <p>Now, in our workflow, for every state, we need to update the permissions-to-roles mapping by specifying the roles that will be granted those 2 new permissions. But first, we need a way to designate those permissions. This is done by using classes <span class="code">appy.gen.ReadPermission</span> and <span class="code">appy.gen.WritePermission</span> like this:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentWorkflow:<br/>
+    &nbsp;&nbsp;<i># Specific permissions</i><br/>
+    &nbsp;&nbsp;wf = WritePermission('ZopeComponent.funeralDate')<br/>
+    &nbsp;&nbsp;rb = ReadPermission('ZopeComponent.responsibleBunch')<br/>
+    &nbsp;&nbsp;<i># Roles</i><br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>When constructing a <span class="code">WritePermission</span> or <span class="code">ReadPermission</span> instance, you give as parameter the "path name" of the field on which the corresponding specific permission was defined. Within this "path name", you find the name of the class where the field is defined (<span class="code">ZopeComponent</span> in the example). If the workflow class and the field class are in the same package (like, in our case, <span class="code">ZopeComponentWorkflow</span> and <span class="code">ZopeComponent</span>), you can specify the "relative" class name of the field class (without prefixing it with the package name, ie <span class="code">ZopeComponent</span>). Else, you need to specify the full package name of the class (ie <span class="code">ZopeComponent.ZopeComponent.funeralDate</span>).</p>
+
+    <p>Now let's update every state definition by integrating those 2 permissions in the permissions-to-roles mappings:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentWorkflow:<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;<i># States</i><br/>
+    &nbsp;&nbsp;created = State({r:leaderM, w:('Owner', 'Manager'), d:leaderM, wf:'Owner', rb:everybody}, initial=True)<br/>
+    &nbsp;&nbsp;validated = State({r:everybody, w:everybody, d:None, wf:everybody, rb:everybody})<br/>
+    &nbsp;&nbsp;underDevelopment = State({r:everybody, w:leaderM, d:None, wf:leaderM, rb:everybody})<br/>
+    &nbsp;&nbsp;whereIsTheClient = State({r:everybody, w:managerM, d:None, wf:managerM, rb:everybody})<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>Now, re-generate your product, restart Zope and re-install the product, update the security settings on <span class="code">portal_workflow</span> and try, as <span class="code">admin</span>, to edit a component that is in state <span class="code">created</span> and was created by Ludovic. Because <span class="code">Manager</span>s have the right to modify components in this state, you will be able to get the edit view. But on this view, because you do not have the specific "edit" permission on field <span class="code">funeralDate</span> (you are not the component <span class="code">Owner</span>), the field will not show up:</p>
+
+    <p align="center"><img src="img/workflow11.png"></p>
+
+    <p>Aaaaargh! The field is visible! Impossible! How can user <span class="code">admin</span> bypass our security like this? This is the occasion to learn something about local roles: they <i>propagate</i> from a given object to its contained objects. Remember that Zope components, as root objects, are stored in a folder within the Plone site. This folder was created by the generated Plone product with the <span class="code">admin</span> user: so <span class="code">admin</span> has local role <span class="code">Owner</span> on it (and, by the way, has local role <span class="code">Owner</span> on the Plone site as well). It means that <span class="code">admin</span> will have role <span class="code">Owner</span> on all sub-objects of your Plone site. When you think about this, it is normal: <span class="code">admin</span> is God (and you are <span class="code">admin</span>).</p>
+
+    <p>In order to produce a working example, let's create a new user (let's call it <span class="code">gerard</span>) and grant him role <span class="code">Manager</span>. This way, we will get a <span class="code">Manager</span> that is not <span class="code">Owner</span> of all objects. Log in as <span class="code">gerard</span>, and go the previous edit view:</p>
+
+    <p align="center"><img src="img/workflow12.png"></p>
+
+    <p>Yes! You do not see (so you can't edit) field <span class="code">funeralDate</span>. Consult views (or dashboards) will behave similarly with read permissions: fields for which the currently logged user have no read permission will be invisible. Note that if you don't have the whole-gen-class read (write) permission, and you have a read (write) permission on one of its fields, you will not be allowed to read (write) the specific field.</p>
+
+    <p>For the moment, for every state definition, you are forced to specify a permissions-to-roles mapping that includes all related permissions (class-wide and field-specific). In future gen releases, this will change. We will implement things like: if you don't specify roles for a specific read (write) field-permission, it will take the value from the corresponding read (write) class-wide permission; unspecified values may also be copied from the previous state definition, etc. This way, as usual, you will continue to be as lazy and concise as possible while writing gen-applications.</p>
+
+    <h1><a name="workflowInheritance"></a>Workflow inheritance</h1>
+
+    <p>With gen, workflows are Python classes. This allows us to benefit from class inheritance and apply it to workflows. Our company that creates Zope components is now used to heavy technologies. They got a business revelation: some managers discovered that COBOL and Zope 3 had a lot in common on both philosophical and technical points of view. So they decided to begin creating components in COBOL. They were so excited about it that they needed to update their management software as quickly as possible. So a new class was added for registering information about COBOL components. The associated workflow was almost similar to the existing <span class="code">ZopeComponentWorkflow</span>; a new workflow inheriting from it was created:</p>
+
+    <p class="code">
+    <b>class</b> CobolComponentWorkflow(ZopeComponentWorkflow):<br/>
+    &nbsp;&nbsp;p = ZopeComponentWorkflow <i># Shortcut to workflow parent</i><br/>
+    &nbsp;&nbsp;<i># An additional state</i><br/>
+    &nbsp;&nbsp;finished = State(p.whereIsTheClient.permissions)<br/>
+    &nbsp;&nbsp;<i># Override validate: condition on funeralDate has no sense here</i><br/>
+    &nbsp;&nbsp;validate = Transition(p.validate.states, condition=p.managerM)<br/>
+    &nbsp;&nbsp;<i># Override cancelDevelopment: go to finished instead</i><br/>
+    &nbsp;&nbsp;cancelDevelopment = Transition( (p.underDevelopment, finished),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;condition=p.managerM)<br/>
+    &nbsp;&nbsp;<i># Update cancel accordingly</i><br/>
+    &nbsp;&nbsp;cancel = Transition( ((finished, p.underDevelopment),) +p.cancel.states[1:],<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;condition=p.cancel.condition)<br/>
+    <br/>
+    <b>class</b> CobolComponent:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;workflow = CobolComponentWorkflow<br/>
+    &nbsp;&nbsp;description = String()<br/>
+    </p>
+
+    <p>Basically, this new workflow "removes" state <span class="code">whereIsTheClient</span>, creates a more optimistic end state <span class="code">finished</span> and performs some surgical operations on transitions for reflecting navigation to and from the new state. For defining it, we reuse the permissions-to-roles mapping that was defined on state <span class="code">whereIsTheClient</span>. Then, we have overridden transition <span class="code">validate</span> because the condition that related to field <span class="code">funeralDate</span> is not relevant anymore (COBOL components have no funeral date). Transition <span class="code">cancelDevelopment</span> was also overridden: the end state is not <span class="code">whereIsTheClient</span> anymore, but <span class="code">finished</span> instead. We also need to override transition <span class="code">cancel</span> for updating the tuple of <span class="code">(startState, endState)</span>.</p>
+
+    <p>And we are done! You may now test the result. As for classical inheritance, it is not really possible to remove elements in a child class. So state <span class="code">whereIsTheClient</span> is still there, but unreachable because of our operations on transitions (so it is more or less the same as a deletion). Workflow inheritance ensures reuse and conciseness: any element that does not change from <span class="code">ZopeComponentWorkflow</span> is kept in the child workflow; any change made in the reused part of the parent workflow will automatically impact the child workflow(s).</p>
+
+    <h1><a name="workflowsAndi18n"></a>Workflows and i18n</h1>
+
+    <p>As usual, for every workflow state and transition, i18n labels have been automatically generated (in the <span class="code">plone</span> domain), together with a "nice" default value. The format of those labels is defined <a href="genCreatingAdvancedClasses.html#i18n">here</a>. There is still a small problem with the <span class="code">CobolComponentWorkflow</span>: the transition for finishing the work is called <span class="code">cancelDevelopment</span>. I am too lazy for creating another transition, so I will simply modify here the translation of this transition in the corresponding i18n file (=ZopeComponent-plone-en.po in this case):</p>
+
+    <p class="code">
+    <i>#. Default: "Cancel development"</i><br/>
+    <b>msgid</b> "zopecomponent_cobolcomponentworkflow_cancelDevelopment"<br/>
+    <b>msgstr</b> "Finish"<br/>
+    </p>
+
+    <p>Note that i18n labels are "duplicated" for every child workflow. Here, I modify label <span class="code">zopecomponent_<b>cobolcomponentworkflow</b>_cancelDevelopment</span> without perturbing parent label for the same transition which is <span class="code">zopecomponent_<b>zopecomponentworkflow</b>_cancelDevelopment</span>.</p>
+  </body>
+
+</html>

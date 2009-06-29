@@ -1,0 +1,1098 @@
+<html>
+  <head>
+    <title><b>gen</b> - Creating advanced classes</title>
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+    <h1><a name="classInheritance"></a>Class inheritance</h1>
+
+    <p>A gen-class may inherit from another gen-class. Suppose you work as director of human resources in a company and you need to measure employee productivity. Incredible but true: you are also a Python programmer. So you start developing a small application for managing employees. Although you are a director, you have reached a high level of wisdom (maybe due to the fact that you program in Python). So you know that there are two kinds of employees: those that work and those that don't. You decide to create 2 different classes to reflect this:</p>
+
+    <p class="code">
+    <b>class</b> Person:<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;title = String(show=False)<br/>
+    &nbsp;&nbsp;firstName = String()<br/>
+    &nbsp;&nbsp;name = String()<br/>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.title = self.firstName + ' ' + self.name<br/>
+    <br/>
+    <b>class</b> Worker(Person):<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;productivity = Integer()<br/>
+    </p>
+
+    <p>Indeed, evaluating productivity on persons that do not work has no sense. Because both <span class="code">Person</span>s and <span class="code">Worker</span>s are specified with <span class="code">root=True</span>, they become key concepts and you can create instances of both classes through the dashboard:</p>
+
+    <p align="center"><img src="img/inherit1.png"></p>
+
+    <p>The "edit" view for creating a person looks like this:</p>
+
+    <p align="center"><img src="img/inherit2.png"></p>
+
+    <p>The "edit" view for creating a worker looks like this:</p>
+
+    <p align="center"><img src="img/inherit3.png"></p>
+
+    <p>After a while, you become anxious about having 95% of the data in your database (=<span class="code">Person</span> instances) serving absolutely no purpose. Logically, you decide to register the hair color for every non-worker. You realize that you need to change your model to be able to do this:</p>
+
+    <p class="code">
+    <b>class</b> Person:</br>
+    &nbsp;&nbsp;abstract = True</br>
+    &nbsp;&nbsp;title = String(show=False)</br>
+    &nbsp;&nbsp;firstName = String()</br>
+    &nbsp;&nbsp;name = String()</br>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):</br>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.title = self.firstName + ' ' + self.name</br>
+    </br>
+    <b>class</b> Worker(Person):</br>
+    &nbsp;&nbsp;root = True</br>
+    &nbsp;&nbsp;productivity = Integer()</br>
+    </br>
+    <b>class</b> Parasite(Person):</br>
+    &nbsp;&nbsp;root = True</br>
+    &nbsp;&nbsp;hairColor= String()</br>
+    </p>
+
+    <p>With this new model, class <span class="code">Person</span> serves the single purpose of defining fields which are common to <span class="code">Worker</span>s and <span class="code">Parasite</span>s. It has no sense to create <span class="code">Person</span> instances anymore, so it becomes <i>abstract</i>. Specifying classes as abstract is as simple as adding <span class="code">abstract=True</span> in the class definition. There is no specific Python construct for declaring classes as abstract. With this new model, the dashboard evolves:</p>
+
+    <p align="center"><img src="img/inherit4.png"></p>
+
+    <p>While the "edit" view is left untouched for workers, it evolves for parasites:</p>
+
+    <p align="center"><img src="img/inherit5.png"></p>
+
+    <p>After a while, you become so excited about encoding hair colors that you would like to encode it even before encoding a parasite's name and first name. You have noticed that with gen, order of fields within the "edit" and "consult" views follows order of field declarations in the corresponding gen-classes; furthermore, fields defined in child classes appear after the fields defined in parent classes. Fortunately, the "move" parameter allows to change this default setting. Changing the <span class="code">Parasite</span> class this way produces the desired result:</p>
+
+    <p class="code">
+    <b>class</b> Parasite(Person):<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;hairColor= String(move=-2)<br/>
+    </p>
+
+    <p align="center"><img src="img/inherit6.png"></p>
+
+    <h1><a name="specialMethods"></a>Special methods</h1>
+
+    <p>When defining a gen-class, some method names are reserved. Until now, we have already encountered the method <b class="code">onEdit</b>, like in this example:</p>
+
+    <p class="code">
+    <b>class</b> Person:</br>
+    &nbsp;&nbsp;abstract = True</br>
+    &nbsp;&nbsp;title = String(show=False)</br>
+    &nbsp;&nbsp;firstName = String()</br>
+    &nbsp;&nbsp;name = String()</br>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):</br>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.title = self.firstName + ' ' + self.name</br>
+    </p>
+
+    <p>This method is called by gen every time an instance of <span class="code">Person</span> is created (be it through-the-web or through code --yes, at present we have only created instances through-the-web; it is also possible to do it through code like explained below) or modified. Besides the <span class="code">self</span> parameter (which is the newly created or modified instance), the method has one boolean parameter, <span class="code">created</span>. When an object is newly created, <span class="code">created=True</span>. When the object is modified, <span class="code">created=False</span>. Note that the method is not called when an object is modified through code (else it could lead to infinite recursion). In the example, the title of a person is updated from its name and first name every time it is created or modified.</p>
+
+    <p>Another special method is named <b class="code">validate</b>. While the field-specific <span class="code">validators</span> are used for validating field values individually, the <span class="code">validate</span> method allows to perform "inter-field" validation when all individual field validations have succeeded. Consider this extension of class <span class="code">Parasite</span>:</p>
+
+    <p class="code">
+    <b>class</b> Parasite(Person):<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;hairColor= String(move=-2)<br/>
+    &nbsp;&nbsp;<b>def</b> validate(self, new, errors):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> (new.hairColor == 'flashy') <b>and</b> (new.firstName == 'Gerard'):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;errors.hairColor = True<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;errors.firstName = "Flashy Gerards are disgusting."<br/>
+    </p>
+
+    <p>Besides the <span class="code">self</span> parameter, the <span class="code">validate</span> method has 2 parameters: <span class="code">new</span> is an object containing new values entered by the user for every visible field of the currently displayed page; <span class="code">errors</span> is an empty object waiting for your action. Every time you consider that a field has not the right value, feel free to add, to the <span class="code">errors</span> object, a new attribute whose name is the name of the erroneous field and whose value is either a text message or simply a boolean value. In the latter case, gen will render the standard error message for that field (more about error messages below). In the above example, you, as a director, felt that people whose first name is Gerard and whose hair color is too flashy are simply not allowed to work in your company. Trying to encode such a disgusting person would lead to this screen:</p>
+
+    <p align="center"><img src="img/specialMethods1.png"></p>
+
+    <p>By the way, I have changed class <span class="code">Person</span> such that the field <span class="code">name</span> is now mandatory (<span class="code">name = String(multiplicity=(1,1))</span>). So I can show you now that inter-field validation is only triggered when all individual field validations succeed. Check what happens if you don't give Gerard a name:</p>
+
+    <p align="center"><img src="img/specialMethods2.png"></p>
+
+    <p>The <span class="code">validate</span> method didn't come into play (yet...).</p>
+
+    <h1><a name="integrationWithPod"></a>Integration with pod</h1>
+
+    <p><a href="pod.html">pod (Python Open Document)</a> is another component that is part of the Appy framework. It allows to produce documents from data available to Python code. Guess what? gen is tightly integrated with pod! Until now, gen allows us to produce "web" (edit and consult) views from gen-classes. Through pod, we will now create "document" views from gen-classes, like ODT, PDF, Doc or RTF documents.</p>
+
+    <p>Let's begin with the "hello world" pod-gen integration. Suppose you want to produce a document from a given gen-class, let's say the class <span class="code">Person</span>. In this class, simply add the declaration <span class="code">pod=True</span>. Re-generate your product, re-install it through Plone (Site setup) and go the configuration panel for your application. Go to the default flavour: a new tab "document generation" has been added:</p>
+
+    <p align="center"><img src="img/genpod1.png"></p>
+
+    <p>Now, create this beautiful document with your favorite word processor and save it as "helloWorld.odt":</p>
+
+    <p align="center"><img src="img/genpod2.png"></p>
+
+    <p><span class="code">self.title</span> must be typed while the word processor is in mode "record changes". Now, go back to your browser and click on the "plus" icon for associating the POD template you just created to the class <span class="code">Person</span>:</p>
+
+    <p align="center"><img src="img/genpod3.png"></p>
+
+    <p>Save this and go to the consult view of a <span class="code">Person</span>. In the example below, I am on the consult view of a worker:</p>
+
+    <p align="center"><img src="img/genpod4.png"></p>
+
+    <p>The list of available documents one may generate from this person are visible in the top-right corner of the consult view. Here, only one document may be generated: "Secret file". Click on it and you will get this file:</p>
+
+    <p align="center"><img src="img/genpod5.png"></p>
+
+    <p>You have noticed that a class inherits from POD templates defined in its parents: the "Secret file" template was defined for class <span class="code">Person</span> and is available for <span class="code">Worker</span> and <span class="code">Parasite</span> instances. Let's add another POD template that we will build specifically for parasites. First, add <span class="code">pod=True</span> in the class <span class="code">Parasite</span>. Please add also another field to parasites (a String in XHTML format): it will allow to illustrate how to render such a field in a document. So add this line to class <span class="code">Parasite</span>:</p>
+
+    <p class="code">sordidGossips = String(format = String.XHTML)</p>
+
+    <p>Now, please create this parasite:</p>
+
+    <p align="center"><img src="img/genpod6.png"></p>
+
+    <p>Create this POD template and associate it to class <span class="code">Parasite</span> in the default flavour:</p>
+
+    <p align="center"><img src="img/genpod7.png"></p>
+
+    <p>With OpenOffice, create a note by selecting Insert->Note in the menu. The "document generation" tab in the flavour should now look like this:</p>
+
+    <p align="center"><img src="img/genpod8.png"></p>
+
+    <p>From any parasite, it is now possible to generate 2 documents:</p>
+
+    <p align="center"><img src="img/genpod9.png"></p>
+
+    <p>Clicking on "gossips" wil produce this file:</p>
+
+    <p align="center"><img src="img/genpod10.png"></p>
+
+    <p>Exhaustive documentation about writing POD templates may be found on this site (start <a href="pod.html">here</a>). You have noticed that the set of POD templates associated to a given class is specific to a given flavour. Although a POD template is associated to a class, the POD template may render a lot of information coming from a complex web of interrelated objects. Indeed, the object that is referred to as <span class="code">self</span> in the POD template is only a starting point. Our example doesn't allow to illustrate this because we have a single class which has no <span class="code">Ref</span> fields. That said, in the future we will also provide the possibility to define POD templates for rendering dashboard views. The starting point here will not be a single instance but the list of objects that is currently displayed in the dashboard.</p>
+
+    <p>What you need to know when using pod with gen is the exact <i>pod context</i> (ie the set of Python objects, variables, modules, etc) that is given by gen to your pod template. The table below presents all entries included in it.</p>
+
+    <table>
+      <tr>
+        <th>Entry</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td class="code">self</td>
+        <td>The object that is the starting point for this template.</td>
+      </tr>
+      <tr>
+        <td class="code">user</td>
+        <td>The user that is currently logged in. Its id is given by <span class="code">user.id</span>.</td>
+      </tr>
+      <tr>
+        <td class="code">podTemplate</td>
+        <td>The POD template (object) that is currently rendered. Attributes of a POD template are: <span class="code">title</span>, <span class="code">description</span>, <span class="code">podTemplate</span> (= the file descriptor to the corresponding ODT POD template), <span class="code">podFormat</span> (the output format, a string that may be <span class="code">odt</span>, <span class="code">pdf</span>, <span class="code">doc</span> or <span class="code">rtf</span>).
+        </td>
+      </tr>
+      <tr>
+        <td class="code">projectFolder&nbsp;&nbsp;</td>
+        <td>A string containing the absolute path of the folder where your gen-application resides on disk. If your gen-application is a folder hierarchy, <span class="code">projectFolder</span> is the root folder of it.</td>
+      </tr>
+    </table>
+
+    <p>In the previous examples, we have always rendered documents in <span class="code">Odt</span> format. When generating ODT, gen and pod do not need any other piece of software. If you configure a template for generating documents in <b>Adobe PDF (<span class="code">Pdf</span>)</b>, <b>Rich Text Format (<span class="code">Rtf</span>)</b> or <b>Microsoft Word (<span class="code">Doc</span>)</b>, you will need to run OpenOffice in server mode. Indeed, for producing any of these formats, pod will generate, from your POD template, an ODT file and will ask OpenOffice to convert it into PDF, DOC or RTF. Suppose you modify the ODT template named "Gossips" for producing documents in PDF instead of ODT (in the config, default flavour, tab "document generation", edit the template named "gossips" and choose "Pdf" as "Pod format"). If now you go back to the consult view for a parasite, the PDF icon will show up for the template "Gossips":</p>
+
+    <p align="center"><img src="img/genpod11.png"></p>
+
+    <p>If you click now on "Gossips", gen will produce an error page because he can't connect to OpenOffice. Please run it now as explained <a href="podRenderingTemplates.html">here</a> (section "Launching OpenOffice in server mode"). If now you retry to generate gossips, you will probably have an error again. Why? 2 main causes: (1) The Python interpreter that runs your Zope and Plone does not include the OpenOffice connectors (="UNO"); (2) You did not run OpenOffice on port 2002 which is the port configured by default in any gen-application. For solving both problems, any configuration panel of any gen-application allows you to configure 2 parameters. In the portlet of your gen-application, click on the hammer and then on the pen that lies besides the title of the application:</p>
+
+    <p align="center"><img src="img/genpod12.png"></p>
+
+    <p>In this example, the Python interpreter that runs my Zope is not UNO-compliant. So I have specified, in parameter "Uno enabled python", the path of such an interpreter. My machine runs Ubuntu: the interpreter installed at <span class="code">/usr/bin/python</span> is UNO-enabled. If you don't have Ubuntu, the simplest way is to specify the path to the UNO-enabled Python interpreter that ships with OpenOffice. When clicking on "Save", if the specified path does not correspond to an UNO-enabled Python interpreter, you will get a validation error. Change the OpenOffice port if necessary; now, when trying to get PDF gossips it should work.</p>
+
+    <p>Until now, we have uploaded POD templates in the configuration panel (for a given flavour). It is also possible to specify "file-system" POD templates through code. In fact, it is even the default behaviour. When declaring a class with <span class="code">pod=True</span>, when (re-)installing the application, gen will check on the file system if a POD template exists for this class. If yes, it will already load it. If no, it simply proposes a non-filled widget in the flavour that will allow you to upload POD templates through-the-web (this is what happened in our examples so far). Suppose that the class <span class="code">Parasite</span> lies in <span class="code">/home/gde/ZopeInstance1/lib/python/ZopeComponent.py</span>. Move your file <span class="code">gossips.odt</span> to <span class="code">/home/gde/ZopeInstance1/lib/python/Parasite.odt</span>. In the flavour, remove the existing ODT template named "Gossips" for class <span class="code">Parasite</span>. Now, reinstall you gen-application. In the same folder as where class <span class="code">Parasite</span> is defined on the file system, gen finds a file named <span class="code">&lt;class_name&gt;.odt</span> (<span class="code">&lt;class_name&gt;</span> being <span class="code">Parasite</span> in this case.) So it will load the corresponding template (for every flavour defined in your gen-application). Now, if you go back to your flavour (tab "document generation"), you will find an ODT template named "Parasite":</p>
+
+    <p align="center"><img src="img/genpod13.png"></p>
+
+    <p>Instead of writing <span class="code">pod=True</span>, you may define a list of names. Remove again the POD template named "Parasite" from the flavour. Then, on the file system, move <span class="code">Parasite.odt</span> to <span class="code">SordidGossips.odt</span> and copy it also to <span class="code">MoreGossips.odt</span> in the same folder. Then, in class <span class="code">Parasite</span>, replace <span class="code">pod=True</span> with <span class="code">pod=['SordidGossips', 'MoreGossips']</span>. Re-generate your Plone product, restart Zope and re-install your gen-application. Now go back to your flavour (tab "document generation"), you should get this:</span></p>
+
+    <p align="center"><img src="img/genpod14.png"></p>
+
+    <p>When POD templates are loaded from code, only minimalistic information is available for getting the corresponding POD template objects in the flavour: fields <span class="code">title</span> and <span class="code">podTemplate</span> (=the ODT file) are filled, but field <span class="code">description</span> is empty and field <span class="code">podFormat</span> is always <span class="code">Odt</span>. Although you may now modify all those data through-the-web, in the future gen will allow you to write things like <span class="code">pod=[PodTemplate('SordidGossips', format='odt', description='blabla'...),...]</span>. Moreover, new fields will be added to the POD template object in the flavour: a condition and a permission for restricting document generation from an ODT template to some users or under some circumstances; the possibility to define a "freeze event" (when this event occurs --typically a workflow transition--, the generated document is written in the Plone database and subsequent clicks do not compute a new document but simply download the frozen one), etc.</p>
+
+    <h1><a name="pagesAndGroups"></a>View layouts into pages and groups</h1>
+
+    <p>We already know that for each gen-class, gen creates the web "consult" and "edit" views. We also know from the page <a href="genCreatingBasicClasses.html">"Creating basic classes"</a>, that both views may be splitted into several pages if the number of widgets becomes too large; on every page, widgets may lie together into groups. It can be accomplished through attributes <span class="code">page</span> and <span class="code">group</span> that one may define on class attributes.</p>
+
+    <p>By default, all widgets are rendered on both edit and consult views on a single page which is named <span class="code">main</span> (<span class="code">main</span> is the default value for parameter <span class="code">page</span>). The default value for parameter <span class="code">group</span> is <span class="code">None</span>: by default, a widget is not rendered into a group but simply added at the end of the current page.</p>
+
+    <p>Let's consider the following example. It is an improved version of the Human Resources software developed by yourself several minutes ago (see above). I have added more fields in order to illustrate how to layout fields into pages and groups.</p>
+
+    <p class="code">
+    <b>class</b> Person:<br/>
+    &nbsp;&nbsp;abstract = True<br/>
+    &nbsp;&nbsp;pod = True<br/>
+    &nbsp;&nbsp;title = String(show=False)<br/>
+    &nbsp;&nbsp;n = 'name_3'<br/>
+    &nbsp;&nbsp;firstName = String(group=n, width=15)<br/>
+    &nbsp;&nbsp;middleInitial = String(group=n, width=3)<br/>
+    &nbsp;&nbsp;name = String(multiplicity=(1,1), group=n, width=30)<br/>
+    &nbsp;&nbsp;contractDetails = String(format=String.XHTML)<br/>
+    &nbsp;&nbsp;cia = {'page': 'contactInformation', 'group': 'address_2'}<br/>
+    &nbsp;&nbsp;street = String(**cia)<br/>
+    &nbsp;&nbsp;number = Integer(**cia)<br/>
+    &nbsp;&nbsp;country = String(**cia)<br/>
+    &nbsp;&nbsp;zipCode = Integer(**cia)<br/>
+    &nbsp;&nbsp;cio = {'page': 'contactInformation', 'group': 'numbers_3', 'width': 20}<br/>
+    &nbsp;&nbsp;phoneNumber = String(**cio)<br/>
+    &nbsp;&nbsp;faxNumber = String(**cio)<br/>
+    &nbsp;&nbsp;mobilePhone = String(**cio)<br/>
+    &nbsp;&nbsp;workPhoneNumber = String(**cio)<br/>
+    &nbsp;&nbsp;workFaxNumber = String(**cio)<br/>
+    &nbsp;&nbsp;workMobilePhone = String(**cio)<br/>
+    &nbsp;&nbsp;<b>def</b> onEdit(self, created):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.title = self.firstName + ' ' + self.name<br/>
+    <br/>
+    <b>class</b> Worker(Person):<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;productivity = Integer()<br/>
+    <br/>
+    <b>class</b> Parasite(Person):<br/>
+    &nbsp;&nbsp;root = True<br/>
+    &nbsp;&nbsp;pod = ['SordidGossips', 'MoreGossips']<br/>
+    &nbsp;&nbsp;hairColor = String(group='hairyCharacteristics')<br/>
+    &nbsp;&nbsp;sordidGossips = String(format = String.XHTML, page='Gossips')<br/>
+    &nbsp;&nbsp;parasiteIndex = String(validator=['low', 'medium', 'high'],<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;page='contactInformation', group='numbers')<br/>
+    &nbsp;&nbsp;avoidAnyPhysicalContact = Boolean(page='contactInformation')<br/>
+    &nbsp;&nbsp;<b>def</b> validate(self, new, errors):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> (new.hairColor == 'flashy') <b>and</b> (new.firstName == 'Gerard'):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;errors.hairColor = True<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;errors.firstName = "Flashy Gerards are disgusting."<br/>
+    </p>
+
+    <p>Oufti! Let's give some explanations about this bunch of lines. Attributes <span class="code">firstName</span>, <span class="code">middleInitial</span> and <span class="code">name</span> of class <span class="code">Person</span> are in group <span class="code">name</span> which will be rendered as a table having 3 columns because of the trailing <span class="code">_3</span> of <span class="code">n = 'name_3'</span>. For those fields, no page was specified; they will be rendered on the first (=<span class="code">main</span>) page. When defining several widgets in a group, the shortest way to write it is to define a dictionary (like <span class="code">cia</span> or <span class="code">cio</span>) containing common parameters (<span class="code">page</span> and <span class="code">group</span>) and use it with the <span class="code">**</span> prefix that "converts" it into parameters (like for attributes <span class="code">street</span>, <span class="code">number</span>, etc).</p>
+
+    <p>Based on this new definition, the "consult" view for a worker looks like this (main tab):</p>
+
+    <p align="center"><img src="img/pagesAndGroups1.png"></p>
+
+    <p>The page "contact information" is here:</p>
+
+    <p align="center"><img src="img/pagesAndGroups2.png"></p>
+
+    <p>Changing the layout is as simple as changing some details into your class, re-generating and restarting Zope. For example, try to render group "numbers" in 2 columns instead of 3:</p>
+
+    <p align="center"><img src="img/pagesAndGroups3.png"></p>
+
+    <p>Better ! The "edit" view renders the widgets in the same way, but uses their "editable" version instead. Here is the main page:</p>
+
+    <p align="center"><img src="img/pagesAndGroups4.png"></p>
+
+    <p>Moreover, buttons "next" and "back" are displayed when relevant. Here is the page "contact information" from the "edit" view:</p>
+
+    <p align="center"><img src="img/pagesAndGroups5.png"></p>
+
+    <p>Now, for displaying parasites, we can of course reuse some pages and groups from the parent class <span class="code">Person</span> and potentially add new pages and/or groups. In our example, attribute <span class="code">hairColor</span> was added to the main page, in a new group named <span class="code">hairyCharacteristics</span>:</p>
+
+    <p align="center"><img src="img/pagesAndGroups6.png"></p>
+
+    <p>Attribute <span class="code">sordidGossips</span> was put in a page that does not exist for workers:</p>
+
+    <p align="center"><img src="img/pagesAndGroups7.png"></p>
+
+    <p>Attribute <span class="code">parasiteIndex</span> was put in an existing group of an existing page, while <span class="code">avoidAnyPhysicalContact</span> was added to the end of an existing page outside any group:</p>
+
+    <p align="center"><img src="img/pagesAndGroups8.png"></p>
+
+    <p>Tip: try to avoid performing inter-field validation on fields that are not on the same page.</p>
+
+    <p>In the future, gen will provide specific Page and Group class descriptors that will allow to go further into the layout customization. For example, you will be able to write things like <span class="code">hairColor = String(group=Group('hairyCharacteristics', columns=['50%', '25%', '25%']))</span>.</p>
+
+    <h1><a name="toolAndFlavours"></a>The configuration panel (=Tool) and its flavours</h1>
+
+    <p>In the <a href="gen.html">introductory page about gen</a>, we have already introduced the tool and its flavours that are available in any gen-application; at several other places we have also described features involving them. In this section, we will go one step further and describe the tool and its flavours in a more systematic way (or at least give pointers to explanations given in other places).</p>
+
+    <p>We will use a gen-application named ZopeComponent.py, which contains the <span class="code">ZopeComponent</span> class as defined in <a href="gen.html">this page</a>, augmented with classes <span class="code">Person</span>, <span class="code">Worker</span> and <span class="code">Parasite</span> as defined above. Here is the portlet for this gen-application: </p>
+
+    <p align="center"><img src="img/toolAndFlavours1.png"></p>
+
+    <p>When clicking on the hammer, you are redirected to the main page of the configuration panel (we will say "tool" in the remainder of this page):</p>
+
+    <p align="center"><img src="img/toolAndFlavours2.png"></p>
+
+    <p>Before talking about flavours, let's explain the parameters that are directly visible in this page. Those parameters apply throughout your whole gen-application (for all flavours). Parameters in group "Connection to Open Office" are used for connecting Plone to OpenOffice in server mode for producing documents from gen-applications in PDF, DOC or RTF. This is already described <a href="#integrationWithPod">here</a>. The "number of results per page" is the maximum number of objects that are displayed on any dashboard page. Set this number to "4" (click on the pen besides "ZopeComponent"). Then, go back to the Plone main page (by clicking on the blue tab named "home", for example) and click on the link in the application portlet. If you created more than 4 objects, you will get a screen like this one:</p>
+
+    <p align="center"><img src="img/toolAndFlavours2b.png"></p>
+
+    <p>An additional banner in the bottom of the page allows to browse the next/previous objects. Finally, the boolean parameter "Show workflow comment field" allows to display or not a field allowing you to introduce a comment every time you trigger a workflow transition on an object. Workflows and security are covered in more detail in the next page. When enabled (which is the default), on every main page (consult view) of every object you will get a field besides the buttons for triggering transitions, like this:</p>
+
+    <p align="center"><img src="img/toolAndFlavours2c.png"></p>
+
+    <p>Clicking on any of these buttons will trigger a transition on the object; if you have entered a comment in the field it will be stored as comment for the transition.</p>
+
+    <p>Let's come back to the flavours. As already explained, the tool defines a series of flavours. Every flavour is a given set of configuration options that will apply to a subset of all objects in your application. In order to illustrate this, let's create a second flavour by clicking on the "plus" icon. Name it "Free components":</p>
+
+    <p align="center"><img src="img/toolAndFlavours3.png"></p>
+
+    <p>Rename the first flavour "Proprietary components" to get this:</p>
+
+    <p align="center"><img src="img/toolAndFlavours4.png"></p>
+
+    <p>The portlet was updated accordingly:</p>
+
+    <p align="center"><img src="img/toolAndFlavours5.png"></p>
+
+    <p>Clicking on "Free components" will retrieve no object at all:</p>
+
+    <p align="center"><img src="img/toolAndFlavours6.png"></p>
+
+    <p>Indeed, all objects created so far were created for the flavour renamed "Proprietary components". Before entering into the details of flavours, you need to get a more precise explanation about the "dashboard". As you can see from the previous screenshot, the dashboard proposes one "tab" for every "root" class (defined with <span class="code">root=True</span>, more info <a href="genCreatingBasicClasses.html">here</a>) and one tab (named "consult all" by default) for consulting all instances of all root classes. Clicking on the tab of a given root class displays all instances of this class; clicking on the "plus icon" related to this tab brings you to a form that will allow you to create a new instance of this class. Any dashboard page displays a table that contains one row per object. All those tables have at least 2 columns: <span class="code">title</span> (object title is also called "name") and "actions" (this column presents actions that one may perform on objects (edit, delete, etc). The example below shows the dashbord page for zope components:</p>
+
+    <p align="center"><img src="img/toolAndFlavours7.png"></p>
+
+    <p>The dashboard page "consult all" contains one more column containing the type or class the object belongs to:</p>
+
+    <p align="center"><img src="img/toolAndFlavours8.png"></p>
+
+    <p>Now let's talk about flavours. Indeed, within a given flavour (in tab "user interface"), you may add new columns to dashboard pages. In this tab, for every root class, a listbox allows you to choose zero, one or more class attributes (this list contains an additional special attribute which represents workflow state) for displaying them into the dashboard. In flavour "Proprietary software", go to the "edit" view of this tab, select the values as shown below (keep the "control" key pressed for selecting multiple values) and click on "save":</p>
+
+    <p align="center"><img src="img/toolAndFlavours9.png"></p>
+
+    <p>Now, check how dashboard pages have evolved. For example, the dashboard for Zope components looks like this now:</p>
+
+    <p align="center"><img src="img/toolAndFlavours10.png"></p>
+
+    <p>This change only impacts a given flavour. If you create a Zope component among "Free components", you will get the default dashboard page:</p>
+
+    <p align="center"><img src="img/toolAndFlavours11.png"></p>
+
+    <p>When using additional columns this way, the "consult all" tab may also evolve. In fact, if an attribute with a given name is selected as dashboard column for every root class, it will also appear in the tab "consult all". This can be useful when root classes all inherit from a parent class for example.</p>
+
+    <p>Every flavour also contains a tab "document generation". A detailed explanation about this tab can be found <a href="#integrationWithPod">here</a>, so I will not explain it further in this section.</p>
+
+    <h2><a name="optional"></a>parameter <span class="code">optional</span></h2>
+
+    <p>When introducing parameters common to all fields (check <a href="genCreatingBasicClasses.html">here</a>), we have introduced field <span class="code">optional</span>. When a field is defined as <span class="code">optional</span>, it may or not be used from flavour to flavour. Let's take an example. Please modify class <span class="code">ZopeComponent</span> and add parameter <span class="code">optional=True</span> to attributes <span class="code">status</span> and <span class="code">funeralDate</span>. Re-generate your application, restart Zope and re-install the corresponding Plone product. Now, in every flavour, you have the possibility to use or not those fields. Go for example to flavour "Free components". A new tab "data" appears (it groups all parameters that customize the conceptual model behind your application). Edit this tab and select both fields:</p>
+
+    <p align="center"><img src="img/toolAndFlavours12.png"></p>
+
+    <p>In flavour "Proprietary components", do the same but select only field "status".</p>
+
+    <p>In flavour "Free components", for every Zope component, both fields appear (on the "edit" and "consult" views). Here is the consult view, for example:</p>
+
+    <p align="center"><img src="img/toolAndFlavours13.png"></p>
+
+    <p>In flavour "Proprietary components", for every Zope component, the field <span class="code">funeralDate</span> does not appear anymore. Here is the edit view, for example:</p>
+
+    <p align="center"><img src="img/toolAndFlavours14.png"></p>
+
+    <p>Making fields <span class="code">optional</span> or not has no impact in the Zope database. All fields are always present, but simply hidden in all views if <span class="code">optional=False</span>. It means that you may easily change your mind and decide at any time to start using a optional field for a given flavour.</p>
+
+    <h2><a name="editDefault"></a>parameter <span class="code">editDefault</span></h2>
+
+    <p>When introducing parameters common to all fields (check <a href="genCreatingBasicClasses.html">here</a>), we have introduced field <span class="code">editDefault</span>. In a lot of situations, we need default values for fields. But in some cases, instead of "hard-coding" the default value (in the Python code) it is preferable to have the possibility to modify this default value throug-the-web. This will happen with gen, on a per-flavour basis, for every field declared with <span class="code">editDefault=True</span>: a new widget will appear in every flavour for editing the default value.</p>
+
+    <p>Let's illustrate this with an example. For class <span class="code">ZopeComponent</span>, add parameter <span class="code">editDefault=True</span> to attributes <span class="code">description</span> and <span class="code">status</span>. Re-generate your application, restart Zope and re-install the corresponding Plone product. Now, in every flavour (tab "data"), widgets were added. Go for example to flavour "Free components" and edit this tab this way:</p>
+
+    <p align="center"><img src="img/toolAndFlavours15.png"></p>
+
+    <p>If you try to create a new Zope component in flavour "Free components" you will get this "pre-filled" form:</p>
+
+    <p align="center"><img src="img/toolAndFlavours16.png"></p>
+
+    <h2><a name="customToolAndFlavour"></a>Customizing the Tool and its flavours</h2>
+
+    <p>Until now, we have seen all Tool and Flavour attributes managed by gen itself. If you want to add your own attributes, you can also do it. This way, the Tool and its flavours may become the unique configuration panel for your whole application. Beyond some simple configuration options that one may edit through-the-web, one interesting use case justifying tool and flavour customization is the definition, through <span class="code">Ref</span> attributes added to your custom Tool or Flavour, of some "global" objects, typically controlled by a limited number of power-users, that are referred to by user-defined, "root-class-like" objects.</p>
+
+    <p>Let's illustrate it first by defining a custom <span class="code">Tool</span>. We will use our <span class="code">ZopeComponent</span> example. Suppose that the company that creates those components is organized into bunches of geeks. Every component is developed under the responsibility of a bunch. We first need a class for defining bunches:</p>
+
+    <p class="code">
+    <b>class</b> BunchOfGeek:<br/>
+    &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
+    </p>
+
+    <p>Creating a custom tool is as simple as inheriting from class <spanc class="code">appy.gen.Tool</span>:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentTool(Tool):<br/>
+    &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
+    &nbsp;&nbsp;bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;link=False, back=Ref(attribute='backToTool'),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',))<br/>
+    </p>
+
+    <p>In this tool, I have created a dummy attribute for storing some configuration option as a <span class="code">String</span>, and a <span class="code">Ref</span> attribute that will, at the Tool level, maintain all bunches defined in our company.</p>
+
+    <p>Now please modify class <span class="code">ZopeComponent</span> by adding a <span class="code">Ref</span> attribute that will allow to assign the component to a given bunch:</p>
+
+    <p class="code">
+    &nbsp;&nbsp;responsibleBunch = Ref(BunchOfGeek, multiplicity=(1,1), add=False,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;link=True, back=Ref(attribute='components'))<br/>
+    </p>
+
+    <p>Pshhhhhhhhhh! 9 new lines of code, my synapses are melting. Again: re-generate, re-start Zope and re-install the Plone product. Then, go to the Tool: our 2 new attributes are there!</p>
+
+    <p align="center"><img src="img/toolAndFlavours17.png"></p>
+
+    <p>Create a bunch of bunches of geeks:</p>
+
+    <p align="center"><img src="img/toolAndFlavours18.png"></p>
+
+    <p>Now, go to the dashboard for flavour "Proprietary components" and edit a given Zope component. In the edit view, a new field allows you to select the responsible bunch. You can choose among your 3 bunches.</p>
+
+    <p align="center"><img src="img/toolAndFlavours19.png"></p>
+
+    <p>Now, go to flavour "Free components" and try to edit a given Zope component. Aaargh! For field "responsible bunch" the selection box is empty! Why? Remember that flavours are a way to partition your application objects into independent sets, each one having its own configuration. But what about instances of <span class="code">BunchOfGeek</span>? To what set do they belong? You have found the answer: all objects you define at the <span class="code">Tool</span> level (through <span class="code">Ref</span> attributes) belong to the "set" defined by the first flavour that gen creates when your gen-application comes to life. It means that bunches of geeks should be defined at the flavour level and not at the tool level. In a lot of situations, though, you will have a single flavour; in this case, all your global objects may reside at the Tool level.</p>
+
+    <p>We will now transform our example in order to define bunches of geeks at the flavour level. First, delete from your tool the 3 bunches you have created. Then, move attribute <span class="code">bunchesOfGeeks</span> from your custom tool to a new custom Flavour:</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentTool(Tool):<br/>
+    &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
+    <br/>
+    <b>class</b> ZopeComponentFlavour(Flavour):<br/>
+    &nbsp;&nbsp;anIntegerOption = Integer()<br/>
+    &nbsp;&nbsp;bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;link=False, back=Ref(attribute='backToTool'),<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',), page='data')<br/>
+    </p>
+
+    <p>Notice an additional small change: within the flavour, the attribute will be present in page <span class="code">data</span>, which is one of the default flavour pages. Re-generate, blablah... Then, this page for every <span class="code">Flavour</span> will look like this:</p>
+
+    <p align="center"><img src="img/toolAndFlavours20.png"></p>
+
+    <p>Now, let's create 2 bunches for every flavour. Create or edit a Zope component within flavour "Free components". Field "Responsible bunch" will only be filled with the ones you have created within this flavour.</p>
+
+    <p>As you may have noticed, the default <span class="code">Tool</span> class defines only one page (the <span class="code">main</span> page). Feel free to add pages to your custom tool. The default <span class="code">Flavour</span> class defines the following pages; within your custom flavour, you may either add fields to those existing pages (like in the previous example) or add your own pages.</p>
+
+    <table>
+      <tr>
+        <th>Page name</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td class="code">main</td>
+        <td>By default, the main Flavour page (corresponding to the left-most tab) only shows the Flavour name and a link to go back to the Tool.</td>
+      </tr>
+      <tr>
+        <td class="code">documentGeneration&nbsp;&nbsp;</td>
+        <td>All stuff tied to generation of documents from POD templates.</td>
+      </tr>
+      <tr>
+        <td class="code">data</td>
+        <td>Configuration options related to the conceptual model behind your application. Usage of optional fields or default editable values are configured through this page for example.</td>
+      </tr>
+      <tr>
+        <td class="code">userInterface</td>
+        <td>Configuration options related to the way your gen-application looks. Columns displayed in the dashboards are configured here for example.</td>
+      </tr>
+    </table>
+
+    <p>When defining fields on custom tools and flavours, some parameters have no sense. This is the case for all parameters enabling "configurability", like <span class="code">editDefault</span>, <span class="code">optional</span>, etc: you can't meta-configure (=configure the configuration). If you try to use those parameters on fields defined on custom tools and flavour they will be ignored by gen.</p>
+
+    <p>Now that we know everything about tools and flavours, we may give more precisions about object storage, first introduced in the previous <a href="genCreatingBasicClasses.html#objectStorage">page</a>. The tool for your application, be it customized or not, corresponds to a Zope object that lies directly within the object corresponding to your Plone site. You may see it from the ZMI:</p>
+
+    <p align="center"><img src="img/toolAndFlavours21.png"></p>
+
+    <p>The name of the <span class="code">Tool</span> object is based on your application name. Here, within the Plone <span class="code">Appy</span> site, the tool corresponding to the application named <span class="code">ZopeComponent</span> is called (=has id) <span class="code">portal_zopecomponent</span>. Furthermore, you see that flavours are folders contained within the tool. Every object created through <span class="code">Ref</span> fields associated to a tool or flavour will be stored within the folder that corresponds to this tool or flavour. For example, you may verify that bunches of geeks are stored within their corresponding flavour.</p>
+
+    <h1><a name="objectsFromCode"></a>Manipulating objects from code</h1>
+
+    <p>Until now, we have already encountered several places where we manipulate objects from code (ie within an <span class="code">onEdit</span> method) or from POD templates, for, i.e., getting or setting field values. You deserve more explanations about those objects. The truth is: they are not real instances of the classes you define in your application. Why?</p>
+
+    <p>"Real" objects are created and managed by Zope (remember: we use Zope as underlying framework). But those objects are complex and squeezed, their interface is ugly and contains an incredible number of methods inherited from dozens of Zope classes. Yes, I know, I am responsible for the choice of Zope for Appy. Understand me: Zope already implements a lot of interesting things like security. In order to preserve Appy developers from Zope complexity I decided to create some nice, simple, minimalistic wrappers around Zope objects. When you manipulate objects, the truth is that you manipulate instances of those wrappers.</p>
+
+    <p>The nice news about wrapper classes is that they inherit from your gen-classes. So you are always able to use on objects/wrappers the methods you have defined in your classes. But they also inherit from a wrapper class that inherits itself from other wrappers (like wrappers corresponding to parent classes of your gen-class if relevant) and ultimately from an abstract root <span class="code">AbstractWrapper</span> class. If you are curious, you may consult all wrapper definitions which are generated in <span class="code">[yourZopeInstance]/Products/[yourApplicatonName]/Extensions/appyWrappers.py</span>.</p>
+
+    <p>This "wrapper mechanism" abstracts the Appy developer from the underlying technology. It means that gen could potentially run with other Python-based frameworks than Zope/Plone. The gen architecture is ready for integrating other code generators; but for the moment, only one generator has been written (the Plone generator).</p>
+
+    <p>Pragmatically, what you need to know is the following. For every Appy field defined in a gen-class, the corresponding wrapper class contains a Python <i>property</i> (more info <a href="http://docs.python.org/library/functions.html?highlight=property#property" target="_blank">here</a>) that has the same name, for which a <i>getter</i> function is defined. Every time you write a thing like:</p>
+
+    <p class="code">self.bunchesOfGeeks</p>
+
+    <p>The getter function is triggered behind the scenes and queries the real Zope object for getting the expected result. After it, the function may potentialy adapt the result before giving it to you. In this example, every "Zope" bunch of geeks is wrapped and you get a list of <span class="code">BunchOfGeek</span> wrappers. This way, you always manipulate wrappers and you may forget everything about the cruel Zope world.</p>
+
+    <p>Doing the same thing on a <span class="code">Computed</span> field will trigger the machinery you have defined for computing the field; you will simply get the result!</p>
+
+    <p>For setting field values on Zope objects, wrappers override the standard Python method <span class="code">__setattr__</span> (more info <a href="http://docs.python.org/reference/datamodel.html?highlight=__setattr__#object.__setattr__" target="_blank">here</a>; it did not work by defining a <i>setter</i> through on the Python property). Again, when writing things like</p>
+
+    <p class="code">self.title = self.firstName + ' ' + self.name</p>
+
+    <p>field <span class="code">title</span> of the corresponding Zope object is updated through a real, behind-the-scenes call to the corresponding Zope method.</p>
+
+    <p>If you are an experienced Zope developer and you feel nostalgic about manipulating real Zope objects, or if you believe that in some situations the wrapping mechanism may constitute a potential performance problem, Appy still allows you to manipulate real Zope objects directly. Suppose <span class="code">self</span> represents a wrapper; writing </p>
+
+    <p class="code">self.o</span>
+
+    <p>gives you the real Zope object. In these pages I will not document Zope objects because I am in the process of trying to forget everything about them.</p>
+
+    <p>Beyond getters and setters, Appy wrappers give you plenty of nice attributes and methods for manipulating your objects. The following table shows you available attributes (or Python properties).</p>
+
+    <table>
+      <tr>
+        <th>field name</th>
+        <th>writable?</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">tool</td>
+        <td>No</td>
+        <td>From any wrapper, you may access the application tool through this property.</td>
+      </tr>
+      <tr>
+        <td class="code">session</td>
+        <td>Yes</td>
+        <td>Gives you access to the Zope "session" object. By "writable" I mean you may put things into it (this is a dict-like object), but don't try to replace this object with anything else.</td>
+      </tr>
+      <tr>
+        <td class="code">typeName</td>
+        <td>No</td>
+        <td>Gives you a string containing the name of the gen-class tied to this object.</td>
+      </tr>
+      <tr>
+        <td class="code">id</td>
+        <td>No</td>
+        <td>The id of the underlying Zope object.</td>
+      </tr>
+      <tr>
+        <td class="code">state</td>
+        <td>No</td>
+        <td>The current workflow state of the object (as a string value).</td>
+      </tr>
+      <tr>
+        <td class="code">stateLabel&nbsp;&nbsp;</td>
+        <td>No</td>
+        <td>The translated label of the current workflow state.</td>
+      </tr>
+      <tr>
+        <td class="code">klass</td>
+        <td>No</td>
+        <td>The Python class (=gen-class) related to this class. Indeed, because the instances you manipulate in the code inherit from special wrappers, writing <span class="code">self.__class__</span> will give you a wrapper class. So write <span class="code">self.klass</span> instead.</td>
+      </tr>
+    </table>
+
+    <p>The following table shows you available methods.</p>
+
+    <table>
+      <tr>
+        <th>method name</th>
+        <th>parameters</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">create</td>
+        <td class="code">fieldName, **kwargs</td>
+        <td>Creates a new object and links it to this one through <span class="code">Ref</span> field having name <span class="code">fieldName</span>. Remaining parameters <span class="code">**kwargs</span> are used for initialising fields of the newly created object. Here is an example, inspired from the one described above. Suppose that, in every flavour, a bunch of geeks called "Escadron de la mort" must absolutely be present: it includes the best geeks that you use for debugging the most critical Zope components. So every time you create or edit a flavour, you need to ensure that this bunch is there. If not, you will create it automatically. Code for class <span class="code">ZopeComponentFlavour</span> must evolve this way:
+          <p class="code">
+          <b>class</b> ZopeComponentFlavour(Flavour):<br/>
+          &nbsp;&nbsp;anIntegerOption = Integer()<br/>
+          &nbsp;&nbsp;bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;link=False, back=Ref(attribute='backToTool'),<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',), page='data')<br/>
+          &nbsp;&nbsp;<b>def</b> onEdit(self, created):<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> 'Escadron de la mort' <b>not in</b> [b.title <b>for</b> b <b>in</b> self.bunchesOfGeeks]:<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.create('bunchesOfGeeks', title='Escadron de la mort',<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description='I want those guys everywhere!')<br/>
+          </p>
+        The <span class="code">create</span> method creates the bunch, and appends it to the existing bunches (if any): it does not remove the existing bunches. The <span class="code">create</span> method returns the newly created object. In this example I don't need it so I don't put the method result into some variable.
+          </td>
+      </tr>
+      <tr>
+        <td class="code">link</td>
+        <td class="code">fieldName, obj</td>
+        <td>Links the existing object <span  class="code">obj</span> to the current one through <span  class="code">Ref</span> field <span  class="code">fieldName</span>. Already linked objects are not unlinked. This method is used by method <span class="code">create</span> but may also be used independently.</td>
+      </tr>
+    </table>
+
+    <p>For setting <span class="code">Ref</span> fields, please use the <span class="code">create</span> and <span class="code">link</span> methods instead of the predefined setters which may not work as expected.</p>
+
+    <h2>Manipulating tools and flavours from code</h2>
+
+    <p><span class="code">Tool</span> and <span class="code">Flavour</span> objects, be they customized or not, adopt the same "wrapper" mechanism as described above. In this section, we will simply explain how to get/set programmatically the predefined fields that gen generates automatically on tools and flavours. The following table presents the names of the predefined attributes defined on any <span class="code">Tool</span>:</p>
+
+    <table>
+      <tr>
+        <th>field name</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">flavours</td>
+        <td>The list of flavours defined in this tool.</td>
+      </tr>
+      <tr>
+        <td class="code">unoEnabledPython</td>
+        <td>The path to a potential UNO-enabled Python interpreter (for connecting to Open Office in server mode).</td>
+      </tr>
+      <tr>
+        <td class="code">openOfficePort</td>
+        <td>The port on which OpenOffice runs in server mode.</td>
+      </tr>
+      <tr>
+        <td class="code">numberOfResultsPerPage</td>
+        <td>The maximum number of results shown on any dashboard page.</td>
+      </tr>
+      <tr>
+        <td class="code">listBoxesMaximumWidth</td>
+        <td>The maximum width of listboxes managed by gen (the ones used for displaying the list of objets which are available through <span class="code">Ref</span> fields defined with <span class="code">link=True</span>, for example).</td>
+      </tr>
+      <tr>
+        <td class="code">showWorkflowCommentField&nbsp;&nbsp;</td>
+        <td>The boolean indicating if the field for entering comments when triggering a worflow transition must be shown or not.</td>
+      </tr>
+    </table>
+
+    <p>For flavours, things are a little more complex. Imagine we have, throughout our gen-application, 25 fields parameterized with <span class="code">editDefault=True</span> in 6 classes. The corresponding attributes that hold the default values in the flavours have an ugly name that includes the full package name of the class. Instead of forcing you to remember this obscure naming convention, a nice method defined on the <span class="code">Flavour</span> class allows to retrieve this attribute name:</p>
+
+    <table>
+      <tr>
+        <th>method name</th>
+        <th>parameters</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">getAttributeName&nbsp;&nbsp;</td>
+        <td class="code">attributeType, klass, attrName=None</td>
+        <td>This method generates the attribute name based on <span class="code">attributeType</span>,
+           a <span class="code">klass</span> from your gen-application, and an <span class="code">attrName</span> (given only if needed, for example if <span class="code">attributeType</span> is <span class="code">defaultValue</span>). <span class="code">attributeType</span> may be:<br/><br/>
+          <table>
+            <tr>
+              <td class="code">defaultValue</td>
+              <td>Attribute that stores the editable default value for a given <span class="code">attrName</span> of a given <span class="code">klass</span></td>
+            </tr>
+            <tr>
+              <td class="code">podTemplates</td>
+              <td>Attribute that stores the POD templates that are defined for a given <span class="code">klass</span></td>
+            </tr>
+            <tr>
+              <td class="code">resultColumns</td>
+              <td>Attribute that stores the list of columns that must be shown on the dashboard when displaying instances of a given root <span class="code">klass</span></td>
+            </tr>
+            <tr>
+              <td class="code">optionalFields</td>
+              <td>Attribute that stores the list of optional attributes that are in use in the current flavour for the given <span class="code">klass</span></td>
+            </tr>
+          </table><br/>
+          Here is an example. Suppose you want to modify programmatically, on a given <span class="code">flavour</span>, the list of columns that are shown on the dashboard that present <span class="code">ZopeComponent</span>s. You can do it this way:
+
+          <p class="code">
+          attrName = flavour.getAttributeName('resultColumns', ZopeComponent)<br/>
+          columns = ['status', 'funeralDate', 'responsibleBunch']<br/>
+          setattr(flavour, attrName, columns)<br/>
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <p>Besides flavour attributes having oscure names, some attributes have a normal name:</p>
+
+    <table>
+      <tr>
+        <th>field name</th>
+        <th>writable?</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">number</td>
+        <td>No</td>
+        <td>The flavour number.</td>
+      </tr>
+    </table>
+
+    <p>When choosing field and method names for your gen-classes, try to avoid using names corresponding to fields or methods from base Appy classes (wrappers, tool, flavours).</p>
+
+    <h2><a name="install"></a>Defining a custom installation procedure</h2>
+
+    <p>When (re-)installing your gen-application, you may want to initialize it with some data or configuration options. You do this by specifying a special <a href="genCreatingBasicClasses.html#actions">action</a> named <span class="code">install</span> on your customized tool, like in the example below (the <span class="code">ZopeComponent</span> application).</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponentTool(Tool):<br/>
+    &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
+    &nbsp;&nbsp;<b>def</b> onInstall(self):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;self.someUsefulConfigurationOption = 'My app is configured now!'<br/>
+    &nbsp;&nbsp;install = Action(action=onInstall)<br/>
+    </p>
+
+    <p>Re-generate your gen-application, re-start Zope, log in as administrator and go to site setup->Add/Remove products. Your product wil look like this (it needs re-installation):</p>
+
+    <p align="center"><img src="img/toolAndFlavours22.png"></p>
+
+    <p>Re-install your product and go to the consult view of your configuration panel. The install action has been executed:</p>
+
+    <p align="center"><img src="img/toolAndFlavours23.png"></p>
+
+    <p>Moreover, because your installation procedure is an <span class="code">action</span>, you may trigger your custom installation procedure via the available "install" button.</p>
+
+    <p>Note that actions defined on custom tools or flavours are well suited for importing data or executing migration scripts (so actions may, in a certain sense, represent a way to replace the notion of "profiles" available in Plone. Actions are easier to trigger because they can be displayed anywhere on your tool, flavour or on any gen-class).</p>
+
+    <h1><a name="i18n"></a>i18n (internationalization)</h1>
+
+    <p>gen-applications benefit from an automated support for i18n. How does it work? First of all, you need to declare what language(s) need to be supported in your gen-application. This is done through the creation, anywhere in your gen-application, of an instance of class <span class="code">appy.gen.Config</span>:</p>
+
+    <p class="code">
+    <b>from</b> appy.gen <b>import</b> Config<br/>
+    c = Config()<br/>
+    c.languages = ('en', 'fr')<br/>
+    </p>
+
+    <p>By configuring your <span class="code">Config</span> instance this way, you tell gen to support English and French. If you don't do this, only English is supported by default.</p>
+
+    <p>Every time you (re-)generate your gen-application, i18n files are created or updated in the corresponding generated Plone product. With the above settings, gen will generate the following files, in <span class="code">[yourZopeInstance]/Products/[yourApplication]/i18n</span> (the product here is named <span class="code">ZopeComponent</span>):</p>
+
+    <p class="code">
+    ZopeComponent.pot<br/>
+    ZopeComponent-en.po<br/>
+    ZopeComponent-fr.po<br/>
+    </p>
+
+    <p><span class="code">ZopeComponent.pot</span> contains all i18n <i>labels</i> generated for your application, together with their default values (in English). English translations are in <span class="code">ZopeComponent-en.po</span>, while French translations are in <span class="code">ZopeComponent-fr.po</span>.</p>
+
+    <p>The format of these files is quite standard in the i18n world. Le'ts take a look to the beginning of <span class="code">ZopeComponent.pot</span>:</p>
+
+    <p class="code">
+    <b>msgid</b> ""<br/>
+    <b>msgstr</b> ""<br/>
+    "Project-Id-Version: ZopeComponent\n"<br/>
+    "POT-Creation-Date: 2008-12-12 14:18-46\n"<br/>
+    "MIME-Version: 1.0\n"<br/>
+    "Content-Type: text/plain; charset=utf-8\n"<br/>
+    "Content-Transfer-Encoding: 8bit\n"<br/>
+    "Plural-Forms: nplurals=1; plural=0\n"<br/>
+    "Language-code: \n"<br/>
+    "Language-name: \n"<br/>
+    "Preferred-encodings: utf-8 latin1\n"<br/>
+    "Domain: ZopeComponent\n"<br/>
+    </p>
+
+    <p>An interesting general information here is the domain name (last line) which is <span class="code">ZopeComponent</span>. Indeed, Plone structures translations into <i>domains</i>. A domain is a group of translations that relate to a bunch of functionality or to a given Plone component. gen creates a specific domain for every gen-application. In the example, domain <span class="code">ZopeComponent</span> has been created. Why do I explain this to you? Really, I don't know. With gen, you don't care about i18n domains, gen manages all this boring stuff for you. Sorry. Mmh. Let's continue to analyse the file. In the (very similar) headers of the English and French translation files (<span class="code">ZopeComponent-en.po</span> and <span class="code">ZopeComponent-fr.po</span>), the important thing that is filled is the code and name of the supported language (parameters <span class="code">Language-code</span> and <span class="code">Language-name</span>).</p>
+
+    <p>After this header, you will find a list of <i>labels</i>. In the <span class="code">pot</span> file, every label is defined like this one:</p>
+
+    <p class="code">
+    #. Default: "Funeral date"<br/>
+    <b>msgid</b> "ZopeComponent_ZopeComponent_funeralDate"<br/>
+    <b>msgstr</b> ""<br/>
+    </p>
+
+    <p>In every related <span class="code">po</span> file, you will find the same entry. Translating a gen-application is as simple as editing, for every <span class="code">po</span> file, every <span class="code">msgstr</span> line for every i18n label. If you don't fill a given <span class="code">msgstr</span>, the default value will be used. You may insert HTML code within <span class="code">msgstr</span> entries.</p>
+
+    <p>The i18n machinery of Plone works this way: every time Zope/Plone encounters an i18n label in a web page (or part of it), it tries to find, in the language specified by the web browser, a translation in the corresponding <span class="code">po</span> file (or a cached version of it; if you change the translations in the <span class="code">po</span> files you need to restart Zope or refresh, through the ZMI, the corresponding "catalog object" Zope has created in <span class="code">Root Folder/Control_Panel/TranslationService</span>). Plone and Appy-generated web pages do not "hard-code" any translation; they always consult Zope i18n catalog objects. So after having translated all labels in all <span class="code">po</span> files, changing your browser language and refreshing a given page will produce the same page, fully translated in the new specified language.</p>
+
+    <p>gen creates and maintains <span class="code">pot</span> and <span class="code">po</span> files itself. So gen implements the same functionality as tools like <i>i18dude</i>. You don't need such tools to manage i18n files of gen-applications. Although i18n files are stored in the generated Plone product, they will never be deleted by triggering a code (re-)generation. gen will potentially complete the files but will never delete them.</p>
+
+    <p>Now, you need to know the meaning of every label gen creates and maintains in the po(t) file(s), and at what place(s) they are used within the generated edit and consult views (or in the dashboards, etc). The following table explains this. Dynamic parts used in labels (like <span class="code">[className]</span>) are explained in yet another table below. For every label, the default value is specified. For the majority of labels, gen proposes a "nice" default value. For example, field <span class="code">responsibleBunch</span> will have default value <span class="code">Responsible bunch</span>; class <span class="code">BunchOfGeeks</span> will have default value <span class="code">Bunch of geeks</span>. The "nice" algorithm tries simply to recognize camel-cased words and separates them.</p>
+
+    <table>
+      <tr>
+        <th>label "pattern"</th>
+        <th>usage</th>
+        <th>default value</th>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]</td>
+        <td>The label of the Appy field of a given gen-class. It appears on both edit and consult views, as widget label. For example, field <span class="code">funeralDate</span> of class <span class="code">ZopeComponent</span> in ZopeComponent.py will produce label <span class="code">ZopeComponent_ZopeComponent_funeralDate</span>.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_descr</td>
+        <td>A description associated to a given Appy field. It appears on the edit view, between the widget label and the widget. Here is an example of a field shown on an edit view, with a label and description.<br/>
+          <img src="img/i18n1.png"/>
+        </td>
+        <td>empty</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_list_[fieldValue]</td>
+        <td>When defining a <span class="code">String</span> field with a list of values as <span class="code">validator</span>, such a label is created for every value of this list. Consider the following field declaration (in class <span class="code">ZopeComponent</span> from ZopeComponent.py):<br/> <span class="code">status = String(validator=['underDevelopement', 'stillSomeWorkToPerform', 'weAreAlmostFinished', 'alphaReleaseIsBugged', 'whereIsTheClient'])</span>. <br/>gen will generate 5 labels (one for each possible value). The first one will be <span class="code">ZopeComponent_ZopeComponent_status_list_underDevelopement</span>.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_valid</td>
+        <td>Error message produced when validation fails on a given field (edit view) and the validation mechanism does not return an error message.</td>
+        <td>"Please fill or correct this."</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_back</td>
+        <td>Label of a back reference. Consider the following field definition in class <span class="code">ZopeComponent</span>: <br/><span class="code">responsibleBunch = Ref(BunchOfGeek, multiplicity=(1,1), add=False, link=True, back=Ref(attribute='components'))</span><br/>
+         On the consult view related to BunchOfGeek, the label of the back reference for consulting components for which this bunch is responsible for will be <span class="code">ZopeComponent_BunchOfGeek_components_back</span>.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_action_ok</td>
+        <td>Only generated for <span class="code">Action</span> fields. Represents the message to display when the action succeeds.</td>
+        <td>"The action has been successfully executed."</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_[fieldName]_action_ko</td>
+        <td>Only generated for <span class="code">Action</span> fields. Represents the message to display when the action fails.</td>
+        <td>"A problem occurred while executing the action."</td>
+      </tr>
+      <tr>
+        <td class="code">[applicationName]</td>
+        <td>This unique label translates the name of the application. It is used as title for the application portlet.
+        </td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]</td>
+        <td>The name of a gen-class. It appears at several places (dashboard tabs, edit views, ...). This label is then "declined" into several others, suffixed with <span class="code">[_flavourNumber]</span> for flavours 2 to <i>n</i>. It means that you may name your concepts differently from one flavour to the other. For example, a class named <span class="code">Meeting</span> may be named "Government meeting" in one flavour and "Parliament meeting" in the other.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_edit_descr</td>
+        <td>The description of a gen-class. It appears on edit views, when creating instances of this class. Like the previous label, this one is then "declined" into several others, suffixed with <span class="code">[_flavourNumber]</span> for flavours 2 to <i>n</i>.</td>
+        <td>empty</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_page_[pageName]</td>
+        <td>This label is used for translating the name of a page which is not the <span class="code">main</span> page (the <span class="code">main</span> page takes the --translated-- name of the corresponding gen-class). Page names are visible on page tabs. Because this label is prefixed with the <span class="coded">className</span>, for every child class of a given class that defines pages, gen will produce an additional label prefixed with the child class name.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[className]_group_[groupName]</td>
+        <td>This label is used for translating the name of a group, used as label for group fieldsets on both edit and consult views. Because this label is prefixed with the <span class="coded">className</span>, for every child class of a given class that defines groups, gen will produce an additional label prefixed with the child class name.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[workflowName]_[stateName]</td>
+        <td>This label is used for translating the name of a workflow state. Because this label is prefixed with the <span class="code">workflowName</span>, for every child workflow of the one that defines the corresponding state, gen will produce an additional label prefixed with the child workflow name.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">[workflowName]_[transitionName]</td>
+        <td>This label is used for translating the name of a workflow transition. Because this label is prefixed with the <span class="code">workflowName</span>, for every child workflow of the one that defines the corresponding transition, gen will produce an additional label prefixed with the child workflow name.</td>
+        <td>nice</td>
+      </tr>
+      <tr>
+        <td class="code">workflow_state</td>
+        <td>Translation of term "workflow state" (used a.o. if the corresponding column is shown in a dashboard).</td>
+        <td>"state"</td>
+      </tr>
+      <tr>
+        <td class="code">root_type</td>
+        <td>Translation of term "type" used for the corresponding column on the dashboard tab "consult all".</td>
+        <td>"type"</td>
+      </tr>
+      <tr>
+        <td class="code">workflow_comment</td>
+        <td>Label of the field allowing to enter comments when triggering a workflow transition.</td>
+        <td>"Optional comment"</td>
+      </tr>
+      <tr>
+        <td class="code">choose_a_value</td>
+        <td>Translation of the "empty" value that appears in listboxes when the user has not chosen any value.</td>
+        <td>"- none -"</td>
+      </tr>
+      <tr>
+        <td class="code">min_ref_violated</td>
+        <td>Error message shown when, according to multiplicities, too few elements are selected for a <span class="code">Ref</span> field.</td>
+        <td>"You must choose more elements here."</td>
+      </tr>
+      <tr>
+        <td class="code">max_ref_violated</td>
+        <td>Error message shown when, according to multiplicities, too many elements are selected for a <span class="code">Ref</span> field.</td>
+        <td>"Too much elements are selected here."</td>
+      </tr>
+      <tr>
+        <td class="code">no_ref</td>
+        <td>Text shown when a <span class="code">Ref</span> field contains no object.</td>
+        <td>"No object."</td>
+      </tr>
+      <tr>
+        <td class="code">add_ref</td>
+        <td>Text shown as tooltip for icons that allow to add an object through a <span class="code">Ref</span> field.</td>
+        <td>"Add a new one"</td>
+      </tr>
+      <tr>
+        <td class="code">ref_name</td>
+        <td>When displaying referenced objects for a <span class="code">Ref</span> field with <span class="code">showHeaders=True</span>, this label translates the title of the first column (=name or title of the referenced object).</td>
+        <td>"name"</td>
+      </tr>
+      <tr>
+        <td class="code">ref_actions</td>
+        <td>When displaying referenced objects for a <span class="code">Ref</span> field with <span class="code">showHeaders=True</span>, this label translates the title of the last column (=actions).</td>
+        <td>"actions"</td>
+      </tr>
+      <tr>
+        <td class="code">move_up</td>
+        <td>Tooltip for the icon allowing to move an element up in a <span class="code">Ref</span> field.</td>
+        <td>"Move up"</td>
+      </tr>
+      <tr>
+        <td class="code">move_down</td>
+        <td>Tooltip for the icon allowing to move an element down in a <span class="code">Ref</span> field.</td>
+        <td>"Move down"</td>
+      </tr>
+      <tr>
+        <td class="code">query_create</td>
+        <td>Text shown as tooltip for icons that allow to create a new root object on a dashboard.</td>
+        <td>"create"</td>
+      </tr>
+      <tr>
+        <td class="code">query_no_result</td>
+        <td>Text shown when a dashboard or query contains no object.</td>
+        <td>"Nothing to see for the moment."</td>
+      </tr>
+      <tr>
+        <td class="code">query_consult_all</td>
+        <td>Label of the leftmost dashboard tab (consult all instances of all root classes for a given flavour).</td>
+        <td>"consult all"</td>
+      </tr>
+      <tr>
+        <td class="code">bad_int</td>
+        <td>General error message displayed when a non-integer value is entered in an <span class="code">Integer</span> field.</td>
+        <td>"An integer value is expected; do not enter any space."</td>
+      </tr>
+      <tr>
+        <td class="code">bad_float</td>
+        <td>General error message displayed when a non-float value is entered in a <span class="code">Float</span> field.</td>
+        <td>"A floating-point number is expected; use the dot as decimal separator, not a comma; do not enter any space."</td>
+      </tr>
+      <tr>
+        <td class="code">bad_email</td>
+        <td>General error message displayed when an invalid email is entered in a <span class="code">String</span> field with <span class="code">validator=String.EMAIL</span>.</td>
+        <td>"Please enter a valid email."</td>
+      </tr>
+      <tr>
+        <td class="code">bad_url</td>
+        <td>General error message displayed when an invalid URL is entered in a <span class="code">String</span> field with <span class="code">validator=String.URL</span>.</td>
+        <td>"Please enter a valid URL."</td>
+      </tr>
+      <tr>
+        <td class="code">bad_alphanumeric</td>
+        <td>General error message displayed when an invalid alphanumeric value is entered in a <span class="code">String</span> field with <span class="code">validator=String.ALPHANUMERIC</span>.</td>
+        <td>"Please enter a valid alphanumeric value."</td>
+      </tr>
+    </table>
+
+    <p>As already mentioned, in the table below, some label "parts" are explained.</p>
+
+    <table>
+      <tr>
+        <th>label part</th>
+        <th>description</th>
+      </tr>
+      <tr>
+        <td class="code">applicationName&nbsp;&nbsp;</th>
+        <td>The name of your gen-application. If your application is a Python package (=a file), it corresponds to the name of the file without its extension (application name for ZopeComponent.py is <span class="code">ZopeComponent</span>). If you application is a Python module (=a folder), it corresponds to the name of this folder.</td>
+      </tr>
+      <tr>
+        <td class="code">className</th>
+        <td>Refers to the full package name of a gen-class, where dots have been replaced with underscores. For example, class <span class="code">ZopeComponent</span> in ZopeComponent.py will have <span class="code">className</span> "ZopeComponent_ZopeComponent". There are 2 exceptions to this rule. <span class="code">className</span> for a flavour, be it the default one or a custom class in your gen-application, will always be <span class="code">[applicationName]Flavour</span>. In the same way, <span class="code">className</span> for a tool will always be <span class="code">[applicationName]Flavour</span>.</td>
+      </tr>
+      <tr>
+        <td class="code">workflowName</th>
+        <td>Refers to the full package name of a gen-workflow, where dots have been replaced with underscores and all characters have been <i>lowerized</i>. For example, workflow <span class="code">ZopeComponentWorkflow</span> in ZopeComponent.py will have <span class="code">workflowName</span> "zopecomponent_zopecomponentworkflow".</td>
+      </tr>
+      <tr>
+        <td class="code">fieldName</th>
+        <td>Refers to the name of an Appy field, declared as a static attribute in a gen-class. For example, attribute <span class="code">responsibleBunch</span> of class <span class="code">ZopeComponent</span> will have <span class="code">fieldName</span> "responsibleBunch".</td>
+      </tr>
+    </table>
+
+    <h2>Creating and using new i18n labels</h2>
+
+    <p>Although gen tries to manage automatically the whole i18n thing, in some cases you may need to create and use specific labels. You create new labels by adding them "by hand" in the pot file. For example, edit ZopeComponent.pot and add the following label:</p>
+
+    <p class="code">
+    #. Default: "Please be honest and do not pretend there is any kind of simplicity in your Zope 3 component."<br/>
+    <b>msgid</b> "zope_3_is_not_simple"<br/>
+    <b>msgstr</b> ""
+    </p>
+
+    <p>As part of the generation process, gen synchronizes the pot and po files. So re-generate your product and consult ZopeComponent-fr.po and ZopeComponent-en.po: the label has been added in both files. You may now edit those translations and save the edited po files.</p>
+
+    <p>In the following example, we use the new label for producing a translated validation message on a given field.</p>
+
+    <p class="code">
+    <b>class</b> ZopeComponent:
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;<b>def</b> validateDescription(self, value):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;res = True<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> value.find('simple') != -1:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = self.translate('zope_3_is_not_simple')<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> res<br/>
+    &nbsp;&nbsp;technicalDescription = String(format=String.XHTML, validator=validateDescription)<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>On any (wrapped) instance of a gen-class, a method named <span class="code">translate</span> allows you to translate any <span class="code">label</span>. This method accepts 2 parameters: <span class="code">label</span> and <span class="code">domain</span>. In the example, no value was given for parameter <span class="code">domain</span>; it defaults to the application-specific domain (in this case, <span class="code">ZopeComponent</span>). Maybe one day you will need to use and translate labels packaged with Plone or another Plone product; in this case you will need to specify another <span class="code">domain</span>. The main domain for Plone is named <span class="code">plone</span> (case sensitive). For example, "delete" icons in Appy pages have a tooltip corresponding to label "label_remove" defined in domain "plone". If you want to use it, write <span class="code">self.translate('label_remove', domain='plone')</span>. Labels in standard Plone domains are already translated in a great number of languages.</p>
+
+    <p>Now imagine you need to change the default value for this label in ZopeComponent.pot. It means that your translations in ZopeComponent-fr.po and ZopeComponent-en.po need a potential revision. Edit the default value and re-generate your product. The labels in the po files will be flagged as "fuzzy":</p>
+
+    <p class="code">
+    #. Default: "Please be honest and do not pretend there is any kind of simplicity in your Zope 3 component. I changed the default value."<br/>
+    #, fuzzy<br/>
+    <b>msgid</b> "zope_3_is_not_simple"<br/>
+    <b>msgstr</b> "ZOPE 3 n'est pas simple!"<br/>
+    </p>
+
+    <p>Edit the translation, remove the line with "fuzzy" and you are done!</p>
+
+    <h1><a name="mastersAndSlaves"></a>Field interactions: masters and slaves</h1>
+
+    <p>It is possible to make your gen pages more dynamic by defining relationships between fields belonging to the same page. For example, by selecting a given item in a list (on a <i>master</i> field), another (<i>slave</i>) field may become visible. This is achieved by using parameters <span class="code">master</span> and <span class="code">masterValue</span>. Let's try it on an example. Remember that, in our HR system, we have added the ability to associate a "parasite index" to a parasite. Suppose that in some cases, the parasite is so weird that you are unable to give him a parasite index. Among the values for field <span class="code">parasiteIndex</span>, we add the value <span class="code">unquantifiable</span>; but in this case, you must give, in another field, details about why you can't quantify its parasiteness:</p>
+
+    <p class="code">
+    <b>class</b> Parasite(Person):<br/>
+    &nbsp;&nbsp;...<br/>
+    &nbsp;&nbsp;parasiteIndex = String(validator=['low', 'medium', 'high', 'unquantifiable'],<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;page='contactInformation', group='numbers')<br/>
+    &nbsp;&nbsp;details = String(page='contactInformation', group='numbers',<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;master=parasiteIndex, masterValue='unquantifiable')<br/>
+    &nbsp;&nbsp;...<br/>
+    </p>
+
+    <p>Now, if you edit page "contactInformation" for any parasite, selecting, for field <span class="code">parasiteIndex</span>, any value excepted "unquantifiable" will give you something like this:</p>
+
+    <p align="center"><img src="img/mastersSlaves1.png"></p>
+
+    <p>Selecting "unquantifiable" will display field <span class="code">details</span>:</p>
+
+    <p align="center"><img src="img/mastersSlaves2.png"></p>
+
+    <p>Of course, you may use the validation machinery (method <span class="code">validate</span>) and check that, when <span class="code">parasiteIndex</span> is "unquantifiable", field <span class="code">details</span> is not empty. This will be your exercise for tonight.</p>
+
+    <p>Note that master/slaves relationships also modify the "consult" pages. When "unquantifiable" is chosen, both fields are rendered:</p>
+
+    <p align="center"><img src="img/mastersSlaves3.png"></p>
+
+    <p>When another value is selected, field <span class="code">details</span> is invisible:</p>
+
+    <p align="center"><img src="img/mastersSlaves4.png"></p>
+
+    <p>A <i>master</i> widget may have any number of <i>slaves</i>. Of course, masters and slaves must be on the same page. For the moment, the only behaviour on slaves is to display them or not. In future gen releases, other ways to persecute slaves will be implemented, like changing default values, adapting the list of possible values, etc). For the moment, only the following fields may become masters:</p>
+
+    <ul>
+      <li>Single-valued lists (<span class="code">String</span> fields with max <span class="code">multiplicity</span> = 1 and <span class="code">validator</span> being a list of string values): this was the case in the previous example). In this case, <span class="code">masterValue</span> must be a string belonging to the master's validator list);</li>
+      <li>Multiple-valued lists (idem, but with max <span class="code">multiplicity</span> > 1);</li>
+      <li>Checkboxes (<span class="code">Boolean</span> fields). In this case, <span class="code">masterValue</span> must be a boolean value.</li>
+    </ul>
+
+    <p>In future gen releases, <span class="code">masterValue</span> will accept a list of values or a single value.</p>
+
+    <h1><a name="config"></a>The <span class="code">Config</span> instance</h1>
+
+    <p>As already mentioned, a series of configuration options for your gen-application may be defined in an instance of class <span class="code">appy.gen.Config</span>. There must be only one such instance by gen-application. The following table describes the available options defined as <span class="code">Config</span> attributes.</p>
+
+    <table>
+      <tr>
+        <th>Attribute</th>
+        <th>Default value</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td class="code">languages</td>
+        <td class="code">['en']</td>
+        <td>See <a href="genCreatingAdvancedClasses.html#i18n">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">defaultCreators</td>
+        <td class="code">['Manager', 'Owner']</td>
+        <td>See <a href="genSecurityAndWorkflows.html#createPermission">here</a>.</td>
+      </tr>
+      <tr>
+        <td class="code">minimalistPlone&nbsp;&nbsp;</td>
+        <td class="code">False</td>
+        <td>If <span class="code">True</span>, this flag will produce a minimalist Plone, where some user interface elements, like actions, portlets or other stuff less relevant for building web applications, are removed or hidden. Using this produces effects on your whole Plone site! This can be interesting on development machines: less visual gadgets make geeks more productive.</td>
+      </tr>
+    </table>
+
+    <p>Here is an example of a <span class="code">Config</span> instance:</p>
+
+    <p class="code">
+    <b>from</b> appy.gen <b>import</b> Config<br/>
+    c = Config()<br/>
+    c.languages = ('en', 'fr')<br/>
+    c.defaultCreators += ['ZLeader']<br/>
+    c.minimalistPlone = True
+    </p>
+
+    <p>This code may be placed anywhere in your gen-application (in the main package, in a sub-package...)</p>
+  </body>
+</html>

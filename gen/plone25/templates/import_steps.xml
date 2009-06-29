@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<import-steps>
+ <import-step id="install-product-<!applicationName!>" version="1.0"
+              handler="Products.<!applicationName!>.profiles.install_default"
+              title="Product <!applicationName!>: installation.">
+  Product <!applicationName!>: installation.
+ </import-step>
+</import-steps>

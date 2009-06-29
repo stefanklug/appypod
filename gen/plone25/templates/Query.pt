@@ -1,0 +1,63 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
+      metal:use-macro="here/main_template/macros/master"
+      i18n:domain="<!applicationName!>">
+
+<!-- This page presents results of queries -->
+<body>
+    <div metal:fill-slot="top_slot">
+      <metal:block metal:use-macro="here/global_defines/macros/defines" />
+      <div tal:define="dummy python:request.set('disable_border', 1)" />
+    </div>
+
+    <div metal:fill-slot="main"
+         tal:define="tool python: context.<!toolInstanceName!>;
+                     queryName python:context.REQUEST.get('query');
+                     flavourNumber python:context.REQUEST.get('flavourNumber');
+                     rootClasses python:[<!rootClasses!>];
+                     rootTypes python: test(flavourNumber=='1', rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
+                     rootClassesQuery python:','.join(rootClasses);
+                     mainTabSelected python: queryName.find(',') != -1;
+                     appFolder tool/getAppFolder">
+
+      <span tal:condition="python: queryName and (queryName != 'none')">
+        <span tal:define="queryResult python: context.<!toolInstanceName!>.executeQuery(queryName, int(flavourNumber));
+                          batch queryResult">
+
+        <!-- Tabs -->
+        <ul class="contentViews appyTabs">
+
+          <!-- Tab "All objects" -->
+          <li tal:define="selected python:mainTabSelected"
+              tal:attributes="class python:test(selected, 'selected', 'plain')"
+              tal:condition="python: len(rootClasses)>1">
+
+            <a tal:attributes="href python: '%s/<!queryName!>?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"
+               i18n:translate="">query_consult_all</a>
+          </li>
+          <!-- One tab for each root content type -->
+          <tal:tab repeat="rootContentType rootTypes">
+            <li tal:define="selected python:queryName == rootContentType"
+                tal:attributes="class python:test(selected, 'selected', 'plain')">
+              <a i18n:translate="" tal:content="rootContentType"
+                 tal:attributes="href python: '%s/<!queryName!>?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootContentType, flavourNumber)"/>
+              <img i18n:attributes="title" style="cursor:pointer" title="query_create" class="appyPlusImg"
+                   tal:define="addPermission python: '<!applicationName!>: Add %s' % rootContentType"
+                   tal:attributes="onClick python: 'href: window.location=\'%s/createObject?type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
+                    src python: here.<!toolInstanceName!>.absolute_url() + '/plus.png'"
+                   tal:condition="python: member.has_permission(addPermission, appFolder)"/>
+            </li>
+          </tal:tab>
+        </ul>
+        <br/>
+
+        <!-- Query result -->
+        <span tal:condition="queryResult">
+          <span metal:use-macro="here/<!macros!>/macros/queryResult"></span>
+        </span>
+        <span tal:condition="not: queryResult"
+              i18n:translate="query_no_result">No result.</span>
+        </span>
+      </span>
+    </div>
+</body>
+</html>
