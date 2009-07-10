@@ -18,6 +18,7 @@ from OFS.Image import File
 from DateTime import DateTime
 from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.PloneBatch import Batch
+from OFS.Image import File
 import logging
 logger = logging.getLogger('<!applicationName!>')
 

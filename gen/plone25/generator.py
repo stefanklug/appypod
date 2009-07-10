@@ -408,9 +408,11 @@ class Generator(AbstractGenerator):
         self.copyFile('workflows.py', repls, destFolder='Extensions')
 
     def generateWrapperProperty(self, attrName, appyType):
-        # Generate getter
+        '''Generates the getter for attribute p_attrName having type
+           p_appyType.'''
         res = '    def get_%s(self):\n' % attrName
         blanks = ' '*8
+        getterName = 'get%s%s' % (attrName[0].upper(), attrName[1:])
         if isinstance(appyType, Ref):
             res += blanks + 'return self.o._appy_getRefs("%s", ' \
                    'noListIfSingleObj=True)\n' % attrName
@@ -418,8 +420,11 @@ class Generator(AbstractGenerator):
             res += blanks + 'appyType = getattr(self.klass, "%s")\n' % attrName
             res += blanks + 'return self.o.getComputedValue(' \
                             'appyType.__dict__)\n'
+        elif isinstance(appyType, File):
+            res += blanks + 'v = self.o.%s()\n' % getterName
+            res += blanks + 'if not v: return None\n'
+            res += blanks + 'else: return FileWrapper(v)\n'
         else:
-            getterName = 'get%s%s' % (attrName[0].upper(), attrName[1:])
             if attrName in ArchetypeFieldDescriptor.specialParams:
                 getterName = attrName.capitalize()
             res += blanks + 'return self.o.%s()\n' % getterName

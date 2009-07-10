@@ -95,7 +95,7 @@ class BufferAction:
 
 class IfAction(BufferAction):
     '''Action that determines if we must include the content of the buffer in
-    the result or not.'''
+       the result or not.'''
     def do(self):
         if self.exprResult:
             self.evaluateBuffer()
@@ -122,7 +122,7 @@ class ElseAction(IfAction):
 
 class ForAction(BufferAction):
     '''Actions that will include the content of the buffer as many times as
-    specified by the action parameters.'''
+       specified by the action parameters.'''
     def __init__(self, name, buffer, expr, elem, minus, iter, source, fromExpr):
         BufferAction.__init__(self, name, buffer, expr, elem, minus, source,
                               fromExpr)
@@ -202,4 +202,28 @@ class NullAction(BufferAction):
        allows to insert in a buffer arbitrary odt content.'''
     def do(self):
         self.evaluateBuffer()
+
+class VariableAction(BufferAction):
+    '''Action that allows to define a variable somewhere in the template.'''
+    def __init__(self, name, buffer, expr, elem, minus, varName, source,
+        fromExpr):
+        BufferAction.__init__(self, name, buffer, expr, elem, minus, source,
+                              fromExpr)
+        self.varName = varName # Name of the variable
+    def do(self):
+        context = self.buffer.env.context
+        # Remember the variable hidden by our variable definition, if any
+        hasHiddenVariable = False
+        if context.has_key(self.varName):
+            hiddenVariable = context[self.varName]
+            hasHiddenVariable = True
+        # Add the variable to the context
+        context[self.varName] = self.exprResult
+        # Evaluate the buffer
+        self.evaluateBuffer()
+        # Restore hidden variable if any
+        if hasHiddenVariable:
+            context[self.varName] = hiddenVariable
+        else:
+            del context[self.varName]
 # ------------------------------------------------------------------------------

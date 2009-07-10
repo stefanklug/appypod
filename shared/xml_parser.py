@@ -85,11 +85,12 @@ class XmlParser(ContentHandler, ErrorHandler):
     '''Basic XML content handler that does things like :
       - remembering the currently parsed element;
       - managing namespace declarations.'''
-    def __init__(self, env, caller=None):
+    def __init__(self, env=None, caller=None):
         '''p_env should be an instance of a class that inherits from
            XmlEnvironment: it specifies the environment to use for this SAX
            parser.'''
         ContentHandler.__init__(self)
+        if not env: env = XmlEnvironment()
         self.env = env
         self.env.parser = self
         self.caller = caller # The class calling this parser

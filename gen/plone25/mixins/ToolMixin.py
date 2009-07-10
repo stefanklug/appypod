@@ -142,9 +142,14 @@ class ToolMixin(AbstractMixin):
             else:
                 # Create a FieldDescr instance
                 appyType = anObject.getAppyType(fieldName)
-                atField = anObject.schema.get(fieldName)
-                fieldDescr = FieldDescr(atField, appyType, None)
-                res.append(fieldDescr.get())
+                if not appyType:
+                    res.append({'atField': None, 'name': fieldName})
+                    # The field name is wrong.
+                    # We return it so we can show it in an error message.
+                else:
+                    atField = anObject.schema.get(fieldName)
+                    fieldDescr = FieldDescr(atField, appyType, None)
+                    res.append(fieldDescr.get())
         return res
 
     xhtmlToText = re.compile('<.*?>', re.S)

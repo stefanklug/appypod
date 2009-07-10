@@ -226,12 +226,6 @@ class Text2Html:
         self.txtFile.close()
         self.htmlFile.close()
 
-class TodoConverter(Text2Html):
-    title = 'To do'
-    firstChar = 1 # Position of the first relevant char in each line
-    def retainLine(self, line):
-        return line.startswith('v') and len(line) > 2
-
 class VersionsConverter(Text2Html):
     title = 'Versions'
     firstChar = 0
@@ -482,7 +476,6 @@ class Publisher:
         f.write('verbose = "%s"' % self.versionLong)
         f.close()
         # Remove unwanted files
-        os.remove('%s/todo.txt' % self.genFolder)
         os.remove('%s/version.txt' % self.genFolder)
         os.remove('%s/license.txt' % self.genFolder)
         os.remove('%s/template.html' % self.genFolder)
@@ -492,10 +485,7 @@ class Publisher:
             for dirName in dirs:
                 if dirName == '.svn':
                     FolderDeleter.delete(os.path.join(root, dirName))
-        # Generates the "to do" and "versions" pages, based on todo.txt and
-        # version.txt
-        TodoConverter('%s/doc/todo.txt' % appyPath,
-                      '%s/todo.html' % self.genFolder).run()
+        # Generates the "versions" page, based on version.txt
         VersionsConverter('%s/doc/version.txt' % appyPath,
                           '%s/version.html' % self.genFolder).run()
 

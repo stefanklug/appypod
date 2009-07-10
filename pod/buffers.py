@@ -21,7 +21,8 @@ import re
 
 from appy.pod import PodError, XML_SPECIAL_CHARS
 from appy.pod.elements import *
-from appy.pod.actions import IfAction, ElseAction, ForAction, NullAction
+from appy.pod.actions import IfAction, ElseAction, ForAction, VariableAction, \
+                             NullAction
 
 # ------------------------------------------------------------------------------
 class ParsingError(Exception): pass
@@ -62,6 +63,12 @@ ELSE_WITHOUT_IF = 'No previous "if" statement could be found for this "else" ' \
 ELSE_WITHOUT_NAMED_IF = 'I could not find an "if" statement named "%s".'
 BAD_FOR_EXPRESSION = 'Bad "for" expression "%s". A "for" expression ' + \
                      FOR_EXPRESSION
+BAD_VAR_EXPRESSION = 'Bad variable definition "%s". A variable definition ' \
+    'must have the form {name} = {expression}. {name} must be a Python-' \
+    'compliant variable name. {expression} is a Python expression. When ' \
+    'encountering such a statement, pod will define, in the specified part ' \
+    'of the document, a variable {name} whose value will be the evaluated ' \
+    '{expression}.'
 EVAL_EXPR_ERROR = 'Error while evaluating expression "%s". %s'
 NULL_ACTION_ERROR = 'There was a problem with this action. Possible causes: ' \
                     '(1) you specified no action (ie "do text") while not ' \
@@ -168,8 +175,9 @@ class FileBuffer(Buffer):
 # ------------------------------------------------------------------------------
 class MemoryBuffer(Buffer):
     actionRex = re.compile('(?:(\w+)\s*\:\s*)?do\s+(\w+)(-)?' \
-                           '(?:\s+(for|if|else)\s*(.*))?')
+                           '(?:\s+(for|if|else|with)\s*(.*))?')
     forRex = re.compile('\s*([\w\-_]+)\s+in\s+(.*)')
+    varRex = re.compile('\s*([\w\-_]+)\s+=\s+(.*)')
     def __init__(self, env, parent):
         Buffer.__init__(self, env, parent)
         self.content = u''
@@ -338,6 +346,13 @@ class MemoryBuffer(Buffer):
                 iter, subExpr = forRes.groups()
                 self.action = ForAction(statementName, self, subExpr, podElem,
                                         minus, iter, source, fromClause)
+            elif actionType == 'with':
+                varRes = MemoryBuffer.varRex.match(subExpr.strip())
+                if not varRes:
+                    raise ParsingError(BAD_VAR_EXPRESSION % subExpr)
+                varName, subExpr = varRes.groups()
+                self.action = VariableAction(statementName, self, subExpr,
+                    podElem, minus, varName, source, fromClause)
             else: # null action
                 if not fromClause:
                     raise ParsingError(NULL_ACTION_ERROR)

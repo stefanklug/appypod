@@ -285,7 +285,7 @@ class Renderer:
         except OSError, oe:
             raise PodError(CANT_WRITE_RESULT % (self.result, oe))
         except IOError, ie:
-            raise PodError(CANT_WRITE_RESULT % (self.result, oe))
+            raise PodError(CANT_WRITE_RESULT % (self.result, ie))
         self.result = os.path.abspath(self.result)
         os.remove(self.result)
         # Check that temp folder does not exist

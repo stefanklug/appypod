@@ -48,4 +48,7 @@ class OdfEnvironment(XmlEnvironment):
 
 class OdfParser(XmlParser):
     '''XML parser that is specific for parsing ODF files.'''
+    def __init__(self, env=None, caller=None):
+        if not env: env = OdfEnvironment()
+        XmlParser.__init__(self, env, caller)
 # ------------------------------------------------------------------------------

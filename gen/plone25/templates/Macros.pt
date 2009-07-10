@@ -654,7 +654,8 @@
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:otherFields repeat="fieldDescr fieldDescrs">
         <tal:standardField condition="python: fieldDescr != 'workflowState'">
-          <td tal:attributes="id python:'field_%s' % fieldDescr['atField'].getName()">
+          <td tal:condition="fieldDescr/atField"
+              tal:attributes="id python:'field_%s' % fieldDescr['atField'].getName()">
             <tal:field define="contextObj python:obj;
                                isEdit python:False;
                                showLabel python:False;
@@ -662,6 +663,9 @@
                        condition="python: contextObj.showField(fieldDescr)">
               <metal:field use-macro="here/<!macros!>/macros/showArchetypesField"/>
             </tal:field>
+          </td>
+          <td tal:condition="not: fieldDescr/atField" style="color:red">Field
+            <span tal:replace="fieldDescr/name"/> not found.
           </td>
         </tal:standardField>
         <tal:workflowState condition="python: fieldDescr == 'workflowState'">
