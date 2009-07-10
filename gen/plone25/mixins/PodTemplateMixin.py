@@ -56,7 +56,7 @@ class PodTemplateMixin(AbstractMixin):
                       'now': self.getProductConfig().DateTime(),
                       'projectFolder': os.path.dirname(appModule.__file__)
                       }
-        rendererParams = {'template': StringIO(appySelf.podTemplate),
+        rendererParams = {'template': StringIO(appySelf.podTemplate.content),
                           'context': podContext,
                           'result': tempFileName }
         if appySelf.tool.unoEnabledPython:
