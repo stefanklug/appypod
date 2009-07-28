@@ -75,7 +75,7 @@
         <div metal:use-macro="here/<!macros!>/macros/listFields" />
 
         <div class="formControls">
-          <input type="hidden" name="fieldset" value="default" tal:attributes="value fieldset"/>
+          <input type="hidden" name="fieldset" tal:attributes="value fieldset"/>
           <input type="hidden" name="form.submitted" value="1"/>
           <input type="hidden" name="add_reference.field:record" value=""/>
           <input type="hidden" name="add_reference.type:record" value=""/>
@@ -122,24 +122,29 @@
 
             <tal:comment replace="nothing">Buttons (Previous, Next, Save, etc)</tal:comment>
             <metal:block define-slot="buttons"
-                         tal:define="fieldset_index python:fieldsets.index(fieldset);
-                                     n_fieldsets python:len(fieldsets)">
+                         tal:define="pages phaseInfo/pages;
+                                     pageIndex python:pages.index(fieldset);
+                                     numberOfPages python:len(pages)">
 
-              <input tal:condition="python:(fieldset_index &gt; 0) and (fieldsets[fieldset_index-1] in phaseInfo['pages'])"
-                     class="context" type="submit" name="form_previous" value="Previous"
-                     i18n:attributes="value label_previous;" i18n:domain="plone"
-                     tal:attributes="tabindex tabindex/next;
-                                     disabled python:test(isLocked, 'disabled', None);"/>
-              <input tal:condition="python:(fieldset_index &lt; n_fieldsets - 1) and (fieldsets[fieldset_index+1] in phaseInfo['pages'])"
-                     class="context" type="submit" name="form_next" value="Next"
-                     i18n:attributes="value label_next;" i18n:domain="plone"
-                     tal:attributes="tabindex tabindex/next;
-                                     disabled python:test(isLocked, 'disabled', None);"/>
-              <input class="context" type="submit" name="form_submit" value="Save"
+              <tal:previousButton condition="python: pageIndex &gt; 0">
+                <input class="context" type="submit" name="form_previous"
+                       i18n:attributes="value label_previous;" i18n:domain="plone"
+                       tal:attributes="tabindex tabindex/next;
+                                       disabled python:test(isLocked, 'disabled', None);"/>
+                <input type="hidden" name="previousPage" tal:attributes="value python: pages[pageIndex-1]"/>
+              </tal:previousButton>
+              <tal:nextButton condition="python: pageIndex &lt; numberOfPages - 1">
+                <input class="context" type="submit" name="form_next" value="Next"
+                       i18n:attributes="value label_next;" i18n:domain="plone"
+                       tal:attributes="tabindex tabindex/next;
+                                       disabled python:test(isLocked, 'disabled', None);"/>
+                <input type="hidden" name="nextPage" tal:attributes="value python: pages[pageIndex+1]"/>
+              </tal:nextButton>
+              <input class="context" type="submit" name="form_submit"
                      i18n:attributes="value label_save;" i18n:domain="plone"
                      tal:attributes="tabindex tabindex/next;
                                      disabled python:test(isLocked, 'disabled', None);"/>
-              <input class="standalone" type="submit" name="form.button.cancel" value="Cancel"
+              <input class="standalone" type="submit" name="form.button.cancel"
                      i18n:attributes="value label_cancel;" i18n:domain="plone"
                      tal:attributes="tabindex tabindex/next"/>
             </metal:block>

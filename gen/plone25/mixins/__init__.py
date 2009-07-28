@@ -20,6 +20,39 @@ class AbstractMixin:
        inherits from this class. It contains basic functions allowing to
        minimize the amount of generated code.'''
 
+    def content_edit_impl(self, state, id):
+        '''This method is called by the Plone machinery every time an object
+           must be created or edited through the edit view.'''
+        rq = self.REQUEST
+        newSelf = self.portal_factory.doCreate(self, id)
+        newSelf.processForm()
+
+        # Get the current language and put it in the request
+        if rq.form.has_key('current_lang'):
+            rq.form['language'] = rq.form.get('current_lang')
+
+        # Generate the message returned to the user after creation/edition
+        portal_status_message = self.translate(
+            msgid='message_content_changes_saved',
+            default='Content changes saved.')
+        portal_status_message = rq.get(
+            'portal_status_message', portal_status_message)
+
+        # What page must I display next ?
+        previousClicked = rq.get('form_previous', None)
+        nextClicked = rq.get('form_next', None)
+        if previousClicked or nextClicked:
+            # We must redirect the user to the previous or next page
+            targetPage = rq.get('nextPage', None)
+            if previousClicked:
+                targetPage = rq.get('previousPage', None)
+            return state.set(status='next_schemata', context=newSelf,
+                fieldset=targetPage,
+                portal_status_message=portal_status_message)
+        else:
+            return state.set(status='success', context=newSelf,
+                portal_status_message=portal_status_message)
+
     def getAppyType(self, fieldName):
         '''Returns the Appy type corresponding to p_fieldName.'''
         res = None

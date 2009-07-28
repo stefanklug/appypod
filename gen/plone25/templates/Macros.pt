@@ -45,7 +45,7 @@
 <metal:editString define-macro="editString" i18n:domain="<!applicationName!>"
      tal:define="vocab python:field.Vocabulary(contextObj);">
   <label tal:attributes="for fieldName" tal:condition="showLabel" tal:content="label"/>
-  <div class="discreet" tal:content="description"/>
+  <div class="discreet" tal:content="structure description"/>
   <select tal:attributes="name fieldName;
                           id fieldName;
                           tabindex tabindex/next;
@@ -72,7 +72,7 @@
                          value python: test(contextObj.checkboxChecked(fieldName, value), 'True', 'False')"
          type="hidden" />
   <label tal:attributes="for fieldName" tal:condition="showLabel" tal:content="label"/>
-  <div class="discreet" tal:content="description"/>
+  <div class="discreet" tal:content="structure description"/>
 </metal:editBoolean>
 
 <div metal:define-macro="editField" i18n:domain="<!applicationName!>"
@@ -601,8 +601,8 @@
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <th><img tal:attributes= "src python: '%s/arrowDown.gif' % context.absolute_url();
-                              onClick python:'javascript:onSort(\'title\')';"
+      <th><img tal:attributes= "src string: $portal_url/arrowDown.gif;
+                                onClick python:'javascript:onSort(\'title\')';"
                id="arrow_title" style="cursor:pointer"/>
         <span i18n:translate="ref_name"/>
         <input id="filter_title" type="text" size="10" onkeyup="javascript:onTextEntered('title')"/>
@@ -611,7 +611,7 @@
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:columnHeader repeat="fieldDescr fieldDescrs">
        <th tal:define="fieldName fieldDescr/atField/getName|string:workflow_state">
-        <img tal:attributes= "src string: '$portal_url/arrowDown.gif;
+        <img tal:attributes= "src string: $portal_url/arrowDown.gif;
                               onClick python:'javascript:onSort(\'%s\')' % fieldName;
                               id python: 'arrow_%s' % fieldName"
              style="cursor:pointer"/>
