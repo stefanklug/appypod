@@ -65,8 +65,9 @@ class PodTemplateMixin(AbstractMixin):
             rendererParams['ooPort'] = appySelf.tool.openOfficePort
         # Launch the renderer
         import appy.pod
+        from appy.pod.renderer import Renderer
         try:
-            renderer = appy.pod.renderer.Renderer(**rendererParams)
+            renderer = Renderer(**rendererParams)
             renderer.run()
         except appy.pod.PodError, pe:
             if not os.path.exists(tempFileName):
