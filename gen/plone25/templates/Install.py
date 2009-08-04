@@ -16,13 +16,14 @@ appClasses = <!appClasses!>
 appClassNames = [<!appClassNames!>]
 allClassNames = [<!allClassNames!>]
 workflows = {<!workflows!>}
+showPortlet = <!showPortlet!>
 # ------------------------------------------------------------------------------
 def install(self, reinstall=False):
     '''Installation of product "<!applicationName!>"'''
     ploneInstaller = PloneInstaller(reinstall, "<!applicationName!>", self,
         <!minimalistPlone!>, appClasses, appClassNames, allClassNames,
         catalogMap, applicationRoles, defaultAddRoles, workflows,
-        <!appFrontPage!>, globals())
+        <!appFrontPage!>, showPortlet, globals())
     return ploneInstaller.install()
 
 # ------------------------------------------------------------------------------
@@ -31,6 +32,6 @@ def uninstall(self, reinstall=False):
     ploneInstaller = PloneInstaller(reinstall, "<!applicationName!>", self,
         <!minimalistPlone!>, appClasses, appClassNames, allClassNames,
         catalogMap, applicationRoles, defaultAddRoles, workflows,
-        <!appFrontPage!>, globals())
+        <!appFrontPage!>, showPortlet, globals())
     return ploneInstaller.uninstall()
 # ------------------------------------------------------------------------------

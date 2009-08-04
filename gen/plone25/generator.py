@@ -354,13 +354,16 @@ class Generator(AbstractGenerator):
                           "['portal_catalog']\n" % blackClass
         # Compute workflows
         workflows = ''
-        for classDescr in self.classes:
+        allClasses = self.classes[:]
+        if self.customToolDescr:
+            allClasses.append(self.customToolDescr)
+        if self.customFlavourDescr:
+            allClasses.append(self.customFlavourDescr)
+        for classDescr in allClasses:
             if hasattr(classDescr.klass, 'workflow'):
                 wfName = WorkflowDescriptor.getWorkflowName(
                     classDescr.klass.workflow)
-                className = ArchetypesClassDescriptor.getClassName(
-                    classDescr.klass)
-                workflows += '\n    "%s":"%s",' % (className, wfName)
+                workflows += '\n    "%s":"%s",' % (classDescr.name, wfName)
         # Generate the resulting file.
         repls = self.repls.copy()
         repls['allClassNames'] = allClassNames
@@ -369,6 +372,7 @@ class Generator(AbstractGenerator):
         repls['imports'] = '\n'.join(imports)
         repls['appClasses'] = "[%s]" % ','.join(appClasses)
         repls['minimalistPlone'] = self.config.minimalistPlone
+        repls['showPortlet'] = self.config.showPortlet
         repls['appFrontPage'] = self.config.frontPage == True
         repls['workflows'] = workflows
         self.copyFile('Install.py', repls, destFolder='Extensions')
@@ -515,6 +519,12 @@ class Generator(AbstractGenerator):
                 # Implicitly, the title will be added by Archetypes. So I need
                 # to define a property for it.
                 wrapperDef += self.generateWrapperProperty('title', String())
+            # For custom tool, flavour and pod template, add a call to a method
+            # that allows to custom element to update the basic element.
+            if isinstance(c, CustomToolClassDescriptor) or \
+               isinstance(c, CustomFlavourClassDescriptor):
+                wrapperDef += "    if hasattr(%s, 'update'): %s.update(%s.__bases__[1])" % \
+                              (parentClass, parentClass, parentWrapper)
             wrappers.append(wrapperDef)
         repls = self.repls.copy()
         repls['imports'] = '\n'.join(imports)

@@ -533,6 +533,10 @@ class AbstractMixin:
             self.appyWrapper = self.wrapperClass(self)
         return self.appyWrapper
 
+    def appy(self):
+        '''Nice alias to the previous method.'''
+        return self._appy_getWrapper(force=True)
+
     def _appy_getSourceClass(self, fieldName, baseClass):
         '''We know that p_fieldName was defined on Python class p_baseClass or
            one of its parents. This method returns the exact class (p_baseClass

@@ -13,7 +13,7 @@ class PloneInstaller:
        installed or uninstalled (in the Plone configuration interface).'''
     def __init__(self, reinstall, productName, ploneSite, minimalistPlone,
         appClasses, appClassNames, allClassNames, catalogMap, applicationRoles,
-        defaultAddRoles, workflows, appFrontPage, ploneStuff):
+        defaultAddRoles, workflows, appFrontPage, showPortlet, ploneStuff):
         self.reinstall = reinstall # Is it a fresh install or a re-install?
         self.productName = productName
         self.ploneSite = ploneSite
@@ -32,6 +32,7 @@ class PloneInstaller:
                                    # used by the content type)
         self.appFrontPage = appFrontPage # Does this app define a site-wide
                                          # front page?
+        self.showPortlet = showPortlet # Must we show the application portlet?
         self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
         self.toLog = StringIO()
         self.typeAliases = {'sharing': '', 'gethtml': '',
@@ -257,8 +258,8 @@ class PloneInstaller:
                     nvProps.manage_changeProperties(**{'idsNotToList': current})
 
         # Remove workflow for the tool
-        wfTool = self.ploneSite.portal_workflow
-        wfTool.setChainForPortalTypes([self.toolName], '')
+        #wfTool = self.ploneSite.portal_workflow
+        #wfTool.setChainForPortalTypes([self.toolName], '')
 
         # Create the default flavour
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
@@ -350,17 +351,19 @@ class PloneInstaller:
             # No portal_css registry
             pass
 
-    def installPortlet(self):
-        '''Adds the application-specific portlet and configure other Plone
-           portlets if relevant.'''
+    def managePortlets(self):
+        '''Shows or hides the application-specific portlet and configures other
+           Plone portlets if relevant.'''
         portletName= 'here/%s_portlet/macros/portlet' % self.productName.lower()
         site = self.ploneSite
-        # This is the name of the application-specific portlet
         leftPortlets = site.getProperty('left_slots')
         if not leftPortlets: leftPortlets = []
         else: leftPortlets = list(leftPortlets)
-        if portletName not in leftPortlets:
+        
+        if self.showPortlet and (portletName not in leftPortlets):
             leftPortlets.insert(0, portletName)
+        if not self.showPortlet and (portletName in leftPortlets):
+            leftPortlets.remove(portletName)
         # Remove some basic Plone portlets that make less sense when building
         # web applications.
         portletsToRemove = ["here/portlet_navigation/macros/portlet",
@@ -402,7 +405,7 @@ class PloneInstaller:
         self.installRolesAndGroups()
         self.installWorkflows()
         self.installStyleSheet()
-        self.installPortlet()
+        self.managePortlets()
         self.finalizeInstallation()
         self.log("Installation of %s done." % self.productName)
         return self.toLog.getvalue()

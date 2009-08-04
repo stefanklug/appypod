@@ -227,6 +227,7 @@ class Generator:
             # Potentially, sub-modules exist
             moduleFolder = os.path.dirname(moduleFile)
             for elem in os.listdir(moduleFolder):
+                if elem.startswith('.'): continue
                 subModuleName, ext = os.path.splitext(elem)
                 if ((ext == '.py') and (subModuleName != '__init__')) or \
                    os.path.isdir(os.path.join(moduleFolder, subModuleName)):

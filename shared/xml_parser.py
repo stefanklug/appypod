@@ -23,7 +23,7 @@ from xml.sax.xmlreader import InputSource
 
 # ------------------------------------------------------------------------------
 class XmlElement:
-    '''Representgs an XML tag.'''
+    '''Represents an XML tag.'''
     def __init__(self, elem, attrs=None, nsUri=None):
         '''An XmlElement instance may represent:
            - an already parsed tag (in this case, p_elem may be prefixed with a
@@ -95,6 +95,7 @@ class XmlParser(ContentHandler, ErrorHandler):
         self.env.parser = self
         self.caller = caller # The class calling this parser
         self.parser = xml.sax.make_parser() # Fast, standard expat parser
+        self.res = None # The result of parsing.
     def setDocumentLocator(self, locator):
         self.locator = locator
         return self.env
@@ -128,4 +129,5 @@ class XmlParser(ContentHandler, ErrorHandler):
         else:
             inputSource.setByteStream(xmlContent)
         self.parser.parse(inputSource)
+        return self.res
 # ------------------------------------------------------------------------------
