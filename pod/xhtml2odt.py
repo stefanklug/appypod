@@ -35,6 +35,7 @@ TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
 NOT_INSIDE_P = ('table', 'ol', 'ul') # Those elements can't be rendered inside
 # paragraphs.
+IGNORABLE_TAGS = ('meta', 'title', 'style')
 HTML_ENTITIES = {
         'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
         'brvbar': 'Š', 'sect': '§', 'uml': '¨', 'copy':'©', 'ordf':'ª',
@@ -175,6 +176,8 @@ class XhtmlEnvironment(XmlEnvironment):
         self.textNs = ns[OdfEnvironment.NS_TEXT]
         self.linkNs = ns[OdfEnvironment.NS_XLINK]
         self.tableNs = ns[OdfEnvironment.NS_TABLE]
+        self.ignore = False # Will be True when parsing parts of the XHTML that
+        # must be ignored.
 
     def getCurrentElement(self, isList=False):
         '''Gets the element that is on the top of self.currentElements or
@@ -413,6 +416,8 @@ class XhtmlParser(XmlParser):
                 e.dumpString(' %s:number-columns-spanned="%s"' % \
                     (e.tableNs, attrs['colspan']))
             e.dumpString('>')
+        elif elem in IGNORABLE_TAGS:
+            e.ignore = True
 
     def endElement(self, elem):
         elem = self.lowerizeInput(elem)
@@ -439,12 +444,15 @@ class XhtmlParser(XmlParser):
             e.dumpString('</%s:table-row>' % e.tableNs)
         elif elem in TABLE_CELL_TAGS:
             e.dumpString('</%s:table-cell>' % e.tableNs)
+        elif elem in IGNORABLE_TAGS:
+            e.ignore = False
         if elemsToReopen:
             e.dumpString(elemsToReopen)
 
     def characters(self, content):
         e = XmlParser.characters(self, content)
-        e.currentContent += content
+        if not e.ignore:
+            e.currentContent += content
 
 # -------------------------------------------------------------------------------
 class Xhtml2OdtConverter:
