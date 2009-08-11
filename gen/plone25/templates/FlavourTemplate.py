@@ -32,6 +32,8 @@ class <!flavourName!>(OrderedBaseFolder, FlavourMixin):
     allMetaTypes = <!metaTypes!>
     wrapperClass = <!wrapperClass!>
     _at_rename_after_creation = True
+    for elem in dir(FlavourMixin):
+        if not elem.startswith('__'): security.declarePublic(elem)
 <!commonMethods!>
 <!predefinedMethods!>
 <!methods!>

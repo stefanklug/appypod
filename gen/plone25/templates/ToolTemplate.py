@@ -38,6 +38,8 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     # When browsing into the tool, the 'configure' portlet should be dislayed.
     left_slots = ['here/portlet_prefs/macros/portlet']
     right_slots = []
+    for elem in dir(ToolMixin):
+        if not elem.startswith('__'): security.declarePublic(elem)
 
     # Tool constructor has no id argument, the id is fixed.
     def __init__(self, id=None):

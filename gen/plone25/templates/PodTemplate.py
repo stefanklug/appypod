@@ -29,6 +29,8 @@ class <!applicationName!>PodTemplate(BaseContent, PodTemplateMixin):
     _at_rename_after_creation = True
     wrapperClass = <!wrapperClass!>
     schema = fullSchema
+    for elem in dir(PodTemplateMixin):
+        if not elem.startswith('__'): security.declarePublic(elem)
 <!commonMethods!>
 <!methods!>
 registerType(<!applicationName!>PodTemplate, '<!applicationName!>')

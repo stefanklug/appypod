@@ -29,6 +29,8 @@ class <!genClassName!>(<!parents!>):
     i18nDomain = '<!applicationName!>'
     schema = fullSchema
     wrapperClass = <!genClassName!>_Wrapper
+    for elem in dir(ClassMixin):
+        if not elem.startswith('__'): security.declarePublic(elem)
 <!commonMethods!>
 <!methods!>
 <!register!>
