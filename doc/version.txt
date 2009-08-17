@@ -1,3 +1,6 @@
+0.4.0 (2009-08-12)
+- Alpha version.
+
 0.3.1 (2009-04-10)
 - gen: added the concept of "phase" for structuring a root content type.
 
