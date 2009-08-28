@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import xml.sax, base64
+import xml.sax
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
 from StringIO import StringIO
@@ -133,8 +133,7 @@ class XmlParser(ContentHandler, ErrorHandler):
         return self.res
 
 # ------------------------------------------------------------------------------
-from appy.shared import UnmarshalledObject, Dummy
-from appy.gen.plone25.wrappers import FileWrapper
+from appy.shared import UnmarshalledObject, UnmarshalledFile
 try:
     from DateTime import DateTime
 except ImportError:
@@ -169,14 +168,10 @@ class XmlUnmarshaller(XmlParser):
         # to store the next parsed element. A container can be a list, a tuple,
         # an object (the root object of the whole web or a sub-object).
         self.env.currentBasicType = None # Will hold the name of the currently
-        # parsed basic type (unicode, float, ...)
+        # parsed basic type (unicode, float...)
         self.env.currentContent = '' # We store here the content of tags.
-        self.env.currentFileName = '' # If current tag contains a file, we
-        # store here the file name.
-        self.env.currentMimeType = '' # If current tag contains a file, we
-        # store here the file name.
 
-    containerTags = ('tuple', 'list', 'object')
+    containerTags = ('tuple', 'list', 'object', 'file')
     numericTypes = ('bool', 'int', 'float', 'long')
     def startElement(self, elem, attrs):
         e = XmlParser.startElement(self, elem, attrs)
@@ -189,18 +184,19 @@ class XmlUnmarshaller(XmlParser):
             if elemType == 'object': newObject = UnmarshalledObject()
             elif elemType == 'tuple': newObject = [] # Tuples become lists
             elif elemType == 'list': newObject = []
+            elif elemType == 'file':
+                newObject = UnmarshalledFile()
+                if attrs.has_key('name'):
+                    newObject.name = attrs['name']
+                if attrs.has_key('mimeType'):
+                    newObject.mimeType = attrs['mimeType']
             else: newObject = UnmarshalledObject()
             # Store the value on the last container, or on the root object.
             self.storeValue(elem, newObject)
             # Push the new object on the container stack
             e.containerStack.append(newObject)
         else:
-            # We are parsing a basic type
             e.currentBasicType = elemType
-            if elemType == 'file':
-                if attrs.has_key('name'): e.currentFileName = attrs['name']
-                if attrs.has_key('mimeType'):
-                    e.currentMimeType = attrs['mimeType']
 
     def storeValue(self, name, value):
         '''Stores the newly parsed p_value (contained in tag p_name) on the
@@ -214,8 +210,10 @@ class XmlUnmarshaller(XmlParser):
                 self.res.__class__ = self.klass
         else:
             currentContainer = e.containerStack[-1]
-            if type(currentContainer) == list:
+            if isinstance(currentContainer, list):
                 currentContainer.append(value)
+            elif isinstance(currentContainer, UnmarshalledFile):
+                currentContainer.content += value
             else:
                 # Current container is an object
                 setattr(currentContainer, name, value)
@@ -236,13 +234,8 @@ class XmlUnmarshaller(XmlParser):
                     value = None
             elif e.currentBasicType == 'DateTime':
                 value = DateTime(e.currentContent.strip())
-            elif e.currentBasicType == 'file':
-                value = Dummy()
-                value.name = e.currentFileName
-                value.content = base64.b64decode(e.currentContent.strip())
-                value.mimeType = e.currentMimeType
-                value.size = len(value.content)
-                value.__class__ = FileWrapper
+            elif e.currentBasicType == 'base64':
+                value = e.currentContent.decode('base64')
             else:
                 value = e.currentContent.strip()
             # Store the value on the last container
@@ -271,24 +264,59 @@ class XmlMarshaller:
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
 
-    def dumpValue(self, res, value, fieldType='basic'):
+    def dumpString(self, res, s):
+        '''Dumps a string into the result.'''
+        # Replace special chars by XML entities
+        for c in s:
+            if self.xmlEntities.has_key(c):
+                res.write(self.xmlEntities[c])
+            else:
+                res.write(c)
+
+    def dumpFile(self, res, v):
+        '''Dumps a file into the result.'''
+        # p_value contains the (possibly binary) content of a file. We will
+        # encode it in Base64, in one or several parts.
+        res.write('<part type="base64" number="1">')
+        if hasattr(v, 'data'):
+            # The file is an Archetypes file.
+            valueType = v.data.__class__.__name__
+            if valueType == 'Pdata':
+                # There will be several parts.
+                res.write(v.data.data.encode('base64'))
+                # Write subsequent parts
+                nextPart = v.data.next
+                nextPartNumber = 2
+                while nextPart:
+                    res.write('</part>') # Close the previous part
+                    res.write('<part type="base64" number="%d">'%nextPartNumber)
+                    res.write(nextPart.data.encode('base64'))
+                    nextPart = nextPart.next
+                    nextPartNumber += 1
+            else:
+                res.write(v.data.encode('base64'))
+        else:
+            res.write(v.encode('base64'))
+        res.write('</part>')
+
+    def dumpValue(self, res, value, fieldType):
         '''Dumps the XML version of p_value to p_res.'''
         if fieldType == 'file':
-            # p_value contains the (possibly binary) content of a file. We will
-            # encode it in Base64.
-            if hasattr(value, 'data'):
-                v = value.data # Simple wrap for images
-                if hasattr(v, 'data'): v = v.data # Double wrap for files
-            else:
-                v = value
-            res.write(base64.b64encode(v))
-        elif isinstance(value, basestring):
-            # Replace special chars by XML entities
-            for c in value:
-                if self.xmlEntities.has_key(c):
-                    res.write(self.xmlEntities[c])
+            self.dumpFile(res, value)
+        elif fieldType == 'ref':
+            if value:
+                if type(value) in self.sequenceTypes:
+                    for elem in value:
+                        self.dumpField(res, 'url', elem.absolute_url_path())
                 else:
-                    res.write(c)
+                    self.dumpField(res, 'url', value.absolute_url_path())
+        elif type(value) in self.sequenceTypes:
+            # The previous condition must be checked before this one because
+            # Referred objects may be stored in lists or tuples, too.
+            for elem in value:
+                self.dumpField(res, 'e', elem)
+        elif isinstance(value, basestring):
+            self.dumpString(res, value)
         elif isinstance(value, bool):
             res.write(self.trueFalse[value])
         else:
@@ -298,7 +326,7 @@ class XmlMarshaller:
         '''Dumps in p_res, the value of the p_field for p_instance.'''
         res.write('<'); res.write(fieldName);
         # Dump the type of the field as an XML attribute
-        fType = None # No type will mean "string".
+        fType = None # No type will mean "unicode".
         if fieldType == 'file': fType ='file'
         elif fieldType == 'ref': fType = 'list'
         elif isinstance(fieldValue, bool): fType = 'bool'
@@ -309,28 +337,19 @@ class XmlMarshaller:
         elif isinstance(fieldValue, list): fType = 'list'
         elif fieldValue.__class__.__name__ == 'DateTime': fType = 'DateTime'
         if fType: res.write(' type="%s"' % fType)
+        # Dump other attributes if needed
         if type(fieldValue) in self.sequenceTypes:
             res.write(' count="%d"' % len(fieldValue))
         if fieldType == 'file':
             if hasattr(fieldValue, 'content_type'):
                 res.write(' mimeType="%s"' % fieldValue.content_type)
             if hasattr(fieldValue, 'filename'):
-                res.write(' name="%s"' % fieldValue.filename)
+                res.write(' name="')
+                self.dumpString(res, fieldValue.filename)
+                res.write('"')
         res.write('>')
-        # Dump the child elements if any
-        if fieldType == 'ref':
-            if fieldValue:
-                for elem in fieldValue:
-                    self.dumpField(res, 'url', elem.absolute_url_path())
-            else:
-                self.dumpField(res, 'url', '')
-        elif type(fieldValue) in self.sequenceTypes:
-            # The previous condition must be checked before this one because
-            # Referred objects are stored in lists or tuples, too.
-            for elem in fieldValue:
-                self.dumpField(res, 'e', elem)
-        else:
-            res.write(self.dumpValue(res, fieldValue, fieldType))
+        # Dump the field value
+        self.dumpValue(res, fieldValue, fieldType)
         res.write('</'); res.write(fieldName); res.write('>')
 
     def marshall(self, instance, objectType='popo'):

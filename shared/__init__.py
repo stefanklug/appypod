@@ -26,6 +26,14 @@ class UnmarshalledObject:
         res  = res.strip() + '>'
         return res.encode('utf-8')
 
+class UnmarshalledFile:
+    '''Used for producing file objects from a marshalled Python object.'''
+    def __init__(self):
+        self.name = '' # The name of the file on disk
+        self.mimeType = None # The MIME type of the file
+        self.content = '' # The binary content of the file of a file object
+        self.size = 0 # The length of the file in bytes.
+
 # ------------------------------------------------------------------------------
 class Dummy: pass
 # ------------------------------------------------------------------------------
