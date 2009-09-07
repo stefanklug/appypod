@@ -307,9 +307,9 @@ class XmlMarshaller:
             if value:
                 if type(value) in self.sequenceTypes:
                     for elem in value:
-                        self.dumpField(res, 'url', elem.absolute_url_path())
+                        self.dumpField(res, 'url', elem.absolute_url())
                 else:
-                    self.dumpField(res, 'url', value.absolute_url_path())
+                    self.dumpField(res, 'url', value.absolute_url())
         elif type(value) in self.sequenceTypes:
             # The previous condition must be checked before this one because
             # Referred objects may be stored in lists or tuples, too.

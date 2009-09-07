@@ -79,4 +79,18 @@ class PodError(Exception):
                 buffer.write('</%s>' % subTag.elem)
             buffer.write('</%s>' % withinElement.OD.elem)
     dump = staticmethod(dump)
+
+def convertToXhtml(s):
+    '''Produces the XHTML-friendly version of p_s.'''
+    res = ''
+    for c in s:
+        if XML_SPECIAL_CHARS.has_key(c):
+            res += XML_SPECIAL_CHARS[c]
+        elif c == '\n':
+            res += '<br/>'
+        elif c == '\r':
+            pass
+        else:
+            res += c
+    return res
 # ------------------------------------------------------------------------------
