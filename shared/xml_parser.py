@@ -150,7 +150,7 @@ class XmlUnmarshaller(XmlParser):
        If "object" is specified, it means that the tag contains sub-tags, each
        one corresponding to the value of an attribute for this object.
        if "tuple" is specified, it will be converted to a list.'''
-    def __init__(self, klass=None):
+    def __init__(self, klass=None, tagTypes={}):
         XmlParser.__init__(self)
         self.klass = klass # If a klass is given here, instead of creating
         # a root UnmarshalledObject instance, we will create an instance of this
@@ -160,6 +160,13 @@ class XmlUnmarshaller(XmlParser):
         # careful: we will not call the constructor of this class. We will
         # simply create an instance of UnmarshalledObject and dynamically change
         # the class of the created instance to this class.
+        self.tagTypes = tagTypes
+        # We expect that the parsed XML file will follow some conventions
+        # (ie, a tag that corresponds to a list has attribute type="list" or a
+        # tag that corresponds to an object has attribute type="object".). If
+        # it is not the case of p_xmlContent, you can provide the missing type
+        # information in p_tagTypes. Here is an example of p_tagTypes:
+        # {"information": "list", "days": "list", "person": "object"}.
 
     def startDocument(self):
         self.res = None # The resulting web of Python objects
@@ -179,6 +186,8 @@ class XmlUnmarshaller(XmlParser):
         elemType = 'unicode' # Default value
         if attrs.has_key('type'):
             elemType = attrs['type']
+        elif self.tagTypes.has_key(elem):
+            elemType = self.tagTypes[elem]
         if elemType in self.containerTags:
             # I must create a new container object.
             if elemType == 'object': newObject = UnmarshalledObject()
@@ -216,7 +225,18 @@ class XmlUnmarshaller(XmlParser):
                 currentContainer.content += value
             else:
                 # Current container is an object
-                setattr(currentContainer, name, value)
+                if hasattr(currentContainer, name):
+                    # We have already encountered a sub-object with this name.
+                    # Having several sub-objects with the same name, we will
+                    # create a list.
+                    attrValue = getattr(currentContainer, name)
+                    if not isinstance(attrValue, list):
+                        attrValue = [attrValue, value]
+                    else:
+                        attrValue.append(value)
+                else:
+                    attrValue = value
+                setattr(currentContainer, name, attrValue)
 
     def characters(self, content):
         e = XmlParser.characters(self, content)
@@ -246,8 +266,14 @@ class XmlUnmarshaller(XmlParser):
         else:
             e.containerStack.pop()
 
-    # Alias 'unmarshall' -> 'parse'
+    # Alias: "unmarshall" -> "parse"
     unmarshall = XmlParser.parse
+
+class CssParser(XmlUnmarshaller):
+    cssTags = {'rss': 'object', 'channel': 'object', 'item': 'object'}
+    def startDocument(self):
+        XmlUnmarshaller.startDocument(self)
+        self.tagTypes.update(self.cssTags)
 
 # ------------------------------------------------------------------------------
 class XmlMarshaller:

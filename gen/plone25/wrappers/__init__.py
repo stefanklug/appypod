@@ -1,5 +1,5 @@
 '''This package contains base classes for wrappers that hide to the Appy
-   developer the real classes used by the undelrying web framework.'''
+   developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
 import time, os.path, mimetypes

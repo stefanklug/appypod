@@ -105,6 +105,9 @@ class PloneInstaller:
         if not hasattr(site.aq_base, self.productName):
             # Temporarily allow me to create Appy large plone folders
             getattr(site.portal_types, self.appyFolderType).global_allow = 1
+            # Allow to create Appy large folders in the plone site
+            getattr(site.portal_types,
+                'Plone Site').allowed_content_types += (self.appyFolderType,)
             site.invokeFactory(self.appyFolderType, self.productName,
                                title=self.productName)
             getattr(site.portal_types, self.appyFolderType).global_allow = 0

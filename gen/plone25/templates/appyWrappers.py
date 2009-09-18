@@ -4,6 +4,8 @@ from appy.gen.plone25.wrappers import AbstractWrapper, FileWrapper
 from appy.gen.plone25.wrappers.ToolWrapper import ToolWrapper
 from appy.gen.plone25.wrappers.FlavourWrapper import FlavourWrapper
 from appy.gen.plone25.wrappers.PodTemplateWrapper import PodTemplateWrapper
+from Globals import InitializeClass
+from AccessControl import ClassSecurityInfo
 <!imports!>
 
 class PodTemplate(PodTemplateWrapper):

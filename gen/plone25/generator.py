@@ -149,8 +149,9 @@ class Generator(AbstractGenerator):
                       destName = '%s.css.dtml' % self.applicationName)
         self.copyFile('do.py', self.repls, destFolder=self.skinsFolder,
                       destName='%s_do.py' % self.applicationName)
-        self.copyFile('colophon.pt', self.repls, destFolder=self.skinsFolder)
-        self.copyFile('footer.pt', self.repls, destFolder=self.skinsFolder)
+        if self.config.minimalistPlone:
+            self.copyFile('colophon.pt', self.repls,destFolder=self.skinsFolder)
+            self.copyFile('footer.pt', self.repls, destFolder=self.skinsFolder)
         # Create version.txt
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
@@ -502,6 +503,7 @@ class Generator(AbstractGenerator):
                         parentWrapper = '%s_Wrapper' % k.name
             wrapperDef = 'class %s_Wrapper(%s, %s):\n' % \
                          (c.name, parentWrapper, parentClass)
+            wrapperDef += '    security = ClassSecurityInfo()\n'
             titleFound = False
             for attrName in c.orderedAttributes:
                 if attrName == 'title':
@@ -519,12 +521,20 @@ class Generator(AbstractGenerator):
                 # Implicitly, the title will be added by Archetypes. So I need
                 # to define a property for it.
                 wrapperDef += self.generateWrapperProperty('title', String())
-            # For custom tool, flavour and pod template, add a call to a method
-            # that allows to custom element to update the basic element.
             if isinstance(c, CustomToolClassDescriptor) or \
                isinstance(c, CustomFlavourClassDescriptor):
-                wrapperDef += "    if hasattr(%s, 'update'): %s.update(%s.__bases__[1])" % \
-                              (parentClass, parentClass, parentWrapper)
+                # For custom tool and flavour, add a call to a method that
+                # allows to customize elements from the base class.
+                wrapperDef += "    if hasattr(%s, 'update'):\n        " \
+                    "%s.update(%s.__bases__[1])\n" % (
+                    parentClass, parentClass, parentWrapper)
+                # For custom tool and flavour, add security declaration that
+                # will allow to call their methods from ZPTs.
+                wrapperDef += "    for elem in dir(%s):\n        " \
+                    "if not elem.startswith('_'): security.declarePublic" \
+                    "(elem)\n" % (parentClass)
+            # Register the class in Zope.
+            wrapperDef += 'InitializeClass(%s_Wrapper)\n' % c.name
             wrappers.append(wrapperDef)
         repls = self.repls.copy()
         repls['imports'] = '\n'.join(imports)
