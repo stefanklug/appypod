@@ -14,6 +14,7 @@ def stringify(value):
                 res = value[7:]
             else:
                 res = "'%s'" % value.replace("'", "\\'")
+                res = res.replace('\n', '\\n')
     return res
 
 # ------------------------------------------------------------------------------

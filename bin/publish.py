@@ -1,3 +1,4 @@
+#!/usr/bin/python2.4.4
 # Imports ----------------------------------------------------------------------
 import os, os.path, shutil, re, zipfile, sys, ftplib
 from appy.shared import appyPath
