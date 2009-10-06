@@ -61,11 +61,11 @@ class Converter:
         self.oo = None # OpenOffice application object
         self.doc = None # OpenOffice loaded document
     def getDocUrl(self, docPath):
+        import uno
         if not os.path.exists(docPath) and not os.path.isfile(docPath):
             raise ConverterError(DOC_NOT_FOUND % docPath)
         docAbsPath = os.path.abspath(docPath)
-        docUrl = 'file:///' + docAbsPath.replace('\\', '/')
-        return docUrl
+        return uno.systemPathToFileUrl(docAbsPath)
     def getResultFilter(self, resultType):
         if ODT_FILE_TYPES.has_key(resultType):
             res = ODT_FILE_TYPES[resultType]
@@ -79,7 +79,7 @@ class Converter:
             res = '%s.%s' % (baseName, resultType)
         else:
             res = '%s.res.%s' % (baseName, resultType)
-        fileName = res[8:]
+        fileName = res[7:]
         try:
             f = open(fileName, 'w')
             f.write('Hello')
