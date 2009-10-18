@@ -13,24 +13,24 @@ import Extensions.appyWrappers
 # every Archetype instance has a method "getProductConfig" that returns this
 # module.
 from persistent.list import PersistentList
-from Products.Archetypes.utils import DisplayList
 from OFS.Image import File
 from DateTime import DateTime
 from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.PloneBatch import Batch
-from OFS.Image import File
+from Products.Archetypes.utils import DisplayList
 import logging
 logger = logging.getLogger('<!applicationName!>')
 
 # Some global variables --------------------------------------------------------
+PROJECTNAME = '<!applicationName!>'
 defaultAddRoles = [<!defaultAddRoles!>]
 DEFAULT_ADD_CONTENT_PERMISSION = "Add portal content"
 ADD_CONTENT_PERMISSIONS = {
 <!addPermissions!>}
 setDefaultRoles(DEFAULT_ADD_CONTENT_PERMISSION, tuple(defaultAddRoles))
 product_globals = globals()
-PROJECTNAME = '<!applicationName!>'
 applicationRoles = [<!roles!>]
+rootClasses = [<!rootClasses!>]
 referers = {
 <!referers!>
 }

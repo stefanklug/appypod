@@ -20,8 +20,8 @@ class <!genClassName!>(<!parents!>):
     allowed_content_types = []
     filter_content_types = 0
     global_allow = 1
-    immediate_view = '<!applicationName!>_appy_view'
-    default_view = '<!applicationName!>_appy_view'
+    immediate_view = 'skyn/view'
+    default_view = 'skyn/view'
     suppl_views = ()
     typeDescription = '<!genClassName!>'
     typeDescMsgId = '<!genClassName!>_edit_descr'

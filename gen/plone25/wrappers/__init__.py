@@ -180,8 +180,8 @@ class AbstractWrapper:
         return appyObj
 
     def translate(self, label, mapping={}, domain=None):
-        if not domain: domain = self.o.getProductConfig().PROJECTNAME
-        return self.o.utranslate(label, mapping, domain=domain)
+        '''Check documentation of self.o.translate.'''
+        return self.o.translate(label, mapping, domain)
 
     def do(self, transition, comment='', doAction=False, doNotify=False):
         '''This method allows to trigger on p_self a workflow p_transition

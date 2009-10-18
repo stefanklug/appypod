@@ -21,8 +21,8 @@ class <!applicationName!>PodTemplate(BaseContent, PodTemplateMixin):
     filter_content_types = 0
     global_allow = 1
     #content_icon = '<!applicationName!>PodTemplate.gif'
-    immediate_view = '<!applicationName!>_appy_view'
-    default_view = '<!applicationName!>_appy_view'
+    immediate_view = 'skyn/view'
+    default_view = 'skyn/view'
     suppl_views = ()
     typeDescription = "<!applicationName!>PodTemplate"
     typeDescMsgId = '<!applicationName!>_edit_descr'

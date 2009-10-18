@@ -1,5 +1,6 @@
 <!codeHeader!>
 from zExceptions import BadRequest
+from Products.CMFCore.DirectoryView import manage_addDirectoryView
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 from Products.Archetypes.Extensions.utils import installTypes
 from Products.Archetypes.Extensions.utils import install_subskin

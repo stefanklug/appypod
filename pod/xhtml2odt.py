@@ -25,8 +25,8 @@ from appy.pod import *
 
 # To which ODT tag does HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
-              'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'em': 'span',
-              'sub': 'span', 'sup': 'span', 'br': 'line-break', 'div': 'span'}
+    'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'em': 'span',
+    'sub': 'span', 'sup': 'span', 'br': 'line-break', 'div': 'span'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
                       'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
                       'td': 'podCell', 'th': 'podHeaderCell'}
@@ -35,6 +35,7 @@ TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
 NOT_INSIDE_P = ('table', 'ol', 'ul') # Those elements can't be rendered inside
 # paragraphs.
+NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
 HTML_ENTITIES = {
         'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
@@ -56,8 +57,8 @@ HTML_ENTITIES = {
         'ntilde':'ñ', 'ograve':'ò', 'oacute':'ó', 'ocirc':'ô', 'otilde':'õ',
         'ouml':'ö', 'divide':'÷', 'oslash':'ø', 'ugrave':'ù', 'uacute':'ú',
         'ucirc':'û', 'uuml':'ü', 'yacute':'ý', 'thorn':'þ', 'yuml':'ÿ',
-        'euro':'€', 'nbsp':' ', "rsquo":"'", 'ndash': ' ', 'oelig':'oe',
-        'quot': "'", 'mu': 'µ'}
+        'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
+        "rdquo":"'", 'ndash': ' ', 'oelig':'oe', 'quot': "'", 'mu': 'µ'}
 
 # ------------------------------------------------------------------------------
 class Entity:
@@ -71,6 +72,8 @@ class HtmlElement:
     '''Every time an HTML element is encountered during the SAX parsing,
        an instance of this class is pushed on the stack of currently parsed
        elements.'''
+    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list'}
+    odfElems = {'p':'p', 'li':'list-item', 'ol': 'list', 'ul': 'list'}
     def __init__(self, elem, attrs):
         self.elem = elem
         # Keep "class" attribute (useful for finding the corresponding ODT
@@ -80,34 +83,42 @@ class HtmlElement:
         self.classAttr = None
         if attrs.has_key('class'):
             self.classAttr = attrs['class']
-        self.tagsToReopen = '' # When the HTML element corresponding to self
+        self.tagsToReopen = [] # When the HTML element corresponding to self
         # is completely dumped, if there was a problem related to tags
         # inclusion, we may need to dump start tags corresponding to
-        # tags that we had to close before dumping this element.
-        self.tagsToClose = '' # Before dumping the closing tag corresponding
+        # tags that we had to close before dumping this element. This list
+        # contains HtmlElement instances.
+        self.tagsToClose = [] # Before dumping the closing tag corresponding
         # to self, we may need to close other tags (ie closing a paragraph
-        # before closing a cell).
-    def isParagraph(self, env):
-        '''This methods returns True if:
-           - self is a "p";
-           - self is a "td" or "th" inside which a "p" was added.'''
-        return (self.elem == 'p') or \
-               ( (self.elem in OUTER_TAGS) and \
-                 (self.tagsToClose == '</%s:p>' % env.textNs))
+        # before closing a cell). This list contains HtmlElement instances.
+        self.elemType = self.elem
+        if self.elemTypes.has_key(self.elem):
+            self.elemType = self.elemTypes[self.elem]
+
+    def getOdfTag(self, env):
+        '''Gets the ODF tag that corresponds to me.'''
+        return '%s:%s' % (env.textNs, self.odfElems[self.elem])
+
     def getConflictualElements(self, env):
         '''self was just parsed. In some cases, this element can't be dumped
            in the result because there are conflictual elements among previously
            parsed opening elements (p_currentElements). For example, if we just
            dumped a "p", we can't dump a table within the "p". Such constraints
-           do not hold in XHTML code but hold in ODF code.
-
-           !! Conflictual elements must be listed in HTML_2_ODT !! '''
-        res = ()
+           do not hold in XHTML code but hold in ODF code.'''
         if env.currentElements:
-            if (env.currentElements[-1].isParagraph(env)) and \
-               (self.elem in NOT_INSIDE_P):
-                res = ('p',)
-        return res
+            parentElem = env.currentElements[-1]
+            # Check elements that can't be found within a paragraph
+            if (parentElem.elemType=='para') and (self.elem in NOT_INSIDE_P):
+                return (parentElem,)
+            if (parentElem.elem in OUTER_TAGS) and parentElem.tagsToClose and \
+                (parentElem.tagsToClose[-1].elem == 'p') and \
+                (self.elem in NOT_INSIDE_P):
+                return (parentElem.tagsToClose[-1],)
+            # Check elements that can't be found within a list
+            if (parentElem.elemType=='list') and (self.elem in NOT_INSIDE_LIST):
+                return (parentElem,)
+        return ()
+
     def addInnerParagraph(self, env):
         '''Dump an inner paragraph inside self (if not already done).'''
         if not self.tagsToClose:
@@ -124,7 +135,36 @@ class HtmlElement:
                 env.dumpString(' %s:style-name="%s"' % (env.textNs,
                     env.itemStyles[itemStyle]))
             env.dumpString('>')
-            self.tagsToClose = '</%s:p>' % env.textNs
+            self.tagsToClose.append(HtmlElement('p',{}))
+
+    def dump(self, start, env):
+        '''Dumps the start or stop (depending onp_start) tag of this HTML
+           element. We must take care of potential innerTags.'''
+        # Compute the tag in itself
+        tag = ''
+        prefix = '<'
+        if not start: prefix += '/'
+        # Compute tag attributes
+        attrs = ''
+        if start:
+            if self.elemType == 'list':
+                # I must specify the list style
+                attrs += ' %s:style-name="%s"' % (
+                    env.textNs, env.listStyles[self.elem])
+                if self.elem == 'ol':
+                    # I have interrupted a numbered list. I need to continue
+                    # the numbering.
+                    attrs += ' %s:continue-numbering="true"' % env.textNs
+        tag = prefix + self.getOdfTag(env) + attrs + '>'
+        # Close/open subTags if any
+        for subElem in self.tagsToClose:
+            subTag = subElem.dump(start, env)
+            if start: tag += subTag
+            else: tag = subTag + tag
+        return tag
+
+    def __repr__(self):
+        return '<Html "%s">' % self.elem
 
 # ------------------------------------------------------------------------------
 class HtmlTable:
@@ -156,6 +196,7 @@ class XhtmlEnvironment(XmlEnvironment):
     itemStyles = {'ul': 'podBulletItem', 'ol': 'podNumberItem',
                   'ul_kwn': 'podBulletItemKeepWithNext',
                   'ol_kwn': 'podNumberItemKeepWithNext'}
+    listStyles = {'ul': 'podBulletedList', 'ol': 'podNumberedList'}
     def __init__(self, ns):
         XmlEnvironment.__init__(self)
         self.res = u''
@@ -255,6 +296,16 @@ class XhtmlEnvironment(XmlEnvironment):
                     self.textNs, odtStyle.outlineLevel))
         self.dumpString('>')
 
+    def dumpTags(self, elems, start=True):
+        '''Dumps a series of start or end tags (depending on p_start) of
+           HtmlElement instances in p_elems.'''
+        tags = ''
+        for elem in elems:
+            tag = elem.dump(start, self)
+            if start: tags += tag
+            else: tags = tag + tags
+        self.dumpString(tags)
+
     def dumpString(self, s):
         '''Dumps arbitrary content p_s.
            If the table stack is not empty, we must dump p_s into the buffer
@@ -269,6 +320,14 @@ class XhtmlEnvironment(XmlEnvironment):
         else:
             self.res += s
 
+    def getTagsToReopen(self, conflictElems):
+        '''Normally, tags to reopen are equal to p_conflictElems. But we have a
+           special case. Indeed, if a conflict elem has itself tagsToClose,
+           the last tag to close may not be needed anymore on the tag to
+           reopen, so we remove it.'''
+        conflictElems[-1].tagsToClose = []
+        return conflictElems
+
     def onElementStart(self, elem, attrs):
         previousElem = self.getCurrentElement()
         if previousElem and (previousElem.elem == 'podxhtml'):
@@ -281,14 +340,8 @@ class XhtmlEnvironment(XmlEnvironment):
         if conflictElems:
             # We must close the conflictual elements, and once the currentElem
             # will be dumped, we will re-open the conflictual elements.
-            closingTags = ''
-            openingTags = ''
-            for conflictElem in conflictElems:
-                odtElem = HTML_2_ODT[conflictElem]
-                closingTags = ('</%s:%s>' % (self.textNs, odtElem))+ closingTags
-                openingTags += '<%s:%s>' % (self.textNs, odtElem)
-            self.dumpString(closingTags)
-            currentElem.tagsToReopen = openingTags
+            self.dumpTags(conflictElems, start=False)
+            currentElem.tagsToReopen = self.getTagsToReopen(conflictElems)
         # Manage missing elements
         if self.anElementIsMissing(previousElem, currentElem):
             previousElem.addInnerParagraph(self)
@@ -333,14 +386,13 @@ class XhtmlEnvironment(XmlEnvironment):
                 lastTable.res += lastTable.tempRes
                 lastTable.tempRes = u''
         if currentElem.tagsToClose:
-            self.dumpString(currentElem.tagsToClose)
+            self.dumpTags(currentElem.tagsToClose, start=False)
         if currentElem.tagsToReopen:
             res = currentElem.tagsToReopen
         return res
 
 # ------------------------------------------------------------------------------
 class XhtmlParser(XmlParser):
-    listStyles = {'ul': 'podBulletedList', 'ol': 'podNumberedList'}
     # Initialize entities recognized by this parser
     entities = {}
     for name, value in HTML_ENTITIES.iteritems():
@@ -398,7 +450,7 @@ class XhtmlParser(XmlParser):
                 # must be surrounded by a list-item element.
                 prologue = '<%s:list-item>' % e.textNs
             e.dumpString('%s<%s:list %s:style-name="%s">' % (
-                prologue, e.textNs, e.textNs, self.listStyles[elem]))
+                prologue, e.textNs, e.textNs, e.listStyles[elem]))
         elif elem == 'li':
             e.dumpString('<%s:list-item>' % e.textNs)
         elif elem == 'table':
@@ -424,6 +476,9 @@ class XhtmlParser(XmlParser):
         e = XmlParser.endElement(self, elem)
         elemsToReopen = e.onElementEnd(elem)
         if HTML_2_ODT.has_key(elem):
+            # For "div" elements, we put append a carriage return.
+            if elem == 'div':
+                e.dumpString('<%s:line-break/>' % e.textNs)
             e.dumpString('</%s:%s>' % (e.textNs, HTML_2_ODT[elem]))
         elif elem == 'a':
             e.dumpString('</%s:a>' % e.textNs)
@@ -447,7 +502,7 @@ class XhtmlParser(XmlParser):
         elif elem in IGNORABLE_TAGS:
             e.ignore = False
         if elemsToReopen:
-            e.dumpString(elemsToReopen)
+            e.dumpTags(elemsToReopen)
 
     def characters(self, content):
         e = XmlParser.characters(self, content)
@@ -469,11 +524,7 @@ class Xhtml2OdtConverter:
         self.xhtmlParser = XhtmlParser(XhtmlEnvironment(ns), self)
 
     def run(self):
-        #print 'XHTML is **', self.xhtmlString, '**'
-        #print
         self.xhtmlParser.parse(self.xhtmlString)
-        #print 'ODT chunk is **', self.xhtmlParser.env.res, '**'
-        #print
         return self.xhtmlParser.env.res
 
     def findStyle(self, elem, attrs=None, classValue=None):

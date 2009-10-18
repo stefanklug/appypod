@@ -52,14 +52,14 @@
 /* stepxx classes are used for displaying status of a phase or state. */
 .stepDone {
   background-color: #cde2a7;
-  background-image: url(&dtml-portal_url;/done.png);
+  background-image: url(&dtml-portal_url;/skyn/done.png);
   background-repeat: no-repeat;
   background-position: center left;
 }
 
 .stepCurrent {
   background-color: #ffce7b;
-  background-image: url(&dtml-portal_url;/current.png);
+  background-image: url(&dtml-portal_url;/skyn/current.png);
   background-repeat: no-repeat;
   background-position: center left;
 }

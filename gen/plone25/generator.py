@@ -15,10 +15,6 @@ from descriptors import ArchetypeFieldDescriptor, ArchetypesClassDescriptor, \
 
 # Common methods that need to be defined on every Archetype class --------------
 COMMON_METHODS = '''
-    def at_post_create_script(self): self._appy_onEdit(True)
-    def at_post_edit_script(self): self._appy_onEdit(False)
-    def post_validate(self, REQUEST=None, errors=None):
-        if not errors: self._appy_validateAllFields(REQUEST, errors)
     def getTool(self): return self.%s
     def getProductConfig(self): return Products.%s.config
 '''
@@ -50,7 +46,6 @@ class Generator(AbstractGenerator):
              'portletName': self.portletName, 'queryName': self.queryName,
              'toolInstanceName': self.toolInstanceName,
              'podTemplateName': self.podTemplateName,
-             'macros': '%s_macros' % self.applicationName.lower(),
              'commonMethods': commonMethods})
         # Predefined class descriptors
         self.toolDescr = ToolClassDescriptor(Tool, self)
@@ -117,14 +112,12 @@ class Generator(AbstractGenerator):
             msg('bad_alphanumeric', '', msg.BAD_ALPHANUMERIC),
         ]
         # Create basic files (config.py, Install.py, etc)
-        self.generateAppyReference()
         self.generateTool()
         self.generateConfig()
         self.generateInit()
         self.generateInstall()
         self.generateWorkflows()
         self.generateWrappers()
-        self.generatePortlet()
         if self.config.frontPage == True:
             self.labels.append(msg('front_page_text', '', msg.FRONT_PAGE_TEXT))
             self.copyFile('frontPage.pt', self.repls,
@@ -135,20 +128,11 @@ class Generator(AbstractGenerator):
                       destFolder='profiles/default')
         self.copyFile('ProfileInit.py', self.repls, destFolder='profiles',
                       destName='__init__.py')
+        self.copyFile('Portlet.pt', self.repls,
+            destName='%s.pt' % self.portletName, destFolder=self.skinsFolder)
         self.copyFile('tool.gif', {})
-        self.copyFile('Macros.pt', self.repls, destFolder=self.skinsFolder,
-                      destName='%s_macros.pt' % self.applicationName.lower())
-        self.copyFile('appy_view.pt', self.repls, destFolder=self.skinsFolder,
-                      destName='%s_appy_view.pt' % self.applicationName)
-        self.copyFile('appy_edit.cpt', self.repls, destFolder=self.skinsFolder,
-                      destName='%s_appy_edit.cpt' % self.applicationName)
-        self.copyFile('appy_edit.cpt.metadata', self.repls,
-                      destFolder=self.skinsFolder,
-                      destName='%s_appy_edit.cpt.metadata'%self.applicationName)
         self.copyFile('Styles.css.dtml', self.repls, destFolder=self.skinsFolder,
                       destName = '%s.css.dtml' % self.applicationName)
-        self.copyFile('do.py', self.repls, destFolder=self.skinsFolder,
-                      destName='%s_do.py' % self.applicationName)
         if self.config.minimalistPlone:
             self.copyFile('colophon.pt', self.repls,destFolder=self.skinsFolder)
             self.copyFile('footer.pt', self.repls, destFolder=self.skinsFolder)
@@ -241,18 +225,6 @@ class Generator(AbstractGenerator):
             self.referers[refClassName] = []
         self.referers[refClassName].append( (fieldDescr, relationship))
 
-    def generatePortlet(self):
-        rootClasses = ''
-        for classDescr in self.classes:
-            if classDescr.isRoot():
-                rootClasses += "'%s'," % classDescr.name
-        repls = self.repls.copy()
-        repls['rootClasses'] = rootClasses
-        self.copyFile('Portlet.pt', repls, destName='%s.pt' % self.portletName,
-                      destFolder=self.skinsFolder)
-        self.copyFile('Query.pt', repls, destName='%s.pt' % self.queryName,
-                      destFolder=self.skinsFolder)
-
     def generateConfig(self):
         # Compute referers
         referers = ''
@@ -299,6 +271,11 @@ class Generator(AbstractGenerator):
             theImport = 'import %s' % classDescr.klass.__module__
             if theImport not in imports:
                 imports.append(theImport)
+        # Compute root classes
+        rootClasses = ''
+        for classDescr in self.classes:
+            if classDescr.isRoot():
+                rootClasses += "'%s'," % classDescr.name
         # Compute list of add permissions
         addPermissions = ''
         for classDescr in self.classes:
@@ -308,6 +285,7 @@ class Generator(AbstractGenerator):
         # Compute list of used roles for registering them if needed
         repls['roles'] = ','.join(['"%s"' % r for r in \
                                   self.getAllUsedRoles(appOnly=True)])
+        repls['rootClasses'] = rootClasses
         repls['referers'] = referers
         repls['workflowInstancesInit'] = wfInit
         repls['imports'] = '\n'.join(imports)
@@ -615,23 +593,6 @@ class Generator(AbstractGenerator):
         repls['wrapperClass'] = '%s_Wrapper' % self.podTemplateDescr.name
         self.copyFile('PodTemplate.py', repls,
                         destName='%s.py' % self.podTemplateName)
-        for imgName in PodTemplate.podFormat.validator:
-            self.copyFile('%s.png' % imgName, {},
-                            destFolder=self.skinsFolder)
-
-    refFiles = ('createAppyObject.cpy', 'createAppyObject.cpy.metadata',
-                'arrowUp.png', 'arrowDown.png', 'plus.png', 'appyConfig.gif',
-                'nextPhase.png', 'nextState.png', 'done.png', 'current.png')
-    prefixedRefFiles = ('AppyReference.pt',)
-    def generateAppyReference(self):
-        '''Generates what is needed to use Appy-specific references.'''
-        # Some i18n messages
-        Msg = PoMessage
-        for refFile in self.prefixedRefFiles:
-            self.copyFile(refFile, self.repls, destFolder=self.skinsFolder,
-                          destName='%s%s' % (self.applicationName, refFile))
-        for refFile in self.refFiles:
-            self.copyFile(refFile, self.repls, destFolder=self.skinsFolder)
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for

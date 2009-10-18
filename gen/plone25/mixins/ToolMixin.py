@@ -86,6 +86,10 @@ class ToolMixin(AbstractMixin):
         appName = self.getProductConfig().PROJECTNAME
         return getattr(portal, appName)
 
+    def getRootClasses(self):
+        '''Returns the list of root classes for this application.'''
+        return self.getProductConfig().rootClasses
+
     def showPortlet(self):
         return not self.portal_membership.isAnonymousUser()
 
@@ -194,4 +198,12 @@ class ToolMixin(AbstractMixin):
                 self.portal_url.getPortalPath()
         appName = self.getProductConfig().PROJECTNAME
         return self.utranslate(label, self.translationMapping, domain=appName)
+
+    def getPublishedObject(self):
+        '''Gets the currently published object.'''
+        rq = self.REQUEST
+        obj = rq['PUBLISHED']
+        parent = obj.getParentNode()
+        if parent.id == 'skyn': return parent.getParentNode()
+        return rq['PUBLISHED']
 # ------------------------------------------------------------------------------

@@ -1,2 +1,0 @@
-[actions]
-action.success=redirect_to:python:'createObject?type_name=%s' % request.SESSION.get('initiatorTarget')

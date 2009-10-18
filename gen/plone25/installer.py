@@ -5,6 +5,7 @@
 import os, os.path
 from StringIO import StringIO
 from sets import Set
+import appy
 from appy.gen.utils import produceNiceMessage
 from appy.gen.plone25.utils import updateRolesForPermission
 
@@ -36,8 +37,7 @@ class PloneInstaller:
         self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
         self.toLog = StringIO()
         self.typeAliases = {'sharing': '', 'gethtml': '',
-            '(Default)': '%s_appy_view' % self.productName,
-            'edit': '%s_appy_edit' % self.productName,
+            '(Default)': 'skyn/view', 'edit': 'skyn/edit',
             'index.html': '', 'properties': '', 'view': ''}
         self.tool = None # The Plone version of the application tool
         self.appyTool = None # The Appy version of the application tool
@@ -96,7 +96,9 @@ class PloneInstaller:
     def installRootFolder(self):
         '''Creates and/or configures, at the root of the Plone site and if
            needed, the folder where the application will store instances of
-           root classes.'''
+           root classes. Creates also the 'appy' folder (more precisely,
+           a Filesystem Directory View) at the root of the site, for storing
+           appy-wide ZPTs an images.'''
         # Register first our own Appy folder type if needed.
         site = self.ploneSite
         if not hasattr(site.portal_types, self.appyFolderType):
@@ -130,6 +132,10 @@ class PloneInstaller:
         # have the main permission "Add portal content".
         updateRolesForPermission('Add portal content', tuple(allCreators),
             appFolder)
+        # Creates the "appy" Directory view
+        if not hasattr(site.aq_base, 'appy'):
+            addDirView = self.ploneStuff['manage_addDirectoryView']
+            addDirView(site, appy.getPath() + '/gen/plone25/skin',id='skyn')
 
     def installTypes(self):
         '''Registers and configures the Plone content types that correspond to
@@ -154,10 +160,10 @@ class PloneInstaller:
                 typeActions = typeInfo.listActions()
                 for action in typeActions:
                     if action.id == 'view':
-                        page = '%s_appy_view' % self.productName
+                        page = 'skyn/view'
                         action.edit(action='string:${object_url}/%s' % page)
                     elif action.id == 'edit':
-                        page = '%s_appy_edit' % self.productName
+                        page = 'skyn/edit'
                         action.edit(action='string:${object_url}/%s' % page)
 
         # Configure types for instance creation through portal_factory
@@ -459,8 +465,10 @@ class ZopeInstaller:
 
     def installApplication(self):
         '''Performs some application-wide installation steps.'''
-        self.ploneStuff['DirectoryView'].registerDirectory('skins',
-            self.ploneStuff['product_globals'])
+        register = self.ploneStuff['DirectoryView'].registerDirectory
+        register('skins', self.ploneStuff['product_globals'])
+        # Register the appy skin folder among DirectoryView'able folders
+        register('skin', appy.getPath() + '/gen/plone25')
 
     def installTool(self):
         '''Installs the tool.'''

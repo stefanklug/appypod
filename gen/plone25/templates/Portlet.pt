@@ -1,45 +1,16 @@
 <html xmlns:tal="http://xml.zope.org/namespaces/tal"
       xmlns:metal="http://xml.zope.org/namespaces/metal"
       i18n:domain="<!applicationName!>">
-<body>
-
-<div metal:define-macro="portlet"
-     tal:define="tool python: context.<!toolInstanceName!>"
-     tal:condition="tool/showPortlet">
-
-  <metal:block metal:use-macro="here/global_defines/macros/defines" />
-
-  <dl class="portlet"
-      tal:define="rootClasses python:[<!rootClasses!>];
-                  appFolder tool/getAppFolder">
-
-    <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
-    <dt class="portletHeader">
-      <span i18n:translate="" tal:content="python: '<!applicationName!>'">
-      </span>&nbsp;
-      <img i18n:attributes="title" style="cursor:pointer" title="<!applicationName!>Tool"
-           tal:condition="python: member.has_role('Manager')"
-           tal:attributes="onClick python: 'href: window.location=\'%s/\'' % tool.absolute_url();
-                           src python: here.<!toolInstanceName!>.absolute_url() + '/appyConfig.gif'"/>
-    </dt>
-
-    <tal:comment replace="nothing">Links to flavours</tal:comment>
-    <dt class="portletAppyItem" tal:repeat="flavourInfo tool/getFlavoursInfo">
-        <a tal:define="flavourNumber flavourInfo/number;
-                       rootTypes python: test(flavourNumber==1, rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
-                       rootClassesQuery python:','.join(rootTypes)"
-         tal:content="flavourInfo/title"
-         i18n:translate="" title="query_consult_all" i18n:attributes="title"
-         tal:attributes="href python:'%s/<!queryName!>?query=%s&flavourNumber=%d' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
-    </dt>
-
-    <dt class="portletAppyItem" tal:condition="python: context.meta_type in rootClasses">
-        <metal:phases use-macro="here/<!macros!>/macros/phases"/>
-    </dt>
-
-  </dl>
-
-</div>
-
-</body>
+  <body>
+    <div metal:define-macro="portlet"
+         tal:define="tool python: context.<!toolInstanceName!>"
+         tal:condition="tool/showPortlet">
+      <metal:block metal:use-macro="here/global_defines/macros/defines" />
+      <dl tal:define="rootClasses tool/getRootClasses;
+                      appName string:<!applicationName!>;
+                      appFolder tool/getAppFolder" class="portlet">
+        <metal:content use-macro="here/skyn/macros/macros/portletContent"/>
+      </dl>
+    </div>
+  </body>
 </html>

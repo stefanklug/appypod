@@ -20,38 +20,91 @@ class AbstractMixin:
        inherits from this class. It contains basic functions allowing to
        minimize the amount of generated code.'''
 
-    def content_edit_impl(self, state, id):
-        '''This method is called by the Plone machinery every time an object
-           must be created or edited through the edit view.'''
+    def createOrUpdate(self, created):
+        '''This method creates (if p_created is True) or updates an object.
+           In the case of an object creation, p_self is a temporary object
+           created in the request by portal_factory, and this method creates
+           the corresponding final object. In the case of an update, this
+           method simply updates fields of p_self.'''
         rq = self.REQUEST
-        newSelf = self.portal_factory.doCreate(self, id)
-        newSelf.processForm()
+        obj = self
+        if created:
+            obj = self.portal_factory.doCreate(self, self.id) # portal_factory
+            # creates the final object from the temp object.
+        obj.processForm()
 
         # Get the current language and put it in the request
         if rq.form.has_key('current_lang'):
             rq.form['language'] = rq.form.get('current_lang')
 
-        # Generate the message returned to the user after creation/edition
-        portal_status_message = self.translate(
-            msgid='message_content_changes_saved',
-            default='Content changes saved.')
-        portal_status_message = rq.get(
-            'portal_status_message', portal_status_message)
+        # Manage references
+        obj._appy_manageRefs(created)
+        if obj.wrapperClass:
+            # Get the wrapper first
+            appyWrapper = obj._appy_getWrapper(force=True)
+            # Call the custom "onEdit" if available
+            try:
+                appyWrapper.onEdit(created)
+            except AttributeError, ae:
+                pass
+        # Manage "add" permissions
+        obj._appy_managePermissions()
+        # Re/unindex object
+        if obj._appy_meta_type == 'tool': self.unindexObject()
+        else: obj.reindexObject()
+        return obj
+        
+    def onUpdate(self):
+        '''This method is executed when a user wants to update an object.
+           The object may be a temporary object created by portal_factory in
+           the request. In this case, the update consists in the creation of
+           the "final" object in the database. If the object is not a temporary
+           one, this method updates its fields in the database.'''
+        rq = self.REQUEST
+        errors = {}
+        errorMessage = self.translate(
+            'Please correct the indicated errors.', domain='plone')
 
-        # What page must I display next ?
-        previousClicked = rq.get('form_previous', None)
-        nextClicked = rq.get('form_next', None)
-        if previousClicked or nextClicked:
-            # We must redirect the user to the previous or next page
-            targetPage = rq.get('nextPage', None)
-            if previousClicked:
-                targetPage = rq.get('previousPage', None)
-            return state.set(status='next_schemata', context=newSelf,
-                fieldset=targetPage,
-                portal_status_message=portal_status_message)
+        # Go back to the consult view if the user clicked on 'Cancel'
+        if rq.get('buttonCancel', None):
+            urlBack = '%s/skyn/view?phase=%s&pageName=%s' % (
+                self.absolute_url(), rq.get('phase'), rq.get('pageName'))
+            self.plone_utils.addPortalMessage(
+                self.translate('Changes canceled.', domain='plone'))
+            return rq.RESPONSE.redirect(urlBack)
+
+        # Trigger field-specific validation
+        self.validate(REQUEST=rq, errors=errors, data=1, metadata=0)
+        if errors:
+            rq.set('errors', errors)
+            self.plone_utils.addPortalMessage(errorMessage)
+            return self.skyn.edit(self)
         else:
-            return state.set(status='success', context=newSelf,
-                portal_status_message=portal_status_message)
+            # Trigger inter-field validation
+            self.validateAllFields(rq, errors)
+            if errors:
+                rq.set('errors', errors)
+                self.plone_utils.addPortalMessage(errorMessage)
+                return self.skyn.edit(self)
+            else:
+                # Create or update the object in the database
+                obj = self.createOrUpdate(rq.get('is_new') == 'True')
+                # Redirect the user to the appropriate page
+                if rq.get('buttonOk', None):
+                    # Go to the consult view for this object
+                    obj.plone_utils.addPortalMessage(
+                        obj.translate('Changes saved.', domain='plone'))
+                    urlBack = '%s/skyn/view?phase=%s&pageName=%s' % (
+                        obj.absolute_url(), rq.get('phase'), rq.get('pageName'))
+                    return rq.RESPONSE.redirect(urlBack)
+                elif rq.get('buttonPrevious', None):
+                    # Go to the edit view (previous page) for this object
+                    rq.set('fieldset', rq.get('previousPage'))
+                    return obj.skyn.edit(obj)
+                elif rq.get('buttonNext', None):
+                    # Go to the edit view (next page) for this object
+                    rq.set('fieldset', rq.get('nextPage'))
+            return obj.skyn.edit(obj)
 
     def getAppyType(self, fieldName):
         '''Returns the Appy type corresponding to p_fieldName.'''
@@ -653,24 +706,6 @@ class AbstractMixin:
             updateRolesForPermission('Add portal content', tuple(allCreators),
                                      folder)
 
-    def _appy_onEdit(self, created):
-        '''What happens when an object is created (p_created=True) or edited?'''
-        # Manage references
-        self._appy_manageRefs(created)
-        if self.wrapperClass:
-            # Get the wrapper first
-            appyWrapper = self._appy_getWrapper(force=True)
-            # Call the custom "onEdit" if available
-            try:
-                appyWrapper.onEdit(created)
-            except AttributeError, ae:
-                pass
-        # Manage "add" permissions
-        self._appy_managePermissions()
-        # Re/unindex object
-        if self._appy_meta_type == 'tool': self.unindexObject()
-        else: self.reindexObject()
-
     def _appy_getDisplayList(self, values, labels, domain):
         '''Creates a DisplayList given a list of p_values and corresponding
            i18n p_labels.'''
@@ -759,7 +794,7 @@ class AbstractMixin:
             res = self.utranslate(msgId, domain=self.i18nDomain)
         return res
 
-    def _appy_validateAllFields(self, REQUEST, errors):
+    def validateAllFields(self, REQUEST, errors):
         '''This method is called when individual validation of all fields
            succeed (when editing or creating an object). Then, this method
            performs inter-field validation. This way, the user must first
@@ -851,6 +886,7 @@ class AbstractMixin:
                 fieldValue = self.REQUEST[requestKey]
                 sortedRefField = getattr(self, '_appy_%s' % fieldName)
                 del sortedRefField[:]
+                if not fieldValue: fieldValue = []
                 if isinstance(fieldValue, basestring):
                     fieldValue = [fieldValue]
                 refObjects = []
@@ -874,4 +910,15 @@ class AbstractMixin:
                 if self.showField(fieldDescr, isEdit=True):
                     exec 'self.set%s%s([])' % (fieldName[0].upper(),
                                                fieldName[1:])
+
+    def getUrl(self):
+        '''This method returns the URL of the consult view for this object.'''
+        return self.absolute_url() + '/skyn/view'
+
+    def translate(self, label, mapping={}, domain=None, default=None):
+        '''Translates a given p_label into p_domain with p_mapping.'''
+        cfg = self.getProductConfig()
+        if not domain: domain = cfg.PROJECTNAME
+        return self.translation_service.utranslate(
+            domain, label, mapping, self, default=default)
 # ------------------------------------------------------------------------------

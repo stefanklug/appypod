@@ -1,7 +1,5 @@
-<div metal:define-macro="listPodTemplates" i18n:domain="<!applicationName!>" class="appyPod"
-     tal:define="flavour python: context.<!toolInstanceName!>.getFlavour(context);
-                 podTemplates python: flavour.getAvailablePodTemplates(context, phase);"
-     tal:condition="podTemplates">
+<div metal:define-macro="listPodTemplates" class="appyPod" tal:condition="podTemplates"
+     tal:define="podTemplates python: flavour.getAvailablePodTemplates(contextObj, phase);">
   <script language="javascript">
   <!--
     // Function that allows to generate a meeting document containing selected items.
@@ -16,35 +14,34 @@
 
   <tal:comment replace="nothing">Form submitted when an object needs to be generated as a document.</tal:comment>
   <form name="podTemplateForm" method="post"
-        tal:attributes="action python: context.absolute_url() + '/generateDocument'">
+        tal:attributes="action python: contextObj.absolute_url() + '/generateDocument'">
     <input type="hidden" name="objectUid"/>
     <input type="hidden" name="templateUid"/>
   </form>
 
-  <tal:podTemplates define="maxShownTemplates python: flavour.getMaxShownTemplates(context)">
-
+  <tal:podTemplates define="maxShownTemplates python: flavour.getMaxShownTemplates(contextObj)">
     <tal:comment replace="nothing">Display templates as links if a few number of templates must be shown</tal:comment>
     <span class="discreet" tal:condition="python: len(podTemplates)&lt;=maxShownTemplates"
           tal:repeat="podTemplate podTemplates">
       <a style="cursor: pointer"
          tal:define="podFormat podTemplate/getPodFormat"
-         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\')' % (context.UID(), podTemplate.UID())" >
+         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\')' % (contextObj.UID(), podTemplate.UID())" >
         <img tal:attributes="src string: $portal_url/$podFormat.png"/>
         <span tal:replace="podTemplate/Title"/>
       </a>
   &nbsp;</span>
   <tal:comment replace="nothing">Display templates as a list if a lot of templates must be shown</tal:comment>
   <select tal:condition="python: len(podTemplates)&gt;maxShownTemplates">
-    <option value="" i18n:translate="">choose_a_doc</option>
+    <option value="" tal:content="python: tool.translate('choose_a_doc')"></option>
     <option tal:repeat="podTemplate podTemplates" tal:content="podTemplate/Title"
-            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\')' % (context.UID(), podTemplate.UID())" />
+            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\')' % (contextObj.UID(), podTemplate.UID())" />
   </select>
   </tal:podTemplates>
 </div>
 
-<metal:editString define-macro="editString" i18n:domain="<!applicationName!>"
-     tal:define="vocab python:field.Vocabulary(contextObj);">
-  <label tal:attributes="for fieldName" tal:condition="showLabel" tal:content="label"/>
+<metal:editString define-macro="editString" tal:define="vocab python:field.Vocabulary(contextObj)">
+  <label tal:attributes="for fieldName" tal:condition="showLabel" tal:content="label"/>&nbsp;
+  <span class="fieldRequired" tal:condition="python: appyType['multiplicity'][0] &gt; 0"></span>
   <div class="discreet" tal:content="structure description"/>
   <select tal:attributes="name fieldName;
                           id fieldName;
@@ -59,7 +56,7 @@
   </select>
 </metal:editString>
 
-<metal:editBoolean define-macro="editBoolean" i18n:domain="<!applicationName!>">
+<metal:editBoolean define-macro="editBoolean">
   <input type="checkbox"
          tal:attributes="tabindex tabindex/next;
                          name python: fieldName + '_visible';
@@ -71,57 +68,56 @@
                          id string:${fieldName}_hidden;
                          value python: test(contextObj.checkboxChecked(fieldName, value), 'True', 'False')"
          type="hidden" />
+  <span class="fieldRequired" tal:condition="python: appyType['multiplicity'][0] &gt; 0"></span>
   <label tal:attributes="for fieldName" tal:condition="showLabel" tal:content="label"/>
   <div class="discreet" tal:content="structure description"/>
 </metal:editBoolean>
 
-<div metal:define-macro="editField" i18n:domain="<!applicationName!>"
+<div metal:define-macro="editField"
      tal:define="fieldName field/getName;
                  isMultiple python:test(appyType['multiplicity'][1]!=1, 'multiple', '');
                  inError python:test(errors.has_key(fieldName), True, False);
                  value python:field.getAccessor(contextObj)();
-                 defaultValue python: contextObj.getDefault(fieldName);
-                 label python: contextObj.utranslate(field.widget.label_msgid, domain='<!applicationName!>');
-                 description python: contextObj.utranslate(field.widget.description_msgid, domain='<!applicationName!>')"
+                 defaultValue python: contextObj.getDefault(fieldName)"
      tal:attributes="class python:'field ' + test(inError, ' error', '')">
-  <span class="fieldRequired" tal:condition="python: appyType['multiplicity'][0]>0"></span>
   <div tal:condition="inError" tal:content="python: errors[fieldName]"></div>
   <tal:stringField condition="python: appyType['type'] == 'String'">
-    <metal:edit use-macro="here/<!macros!>/macros/editString"/>
+    <metal:edit use-macro="here/skyn/macros/macros/editString"/>
   </tal:stringField>
   <tal:booleanField condition="python: appyType['type'] == 'Boolean'">
-    <metal:edit use-macro="here/<!macros!>/macros/editBoolean"/>
+    <metal:edit use-macro="here/skyn/macros/macros/editBoolean"/>
   </tal:booleanField>
 </div>
 
-<div metal:define-macro="showComputedField" i18n:domain="<!applicationName!>">
-  <span class="appyLabel" tal:condition="showLabel"
-        tal:content="field/widget/label_msgid" i18n:translate=""></span>
+<div metal:define-macro="showComputedField">
+  <span class="appyLabel" tal:condition="showLabel" tal:content="label"></span>
   <tal:showValue define="theValue python: contextObj.getComputedValue(appyType)">
     <span tal:condition="appyType/plainText" tal:replace="theValue"/>
     <span tal:condition="not: appyType/plainText" tal:replace="structure theValue"/>
   </tal:showValue>
 </div>
 
-<div metal:define-macro="showInfoField" i18n:domain="<!applicationName!>">
-  <span class="appyLabel" tal:content="field/widget/label_msgid" i18n:translate=""></span>
-  <span tal:content="field/widget/description_msgid" i18n:translate=""></span>
+<div metal:define-macro="showInfoField">
+  <span class="appyLabel" tal:content="label"></span>
+  <span tal:content="structure description"></span>
 </div>
 
-<div metal:define-macro="showActionField" i18n:domain="<!applicationName!>">
-  <form name="executeAppyAction" action="<!applicationName!>_do" method="POST">
+<div metal:define-macro="showActionField">
+  <form name="executeAppyAction" action="skyn/do" method="POST">
     <input type="hidden" name="actionType" value="appyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
-    <input type="submit" name="do" i18n:attributes="value"
-           tal:attributes="value field/widget/label_msgid"/>
+    <input type="submit" name="do" tal:attributes="value label"/>
   </form>
 </div>
 
-<div metal:define-macro="showArchetypesField" i18n:domain="<!applicationName!>"
+<div metal:define-macro="showArchetypesField"
      tal:define="field fieldDescr/atField|widgetDescr/atField;
                  appyType fieldDescr/appyType|widgetDescr/appyType;
-                 showLabel showLabel|python:True;"
+                 showLabel showLabel|python:True;
+                 label python: tool.translate(field.widget.label_msgid);
+                 descrId field/widget/description_msgid|python:'';
+                 description python: tool.translate(descrId)"
      tal:attributes="class python: contextObj.getCssClasses(appyType, asSlave=True)">
 
   <tal:comment replace="nothing">For some fields we simply use the standard Archetypes
@@ -137,18 +133,18 @@
     <tal:viewField tal:condition="not: isEdit">
       <tal:defField>
          <tal:fileField condition="python: (appyType['type'] == 'File')">
-           <span tal:condition="showLabel" tal:content="field/widget/label_msgid" i18n:translate=""></span>
+           <span tal:condition="showLabel" tal:content="label"></span>
            <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
          </tal:fileField>
          <tal:simpleField condition="python: (appyType['type'] in ('Integer', 'Float', 'Date', 'Boolean')) or (appyType['type'] == 'String' and (appyType['format'] == 0))">
-           <span tal:condition="showLabel" tal:content="field/widget/label_msgid" i18n:translate=""
+           <span tal:condition="showLabel" tal:content="label"
                  tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
                                  id python: field.getAccessor(contextObj)()"></span>
            <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
          </tal:simpleField>
          <tal:formattedString condition="python: (appyType['type'] == 'String' and (appyType['format'] != 0))">
             <fieldset tal:define="value python:field.getAccessor(contextObj)()">
-              <legend tal:condition="showLabel" i18n:translate="" tal:content="field/widget/label_msgid"></legend>
+              <legend tal:condition="showLabel" tal:content="label"></legend>
               <span tal:condition="python: appyType['format'] == 1"
                     tal:replace="structure python: value.replace('\n', '&lt;br&gt;')"/>
               <span tal:condition="python: appyType['format'] == 2" tal:replace="structure value"/>
@@ -163,59 +159,58 @@
     <tal:ref define="isBack python:False;
                      fieldRel python:field.relationship;
                      objs python:contextObj.getAppyRefs(field.getName());
-                     labelMsgId field/widget/label_msgid;
-                     descrMsgId field/widget/description_msgid;
                      innerRef innerRef|python:False">
-      <metal:viewRef use-macro="here/<!applicationName!>AppyReference/macros/showReference" />
+      <metal:viewRef use-macro="here/skyn/ref/macros/showReference" />
     </tal:ref>
   </tal:viewRef>
   <tal:editRef condition="python: isEdit and (appyType['type'] == 'Ref')">
     <tal:ref define="appyType fieldDescr/appyType|widgetDescr/appyType"
              condition="python: appyType['link']==True">
-      <metal:editRef use-macro="here/<!applicationName!>AppyReference/macros/editReference" />
+      <metal:editRef use-macro="here/skyn/ref/macros/editReference" />
     </tal:ref>
   </tal:editRef>
   <tal:computedField condition="python: (not isEdit) and (appyType['type'] == 'Computed')">
-    <metal:cf use-macro="here/<!macros!>/macros/showComputedField" />
+    <metal:cf use-macro="here/skyn/macros/macros/showComputedField" />
   </tal:computedField>
   <tal:actionField condition="python: (not isEdit) and (appyType['type'] == 'Action')">
-    <metal:af use-macro="here/<!macros!>/macros/showActionField" />
+    <metal:af use-macro="here/skyn/macros/macros/showActionField" />
   </tal:actionField>
   <tal:masterString condition="python: isEdit and (appyType['type'] in ('String', 'Boolean')) and (appyType['slaves'])">
-    <metal:mf use-macro="here/<!macros!>/macros/editField" />
+    <metal:mf use-macro="here/skyn/macros/macros/editField" />
   </tal:masterString>
   <tal:infoField condition="python: (not isEdit) and (appyType['type'] == 'Info')">
-    <metal:af use-macro="here/<!macros!>/macros/showInfoField" />
+    <metal:af use-macro="here/skyn/macros/macros/showInfoField" />
   </tal:infoField>
 </div>
 
-<div metal:define-macro="showBackwardField" i18n:domain="<!applicationName!>"
+<div metal:define-macro="showBackwardField"
      tal:define="isBack python:True;
                  appyType widgetDescr/appyType;
                  fieldRel widgetDescr/fieldRel;
                  objs python:contextObj.getBRefs(fieldRel);
-                 labelMsgId python:'%s_%s_back' % (contextObj.meta_type, appyType['backd']['attribute']);
-                 descrMsgId python:'';
+                 label python:contextObj.translate('%s_%s_back' % (contextObj.meta_type, appyType['backd']['attribute']));
+                 description python:'';
                  innerRef innerRef|python:False">
-  <div metal:use-macro="here/<!applicationName!>AppyReference/macros/showReference" />
+  <div metal:use-macro="here/skyn/ref/macros/showReference" />
 </div>
 
-<span metal:define-macro="showGroup" i18n:domain="<!applicationName!>">
+<span metal:define-macro="showGroup">
   <fieldset class="appyGroup">
-    <legend><i i18n:translate=""
-               tal:content="python: '%s_group_%s' % (contextObj.meta_type, widgetDescr['name'])"></i></legend>
+    <legend><i tal:define="groupDescription python:contextObj.translate('%s_group_%s' % (contextObj.meta_type, widgetDescr['name']))"
+               tal:content="groupDescription"></i></legend>
     <table tal:define="global fieldNb python:-1" width="100%">
       <tr valign="top" tal:repeat="rowNb python:range(widgetDescr['rows'])">
-        <td tal:repeat="colNb python:range(widgetDescr['cols'])" tal:attributes="width python: str(100.0/widgetDescr['cols']) + '%'">
+        <td tal:repeat="colNb python:range(widgetDescr['cols'])"
+            tal:attributes="width python: str(100.0/widgetDescr['cols']) + '%'">
           <tal:showField define="global fieldNb python:fieldNb+1;
                                  hasFieldDescr python: test(fieldNb < len(widgetDescr['fields']), True, False);"
                          tal:condition="hasFieldDescr">
             <tal:field define="fieldDescr python:widgetDescr['fields'][fieldNb]">
               <tal:archetypesField condition="python: fieldDescr['widgetType'] == 'field'">
-                <metal:atField use-macro="here/<!macros!>/macros/showArchetypesField"/>
+                <metal:atField use-macro="here/skyn/macros/macros/showArchetypesField"/>
               </tal:archetypesField>
               <tal:backwardRef tal:condition="python: (not isEdit) and (fieldDescr['widgetType'] == 'backField')">
-                <metal:backRef use-macro="here/<!macros!>/macros/showBackwardField" />
+                <metal:backRef use-macro="here/skyn/macros/macros/showBackwardField" />
               </tal:backwardRef>
             </tal:field>
           </tal:showField>
@@ -226,33 +221,33 @@
   <br/>
 </span>
 
-<div metal:define-macro="listFields" i18n:domain="<!applicationName!>"
+<div metal:define-macro="listFields"
      tal:repeat="widgetDescr python: contextObj.getAppyFields(isEdit, pageName)">
 
     <tal:displayArchetypesField condition="python: widgetDescr['widgetType'] == 'field'">
       <tal:atField condition="python: widgetDescr['page'] == pageName">
-        <metal:field use-macro="here/<!macros!>/macros/showArchetypesField" />
+        <metal:field use-macro="here/skyn/macros/macros/showArchetypesField" />
       </tal:atField>
     </tal:displayArchetypesField>
 
     <tal:displayBackwardRef condition="python: (not isEdit) and (widgetDescr['widgetType'] == 'backField')">
       <tal:backRef condition="python: widgetDescr['appyType']['backd']['page'] == pageName">
-        <metal:field metal:use-macro="here/<!macros!>/macros/showBackwardField" />
+        <metal:field metal:use-macro="here/skyn/macros/macros/showBackwardField" />
       </tal:backRef>
     </tal:displayBackwardRef>
 
     <tal:displayGroup condition="python: widgetDescr['widgetType'] == 'group'">
       <tal:displayG condition="python: widgetDescr['page'] == pageName">
-        <metal:group metal:use-macro="here/<!macros!>/macros/showGroup" />
+        <metal:group metal:use-macro="here/skyn/macros/macros/showGroup" />
       </tal:displayG>
     </tal:displayGroup>
 </div>
 
-<span metal:define-macro="byline" i18n:domain="<!applicationName!>"
+<span metal:define-macro="byline"
      tal:condition="python: site_properties.allowAnonymousViewAbout or not isAnon"
      tal:define="creator here/Creator;" class="documentByLine">
   <tal:name tal:condition="creator"
-            tal:define="author python:context.portal_membership.getMemberInfo(creator)">
+            tal:define="author python:contextObj.portal_membership.getMemberInfo(creator)">
     <span class="documentAuthor" i18n:domain="plone" i18n:translate="label_by_author">
       by <a tal:attributes="href string:${portal_url}/author/${creator}"
             tal:content="python:author and author['fullname'] or creator"
@@ -266,13 +261,13 @@
   </span>
 </span>
 
-<span metal:define-macro="workflowHistory" i18n:domain="<!applicationName!>" class="reviewHistory"
-      tal:define="history context/getWorkflowHistory" tal:condition="history">
+<span metal:define-macro="workflowHistory" class="reviewHistory"
+      tal:define="history contextObj/getWorkflowHistory" tal:condition="history">
   <dl id="history" class="collapsible inline collapsedOnLoad">
     <dt class="collapsibleHeader" i18n:translate="label_history" i18n:domain="plone">History</dt>
     <dd class="collapsibleContent">
     <table width="100%" class="listing nosort" i18n:attributes="summary summary_review_history"
-           tal:define="review_history python:context.portal_workflow.getInfoFor(context, 'review_history', []);
+           tal:define="review_history python:contextObj.portal_workflow.getInfoFor(contextObj, 'review_history', []);
                        review_history python:[review for review in review_history if review.get('action','')]"
            tal:condition="review_history">
         <tr i18n:domain="plone">
@@ -287,10 +282,10 @@
                         rhComments items/comments|nothing;
                         state items/review_state|nothing"
             tal:attributes="class python:test(odd, 'even', 'odd')" tal:condition="items/action">
-            <td i18n:translate="" tal:content="python: context.getWorkflowLabel(items['action'])"
+            <td tal:content="python: tool.translate(contextObj.getWorkflowLabel(items['action']))"
                 tal:attributes="class string:state-${state}"/>
             <td tal:define="actorid python:items.get('actor');
-                            actor python:context.portal_membership.getMemberInfo(actorid);
+                            actor python:contextObj.portal_membership.getMemberInfo(actorid);
                             fullname actor/fullname|nothing;
                             username actor/username|nothing"
                 tal:content="python:fullname or username or actorid"/>
@@ -305,7 +300,7 @@
   </dl>
 </span>
 
-<div metal:define-macro="showPagePrologue" i18n:domain="<!applicationName!>">
+<div metal:define-macro="showPagePrologue">
   <tal:comment replace="nothing">Global Javascript functions, used in edit and
       consult views, are defined gere.</tal:comment>
 
@@ -357,55 +352,55 @@
     </script>
 </div>
 
-<div metal:define-macro="showPageHeader" i18n:domain="<!applicationName!>"
-     tal:define="appyPages python: context.getAppyPages(phase);
+<div metal:define-macro="showPageHeader"
+     tal:define="appyPages python: contextObj.getAppyPages(phase);
                  showCommonInfo python: not isEdit"
-     tal:condition="python: not context.portal_factory.isTemporary(context)">
+     tal:condition="python: not contextObj.portal_factory.isTemporary(contextObj)">
 
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
     <table width="100%" tal:condition="showCommonInfo" class="appyCommonInfo">
       <tr valign="bottom">
         <tal:comment replace="nothing">Title, edit icon and state</tal:comment>
         <td width="80%">
-          <b class="appyTitle" tal:content="title_string | here/title_or_id"></b>
+          <b class="appyTitle" tal:content="contextObj/title_or_id"></b>
           <tal:comment replace="nothing">Show the phase name tied to this page</tal:comment>
           <span class="discreet" tal:condition="python: phaseInfo['totalNbOfPhases']&gt;1">&minus;
-            <span i18n:translate="phase"></span>:
-            <span tal:define="label python:'%s_phase_%s' % (context.meta_type, phase)"
-                  tal:content="label" i18n:translate=""></span>
+            <span tal:replace="python:contextObj.translate('phase')"/>:
+            <span tal:replace="python:tool.translate('%s_phase_%s' % (contextObj.meta_type, phase))"/>
           </span>
           <tal:comment replace="nothing">When no tabs are shown, we provide an edit icon.</tal:comment>
           <img tal:define="editPageName python:test(pageName=='main', 'default', pageName)"
                src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title"
                style="cursor:pointer"
-               tal:attributes="onClick python: 'href: window.location=\'%s/<!applicationName!>_appy_edit?fieldset=%s&phase=%s\'' % (context.absolute_url(), editPageName, phase)"
-               tal:condition="python: (len(appyPages)==1) and member.has_permission('Modify portal content', context)"/>
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase)"
+               tal:condition="python: (len(appyPages)==1) and member.has_permission('Modify portal content', contextObj)"/>
         </td>
         <td><metal:actions use-macro="here/document_actions/macros/document_actions"/>
         </td>
       </tr>
-      <tr tal:define="descrLabel python: here.utranslate('%s_edit_descr' % here.portal_type, domain='<!applicationName!>')" tal:condition="descrLabel/strip" >
+      <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
+          tal:condition="descrLabel" >
         <tal:comment replace="nothing">Content type description</tal:comment>
         <td colspan="2" class="discreet" tal:content="descrLabel"/>
       </tr>
       <tr>
         <td>
-          <metal:byLine use-macro="here/<!macros!>/macros/byline"/>
+          <metal:byLine use-macro="here/skyn/macros/macros/byline"/>
           <tal:showWorkflow condition="showWorkflow">
-            <metal:workflowHistory use-macro="here/<!macros!>/macros/workflowHistory"/>
+            <metal:workflowHistory use-macro="here/skyn/macros/macros/workflowHistory"/>
           </tal:showWorkflow>
         </td>
-        <td valign="top"><metal:pod use-macro="here/<!macros!>/macros/listPodTemplates"/>
+        <td valign="top"><metal:pod use-macro="here/skyn/macros/macros/listPodTemplates"/>
         </td>
       </tr>
 
       <tal:comment replace="nothing">Workflow-related information and actions</tal:comment>
-      <tr tal:condition="python: showWorkflow and context.getWorkflowLabel()">
+      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()">
         <td colspan="2" class="appyWorkflow">
           <table width="100%">
             <tr>
-              <td><metal:states use-macro="here/<!macros!>/macros/states"/></td>
-              <td align="right"><metal:states use-macro="here/<!macros!>/macros/transitions"/></td>
+              <td><metal:states use-macro="here/skyn/macros/macros/states"/></td>
+              <td align="right"><metal:states use-macro="here/skyn/macros/macros/transitions"/></td>
             </tr>
           </table>
         </td>
@@ -413,24 +408,24 @@
     </table>
 
     <tal:comment replace="nothing">Tabs</tal:comment>
-    <ul class="contentViews appyTabs" tal:condition="python: len(appyPages)>1">
+    <ul class="contentViews appyTabs" tal:condition="python: len(appyPages)&gt;1">
       <li tal:repeat="thePage appyPages"
           tal:attributes="class python:test(thePage == pageName, 'selected', 'plain')">
-        <tal:tab define="pageLabel python: '%s_page_%s' % (here.meta_type, thePage)">
-          <a i18n:translate="" tal:content="pageLabel"
-             tal:attributes="href python: here.absolute_url() + '/<!applicationName!>_appy_view?phase=%s&pageName=%s' % (phase, thePage)">
+        <tal:tab define="pageLabel python: tool.translate('%s_page_%s' % (contextObj.meta_type, thePage))">
+          <a tal:content="pageLabel"
+             tal:attributes="href python: contextObj.absolute_url() + '/skyn/view?phase=%s&pageName=%s' % (phase, thePage)">
           </a>
           <img tal:define="editPageName python:test(thePage=='main', 'default', thePage)"
                src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title"
                style="cursor:pointer" class="appyPlusImg"
-               tal:attributes="onClick python: 'href: window.location=\'%s/<!applicationName!>_appy_edit?fieldset=%s&phase=%s\'' % (context.absolute_url(), editPageName, phase)"
-               tal:condition="python: member.has_permission('Modify portal content', context)"/>
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase)"
+               tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
         </tal:tab>
       </li>
     </ul>
 </div>
 
-<div metal:define-macro="showPageFooter" i18n:domain="<!applicationName!>">
+<div metal:define-macro="showPageFooter">
   <script language="javascript">
   <!--
     // When the current page is loaded, we must set the correct state for all slave fields.
@@ -469,7 +464,7 @@
   </script>
 </div>
 
-<div metal:define-macro="queryResult" i18n:domain="<!applicationName!>">
+<div metal:define-macro="queryResult">
 
   <script language="javascript">
   <!--
@@ -592,11 +587,11 @@
   </script>
 
   <table class="vertical listing" width="100%"
-         tal:define="fieldDescrs python: context.<!toolInstanceName!>.getResultColumns(queryResult[0].getObject(), queryName);">
+         tal:define="fieldDescrs python: tool.getResultColumns(queryResult[0].getObject(), queryName);">
 
     <tal:comment replace="nothing">Every item in fieldDescr is a FieldDescr instance,
-      excepted for workflow state (which is not a field): in thi case it is simply string
-      "workflowState".</tal:comment>
+      excepted for workflow state (which is not a field): in this case it is simply the
+      string "workflowState".</tal:comment>
 
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
@@ -604,7 +599,7 @@
       <th><img tal:attributes= "src string: $portal_url/arrowDown.gif;
                                 onClick python:'javascript:onSort(\'title\')';"
                id="arrow_title" style="cursor:pointer"/>
-        <span i18n:translate="ref_name"/>
+        <span tal:content="python: tool.translate('ref_name')"/>
         <input id="filter_title" type="text" size="10" onkeyup="javascript:onTextEntered('title')"/>
       </th>
 
@@ -617,11 +612,11 @@
              style="cursor:pointer"/>
         <tal:comment replace="nothing">Display header for a "standard" field</tal:comment>
         <tal:standardField condition="python: fieldName != 'workflow_state'">
-          <span i18n:translate="" tal:content="fieldDescr/atField/widget/label_msgid"/>
+          <span tal:replace="python: tool.translate(fieldDescr['atField'].widget.label_msgid)"/>
         </tal:standardField>
         <tal:comment replace="nothing">Display header for the workflow state</tal:comment>
         <tal:workflowState condition="python: fieldName == 'workflow_state'">
-           <span i18n:translate="workflow_state"/>
+           <span tal:replace="python: tool.translate('workflow_state')"/>
         </tal:workflowState>
         <input type="text" size="10"
                tal:attributes="id python: 'filter_%s' % fieldName;
@@ -634,13 +629,13 @@
           tal:attributes= "src string: $portal_url/arrowDown.gif;
                            onClick python:'javascript:onSort(\'root_type\')';"
           id = "arrow_root_type" style="cursor:pointer"/>
-        <span i18n:translate="root_type"/>
+        <span tal:replace="python: tool.translate('root_type')"/>
         <input type="text" size="10" id="filter_root_type"
                tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/>
       </th>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
-      <th i18n:translate="ref_actions"></th>
+      <th tal:content="python: tool.translate('ref_actions')"></th>
     </tr>
 
     <tal:comment replace="nothing">Results</tal:comment>
@@ -648,8 +643,7 @@
       <tal:row define="obj brain/getObject">
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <td id="field_title"><a tal:content="brain/Title"
-          tal:attributes="href python: obj.absolute_url()"></a></td>
+      <td id="field_title"><a tal:content="brain/Title" tal:attributes="href obj/getUrl"></a></td>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:otherFields repeat="fieldDescr fieldDescrs">
@@ -661,7 +655,7 @@
                                showLabel python:False;
                                innerRef python:True"
                        condition="python: contextObj.showField(fieldDescr)">
-              <metal:field use-macro="here/<!macros!>/macros/showArchetypesField"/>
+              <metal:field use-macro="here/skyn/macros/macros/showArchetypesField"/>
             </tal:field>
           </td>
           <td tal:condition="not: fieldDescr/atField" style="color:red">Field
@@ -669,20 +663,20 @@
           </td>
         </tal:standardField>
         <tal:workflowState condition="python: fieldDescr == 'workflowState'">
-          <td id="field_workflow_state" i18n:translate="" tal:content="obj/getWorkflowLabel"></td>
+          <td id="field_workflow_state" tal:content="python: tool.translate(obj.getWorkflowLabel())"></td>
         </tal:workflowState>
       </tal:otherFields>
 
       <tal:comment replace="nothing">Column "Object type", shown if we are on tab "consult all"</tal:comment>
-      <td tal:condition="mainTabSelected" tal:content="obj/portal_type"
-          i18n:translate="" id="field_root_type"></td>
+      <td tal:condition="mainTabSelected" id="field_root_type"
+          tal:content="python: tool.translate(obj.portal_type)"></td>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
       <td align="right">
         <table class="no-style-table" cellpadding="0" cellspacing="0">
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
-            <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/edit'"
+            <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
                 tal:condition="python: member.has_permission('Modify portal content', obj)">
                 <img src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title" />
             </a></td>
@@ -701,69 +695,96 @@
   <div metal:use-macro="context/batch_macros/macros/navigation" />
 </div>
 
-<metal:phases define-macro="phases" i18n:domain="<!applicationName!>">
+<metal:phases define-macro="phases">
   <tal:comment replace="nothing">This macro displays phases defined for a given content type,
      only if more than one phase is defined.</tal:comment>
-    <table width="100%" tal:define="phases context/getAppyPhases|nothing"
-           tal:condition="python: phases and (len(phases)>1)" cellspacing="1" cellpadding="0">
+    <table width="100%" tal:define="phases contextObj/getAppyPhases|nothing"
+           tal:condition="python: phases and (len(phases)&gt;1)" cellspacing="1" cellpadding="0">
       <tal:phase repeat="phase phases">
         <tr>
-          <td tal:define="label python:'%s_phase_%s' % (context.meta_type, phase['name']);
-                          displayLink python: (phase['phaseStatus'] != 'Future') and ('/portal_factory' not in context.absolute_url())"
+          <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
+                          displayLink python: (phase['phaseStatus'] != 'Future') and ('/portal_factory' not in contextObj.absolute_url())"
               tal:attributes="class python: 'appyPhase step' + phase['phaseStatus']">
-            <a tal:attributes="href python: '%s?phase=%s&pageName=%s' % (context.absolute_url(), phase['name'], phase['pages'][0]);" tal:condition="displayLink"
-               i18n:translate="" tal:content="label"/>
-            <span tal:condition="not: displayLink" i18n:translate="" tal:content="label"/>
+            <a tal:attributes="href python: '%s?phase=%s&pageName=%s' % (contextObj.getUrl(), phase['name'], phase['pages'][0]);" tal:condition="displayLink"
+               tal:content="python: tool.translate(label)"/>
+            <span tal:condition="not: displayLink" tal:content="python: tool.translate(label)"/>
           </td>
         </tr>
         <tr tal:condition="python: phase['name'] != phases[-1]['name']">
-          <td align="center"><img tal:attributes="src string: $portal_url/nextPhase.png"/></td>
+          <td align="center"><img tal:attributes="src string: $portal_url/skyn/nextPhase.png"/></td>
         </tr>
       </tal:phase>
     </table>
 </metal:phases>
 
-<metal:states define-macro="states" i18n:domain="<!applicationName!>"
+<metal:states define-macro="states"
               tal:define="showAllStatesInPhase python: flavour.getAttr('showAllStatesInPhaseFor' + contextObj.meta_type);
-                          states python: context.getAppyStates(phase, currentOnly=not showAllStatesInPhase)"
+                          states python: contextObj.getAppyStates(phase, currentOnly=not showAllStatesInPhase)"
               tal:condition="python: test(showAllStatesInPhase, len(states)&gt;1, True)">
   <table>
     <tr>
       <tal:state repeat="stateInfo states">
         <td tal:attributes="class python: 'appyState step' + stateInfo['stateStatus']"
-            tal:content="python: context.getWorkflowLabel(stateInfo['name'])" i18n:translate="">
+            tal:content="python: tool.translate(contextObj.getWorkflowLabel(stateInfo['name']))">
         </td>
         <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
-          <img tal:attributes="src string: $portal_url/nextState.png"/>
+          <img tal:attributes="src string: $portal_url/skyn/nextState.png"/>
         </td>
       </tal:state>
     </tr>
   </table>
 </metal:states>
 
-<metal:transitions define-macro="transitions" i18n:domain="<!applicationName!>"
+<metal:transitions define-macro="transitions"
                    tal:define="transitions python: contextObj.portal_workflow.getTransitionsFor(contextObj);"
                    tal:condition="transitions">
   <form id="triggerTransitionForm" method="post"
-        tal:attributes="action python: contextObj.absolute_url() + '/<!applicationName!>_do'">
+        tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
     <input type="hidden" name="actionType" value="triggerTransition"/>
     <input type="hidden" name="workflow_action"/>
     <table>
       <tr>
         <tal:comment replace="nothing">Input field allowing to enter a comment before triggering a transition</tal:comment>
-        <td tal:define="showCommentsField python:flavour.getAttr('showWorkflowCommentFieldFor'+context.meta_type)"
+        <td tal:define="showCommentsField python:flavour.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
             align="right" tal:condition="showCommentsField">
-          <span i18n:translate="workflow_comment" class="discreet"></span>
+          <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
           <input type="text" id="comment" name="comment" size="35"/>
         </td>
 
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
         <td align="right" tal:repeat="transition transitions">
-          <input type="button" i18n:attributes="value" class="context"
-                 tal:attributes="value python: transition['name'];
-                                 onClick python: 'javascript: triggerTransition(\'%s\')' % transition['id']"/>
+          <input type="button" class="context"
+                 tal:attributes="value python: tool.translate(transition['name']);
+                                 onClick python: 'javascript: triggerTransition(\'%s\')' % transition['id'];"/>
         </td>
     </tr>
     </table>
   </form>
 </metal:transitions>
+
+<metal:portletContent define-macro="portletContent">
+  <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
+  <dt class="portletHeader">
+    <span tal:replace="python: tool.translate(appName)"/>&nbsp;
+    <img style="cursor:pointer"
+         tal:condition="python: member.has_role('Manager')"
+         tal:attributes="onClick python: 'href: window.location=\'%s/skyn/view\'' % tool.absolute_url();
+                         title python: tool.translate('%sTool' % appName);
+                         src string:$portal_url/skyn/appyConfig.gif"/>
+  </dt>
+
+  <tal:comment replace="nothing">Links to flavours</tal:comment>
+  <dt class="portletAppyItem" tal:repeat="flavourInfo tool/getFlavoursInfo">
+    <a tal:define="flavourNumber flavourInfo/number;
+                   rootTypes python: test(flavourNumber==1, rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
+                   rootClassesQuery python:','.join(rootTypes)"
+     tal:content="flavourInfo/title"
+     tal:attributes="title python: tool.translate('query_consult_all');
+                     href python:'%s/skyn/query?query=%s&flavourNumber=%d' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
+  </dt>
+
+  <dt class="portletAppyItem" tal:define="contextObj tool/getPublishedObject"
+      tal:condition="python: contextObj.meta_type in rootClasses">
+    <metal:phases use-macro="here/skyn/macros/macros/phases"/>
+  </dt>
+</metal:portletContent>

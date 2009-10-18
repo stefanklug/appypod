@@ -24,8 +24,8 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     filter_content_types = 0
     global_allow = 0
     #content_icon = '<!toolName!>.gif'
-    immediate_view = '<!applicationName!>_appy_view'
-    default_view = '<!applicationName!>_appy_view'
+    immediate_view = 'skyn/view'
+    default_view = 'skyn/view'
     suppl_views = ()
     typeDescription = "<!toolName!>"
     typeDescMsgId = '<!toolName!>_edit_descr'
@@ -35,7 +35,7 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     schema = fullSchema
     schema["id"].widget.visible = False
     schema["title"].widget.visible = False
-    # When browsing into the tool, the 'configure' portlet should be dislayed.
+    # When browsing into the tool, the 'configure' portlet should be displayed.
     left_slots = ['here/portlet_prefs/macros/portlet']
     right_slots = []
     for elem in dir(ToolMixin):
