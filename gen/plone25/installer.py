@@ -133,7 +133,7 @@ class PloneInstaller:
         updateRolesForPermission('Add portal content', tuple(allCreators),
             appFolder)
         # Creates the "appy" Directory view
-        if not hasattr(site.aq_base, 'appy'):
+        if not hasattr(site.aq_base, 'skyn'):
             addDirView = self.ploneStuff['manage_addDirectoryView']
             addDirView(site, appy.getPath() + '/gen/plone25/skin',id='skyn')
 
@@ -266,18 +266,15 @@ class PloneInstaller:
                     current.append(self.toolInstanceName)
                     nvProps.manage_changeProperties(**{'idsNotToList': current})
 
-        # Remove workflow for the tool
-        #wfTool = self.ploneSite.portal_workflow
-        #wfTool.setChainForPortalTypes([self.toolName], '')
-
-        # Create the default flavour
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
         self.appyTool = self.tool._appy_getWrapper(force=True)
         if self.reinstall:
-            self.tool.at_post_edit_script()
+            self.tool.createOrUpdate(False)
         else:
-            self.tool.at_post_create_script()
+            self.tool.createOrUpdate(True)
+
         if not self.appyTool.flavours:
+            # Create the default flavour
             self.appyTool.create('flavours', title=self.productName, number=1)
         self.updatePodTemplates()
 

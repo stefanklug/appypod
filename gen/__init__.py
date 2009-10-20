@@ -8,10 +8,24 @@ r, w, d = ('read', 'write', 'delete')
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
 class Page:
+    '''Used for describing a page, its related phase, show condition, etc.'''
     def __init__(self, name, phase='main', show=True):
         self.name = name
         self.phase = phase
         self.show = show
+
+class Import:
+    '''Used for describing the place where to find the data to use for creating
+       an object.'''
+    def __init__(self, path, columnMethod=None, columnHeaders=(),
+                 sortMethod=None):
+        self.id = 'import'
+        self.path = path
+        self.columnMethod = columnMethod
+        # This method allows to split every element into subElements that can
+        # be shown as column values in a table.
+        self.columnHeaders = columnHeaders
+        self.sortMethod = sortMethod
 
 # ------------------------------------------------------------------------------
 class Type:

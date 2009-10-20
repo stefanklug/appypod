@@ -104,7 +104,7 @@
 
 <div metal:define-macro="showActionField">
   <form name="executeAppyAction" action="skyn/do" method="POST">
-    <input type="hidden" name="actionType" value="appyAction"/>
+    <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
     <input type="submit" name="do" tal:attributes="value label"/>
@@ -300,56 +300,72 @@
   </dl>
 </span>
 
-<div metal:define-macro="showPagePrologue">
-  <tal:comment replace="nothing">Global Javascript functions, used in edit and
-      consult views, are defined gere.</tal:comment>
+<div metal:define-macro="pagePrologue">
+  <tal:comment replace="nothing">Global elements used in every page.</tal:comment>
 
+  <tal:comment replace="nothing">Javascript messages</tal:comment>
+  <script language="javascript" tal:content="tool/getJavascriptMessages"></script>
+
+  <tal:comment replace="nothing">"Static" javascripts</tal:comment>
   <script language="javascript">
-    <!--
-      // This function turns a checkbox into a radio button... sort of
-      function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
-        vis = document.getElementById(visibleCheckbox);
-        hidden = document.getElementById(hiddenBoolean);
-        if (vis.checked) hidden.value = 'True';
-        else hidden.value = 'False';
+  <!--
+  // Function used by checkbox widgets for having radio-button-like behaviour
+  function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
+    vis = document.getElementById(visibleCheckbox);
+    hidden = document.getElementById(hiddenBoolean);
+    if (vis.checked) hidden.value = 'True';
+    else hidden.value = 'False';
+  }
+  // Functions used for master/slave relationships between widgets
+  function getMasterValue(widget) {
+    // Returns an array of selected options in a select widget
+    res = new Array();
+    if (widget.type == 'checkbox') {
+      var mv = widget.checked + '';
+      mv = mv.charAt(0).toUpperCase() + mv.substr(1);
+      res.push(mv);
+    }
+    else { // SELECT widget
+      for (var i=0; i < widget.options.length; i++) {
+        if (widget.options[i].selected) res.push(widget.options[i].value);
       }
-      // Returns an array of selected options in a select widget
-      function getMasterValue(widget) {
-        res = new Array();
-        if (widget.type == 'checkbox') {
-          var mv = widget.checked + '';
-          mv = mv.charAt(0).toUpperCase() + mv.substr(1);
-          res.push(mv);
-        }
-        else { // SELECT widget
-          for (var i=0; i < widget.options.length; i++) {
-            if (widget.options[i].selected) res.push(widget.options[i].value);
-          }
-        }
-        return res;
+    }
+    return res;
+  }
+  function updateSlaves(masterValues, appyTypeId) {
+    // Given the value(s) selected in a master field, this function updates the
+    // state of all corresponding slaves.
+    var slaves = cssQuery('div.slave_' + appyTypeId);
+    for (var i=0; i< slaves.length; i++){
+      slaves[i].style.display = "none";
+    }
+    for (var i=0; i < masterValues.length; i++) {
+      var activeSlaves = cssQuery('div.slaveValue_' + appyTypeId + '_' + masterValues[i]);
+      for (var j=0; j < activeSlaves.length; j++){
+        activeSlaves[j].style.display = "";
       }
-      // Given the value(s) selected in a master field, this function updates the
-      // state of all corresponding slaves.
-      function updateSlaves(masterValues, appyTypeId) {
-        var slaves = cssQuery('div.slave_' + appyTypeId);
-        for (var i=0; i< slaves.length; i++){
-          slaves[i].style.display = "none";
-        }
-        for (var i=0; i < masterValues.length; i++) {
-          var activeSlaves = cssQuery('div.slaveValue_' + appyTypeId + '_' + masterValues[i]);
-          for (var j=0; j < activeSlaves.length; j++){
-            activeSlaves[j].style.display = "";
-          }
-        }
-      }
-      // Triggers a workflow transition
-      function triggerTransition(transitionId) {
-        var theForm = document.getElementById('triggerTransitionForm');
-        theForm.workflow_action.value = transitionId;
-        theForm.submit();
-      }
-    -->
-    </script>
+    }
+  }
+  // Function used for triggering a workflow transition
+  function triggerTransition(transitionId) {
+    var theForm = document.getElementById('triggerTransitionForm');
+    theForm.workflow_action.value = transitionId;
+    theForm.submit();
+  }
+  function onDeleteObject(objectUid) {
+    if (confirm(delete_confirm)) {
+       f = document.getElementById('deleteForm');
+       f.objectUid.value = objectUid;
+       f.submit();
+    }
+  }
+-->
+  </script>
+  <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
+  <form id="deleteForm" method="post" action="skyn/do">
+    <input type="hidden" name="action" value="Delete"/>
+    <input type="hidden" name="objectUid"/>
+  </form>
 </div>
 
 <div metal:define-macro="showPageHeader"
@@ -681,10 +697,11 @@
                 <img src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title" />
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
-            <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/delete_confirmation'"
-                tal:condition="python: member.has_permission('Delete objects', obj)">
-                <img src="delete_icon.gif" title="Delete" i18n:domain="plone" i18n:attributes="title" />
-            </a></td>
+            <td class="noPadding">
+              <img tal:condition="python: member.has_permission('Delete objects', obj)"
+                   src="delete_icon.gif" title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+                   tal:attributes="onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
+            </td>
           </tr>
         </table>
       </td>
@@ -740,7 +757,7 @@
                    tal:condition="transitions">
   <form id="triggerTransitionForm" method="post"
         tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
-    <input type="hidden" name="actionType" value="triggerTransition"/>
+    <input type="hidden" name="action" value="TriggerTransition"/>
     <input type="hidden" name="workflow_action"/>
     <table>
       <tr>

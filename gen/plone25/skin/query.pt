@@ -3,62 +3,74 @@
 
 <tal:comment replace="nothing">This page presents results of queries</tal:comment>
 <body>
-    <div metal:fill-slot="top_slot">
-      <metal:block metal:use-macro="here/global_defines/macros/defines" />
-      <div tal:define="dummy python:request.set('disable_border', 1)" />
-    </div>
 
-    <tal:comment replace="nothing">We suppose we are in the app folder here.</tal:comment>
-    <div metal:fill-slot="main"
-         tal:define="appFolder context/getParentNode;
-                     appName appFolder/id;
-                     tool python: portal.get('portal_%s' % appName.lower());
-                     queryName python:context.REQUEST.get('query');
-                     flavourNumber python:context.REQUEST.get('flavourNumber');
-                     rootClasses tool/getRootClasses;
-                     rootTypes python: test(flavourNumber=='1', rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
-                     rootClassesQuery python:','.join(rootClasses);
-                     mainTabSelected python: queryName.find(',') != -1">
+<tal:comment replace="nothing">Disable standard Plone green tabs</tal:comment>
+<div metal:fill-slot="top_slot">
+  <metal:block metal:use-macro="here/global_defines/macros/defines" />
+  <div tal:define="dummy python:request.set('disable_border', 1)" />
+</div>
 
-      <span tal:condition="python: queryName and (queryName != 'none')">
-        <span tal:define="queryResult python: tool.executeQuery(queryName, int(flavourNumber));
-                          batch queryResult">
+<tal:comment replace="nothing">We suppose we are in the app folder here.</tal:comment>
+<div metal:fill-slot="main"
+     tal:define="appFolder context/getParentNode;
+                 appName appFolder/id;
+                 tool python: portal.get('portal_%s' % appName.lower());
+                 queryName python:context.REQUEST.get('query');
+                 flavourNumber python:context.REQUEST.get('flavourNumber');
+                 rootClasses tool/getRootClasses;
+                 rootTypes python: test(flavourNumber=='1', rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
+                 rootClassesQuery python:','.join(rootClasses);
+                 mainTabSelected python: queryName.find(',') != -1">
 
-        <tal:comment replace="nothing">Tabs</tal:comment>
-        <ul class="contentViews appyTabs">
-          <tal:comment replace="nothing">Tab "All objects"</tal:comment>
-          <li tal:define="selected python:mainTabSelected"
-              tal:attributes="class python:test(selected, 'selected', 'plain')"
-              tal:condition="python: len(rootClasses)>1">
+  <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
+  <span tal:condition="python: queryName and (queryName != 'none')">
+    <span tal:define="queryResult python: tool.executeQuery(queryName, int(flavourNumber));
+                      batch queryResult">
 
-            <a tal:content="python: tool.translate('query_consult_all')"
-               tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
-          </li>
-          <tal:comment replace="nothing">One tab for each root content type</tal:comment>
-          <tal:tab repeat="rootContentType rootTypes">
-            <li tal:define="selected python:queryName == rootContentType"
-                tal:attributes="class python:test(selected, 'selected', 'plain')">
-              <a tal:content="python: tool.translate(rootContentType)"
-                 tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootContentType, flavourNumber)"/>
-              <img style="cursor:pointer" class="appyPlusImg"
-                   tal:define="addPermission python: '%s: Add %s' % (appName, rootContentType)"
-                   tal:attributes="onClick python: 'href: window.location=\'%s/skyn/do?action=create&type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
-                                   src string: $portal_url/skyn/plus.png;
-                                   title python: tool.translate('query_create')"
-                   tal:condition="python: member.has_permission(addPermission, appFolder)"/>
-            </li>
-          </tal:tab>
-        </ul>
-        <br/>
+    <tal:comment replace="nothing">Tabs</tal:comment>
+    <ul class="contentViews appyTabs">
+      <tal:comment replace="nothing">Tab "All objects"</tal:comment>
+      <li tal:define="selected python:mainTabSelected"
+          tal:attributes="class python:test(selected, 'selected', 'plain')"
+          tal:condition="python: len(rootClasses)>1">
 
-        <tal:comment replace="nothing">Query result</tal:comment>
-        <span tal:condition="queryResult">
-          <span metal:use-macro="here/skyn/macros/macros/queryResult"></span>
-        </span>
-        <span tal:condition="not: queryResult"
-              tal:content="python: tool.translate('query_no_result')">No result.</span>
-        </span>
-      </span>
-    </div>
+        <a tal:content="python: tool.translate('query_consult_all')"
+           tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
+      </li>
+      <tal:comment replace="nothing">One tab for each root content type</tal:comment>
+      <tal:tab repeat="rootContentType rootTypes">
+        <li tal:define="selected python:queryName == rootContentType;
+                        addPermission python: '%s: Add %s' % (appName, rootContentType);
+                        userMayAdd python: member.has_permission(addPermission, appFolder);
+                        createMeans python: tool.getCreateMeans(rootContentType)"
+            tal:attributes="class python:test(selected, 'selected', 'plain')">
+          <a tal:content="python: tool.translate(rootContentType)"
+             tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootContentType, flavourNumber)"/>
+          <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
+          <img style="cursor:pointer" class="appyPlusImg"
+               tal:condition="python: ('form' in createMeans) and userMayAdd"
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
+                               src string: $portal_url/skyn/plus.png;
+                               title python: tool.translate('query_create')"/>
+          <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
+          <img style="cursor:pointer" class="appyPlusImg"
+               tal:condition="python: ('import' in createMeans) and userMayAdd"
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
+                               src string: $portal_url/skyn/import.png;
+                               title python: tool.translate('query_import')"/>
+        </li>
+      </tal:tab>
+    </ul>
+    <br/>
+
+    <tal:comment replace="nothing">Query result</tal:comment>
+    <span tal:condition="queryResult">
+      <span metal:use-macro="here/skyn/macros/macros/queryResult"></span>
+    </span>
+    <span tal:condition="not: queryResult"
+          tal:content="python: tool.translate('query_no_result')">No result.</span>
+    </span>
+  </span>
+</div>
 </body>
 </html>

@@ -20,6 +20,10 @@ class AbstractMixin:
        inherits from this class. It contains basic functions allowing to
        minimize the amount of generated code.'''
 
+    def getAppyAttribute(self, name):
+        '''Returns method or attribute value corresponding to p_name.'''
+        return eval('self.%s' % name)
+
     def createOrUpdate(self, created):
         '''This method creates (if p_created is True) or updates an object.
            In the case of an object creation, p_self is a temporary object
@@ -53,7 +57,31 @@ class AbstractMixin:
         if obj._appy_meta_type == 'tool': self.unindexObject()
         else: obj.reindexObject()
         return obj
-        
+
+    def delete(self):
+        '''This methods is self's suicide.'''
+        self.getParentNode().manage_delObjects([self.id])
+
+    def onCreate(self):
+        '''This method is called when a user wants to create a root object in
+           the application folder or an object through a reference field.'''
+        rq = self.REQUEST
+        if rq.get('initiator', None):
+            # The object to create will be linked to an initiator object through
+            # a ref field.
+            initiatorRes=self.uid_catalog.searchResults(UID=rq.get('initiator'))
+            rq.SESSION['initiator'] = rq.get('initiator')
+            rq.SESSION['initiatorField'] = rq.get('field')
+            rq.SESSION['initiatorTarget'] = rq.get('type_name')
+        if self._appy_meta_type == 'tool':
+            baseUrl = self.getAppFolder().absolute_url()
+        else:
+            baseUrl = self.absolute_url()
+        objId = self.generateUniqueId(rq.get('type_name'))
+        urlBack = '%s/portal_factory/%s/%s/skyn/edit' % \
+            (baseUrl, rq.get('type_name'), objId)
+        return rq.RESPONSE.redirect(urlBack)
+
     def onUpdate(self):
         '''This method is executed when a user wants to update an object.
            The object may be a temporary object created by portal_factory in
@@ -105,6 +133,13 @@ class AbstractMixin:
                     # Go to the edit view (next page) for this object
                     rq.set('fieldset', rq.get('nextPage'))
             return obj.skyn.edit(obj)
+
+    def onDelete(self):
+        rq = self.REQUEST
+        msg = self.translate('delete_done')
+        self.delete()
+        self.plone_utils.addPortalMessage(msg)
+        rq.RESPONSE.redirect(rq['HTTP_REFERER'])
 
     def getAppyType(self, fieldName):
         '''Returns the Appy type corresponding to p_fieldName.'''
@@ -407,7 +442,7 @@ class AbstractMixin:
         else:
             return res
 
-    def changeAppyRefOrder(self, fieldName, objectUid, newIndex, isDelta):
+    def changeRefOrder(self, fieldName, objectUid, newIndex, isDelta):
         '''This method changes the position of object with uid p_objectUid in
            reference field p_fieldName to p_newIndex i p_isDelta is False, or
            to actualIndex+p_newIndex if p_isDelta is True.'''
@@ -420,6 +455,27 @@ class AbstractMixin:
         else:
             pass # To implement later on
         sortedObjectsUids.insert(newIndex, objectUid)
+
+    def onChangeRefOrder(self):
+        '''This method is called when the user wants to change order of an
+           item in a reference field.'''
+        rq = self.REQUEST
+        # Move the item up (-1), down (+1) or at a given position ?
+        move = -1 # Move up
+        isDelta = True
+        if rq.get('moveDown.x', None) != None:
+            move = 1 # Move down
+        elif rq.get('moveSeveral.x', None) != None:
+            try:
+                move = int(rq.get('moveValue'))
+                # In this case, it is not a delta value; it is the new position
+                # where the item must be moved.
+                isDelta = False
+            except ValueError:
+                self.plone_utils.addPortalMessage(
+                    self.translate('ref_invalid_index'))
+        self.changeRefOrder(rq['fieldName'], rq['refObjectUid'], move, isDelta)
+        return rq.RESPONSE.redirect(rq['HTTP_REFERER'])
 
     def getWorkflow(self, appy=True):
         '''Returns the Appy workflow instance that is relevant for this
@@ -510,6 +566,38 @@ class AbstractMixin:
         res = getattr(appyClass, actionName)(self._appy_getWrapper(force=True))
         self.reindexObject()
         return res
+
+    def onExecuteAppyAction(self):
+        '''This method is called every time a user wants to execute an Appy
+           action on an object.'''
+        rq = self.REQUEST
+        res, msg = self.executeAppyAction(rq['fieldName'])
+        if not msg:
+            # Use the default i18n messages
+            suffix = 'ko'
+            if res:
+                suffix = 'ok'
+            label='%s_action_%s' % (self.getLabelPrefix(rq['fieldName']),suffix)
+            msg = self.translate(label)
+        self.plone_utils.addPortalMessage(msg)
+        return rq.RESPONSE.redirect(rq['HTTP_REFERER'])
+
+    def onTriggerTransition(self):
+        '''This method is called whenever a user wants to trigger a workflow
+           transition on an object.'''
+        rq = self.REQUEST
+        self.portal_workflow.doActionFor(self, rq['workflow_action'],
+            comment = rq.get('comment', ''))
+        # Where to redirect the user back ?
+        urlBack = rq['HTTP_REFERER']
+        if urlBack.find('?') != -1:
+            # Remove params; this way, the user may be redirected to correct
+            # phase when relevant.
+            urlBack = urlBack[:urlBack.find('?')]
+        msg = self.translate(u'Your content\'s status has been modified.',
+            domain='plone')
+        self.plone_utils.addPortalMessage(msg)
+        return rq.RESPONSE.redirect(urlBack)
 
     def callAppySelect(self, selectMethod, brains):
         '''Selects objects from a Reference field.'''

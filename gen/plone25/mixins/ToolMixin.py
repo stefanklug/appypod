@@ -14,6 +14,7 @@ NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
                          'To check if a Python interpreter is UNO-enabled, ' \
                          'launch it and type "import uno". If you have no ' \
                          'ImportError exception it is ok.'
+jsMessages = ('no_elem_selected', 'delete_confirm')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(AbstractMixin):
@@ -206,4 +207,91 @@ class ToolMixin(AbstractMixin):
         parent = obj.getParentNode()
         if parent.id == 'skyn': return parent.getParentNode()
         return rq['PUBLISHED']
+
+    def getAppyClass(self, contentType):
+        '''Gets the Appy Python class that is related to p_contentType.'''
+        # Retrieve first the Archetypes class corresponding to p_ContentType
+        portalType = self.portal_types.get(contentType)
+        atClassName = portalType.getProperty('content_meta_type')
+        appName = self.getProductConfig().PROJECTNAME
+        exec 'from Products.%s.%s import %s as atClass' % \
+            (appName, atClassName, atClassName)
+        # Get then the Appy Python class
+        return atClass.wrapperClass.__bases__[-1]
+        
+    def getCreateMeans(self, contentTypeOrAppyClass):
+        '''Gets the different ways objects of p_contentTypeOrAppyClass (which
+           can be a Plone content type or a Appy class) can be created
+           (via a web form, by importing external data, etc). Result is a
+           dict whose keys are strings (ie "form", "import"...) and whose
+           values are additional data bout the particular mean.'''
+        pythonClass = contentTypeOrAppyClass
+        if isinstance(contentTypeOrAppyClass, basestring):
+            pythonClass = self.getAppyClass(pythonClass)
+        res = {}
+        if not pythonClass.__dict__.has_key('create'):
+            res['form'] = None
+            # No additional data for this means, which is the default one.
+        else:
+            means = pythonClass.create
+            if means:
+                if isinstance(means, basestring): res[means] = None
+                elif isinstance(means, list) or isinstance(means, tuple):
+                    for mean in means:
+                        if isinstance(mean, basestring):
+                            res[mean] = None
+                        else:
+                            res[mean.id] = mean.__dict__
+                else:
+                    res[means.id] = means.__dict__
+        return res
+
+    def getImportElements(self, contentType):
+        '''Returns the list of elements that can be imported from p_path for
+           p_contentType.'''
+        appyClass = self.getAppyClass(contentType)
+        importParams = self.getCreateMeans(appyClass)['import']
+        columnMethod = importParams['columnMethod'].__get__('')
+        sortMethod = importParams['sortMethod']
+        if sortMethod: sortMethod = sortMethod.__get__('')
+        elems = []
+        for elem in os.listdir(importParams['path']):
+            elemFullPath = os.path.join(importParams['path'], elem)
+            niceElem = columnMethod(elemFullPath)
+            niceElem.insert(0, elemFullPath) # To the result, I add the full
+            # path of the elem, which will not be shown.
+            elems.append(niceElem)
+        if sortMethod:
+            elems = sortMethod(elems)
+        return [importParams['columnHeaders'], elems]
+
+    def onImportObjects(self):
+        '''This method is called when the user wants to create objects from
+           external data.'''
+        rq = self.REQUEST
+        appyClass = self.getAppyClass(rq.get('type_name'))
+        importPaths = rq.get('importPath').split('|')
+        appFolder = self.getAppFolder()
+        for importPath in importPaths:
+            if not importPath: continue
+            objectId = os.path.basename(importPath)
+            self.appy().create(appyClass, id=objectId)
+        self.plone_utils.addPortalMessage(self.translate('import_done'))
+        return rq.RESPONSE.redirect(rq['HTTP_REFERER'])
+
+    def isAlreadyImported(self, contentType, importPath):
+        appFolder = self.getAppFolder()
+        objectId = os.path.basename(importPath)
+        if hasattr(appFolder.aq_base, objectId):
+            return True
+        else:
+            return False
+
+    def getJavascriptMessages(self):
+        '''Returns the translated version of messages that must be shown in
+           Javascript popups.'''
+        res = ''
+        for msg in jsMessages:
+            res += 'var %s = "%s";\n' % (msg, self.translate(msg))
+        return res
 # ------------------------------------------------------------------------------

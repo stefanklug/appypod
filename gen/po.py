@@ -49,8 +49,14 @@ class PoMessage:
     REF_MOVE_DOWN = 'Move down'
     REF_INVALID_INDEX = 'No move occurred: please specify a valid number.'
     QUERY_CREATE = 'create'
+    QUERY_IMPORT = 'import'
     QUERY_CONSULT_ALL = 'consult all'
     QUERY_NO_RESULT = 'Nothing to see for the moment.'
+    IMPORT_TITLE = 'Importing data into your application'
+    IMPORT_SHOW_HIDE = 'Show / hide alreadly imported elements.'
+    IMPORT_ALREADY = 'Already imported.'
+    IMPORT_MANY = 'Import selected elements'
+    IMPORT_DONE = 'Import terminated successfully.'
     WORKFLOW_COMMENT = 'Optional comment'
     WORKFLOW_STATE = 'state'
     PHASE = 'phase'
@@ -71,6 +77,10 @@ class PoMessage:
     EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
                     'performed on element entitled \\"${objectTitle}\\".'
     EMAIL_BODY = 'You can consult this element at ${objectUrl}.'
+    SELECT_DESELECT = '(Un)select all'
+    NO_SELECTION = 'You must select at least one element.'
+    DELETE_CONFIRM = 'Are you sure you want to delete this element?'
+    DELETE_DONE = 'The element has been deleted.'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[]):
         self.id = id

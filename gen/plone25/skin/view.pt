@@ -27,7 +27,7 @@
                   phase request/phase|phaseInfo/name;
                   pageName python: contextObj.getAppyPage(isEdit, phaseInfo);
                   showWorkflow python: flavour.getAttr('showWorkflowFor' + contextObj.meta_type)">
-      <div metal:use-macro="here/skyn/macros/macros/showPagePrologue"/>
+      <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
       <div metal:use-macro="here/skyn/macros/macros/showPageHeader"/>
       <div metal:use-macro="here/skyn/macros/macros/listFields" />
       <div metal:use-macro="here/skyn/macros/macros/showPageFooter"/>

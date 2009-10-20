@@ -26,13 +26,13 @@
         <img src="delete_icon.gif" title="label_remove" i18n:domain="plone" i18n:attributes="title" />
     </a></td>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td class="noPadding" tal:condition="python: len(objs)>1">
+    <td class="noPadding" tal:condition="python: len(objs)&gt;1">
       <form tal:condition="python: member.has_permission('Modify portal content', obj)"
             tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'"
             tal:define="objectIndex python:contextObj.getAppyRefIndex(field.getName(), obj)">
-        <input type="hidden" name="actionType" value="changeRefOrder"/>
+        <input type="hidden" name="action" value="ChangeRefOrder"/>
         <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
-        <input type="hidden" name="objectUid" tal:attributes="value obj/UID"/>
+        <input type="hidden" name="refObjectUid" tal:attributes="value obj/UID"/>
         <tal:comment replace="nothing">Arrow up</tal:comment>
         <span tal:condition="python: objectIndex &gt; 0">
         <input type="image" name="moveUp" class="imageInput"
@@ -58,7 +58,7 @@
   <img style="cursor:pointer" tal:condition="showPlusIcon"
        tal:attributes="src string:$portal_url/skyn/plus.png;
                        title python: tool.translate('add_ref');
-                       onClick python: 'href: window.location=\'%s/skyn/do?action=create&initiator=%s&field=%s&type_name=%s\'' % (folder.absolute_url(), contextObj.UID(), field.getName(), linkedPortalType)"/>
+                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&initiator=%s&field=%s&type_name=%s\'' % (folder.absolute_url(), contextObj.UID(), field.getName(), linkedPortalType)"/>
 </metal:plusIcon>
 
 <div metal:define-macro="showReference"

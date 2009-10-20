@@ -10,6 +10,11 @@
   float:right;
 }
 
+#importedElem {
+  color: grey;
+  font-style: italic;
+}
+
 .appyTabs {
   margin-bottom: 1em;
 }
@@ -126,10 +131,13 @@ dl.expandedInlineCollapsible dt.collapsibleHeader, dl.expandedBlockCollapsible d
 
 /* Minor layout changes in fieldsets and tables */
 fieldset {
-  margin: 0em 0em;
-  line-height: 1.0em;
+  margin: 0 0 0 0;
+  line-height: 1em;
 }
 
+.fieldset {
+  line-height: 1em;
+}
 /* Group fieldsets */
 .appyGroup {
   border-width: 2px;
@@ -192,6 +200,9 @@ fieldset {
   line-height: 1.0em;
 }
 
+.field {
+  margin: 0 0.2em 0.2em 0;
+}
 /* Portlet elements */
 .portletAppyItem {
   margin: 0;

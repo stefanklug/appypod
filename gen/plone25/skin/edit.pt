@@ -68,14 +68,14 @@
 
   <body>
     <metal:fill fill-slot="main">
-      <div metal:use-macro="here/skyn/macros/macros/showPagePrologue"/>
+      <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
       <div metal:use-macro="here/skyn/macros/macros/showPageHeader"/>
 
       <form name="edit_form" method="post" enctype="multipart/form-data"
             class="enableUnloadProtection atBaseEditForm"
             tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
         <div metal:use-macro="here/skyn/macros/macros/listFields" />
-        <input type="hidden" name="action" value="edit"/>
+        <input type="hidden" name="action" value="Update"/>
         <input type="hidden" name="fieldset" tal:attributes="value fieldset"/>
         <input type="hidden" name="pageName" tal:attributes="value pageName"/>
         <input type="hidden" name="phase" tal:attributes="value phase"/>
