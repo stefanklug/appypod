@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import re
+import re, time
 from appy.gen.utils import sequenceTypes, PageDescr
 
 # Default Appy permissions -----------------------------------------------------
@@ -33,7 +33,7 @@ class Type:
     def __init__(self, validator, multiplicity, index, default, optional,
                  editDefault, show, page, group, move, searchable,
                  specificReadPermission, specificWritePermission, width,
-                 height, master, masterValue):
+                 height, master, masterValue, focus):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -86,6 +86,9 @@ class Type:
             self.master.slaves.append(self)
         # When master has some value(s), there is impact on this field.
         self.masterValue = masterValue
+        # If a field must retain attention in a particular way, set focus=True.
+        # It will be rendered in a special way.
+        self.focus = focus
         self.id = id(self)
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
@@ -106,11 +109,12 @@ class Integer(Type):
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.pythonType = long
 
 class Float(Type):
@@ -118,11 +122,12 @@ class Float(Type):
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.pythonType = float
 
 class String(Type):
@@ -141,11 +146,12 @@ class String(Type):
                  default=None, optional=False, editDefault=False, format=LINE,
                  show=True, page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.format = format
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
@@ -166,11 +172,12 @@ class Boolean(Type):
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.pythonType = bool
 
 class Date(Type):
@@ -179,15 +186,19 @@ class Date(Type):
     WITHOUT_HOUR = 1
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False,
-                 format=WITH_HOUR, show=True, page='main', group=None, move=0,
-                 searchable=False,
+                 format=WITH_HOUR, startYear=time.localtime()[0]-10,
+                 endYear=time.localtime()[0]+10,
+                 show=True, page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.format = format
+        self.startYear = startYear
+        self.endYear = endYear
 
 class File(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -195,11 +206,11 @@ class File(Type):
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, master=None, masterValue=None,
-                 isImage=False):
+                 focus=False, isImage=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.isImage = isImage
 
 class Ref(Type):
@@ -208,13 +219,14 @@ class Ref(Type):
                  editDefault=False, add=False, link=True, unlink=False,
                  back=None, isBack=False, show=True, page='main', group=None,
                  showHeaders=False, shownInfo=(), wide=False, select=None,
-                 move=0, searchable=False,
+                 maxPerPage=30, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.klass = klass
         self.attribute = attribute
         self.add = add # May the user add new objects through this ref ?
@@ -231,6 +243,8 @@ class Ref(Type):
         # as possible
         self.select = select # If a method is defined here, it will be used to
         # filter the list of available tied objects.
+        self.maxPerPage = maxPerPage # Maximum number of referenced objects
+        # shown at once.
 
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -238,11 +252,11 @@ class Computed(Type):
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, method=None, plainText=True,
-                 master=None, masterValue=None):
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.method = method # The method used for computing the field value
         self.plainText = plainText # Does field computation produce pain text
         # or XHTML?
@@ -256,13 +270,17 @@ class Action(Type):
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, action=None, master=None,
-                 masterValue=None):
+                 width=None, height=None, action=None, result='computation',
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
         self.action = action # Can be a single method or a list/tuple of methods
+        self.result = result # 'computation' means that the action will simply
+        # compute things and redirect the user to the same page, with some
+        # status message about execution of the action. 'file' means that the
+        # result is the binary content of a file that the user will download.
 
     def __call__(self, obj):
         '''Calls the action on p_obj.'''
@@ -274,7 +292,10 @@ class Action(Type):
                     actRes = act(obj)
                     if type(actRes) in sequenceTypes:
                         res[0] = res[0] and actRes[0]
-                        res[1] = res[1] + '\n' + actRes[1]
+                        if self.result == 'file':
+                            res[1] = res[1] + actRes[1]
+                        else:
+                            res[1] = res[1] + '\n' + actRes[1]
                     else:
                         res[0] = res[0] and actRes
             else:
@@ -284,8 +305,8 @@ class Action(Type):
                     res = list(actRes)
                 else:
                     res = [actRes, '']
-            # If res is None (ie the user-defined action did not return anything)
-            # we consider the action as successfull.
+            # If res is None (ie the user-defined action did not return
+            # anything), we consider the action as successfull.
             if res[0] == None: res[0] = True
         except Exception, e:
             res = (False, str(e))
@@ -298,11 +319,12 @@ class Info(Type):
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, move=0, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None):
+                 width=None, height=None, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue)
+                      height, master, masterValue, focus)
 
 # Workflow-specific types ------------------------------------------------------
 class State:

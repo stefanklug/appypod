@@ -170,4 +170,15 @@ class AppyRequest:
         else:
             res = self.zopeRequest.get(attr, None)
         return res
+
+# ------------------------------------------------------------------------------
+class RefObjects:
+    '''Represents a bunch of objects retrieved from a reference.'''
+    def __init__(self, objects=None):
+        self.objects = objects or [] # The objects
+        self.totalNumber = len(self.objects) # self.objects may only represent a
+        # part of all available objects.
+        self.batchSize = self.totalNumber # The max length of self.objects.
+        self.startNumber = 0 # The index of first object in self.objects in
+        # the whole list.
 # ------------------------------------------------------------------------------

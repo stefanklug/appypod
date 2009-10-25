@@ -21,31 +21,28 @@
         <img src="edit.gif" title="label_edit" i18n:domain="plone" i18n:attributes="title" />
     </a></td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
-    <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/delete_confirmation'"
-        tal:condition="python: member.has_permission('Delete objects', obj)">
-        <img src="delete_icon.gif" title="label_remove" i18n:domain="plone" i18n:attributes="title" />
-    </a></td>
+    <td class="noPadding">
+      <img tal:condition="python: member.has_permission('Delete objects', obj)"
+           src="delete_icon.gif" title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+           tal:attributes="onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
+    </td>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td class="noPadding" tal:condition="python: len(objs)&gt;1">
-      <form tal:condition="python: member.has_permission('Modify portal content', obj)"
-            tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'"
-            tal:define="objectIndex python:contextObj.getAppyRefIndex(field.getName(), obj)">
-        <input type="hidden" name="action" value="ChangeRefOrder"/>
-        <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
-        <input type="hidden" name="refObjectUid" tal:attributes="value obj/UID"/>
-        <tal:comment replace="nothing">Arrow up</tal:comment>
-        <span tal:condition="python: objectIndex &gt; 0">
-        <input type="image" name="moveUp" class="imageInput"
-               tal:attributes="src string: $portal_url/skyn/arrowUp.png;
-                               title python: tool.translate('move_up')"/>
-        </span>
-        <tal:comment replace="nothing">Arrow down</tal:comment>
-        <span tal:condition="python: objectIndex &lt; (len(objs)-1)">
-        <input type="image" name="moveDown" class="imageInput"
-               tal:attributes="src string: $portal_url/skyn/arrowDown.png;
-                               title python: tool.translate('move_down')"/>
-        </span>
-      </form>
+    <td class="noPadding" tal:condition="python: (len(objs)&gt;1) and member.has_permission('Modify portal content', obj)">
+      <tal:moveRef define="objectIndex python:contextObj.getAppyRefIndex(fieldName, obj);
+                           baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId, '%s_startNumber' % ajaxHookId: startNumber, 'action':'ChangeRefOrder', 'refObjectUid': obj.UID()})">
+      <tal:comment replace="nothing">Move up</tal:comment>
+      <img tal:define="ajaxUrl python: baseUrl + '&move=up'" tal:condition="python: objectIndex &gt; 0"
+        tal:attributes="src string: $portal_url/skyn/arrowUp.png;
+                        title python: tool.translate('move_up');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, ajaxUrl)"
+        style="cursor:pointer"/>
+      <tal:comment replace="nothing">Move down</tal:comment>
+      <img tal:define="ajaxUrl python: baseUrl + '&move=down'" tal:condition="python: objectIndex &lt; (totalNumber-1)"
+        tal:attributes="src string: $portal_url/skyn/arrowDown.png;
+                        title python: tool.translate('move_down');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, ajaxUrl)"
+        style="cursor:pointer"/>
+      </tal:moveRef>
     </td>
     </tr>
   </table>
@@ -58,18 +55,59 @@
   <img style="cursor:pointer" tal:condition="showPlusIcon"
        tal:attributes="src string:$portal_url/skyn/plus.png;
                        title python: tool.translate('add_ref');
-                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&initiator=%s&field=%s&type_name=%s\'' % (folder.absolute_url(), contextObj.UID(), field.getName(), linkedPortalType)"/>
+                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&initiator=%s&field=%s&type_name=%s\'' % (folder.absolute_url(), contextObj.UID(), fieldName, linkedPortalType)"/>
 </metal:plusIcon>
 
+<tal:comment replace="nothing">
+  This macro shows a reference field. More precisely, it shows nothing, but calls
+  a Javascript function that will asynchonously call (via a XmlHttpRequest object) the
+  macro 'showReferenceContent' defined below, that will really show content.
+  It requires:
+   - isBack (bool) Is the reference a backward or forward reference?
+   - fieldName (string) The name of the reference field (if it is a forward reference)
+                        or the name of the Archetypes relationship (if it is a backward reference)
+   - innerRef (bool) Are we rendering a reference within a reference or not?
+   - contextObj (object) the object from which the reference starts
+   - labelId (string) the i18n id of the reference field label
+   - descrId (string) the i18n id of the reference field description
+</tal:comment>
 <div metal:define-macro="showReference"
-     tal:define="folder python: test(contextObj.isPrincipiaFolderish, contextObj, contextObj.getParentNode());
+     tal:define="ajaxHookId python: contextObj.UID()+fieldName;
+                 ajaxUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId})"
+     tal:attributes="id ajaxHookId">
+  <script language="javascript"
+          tal:content="python: 'askAjaxChunk(\'%s\',\'%s\')' % (ajaxHookId, ajaxUrl)">
+  </script>
+</div>
+
+<tal:comment replace="nothing">
+   This macro is called by a XmlHttpRequest for displaying the paginated referred objects
+   of a reference field.
+</tal:comment>
+<div metal:define-macro="showReferenceContent"
+     tal:define="fieldName request/fieldName;
+                 isBack python: test(request['isBack']=='True', True, False);
+                 innerRef python: test(request['innerRef']=='True', True, False);
+                 labelId request/labelId;
+                 descrId request/descrId;
+                 ajaxHookId python: contextObj.UID()+fieldName;
+                 startNumber python: int(request.get('%s_startNumber' % ajaxHookId, 0));
+                 appyType python: contextObj.getAppyType(fieldName, not isBack);
+                 tool contextObj/getTool;
+                 refObjects python:contextObj.getAppyRefs(fieldName, not isBack, startNumber);
+                 objs refObjects/objects;
+                 totalNumber refObjects/totalNumber;
+                 batchSize refObjects/batchSize;
+                 folder python: test(contextObj.isPrincipiaFolderish, contextObj, contextObj.getParentNode());
                  flavour python:tool.getFlavour(contextObj);
                  linkedPortalType python:flavour.getPortalType(appyType['klass']);
-                 addPermission python: '%s: Add %s' % (appName, linkedPortalType);
+                 addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
                  multiplicity python:test(isBack, appyType['backd']['multiplicity'], appyType['multiplicity']);
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
                  showPlusIcon python:not isBack and appyType['add'] and not maxReached and member.has_permission(addPermission, folder);
-                 atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1)">
+                 atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
+                 label python: tool.translate(labelId);
+                 description python: tool.translate(descrId)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
 
@@ -106,12 +144,16 @@
     <fieldset tal:attributes="class python:test(innerRef, 'innerAppyFieldset', '')">
       <legend tal:condition="python: not innerRef or showPlusIcon">
         <span tal:condition="not: innerRef" tal:content="label"/>
+        <tal:numberOfRefs>(<span tal:replace="totalNumber"/>)</tal:numberOfRefs>
         <metal:plusIcon use-macro="here/skyn/ref/macros/plusIcon"/>
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
       <p tal:condition="python: not innerRef and description"
          tal:content="description" class="discreet" ></p>
+
+      <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+      <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
 
       <tal:comment replace="nothing">No object is present</tal:comment>
       <p tal:condition="not:objs" tal:content="python: tool.translate('no_ref')"></p>
@@ -167,9 +209,8 @@
                 </tal:showNormalField>
                 <tal:showRef condition="python: appyType['type'] == 'Ref'">
                   <tal:ref tal:define="isBack python:appyType['isBack'];
-                                        fieldRel python:field.relationship;
-                                        objs python:contextObj.getAppyRefs(field.getName());
-                                        innerRef python:True">
+                                       fieldName python: test(isBack, field.relationship, field.getName());
+                                       innerRef python:True">
                     <metal:showField use-macro="here/skyn/ref/macros/showReference" />
                   </tal:ref>
                 </tal:showRef>
@@ -190,6 +231,10 @@
 
         </td></tr>
       </table>
+
+      <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
+      <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+
     </fieldset>
     <tal:comment replace="nothing">A carriage return needed in some cases.</tal:comment>
     <br tal:define="widgetDescr widgetDescr|nothing"
@@ -202,7 +247,7 @@
                  appyType python:here.getAppyType(field.getName());
                  allBrains python:here.uid_catalog(portal_type=refPortalType);
                  brains python:here.callAppySelect(appyType['select'], allBrains);
-                 refUids python: [o.UID() for o in here.getAppyRefs(field.getName())];
+                 refUids python: [o.UID() for o in here.getAppyRefs(field.getName())['objects']];
                  isMultiple python:test(appyType['multiplicity'][1]!=1, 'multiple', '');
                  appyFieldName python: 'appy_ref_%s' % field.getName();
                  inError python:test(errors.has_key(field.getName()), True, False);

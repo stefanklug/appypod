@@ -107,7 +107,10 @@
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
-    <input type="submit" name="do" tal:attributes="value label"/>
+    <input type="submit" name="do" tal:attributes="value label" onClick="javascript:;"/>
+    <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone
+      from adding a CSS class that displays a popup when the user triggers the form multiple
+      times.</tal:comment>
   </form>
 </div>
 
@@ -115,7 +118,8 @@
      tal:define="field fieldDescr/atField|widgetDescr/atField;
                  appyType fieldDescr/appyType|widgetDescr/appyType;
                  showLabel showLabel|python:True;
-                 label python: tool.translate(field.widget.label_msgid);
+                 labelId field/widget/label_msgid;
+                 label python: tool.translate(labelId);
                  descrId field/widget/description_msgid|python:'';
                  description python: tool.translate(descrId)"
      tal:attributes="class python: contextObj.getCssClasses(appyType, asSlave=True)">
@@ -157,8 +161,7 @@
   <tal:comment replace="nothing">For other fields like Refs we use specific view/edit macros.</tal:comment>
   <tal:viewRef condition="python: (not isEdit) and (appyType['type'] == 'Ref')">
     <tal:ref define="isBack python:False;
-                     fieldRel python:field.relationship;
-                     objs python:contextObj.getAppyRefs(field.getName());
+                     fieldName field/getName;
                      innerRef innerRef|python:False">
       <metal:viewRef use-macro="here/skyn/ref/macros/showReference" />
     </tal:ref>
@@ -186,10 +189,9 @@
 <div metal:define-macro="showBackwardField"
      tal:define="isBack python:True;
                  appyType widgetDescr/appyType;
-                 fieldRel widgetDescr/fieldRel;
-                 objs python:contextObj.getBRefs(fieldRel);
-                 label python:contextObj.translate('%s_%s_back' % (contextObj.meta_type, appyType['backd']['attribute']));
-                 description python:'';
+                 fieldName widgetDescr/fieldRel;
+                 labelId python: '%s_%s_back' % (contextObj.meta_type, appyType['backd']['attribute']);
+                 descrId python: '';
                  innerRef innerRef|python:False">
   <div metal:use-macro="here/skyn/ref/macros/showReference" />
 </div>
@@ -309,6 +311,63 @@
   <tal:comment replace="nothing">"Static" javascripts</tal:comment>
   <script language="javascript">
   <!--
+  // AJAX machinery
+  var xhrObjects = new Array(); // An array of XMLHttpRequest objects
+  function XhrObject() { // Wraps a XmlHttpRequest object
+    this.freed = 1; // Is this xhr object already dealing with a request or not?
+    this.xhr = false;
+    if (window.XMLHttpRequest) this.xhr = new XMLHttpRequest();
+    else this.xhr = new ActiveXObject("Microsoft.XMLHTTP");
+    this.hook = ''; // The ID of the HTML element in the page that will be
+    // replaced by result of executing the Ajax request.
+  }
+
+  function getAjaxChunk(pos) {
+    // This function is the callback called by the AJAX machinery (see function
+    // askAjaxChunk below) when an Ajax response is available.
+    // First, find back the correct XMLHttpRequest object
+    if ( (typeof(xhrObjects[pos]) != 'undefined') &&
+         (xhrObjects[pos].freed == 0)) {
+      var hook = xhrObjects[pos].hook;
+      if (xhrObjects[pos].xhr.readyState == 1) {
+        // The request has been initialized: display the waiting radar
+        var hookElem = document.getElementById(hook);
+        if (hookElem) hookElem.innerHTML = "<div align=\"center\"><img src=\"skyn/waiting.gif\"/><\/div>";
+      }
+      if (xhrObjects[pos].xhr.readyState == 4) {
+        // We have received the HTML chunk
+        var hookElem = document.getElementById(hook);
+        if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
+          hookElem.innerHTML = xhrObjects[pos].xhr.responseText;
+        }
+        xhrObjects[pos].freed = 1;
+      }
+    }
+  }
+
+  function askAjaxChunk(hook, url) {
+    // This function will ask to get a chunk of HTML on the server by
+    // triggering a XMLHttpRequest.
+    // First, get a non-busy XMLHttpRequest object.
+    var pos = -1;
+    for (var i=0; i < xhrObjects.length; i++) {
+      if (xhrObjects[i].freed == 1) { pos = i; break; }
+    }
+    if (pos == -1) {
+      pos = xhrObjects.length;
+      xhrObjects[pos] = new XhrObject();
+    }
+    xhrObjects[pos].hook = hook;
+    if (xhrObjects[pos].xhr) {
+      xhrObjects[pos].freed = 0;
+      // Perform the asynchronous HTTP GET
+      xhrObjects[pos].xhr.open('GET', url, true);
+      xhrObjects[pos].xhr.onreadystatechange = function() { getAjaxChunk(pos); }
+      if (window.XMLHttpRequest) { xhrObjects[pos].xhr.send(null); }
+      else if (window.ActiveXObject) { xhrObjects[pos].xhr.send(); }
+    }
+  }
+
   // Function used by checkbox widgets for having radio-button-like behaviour
   function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
     vis = document.getElementById(visibleCheckbox);
@@ -805,3 +864,47 @@
     <metal:phases use-macro="here/skyn/macros/macros/phases"/>
   </dt>
 </metal:portletContent>
+
+<tal:comment replace="nothing">
+   Buttons for navigating among a list of elements (next, back, first, last, etc).
+</tal:comment>
+<metal:appyNavigate define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize">
+  <table cellpadding="0" cellspacing="0" align="right" class="appyNav"
+         tal:define="baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId}) + '&%s_startNumber=' % ajaxHookId">
+    <tr>
+      <tal:comment replace="nothing">Go to the first page</tal:comment>
+      <td><img style="cursor:pointer" tal:condition="python: (startNumber != 0) and (startNumber != batchSize)"
+        tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;
+                        title python: tool.translate('goto_first');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+'0')"/></td>
+      <tal:comment replace="nothing">Go to the previous page</tal:comment>
+      <td><img style="cursor:pointer" tal:condition="python: startNumber != 0"
+        tal:define="sNumber python: startNumber - batchSize"
+        tal:attributes="src string: $portal_url/skyn/arrowLeftSimple.png;
+                        title python: tool.translate('goto_previous');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+      <tal:comment replace="nothing">Explain which elements are currently shown</tal:comment>
+      <td class="discreet">&nbsp;
+        <span tal:replace="python: startNumber+1"/>
+        <img tal:attributes="src string: $portal_url/skyn/to.png"/>
+        <span tal:replace="python: startNumber+len(objs)"/>&nbsp;&nbsp;
+      </td>
+
+      <tal:comment replace="nothing">Go to the next page</tal:comment>
+      <td><img style="cursor:pointer" tal:condition="python: sNumber &lt; totalNumber"
+        tal:define="sNumber python: startNumber + batchSize"
+        tal:attributes="src string: $portal_url/skyn/arrowRightSimple.png;
+                        title python: tool.translate('goto_next');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+      <tal:comment replace="nothing">Go to the last page</tal:comment>
+      <td><img style="cursor:pointer" tal:condition="python: (startNumber != sNumber) and (startNumber != sNumber-batchSize)"
+        tal:define="lastPageIsIncomplete python: totalNumber % batchSize;
+                    nbOfCompletePages python: totalNumber/batchSize;
+                    nbOfCountedPages python: test(lastPageIsIncomplete, nbOfCompletePages, nbOfCompletePages-1);
+                    sNumber python: (nbOfCountedPages*batchSize)"
+        tal:attributes="src string: $portal_url/skyn/arrowRightDouble.png;
+                        title python: tool.translate('goto_last');
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+    </tr>
+  </table>
+</metal:appyNavigate>

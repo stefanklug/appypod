@@ -21,6 +21,13 @@ import xml.sax
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
 from StringIO import StringIO
+from appy.shared.errors import AppyError
+
+# Error-related constants ------------------------------------------------------
+CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
+    'unmarshaller.'
+CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \
+    'error while converting value "%s". %s'
 
 # ------------------------------------------------------------------------------
 class XmlElement:
@@ -150,7 +157,7 @@ class XmlUnmarshaller(XmlParser):
        If "object" is specified, it means that the tag contains sub-tags, each
        one corresponding to the value of an attribute for this object.
        if "tuple" is specified, it will be converted to a list.'''
-    def __init__(self, klass=None, tagTypes={}):
+    def __init__(self, klass=None, tagTypes={}, conversionFunctions={}):
         XmlParser.__init__(self)
         self.klass = klass # If a klass is given here, instead of creating
         # a root UnmarshalledObject instance, we will create an instance of this
@@ -167,6 +174,19 @@ class XmlUnmarshaller(XmlParser):
         # it is not the case of p_xmlContent, you can provide the missing type
         # information in p_tagTypes. Here is an example of p_tagTypes:
         # {"information": "list", "days": "list", "person": "object"}.
+        self.conversionFunctions = conversionFunctions
+        # The parser assumes that data is represented in some standard way. If
+        # it is not the case, you may provide, in this dict, custom functions
+        # allowing to convert values of basic types (long, float, DateTime...).
+        # Every such function must take a single arg which is the value to
+        # convert and return the converted value. Dict keys are strings
+        # representing types ('bool', 'int', 'unicode', etc) and dict values are
+        # conversion functions. Here is an example:
+        # {'int': convertInteger, 'DateTime': convertDate}
+        # NOTE: you can even invent a new basic type, put it in self.tagTypes,
+        # and create a specific conversionFunction for it. This way, you can
+        # for example convert strings that have specific values (in this case,
+        # knowing that the value is a 'string' is not sufficient).
 
     def startDocument(self):
         self.res = None # The resulting web of Python objects
@@ -246,18 +266,37 @@ class XmlUnmarshaller(XmlParser):
     def endElement(self, elem):
         e = XmlParser.endElement(self, elem)
         if e.currentBasicType:
-            # Get and convert the value of this field
-            if e.currentBasicType in self.numericTypes:
-                try:
-                    exec 'value = %s' % e.currentContent.strip()
-                except SyntaxError:
-                    value = None
-            elif e.currentBasicType == 'DateTime':
-                value = DateTime(e.currentContent.strip())
-            elif e.currentBasicType == 'base64':
-                value = e.currentContent.decode('base64')
+            value = e.currentContent.strip()
+            if not value: value = None
             else:
-                value = e.currentContent.strip()
+                # If we have a custom converter for values of this type, use it.
+                if self.conversionFunctions.has_key(e.currentBasicType):
+                    try:
+                        value = self.conversionFunctions[e.currentBasicType](
+                            value)
+                    except Exception, err:
+                        raise AppyError(CUSTOM_CONVERSION_ERROR % (
+                            e.currentBasicType, value, str(err)))
+                # If not, try a standard conversion
+                elif e.currentBasicType in self.numericTypes:
+                    try:
+                        exec 'value = %s' % value
+                    except SyntaxError:
+                        raise AppyError(CONVERSION_ERROR % (
+                            e.currentBasicType, value))
+                    except NameError:
+                        raise AppyError(CONVERSION_ERROR % (
+                            e.currentBasicType, value))
+                    # Check that the value is of the correct type. For instance,
+                    # a float value with a comma in it could have been converted
+                    # to a tuple instead of a float.
+                    if not isinstance(value, eval(e.currentBasicType)):
+                        raise AppyError(CONVERSION_ERROR % (
+                            e.currentBasicType, value))
+                elif e.currentBasicType == 'DateTime':
+                    value = DateTime(value)
+                elif e.currentBasicType == 'base64':
+                    value = e.currentContent.decode('base64')
             # Store the value on the last container
             self.storeValue(elem, value)
             # Clean the environment

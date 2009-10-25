@@ -120,6 +120,10 @@ class Generator(AbstractGenerator):
             msg('no_elem_selected', '', msg.NO_SELECTION),
             msg('delete_confirm', '', msg.DELETE_CONFIRM),
             msg('delete_done', '', msg.DELETE_DONE),
+            msg('goto_first', '', msg.GOTO_FIRST),
+            msg('goto_previous', '', msg.GOTO_PREVIOUS),
+            msg('goto_next', '', msg.GOTO_NEXT),
+            msg('goto_last', '', msg.GOTO_LAST),
         ]
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()
@@ -408,7 +412,7 @@ class Generator(AbstractGenerator):
         getterName = 'get%s%s' % (attrName[0].upper(), attrName[1:])
         if isinstance(appyType, Ref):
             res += blanks + 'return self.o._appy_getRefs("%s", ' \
-                   'noListIfSingleObj=True)\n' % attrName
+                   'noListIfSingleObj=True).objects\n' % attrName
         elif isinstance(appyType, Computed):
             res += blanks + 'appyType = getattr(self.klass, "%s")\n' % attrName
             res += blanks + 'return self.o.getComputedValue(' \
@@ -417,6 +421,8 @@ class Generator(AbstractGenerator):
             res += blanks + 'v = self.o.%s()\n' % getterName
             res += blanks + 'if not v: return None\n'
             res += blanks + 'else: return FileWrapper(v)\n'
+        elif isinstance(appyType, String) and appyType.isMultiValued():
+            res += blanks + 'return list(self.o.%s())\n' % getterName
         else:
             if attrName in ArchetypeFieldDescriptor.specialParams:
                 getterName = attrName.capitalize()

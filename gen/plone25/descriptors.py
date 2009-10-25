@@ -82,6 +82,8 @@ class ArchetypeFieldDescriptor:
             self.widgetType = 'CalendarWidget'
             if self.appyType.format == Date.WITHOUT_HOUR:
                 self.widgetParams['show_hm'] = False
+                self.widgetParams['starting_year'] = self.appyType.startYear
+                self.widgetParams['ending_year'] = self.appyType.endYear
         elif self.appyType.type == 'Float':
             self.widgetType = 'DecimalWidget'
         elif self.appyType.type == 'File':

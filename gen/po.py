@@ -81,6 +81,10 @@ class PoMessage:
     NO_SELECTION = 'You must select at least one element.'
     DELETE_CONFIRM = 'Are you sure you want to delete this element?'
     DELETE_DONE = 'The element has been deleted.'
+    GOTO_FIRST = 'Go to top'
+    GOTO_PREVIOUS = 'Go to previous'
+    GOTO_NEXT = 'Go to next'
+    GOTO_LAST = 'Go to end'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[]):
         self.id = id

@@ -142,6 +142,11 @@ class AbstractWrapper:
             del kwargs['id']
         else:
             objId = '%s.%f' % (idPrefix, time.time())
+        # Determine if object must be created from external data
+        externalData = None
+        if kwargs.has_key('_data'):
+            externalData = kwargs['_data']
+            del kwargs['_data']
         # Where must I create the object?
         if not isField:
             folder = self.o.getTool().getAppFolder()
@@ -173,7 +178,9 @@ class AbstractWrapper:
             self.o.reindexObject()
         # Call custom initialization
         try:
-            appyObj.onEdit(True)
+            if externalData: param = externalData
+            else: param = True
+            appyObj.onEdit(param)
         except AttributeError:
             pass
         ploneObj.reindexObject()
@@ -209,6 +216,15 @@ class AbstractWrapper:
         self.o._v_appy_do = {'doAction': doAction, 'doNotify': doNotify}
         wfTool.doActionFor(self.o, transitionName, comment=comment)
         del self.o._v_appy_do
+
+    def log(self, message, logLevel='info'):
+        '''Logs a message in the log file. p_logLevel may be "info", "warning"
+           or "error".'''
+        logger = self.o.getProductConfig().logger
+        if logLevel == 'warning': logMethod = logger.warn
+        elif logLevel == 'error': logMethod = logger.error
+        else: logMethod = logger.info
+        logMethod(message)
 
 # ------------------------------------------------------------------------------
 class FileWrapper:
@@ -246,12 +262,21 @@ class FileWrapper:
         '''Writes the file on disk. If p_filePath is specified, it is the
            path name where the file will be dumped; folders mentioned in it
            must exist. If not, the file will be dumped in the OS temp folder.
-           The absoulte path name of the dumped file is returned.'''
+           The absolute path name of the dumped file is returned.'''
         if not filePath:
             filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
                 self.name)
         f = file(filePath, 'w')
-        f.write(self.content)
+        if self.content.__class__.__name__ == 'Pdata':
+            # The file content is splitted in several chunks.
+            f.write(self.content.data)
+            nextPart = self.content.next
+            while nextPart:
+                f.write(nextPart.data)
+                nextPart = nextPart.next
+        else:
+            # Only one chunk
+            f.write(self.content)
         f.close()
         return filePath
 # ------------------------------------------------------------------------------

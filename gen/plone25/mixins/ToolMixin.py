@@ -79,13 +79,16 @@ class ToolMixin(AbstractMixin):
                 res.append({'title': flavour.title, 'number':flavour.number})
         return res
 
+    def getAppName(self):
+        '''Returns the name of this application.'''
+        return self.getProductConfig().PROJECTNAME
+
     def getAppFolder(self):
         '''Returns the folder at the root of the Plone site that is dedicated
            to this application.'''
-        portal = self.getProductConfig().getToolByName(
-            self, 'portal_url').getPortalObject()
-        appName = self.getProductConfig().PROJECTNAME
-        return getattr(portal, appName)
+        cfg = self.getProductConfig()
+        portal = cfg.getToolByName(self, 'portal_url').getPortalObject()
+        return getattr(portal, self.getAppName())
 
     def getRootClasses(self):
         '''Returns the list of root classes for this application.'''
@@ -275,9 +278,9 @@ class ToolMixin(AbstractMixin):
         for importPath in importPaths:
             if not importPath: continue
             objectId = os.path.basename(importPath)
-            self.appy().create(appyClass, id=objectId)
+            self.appy().create(appyClass, id=objectId, _data=importPath)
         self.plone_utils.addPortalMessage(self.translate('import_done'))
-        return rq.RESPONSE.redirect(rq['HTTP_REFERER'])
+        return self.goto(rq['HTTP_REFERER'])
 
     def isAlreadyImported(self, contentType, importPath):
         appFolder = self.getAppFolder()

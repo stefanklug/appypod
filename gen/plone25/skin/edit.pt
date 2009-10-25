@@ -74,7 +74,7 @@
       <form name="edit_form" method="post" enctype="multipart/form-data"
             class="enableUnloadProtection atBaseEditForm"
             tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
-        <div metal:use-macro="here/skyn/macros/macros/listFields" />
+        <div metal:use-macro="here/skyn/macros/macros/listFields" /><br/>
         <input type="hidden" name="action" value="Update"/>
         <input type="hidden" name="fieldset" tal:attributes="value fieldset"/>
         <input type="hidden" name="pageName" tal:attributes="value pageName"/>

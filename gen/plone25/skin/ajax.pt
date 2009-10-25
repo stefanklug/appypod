@@ -1,0 +1,25 @@
+<tal:comment replace="nothing">
+  This page is called by a XmlHttpRequest object. It requires parameters "page" and "macro":
+  they are used to call the macro that will render the HTML chunk to be returned to the browser.
+  It also requires parameters "objectUid", which is the UID of the related object. The object will
+  be available to the macro as "contextObj".
+  It can also have a parameter "action", that refers to a method that will be triggered on
+  contextObj before returning the result of the macro to the browser.
+</tal:comment>
+<tal:ajax define="page request/page;
+                  macro request/macro;
+                  macroPath python: 'here/%s/macros/%s' % (page, macro);
+                  contextObj python: context.uid_catalog(UID=request['objectUid'])[0].getObject();
+                  action request/action|nothing;
+                  response request/RESPONSE;
+                  member context/portal_membership/getAuthenticatedMember;
+                  portal context/portal_url/getPortalObject;
+                  portal_url context/portal_url/getPortalPath;
+                  dummy python:response.setHeader('Content-Type','text/html;;charset=utf-8');
+                  dummy2 python:response.setHeader('Expires', 'Mon, 11 Dec 1975 12:05:05 GMT');
+                  dummy3 python:response.setHeader('CacheControl', 'no-cache')">
+  <tal:executeAction condition="action">
+    <tal:do define="dummy python: contextObj.getAppyAttribute('on'+action)()" omit-tag=""/>
+  </tal:executeAction>
+  <metal:callMacro use-macro="python: context.get(page).macros.get(macro)"/>
+</tal:ajax>

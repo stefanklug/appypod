@@ -10,6 +10,14 @@
   float:right;
 }
 
+.appyNav {
+  padding: 0.4em 0 0.4em 0;
+}
+
+.appyFocus {
+  color: red;
+}
+
 #importedElem {
   color: grey;
   font-style: italic;
