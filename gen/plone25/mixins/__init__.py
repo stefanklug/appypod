@@ -343,15 +343,12 @@ class AbstractMixin:
                 return False
         # Evaluate fieldDescr['show']
         if callable(fieldDescr['show']):
-            obj = self._appy_getWrapper(force=True)
-            res = fieldDescr['show'](obj)
+            res = fieldDescr['show'](self.appy())
         else:
             res = fieldDescr['show']
         # Take into account possible values 'view' and 'edit' for 'show' param.
         if (res == 'view' and isEdit) or (res == 'edit' and not isEdit):
             res = False
-        else:
-            res = True
         return res
 
     def getAppyFields(self, isEdit, page):
@@ -904,7 +901,7 @@ class AbstractMixin:
         # Apply the custom validator if it exists
         validator = appyType['validator']
         if not msgId and (type(validator) in self.validatorTypes):
-            obj = self._appy_getWrapper(force=True)
+            obj = self.appy()
             if type(validator) == self.validatorTypes[0]:
                 # It is a custom function. Execute it.
                 try:

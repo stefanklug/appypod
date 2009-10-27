@@ -4,6 +4,7 @@ from appy.gen.utils import sequenceTypes, PageDescr
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
+digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -138,6 +139,39 @@ class String(Type):
     ALPHANUMERIC = c('[\w-]+')
     URL = c('(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?' \
             '(([0-9]{1,5})?\/.*)?')
+
+    # Some predefined functions that may also be used as validators
+    @staticmethod
+    def _MODULO_97(obj, value, complement=False):
+        '''p_value must be a string representing a number, like a bank account.
+           this function checks that the 2 last digits are the result of
+           computing the modulo 97 of the previous digits. Any non-digit
+           character is ignored. If p_complement is True, it does compute the
+           complement of modulo 97 instead of modulo 97. p_obj is not used;
+           it will be given by the Appy validation machinery, so it must be
+           specified as parameter.'''
+        if not value: return True # Plone calls me erroneously for
+        # non-mandatory fields.
+        # First, remove any non-digit char
+        v = ''
+        for c in value:
+            if c in digits: v += c
+        # There must be at least 3 digits for performing the check
+        if len(v) < 3: return False
+        # Separate the real number from the check digits
+        number = int(v[:-2])
+        checkNumber = int(v[-2:])
+        # Perform the check
+        if complement:
+            return (97 - (number % 97)) == checkNumber
+        else:
+            return (number % 97) == checkNumber
+    @staticmethod
+    def MODULO_97(obj, value): return String._MODULO_97(obj, value)
+    @staticmethod
+    def MODULO_97_COMPLEMENT(obj, value):
+        return String._MODULO_97(obj, value, True)
+
     # Possible values for "format"
     LINE = 0
     TEXT = 1

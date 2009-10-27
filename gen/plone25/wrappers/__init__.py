@@ -68,24 +68,17 @@ class AbstractWrapper:
         else:
             exec "self.o.set%s%s(v)" % (name[0].upper(), name[1:])
     def __cmp__(self, other):
-        if other:
-            return cmp(self.o, other.o)
-        else:
-            return 1
-    def get_tool(self):
-        return self.o.getTool()._appy_getWrapper(force=True)
+        if other: return cmp(self.o, other.o)
+        else:     return 1
+    def get_tool(self): return self.o.getTool().appy()
     tool = property(get_tool)
-    def get_flavour(self):
-        return self.o.getTool().getFlavour(self.o, appy=True)
+    def get_flavour(self): return self.o.getTool().getFlavour(self.o, appy=True)
     flavour = property(get_flavour)
-    def get_session(self):
-        return self.o.REQUEST.SESSION
+    def get_session(self): return self.o.REQUEST.SESSION
     session = property(get_session)
-    def get_typeName(self):
-        return self.__class__.__bases__[-1].__name__
+    def get_typeName(self): return self.__class__.__bases__[-1].__name__
     typeName = property(get_typeName)
-    def get_id(self):
-        return self.o.id
+    def get_id(self): return self.o.id
     id = property(get_id)
     def get_state(self):
         return self.o.portal_workflow.getInfoFor(self.o, 'review_state')
@@ -94,8 +87,7 @@ class AbstractWrapper:
         appName = self.o.getProductConfig().PROJECTNAME
         return self.o.utranslate(self.o.getWorkflowLabel(), domain=appName)
     stateLabel = property(get_stateLabel)
-    def get_klass(self):
-        return self.__class__.__bases__[1]
+    def get_klass(self): return self.__class__.__bases__[1]
     klass = property(get_klass)
 
     def link(self, fieldName, obj):
@@ -118,6 +110,14 @@ class AbstractWrapper:
             exec 'self.o.%s = self.o.getProductConfig().PersistentList()' % \
                  sortedRefField
         getattr(self.o, sortedRefField).append(obj.UID())
+
+    def sort(self, fieldName):
+        '''Sorts referred elements linked to p_self via p_fieldName. At
+           present, it can only sort elements based on their title.'''
+        sortedUids = getattr(self.o, '_appy_%s' % fieldName)
+        c = self.o.uid_catalog
+        sortedUids.sort(lambda x,y: \
+           cmp(c(UID=x)[0].getObject().Title(),c(UID=y)[0].getObject().Title()))
 
     def create(self, fieldNameOrClass, **kwargs):
         '''If p_fieldNameOfClass is the name of a field, this method allows to
