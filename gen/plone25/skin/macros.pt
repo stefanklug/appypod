@@ -103,7 +103,8 @@
 </div>
 
 <div metal:define-macro="showActionField">
-  <form name="executeAppyAction" action="skyn/do" method="POST">
+  <form name="executeAppyAction"
+        tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
@@ -175,7 +176,7 @@
   <tal:computedField condition="python: (not isEdit) and (appyType['type'] == 'Computed')">
     <metal:cf use-macro="here/skyn/macros/macros/showComputedField" />
   </tal:computedField>
-  <tal:actionField condition="python: (not isEdit) and (appyType['type'] == 'Action')">
+  <tal:actionField condition="python: appyType['type'] == 'Action'">
     <metal:af use-macro="here/skyn/macros/macros/showActionField" />
   </tal:actionField>
   <tal:masterString condition="python: isEdit and (appyType['type'] in ('String', 'Boolean')) and (appyType['slaves'])">
@@ -311,6 +312,7 @@
   <tal:comment replace="nothing">"Static" javascripts</tal:comment>
   <script language="javascript">
   <!--
+  var isIe = (navigator.appName == "Microsoft Internet Explorer");
   // AJAX machinery
   var xhrObjects = new Array(); // An array of XMLHttpRequest objects
   function XhrObject() { // Wraps a XmlHttpRequest object

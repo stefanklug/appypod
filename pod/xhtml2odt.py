@@ -33,8 +33,8 @@ DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
 INNER_TAGS = ('b', 'strong', 'i', 'em', 'sup', 'sub', 'span', 'div')
 TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
-NOT_INSIDE_P = ('table', 'ol', 'ul') # Those elements can't be rendered inside
-# paragraphs.
+NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',) # Those elements
+# can't be rendered inside paragraphs.
 NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
 HTML_ENTITIES = {
@@ -247,7 +247,7 @@ class XhtmlEnvironment(XmlEnvironment):
         mustEndParagraph = True
         if self.creatingRootParagraph:
             mustStartParagraph = False
-        if currentElem and not (currentElem in XHTML_PARAGRAPH_TAGS):
+        if currentElem and (currentElem not in NOT_INSIDE_P+('p',)):
             mustEndParagraph = False
         if mustStartParagraph and mustEndParagraph and \
            not self.currentContent.strip():

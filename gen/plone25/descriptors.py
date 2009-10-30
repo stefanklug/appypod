@@ -11,7 +11,7 @@ from utils import stringify
 import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
-from appy.gen import Date, String, State, Transition, Type
+from appy.gen import Date, String, State, Transition, Type, Search
 from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage
 TABS = 4 # Number of blanks in a Python indentation.
 
@@ -433,10 +433,10 @@ class ArchetypesClassDescriptor(ClassDescriptor):
             self.name = self.getClassName(klass)
         self.generateSchema()
 
+    @staticmethod
     def getClassName(klass):
         '''Generates the name of the corresponding Archetypes class.'''
         return klass.__module__.replace('.', '_') + '_' + klass.__name__
-    getClassName = staticmethod(getClassName)
 
     def isAbstract(self):
         '''Is self.klass abstract?'''
@@ -473,6 +473,21 @@ class ArchetypesClassDescriptor(ClassDescriptor):
         else:
             if theClass.__bases__:
                 res = self.isFolder(theClass.__bases__[0])
+        return res
+
+    @staticmethod
+    def getSearches(klass):
+        '''Returns the list of searches that are defined on this class.'''
+        res = []
+        if klass.__dict__.has_key('search'):
+            searches = klass.__dict__['search']
+            if isinstance(searches, basestring): res.append(Search(searches))
+            elif isinstance(searches, Search):   res.append(searches)
+            else:
+                # It must be a list of searches.
+                for search in searches:
+                    if isinstance(search, basestring):res.append(Search(search))
+                    else:                             res.append(search)
         return res
 
     def addGenerateDocMethod(self):

@@ -26,9 +26,10 @@
   function toggleViewableElements() {
     var rows = cssQuery('#importedElem');
     var newDisplay = 'table-row';
+    if (isIe) newDisplay = 'block';
     if (importedElemsShown) newDisplay = 'none';
     for (var i=0; i<rows.length; i++) {
-       rows[i].style.display = newDisplay;
+      rows[i].style.display = newDisplay;
     }
     importedElemsShown = !importedElemsShown;
   }

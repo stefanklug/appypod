@@ -675,6 +675,16 @@ class Generator(AbstractGenerator):
             poMsgDescr = PoMessage('%s_%d_edit_descr' % (classDescr.name, i),
                                    '', ' ')
             self.labels.append(poMsgDescr)
+        # Remember i18n labels for searches
+        for search in classDescr.getSearches(classDescr.klass):
+            searchLabelId = '%s_search_%s' % (classDescr.name, search.name)
+            searchDescrId = '%s_descr' % searchLabelId
+            for label in (searchLabelId, searchDescrId):
+                default = ' '
+                if label == searchLabelId: default = search.name
+                poMsg = PoMessage(label, '', default)
+                poMsg.produceNiceDefault()
+                self.labels.append(poMsg)
         # Generate the resulting Archetypes class and schema.
         self.copyFile('ArchetypesTemplate.py', repls, destName=fileName)
 

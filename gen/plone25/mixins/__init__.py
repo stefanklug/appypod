@@ -319,11 +319,10 @@ class AbstractMixin:
         if isinstance(fieldDescr, FieldDescr):
             fieldDescr = fieldDescr.__dict__
         appyType = fieldDescr['appyType']
-        if isEdit and (appyType['type']=='Ref') and appyType['add']:
-            return False
+        if isEdit and (appyType['type']=='Ref') and appyType['add']:return False
+        if isEdit and appyType['type']=='Action': return False
         if (fieldDescr['widgetType'] == 'backField') and \
-           not self.getBRefs(fieldDescr['fieldRel']):
-            return False
+           not self.getBRefs(fieldDescr['fieldRel']): return False
         # Do not show field if it is optional and not selected in flavour
         if appyType['optional']:
             tool = self.getTool()

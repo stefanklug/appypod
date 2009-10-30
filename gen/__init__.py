@@ -28,11 +28,20 @@ class Import:
         self.columnHeaders = columnHeaders
         self.sortMethod = sortMethod
 
+class Search:
+    '''Used for specifying a search for a given type.'''
+    def __init__(self, name, sortBy='title', limit=None, **fields):
+        self.name = name
+        self.sortBy = sortBy
+        self.limit = limit
+        self.fields = fields # This is a dict whose keys are indexed field
+        # names and whosse values are search values.
+
 # ------------------------------------------------------------------------------
 class Type:
     '''Basic abstract class for defining any appy type.'''
     def __init__(self, validator, multiplicity, index, default, optional,
-                 editDefault, show, page, group, move, searchable,
+                 editDefault, show, page, group, move, indexed, searchable,
                  specificReadPermission, specificWritePermission, width,
                  height, master, masterValue, focus):
         # The validator restricts which values may be defined. It can be an
@@ -48,7 +57,8 @@ class Type:
         # strings (thus creating a dictionary of values instead of a list),
         # specify a type specification for the index, like Integer() or
         # String(). Note that this concept of "index" has nothing to do with
-        # the concept of "database index".
+        # the concept of "database index" (see fields "indexed" and
+        # "searchable" below). self.index is not yet used.
         self.index = index
         # Default value
         self.default = default
@@ -68,8 +78,11 @@ class Type:
         # The following attribute allows to move a field back to a previous
         # position (useful for content types that inherit from others).
         self.move = move
-        # If specified "searchable", the field will be referenced in low-level
-        # indexing mechanisms for fast access and search functionalities.
+        # If indexed is True, a database index will be set on the field for
+        # fast access.
+        self.indexed = indexed
+        # If specified "searchable", the field will be added to some global
+        # index allowing to perform application-wide, keyword searches.
         self.searchable = searchable
         # Normally, permissions to read or write every attribute in a type are
         # granted if the user has the global permission to read or
@@ -108,12 +121,12 @@ class Type:
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, False,
+                      editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.pythonType = long
@@ -121,12 +134,12 @@ class Integer(Type):
 class Float(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, False,
+                      editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.pythonType = float
@@ -178,12 +191,12 @@ class String(Type):
     XHTML = 2
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, format=LINE,
-                 show=True, page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 show=True, page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, searchable,
+                      editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.format = format
@@ -204,12 +217,12 @@ class String(Type):
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, searchable,
+                      editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.pythonType = bool
@@ -221,13 +234,13 @@ class Date(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False,
                  format=WITH_HOUR, startYear=time.localtime()[0]-10,
-                 endYear=time.localtime()[0]+10,
-                 show=True, page='main', group=None, move=0, searchable=False,
+                 endYear=time.localtime()[0]+10, show=True, page='main',
+                 group=None, move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, master=None, masterValue=None,
                  focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, searchable,
+                      editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.format = format
@@ -237,12 +250,12 @@ class Date(Type):
 class File(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False, isImage=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False, isImage=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, False,
+                      editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.isImage = isImage
@@ -253,12 +266,12 @@ class Ref(Type):
                  editDefault=False, add=False, link=True, unlink=False,
                  back=None, isBack=False, show=True, page='main', group=None,
                  showHeaders=False, shownInfo=(), wide=False, select=None,
-                 maxPerPage=30, move=0, searchable=False,
+                 maxPerPage=30, move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, master=None, masterValue=None,
                  focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, False,
+                      editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.klass = klass
@@ -283,12 +296,13 @@ class Ref(Type):
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, method=None, plainText=True,
-                 master=None, masterValue=None, focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 method=None, plainText=True, master=None, masterValue=None,
+                 focus=False):
         Type.__init__(self, None, multiplicity, index, default, optional,
-                      False, show, page, group, move, False,
+                      False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.method = method # The method used for computing the field value
@@ -302,12 +316,13 @@ class Action(Type):
        tool class. An action is rendered as a button.'''
     def __init__(self, validator=None, multiplicity=(1,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, action=None, result='computation',
-                 master=None, masterValue=None, focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 action=None, result='computation', master=None,
+                 masterValue=None, focus=False):
         Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, move, False,
+                      False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.action = action # Can be a single method or a list/tuple of methods
@@ -351,12 +366,12 @@ class Info(Type):
        (text, html...) to the user.'''
     def __init__(self, validator=None, multiplicity=(1,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False):
         Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, move, False,
+                      False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
 
