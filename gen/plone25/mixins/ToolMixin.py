@@ -1,9 +1,10 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path
-from appy.gen.utils import FieldDescr
+from appy.gen.utils import FieldDescr, SomeObjects
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
+from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
 
 _PY = 'Please specify a file corresponding to a Python interpreter ' \
       '(ie "/usr/bin/python").'
@@ -97,24 +98,46 @@ class ToolMixin(AbstractMixin):
     def showPortlet(self):
         return not self.portal_membership.isAnonymousUser()
 
-    def executeQuery(self, queryName, flavourNumber):
-        if queryName.find(',') != -1:
+    def executeQuery(self, contentType, flavourNumber=1, searchName=None,
+                     startNumber=0):
+        '''Executes a query on a given p_contentType (or several, separated
+           with commas) in Plone's portal_catalog. Portal types are from the
+           flavour numbered p_flavourNumber. If p_searchName is specified, it
+           corresponds to a search defined on p_contentType: additional search
+           criteria will be added to the query. We will retrieve objects from
+           p_startNumber.'''
+        # Is there one or several content types ?
+        if contentType.find(',') != -1:
             # Several content types are specified
-            portalTypes = queryName.split(',')
+            portalTypes = contentType.split(',')
             if flavourNumber != 1:
                 portalTypes = ['%s_%d' % (pt, flavourNumber) \
                                for pt in portalTypes]
         else:
-            portalTypes = queryName
+            portalTypes = contentType
         params = {'portal_type': portalTypes, 'batch': True}
-        res = self.portal_catalog.searchResults(**params)
-        batchStart = self.REQUEST.get('b_start', 0)
-        res = self.getProductConfig().Batch(res,
-            self.getNumberOfResultsPerPage(), int(batchStart), orphan=0)
-        return res
+        # Manage additional criteria from a search when relevant
+        if searchName:
+            # In this case, contentType must contain a single content type.
+            appyClass = self.getAppyClass(contentType) 
+            # Find the search
+            search = ArchetypesClassDescriptor.getSearch(appyClass, searchName)
+            for fieldName, fieldValue in search.fields.iteritems():
+                appyType = getattr(appyClass, fieldName)
+                attrName = fieldName
+                if (appyType.type == 'String') and appyType.isMultiValued():
+                    attrName = 'get%s%s' % (fieldName[0].upper(), fieldName[1:])
+                params[attrName] = fieldValue
+        brains = self.portal_catalog.searchResults(**params)
+        print 'Number of results per page is', self.getNumberOfResultsPerPage()
+        print 'StartNumber is', startNumber
+        res = SomeObjects(brains, self.getNumberOfResultsPerPage(), startNumber)
+        res.brainsToObjects()
+        print 'Res?', res.totalNumber, res.batchSize, res.startNumber
+        return res.__dict__
 
-    def getResultColumnsNames(self, queryName):
-        contentTypes = queryName.strip(',').split(',')
+    def getResultColumnsNames(self, contentType):
+        contentTypes = contentType.strip(',').split(',')
         resSet = None # Temporary set for computing intersections.
         res = [] # Final, sorted result.
         flavour = None
@@ -137,12 +160,12 @@ class ToolMixin(AbstractMixin):
                 res.append(fieldName)
         return res
 
-    def getResultColumns(self, anObject, queryName):
+    def getResultColumns(self, anObject, contentType):
         '''What columns must I show when displaying a list of root class
            instances? Result is a list of tuples containing the name of the
            column (=name of the field) and a FieldDescr instance.'''
         res = []
-        for fieldName in self.getResultColumnsNames(queryName):
+        for fieldName in self.getResultColumnsNames(contentType):
             if fieldName == 'workflowState':
                 # We do not return a FieldDescr instance if the attributes is
                 # not a *real* attribute but the workfow state.
@@ -297,4 +320,20 @@ class ToolMixin(AbstractMixin):
         for msg in jsMessages:
             res += 'var %s = "%s";\n' % (msg, self.translate(msg))
         return res
+
+    def getSearches(self, contentType):
+        '''Returns the searches that are defined for p_contentType.'''
+        appyClass = self.getAppyClass(contentType)
+        return [s.__dict__ for s in \
+                ArchetypesClassDescriptor.getSearches(appyClass)]
+
+    def getQueryUrl(self, contentType, flavourNumber, searchName):
+        '''This method creates the URL that allows to perform an ajax GET
+           request for getting queried objects from a search named p_searchName
+           on p_contentType from flavour numbered p_flavourNumber.'''
+        return self.getAppFolder().absolute_url() + '/skyn/ajax?objectUid=%s' \
+            '&page=macros&macro=queryResult&contentType=%s&flavourNumber=%s' \
+            '&searchName=%s&startNumber=' % (self.UID(), contentType,
+            flavourNumber, searchName)
+
 # ------------------------------------------------------------------------------

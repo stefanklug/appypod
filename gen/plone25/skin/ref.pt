@@ -107,7 +107,8 @@
                  showPlusIcon python:not isBack and appyType['add'] and not maxReached and member.has_permission(addPermission, folder);
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: tool.translate(labelId);
-                 description python: tool.translate(descrId)">
+                 description python: tool.translate(descrId);
+                 baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId}) + '&%s_startNumber=' % ajaxHookId">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
 
@@ -144,12 +145,11 @@
     <fieldset tal:attributes="class python:test(innerRef, 'innerAppyFieldset', '')">
       <legend tal:condition="python: not innerRef or showPlusIcon">
         <span tal:condition="not: innerRef" tal:content="label"/>
-        <tal:numberOfRefs>(<span tal:replace="totalNumber"/>)</tal:numberOfRefs>
         <metal:plusIcon use-macro="here/skyn/ref/macros/plusIcon"/>
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
-      <p tal:condition="python: not innerRef and description"
+      <p tal:condition="python: not innerRef and description.strip()"
          tal:content="description" class="discreet" ></p>
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>

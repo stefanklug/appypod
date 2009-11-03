@@ -15,62 +15,146 @@
      tal:define="appFolder context/getParentNode;
                  appName appFolder/id;
                  tool python: portal.get('portal_%s' % appName.lower());
-                 queryName python:context.REQUEST.get('query');
-                 flavourNumber python:context.REQUEST.get('flavourNumber');
-                 rootClasses tool/getRootClasses;
-                 rootTypes python: test(flavourNumber=='1', rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
-                 rootClassesQuery python:','.join(rootClasses);
-                 mainTabSelected python: queryName.find(',') != -1">
+                 contentType python:context.REQUEST.get('type_name');
+                 flavourNumber python:int(context.REQUEST.get('flavourNumber'));
+                 searchName python:context.REQUEST.get('search', '');
+                 searchLabel python: '%s_search_%s' % (contentType, searchName);
+                 searchDescr python: '%s_descr' % searchLabel;
+                 severalTypes python: contentType and (contentType.find(',') != -1)">
 
   <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
-  <span tal:condition="python: queryName and (queryName != 'none')">
-    <span tal:define="queryResult python: tool.executeQuery(queryName, int(flavourNumber));
-                      batch queryResult">
+  <script language="javascript">
+  <!--
+    function getSortValue(row, fieldName) {
+      // Find, from p_fieldName, the cell that is used for sorting.
+      var cellId = "field_" + fieldName;
+      var cells = row.cells;
+      for (var i=0; i < cells.length; i++) {
+        if (cells[i].id == cellId) {
+          // Ok we have the cell on which we must sort.
+          // Now get the cell content.
+          // If the cell contains links, content is the 1st link content
+          var innerLinks = cells[i].getElementsByTagName("a");
+          if (innerLinks.length > 0) {
+            return innerLinks[0].innerHTML;
+          } else {
+            return cells[i].innerHTML;
+          }
+        }
+      }
+    }
 
-    <tal:comment replace="nothing">Tabs</tal:comment>
-    <ul class="contentViews appyTabs">
-      <tal:comment replace="nothing">Tab "All objects"</tal:comment>
-      <li tal:define="selected python:mainTabSelected"
-          tal:attributes="class python:test(selected, 'selected', 'plain')"
-          tal:condition="python: len(rootClasses)>1">
+    function sortRows(fieldName, ascending) {
+      var queryRows = cssQuery('#query_row');
+      // Create a wrapper for sorting
+      var RowWrapper = function(row, fieldName) {
+        this.value = getSortValue(row, fieldName);
+        this.cloned_node = row.cloneNode(true);
+        this.toString = function() {
+          if (this.value.toString) {
+            return this.value.toString();
+          } else {
+            return this.value;
+          }
+        }
+      }
+      // Wrap nodes
+      var items = new Array();
+      for (var i=0; i<queryRows.length; i++) {
+        items.push(new RowWrapper(queryRows[i], fieldName));
+      }
+      // Sort nodes
+      items.sort();
+      if (!ascending) {
+        items.reverse();
+      }
+      // Reorder nodes
+      for (var i=0; i<items.length; i++) {
+        var dest = queryRows[i];
+        dest.parentNode.replaceChild(items[i].cloned_node, dest);
+      }
+    };
 
-        <a tal:content="python: tool.translate('query_consult_all')"
-           tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
-      </li>
-      <tal:comment replace="nothing">One tab for each root content type</tal:comment>
-      <tal:tab repeat="rootContentType rootTypes">
-        <li tal:define="selected python:queryName == rootContentType;
-                        addPermission python: '%s: Add %s' % (appName, rootContentType);
-                        userMayAdd python: member.has_permission(addPermission, appFolder);
-                        createMeans python: tool.getCreateMeans(rootContentType)"
-            tal:attributes="class python:test(selected, 'selected', 'plain')">
-          <a tal:content="python: tool.translate(rootContentType)"
-             tal:attributes="href python: '%s/skyn/query?query=%s&flavourNumber=%s' % (appFolder.absolute_url(), rootContentType, flavourNumber)"/>
-          <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
-          <img style="cursor:pointer" class="appyPlusImg"
-               tal:condition="python: ('form' in createMeans) and userMayAdd"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
-                               src string: $portal_url/skyn/plus.png;
-                               title python: tool.translate('query_create')"/>
-          <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
-          <img style="cursor:pointer" class="appyPlusImg"
-               tal:condition="python: ('import' in createMeans) and userMayAdd"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootContentType);
-                               src string: $portal_url/skyn/import.png;
-                               title python: tool.translate('query_import')"/>
-        </li>
-      </tal:tab>
-    </ul>
-    <br/>
+    function onSort(fieldName){
+      // First, switch the sort arrow (up->down or down->up)
+      var arrow = document.getElementById("arrow_" + fieldName);
+      var sortAscending = (arrow.src.indexOf('arrowDown.gif') != -1);
+      if (sortAscending){
+        // Display "up" image
+        arrow.src = arrow.src.replace('arrowDown.gif', 'arrowUp.gif')
+      }
+      else { // Display "down" image
+        arrow.src = arrow.src.replace('arrowUp.gif', 'arrowDown.gif')
+      }
+      // Then, sort the rows on column "fieldName".
+      sortRows(fieldName, sortAscending);
+    }
 
-    <tal:comment replace="nothing">Query result</tal:comment>
-    <span tal:condition="queryResult">
-      <span metal:use-macro="here/skyn/macros/macros/queryResult"></span>
-    </span>
-    <span tal:condition="not: queryResult"
-          tal:content="python: tool.translate('query_no_result')">No result.</span>
-    </span>
-  </span>
+    function cellMatches(cell, searchValue) {
+      // This function returns true if the HTML p_cell contains p_searchValue
+      var innerLinks = cell.getElementsByTagName("a");
+      // If the cell contains links, we search within the link contents
+      for (var i=0; i < innerLinks.length; i++){
+        var linkContent = innerLinks[i].innerHTML.toLowerCase();
+        if (linkContent.indexOf(searchValue) != -1) {
+           return true;
+        }
+      }
+      // If we are here, we still have no match. Let's search directly within
+      // the cell.
+      var cellContent = cell.innerHTML.toLowerCase();
+      if (cellContent.indexOf(searchValue) != -1) {
+        return true;
+      }
+      return false;
+    }
+
+    function onTextEntered(fieldName) {
+      // Is called whenever text is entered into field named p_fieldName.
+      var cellId = "field_" + fieldName
+      var field = document.getElementById("filter_" + fieldName);
+      var fieldValue = field.value.toLowerCase();
+      if (fieldValue.length >= 3) {
+        // Browse all rows and check if it should be visible or not.
+        var queryRows = cssQuery('#query_row');
+        for (var i=0; i < queryRows.length; i++) {
+          // Find the value of the cell.
+          var queryCells = queryRows[i].cells;
+          for (var j=0; j < queryCells.length; j++) {
+            if (queryCells[j].id == cellId) {
+              if (cellMatches(queryCells[j], fieldValue)) {
+                queryRows[i].style.display = "";
+              }
+              else {
+                queryRows[i].style.display = "none";
+              }
+            }
+          }
+        }
+      }
+      else {
+        // Show all rows
+        var queryRows = cssQuery('#query_row');
+        for (var i=0; i < queryRows.length; i++) {
+          queryRows[i].style.display = "";
+        }
+      }
+    }
+  -->
+  </script>
+  
+  <tal:comment replace="nothing">Query title and description</tal:comment>
+  <h1 tal:content="structure python: test(searchName, tool.translate(searchLabel), test(severalTypes, tool.translate(appName), tool.translate('%s_plural' % contentType)))"></h1>
+  <div class="discreet" tal:condition="searchName"
+       tal:content="structure python: tool.translate(searchDescr)+'<br/><br/>'"></div>
+    
+  <tal:comment replace="nothing">Query result</tal:comment>
+  <div id="queryResult"></div>
+
+  <script language="javascript"
+    tal:define="ajaxUrl python: tool.getQueryUrl(contentType, flavourNumber, searchName)"
+    tal:content="python: 'askAjaxChunk(\'queryResult\',\'%s\')' % ajaxUrl">
+  </script>
 </div>
 </body>
 </html>

@@ -35,7 +35,7 @@ class Search:
         self.sortBy = sortBy
         self.limit = limit
         self.fields = fields # This is a dict whose keys are indexed field
-        # names and whosse values are search values.
+        # names and whose values are search values.
 
 # ------------------------------------------------------------------------------
 class Type:
@@ -162,7 +162,8 @@ class String(Type):
            character is ignored. If p_complement is True, it does compute the
            complement of modulo 97 instead of modulo 97. p_obj is not used;
            it will be given by the Appy validation machinery, so it must be
-           specified as parameter.'''
+           specified as parameter. The function returns True if the check is
+           successful.'''
         if not value: return True # Plone calls me erroneously for
         # non-mandatory fields.
         # First, remove any non-digit char

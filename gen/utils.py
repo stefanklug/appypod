@@ -172,13 +172,22 @@ class AppyRequest:
         return res
 
 # ------------------------------------------------------------------------------
-class RefObjects:
-    '''Represents a bunch of objects retrieved from a reference.'''
-    def __init__(self, objects=None):
+class SomeObjects:
+    '''Represents a bunch of objects retrieved from a reference or a query in
+       portal_catalog.'''
+    def __init__(self, objects=None, batchSize=None, startNumber=0):
         self.objects = objects or [] # The objects
         self.totalNumber = len(self.objects) # self.objects may only represent a
         # part of all available objects.
-        self.batchSize = self.totalNumber # The max length of self.objects.
-        self.startNumber = 0 # The index of first object in self.objects in
-        # the whole list.
+        self.batchSize = batchSize or self.totalNumber # The max length of
+        # self.objects.
+        self.startNumber = startNumber # The index of first object in
+        # self.objects in the whole list.
+    def brainsToObjects(self):
+        '''self.objects has been populated from brains from the portal_catalog,
+           not from True objects. This method turns them (or some of them
+           depending on batchSize and startNumber) into real objects.'''
+        start = self.startNumber
+        brains = self.objects[start:start + self.batchSize]
+        self.objects = [b.getObject() for b in brains]
 # ------------------------------------------------------------------------------

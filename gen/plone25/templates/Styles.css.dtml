@@ -212,12 +212,27 @@ fieldset {
   margin: 0 0.2em 0.2em 0;
 }
 /* Portlet elements */
+.portletHeader {
+  text-transform: none;
+  padding: 1px 0.5em;
+}
 .portletAppyItem {
   margin: 0;
   padding: 1px 0.5em;
   border-left: 1px solid #8cacbb;
   border-right: 1px solid #8cacbb;
   font-weight: normal;
+  text-transform: none;
+}
+.portletSep {
+  border-top: 1px dashed #8cacbb;
+}
+.portletSearch {
+  padding: 0 0 0 0.6em;
+  font-style: italic;
+}
+.portletCurrent {
+  font-weight: bold;
 }
 
 /* Uncomment this if you want to hide breadcrumbs */

@@ -541,131 +541,28 @@
   </script>
 </div>
 
-<div metal:define-macro="queryResult">
+<metal:queryResults define-macro="queryResult"
+   tal:define="tool python: contextObj;
+               contentType request/contentType;
+               flavourNumber python: int(request['flavourNumber']);
+               startNumber python:test(request['startNumber']=='', '0', request['startNumber']);
+               startNumber python: int(startNumber);
+               searchName request/searchName;
+               severalTypes python: contentType and (contentType.find(',') != -1);
+               queryResult python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber);
+               objs queryResult/objects;
+               totalNumber queryResult/totalNumber;
+               batchSize queryResult/batchSize;
+               ajaxHookId python:'queryResult';
+               baseUrl python: tool.getQueryUrl(contentType, flavourNumber, searchName)">
 
-  <script language="javascript">
-  <!--
-    function getSortValue(row, fieldName) {
-      // Find, from p_fieldName, the cell that is used for sorting.
-      var cellId = "field_" + fieldName;
-      var cells = row.cells;
-      for (var i=0; i < cells.length; i++) {
-        if (cells[i].id == cellId) {
-          // Ok we have the cell on which we must sort.
-          // Now get the cell content.
-          // If the cell contains links, content is the 1st link content
-          var innerLinks = cells[i].getElementsByTagName("a");
-          if (innerLinks.length > 0) {
-            return innerLinks[0].innerHTML;
-          } else {
-            return cells[i].innerHTML;
-          }
-        }
-      }
-    }
+  <tal:result condition="objs">
 
-    function sortRows(fieldName, ascending) {
-      var queryRows = cssQuery('#query_row');
-      // Create a wrapper for sorting
-      var RowWrapper = function(row, fieldName) {
-        this.value = getSortValue(row, fieldName);
-        this.cloned_node = row.cloneNode(true);
-        this.toString = function() {
-          if (this.value.toString) {
-            return this.value.toString();
-          } else {
-            return this.value;
-          }
-        }
-      }
-      // Wrap nodes
-      var items = new Array();
-      for (var i=0; i<queryRows.length; i++) {
-        items.push(new RowWrapper(queryRows[i], fieldName));
-      }
-      // Sort nodes
-      items.sort();
-      if (!ascending) {
-        items.reverse();
-      }
-      // Reorder nodes
-      for (var i=0; i<items.length; i++) {
-        var dest = queryRows[i];
-        dest.parentNode.replaceChild(items[i].cloned_node, dest);
-      }
-    };
+  <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
 
-    function onSort(fieldName){
-      // First, switch the sort arrow (up->down or down->up)
-      var arrow = document.getElementById("arrow_" + fieldName);
-      var sortAscending = (arrow.src.indexOf('arrowDown.gif') != -1);
-      if (sortAscending){
-        // Display "up" image
-        arrow.src = arrow.src.replace('arrowDown.gif', 'arrowUp.gif')
-      }
-      else { // Display "down" image
-        arrow.src = arrow.src.replace('arrowUp.gif', 'arrowDown.gif')
-      }
-      // Then, sort the rows on column "fieldName".
-      sortRows(fieldName, sortAscending);
-    }
-
-    function cellMatches(cell, searchValue) {
-      // This function returns true if the HTML p_cell contains p_searchValue
-      var innerLinks = cell.getElementsByTagName("a");
-      // If the cell contains links, we search within the link contents
-      for (var i=0; i < innerLinks.length; i++){
-        var linkContent = innerLinks[i].innerHTML.toLowerCase();
-        if (linkContent.indexOf(searchValue) != -1) {
-           return true;
-        }
-      }
-      // If we are here, we still have no match. Let's search directly within
-      // the cell.
-      var cellContent = cell.innerHTML.toLowerCase();
-      if (cellContent.indexOf(searchValue) != -1) {
-        return true;
-      }
-      return false;
-    }
-
-    function onTextEntered(fieldName) {
-      // Is called whenever text is entered into field named p_fieldName.
-      var cellId = "field_" + fieldName
-      var field = document.getElementById("filter_" + fieldName);
-      var fieldValue = field.value.toLowerCase();
-      if (fieldValue.length >= 3) {
-        // Browse all rows and check if it should be visible or not.
-        var queryRows = cssQuery('#query_row');
-        for (var i=0; i < queryRows.length; i++) {
-          // Find the value of the cell.
-          var queryCells = queryRows[i].cells;
-          for (var j=0; j < queryCells.length; j++) {
-            if (queryCells[j].id == cellId) {
-              if (cellMatches(queryCells[j], fieldValue)) {
-                queryRows[i].style.display = "";
-              }
-              else {
-                queryRows[i].style.display = "none";
-              }
-            }
-          }
-        }
-      }
-      else {
-        // Show all rows
-        var queryRows = cssQuery('#query_row');
-        for (var i=0; i < queryRows.length; i++) {
-          queryRows[i].style.display = "";
-        }
-      }
-    }
-  -->
-  </script>
-
-  <table class="vertical listing" width="100%"
-         tal:define="fieldDescrs python: tool.getResultColumns(queryResult[0].getObject(), queryName);">
-
+  <table tal:define="fieldDescrs python: tool.getResultColumns(objs[0], contentType)"
+         class="vertical listing" width="100%" cellpadding="0" cellspacing="0">
     <tal:comment replace="nothing">Every item in fieldDescr is a FieldDescr instance,
       excepted for workflow state (which is not a field): in this case it is simply the
       string "workflowState".</tal:comment>
@@ -677,7 +574,7 @@
                                 onClick python:'javascript:onSort(\'title\')';"
                id="arrow_title" style="cursor:pointer"/>
         <span tal:content="python: tool.translate('ref_name')"/>
-        <input id="filter_title" type="text" size="10" onkeyup="javascript:onTextEntered('title')"/>
+        <input id="filter_title" type="text" size="5" onkeyup="javascript:onTextEntered('title')"/>
       </th>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
@@ -695,19 +592,19 @@
         <tal:workflowState condition="python: fieldName == 'workflow_state'">
            <span tal:replace="python: tool.translate('workflow_state')"/>
         </tal:workflowState>
-        <input type="text" size="10"
+        <input type="text" size="5"
                tal:attributes="id python: 'filter_%s' % fieldName;
                                onkeyup python:'javascript:onTextEntered(\'%s\')' % fieldName"/>
        </th>
       </tal:columnHeader>
 
-      <tal:comment replace="nothing">Column "Object type", shown if we are on tab "consult all"</tal:comment>
-      <th tal:condition="mainTabSelected"><img
+      <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
+      <th tal:condition="severalTypes"><img
           tal:attributes= "src string: $portal_url/arrowDown.gif;
                            onClick python:'javascript:onSort(\'root_type\')';"
           id = "arrow_root_type" style="cursor:pointer"/>
         <span tal:replace="python: tool.translate('root_type')"/>
-        <input type="text" size="10" id="filter_root_type"
+        <input type="text" size="5" id="filter_root_type"
                tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/>
       </th>
 
@@ -716,11 +613,10 @@
     </tr>
 
     <tal:comment replace="nothing">Results</tal:comment>
-    <tr tal:repeat="brain queryResult" id="query_row">
-      <tal:row define="obj brain/getObject">
+    <tr tal:repeat="obj objs" id="query_row">
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <td id="field_title"><a tal:content="brain/Title" tal:attributes="href obj/getUrl"></a></td>
+      <td id="field_title"><a tal:content="obj/Title" tal:attributes="href obj/getUrl"></a></td>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:otherFields repeat="fieldDescr fieldDescrs">
@@ -744,8 +640,8 @@
         </tal:workflowState>
       </tal:otherFields>
 
-      <tal:comment replace="nothing">Column "Object type", shown if we are on tab "consult all"</tal:comment>
-      <td tal:condition="mainTabSelected" id="field_root_type"
+      <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
+      <td tal:condition="severalTypes" id="field_root_type"
           tal:content="python: tool.translate(obj.portal_type)"></td>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
@@ -766,12 +662,18 @@
           </tr>
         </table>
       </td>
-      </tal:row>
     </tr>
   </table>
 
-  <div metal:use-macro="context/batch_macros/macros/navigation" />
-</div>
+  <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
+  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+  </tal:result>
+
+  <span tal:condition="not: objs"
+        tal:content="python: tool.translate('query_no_result')">No result.
+  </span>
+
+</metal:queryResults>
 
 <metal:phases define-macro="phases">
   <tal:comment replace="nothing">This macro displays phases defined for a given content type,
@@ -840,10 +742,19 @@
   </form>
 </metal:transitions>
 
-<metal:portletContent define-macro="portletContent">
+<metal:portletContent define-macro="portletContent"
+   tal:define="queryUrl python: '%s/skyn/query' % appFolder.absolute_url();
+               currentSearch request/search|nothing;
+               currentType request/type_name|nothing;">
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
-    <span tal:replace="python: tool.translate(appName)"/>&nbsp;
+    <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
+        title allows to see all root objects in the database.</tal:comment>
+    <a tal:condition="python: len(flavours)==1"
+       tal:attributes="href python:'%s?type_name=%s&flavourNumber=1' % (queryUrl, ','.join(rootClasses))"
+       tal:content="python: tool.translate(appName)"></a>
+    <span tal:condition="python: len(flavours)&gt;1"
+          tal:replace="python: tool.translate(appName)"/>&nbsp;
     <img style="cursor:pointer"
          tal:condition="python: member.has_role('Manager')"
          tal:attributes="onClick python: 'href: window.location=\'%s/skyn/view\'' % tool.absolute_url();
@@ -851,15 +762,59 @@
                          src string:$portal_url/skyn/appyConfig.gif"/>
   </dt>
 
-  <tal:comment replace="nothing">Links to flavours</tal:comment>
-  <dt class="portletAppyItem" tal:repeat="flavourInfo tool/getFlavoursInfo">
+  <tal:comment replace="nothing">TODO: implement a widget for selecting the needed flavour.</tal:comment>
+  
+  <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
+  <tal:section repeat="rootClass rootClasses" define="flavourNumber python:1">
+    <tal:comment replace="nothing">Section title, with action icons</tal:comment>
+    <dt tal:attributes="class python:test(repeat['rootClass'].number()==1, 'portletAppyItem', 'portletAppyItem portletSep')">
+      <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
+        <tr>
+          <td>
+            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s' % (queryUrl, rootClass, flavourNumber);
+                               class python:test(not currentSearch and (currentType==rootClass), 'portletCurrent', '')"
+               tal:content="python: tool.translate(rootClass + '_plural')"></a>
+          </td>
+          <td align="right"
+              tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
+                          userMayAdd python: member.has_permission(addPermission, appFolder);
+                          createMeans python: tool.getCreateMeans(rootClass)">
+            <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
+            <img style="cursor:pointer"
+                 tal:condition="python: ('form' in createMeans) and userMayAdd"
+                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s\'' % (appFolder.absolute_url(), rootClass);
+                                 src string: $portal_url/skyn/plus.png;
+                                 title python: tool.translate('query_create')"/>
+            <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
+            <img style="cursor:pointer"
+                 tal:condition="python: ('import' in createMeans) and userMayAdd"
+                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootClass);
+                                 src string: $portal_url/skyn/import.png;
+                                 title python: tool.translate('query_import')"/>
+          </td>
+        </tr>
+      </table>
+    </dt>
+    <tal:comment replace="nothing">Searches for this content type.</tal:comment>
+    <dt class="portletAppyItem portletSearch" tal:repeat="search python: tool.getSearches(rootClass)">
+      <a tal:define="searchLabel python: '%s_search_%s' % (rootClass, search['name']);
+                     searchDescr python: '%s_descr' % searchLabel"
+         tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
+                         title python: tool.translate(searchDescr);
+                         class python: test(search['name'] == currentSearch, 'portletCurrent', '')"
+            tal:content="structure python: tool.translate(searchLabel)"></a>
+    </dt>
+  </tal:section>
+
+  <tal:comment replace="nothing">All objects in flavour</tal:comment>
+  <!--dt class="portletAppyItem" tal:define="flavourInfo python: flavours[0]">
     <a tal:define="flavourNumber flavourInfo/number;
                    rootTypes python: test(flavourNumber==1, rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
                    rootClassesQuery python:','.join(rootTypes)"
-     tal:content="flavourInfo/title"
-     tal:attributes="title python: tool.translate('query_consult_all');
-                     href python:'%s/skyn/query?query=%s&flavourNumber=%d' % (appFolder.absolute_url(), rootClassesQuery, flavourNumber)"></a>
-  </dt>
+       tal:content="flavourInfo/title"
+       tal:attributes="title python: tool.translate('query_consult_all');
+                       href python:'%s?type_name=%s&flavourNumber=%d' % (queryUrl, rootClassesQuery, flavourNumber)"></a>
+  </dt-->
 
   <dt class="portletAppyItem" tal:define="contextObj tool/getPublishedObject"
       tal:condition="python: contextObj.meta_type in rootClasses">
@@ -867,12 +822,11 @@
   </dt>
 </metal:portletContent>
 
-<tal:comment replace="nothing">
-   Buttons for navigating among a list of elements (next, back, first, last, etc).
-</tal:comment>
-<metal:appyNavigate define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize">
-  <table cellpadding="0" cellspacing="0" align="right" class="appyNav"
-         tal:define="baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId}) + '&%s_startNumber=' % ajaxHookId">
+<div metal:define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize" align="right">
+  <tal:comment replace="nothing">
+     Buttons for navigating among a list of elements (next, back, first, last, etc).
+  </tal:comment>
+  <table cellpadding="0" cellspacing="0" class="appyNav">
     <tr>
       <tal:comment replace="nothing">Go to the first page</tal:comment>
       <td><img style="cursor:pointer" tal:condition="python: (startNumber != 0) and (startNumber != batchSize)"
@@ -886,10 +840,11 @@
                         title python: tool.translate('goto_previous');
                         onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
       <tal:comment replace="nothing">Explain which elements are currently shown</tal:comment>
-      <td class="discreet">&nbsp;
+      <td class="discreet" valign="middle">&nbsp;
         <span tal:replace="python: startNumber+1"/>
         <img tal:attributes="src string: $portal_url/skyn/to.png"/>
-        <span tal:replace="python: startNumber+len(objs)"/>&nbsp;&nbsp;
+        <span tal:replace="python: startNumber+len(objs)"/>&nbsp;<b>//</b>
+        <span tal:replace="python: totalNumber"/>&nbsp;&nbsp;
       </td>
 
       <tal:comment replace="nothing">Go to the next page</tal:comment>
@@ -909,4 +864,4 @@
                         onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
     </tr>
   </table>
-</metal:appyNavigate>
+</div>

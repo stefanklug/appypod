@@ -116,9 +116,6 @@ class ArchetypeFieldDescriptor:
                 self.widgetParams['size'] = 50
                 if self.appyType.width:
                     self.widgetParams['size'] = self.appyType.width
-            # Manage index
-            if self.appyType.searchable:
-                self.fieldParams['index'] = 'FieldIndex'
         elif self.appyType.format == String.TEXT:
             self.fieldType = 'TextField'
             self.widgetType = 'TextAreaWidget'
@@ -132,9 +129,6 @@ class ArchetypeFieldDescriptor:
         else:
             self.fieldType = 'StringField'
             self.widgetType = 'StringWidget'
-        # Manage searchability
-        if self.appyType.searchable:
-            self.fieldParams['searchable'] = True
 
     def walkComputed(self):
         '''How to generate a computed field? We generate an Archetypes String
@@ -206,11 +200,9 @@ class ArchetypeFieldDescriptor:
             self.fieldParams['default'] = self.appyType.default
         # - required?
         if self.appyType.multiplicity[0] >= 1:
-            if self.appyType.type != 'Ref':
-                # Indeed, if it is a ref appy will manage itself field updates
-                # in at_post_create_script, so Archetypes must not enforce
-                # required=True
-                self.fieldParams['required'] = True
+            if self.appyType.type != 'Ref': self.fieldParams['required'] = True
+            # Indeed, if it is a ref appy will manage itself field updates in
+            # onEdit, so Archetypes must not enforce required=True
         # - optional ?
         if self.appyType.optional:
             Flavour._appy_addOptionalField(self)
@@ -222,14 +214,20 @@ class ArchetypeFieldDescriptor:
             methodName = 'getDefaultValueFor%s' % self.fieldName
             self.fieldParams['default_method'] = methodName
             self.classDescr.addDefaultMethod(methodName, self)
+        # - put an index on this field?
+        if self.appyType.indexed:
+            if (self.appyType.type == 'String') and \
+               (self.appyType.isMultiValued()):
+                self.fieldParams['index'] = 'ZCTextIndex, lexicon_id=' \
+                    'plone_lexicon, index_type=Okapi BM25 Rank'
+            else:
+                self.fieldParams['index'] = 'FieldIndex'
         # - searchable ?
-        if self.appyType.searchable and (self.appyType.type != 'String'):
-            self.fieldParams['index'] = 'FieldIndex'
+        if self.appyType.searchable: self.fieldParams['searchable'] = True
         # - slaves ?
-        if self.appyType.slaves:
-            self.widgetParams['visible'] = False # Archetypes will believe the
-            # field is invisible; we will display it ourselves (like for Ref
-            # fields)
+        if self.appyType.slaves: self.widgetParams['visible'] = False
+        # Archetypes will believe the field is invisible; we will display it
+        # ourselves (like for Ref fields)
         # - need to generate a field validator?
         # In all cases, add an i18n message for the validation error for this
         # field.
@@ -489,6 +487,14 @@ class ArchetypesClassDescriptor(ClassDescriptor):
                     if isinstance(search, basestring):res.append(Search(search))
                     else:                             res.append(search)
         return res
+
+    @staticmethod
+    def getSearch(klass, searchName):
+        '''Gets the search named p_searchName.'''
+        for search in ArchetypesClassDescriptor.getSearches(klass):
+            if search.name == searchName:
+                return search
+        return None
 
     def addGenerateDocMethod(self):
         m = self.methods

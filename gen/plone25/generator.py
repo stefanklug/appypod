@@ -660,13 +660,17 @@ class Generator(AbstractGenerator):
           'implements': implements, 'baseSchema': baseSchema,
           'register': register, 'toolInstanceName': self.toolInstanceName})
         fileName = '%s.py' % classDescr.name
-        # Remember i18n labels that will be generated in the i18n file
+        # Create i18n labels (class name, description and plural form)
         poMsg = PoMessage(classDescr.name, '', classDescr.klass.__name__)
         poMsg.produceNiceDefault()
         self.labels.append(poMsg)
         poMsgDescr = PoMessage('%s_edit_descr' % classDescr.name, '', ' ')
         self.labels.append(poMsgDescr)
-        # Remember i18n labels for flavoured variants
+        poMsgPl = PoMessage('%s_plural' % classDescr.name, '',
+            classDescr.klass.__name__+'s')
+        poMsgPl.produceNiceDefault()
+        self.labels.append(poMsgPl)
+        # Create i18n labels for flavoured variants
         for i in range(2,10):
             poMsg = PoMessage('%s_%d' % (classDescr.name, i), '',
                               classDescr.klass.__name__)
@@ -675,7 +679,11 @@ class Generator(AbstractGenerator):
             poMsgDescr = PoMessage('%s_%d_edit_descr' % (classDescr.name, i),
                                    '', ' ')
             self.labels.append(poMsgDescr)
-        # Remember i18n labels for searches
+            poMsgPl = PoMessage('%s_%d_plural' % (classDescr.name, i), '',
+                classDescr.klass.__name__+'s')
+            poMsgPl.produceNiceDefault()
+            self.labels.append(poMsgPl)
+        # Create i18n labels for searches
         for search in classDescr.getSearches(classDescr.klass):
             searchLabelId = '%s_search_%s' % (classDescr.name, search.name)
             searchDescrId = '%s_descr' % searchLabelId

@@ -10,7 +10,7 @@ import os, os.path, sys, types, mimetypes
 import appy.gen
 from appy.gen import String
 from appy.gen.utils import FieldDescr, GroupDescr, PhaseDescr, StateDescr, \
-                           ValidationErrors, sequenceTypes, RefObjects
+                           ValidationErrors, sequenceTypes, SomeObjects
 from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
 from appy.gen.plone25.utils import updateRolesForPermission, getAppyRequest
 
@@ -210,7 +210,7 @@ class AbstractMixin:
         for uid in toDelete:
             sortedUids.remove(uid)
         # Prepare the result
-        res = RefObjects()
+        res = SomeObjects()
         res.totalNumber = res.batchSize = len(sortedUids)
         if batchNeeded:
             res.batchSize = appyType['maxPerPage']
@@ -218,7 +218,7 @@ class AbstractMixin:
             res.startNumber = startNumber
         # Get the needed referred objects
         i = res.startNumber
-        # Is is possible and more efficient to perform a single query in
+        # Is it possible and more efficient to perform a single query in
         # uid_catalog and get the result in the order of specified uids?
         while i < (res.startNumber + res.batchSize):
             if i >= res.totalNumber: break
@@ -245,7 +245,7 @@ class AbstractMixin:
                 startNumber=startNumber).__dict__
         else:
             # Note Pagination is not yet implemented for backward ref.
-            return RefObjects(self.getBRefs(fieldName)).__dict__
+            return SomeObjects(self.getBRefs(fieldName)).__dict__
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
