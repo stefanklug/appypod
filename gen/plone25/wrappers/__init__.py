@@ -2,7 +2,8 @@
    developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
-import time, os.path, mimetypes
+import time, os.path, mimetypes, unicodedata
+from appy.gen import Search
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder
 
@@ -74,6 +75,8 @@ class AbstractWrapper:
     tool = property(get_tool)
     def get_flavour(self): return self.o.getTool().getFlavour(self.o, appy=True)
     flavour = property(get_flavour)
+    def get_request(self): return self.o.REQUEST
+    request = property(get_request)
     def get_session(self): return self.o.REQUEST.SESSION
     session = property(get_session)
     def get_typeName(self): return self.__class__.__bases__[-1].__name__
@@ -89,6 +92,8 @@ class AbstractWrapper:
     stateLabel = property(get_stateLabel)
     def get_klass(self): return self.__class__.__bases__[1]
     klass = property(get_klass)
+    def get_url(self): return self.o.absolute_url()+'/skyn/view'
+    url = property(get_url)
 
     def link(self, fieldName, obj):
         '''This method links p_obj to this one through reference field
@@ -225,6 +230,33 @@ class AbstractWrapper:
         elif logLevel == 'error': logMethod = logger.error
         else: logMethod = logger.info
         logMethod(message)
+
+    def normalize(self, s):
+        '''Returns a version of string p_s whose special chars have been
+           replaced with normal chars.'''
+        return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
+
+    def search(self, klass, sortBy='', **fields):
+        '''Searches objects of p_klass. p_sortBy must be the name of an indexed
+           field (declared with indexed=True); every param in p_fields must
+           take the name of an indexed field and take a possible value of this
+           field.'''
+        # Find the content type corresponding to p_klass
+        flavour = self.flavour
+        contentType = flavour.o.getPortalType(klass)
+        # Create the Search object
+        search = Search('customSearch', sortBy=sortBy, **fields)
+        res = self.tool.o.executeQuery(contentType,flavour.number,search=search)
+        return [o.appy() for o in res['objects']]
+
+    def reindex(self):
+        '''Asks a direct object reindexing. In most cases you don't have to
+           reindex objects "manually" with this method. When an object is
+           modified after some user action has been performed, Appy reindexes
+           this object automatically. But if your code modifies other objects,
+           Appy may not know that they must be reindexed, too. So use this
+           method in those cases.'''
+        self.o.reindexObject()
 
 # ------------------------------------------------------------------------------
 class FileWrapper:

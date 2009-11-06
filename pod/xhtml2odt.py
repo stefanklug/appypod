@@ -59,6 +59,10 @@ HTML_ENTITIES = {
         'ucirc':'û', 'uuml':'ü', 'yacute':'ý', 'thorn':'þ', 'yuml':'ÿ',
         'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
         "rdquo":"'", 'ndash': ' ', 'oelig':'oe', 'quot': "'", 'mu': 'µ'}
+import htmlentitydefs
+for k, v in htmlentitydefs.entitydefs.iteritems():
+    if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
+        HTML_ENTITIES[k] = ''
 
 # ------------------------------------------------------------------------------
 class Entity:

@@ -320,7 +320,7 @@ class AbstractMixin:
             fieldDescr = fieldDescr.__dict__
         appyType = fieldDescr['appyType']
         if isEdit and (appyType['type']=='Ref') and appyType['add']:return False
-        if isEdit and appyType['type']=='Action': return False
+        if isEdit and (appyType['type'] in ('Action', 'Computed')): return False
         if (fieldDescr['widgetType'] == 'backField') and \
            not self.getBRefs(fieldDescr['fieldRel']): return False
         # Do not show field if it is optional and not selected in flavour
@@ -403,6 +403,22 @@ class AbstractMixin:
                 if (state.phase == phase) and \
                    (self._appy_showState(workflow, state.show)):
                     res.append(StateDescr(stateName, stateStatus).get())
+        return res
+
+    def getAppyTransitions(self):
+        '''Returns the transitions that the user can trigger on p_self.'''
+        transitions = self.portal_workflow.getTransitionsFor(self)
+        res = []
+        if transitions:
+            # Retrieve the corresponding Appy transition, to check if the user
+            # may view it.
+            workflow = self.getWorkflow(appy=True)
+            if not workflow: return transitions
+            for transition in transitions:
+                # Get the corresponding Appy transition
+                appyTr = workflow._transitionsMapping[transition['id']]
+                if self._appy_showTransition(workflow, appyTr.show):
+                    res.append(transition)
         return res
 
     def getAppyPage(self, isEdit, phaseInfo, appyName=True):
@@ -808,6 +824,12 @@ class AbstractMixin:
         if callable(stateShow):
             return stateShow(workflow, self._appy_getWrapper())
         else: return stateShow
+
+    def _appy_showTransition(self, workflow, transitionShow):
+        '''Must I show a transition whose "show value" is p_transitionShow?'''
+        if callable(transitionShow):
+            return transitionShow(workflow, self._appy_getWrapper())
+        else: return transitionShow
 
     def _appy_managePermissions(self):
         '''When an object is created or updated, we must update "add"

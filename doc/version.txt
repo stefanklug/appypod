@@ -1,3 +1,7 @@
+0.4.1 (2009-11-03)
+- Ajax framework within appy.gen
+- More improvements in XHTML->ODT conversion within appy.pod
+
 0.4.0 (2009-08-12)
 - Alpha version.
 

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path
+import re, os, os.path, Cookie
 from appy.gen.utils import FieldDescr, SomeObjects
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
@@ -98,14 +98,18 @@ class ToolMixin(AbstractMixin):
     def showPortlet(self):
         return not self.portal_membership.isAnonymousUser()
 
+    _sortFields = {'title': 'sortable_title'}
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
-                     startNumber=0):
+                     startNumber=0, search=None):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
            corresponds to a search defined on p_contentType: additional search
            criteria will be added to the query. We will retrieve objects from
-           p_startNumber.'''
+           p_startNumber. If p_search is defined, it corresponds to a custom
+           Search instance (instead of a predefined named search like in
+           p_searchName). If both p_searchName and p_search are given, p_search
+           is ignored.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             # Several content types are specified
@@ -117,23 +121,32 @@ class ToolMixin(AbstractMixin):
             portalTypes = contentType
         params = {'portal_type': portalTypes, 'batch': True}
         # Manage additional criteria from a search when relevant
-        if searchName:
+        if searchName or search:
             # In this case, contentType must contain a single content type.
-            appyClass = self.getAppyClass(contentType) 
-            # Find the search
-            search = ArchetypesClassDescriptor.getSearch(appyClass, searchName)
+            appyClass = self.getAppyClass(contentType)
+            if searchName:
+                search = ArchetypesClassDescriptor.getSearch(
+                    appyClass, searchName)
+        if search:
+            # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
-                appyType = getattr(appyClass, fieldName)
                 attrName = fieldName
-                if (appyType.type == 'String') and appyType.isMultiValued():
-                    attrName = 'get%s%s' % (fieldName[0].upper(), fieldName[1:])
+                if attrName == 'title': attrName = 'Title'
+                elif attrName == 'description': attrName = 'Description'
+                elif attrName == 'state': attrName = 'review_state'
+                else: attrName = 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
                 params[attrName] = fieldValue
+            # Add a sort order if specified
+            sb = search.sortBy
+            if sb:
+                # For field 'title', Plone has created a specific index
+                # 'sortable_title', because index 'Title' is a ZCTextIndex
+                # (for searchability) and can't be used for sorting.
+                if self._sortFields.has_key(sb): sb = self._sortFields[sb]
+                params['sort_on'] = sb
         brains = self.portal_catalog.searchResults(**params)
-        print 'Number of results per page is', self.getNumberOfResultsPerPage()
-        print 'StartNumber is', startNumber
         res = SomeObjects(brains, self.getNumberOfResultsPerPage(), startNumber)
         res.brainsToObjects()
-        print 'Res?', res.totalNumber, res.batchSize, res.startNumber
         return res.__dict__
 
     def getResultColumnsNames(self, contentType):
@@ -322,10 +335,43 @@ class ToolMixin(AbstractMixin):
         return res
 
     def getSearches(self, contentType):
-        '''Returns the searches that are defined for p_contentType.'''
+        '''Returns the list of searches that are defined for p_contentType.
+           Every list item is a dict that contains info about a search or about
+           a group of searches.'''
         appyClass = self.getAppyClass(contentType)
-        return [s.__dict__ for s in \
-                ArchetypesClassDescriptor.getSearches(appyClass)]
+        res = []
+        visitedGroups = {} # Names of already visited search groups
+        for search in ArchetypesClassDescriptor.getSearches(appyClass):
+            # Determine first group label, we will need it.
+            groupLabel = ''
+            if search.group:
+                groupLabel = '%s_searchgroup_%s' % (contentType, search.group)
+            # Add an item representing the search group if relevant
+            if search.group and (search.group not in visitedGroups):
+                group = {'name': search.group, 'isGroup': True,
+                         'labelId': groupLabel, 'searches': [],
+                         'label': self.translate(groupLabel),
+                         'descr': self.translate('%s_descr' % groupLabel),
+                }
+                res.append(group)
+                visitedGroups[search.group] = group
+            # Add the search itself
+            searchLabel = '%s_search_%s' % (contentType, search.name)
+            dSearch = {'name': search.name, 'isGroup': False,
+                       'label': self.translate(searchLabel),
+                       'descr': self.translate('%s_descr' % searchLabel)}
+            if search.group:
+                visitedGroups[search.group]['searches'].append(dSearch)
+            else:
+                res.append(dSearch)
+        return res
+
+    def getCookieValue(self, cookieId, default=''):
+        '''Server-side code for getting the value of a cookie entry.'''
+        cookie = Cookie.SimpleCookie(self.REQUEST['HTTP_COOKIE'])
+        cookieValue = cookie.get(cookieId)
+        if cookieValue: return cookieValue.value
+        return default
 
     def getQueryUrl(self, contentType, flavourNumber, searchName):
         '''This method creates the URL that allows to perform an ajax GET
@@ -335,5 +381,4 @@ class ToolMixin(AbstractMixin):
             '&page=macros&macro=queryResult&contentType=%s&flavourNumber=%s' \
             '&searchName=%s&startNumber=' % (self.UID(), contentType,
             flavourNumber, searchName)
-
 # ------------------------------------------------------------------------------

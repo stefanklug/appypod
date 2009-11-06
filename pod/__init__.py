@@ -29,6 +29,7 @@ XHTML_INNER_TAGS = ('b', 'i', 'u', 'em')
 XHTML_UNSTYLABLE_TAGS = XHTML_LISTS + ('li', 'a')
 XML_SPECIAL_CHARS = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
                      "'": '&apos;'}
+XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': '"', 'apos': "'"}
 
 # ------------------------------------------------------------------------------
 class PodError(Exception):

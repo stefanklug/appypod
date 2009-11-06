@@ -197,7 +197,7 @@
   <div metal:use-macro="here/skyn/ref/macros/showReference" />
 </div>
 
-<span metal:define-macro="showGroup">
+<metal:group define-macro="showGroup">
   <fieldset class="appyGroup">
     <legend><i tal:define="groupDescription python:contextObj.translate('%s_group_%s' % (contextObj.meta_type, widgetDescr['name']))"
                tal:content="groupDescription"></i></legend>
@@ -222,9 +222,9 @@
     </table>
   </fieldset>
   <br/>
-</span>
+</metal:group>
 
-<div metal:define-macro="listFields"
+<metal:fields define-macro="listFields"
      tal:repeat="widgetDescr python: contextObj.getAppyFields(isEdit, pageName)">
 
     <tal:displayArchetypesField condition="python: widgetDescr['widgetType'] == 'field'">
@@ -232,19 +232,17 @@
         <metal:field use-macro="here/skyn/macros/macros/showArchetypesField" />
       </tal:atField>
     </tal:displayArchetypesField>
-
     <tal:displayBackwardRef condition="python: (not isEdit) and (widgetDescr['widgetType'] == 'backField')">
       <tal:backRef condition="python: widgetDescr['appyType']['backd']['page'] == pageName">
         <metal:field metal:use-macro="here/skyn/macros/macros/showBackwardField" />
       </tal:backRef>
     </tal:displayBackwardRef>
-
     <tal:displayGroup condition="python: widgetDescr['widgetType'] == 'group'">
       <tal:displayG condition="python: widgetDescr['page'] == pageName">
         <metal:group metal:use-macro="here/skyn/macros/macros/showGroup" />
       </tal:displayG>
     </tal:displayGroup>
-</div>
+</metal:fields>
 
 <span metal:define-macro="byline"
      tal:condition="python: site_properties.allowAnonymousViewAbout or not isAnon"
@@ -574,7 +572,10 @@
                                 onClick python:'javascript:onSort(\'title\')';"
                id="arrow_title" style="cursor:pointer"/>
         <span tal:content="python: tool.translate('ref_name')"/>
-        <input id="filter_title" type="text" size="5" onkeyup="javascript:onTextEntered('title')"/>
+        <!--input id="filter_title" type="text" size="5" onkeyup="javascript:onTextEntered('title')"/-->
+        <tal:comment replace="nothing">Input fields like this have been commented out because they will
+          be replaced by Ajax server- searches that will be more relevant (the current Javascript search
+          is limited to the batch, which has little interest).</tal:comment>
       </th>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
@@ -592,9 +593,9 @@
         <tal:workflowState condition="python: fieldName == 'workflow_state'">
            <span tal:replace="python: tool.translate('workflow_state')"/>
         </tal:workflowState>
-        <input type="text" size="5"
+        <!--input type="text" size="5"
                tal:attributes="id python: 'filter_%s' % fieldName;
-                               onkeyup python:'javascript:onTextEntered(\'%s\')' % fieldName"/>
+                               onkeyup python:'javascript:onTextEntered(\'%s\')' % fieldName"/-->
        </th>
       </tal:columnHeader>
 
@@ -604,8 +605,8 @@
                            onClick python:'javascript:onSort(\'root_type\')';"
           id = "arrow_root_type" style="cursor:pointer"/>
         <span tal:replace="python: tool.translate('root_type')"/>
-        <input type="text" size="5" id="filter_root_type"
-               tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/>
+        <!--input type="text" size="5" id="filter_root_type"
+               tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/-->
       </th>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
@@ -716,7 +717,7 @@
 </metal:states>
 
 <metal:transitions define-macro="transitions"
-                   tal:define="transitions python: contextObj.portal_workflow.getTransitionsFor(contextObj);"
+                   tal:define="transitions contextObj/getAppyTransitions"
                    tal:condition="transitions">
   <form id="triggerTransitionForm" method="post"
         tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
@@ -746,6 +747,35 @@
    tal:define="queryUrl python: '%s/skyn/query' % appFolder.absolute_url();
                currentSearch request/search|nothing;
                currentType request/type_name|nothing;">
+  <script language="javascript">
+  <!--
+  function toggleSearchGroup(groupId) {
+    // What is the state of this toggle?
+    var state = readCookie(groupId);
+    if ((state != 'collapsed') && (state != 'expanded')) {
+      // No cookie yet, create it.
+      createCookie(groupId, 'expanded');
+      state = 'expanded';
+    }
+    var group = document.getElementById(groupId);
+    var displayValue = 'none';
+    var newState = 'collapsed';
+    var imgSrc = 'skyn/expand.gif';
+    if (state == 'collapsed') {
+      // Expand the group
+      displayValue = 'block';
+      imgSrc = 'skyn/collapse.gif';
+      newState = 'expanded';
+    }
+    // Update group visibility and img
+    group.style.display = displayValue;
+    var img = document.getElementById(groupId + '_img');
+    img.src = imgSrc;
+    // Inverse the cookie value
+    createCookie(groupId, newState);
+  }
+  -->
+  </script>
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
     <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
@@ -796,14 +826,40 @@
       </table>
     </dt>
     <tal:comment replace="nothing">Searches for this content type.</tal:comment>
-    <dt class="portletAppyItem portletSearch" tal:repeat="search python: tool.getSearches(rootClass)">
-      <a tal:define="searchLabel python: '%s_search_%s' % (rootClass, search['name']);
-                     searchDescr python: '%s_descr' % searchLabel"
-         tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
-                         title python: tool.translate(searchDescr);
-                         class python: test(search['name'] == currentSearch, 'portletCurrent', '')"
-            tal:content="structure python: tool.translate(searchLabel)"></a>
-    </dt>
+    <tal:searchOrGroup repeat="searchOrGroup python: tool.getSearches(rootClass)">
+      <tal:group condition="searchOrGroup/isGroup">
+      <tal:expanded define="group searchOrGroup;
+                            expanded python: tool.getCookieValue(group['labelId']) == 'expanded'">
+        <tal:comment replace="nothing">Group name</tal:comment>
+        <dt class="portletAppyItem portletGroup">
+          <img align="left" style="cursor:pointer"
+               tal:attributes="id python: '%s_img' % group['labelId'];
+                               src python:test(expanded, 'skyn/collapse.gif', 'skyn/expand.gif');
+                               onClick python:'javascript:toggleSearchGroup(\'%s\')' % group['labelId']"/>&nbsp;
+          <span tal:replace="group/label"/>
+        </dt>
+        <tal:comment replace="nothing">Group searches</tal:comment>
+        <div tal:attributes="id group/labelId;
+                             style python:test(expanded, 'display:block', 'display:none')">
+          <dt class="portletAppyItem portletSearch" tal:repeat="search group/searches">
+            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
+                         title search/descr;
+                         class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
+               tal:content="structure search/label"></a>
+          </dt>
+        </div>
+      </tal:expanded>
+      </tal:group>
+      <dt tal:define="search searchOrGroup" tal:condition="not: searchOrGroup/isGroup"
+          class="portletAppyItem portletSearch">
+
+        <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
+                     title search/descr;
+                     class python: test(search['name'] == currentSearch, 'portletCurrent', '');
+                     id search/group"
+           tal:content="structure search/label"></a>
+      </dt>
+    </tal:searchOrGroup>
   </tal:section>
 
   <tal:comment replace="nothing">All objects in flavour</tal:comment>

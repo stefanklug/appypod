@@ -30,8 +30,9 @@ class Import:
 
 class Search:
     '''Used for specifying a search for a given type.'''
-    def __init__(self, name, sortBy='title', limit=None, **fields):
+    def __init__(self, name, group=None, sortBy='', limit=None, **fields):
         self.name = name
+        self.group = group # Searches may be visually grouped in the portlet
         self.sortBy = sortBy
         self.limit = limit
         self.fields = fields # This is a dict whose keys are indexed field
@@ -420,7 +421,8 @@ class State:
         return res
 
 class Transition:
-    def __init__(self, states, condition=True, action=None, notify=None):
+    def __init__(self, states, condition=True, action=None, notify=None,
+                 show=True):
         self.states = states # In its simpler form, it is a tuple with 2
         # states: (fromState, toState). But it can also be a tuple of several
         # (fromState, toState) sub-tuples. This way, you may define only 1
@@ -430,6 +432,8 @@ class Transition:
         self.action = action
         self.notify = notify # If not None, it is a method telling who must be
         # notified by email after the transition has been executed.
+        self.show = show # If False, the end user will not be able to trigger
+        # the transition. It will only be possible by code.
 
     def getUsedRoles(self):
         '''If self.condition is specifies a role.'''

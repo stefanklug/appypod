@@ -145,8 +145,9 @@ class Generator(AbstractGenerator):
         self.copyFile('Portlet.pt', self.repls,
             destName='%s.pt' % self.portletName, destFolder=self.skinsFolder)
         self.copyFile('tool.gif', {})
-        self.copyFile('Styles.css.dtml', self.repls, destFolder=self.skinsFolder,
+        self.copyFile('Styles.css.dtml',self.repls, destFolder=self.skinsFolder,
                       destName = '%s.css.dtml' % self.applicationName)
+        self.copyFile('IEFixes.css.dtml',self.repls,destFolder=self.skinsFolder)
         if self.config.minimalistPlone:
             self.copyFile('colophon.pt', self.repls,destFolder=self.skinsFolder)
             self.copyFile('footer.pt', self.repls, destFolder=self.skinsFolder)
@@ -685,14 +686,18 @@ class Generator(AbstractGenerator):
             self.labels.append(poMsgPl)
         # Create i18n labels for searches
         for search in classDescr.getSearches(classDescr.klass):
-            searchLabelId = '%s_search_%s' % (classDescr.name, search.name)
-            searchDescrId = '%s_descr' % searchLabelId
-            for label in (searchLabelId, searchDescrId):
+            searchLabel = '%s_search_%s' % (classDescr.name, search.name)
+            labels = [searchLabel, '%s_descr' % searchLabel]
+            if search.group:
+                grpLabel = '%s_searchgroup_%s' % (classDescr.name, search.group)
+                labels += [grpLabel, '%s_descr' % grpLabel]
+            for label in labels:
                 default = ' '
-                if label == searchLabelId: default = search.name
+                if label == searchLabel: default = search.name
                 poMsg = PoMessage(label, '', default)
                 poMsg.produceNiceDefault()
-                self.labels.append(poMsg)
+                if poMsg not in self.labels:
+                    self.labels.append(poMsg)
         # Generate the resulting Archetypes class and schema.
         self.copyFile('ArchetypesTemplate.py', repls, destName=fileName)
 

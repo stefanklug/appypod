@@ -230,6 +230,12 @@ fieldset {
 .portletSearch {
   padding: 0 0 0 0.6em;
   font-style: italic;
+  font-size: 95%;
+}
+.portletGroup {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-style: normal;
 }
 .portletCurrent {
   font-weight: bold;
