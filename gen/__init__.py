@@ -127,7 +127,7 @@ class Integer(Type):
                  specificWritePermission=False, width=None, height=None,
                  master=None, masterValue=None, focus=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, False,
+                      editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.pythonType = long
@@ -549,4 +549,9 @@ class Config:
         # If you don't need the portlet that appy.gen has generated for your
         # application, set the following parameter to False.
         self.showPortlet = True
+        # Default number of flavours. It will be used for generating i18n labels
+        # for classes in every flavour. Indeed, every flavour can name its
+        # concepts differently. For example, class Thing in flavour 2 may have
+        # i18n label "MyProject_Thing_2".
+        self.numberOfFlavours = 2
 # ------------------------------------------------------------------------------

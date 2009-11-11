@@ -132,6 +132,7 @@ class Generator(AbstractGenerator):
         self.generateInstall()
         self.generateWorkflows()
         self.generateWrappers()
+        self.generateTests()
         if self.config.frontPage == True:
             self.labels.append(msg('front_page_text', '', msg.FRONT_PAGE_TEXT))
             self.copyFile('frontPage.pt', self.repls,
@@ -155,8 +156,8 @@ class Generator(AbstractGenerator):
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
         f.close()
-        # Make Extensions a Python package
-        for moduleFolder in ('Extensions',):
+        # Make Extensions and tests Python packages
+        for moduleFolder in ('Extensions', 'tests'):
             initFile = '%s/%s/__init__.py' % (self.outputFolder, moduleFolder)
             if not os.path.isfile(initFile):
                 f = open(initFile, 'w')
@@ -539,6 +540,14 @@ class Generator(AbstractGenerator):
         repls['podTemplateBody'] = PodTemplate._appy_getBody()
         self.copyFile('appyWrappers.py', repls, destFolder='Extensions')
 
+    def generateTests(self):
+        '''Generates the file needed for executing tests.'''
+        repls = self.repls.copy()
+        modules = self.modulesWithTests
+        repls['imports'] = '\n'.join(['import %s' % m for m in modules])
+        repls['modulesWithTests'] = ','.join(modules)
+        self.copyFile('testAll.py', repls, destFolder='tests')
+
     def generateTool(self):
         '''Generates the Plone tool that corresponds to this application.'''
         # Generate the tool class in itself and related i18n messages
@@ -672,7 +681,7 @@ class Generator(AbstractGenerator):
         poMsgPl.produceNiceDefault()
         self.labels.append(poMsgPl)
         # Create i18n labels for flavoured variants
-        for i in range(2,10):
+        for i in range(2, self.config.numberOfFlavours+1):
             poMsg = PoMessage('%s_%d' % (classDescr.name, i), '',
                               classDescr.klass.__name__)
             poMsg.produceNiceDefault()

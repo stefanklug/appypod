@@ -6,6 +6,7 @@ import time, os.path, mimetypes, unicodedata
 from appy.gen import Search
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder
+from appy.shared.xml_parser import XmlMarshaller
 
 # Some error messages ----------------------------------------------------------
 WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
@@ -68,6 +69,8 @@ class AbstractWrapper:
             self._set_file_attribute(name, v)
         else:
             exec "self.o.set%s%s(v)" % (name[0].upper(), name[1:])
+    def __repr__(self):
+        return '<%s wrapper at %s>' % (self.klass.__name__, id(self))
     def __cmp__(self, other):
         if other: return cmp(self.o, other.o)
         else:     return 1
@@ -257,6 +260,26 @@ class AbstractWrapper:
            Appy may not know that they must be reindexed, too. So use this
            method in those cases.'''
         self.o.reindexObject()
+
+    def export(self, at='string'):
+        '''Creates an "exportable", XML version of this object. If p_at is
+           "string", this method returns the XML version. Else, (a) if not p_at,
+           the XML will be exported on disk, in the OS temp folder, with an
+           ugly name; (b) else, it will be exported at path p_at.'''
+        # Determine where to put the result
+        toDisk = (at != 'string')
+        if toDisk and not at:
+            at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
+        # Create the XML version of the object
+        xml = XmlMarshaller().marshall(self.o, objectType='archetype')
+        # Produce the desired result
+        if toDisk:
+            f = file(at, 'w')
+            f.write(xml)
+            f.close()
+            return at
+        else:
+            return xml
 
 # ------------------------------------------------------------------------------
 class FileWrapper:

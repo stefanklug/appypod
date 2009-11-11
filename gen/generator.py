@@ -150,6 +150,7 @@ class Generator:
         self.workflows = []
         self.initialize()
         self.config = Config.getDefault()
+        self.modulesWithTests = set()
 
     def determineAppyType(self, klass):
         '''Is p_klass an Appy class ? An Appy workflow? None of this ?
@@ -171,6 +172,12 @@ class Generator:
                     break
         return res
 
+    def containsTests(self, moduleOrClass):
+        '''Does p_moduleOrClass contain doctests?'''
+        if moduleOrClass.__doc__ and (moduleOrClass.__doc__.find('>>>') != -1):
+            return True
+        return False
+
     IMPORT_ERROR = 'Warning: error while importing module %s (%s)'
     SYNTAX_ERROR = 'Warning: error while parsing module %s (%s)'
     def walkModule(self, moduleName):
@@ -190,6 +197,8 @@ class Generator:
         except SyntaxError, se:
             print self.SYNTAX_ERROR % (moduleName, str(se))
             return
+        if self.containsTests(moduleObj):
+            self.modulesWithTests.add(moduleObj.__name__)
         classType = type(Generator)
         # Find all classes in this module
         for moduleElemName in moduleObj.__dict__.keys():
@@ -215,10 +224,14 @@ class Generator:
                             descrClass = self.classDescriptor
                             self.classes.append(
                                 descrClass(moduleElem, attrs, self))
+                        if self.containsTests(moduleElem):
+                            self.modulesWithTests.add(moduleObj.__name__)
                     elif appyType == 'workflow':
                         descrClass = self.workflowDescriptor
                         self.workflows.append(
                             descrClass(moduleElem, attrs, self))
+                        if self.containsTests(moduleElem):
+                            self.modulesWithTests.add(moduleObj.__name__)
             elif isinstance(moduleElem, Config):
                 self.config = moduleElem
 

@@ -7,6 +7,8 @@ def stringify(value):
         for v in value:
             res += '%s,' % stringify(v)
         res += ')'
+    elif value.__class__.__name__ == 'DateTime':
+        res = 'DateTime("%s")' % value.strftime('%Y/%m/%d %H:%M')
     else:
         res = str(value)
         if isinstance(value, basestring):

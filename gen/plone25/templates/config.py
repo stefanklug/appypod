@@ -1,5 +1,5 @@
 <!codeHeader!>
-import sys
+import os, os.path, sys
 try: # New CMF
     from Products.CMFCore.permissions import setDefaultRoles
 except ImportError: # Old CMF
@@ -7,7 +7,7 @@ except ImportError: # Old CMF
 
 import Extensions.appyWrappers
 <!imports!>
-
+    
 # The following imports are here for allowing mixin classes to access those
 # elements without being statically dependent on Plone/Zope packages. Indeed,
 # every Archetype instance has a method "getProductConfig" that returns this
@@ -23,6 +23,7 @@ logger = logging.getLogger('<!applicationName!>')
 
 # Some global variables --------------------------------------------------------
 PROJECTNAME = '<!applicationName!>'
+diskFolder = os.path.dirname(<!applicationName!>.__file__)
 defaultAddRoles = [<!defaultAddRoles!>]
 DEFAULT_ADD_CONTENT_PERMISSION = "Add portal content"
 ADD_CONTENT_PERMISSIONS = {

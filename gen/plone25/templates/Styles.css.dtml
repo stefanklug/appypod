@@ -229,13 +229,17 @@ fieldset {
 }
 .portletSearch {
   padding: 0 0 0 0.6em;
-  font-style: italic;
+  font-style: normal;
   font-size: 95%;
 }
 .portletGroup {
   font-variant: small-caps;
   font-weight: bold;
   font-style: normal;
+}
+.portletGroupItem {
+  padding-left: 0.8em;
+  font-style: italic;
 }
 .portletCurrent {
   font-weight: bold;

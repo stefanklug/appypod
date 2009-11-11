@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import xml.sax
+import xml.sax, difflib
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
 from StringIO import StringIO
@@ -188,6 +188,12 @@ class XmlUnmarshaller(XmlParser):
         # for example convert strings that have specific values (in this case,
         # knowing that the value is a 'string' is not sufficient).
 
+    def convertAttrs(self, attrs):
+        '''Converts XML attrs to a dict.'''
+        res = {}
+        for k, v in attrs.items(): res[str(k)] = v
+        return res
+
     def startDocument(self):
         self.res = None # The resulting web of Python objects
         # (UnmarshalledObject instances).
@@ -210,7 +216,8 @@ class XmlUnmarshaller(XmlParser):
             elemType = self.tagTypes[elem]
         if elemType in self.containerTags:
             # I must create a new container object.
-            if elemType == 'object': newObject = UnmarshalledObject()
+            if elemType == 'object':
+                newObject = UnmarshalledObject(**self.convertAttrs(attrs))
             elif elemType == 'tuple': newObject = [] # Tuples become lists
             elif elemType == 'list': newObject = []
             elif elemType == 'file':
@@ -219,7 +226,7 @@ class XmlUnmarshaller(XmlParser):
                     newObject.name = attrs['name']
                 if attrs.has_key('mimeType'):
                     newObject.mimeType = attrs['mimeType']
-            else: newObject = UnmarshalledObject()
+            else: newObject = UnmarshalledObject(**self.convertAttrs(attrs))
             # Store the value on the last container, or on the root object.
             self.storeValue(elem, newObject)
             # Push the new object on the container stack
@@ -424,10 +431,12 @@ class XmlMarshaller:
            (Zope/Plone), specify 'archetype' for p_objectType.'''
         res = StringIO()
         # Dump the XML prologue and root element
+        if objectType == 'archetype': objectId = instance.UID() # ID in DB
+        else: objectId = str(id(instance)) # ID in RAM
         res.write(self.xmlPrologue)
         res.write('<'); res.write(self.rootElementName)
-        res.write(' type="object">')
-        # Dump the value of the fields that must be dumped
+        res.write(' type="object" id="'); res.write(objectId); res.write('">')
+        # Dump the object ID and the value of the fields that must be dumped
         if objectType == 'popo':
             for fieldName, fieldValue in instance.__dict__.iteritems():
                 mustDump = False
@@ -479,4 +488,149 @@ class XmlMarshaller:
            result. p_res is the StringIO buffer where the result of the
            marshalling process is currently dumped; p_instance is the instance
            currently marshalled.'''
+
+# ------------------------------------------------------------------------------
+class XmlHandler(ContentHandler):
+    '''This handler is used for producing, in self.res, a readable XML
+       (with carriage returns) and for removing some tags that always change
+       (like dates) from a file that need to be compared to another file.'''
+    def __init__(self, xmlTagsToIgnore, xmlAttrsToIgnore):
+        ContentHandler.__init__(self)
+        self.res = u'<?xml version="1.0" encoding="UTF-8"?>'
+        self.namespaces = {} # ~{s_namespaceUri:s_namespaceName}~
+        self.indentLevel = -1
+        self.tabWidth = 3
+        self.tagsToIgnore = xmlTagsToIgnore
+        self.attrsToIgnore = xmlAttrsToIgnore
+        self.ignoring = False # Some content must be ignored, and not dumped
+        # into the result.
+    def isIgnorable(self, elem):
+        '''Is p_elem an ignorable element ?'''
+        res = False
+        for tagName in self.tagsToIgnore:
+            if isinstance(tagName, list) or isinstance(tagName, tuple):
+                # We have a namespace
+                nsUri, elemName = tagName
+                try:
+                    nsName = self.ns(nsUri)
+                    elemFullName = '%s:%s' % (nsName, elemName)
+                except KeyError:
+                    elemFullName = ''
+            else:
+                # No namespace
+                elemFullName = tagName
+            if elemFullName == elem:
+                res = True
+                break
+        return res
+    def setDocumentLocator(self, locator):
+        self.locator = locator
+    def endDocument(self):
+        pass
+    def dumpSpaces(self):
+        self.res += '\n' + (' ' * self.indentLevel * self.tabWidth)
+    def manageNamespaces(self, attrs):
+        '''Manage namespaces definitions encountered in attrs'''
+        for attrName, attrValue in attrs.items():
+            if attrName.startswith('xmlns:'):
+                self.namespaces[attrValue] = attrName[6:]
+    def ns(self, nsUri):
+        return self.namespaces[nsUri]
+    def startElement(self, elem, attrs):
+        self.manageNamespaces(attrs)
+        # Do we enter into a ignorable element ?
+        if self.isIgnorable(elem):
+            self.ignoring = True
+        else:
+            if not self.ignoring:
+                self.indentLevel += 1
+                self.dumpSpaces()
+                self.res += '<%s' % elem
+                attrsNames = attrs.keys()
+                attrsNames.sort()
+                for attrToIgnore in self.attrsToIgnore:
+                    if attrToIgnore in attrsNames:
+                        attrsNames.remove(attrToIgnore)
+                for attrName in attrsNames:
+                    self.res += ' %s="%s"' % (attrName, attrs[attrName])
+                self.res += '>'
+    def endElement(self, elem):
+        if self.isIgnorable(elem):
+            self.ignoring = False
+        else:
+            if not self.ignoring:
+                self.dumpSpaces()
+                self.indentLevel -= 1
+                self.res += '</%s>' % elem
+    def characters(self, content):
+        if not self.ignoring:
+            self.res += content.replace('\n', '')
+
+# ------------------------------------------------------------------------------
+class XmlComparator:
+    '''Compares 2 XML files and produces a diff.'''
+    def __init__(self, fileNameA, fileNameB, areXml=True, xmlTagsToIgnore=(),
+        xmlAttrsToIgnore=()):
+        self.fileNameA = fileNameA
+        self.fileNameB = fileNameB
+        self.areXml = areXml # Can also diff non-XML files.
+        self.xmlTagsToIgnore = xmlTagsToIgnore
+        self.xmlAttrsToIgnore = xmlAttrsToIgnore
+
+    def filesAreIdentical(self, report=None, encoding=None):
+        '''Compares the 2 files and returns True if they are identical (if we
+           ignore xmlTagsToIgnore and xmlAttrsToIgnore).
+           If p_report is specified, it must be an instance of
+           appy.shared.test.TestReport; the diffs will be dumped in it.'''
+        # Perform the comparison
+        differ = difflib.Differ()
+        if self.areXml:
+            f = file(self.fileNameA)
+            contentA = f.read()
+            f.close()
+            f = file(self.fileNameB)
+            contentB = f.read()
+            f.close()
+            xmlHandler = XmlHandler(self.xmlTagsToIgnore, self.xmlAttrsToIgnore)
+            xml.sax.parseString(contentA, xmlHandler)
+            contentA = xmlHandler.res.split('\n')
+            xmlHandler = XmlHandler(self.xmlTagsToIgnore, self.xmlAttrsToIgnore)
+            xml.sax.parseString(contentB, xmlHandler)
+            contentB = xmlHandler.res.split('\n')
+        else:
+            f = file(self.fileNameA)
+            contentA = f.readlines()
+            f.close()
+            f = file(self.fileNameB)
+            contentB = f.readlines()
+            f.close()
+        diffResult = list(differ.compare(contentA, contentB))
+        # Analyse, format and report the result.
+        atLeastOneDiff = False
+        lastLinePrinted = False
+        i = -1
+        for line in diffResult:
+            i += 1
+            if line and (line[0] != ' '):
+                if not atLeastOneDiff:
+                    if report:
+                        report.say('Difference(s) detected between files '\
+                            '%s and %s:' % (self.fileNameA, self.fileNameB),
+                            encoding='utf-8')
+                    else:
+                        print 'Differences:'
+                    atLeastOneDiff = True
+                if not lastLinePrinted:
+                    if report: report.say('...')
+                    else: print '...'
+                if self.areXml:
+                    if report: report.say(line, encoding=encoding)
+                    else: print line
+                else:
+                    if report: report.say(line[:-1], encoding=encoding)
+                    else: print line[:-1]
+                lastLinePrinted = True
+            else:
+                lastLinePrinted = False
+        return not atLeastOneDiff
 # ------------------------------------------------------------------------------

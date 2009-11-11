@@ -1024,7 +1024,8 @@ class AbstractMixin:
         self._appy_manageRefsFromRequest()
         # If the creation was initiated by another object, update the
         # reference.
-        if created:
+        if created and hasattr(self.REQUEST, 'SESSION'):
+            # When used by the test system, no SESSION object is created.
             session = self.REQUEST.SESSION
             initiatorUid = session.get('initiator', None)
             initiator = None

@@ -1,5 +1,6 @@
 <!codeHeader!>
 from AccessControl import ClassSecurityInfo
+from DateTime import DateTime
 from Products.Archetypes.atapi import *
 import Products.<!applicationName!>.config
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin

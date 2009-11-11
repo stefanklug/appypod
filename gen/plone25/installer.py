@@ -104,6 +104,7 @@ class PloneInstaller:
         if not hasattr(site.portal_types, self.appyFolderType):
             self.registerAppyFolderType()
         # Create the folder
+        
         if not hasattr(site.aq_base, self.productName):
             # Temporarily allow me to create Appy large plone folders
             getattr(site.portal_types, self.appyFolderType).global_allow = 1
@@ -114,6 +115,7 @@ class PloneInstaller:
                                title=self.productName)
             getattr(site.portal_types, self.appyFolderType).global_allow = 0
         appFolder = getattr(site, self.productName)
+        
         # All roles defined as creators should be able to create the
         # corresponding root content types in this folder.
         i = -1

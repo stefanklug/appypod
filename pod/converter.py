@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import sys, os, os.path, time, signal
+import sys, os, os.path, time, signal, unicodedata
 from optparse import OptionParser
 
 ODT_FILE_TYPES = {'doc': 'MS Word 97', # Could be 'MS Word 2003 XML'
@@ -55,6 +55,8 @@ class Converter:
     def __init__(self, docPath, resultType, port=DEFAULT_PORT):
         self.port = port
         self.docUrl = self.getDocUrl(docPath)
+        self.docUrlStr = unicodedata.normalize('NFKD', self.docUrl).encode(
+            "ascii", "ignore")
         self.resultFilter = self.getResultFilter(resultType)
         self.resultUrl = self.getResultUrl(resultType)
         self.ooContext = None
@@ -74,7 +76,7 @@ class Converter:
                                                     ODT_FILE_TYPES.keys()))
         return res
     def getResultUrl(self, resultType):
-        baseName = os.path.splitext(self.docUrl)[0]
+        baseName = os.path.splitext(self.docUrlStr)[0]
         if resultType != 'odt':
             res = '%s.%s' % (baseName, resultType)
         else:
@@ -164,7 +166,7 @@ class Converter:
                     except IndexOutOfBoundsException:
                         pass
         except IllegalArgumentException, iae:
-            raise ConverterError(URL_NOT_FOUND % (self.docUrl, iae))
+            raise ConverterError(URL_NOT_FOUND % (self.docUrlStr, iae))
     def convertDocument(self):
         if self.resultFilter != 'ODT':
             # I must really perform a conversion

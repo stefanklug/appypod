@@ -13,6 +13,9 @@ mimeTypes = {'odt': 'application/vnd.oasis.opendocument.text',
 class UnmarshalledObject:
     '''Used for producing objects from a marshalled Python object (in some files
        like a CSV file or an XML file).'''
+    def __init__(self, **fields):
+        for k, v in fields.iteritems():
+            setattr(self, k, v)
     def __repr__(self):
         res = u'<PythonObject '
         for attrName, attrValue in self.__dict__.iteritems():

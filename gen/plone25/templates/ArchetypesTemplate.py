@@ -1,5 +1,6 @@
 <!codeHeader!>
 from AccessControl import ClassSecurityInfo
+from DateTime import DateTime
 from Products.Archetypes.atapi import *
 import Products.<!applicationName!>.config
 from Extensions.appyWrappers import <!genClassName!>_Wrapper

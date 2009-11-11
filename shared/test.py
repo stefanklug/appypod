@@ -17,12 +17,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, difflib, time, xml.sax
-from xml.sax.handler import ContentHandler
+import os, os.path, sys, time
 from optparse import OptionParser
 from appy.shared.utils import FolderDeleter, Traceback
 from appy.shared.errors import InternalError
 from appy.shared.rtf import RtfTablesParser
+from appy.shared.xml_parser import XmlComparator
 
 # ------------------------------------------------------------------------------
 class TesterError(Exception): pass
@@ -58,78 +58,6 @@ TEST_REPORT_SINGLETON_ERROR = 'You can only use the TestReport constructor ' \
                               'once. After that you can access the single ' \
                               'TestReport instance via the TestReport.' \
                               'instance static member.'
-
-# ------------------------------------------------------------------------------
-class XmlHandler(ContentHandler):
-    '''This handler is used for producing a readable XML (with carriage returns)
-       and for removing some tags that always change (like dates) from a file
-       that need to be compared to another file.'''
-    def __init__(self, xmlTagsToIgnore, xmlAttrsToIgnore):
-        ContentHandler.__init__(self)
-        self.res = u'<?xml version="1.0" encoding="UTF-8"?>'
-        self.namespaces = {} # ~{s_namespaceUri:s_namespaceName}~
-        self.indentLevel = -1
-        self.tabWidth = 3
-        self.tagsToIgnore = xmlTagsToIgnore
-        self.attrsToIgnore = xmlAttrsToIgnore
-        self.ignoring = False # Some content must be ignored, and not dumped
-        # into the result.
-    def isIgnorable(self, elem):
-        '''Is p_elem an ignorable element ?'''
-        res = False
-        for nsUri, elemName in self.tagsToIgnore:
-            elemFullName = ''
-            try:
-                nsName = self.ns(nsUri)
-                elemFullName = '%s:%s' % (nsName, elemName)
-            except KeyError:
-                pass
-            if elemFullName == elem:
-                res = True
-                break
-        return res
-    def setDocumentLocator(self, locator):
-        self.locator = locator
-    def endDocument(self):
-        pass
-    def dumpSpaces(self):
-        self.res += '\n' + (' ' * self.indentLevel * self.tabWidth)
-    def manageNamespaces(self, attrs):
-        '''Manage namespaces definitions encountered in attrs'''
-        for attrName, attrValue in attrs.items():
-            if attrName.startswith('xmlns:'):
-                self.namespaces[attrValue] = attrName[6:]
-    def ns(self, nsUri):
-        return self.namespaces[nsUri]
-    def startElement(self, elem, attrs):
-        self.manageNamespaces(attrs)
-        # Do we enter into a ignorable element ?
-        if self.isIgnorable(elem):
-            self.ignoring = True
-        else:
-            if not self.ignoring:
-                self.indentLevel += 1
-                self.dumpSpaces()
-                self.res += '<%s' % elem
-                attrsNames = attrs.keys()
-                attrsNames.sort()
-                for attrToIgnore in self.attrsToIgnore:
-                    if attrToIgnore in attrsNames:
-                        attrsNames.remove(attrToIgnore)
-                for attrName in attrsNames:
-                    self.res += ' %s="%s"' % (attrName, attrs[attrName])
-                self.res += '>'
-    def endElement(self, elem):
-        if self.isIgnorable(elem):
-            self.ignoring = False
-        else:
-            if not self.ignoring:
-                self.dumpSpaces()
-                self.indentLevel -= 1
-                self.res += '</%s>' % elem
-    def characters(self, content):
-        if not self.ignoring:
-            self.res += content.replace('\n', '')
 
 # ------------------------------------------------------------------------------
 class TestReport:
@@ -175,51 +103,11 @@ class Test:
             expectedFlavourSpecific = '%s.%s' % (expected, self.flavour)
             if os.path.exists(expectedFlavourSpecific):
                 expected = expectedFlavourSpecific
-        differ = difflib.Differ()
-        if areXml:
-            f = file(expected)
-            contentA = f.read()
-            f.close()
-            # Actual result
-            f = file(actual)
-            contentB = f.read()
-            f.close()
-            xmlHandler = XmlHandler(xmlTagsToIgnore, xmlAttrsToIgnore)
-            xml.sax.parseString(contentA, xmlHandler)
-            contentA = xmlHandler.res.split('\n')
-            xmlHandler = XmlHandler(xmlTagsToIgnore, xmlAttrsToIgnore)
-            xml.sax.parseString(contentB, xmlHandler)
-            contentB = xmlHandler.res.split('\n')
-        else:
-            f = file(expected)
-            contentA = f.readlines()
-            f.close()
-            # Actual result
-            f = file(actual)
-            contentB = f.readlines()
-            f.close()
-        diffResult = list(differ.compare(contentA, contentB))
-        atLeastOneDiff = False
-        lastLinePrinted = False
-        i = -1
-        for line in diffResult:
-            i += 1
-            if line and (line[0] != ' '):
-                if not atLeastOneDiff:
-                    self.report.say('Difference(s) detected between files ' \
-                                    '%s and %s:' % (expected, actual),
-                                    encoding='utf-8')
-                    atLeastOneDiff = True
-                if not lastLinePrinted:
-                    self.report.say('...')
-                if areXml:
-                    self.report.say(line, encoding=encoding)
-                else:
-                    self.report.say(line[:-1], encoding=encoding)
-                lastLinePrinted = True
-            else:
-                lastLinePrinted = False
-        return atLeastOneDiff
+        # Perform the comparison
+        comparator = XmlComparator(expected, actual, areXml, xmlTagsToIgnore,
+            xmlAttrsToIgnore)
+        return not comparator.filesAreIdentical(
+            report=self.report, encoding=encoding)
     def run(self):
         self.report.say('-' * 79)
         self.report.say('- Test %s.' % self.data['Name'])
