@@ -115,6 +115,56 @@
   </form>
 </div>
 
+<metal:showDate define-macro="showDateField"
+                tal:define="v python: field.getAccessor(contextObj)()">
+  <span tal:condition="showLabel" tal:content="label" class="appyLabel"></span>
+  <span tal:content="python: v.strftime('%d/%m/') + str(v.year())"></span>
+  <span tal:condition="python: appyType['format'] == 0"
+        tal:content="python: v.strftime('%H:%M')"></span>
+</metal:showDate>
+
+<metal:showString define-macro="showStringField"
+                  tal:define="v python: field.getAccessor(contextObj)();
+                              fmt python: appyType['format'];
+                              maxMult python: appyType['multiplicity'][1];
+                              severalValues python: (maxMult == None) or (maxMult &gt; 1)">
+  <tal:simpleString condition="python: fmt == 0">
+    <span tal:condition="showLabel" tal:content="label" class="appyLabel"
+          tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
+                          id python: v"></span>
+    <tal:severalValues condition="severalValues">
+    <ul class="appyList">
+      <tal:items repeat="sv v">
+      <tal:select condition="appyType/isSelect">
+      <li class="appyBullet">
+        <i tal:content="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), sv))"></i>
+      </li>
+      </tal:select>
+      <tal:string condition="not: appyType/isSelect">
+      <li class="appyBullet"><i tal:content="sv"></i></li>
+      </tal:string>
+      </tal:items>
+    </ul>
+    </tal:severalValues>
+    <tal:singleValue condition="not: severalValues">
+      <tal:select condition="appyType/isSelect">
+        <span tal:replace="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), v))"/>
+      </tal:select>
+      <tal:noSelect condition="not: appyType/isSelect">
+        <span tal:replace="structure v"/>
+      </tal:noSelect>
+    </tal:singleValue>
+  </tal:simpleString>
+  <tal:formattedString condition="python: appyType['format'] != 0">
+    <fieldset>
+      <legend tal:condition="showLabel" tal:content="label"></legend>
+      <span tal:condition="python: appyType['format'] == 1"
+            tal:replace="structure python: v.replace('\n', '&lt;br&gt;')"/>
+      <span tal:condition="python: appyType['format'] == 2" tal:replace="structure v"/>
+    </fieldset>
+  </tal:formattedString>
+</metal:showString>
+
 <div metal:define-macro="showArchetypesField"
      tal:define="field fieldDescr/atField|widgetDescr/atField;
                  appyType fieldDescr/appyType|widgetDescr/appyType;
@@ -136,26 +186,22 @@
       <metal:editMacro use-macro="python:contextObj.widget(field.getName(), mode='edit', use_label=showLabel)" />
     </tal:editField>
     <tal:viewField tal:condition="not: isEdit">
-      <tal:defField>
-         <tal:fileField condition="python: (appyType['type'] == 'File')">
-           <span tal:condition="showLabel" tal:content="label"></span>
-           <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
-         </tal:fileField>
-         <tal:simpleField condition="python: (appyType['type'] in ('Integer', 'Float', 'Date', 'Boolean')) or (appyType['type'] == 'String' and (appyType['format'] == 0))">
-           <span tal:condition="showLabel" tal:content="label"
-                 tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
-                                 id python: field.getAccessor(contextObj)()"></span>
-           <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
-         </tal:simpleField>
-         <tal:formattedString condition="python: (appyType['type'] == 'String' and (appyType['format'] != 0))">
-            <fieldset tal:define="value python:field.getAccessor(contextObj)()">
-              <legend tal:condition="showLabel" tal:content="label"></legend>
-              <span tal:condition="python: appyType['format'] == 1"
-                    tal:replace="structure python: value.replace('\n', '&lt;br&gt;')"/>
-              <span tal:condition="python: appyType['format'] == 2" tal:replace="structure value"/>
-            </fieldset>
-         </tal:formattedString>
-      </tal:defField>
+      <tal:fileField condition="python: (appyType['type'] == 'File')">
+        <span tal:condition="showLabel" tal:content="label"></span>
+        <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
+      </tal:fileField>
+      <tal:date condition="python: appyType['type'] == 'Date'">
+        <metal:showDate use-macro="here/skyn/macros/macros/showDateField"/>
+      </tal:date>
+      <tal:string condition="python: appyType['type'] == 'String'">
+        <metal:showString use-macro="here/skyn/macros/macros/showStringField"/>
+      </tal:string>
+      <tal:simpleField condition="python: (appyType['type'] in ('Integer', 'Float', 'Boolean'))">
+        <span tal:condition="showLabel" tal:content="label"
+              tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
+                              id python: field.getAccessor(contextObj)()"></span>
+        <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
+      </tal:simpleField>
     </tal:viewField>
   </tal:showField>
 
@@ -291,9 +337,8 @@
                             username actor/username|nothing"
                 tal:content="python:fullname or username or actorid"/>
             <td tal:content="python:toLocalizedTime(items['time'],long_format=True)"/>
-            <td> <tal:comment condition="rhComments" tal:content="rhComments"/>
-                 <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/>
-            </td>
+            <td><tal:comment condition="rhComments" tal:content="structure rhComments"/>
+                <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
         </tr>
         </metal:block>
     </table>

@@ -18,9 +18,9 @@ class ModelClass:
        parts of the application model.'''
     _appy_attributes = [] # We need to keep track of attributes order.
     _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'selfClass',
-                     'phase', 'pageShow') # When creating a new instance of a
-                     # ModelClass, those attributes must not be given in the
-                     # constructor.
+                     'phase', 'pageShow', 'isSelect') # When creating a new
+                     # instance of a ModelClass, those attributes must not be
+                     # given in the constructor.
 
     def _appy_addField(klass, fieldName, fieldType, classDescr):
         exec "klass.%s = fieldType" % fieldName

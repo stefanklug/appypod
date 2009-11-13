@@ -202,6 +202,7 @@ class String(Type):
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus)
         self.format = format
+        self.isSelect = self.isSelection()
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
            into which the user must select one or more values?'''
