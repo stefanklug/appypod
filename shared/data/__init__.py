@@ -41,6 +41,7 @@ class Countries:
             res += 'Language: ' + languageCode + ' - ' + self.languageNames[i]
             res += '\n'
         return res
+countries = Countries() # As this is international, I instantiate it.
 
 # ------------------------------------------------------------------------------
 class BelgianCities:
@@ -63,4 +64,5 @@ class BelgianCities:
     def exists(self, postalCode):
         '''Is postalCode a valid Belgian postal code?'''
         return self.data.has_key(postalCode)
+# As this is not international, Appy user will instantiate it if needed.
 # ------------------------------------------------------------------------------

@@ -1,10 +1,13 @@
 # ------------------------------------------------------------------------------
 import re, time
 from appy.gen.utils import sequenceTypes, PageDescr
+from appy.shared.data import countries
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
-digits = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+digit = re.compile('[0-9]')
+alpha = re.compile('[a-zA-Z0-9]')
+letter = re.compile('[a-zA-Z]')
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -170,7 +173,7 @@ class String(Type):
         # First, remove any non-digit char
         v = ''
         for c in value:
-            if c in digits: v += c
+            if digit.match(c): v += c
         # There must be at least 3 digits for performing the check
         if len(v) < 3: return False
         # Separate the real number from the check digits
@@ -186,6 +189,55 @@ class String(Type):
     @staticmethod
     def MODULO_97_COMPLEMENT(obj, value):
         return String._MODULO_97(obj, value, True)
+    @staticmethod
+    def IBAN(obj, value):
+        '''Checks that p_value corresponds to a valid IBAN number. IBAN stands
+           for International Bank Account Number (ISO 13616). If the number is
+           valid, the method returns True.'''
+        if not value: return True # Plone calls me erroneously for
+        # non-mandatory fields.
+        # First, remove any non-digit or non-letter char
+        v = ''
+        for c in value:
+            if alpha.match(c): v += c
+        # Maximum size is 34 chars
+        if (len(v) < 8) or (len(v) > 34): return False
+        # 2 first chars must be a valid country code
+        if not countries.exists(v[:2].lower()): return False
+        # 2 next chars are a control code whose value must be between 0 and 96.
+        try:
+            code = int(v[2:4])
+            if (code < 0) or (code > 96): return False
+        except ValueError:
+            return False
+        # Perform the checksum
+        vv = v[4:] + v[:4] # Put the 4 first chars at the end.
+        nv = ''
+        for c in vv:
+            # Convert each letter into a number (A=10, B=11, etc)
+            # Ascii code for a is 65, so A=10 if we perform "minus 55"
+            if letter.match(c): nv += str(ord(c.upper()) - 55)
+            else: nv += c
+        return int(nv) % 97 == 1
+    @staticmethod
+    def BIC(obj, value):
+        '''Checks that p_value corresponds to a valid BIC number. BIC stands
+           for Bank Identifier Code (ISO 9362). If the number is valid, the
+           method returns True.'''
+        if not value: return True # Plone calls me erroneously for
+        # non-mandatory fields.
+        # BIC number must be 8 or 11 chars
+        if len(value) not in (8, 11): return False
+        # 4 first chars, representing bank name, must be letters
+        for c in value[:4]:
+            if not letter.match(c): return False
+        # 2 next chars must be a valid country code
+        if not countries.exists(value[4:6].lower()): return False
+        # Last chars represent some location within a country (a city, a
+        # province...). They can only be letters or figures.
+        for c in value[6:]:
+            if not alpha.match(c): return False
+        return True
 
     # Possible values for "format"
     LINE = 0
