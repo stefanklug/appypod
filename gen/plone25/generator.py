@@ -124,6 +124,7 @@ class Generator(AbstractGenerator):
             msg('goto_previous', '', msg.GOTO_PREVIOUS),
             msg('goto_next', '', msg.GOTO_NEXT),
             msg('goto_last', '', msg.GOTO_LAST),
+            msg('goto_source', '', msg.GOTO_SOURCE),
         ]
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()

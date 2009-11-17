@@ -9,4 +9,8 @@ class ToolWrapper:
         if initiatorUid:
             res = self.o.uid_catalog(UID=initiatorUid)[0].getObject().appy()
         return res
+
+    def getObject(self, uid):
+        '''Allow to retrieve an object from its unique identifier p_uid.'''
+        return self.o.getObject(uid, appy=True)
 # ------------------------------------------------------------------------------

@@ -85,6 +85,7 @@ class PoMessage:
     GOTO_PREVIOUS = 'Go to previous'
     GOTO_NEXT = 'Go to next'
     GOTO_LAST = 'Go to end'
+    GOTO_SOURCE = 'Go back'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[]):
         self.id = id

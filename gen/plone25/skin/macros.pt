@@ -475,7 +475,7 @@
 <div metal:define-macro="showPageHeader"
      tal:define="appyPages python: contextObj.getAppyPages(phase);
                  showCommonInfo python: not isEdit"
-     tal:condition="python: not contextObj.portal_factory.isTemporary(contextObj)">
+     tal:condition="not: contextObj/isTemporary">
 
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
     <table width="100%" tal:condition="showCommonInfo" class="appyCommonInfo">
@@ -499,7 +499,7 @@
         </td>
       </tr>
       <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
-          tal:condition="descrLabel" >
+          tal:condition="descrLabel/strip" >
         <tal:comment replace="nothing">Content type description</tal:comment>
         <td colspan="2" class="discreet" tal:content="descrLabel"/>
       </tr>
@@ -526,6 +526,7 @@
         </td>
       </tr>
     </table>
+    <metal:nav use-macro="here/skyn/macros/macros/objectNavigate"/>
 
     <tal:comment replace="nothing">Tabs</tal:comment>
     <ul class="contentViews appyTabs" tal:condition="python: len(appyPages)&gt;1">
@@ -585,26 +586,41 @@
 </div>
 
 <metal:queryResults define-macro="queryResult"
-   tal:define="tool python: contextObj;
-               contentType request/contentType;
+   tal:define="tool          python: contextObj;
+               contentType   request/type_name;
                flavourNumber python: int(request['flavourNumber']);
-               startNumber python:test(request['startNumber']=='', '0', request['startNumber']);
-               startNumber python: int(startNumber);
-               searchName request/searchName;
-               severalTypes python: contentType and (contentType.find(',') != -1);
-               queryResult python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber);
-               objs queryResult/objects;
-               totalNumber queryResult/totalNumber;
-               batchSize queryResult/batchSize;
-               ajaxHookId python:'queryResult';
-               baseUrl python: tool.getQueryUrl(contentType, flavourNumber, searchName)">
+               startNumber   request/startNumber|python:'0';
+               startNumber   python: int(startNumber);
+               searchName    request/search;
+               searchLabel   python: '%s_search_%s' % (contentType, searchName);
+               searchDescr   python: '%s_descr' % searchLabel;
+               severalTypes  python: contentType and (contentType.find(',') != -1);
+               queryResult   python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber, remember=True);
+               objs          queryResult/objects;
+               totalNumber   queryResult/totalNumber;
+               batchSize     queryResult/batchSize;
+               ajaxHookId    python:'queryResult';
+               baseUrl       python: tool.getQueryUrl(contentType, flavourNumber, searchName, startNumber='**v**')">
 
   <tal:result condition="objs">
 
-  <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+  <fieldset>
+    <legend>
+      <span tal:replace="structure python: test(searchName, tool.translate(searchLabel), test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
+      (<span tal:replace="totalNumber"/>)
+    </legend>
 
-  <table tal:define="fieldDescrs python: tool.getResultColumns(objs[0], contentType)"
+    <table cellpadding="0" cellspacing="0" width="100%"><tr>
+      <td><span class="discreet" tal:define="descr python: tool.translate(searchDescr)"
+                tal:condition="python: searchName and descr" tal:content="descr"></span><br/><br/>
+      </td>
+      <td align="right">
+        <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+        <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+      </td>
+    </tr></table>
+
+    <table tal:define="fieldDescrs python: tool.getResultColumns(objs[0], contentType)"
          class="vertical listing" width="100%" cellpadding="0" cellspacing="0">
     <tal:comment replace="nothing">Every item in fieldDescr is a FieldDescr instance,
       excepted for workflow state (which is not a field): in this case it is simply the
@@ -662,7 +678,9 @@
     <tr tal:repeat="obj objs" id="query_row">
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <td id="field_title"><a tal:content="obj/Title" tal:attributes="href obj/getUrl"></a></td>
+      <td id="field_title"><a
+        tal:define="navInfo python:'nav=search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+        tal:content="obj/Title" tal:attributes="href python: obj.getUrl() + '/?' + navInfo"></a></td>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:otherFields repeat="fieldDescr fieldDescrs">
@@ -709,10 +727,11 @@
         </table>
       </td>
     </tr>
-  </table>
+    </table>
 
-  <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+    <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
+    <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+  </fieldset>
   </tal:result>
 
   <span tal:condition="not: objs"
@@ -932,13 +951,13 @@
       <td><img style="cursor:pointer" tal:condition="python: (startNumber != 0) and (startNumber != batchSize)"
         tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;
                         title python: tool.translate('goto_first');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+'0')"/></td>
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', '0'))"/></td>
       <tal:comment replace="nothing">Go to the previous page</tal:comment>
       <td><img style="cursor:pointer" tal:condition="python: startNumber != 0"
         tal:define="sNumber python: startNumber - batchSize"
         tal:attributes="src string: $portal_url/skyn/arrowLeftSimple.png;
                         title python: tool.translate('goto_previous');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
       <tal:comment replace="nothing">Explain which elements are currently shown</tal:comment>
       <td class="discreet" valign="middle">&nbsp;
         <span tal:replace="python: startNumber+1"/>
@@ -946,13 +965,12 @@
         <span tal:replace="python: startNumber+len(objs)"/>&nbsp;<b>//</b>
         <span tal:replace="python: totalNumber"/>&nbsp;&nbsp;
       </td>
-
       <tal:comment replace="nothing">Go to the next page</tal:comment>
       <td><img style="cursor:pointer" tal:condition="python: sNumber &lt; totalNumber"
         tal:define="sNumber python: startNumber + batchSize"
         tal:attributes="src string: $portal_url/skyn/arrowRightSimple.png;
                         title python: tool.translate('goto_next');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
       <tal:comment replace="nothing">Go to the last page</tal:comment>
       <td><img style="cursor:pointer" tal:condition="python: (startNumber != sNumber) and (startNumber != sNumber-batchSize)"
         tal:define="lastPageIsIncomplete python: totalNumber % batchSize;
@@ -961,7 +979,51 @@
                     sNumber python: (nbOfCountedPages*batchSize)"
         tal:attributes="src string: $portal_url/skyn/arrowRightDouble.png;
                         title python: tool.translate('goto_last');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl+str(sNumber))"/></td>
+                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
+    </tr>
+  </table>
+</div>
+
+<div metal:define-macro="objectNavigate" tal:condition="request/nav|nothing" align="right">
+  <tal:comment replace="nothing">
+     Buttons for going to next/previous elements if this one is among bunch of referenced or searched objects.
+     currentNumber starts with 1.
+  </tal:comment>
+  <table cellpadding="0" cellspacing="0"
+         tal:define="navInfo   tool/getNavigationInfo;
+                 currentNumber navInfo/currentNumber;
+                 totalNumber   navInfo/totalNumber;
+                 firstUrl      navInfo/firstUrl;
+                 previousUrl   navInfo/previousUrl;
+                 nextUrl       navInfo/nextUrl;
+                 lastUrl       navInfo/lastUrl;
+                 sourceUrl     navInfo/sourceUrl">
+    <tr>
+      <tal:comment replace="nothing">Go to the source URL (search or referred object)</tal:comment>
+      <td><a tal:condition="sourceUrl" tal:attributes="href sourceUrl"><img style="cursor:pointer" 
+        tal:attributes="src string: $portal_url/skyn/gotoSource.png;
+                        title python: tool.translate('goto_source')"/></a></td>
+      <tal:comment replace="nothing">Go to the first page</tal:comment>
+      <td><a tal:condition="firstUrl" tal:attributes="href firstUrl"><img style="cursor:pointer" 
+        tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;
+                        title python: tool.translate('goto_first')"/></a></td>
+      <tal:comment replace="nothing">Go to the previous page</tal:comment>
+      <td><a tal:condition="previousUrl" tal:attributes="href previousUrl"><img style="cursor:pointer" 
+        tal:attributes="src string: $portal_url/skyn/arrowLeftSimple.png;
+                        title python: tool.translate('goto_previous')"/></a></td>
+      <tal:comment replace="nothing">Explain which element is currently shown</tal:comment>
+      <td class="discreet" valign="middle">&nbsp;
+        <span tal:replace="python: currentNumber"/>&nbsp;<b>//</b>
+        <span tal:replace="python: totalNumber"/>&nbsp;&nbsp;
+      </td>
+      <tal:comment replace="nothing">Go to the next page</tal:comment>
+      <td><a tal:condition="python: nextUrl" tal:attributes="href nextUrl"><img style="cursor:pointer" 
+        tal:attributes="src string: $portal_url/skyn/arrowRightSimple.png;
+                        title python: tool.translate('goto_next')"/></a></td>
+      <tal:comment replace="nothing">Go to the last page</tal:comment>
+      <td><a tal:condition="lastUrl" tal:attributes="href lastUrl"><img style="cursor:pointer" 
+        tal:attributes="src string: $portal_url/skyn/arrowRightDouble.png;
+                        title python: tool.translate('goto_last')"/></a></td>
     </tr>
   </table>
 </div>

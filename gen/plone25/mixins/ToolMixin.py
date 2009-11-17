@@ -98,9 +98,15 @@ class ToolMixin(AbstractMixin):
     def showPortlet(self):
         return not self.portal_membership.isAnonymousUser()
 
+    def getObject(self, uid, appy=False):
+        '''Allows to retrieve an object from its p_uid.'''
+        res = self.uid_catalog(UID=uid)
+        if res: return res[0].getObject()
+        return None
+
     _sortFields = {'title': 'sortable_title'}
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
-                     startNumber=0, search=None):
+                     startNumber=0, search=None, remember=False):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
@@ -147,6 +153,21 @@ class ToolMixin(AbstractMixin):
         brains = self.portal_catalog.searchResults(**params)
         res = SomeObjects(brains, self.getNumberOfResultsPerPage(), startNumber)
         res.brainsToObjects()
+        # In some cases (p_remember=True), we need to keep some information
+        # about the query results in the current user's session, allowing him
+        # to navigate within elements without re-triggering the query every
+        # time a page for an element is consulted.
+        if remember:
+            if not searchName:
+                # It is the global search for all objects pf p_contentType
+                searchName = contentType
+            s = self.REQUEST.SESSION
+            uids = {}
+            i = -1
+            for obj in res.objects:
+                i += 1
+                uids[startNumber+i] = obj.UID()
+            s['search_%s_%s' % (flavourNumber, searchName)] = uids
         return res.__dict__
 
     def getResultColumnsNames(self, contentType):
@@ -373,12 +394,122 @@ class ToolMixin(AbstractMixin):
         if cookieValue: return cookieValue.value
         return default
 
-    def getQueryUrl(self, contentType, flavourNumber, searchName):
+    def getQueryUrl(self, contentType, flavourNumber, searchName, ajax=True,
+                    startNumber=None):
         '''This method creates the URL that allows to perform an ajax GET
            request for getting queried objects from a search named p_searchName
-           on p_contentType from flavour numbered p_flavourNumber.'''
-        return self.getAppFolder().absolute_url() + '/skyn/ajax?objectUid=%s' \
-            '&page=macros&macro=queryResult&contentType=%s&flavourNumber=%s' \
-            '&searchName=%s&startNumber=' % (self.UID(), contentType,
-            flavourNumber, searchName)
+           on p_contentType from flavour numbered p_flavourNumber. If p_ajax
+           is False, it returns the non-ajax URL.'''
+        baseUrl = self.getAppFolder().absolute_url() + '/skyn'
+        baseParams = 'type_name=%s&flavourNumber=%s'%(contentType,flavourNumber)
+        # Manage start number
+        rq = self.REQUEST
+        if startNumber != None:
+            baseParams += '&startNumber=%s' % startNumber
+        elif rq.has_key('startNumber'):
+            baseParams += '&startNumber=%s' % rq['startNumber']
+        # Manage search name
+        if searchName or ajax: baseParams += '&search=%s' % searchName
+        if ajax:
+            return '%s/ajax?objectUid=%s&page=macros&macro=queryResult&%s' % \
+                   (baseUrl, self.UID(), baseParams)
+        else:
+            return '%s/query?%s' % (baseUrl, baseParams)
+
+    def computeStartNumberFrom(self, currentNumber, totalNumber, batchSize):
+        '''Returns the number (start at 0) of the first element in a list
+           containing p_currentNumber (starts at 0) whose total number is
+           p_totalNumber and whose batch size is p_batchSize.'''
+        startNumber = 0
+        res = startNumber
+        while (startNumber < totalNumber):
+            if (currentNumber < startNumber + batchSize):
+                return startNumber
+            else:
+                startNumber += batchSize
+        return startNumber
+
+    def getNavigationInfo(self):
+        '''Extracts navigation information from request/nav and returns a dict
+           with the info that a page can use for displaying object
+           navigation.'''
+        res = {}
+        t,d1,d2,currentNumber,totalNumber = self.REQUEST.get('nav').split('.')
+        res['currentNumber'] = int(currentNumber)
+        res['totalNumber'] = int(totalNumber)
+        newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
+        # Among, first, previous, next and last, which one do I need?
+        previousNeeded = False # Previous ?
+        previousIndex = res['currentNumber'] - 2
+        if (previousIndex > -1) and (res['totalNumber'] > previousIndex):
+            previousNeeded = True
+        nextNeeded = False     # Next ?
+        nextIndex = res['currentNumber']
+        if nextIndex < res['totalNumber']: nextNeeded = True
+        firstNeeded = False    # First ?
+        firstIndex = 0
+        if previousIndex > 0: firstNeeded = True
+        lastNeeded = False     # Last ?
+        lastIndex = res['totalNumber'] - 1
+        if (nextIndex < lastIndex): lastNeeded = True
+        # Get the list of available UIDs surrounding the current object
+        if t == 'ref': # Manage navigation from a reference
+            fieldName = d2
+            masterObj = self.getObject(d1)
+            batchSize = masterObj.getAppyType(fieldName)['maxPerPage']
+            uids = getattr(masterObj, '_appy_%s' % fieldName)
+            # In the case of a reference, we retrieve ALL surrounding objects.
+            
+            # Display the reference widget at the page where the current object
+            # lies.
+            startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)
+            startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
+                res['totalNumber'], batchSize)
+            res['sourceUrl'] = '%s?%s=%s' % (masterObj.getUrl(),
+                startNumberKey, startNumber)
+        else:          # Manage navigation from a search
+            contentType, flavourNumber = d1.split(':')
+            flavourNumber = int(flavourNumber)
+            searchName = keySuffix = d2
+            batchSize = self.getNumberOfResultsPerPage()
+            if not searchName: keySuffix = contentType
+            s = self.REQUEST.SESSION
+            searchKey = 'search_%s_%s' % (flavourNumber, keySuffix)
+            if s.has_key(searchKey): uids = s[searchKey]
+            else:                    uids = {}
+            # In the case of a search, we retrieve only a part of all
+            # surrounding objects, those that are stored in the session.
+            if (previousNeeded and not uids.has_key(previousIndex)) or \
+               (nextNeeded and not uids.has_key(nextIndex)):
+                # I do not have this UID in session. I will need to
+                # retrigger the query by querying all objects surrounding
+                # this one.
+                newStartNumber = (res['currentNumber']-1) - (batchSize / 2)
+                if newStartNumber < 0: newStartNumber = 0
+                self.executeQuery(contentType, flavourNumber,
+                    searchName=searchName, startNumber=newStartNumber,
+                    remember=True)
+                uids = s[searchKey]
+            # For the moment, for first and last, we get them only if we have
+            # them in session.
+            if not uids.has_key(0): firstNeeded = False
+            if not uids.has_key(lastIndex): lastNeeded = False
+            # Compute URL of source object
+            startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
+                res['totalNumber'], batchSize)
+            res['sourceUrl'] = self.getQueryUrl(contentType, flavourNumber,
+                searchName, ajax=False, startNumber=startNumber)
+        # Compute URLs
+        for urlType in ('previous', 'next', 'first', 'last'):
+            exec 'needIt = %sNeeded' % urlType
+            urlKey = '%sUrl' % urlType
+            res[urlKey] = None
+            if needIt:
+                exec 'index = %sIndex' % urlType
+                brain = self.uid_catalog(UID=uids[index])
+                if brain:
+                    baseUrl = brain[0].getObject().getUrl()
+                    navUrl = baseUrl + '/?nav=' + newNav % (index + 1)
+                    res['%sUrl' % urlType] = navUrl
+        return res
 # ------------------------------------------------------------------------------

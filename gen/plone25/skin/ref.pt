@@ -4,9 +4,12 @@
 <metal:objectTitle define-macro="objectTitle">
   <tal:comment replace="nothing">Displays the title of a referenced object, with a link on
     it to reach the consult view for this object. If we are on a back reference, the link
-    allows to reach the correct page where the forward reference is defined.</tal:comment>
+    allows to reach the correct page where the forward reference is defined. If we are
+    on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
+    from one object to the next/previous on skyn/view.</tal:comment>
   <a tal:define="viewUrl obj/getUrl;
-                 fullUrl python: test(isBack, viewUrl + '/?pageName=%s&phase=%s' % (appyType['page'], appyType['phase']), viewUrl)"
+                 navInfo python:'nav=ref.%s.%s.%d.%d' % (contextObj.UID(), fieldName, repeat['obj'].number()+startNumber, totalNumber);
+                 fullUrl python: test(isBack, viewUrl + '/?pageName=%s&phase=%s' % (appyType['page'], appyType['phase']), viewUrl + '/?' + navInfo)"
      tal:attributes="href fullUrl" tal:content="obj/Title"></a>
 </metal:objectTitle>
 
@@ -72,7 +75,7 @@
    - descrId (string) the i18n id of the reference field description
 </tal:comment>
 <div metal:define-macro="showReference"
-     tal:define="ajaxHookId python: contextObj.UID()+fieldName;
+     tal:define="ajaxHookId python: contextObj.UID() + fieldName;
                  ajaxUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId})"
      tal:attributes="id ajaxHookId">
   <script language="javascript"
@@ -108,7 +111,7 @@
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: tool.translate(labelId);
                  description python: tool.translate(descrId);
-                 baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId}) + '&%s_startNumber=' % ajaxHookId">
+                 baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId, '%s_startNumber' % ajaxHookId: '**v**'})">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
 
@@ -130,7 +133,7 @@
 
       <tal:comment replace="nothing">If there is an object...</tal:comment>
       <tal:objectIsPresent condition="python: len(objs) == 1">
-        <tal:obj define="obj python:objs[0]">
+        <tal:obj repeat="obj objs">
           <td><metal:showObjectTitle use-macro="here/skyn/ref/macros/objectTitle" /></td>
           <td tal:condition="not: isBack">
             <metal:showObjectActions use-macro="here/skyn/ref/macros/objectActions" />
@@ -145,6 +148,7 @@
     <fieldset tal:attributes="class python:test(innerRef, 'innerAppyFieldset', '')">
       <legend tal:condition="python: not innerRef or showPlusIcon">
         <span tal:condition="not: innerRef" tal:content="label"/>
+        (<span tal:replace="totalNumber"/>)
         <metal:plusIcon use-macro="here/skyn/ref/macros/plusIcon"/>
       </legend>
 

@@ -113,7 +113,7 @@
   background-color: &dtml-evenRowBackgroundColor;;
   border-style: solid;
   border-width: 2px;
-  margin-bottom: 1em;
+  margin-bottom: 0.5em;
 }
 
 .appyWorkflow {

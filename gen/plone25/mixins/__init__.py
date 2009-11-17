@@ -1079,11 +1079,15 @@ class AbstractMixin:
         '''This method returns various URLs about this object.'''
         baseUrl = self.absolute_url()
         params = ''
+        rq = self.REQUEST
         for k, v in kwargs.iteritems(): params += '&%s=%s' % (k, v)
         params = params[1:]
         if t == 'showRef':
             chunk = '/skyn/ajax?objectUid=%s&page=ref&' \
                 'macro=showReferenceContent&' % self.UID()
+            startKey = '%s%s_startNumber' % (self.UID(), kwargs['fieldName'])
+            if rq.has_key(startKey) and not kwargs.has_key(startKey):
+                params += '&%s=%s' % (startKey, rq[startKey])
             return baseUrl + chunk + params
         else: # We consider t=='view'
             return baseUrl + '/skyn/view' + params

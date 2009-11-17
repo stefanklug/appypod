@@ -17,10 +17,7 @@
                  tool python: portal.get('portal_%s' % appName.lower());
                  contentType python:context.REQUEST.get('type_name');
                  flavourNumber python:int(context.REQUEST.get('flavourNumber'));
-                 searchName python:context.REQUEST.get('search', '');
-                 searchLabel python: '%s_search_%s' % (contentType, searchName);
-                 searchDescr python: '%s_descr' % searchLabel;
-                 severalTypes python: contentType and (contentType.find(',') != -1)">
+                 searchName python:context.REQUEST.get('search', '')">
 
   <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
   <script language="javascript">
@@ -143,11 +140,6 @@
   -->
   </script>
   
-  <tal:comment replace="nothing">Query title and description</tal:comment>
-  <h1 tal:content="structure python: test(searchName, tool.translate(searchLabel), test(severalTypes, tool.translate(appName), tool.translate('%s_plural' % contentType)))"></h1>
-  <div class="discreet" tal:condition="searchName"
-       tal:content="structure python: tool.translate(searchDescr)+'<br/><br/>'"></div>
-    
   <tal:comment replace="nothing">Query result</tal:comment>
   <div id="queryResult"></div>
 
