@@ -328,7 +328,9 @@
         <tr tal:define="odd repeat/items/odd;
                         rhComments items/comments|nothing;
                         state items/review_state|nothing"
-            tal:attributes="class python:test(odd, 'even', 'odd')" tal:condition="items/action">
+            tal:condition="python: items['action'] and (rhComments != '_invisible_')"
+            tal:attributes="class python:test(odd, 'even', 'odd')">
+            
             <td tal:content="python: tool.translate(contextObj.getWorkflowLabel(items['action']))"
                 tal:attributes="class string:state-${state}"/>
             <td tal:define="actorid python:items.get('actor');

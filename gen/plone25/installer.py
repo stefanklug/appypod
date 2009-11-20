@@ -37,7 +37,7 @@ class PloneInstaller:
         self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
         self.toLog = StringIO()
         self.typeAliases = {'sharing': '', 'gethtml': '',
-            '(Default)': 'skyn/view', 'edit': 'skyn/edit',
+            '(Default)': 'skynView', 'edit': 'skyn/edit',
             'index.html': '', 'properties': '', 'view': ''}
         self.tool = None # The Plone version of the application tool
         self.appyTool = None # The Appy version of the application tool
@@ -162,7 +162,7 @@ class PloneInstaller:
                 typeActions = typeInfo.listActions()
                 for action in typeActions:
                     if action.id == 'view':
-                        page = 'skyn/view'
+                        page = 'skynView'
                         action.edit(action='string:${object_url}/%s' % page)
                     elif action.id == 'edit':
                         page = 'skyn/edit'

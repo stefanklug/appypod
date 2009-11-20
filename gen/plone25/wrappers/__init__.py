@@ -185,12 +185,9 @@ class AbstractWrapper:
             self.link(fieldName, ploneObj)
             self.o.reindexObject()
         # Call custom initialization
-        try:
-            if externalData: param = externalData
-            else: param = True
-            appyObj.onEdit(param)
-        except AttributeError:
-            pass
+        if externalData: param = externalData
+        else: param = True
+        if hasattr(appyObj, 'onEdit'): appyObj.onEdit(param)
         ploneObj.reindexObject()
         return appyObj
 
@@ -198,13 +195,16 @@ class AbstractWrapper:
         '''Check documentation of self.o.translate.'''
         return self.o.translate(label, mapping, domain)
 
-    def do(self, transition, comment='', doAction=False, doNotify=False):
+    def do(self, transition, comment='', doAction=False, doNotify=False,
+           doHistory=True):
         '''This method allows to trigger on p_self a workflow p_transition
            programmatically. If p_doAction is False, the action that must
            normally be executed after the transition has been triggered will
            not be executed. If p_doNotify is False, the notifications
            (email,...) that must normally be launched after the transition has
-           been triggered will not be launched.'''
+           been triggered will not be launched. If p_doHistory is False, there
+           will be no trace from this transition triggering in the workflow
+           history.'''
         wfTool = self.o.portal_workflow
         availableTransitions = [t['id'] for t in \
                                 wfTool.getTransitionsFor(self.o)]
@@ -222,6 +222,12 @@ class AbstractWrapper:
         # (actions, notifications) after the transition has been executed by DC
         # workflow.
         self.o._v_appy_do = {'doAction': doAction, 'doNotify': doNotify}
+        if not doHistory:
+            comment = '_invisible_' # Will not be displayed.
+            # At first sight, I wanted to remove the entry from
+            # self.o.workflow_history. But Plone determines the state of an
+            # object by consulting the target state of the last transition in
+            # this workflow_history.
         wfTool.doActionFor(self.o, transitionName, comment=comment)
         del self.o._v_appy_do
 

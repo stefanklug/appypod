@@ -17,6 +17,9 @@ from descriptors import ArchetypeFieldDescriptor, ArchetypesClassDescriptor, \
 COMMON_METHODS = '''
     def getTool(self): return self.%s
     def getProductConfig(self): return Products.%s.config
+    def skynView(self):
+       """Redirects to skyn/view."""
+       return self.REQUEST.RESPONSE.redirect(self.getUrl())
 '''
 # ------------------------------------------------------------------------------
 class Generator(AbstractGenerator):

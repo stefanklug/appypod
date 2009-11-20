@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import sys, os, os.path, time, signal, unicodedata
+import sys, os, os.path, time, signal
 from optparse import OptionParser
 
 ODT_FILE_TYPES = {'doc': 'MS Word 97', # Could be 'MS Word 2003 XML'
@@ -54,20 +54,19 @@ class Converter:
                         }
     def __init__(self, docPath, resultType, port=DEFAULT_PORT):
         self.port = port
-        self.docUrl = self.getDocUrl(docPath)
-        self.docUrlStr = unicodedata.normalize('NFKD', self.docUrl).encode(
-            "ascii", "ignore")
+        self.docUrl, self.docPath = self.getDocUrls(docPath)
         self.resultFilter = self.getResultFilter(resultType)
         self.resultUrl = self.getResultUrl(resultType)
         self.ooContext = None
         self.oo = None # OpenOffice application object
         self.doc = None # OpenOffice loaded document
-    def getDocUrl(self, docPath):
+    def getDocUrls(self, docPath):
         import uno
         if not os.path.exists(docPath) and not os.path.isfile(docPath):
             raise ConverterError(DOC_NOT_FOUND % docPath)
         docAbsPath = os.path.abspath(docPath)
-        return uno.systemPathToFileUrl(docAbsPath)
+        # Return one path for OO, one path for me.
+        return uno.systemPathToFileUrl(docAbsPath), docAbsPath
     def getResultFilter(self, resultType):
         if ODT_FILE_TYPES.has_key(resultType):
             res = ODT_FILE_TYPES[resultType]
@@ -76,18 +75,18 @@ class Converter:
                                                     ODT_FILE_TYPES.keys()))
         return res
     def getResultUrl(self, resultType):
-        baseName = os.path.splitext(self.docUrlStr)[0]
+        import uno
+        baseName = os.path.splitext(self.docPath)[0]
         if resultType != 'odt':
             res = '%s.%s' % (baseName, resultType)
         else:
             res = '%s.res.%s' % (baseName, resultType)
-        fileName = res[7:]
         try:
-            f = open(fileName, 'w')
+            f = open(res, 'w')
             f.write('Hello')
             f.close()
-            os.remove(fileName)
-            return res
+            os.remove(res)
+            return uno.systemPathToFileUrl(res)
         except OSError, oe:
             raise ConverterError(CANNOT_WRITE_RESULT % (res, oe))
     def connect(self):
@@ -166,7 +165,7 @@ class Converter:
                     except IndexOutOfBoundsException:
                         pass
         except IllegalArgumentException, iae:
-            raise ConverterError(URL_NOT_FOUND % (self.docUrlStr, iae))
+            raise ConverterError(URL_NOT_FOUND % (self.docPath, iae))
     def convertDocument(self):
         if self.resultFilter != 'ODT':
             # I must really perform a conversion
