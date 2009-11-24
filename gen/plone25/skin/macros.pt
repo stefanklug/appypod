@@ -118,8 +118,8 @@
 <metal:showDate define-macro="showDateField"
                 tal:define="v python: field.getAccessor(contextObj)()">
   <span tal:condition="showLabel" tal:content="label" class="appyLabel"></span>
-  <span tal:content="python: v.strftime('%d/%m/') + str(v.year())"></span>
-  <span tal:condition="python: appyType['format'] == 0"
+  <span tal:condition="v" tal:content="python: v.strftime('%d/%m/') + str(v.year())"></span>
+  <span tal:condition="python: v and (appyType['format'] == 0)"
         tal:content="python: v.strftime('%H:%M')"></span>
 </metal:showDate>
 
@@ -132,7 +132,7 @@
     <span tal:condition="showLabel" tal:content="label" class="appyLabel"
           tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
                           id python: v"></span>
-    <tal:severalValues condition="severalValues">
+    <tal:severalValues condition="python: v and severalValues">
     <ul class="appyList">
       <tal:items repeat="sv v">
       <tal:select condition="appyType/isSelect">
@@ -146,7 +146,7 @@
       </tal:items>
     </ul>
     </tal:severalValues>
-    <tal:singleValue condition="not: severalValues">
+    <tal:singleValue condition="python: v and not severalValues">
       <tal:select condition="appyType/isSelect">
         <span tal:replace="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), v))"/>
       </tal:select>
@@ -617,7 +617,7 @@
           tal:condition="python: searchName and descr">
         <span class="discreet" tal:content="descr"></span><br/><br/>
       </td>
-      <td align="right">
+      <td align="right" width="25%">
         <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
         <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
       </td>
@@ -723,8 +723,9 @@
             <tal:comment replace="nothing">Delete the element</tal:comment>
             <td class="noPadding">
               <img tal:condition="python: member.has_permission('Delete objects', obj)"
-                   src="delete_icon.gif" title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-                   tal:attributes="onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
+                   title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+                   tal:attributes="src string: $portal_url/skyn/delete.png;
+                                   onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
             </td>
           </tr>
         </table>

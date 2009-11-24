@@ -106,7 +106,8 @@ class ToolMixin(AbstractMixin):
 
     _sortFields = {'title': 'sortable_title'}
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
-                     startNumber=0, search=None, remember=False):
+                     startNumber=0, search=None, remember=False,
+                     brainsOnly=False, maxResults=None):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
@@ -115,7 +116,16 @@ class ToolMixin(AbstractMixin):
            p_startNumber. If p_search is defined, it corresponds to a custom
            Search instance (instead of a predefined named search like in
            p_searchName). If both p_searchName and p_search are given, p_search
-           is ignored.'''
+           is ignored. This method returns a list of objects in the form of the
+           __dict__ attribute of an instance of SomeObjects (see in
+           appy.gen.utils). We return the __dict__ attribute instead of real
+           instance: that way, it can be used in ZPTs without security problems.
+           If p_brainsOnly is True, it returns a list of brains instead (can be
+           useful for some usages like knowing the number of objects without
+           needing to get information about them). If no p_maxResults is
+           specified, the method returns maximum
+           self.getNumberOfResultsPerPage(). p_maxResults is ignored if
+           p_brainsOnly is True.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             # Several content types are specified
@@ -125,7 +135,8 @@ class ToolMixin(AbstractMixin):
                                for pt in portalTypes]
         else:
             portalTypes = contentType
-        params = {'portal_type': portalTypes, 'batch': True}
+        params = {'portal_type': portalTypes}
+        if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
         if searchName or search:
             # In this case, contentType must contain a single content type.
@@ -151,7 +162,9 @@ class ToolMixin(AbstractMixin):
                 if self._sortFields.has_key(sb): sb = self._sortFields[sb]
                 params['sort_on'] = sb
         brains = self.portal_catalog.searchResults(**params)
-        res = SomeObjects(brains, self.getNumberOfResultsPerPage(), startNumber)
+        if brainsOnly: return brains
+        if not maxResults: maxResults = self.getNumberOfResultsPerPage()
+        res = SomeObjects(brains, maxResults, startNumber)
         res.brainsToObjects()
         # In some cases (p_remember=True), we need to keep some information
         # about the query results in the current user's session, allowing him

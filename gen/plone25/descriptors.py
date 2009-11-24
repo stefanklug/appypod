@@ -12,7 +12,8 @@ import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
 from appy.gen import Date, String, State, Transition, Type, Search
-from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage
+from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
+     sequenceTypes
 TABS = 4 # Number of blanks in a Python indentation.
 
 # ------------------------------------------------------------------------------
@@ -100,6 +101,9 @@ class ArchetypeFieldDescriptor:
                     self.fieldType = 'LinesField'
                     self.widgetType = 'MultiSelectionWidget'
                     self.fieldParams['multiValued'] = True
+                    if (type(self.appyType.validator) in sequenceTypes) and \
+                        len(self.appyType.validator) <= 5:
+                        self.widgetParams['format'] = 'checkbox'
                 else:
                     self.fieldType = 'StringField'
                     self.widgetType = 'SelectionWidget'

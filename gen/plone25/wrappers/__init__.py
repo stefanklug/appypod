@@ -97,6 +97,10 @@ class AbstractWrapper:
     klass = property(get_klass)
     def get_url(self): return self.o.absolute_url()+'/skyn/view'
     url = property(get_url)
+    def get_history(self):
+        key = self.o.workflow_history.keys()[0]
+        return self.o.workflow_history[key]
+    history = property(get_history)
 
     def link(self, fieldName, obj):
         '''This method links p_obj to this one through reference field
@@ -245,18 +249,32 @@ class AbstractWrapper:
            replaced with normal chars.'''
         return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
 
-    def search(self, klass, sortBy='', **fields):
+    def search(self, klass, sortBy='', maxResults=None, **fields):
         '''Searches objects of p_klass. p_sortBy must be the name of an indexed
            field (declared with indexed=True); every param in p_fields must
            take the name of an indexed field and take a possible value of this
-           field.'''
+           field. You can optionally specify a maximum number of results in
+           p_maxResults.'''
         # Find the content type corresponding to p_klass
         flavour = self.flavour
         contentType = flavour.o.getPortalType(klass)
         # Create the Search object
         search = Search('customSearch', sortBy=sortBy, **fields)
-        res = self.tool.o.executeQuery(contentType,flavour.number,search=search)
+        res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
+            maxResults=maxResults)
         return [o.appy() for o in res['objects']]
+
+    def count(self, klass, **fields):
+        '''Identical to m_search above, but returns the number of objects that
+           match the search instead of returning the objects themselves. Use
+           this method instead of writing len(self.search(...)).'''
+        flavour = self.flavour
+        contentType = flavour.o.getPortalType(klass)
+        search = Search('customSearch', **fields)
+        res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
+            brainsOnly=True)
+        if res: return res._len # It is a LazyMap instance
+        else: return 0
 
     def reindex(self):
         '''Asks a direct object reindexing. In most cases you don't have to

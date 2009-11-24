@@ -18,17 +18,6 @@
     referenced object (edit, delete, etc).</tal:comment>
   <table class="no-style-table" cellpadding="0" cellspacing="0">
     <tr>
-    <tal:comment replace="nothing">Edit the element</tal:comment>
-    <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
-        tal:condition="python: member.has_permission('Modify portal content', obj)">
-        <img src="edit.gif" title="label_edit" i18n:domain="plone" i18n:attributes="title" />
-    </a></td>
-    <tal:comment replace="nothing">Delete the element</tal:comment>
-    <td class="noPadding">
-      <img tal:condition="python: member.has_permission('Delete objects', obj)"
-           src="delete_icon.gif" title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-           tal:attributes="onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
-    </td>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
     <td class="noPadding" tal:condition="python: (len(objs)&gt;1) and member.has_permission('Modify portal content', obj)">
       <tal:moveRef define="objectIndex python:contextObj.getAppyRefIndex(fieldName, obj);
@@ -46,6 +35,18 @@
                         onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, ajaxUrl)"
         style="cursor:pointer"/>
       </tal:moveRef>
+    </td>
+    <tal:comment replace="nothing">Edit the element</tal:comment>
+    <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
+        tal:condition="python: member.has_permission('Modify portal content', obj)">
+        <img src="edit.gif" title="label_edit" i18n:domain="plone" i18n:attributes="title" />
+    </a></td>
+    <tal:comment replace="nothing">Delete the element</tal:comment>
+    <td class="noPadding">
+      <img tal:condition="python: member.has_permission('Delete objects', obj)"
+           title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+           tal:attributes="src string: $portal_url/skyn/delete.png;
+                           onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
     </td>
     </tr>
   </table>

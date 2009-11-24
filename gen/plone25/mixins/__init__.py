@@ -54,9 +54,8 @@ class AbstractMixin:
                 pass
         # Manage "add" permissions
         obj._appy_managePermissions()
-        # Re/unindex object
-        if obj._appy_meta_type == 'tool': self.unindexObject()
-        else: obj.reindexObject()
+        # Reindex object
+        obj.reindexObject()
         return obj
 
     def delete(self):
