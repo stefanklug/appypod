@@ -130,9 +130,11 @@ class ArchetypeFieldDescriptor:
             self.widgetType = 'RichWidget'
             self.fieldParams['allowable_content_types'] = ('text/html',)
             self.fieldParams['default_output_type'] = "text/html"
-        else:
+        elif self.appyType.format == String.PASSWORD:
             self.fieldType = 'StringField'
-            self.widgetType = 'StringWidget'
+            self.widgetType = 'PasswordWidget'
+            if self.appyType.width:
+                self.widgetParams['size'] = self.appyType.width
 
     def walkComputed(self):
         '''How to generate a computed field? We generate an Archetypes String

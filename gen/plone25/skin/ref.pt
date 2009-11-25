@@ -39,7 +39,8 @@
     <tal:comment replace="nothing">Edit the element</tal:comment>
     <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
         tal:condition="python: member.has_permission('Modify portal content', obj)">
-        <img src="edit.gif" title="label_edit" i18n:domain="plone" i18n:attributes="title" />
+        <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
+             tal:attributes="src string: $portal_url/skyn/edit.gif"/>
     </a></td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
     <td class="noPadding">

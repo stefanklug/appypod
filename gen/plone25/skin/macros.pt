@@ -128,7 +128,7 @@
                               fmt python: appyType['format'];
                               maxMult python: appyType['multiplicity'][1];
                               severalValues python: (maxMult == None) or (maxMult &gt; 1)">
-  <tal:simpleString condition="python: fmt == 0">
+  <tal:simpleString condition="python: fmt in (0, 3)">
     <span tal:condition="showLabel" tal:content="label" class="appyLabel"
           tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
                           id python: v"></span>
@@ -150,12 +150,15 @@
       <tal:select condition="appyType/isSelect">
         <span tal:replace="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), v))"/>
       </tal:select>
-      <tal:noSelect condition="not: appyType/isSelect">
+      <tal:noSelect condition="python: not appyType['isSelect'] and (fmt != 3)">
         <span tal:replace="structure v"/>
       </tal:noSelect>
+      <tal:password condition="python: not appyType['isSelect'] and (fmt == 3)">
+        ********
+      </tal:password>
     </tal:singleValue>
   </tal:simpleString>
-  <tal:formattedString condition="python: appyType['format'] != 0">
+  <tal:formattedString condition="python: fmt not in (0, 3)">
     <fieldset>
       <legend tal:condition="showLabel" tal:content="label"></legend>
       <span tal:condition="python: appyType['format'] == 1"
@@ -492,9 +495,9 @@
           </span>
           <tal:comment replace="nothing">When no tabs are shown, we provide an edit icon.</tal:comment>
           <img tal:define="editPageName python:test(pageName=='main', 'default', pageName)"
-               src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title"
-               style="cursor:pointer"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase)"
+               title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase);
+                               src string: $portal_url/skyn/edit.gif"
                tal:condition="python: (len(appyPages)==1) and member.has_permission('Modify portal content', contextObj)"/>
         </td>
         <td><metal:actions use-macro="here/document_actions/macros/document_actions"/>
@@ -539,9 +542,9 @@
              tal:attributes="href python: contextObj.absolute_url() + '/skyn/view?phase=%s&pageName=%s' % (phase, thePage)">
           </a>
           <img tal:define="editPageName python:test(thePage=='main', 'default', thePage)"
-               src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title"
-               style="cursor:pointer" class="appyPlusImg"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase)"
+               title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer" class="appyPlusImg"
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase);
+                               src string: $portal_url/skyn/edit.gif"
                tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
         </tal:tab>
       </li>
@@ -718,7 +721,8 @@
             <tal:comment replace="nothing">Edit the element</tal:comment>
             <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
                 tal:condition="python: member.has_permission('Modify portal content', obj)">
-                <img src="edit.gif" title="Edit" i18n:domain="plone" i18n:attributes="title" />
+                <img title="Edit" i18n:domain="plone" i18n:attributes="title"
+                     tal:attributes="src string: $portal_url/skyn/edit.gif"/>
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
             <td class="noPadding">

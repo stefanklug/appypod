@@ -243,6 +243,7 @@ class String(Type):
     LINE = 0
     TEXT = 1
     XHTML = 2
+    PASSWORD = 3
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, format=LINE,
                  show=True, page='main', group=None, move=0, indexed=False,

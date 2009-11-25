@@ -91,7 +91,8 @@ class Converter:
             raise ConverterError(CANNOT_WRITE_RESULT % (res, oe))
     def connect(self):
         '''Connects to OpenOffice'''
-        import socket
+        if os.name == 'nt':
+            import socket
         import uno
         from com.sun.star.connection import NoConnectException
         try:
