@@ -190,7 +190,7 @@
     </tal:editField>
     <tal:viewField tal:condition="not: isEdit">
       <tal:fileField condition="python: (appyType['type'] == 'File')">
-        <span tal:condition="showLabel" tal:content="label"></span>
+        <span tal:condition="showLabel" tal:content="label" class="appyLabel"></span>
         <metal:viewField use-macro="python: contextObj.widget(field.getName(), 'view', use_label=0)"/>
       </tal:fileField>
       <tal:date condition="python: appyType['type'] == 'Date'">
