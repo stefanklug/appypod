@@ -613,12 +613,10 @@ class XmlComparator:
             i += 1
             if line and (line[0] != ' '):
                 if not atLeastOneDiff:
-                    if report:
-                        report.say('Difference(s) detected between files '\
-                            '%s and %s:' % (self.fileNameA, self.fileNameB),
-                            encoding='utf-8')
-                    else:
-                        print 'Differences:'
+                    msg = 'Difference(s) detected between files %s and %s:' % \
+                          (self.fileNameA, self.fileNameB)
+                    if report: report.say(msg, encoding='utf-8')
+                    else:      print msg
                     atLeastOneDiff = True
                 if not lastLinePrinted:
                     if report: report.say('...')

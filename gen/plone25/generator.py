@@ -325,6 +325,7 @@ class Generator(AbstractGenerator):
                 imports.append(importDef)
         repls = self.repls.copy()
         repls['imports'] = '\n'.join(imports)
+        repls['totalNumberOfTests'] = self.totalNumberOfTests
         self.copyFile('__init__.py', repls)
 
     def generateInstall(self):

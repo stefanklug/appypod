@@ -32,7 +32,6 @@ class TestMixin:
         # absence of names beginning with other chars than "__".
         for elem in moduleObj.__dict__.iterkeys():
             if not elem.startswith('__'):
-                print 'Element found in this module!!!', moduleObj, elem
                 res.append(moduleObj)
                 break
         # Include sub-modules if any
@@ -49,7 +48,8 @@ class TestMixin:
                     res += self.getNonEmptySubModules(subModuleName)
         return res
 
-    def getCovFolder(self):
+    @staticmethod
+    def getCovFolder():
         '''Returns the folder where to put the coverage folder if needed.'''
         for arg in sys.argv:
             if arg.startswith('[coverage'):
@@ -68,28 +68,18 @@ def beforeTest(test):
     test.createUser('admin', ('Member','Manager'))
     test.login('admin')
     g['t'] = g['test']
-    # Must we perform test coverage ?
-    covFolder = test.getCovFolder()
-    if covFolder:
-        try:
-            print 'COV!!!!', covFolder
-            import coverage
-            app = getattr(cfg, g['tool'].o.getAppName())
-            from coverage import coverage
-            cov = coverage()
-            g['cov'] = cov
-            g['covFolder'] = covFolder
-            cov.start()
-        except ImportError:
-            print 'You must install the "coverage" product.'
 
 def afterTest(test):
     '''Is executed after every test.'''
     g = test.globs
-    if g.has_key('covFolder'):
-        cov = g['cov']
+    appName = g['tool'].o.getAppName()
+    exec 'from Products.%s import cov, covFolder, totalNumberOfTests, ' \
+         'countTest' % appName
+    countTest()
+    exec 'from Products.%s import numberOfExecutedTests' % appName
+    if cov and (numberOfExecutedTests == totalNumberOfTests):
         cov.stop()
         # Dumps the coverage report
-        appModules = test.getNonEmptySubModules(g['tool'].o.getAppName())
-        cov.html_report(directory=g['covFolder'], morfs=appModules)
+        appModules = test.getNonEmptySubModules(appName)
+        cov.html_report(directory=covFolder, morfs=appModules)
 # ------------------------------------------------------------------------------

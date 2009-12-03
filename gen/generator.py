@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import os, os.path, sys, parser, symbol, token
+import os, os.path, sys, parser, symbol, token, types
 from appy.gen import Type, State, Config, Tool, Flavour
 from appy.gen.descriptors import *
 from appy.gen.utils import produceNiceMessage
@@ -150,6 +150,7 @@ class Generator:
         self.initialize()
         self.config = Config.getDefault()
         self.modulesWithTests = set()
+        self.totalNumberOfTests = 0
 
     def determineAppyType(self, klass):
         '''Is p_klass an Appy class ? An Appy workflow? None of this ?
@@ -172,10 +173,23 @@ class Generator:
         return res
 
     def containsTests(self, moduleOrClass):
-        '''Does p_moduleOrClass contain doctests?'''
-        if moduleOrClass.__doc__ and (moduleOrClass.__doc__.find('>>>') != -1):
-            return True
-        return False
+        '''Returns True if p_moduleOrClass contains doctests. This method also
+           counts tests and updates self.totalNumberOfTests.'''
+        res = False
+        docString = moduleOrClass.__doc__
+        if docString and (docString.find('>>>') != -1):
+            self.totalNumberOfTests += 1
+            res = True
+        # Count also docstring in methods
+        if type(moduleOrClass) == types.ClassType:
+            for name, elem in moduleOrClass.__dict__.iteritems():
+                if type(elem) in (staticmethod, classmethod):
+                    elem = elem.__get__(name)
+                if hasattr(elem, '__doc__') and elem.__doc__ and \
+                   (elem.__doc__.find('>>>') != -1):
+                    res = True
+                    self.totalNumberOfTests += 1
+        return res
 
     IMPORT_ERROR = 'Warning: error while importing module %s (%s)'
     SYNTAX_ERROR = 'Warning: error while parsing module %s (%s)'
@@ -320,5 +334,8 @@ class Generator:
         for classDescr in self.classes: self.generateClass(classDescr)
         for wfDescr in self.workflows: self.generateWorkflow(wfDescr)
         self.finalize()
-        print 'Done.'
+        msg = ''
+        if self.totalNumberOfTests:
+            msg = ' (number of tests found: %d)' % self.totalNumberOfTests
+        print 'Done%s.' % msg
 # ------------------------------------------------------------------------------
