@@ -295,11 +295,11 @@ class AbstractWrapper:
         if toDisk and not at:
             at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
         # Create the XML version of the object
-        xml = XmlMarshaller().marshall(self.o, objectType='archetype')
+        xml = XmlMarshaller(cdata=True).marshall(self.o, objectType='appy')
         # Produce the desired result
         if toDisk:
             f = file(at, 'w')
-            f.write(xml)
+            f.write(xml.encode('utf-8'))
             f.close()
             return at
         else:

@@ -336,14 +336,25 @@ class XmlMarshaller:
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
 
+    def __init__(self, cdata=False):
+        '''If p_cdata is True, all string values will be dumped as XML CDATA.'''
+        self.cdata = cdata
+
     def dumpString(self, res, s):
         '''Dumps a string into the result.'''
+        if self.cdata: res.write('<![CDATA[')
+        # Try to solve encoding problems
+        try:
+            s = s.decode('utf-8')
+        except UnicodeEncodeError:
+            pass
         # Replace special chars by XML entities
         for c in s:
             if self.xmlEntities.has_key(c):
                 res.write(self.xmlEntities[c])
             else:
                 res.write(c)
+        if self.cdata: res.write(']]>')
 
     def dumpFile(self, res, v):
         '''Dumps a file into the result.'''
@@ -428,10 +439,12 @@ class XmlMarshaller:
         '''Returns in a StringIO the XML version of p_instance. If p_instance
            corresponds to a Plain Old Python Object, specify 'popo' for
            p_objectType. If p_instance corresponds to an Archetypes object
-           (Zope/Plone), specify 'archetype' for p_objectType.'''
+           (Zope/Plone), specify 'archetype' for p_objectType. if p_instance is
+           a Appy object, specify "appy" as p_objectType.'''
         res = StringIO()
         # Dump the XML prologue and root element
-        if objectType == 'archetype': objectId = instance.UID() # ID in DB
+        if objectType in ('archetype', 'appy'):
+            objectId = instance.UID() # ID in DB
         else: objectId = str(id(instance)) # ID in RAM
         res.write(self.xmlPrologue)
         res.write('<'); res.write(self.rootElementName)
@@ -450,7 +463,7 @@ class XmlMarshaller:
                         mustDump = True
                 if mustDump:
                     self.dumpField(res, fieldName, fieldValue)
-        elif objectType == 'archetype':
+        elif objectType in ('archetype', 'appy'):
             fields = instance.schema.fields()
             for field in instance.schema.fields():
                 # Dump only needed fields
@@ -474,6 +487,17 @@ class XmlMarshaller:
                         fieldType = 'ref'
                     self.dumpField(res, field.getName(), field.get(instance),
                         fieldType=fieldType)
+            if objectType == 'appy':
+                # Dump the object history.
+                res.write('<history type="list">')
+                wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
+                if wfInfo:
+                    history = instance.workflow_history[wfInfo[0].id]
+                    for event in history:
+                        res.write('<event type="object">')
+                        for k, v in event.iteritems(): self.dumpField(res, k, v)
+                        res.write('</event>')
+                res.write('</history>')
         self.marshallSpecificElements(instance, res)
         # Return the result
         res.write('</'); res.write(self.rootElementName); res.write('>')
