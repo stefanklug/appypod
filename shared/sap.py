@@ -8,15 +8,21 @@ from appy.gen.utils import sequenceTypes
 
 class SapError(Exception): pass
 SAP_MODULE_ERROR = 'Module pysap was not found (you can get it at ' \
-                   'http://pysaprfc.sourceforge.net)'
+    'http://pysaprfc.sourceforge.net)'
 SAP_CONNECT_ERROR = 'Error while connecting to SAP (conn_string: %s). %s'
 SAP_FUNCTION_ERROR = 'Error while calling function "%s". %s'
 SAP_DISCONNECT_ERROR = 'Error while disconnecting from SAP. %s'
 SAP_TABLE_PARAM_ERROR = 'Param "%s" does not correspond to a valid table ' \
-                        'parameter for function "%s".'
+    'parameter for function "%s".'
+SAP_STRUCT_ELEM_NOT_FOUND = 'Structure used by parameter "%s" does not define '\
+    'an attribute named "%s."'
+SAP_STRING_REQUIRED = 'Type mismatch for attribute "%s" used in parameter ' \
+    '"%s": a string value is expected (SAP type is %s).'
+SAP_STRING_OVERFLOW = 'A string value for attribute "%s" used in parameter ' \
+    '"%s" is too long (SAP type is %s).'
 SAP_FUNCTION_NOT_FOUND = 'Function "%s" does not exist.'
 SAP_FUNCTION_INFO_ERROR = 'Error while asking information about function ' \
-                          '"%s". %s'
+    '"%s". %s'
 SAP_GROUP_NOT_FOUND = 'Group of functions "%s" does not exist or is empty.'
 
 # Is the pysap module present or not ?
@@ -52,6 +58,32 @@ class Sap:
             connNoPasswd = params[:params.index('PASSWD')] + 'PASSWD=********'
             raise SapError(SAP_CONNECT_ERROR % (connNoPasswd, str(se)))
 
+    def createStructure(self, structDef, userData, paramName):
+        '''Create a struct corresponding to SAP/C structure definition
+           p_structDef and fills it with dict p_userData.'''
+        res = structDef()
+        for name, value in userData.iteritems():
+            if name not in structDef._sfield_names_:
+                raise SapError(SAP_STRUCT_ELEM_NOT_FOUND % (paramName, name))
+            sapType = structDef._sfield_sap_types_[name]
+            # Check if the value is valid according to the required type
+            if sapType[0] == 'C':
+                sType = '%s%d' % (sapType[0], sapType[1])
+                # "None" value is tolerated.
+                if value == None: value = ''
+                if not isinstance(value, basestring):
+                    raise SapError(
+                        SAP_STRING_REQUIRED % (name, paramName, sType))
+                if len(value) > sapType[1]:
+                    raise SapError(
+                        SAP_STRING_OVERFLOW % (name, paramName, sType))
+                # Left-fill the string with blanks.
+                v = value.ljust(sapType[1])
+            else:
+                v = value
+            res[name.lower()] = v
+        return res
+
     def call(self, functionName, **params):
         '''Calls a function on the SAP server.'''
         try:
@@ -60,8 +92,8 @@ class Sap:
             for name, value in params.iteritems():
                 if type(value) == dict:
                     # The param corresponds to a SAP/C "struct"
-                    v = self.sap.get_structure(name)()
-                    v.from_dict(value)
+                    v = self.createStructure(
+                        self.sap.get_structure(name),value, name)
                 elif type(value) in sequenceTypes:
                     # The param must be a SAP/C "table" (a list of structs)
                     # Retrieve the name of the struct type related to this
@@ -78,8 +110,7 @@ class Sap:
                             SAP_TABLE_PARAM_ERROR % (name, functionName))
                     v = self.sap.get_table(tableTypeName)
                     for dValue in value:
-                        v.append_from_dict(dValue)
-                    #v = v.handle
+                        v.append(self.createStructure(v.struc, dValue, name))
                 else:
                     v = value
                 function[name] = v

@@ -31,16 +31,14 @@ class AbstractMixin:
         if created:
             obj = self.portal_factory.doCreate(self, self.id) # portal_factory
             # creates the final object from the temp object.
-        if created and (obj._appy_meta_type == 'tool'):
-            # We are in the special case where the tool itself is being created.
-            # In this case, we do not process form data.
-            pass
-        else:
-            obj.processForm()
-
-        # Get the current language and put it in the request
-        #if rq.form.has_key('current_lang'):
-        #    rq.form['language'] = rq.form.get('current_lang')
+        previousData = None
+        if not created: previousData = self.rememberPreviousData()
+        # We do not process form data (=real update on the object) if the tool
+        # itself is being created.
+        if obj._appy_meta_type != 'tool': obj.processForm()
+        if previousData:
+            # Keep in history potential changes on historized fields
+            self.historizeData(previousData)
 
         # Manage references
         obj._appy_manageRefs(created)
@@ -145,15 +143,79 @@ class AbstractMixin:
         self.plone_utils.addPortalMessage(msg)
         self.goto(rq['HTTP_REFERER'])
 
+    def rememberPreviousData(self):
+        '''This method is called before updating an object and remembers, for
+           every historized field, the previous value. Result is a dict
+           ~{s_fieldName: previousFieldValue}~'''
+        res = {}
+        for atField in self.Schema().filterFields(isMetadata=0):
+            fieldName = atField.getName()
+            appyType = self.getAppyType(fieldName, asDict=False)
+            if appyType and appyType.historized:
+                res[fieldName] = (getattr(self, fieldName),
+                                  atField.widget.label_msgid)
+        return res
+
+    def historizeData(self, previousData):
+        '''Records in the object history potential changes on historized fields.
+           p_previousData contains the values, before an update, of the
+           historized fields, while p_self already contains the (potentially)
+           modified values.'''
+        # Remove from previousData all values that were not changed
+        for fieldName in previousData.keys():
+            if getattr(self, fieldName) == previousData[fieldName][0]:
+                del previousData[fieldName]
+        if previousData:
+            # Create the event to add in the history
+            DateTime = self.getProductConfig().DateTime
+            state = self.portal_workflow.getInfoFor(self, 'review_state')
+            user = self.portal_membership.getAuthenticatedMember()
+            event = {'action': '_datachange_', 'changes': previousData,
+                     'review_state': state, 'actor': user.id,
+                     'time': DateTime(), 'comments': ''}
+            # Add the event to the history
+            histKey = self.workflow_history.keys()[0]
+            self.workflow_history[histKey] += (event,)
+
     def goto(self, url):
         '''Brings the user to some p_url after an action has been executed.'''
         return self.REQUEST.RESPONSE.redirect(url)
 
-    def getAppyAttribute(self, name):
-        '''Returns method or attribute value corresponding to p_name.'''
-        return eval('self.%s' % name)
+    def getAppyValue(self, name, appyType=None, useParamValue=False,value=None):
+        '''Returns the value of field (or method) p_name for this object
+           (p_self). If p_appyType (the corresponding Appy type) is provided,
+           it gives additional information about the way to render the value.
+           If p_useParamValue is True, the method uses p_value instead of the
+           real field value (useful for rendering a value from the object
+           history, for example).'''
+        # Which value will we use ?
+        if useParamValue: v = value
+        else: v = eval('self.%s' % name)
+        if not appyType: return v
+        if (v == None) or (v == ''): return v
+        vType = appyType['type']
+        if vType == 'Date':
+            res = v.strftime('%d/%m/') + str(v.year())
+            if appyType['format'] == 0:
+                res += ' %s' % v.strftime('%H:%M')
+            return res
+        elif vType == 'String':
+            if not v: return v
+            if appyType['isSelect']:
+                maxMult = appyType['multiplicity'][1]
+                t = self.translate
+                if (maxMult == None) or (maxMult > 1):
+                    return [t('%s_%s_list_%s' % (self.meta_type, name, e)) \
+                            for e in v]
+                else:
+                    return t('%s_%s_list_%s' % (self.meta_type, name, v))
+            return v
+        elif vType == 'Boolean':
+            if v: return self.translate('yes', domain='plone')
+            else: return self.translate('no', domain='plone')
+        return v
 
-    def getAppyType(self, fieldName, forward=True):
+    def getAppyType(self, fieldName, forward=True, asDict=True):
         '''Returns the Appy type corresponding to p_fieldName. If you want to
            get the Appy type corresponding to a backward field, set p_forward
            to False and specify the corresponding Archetypes relationship in
@@ -166,24 +228,29 @@ class AbstractMixin:
                 try:
                     # If I get the attr on self instead of baseClass, I get the
                     # property field that is redefined at the wrapper level.
-                    appyType = getattr(baseClass, fieldName)
-                    res = self._appy_getTypeAsDict(fieldName, appyType, baseClass)
+                    res = appyType = getattr(baseClass, fieldName)
+                    if asDict:
+                        res = self._appy_getTypeAsDict(
+                            fieldName, appyType, baseClass)
                 except AttributeError:
                     # Check for another parent
                     if self.wrapperClass.__bases__[0].__bases__:
                         baseClass = self.wrapperClass.__bases__[0].__bases__[-1]
                         try:
-                            appyType = getattr(baseClass, fieldName)
-                            res = self._appy_getTypeAsDict(fieldName, appyType,
-                                                           baseClass)
+                            res = appyType = getattr(baseClass, fieldName)
+                            if asDict:
+                                res = self._appy_getTypeAsDict(
+                                    fieldName, appyType, baseClass)
                         except AttributeError:
                             pass
         else:
             referers = self.getProductConfig().referers
             for appyType, rel in referers[self.__class__.__name__]:
                 if rel == fieldName:
-                    res = appyType.__dict__
-                    res['backd'] = appyType.back.__dict__
+                    res = appyType
+                    if asDict:
+                        res = appyType.__dict__
+                        res['backd'] = appyType.back.__dict__
         return res
 
     def _appy_getRefs(self, fieldName, ploneObjects=False,
@@ -357,8 +424,7 @@ class AbstractMixin:
         groups = {} # The already encountered groups
         for fieldDescr in self._appy_getOrderedFields(isEdit):
             # Select only widgets shown on current page
-            if fieldDescr.page != page:
-                continue
+            if fieldDescr.page != page: continue
             # Do not take into account hidden fields and fields that can't be
             # edited through the edit view
             if not self.showField(fieldDescr, isEdit): continue
@@ -560,6 +626,27 @@ class AbstractMixin:
             if appyWf:
                 res = '%s_%s' % (wf.id, res)
         return res
+
+    def hasHistory(self):
+        '''Has this object an history?'''
+        if hasattr(self.aq_base, 'workflow_history') and self.workflow_history:
+            key = self.workflow_history.keys()[0]
+            for event in self.workflow_history[key]:
+                if event['action'] and (event['comments'] != '_invisible_'):
+                    return True
+        return False
+
+    def getHistory(self, startNumber=0, reverse=True, includeInvisible=False):
+        '''Returns the history for this object, sorted in reverse order (most
+           recent change first) if p_reverse is True.'''
+        batchSize = 3
+        key = self.workflow_history.keys()[0]
+        history = list(self.workflow_history[key][1:])
+        if not includeInvisible:
+            history = [e for e in history if e['comments'] != '_invisible_']
+        if reverse: history.reverse()
+        return {'events': history[startNumber:startNumber+batchSize],
+                'totalNumber': len(history), 'batchSize':batchSize}
 
     def getComputedValue(self, appyType):
         '''Computes on p_self the value of the Computed field corresponding to
@@ -1080,13 +1167,18 @@ class AbstractMixin:
         params = ''
         rq = self.REQUEST
         for k, v in kwargs.iteritems(): params += '&%s=%s' % (k, v)
-        params = params[1:]
+        if params: params = params[1:]
         if t == 'showRef':
             chunk = '/skyn/ajax?objectUid=%s&page=ref&' \
                 'macro=showReferenceContent&' % self.UID()
             startKey = '%s%s_startNumber' % (self.UID(), kwargs['fieldName'])
             if rq.has_key(startKey) and not kwargs.has_key(startKey):
                 params += '&%s=%s' % (startKey, rq[startKey])
+            return baseUrl + chunk + params
+        elif t == 'showHistory':
+            chunk = '/skyn/ajax?objectUid=%s&page=macros&macro=history' % \
+                self.UID()
+            if params: params = '&' + params
             return baseUrl + chunk + params
         else: # We consider t=='view'
             return baseUrl + '/skyn/view' + params

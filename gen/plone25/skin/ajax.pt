@@ -19,7 +19,7 @@
                   dummy2 python:response.setHeader('Expires', 'Mon, 11 Dec 1975 12:05:05 GMT');
                   dummy3 python:response.setHeader('CacheControl', 'no-cache')">
   <tal:executeAction condition="action">
-    <tal:do define="dummy python: contextObj.getAppyAttribute('on'+action)()" omit-tag=""/>
+    <tal:do define="dummy python: contextObj.getAppyValue('on'+action)()" omit-tag=""/>
   </tal:executeAction>
   <metal:callMacro use-macro="python: context.get(page).macros.get(macro)"/>
 </tal:ajax>

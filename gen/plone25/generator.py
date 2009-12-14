@@ -91,6 +91,9 @@ class Generator(AbstractGenerator):
         poMsg = msg(app, '', app); poMsg.produceNiceDefault()
         self.labels += [poMsg,
             msg('workflow_state', '', msg.WORKFLOW_STATE),
+            msg('data_change', '', msg.DATA_CHANGE),
+            msg('modified_field', '', msg.MODIFIED_FIELD),
+            msg('previous_value', '', msg.PREVIOUS_VALUE),
             msg('phase', '', msg.PHASE),
             msg('root_type', '', msg.ROOT_TYPE),
             msg('workflow_comment', '', msg.WORKFLOW_COMMENT),

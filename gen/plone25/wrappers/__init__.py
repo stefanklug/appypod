@@ -2,7 +2,7 @@
    developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
-import time, os.path, mimetypes, unicodedata
+import time, os.path, mimetypes, unicodedata, random
 from appy.gen import Search
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder
@@ -153,7 +153,8 @@ class AbstractWrapper:
             objId = kwargs['id']
             del kwargs['id']
         else:
-            objId = '%s.%f' % (idPrefix, time.time())
+            objId = '%s.%f.%s' % (idPrefix, time.time(),
+                                  str(random.random()).split('.')[1])
         # Determine if object must be created from external data
         externalData = None
         if kwargs.has_key('_data'):

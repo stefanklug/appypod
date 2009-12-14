@@ -6,6 +6,7 @@
          tal:define="tool python: context.<!toolInstanceName!>"
          tal:condition="tool/showPortlet">
       <metal:block metal:use-macro="here/global_defines/macros/defines" />
+      <metal:prologue use-macro="here/skyn/macros/macros/pagePrologue"/>
       <dl tal:define="rootClasses tool/getRootClasses;
                       appName string:<!applicationName!>;
                       appFolder tool/getAppFolder;

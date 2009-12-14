@@ -72,6 +72,31 @@
   padding: 0.1em 1em 0.1em 1.3em;
 }
 
+.appyChanges th {
+  font-style: italic;
+  background-color: transparent;
+  border-bottom: 1px dashed #8CACBB;
+  border-top: 0 none transparent;
+  border-left: 0 none transparent;
+  border-right: 0 none transparent; 
+  padding: 0.1em 0.1em 0.1em 0.1em;
+}
+
+.appyChanges td {
+  padding: 0.1em 0.1em 0.1em 0.1em !important;
+  border-right: 0 none transparent !important; 
+  border-top: 0 none transparent;
+  border-left: 0 none transparent;
+  border-right: 0 none transparent;
+}
+
+.appyHistory {
+  font-variant: small-caps;
+  font-weight: bold;
+  color: black;
+  font-size: 105%;
+}
+
 /* stepxx classes are used for displaying status of a phase or state. */
 .stepDone {
   background-color: #cde2a7;

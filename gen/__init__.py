@@ -47,7 +47,7 @@ class Type:
     def __init__(self, validator, multiplicity, index, default, optional,
                  editDefault, show, page, group, move, indexed, searchable,
                  specificReadPermission, specificWritePermission, width,
-                 height, master, masterValue, focus):
+                 height, master, masterValue, focus, historized):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -107,6 +107,9 @@ class Type:
         # If a field must retain attention in a particular way, set focus=True.
         # It will be rendered in a special way.
         self.focus = focus
+        # If we must keep track of changes performed on a field, "historized"
+        # must be set to True.
+        self.historized = historized
         self.id = id(self)
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
@@ -128,11 +131,11 @@ class Integer(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False):
+                 master=None, masterValue=None, focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.pythonType = long
 
 class Float(Type):
@@ -141,11 +144,11 @@ class Float(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False):
+                 master=None, masterValue=None, focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.pythonType = float
 
 class String(Type):
@@ -249,11 +252,11 @@ class String(Type):
                  show=True, page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False):
+                 master=None, masterValue=None, focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.format = format
         self.isSelect = self.isSelection()
     def isSelection(self):
@@ -276,11 +279,11 @@ class Boolean(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False):
+                 master=None, masterValue=None, focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.pythonType = bool
 
 class Date(Type):
@@ -294,11 +297,11 @@ class Date(Type):
                  group=None, move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.format = format
         self.startYear = startYear
         self.endYear = endYear
@@ -309,11 +312,12 @@ class File(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, isImage=False):
+                 master=None, masterValue=None, focus=False, historized=False,
+                 isImage=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.isImage = isImage
 
 class Ref(Type):
@@ -325,11 +329,11 @@ class Ref(Type):
                  maxPerPage=30, move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, master=None, masterValue=None,
-                 focus=False):
+                 focus=False, historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.klass = klass
         self.attribute = attribute
         self.add = add # May the user add new objects through this ref ?
@@ -356,11 +360,11 @@ class Computed(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  method=None, plainText=True, master=None, masterValue=None,
-                 focus=False):
+                 focus=False, historized=False):
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.method = method # The method used for computing the field value
         self.plainText = plainText # Does field computation produce pain text
         # or XHTML?
@@ -376,11 +380,11 @@ class Action(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  action=None, result='computation', master=None,
-                 masterValue=None, focus=False):
+                 masterValue=None, focus=False, historized=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
         self.action = action # Can be a single method or a list/tuple of methods
         self.result = result # 'computation' means that the action will simply
         # compute things and redirect the user to the same page, with some
@@ -425,11 +429,11 @@ class Info(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False):
+                 master=None, masterValue=None, focus=False, historized=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus)
+                      height, master, masterValue, focus, historized)
 
 # Workflow-specific types ------------------------------------------------------
 class State:

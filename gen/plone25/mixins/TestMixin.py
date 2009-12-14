@@ -79,7 +79,14 @@ def afterTest(test):
     exec 'from Products.%s import numberOfExecutedTests' % appName
     if cov and (numberOfExecutedTests == totalNumberOfTests):
         cov.stop()
-        # Dumps the coverage report
         appModules = test.getNonEmptySubModules(appName)
+        # Dumps the coverage report
+        # HTML version
         cov.html_report(directory=covFolder, morfs=appModules)
+        # Summary in a text file
+        f = file('%s/summary.txt' % covFolder, 'w')
+        cov.report(file=f, morfs=appModules)
+        f.close()
+        # Annotated modules
+        cov.annotate(directory=covFolder, morfs=appModules)
 # ------------------------------------------------------------------------------

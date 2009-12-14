@@ -116,15 +116,13 @@
 </div>
 
 <metal:showDate define-macro="showDateField"
-                tal:define="v python: field.getAccessor(contextObj)()">
+                tal:define="v python: contextObj.getAppyValue(field.getName(), appyType)">
   <span tal:condition="showLabel" tal:content="label" class="appyLabel"></span>
-  <span tal:condition="v" tal:content="python: v.strftime('%d/%m/') + str(v.year())"></span>
-  <span tal:condition="python: v and (appyType['format'] == 0)"
-        tal:content="python: v.strftime('%H:%M')"></span>
+  <span tal:replace="v"></span>
 </metal:showDate>
 
 <metal:showString define-macro="showStringField"
-                  tal:define="v python: field.getAccessor(contextObj)();
+                  tal:define="v python: contextObj.getAppyValue(field.getName(), appyType);
                               fmt python: appyType['format'];
                               maxMult python: appyType['multiplicity'][1];
                               severalValues python: (maxMult == None) or (maxMult &gt; 1)">
@@ -132,30 +130,12 @@
     <span tal:condition="showLabel" tal:content="label" class="appyLabel"
           tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
                           id python: v"></span>
-    <tal:severalValues condition="python: v and severalValues">
-    <ul class="appyList">
-      <tal:items repeat="sv v">
-      <tal:select condition="appyType/isSelect">
-      <li class="appyBullet">
-        <i tal:content="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), sv))"></i>
-      </li>
-      </tal:select>
-      <tal:string condition="not: appyType/isSelect">
-      <li class="appyBullet"><i tal:content="sv"></i></li>
-      </tal:string>
-      </tal:items>
+    <ul class="appyList" tal:condition="python: v and severalValues">
+      <li class="appyBullet" tal:repeat="sv v"><i tal:content="structure sv"></i></li>
     </ul>
-    </tal:severalValues>
     <tal:singleValue condition="python: v and not severalValues">
-      <tal:select condition="appyType/isSelect">
-        <span tal:replace="python: tool.translate('%s_%s_list_%s' % (contextObj.meta_type, field.getName(), v))"/>
-      </tal:select>
-      <tal:noSelect condition="python: not appyType['isSelect'] and (fmt != 3)">
-        <span tal:replace="structure v"/>
-      </tal:noSelect>
-      <tal:password condition="python: not appyType['isSelect'] and (fmt == 3)">
-        ********
-      </tal:password>
+      <span tal:condition="python: fmt != 3" tal:replace="structure v"/>
+      <span tal:condition="python: fmt == 3">********</span>
     </tal:singleValue>
   </tal:simpleString>
   <tal:formattedString condition="python: fmt not in (0, 3)">
@@ -275,7 +255,6 @@
 
 <metal:fields define-macro="listFields"
      tal:repeat="widgetDescr python: contextObj.getAppyFields(isEdit, pageName)">
-
     <tal:displayArchetypesField condition="python: widgetDescr['widgetType'] == 'field'">
       <tal:atField condition="python: widgetDescr['page'] == pageName">
         <metal:field use-macro="here/skyn/macros/macros/showArchetypesField" />
@@ -293,63 +272,65 @@
     </tal:displayGroup>
 </metal:fields>
 
-<span metal:define-macro="byline"
-     tal:condition="python: site_properties.allowAnonymousViewAbout or not isAnon"
-     tal:define="creator here/Creator;" class="documentByLine">
-  <tal:name tal:condition="creator"
-            tal:define="author python:contextObj.portal_membership.getMemberInfo(creator)">
-    <span class="documentAuthor" i18n:domain="plone" i18n:translate="label_by_author">
-      by <a tal:attributes="href string:${portal_url}/author/${creator}"
-            tal:content="python:author and author['fullname'] or creator"
-            tal:omit-tag="not:author" i18n:name="author"/>
-      &mdash;
-    </span>
-  </tal:name>
-  <span class="documentModified">
-    <span i18n:translate="box_last_modified" i18n:domain="plone"/>
-    <span tal:replace="python:toLocalizedTime(here.ModificationDate(),long_format=1)"/>
-  </span>
-</span>
+<metal:history define-macro="history"
+      tal:define="startNumber request/startNumber|python:0;
+                  startNumber python: int(startNumber);
+                  historyInfo python: contextObj.getHistory(startNumber);
+                  objs        historyInfo/events;
+                  batchSize   historyInfo/batchSize;
+                  totalNumber historyInfo/totalNumber;
+                  ajaxHookId  python:'appyHistory';
+                  baseUrl     python: contextObj.getUrl('showHistory', startNumber='**v**');
+                  tool        contextObj/getTool">
 
-<span metal:define-macro="workflowHistory" class="reviewHistory"
-      tal:define="history contextObj/getWorkflowHistory" tal:condition="history">
-  <dl id="history" class="collapsible inline collapsedOnLoad">
-    <dt class="collapsibleHeader" i18n:translate="label_history" i18n:domain="plone">History</dt>
-    <dd class="collapsibleContent">
-    <table width="100%" class="listing nosort" i18n:attributes="summary summary_review_history"
-           tal:define="review_history python:contextObj.portal_workflow.getInfoFor(contextObj, 'review_history', []);
-                       review_history python:[review for review in review_history if review.get('action','')]"
-           tal:condition="review_history">
-        <tr i18n:domain="plone">
-          <th i18n:translate="listingheader_action"/>
-          <th i18n:translate="listingheader_performed_by"/>
-          <th i18n:translate="listingheader_date_and_time"/>
-          <th i18n:translate="listingheader_comment"/>
-        </tr>
-        <metal:block tal:define="review_history python: portal.reverseList(review_history);"
-                     tal:repeat="items review_history">
-        <tr tal:define="odd repeat/items/odd;
-                        rhComments items/comments|nothing;
-                        state items/review_state|nothing"
-            tal:condition="python: items['action'] and (rhComments != '_invisible_')"
-            tal:attributes="class python:test(odd, 'even', 'odd')">
-            
-            <td tal:content="python: tool.translate(contextObj.getWorkflowLabel(items['action']))"
-                tal:attributes="class string:state-${state}"/>
-            <td tal:define="actorid python:items.get('actor');
-                            actor python:contextObj.portal_membership.getMemberInfo(actorid);
-                            fullname actor/fullname|nothing;
-                            username actor/username|nothing"
-                tal:content="python:fullname or username or actorid"/>
-            <td tal:content="python:toLocalizedTime(items['time'],long_format=True)"/>
-            <td><tal:comment condition="rhComments" tal:content="structure rhComments"/>
-                <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
-        </tr>
-        </metal:block>
-    </table>
-    </dd>
-  </dl>
-</span>
+  <tal:comment replace="nothing">Table containing the history</tal:comment>
+  <tal:history condition="objs">
+  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+  <table width="100%" class="listing nosort">
+    <tr i18n:domain="plone">
+      <th i18n:translate="listingheader_action"/>
+      <th i18n:translate="listingheader_performed_by"/>
+      <th i18n:translate="listingheader_date_and_time"/>
+      <th i18n:translate="listingheader_comment"/>
+    </tr>
+    <tal:event repeat="event objs">
+    <tr tal:define="odd repeat/event/odd;
+                    rhComments event/comments|nothing;
+                    state event/review_state|nothing;
+                    isDataChange python: event['action'] == '_datachange_'"
+        tal:attributes="class python:test(odd, 'even', 'odd')" valign="top">
+      <td tal:condition="isDataChange" tal:content="python: tool.translate('data_change')"></td>
+      <td tal:condition="not: isDataChange"
+          tal:content="python: tool.translate(contextObj.getWorkflowLabel(event['action']))"
+          tal:attributes="class string:state-${state}"/>
+      <td tal:define="actorid python:event.get('actor');
+                      actor python:contextObj.portal_membership.getMemberInfo(actorid);
+                      fullname actor/fullname|nothing;
+                      username actor/username|nothing"
+          tal:content="python:fullname or username or actorid"/>
+      <td tal:content="python:contextObj.toLocalizedTime(event['time'],long_format=True)"/>
+      <td tal:condition="not: isDataChange"><tal:comment condition="rhComments" tal:content="structure rhComments"/>
+        <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
+      <td tal:condition="isDataChange">
+        <tal:comment replace="nothing">
+          Display the previous values of the fields whose value were modified in this change.</tal:comment>
+        <table class="appyChanges" width="100%">
+          <tr>
+            <th tal:content="python: tool.translate('modified_field')"></th>
+            <th tal:content="python: tool.translate('previous_value')"></th>
+          </tr>
+          <tr tal:repeat="change event/changes/items">
+            <td tal:content="python: tool.translate(change[1][1])"></td>
+            <td tal:define="appyType python:contextObj.getAppyType(change[0])"
+                tal:content="python: contextObj.getAppyValue(change[0], appyType, True, change[1][0])"></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    </tal:event>
+  </table>
+  </tal:history>
+</metal:history>
 
 <div metal:define-macro="pagePrologue">
   <tal:comment replace="nothing">Global elements used in every page.</tal:comment>
@@ -468,6 +449,32 @@
        f.submit();
     }
   }
+  function toggleCookie(cookieId) {
+    // What is the state of this boolean (expanded/collapsed) cookie?
+    var state = readCookie(cookieId);
+    if ((state != 'collapsed') && (state != 'expanded')) {
+      // No cookie yet, create it.
+      createCookie(cookieId, 'collapsed');
+      state = 'collapsed';
+    }
+    var hook = document.getElementById(cookieId); // The hook is the part of
+    // the HTML document that needs to be shown or hidden.
+    var displayValue = 'none';
+    var newState = 'collapsed';
+    var imgSrc = 'skyn/expand.gif';
+    if (state == 'collapsed') {
+      // Show the HTML zone
+      displayValue = 'block';
+      imgSrc = 'skyn/collapse.gif';
+      newState = 'expanded';
+    }
+    // Update the corresponding HTML element
+    hook.style.display = displayValue;
+    var img = document.getElementById(cookieId + '_img');
+    img.src = imgSrc;
+    // Inverse the cookie value
+    createCookie(cookieId, newState);
+  }
 -->
   </script>
   <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
@@ -479,7 +486,10 @@
 
 <div metal:define-macro="showPageHeader"
      tal:define="appyPages python: contextObj.getAppyPages(phase);
-                 showCommonInfo python: not isEdit"
+                 showCommonInfo python: not isEdit;
+                 hasHistory contextObj/hasHistory;
+                 historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
+                 creator contextObj/Creator"
      tal:condition="not: contextObj/isTemporary">
 
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
@@ -509,13 +519,45 @@
         <td colspan="2" class="discreet" tal:content="descrLabel"/>
       </tr>
       <tr>
-        <td>
-          <metal:byLine use-macro="here/skyn/macros/macros/byline"/>
-          <tal:showWorkflow condition="showWorkflow">
-            <metal:workflowHistory use-macro="here/skyn/macros/macros/workflowHistory"/>
-          </tal:showWorkflow>
+        <td class="documentByLine">
+          <tal:comment replace="nothing">Creator and last modification date</tal:comment>
+            <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
+            <tal:accessHistory condition="hasHistory">
+            <img align="left" style="cursor:pointer" onClick="javascript:toggleCookie('appyHistory')"
+                 tal:attributes="src python:test(historyExpanded, 'skyn/collapse.gif', 'skyn/expand.gif');"
+                 id="appyHistory_img"/>&nbsp;
+            <span i18n:translate="label_history" i18n:domain="plone" class="appyHistory"></span>&nbsp;
+            </tal:accessHistory>
+
+            <tal:comment replace="nothing">Show document creator</tal:comment>
+            <tal:creator condition="creator"
+                 define="author python:contextObj.portal_membership.getMemberInfo(creator)">
+            <span class="documentAuthor" i18n:domain="plone" i18n:translate="label_by_author">
+            by <a tal:attributes="href string:${portal_url}/author/${creator}"
+                  tal:content="python:author and author['fullname'] or creator"
+                  tal:omit-tag="not:author" i18n:name="author"/>
+            &mdash;
+            </span>
+            </tal:creator>
+            <tal:comment replace="nothing">Show last modification date</tal:comment>
+            <span i18n:translate="box_last_modified" i18n:domain="plone"></span>
+            <span tal:replace="python:contextObj.toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
         </td>
         <td valign="top"><metal:pod use-macro="here/skyn/macros/macros/listPodTemplates"/>
+        </td>
+      </tr>
+      <tal:comment replace="nothing">Object history</tal:comment>
+      <tr tal:condition="hasHistory">
+        <td colspan="2">
+          <span id="appyHistory"
+                tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
+          <div tal:define="ajaxHookId python: contextObj.UID() + '_history';
+                           ajaxUrl python: contextObj.getUrl('showHistory')"
+               tal:attributes="id ajaxHookId">
+             <script language="javascript" tal:content="python: 'askAjaxChunk(\'%s\',\'%s\')' % (ajaxHookId, ajaxUrl)">
+             </script>
+          </div>
+          </span>
         </td>
       </tr>
 
@@ -819,35 +861,6 @@
    tal:define="queryUrl python: '%s/skyn/query' % appFolder.absolute_url();
                currentSearch request/search|nothing;
                currentType request/type_name|nothing;">
-  <script language="javascript">
-  <!--
-  function toggleSearchGroup(groupId) {
-    // What is the state of this toggle?
-    var state = readCookie(groupId);
-    if ((state != 'collapsed') && (state != 'expanded')) {
-      // No cookie yet, create it.
-      createCookie(groupId, 'collapsed');
-      state = 'collapsed';
-    }
-    var group = document.getElementById(groupId);
-    var displayValue = 'none';
-    var newState = 'collapsed';
-    var imgSrc = 'skyn/expand.gif';
-    if (state == 'collapsed') {
-      // Expand the group
-      displayValue = 'block';
-      imgSrc = 'skyn/collapse.gif';
-      newState = 'expanded';
-    }
-    // Update group visibility and img
-    group.style.display = displayValue;
-    var img = document.getElementById(groupId + '_img');
-    img.src = imgSrc;
-    // Inverse the cookie value
-    createCookie(groupId, newState);
-  }
-  -->
-  </script>
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
     <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
@@ -907,12 +920,12 @@
           <img align="left" style="cursor:pointer"
                tal:attributes="id python: '%s_img' % group['labelId'];
                                src python:test(expanded, 'skyn/collapse.gif', 'skyn/expand.gif');
-                               onClick python:'javascript:toggleSearchGroup(\'%s\')' % group['labelId']"/>&nbsp;
+                               onClick python:'javascript:toggleCookie(\'%s\')' % group['labelId']"/>&nbsp;
           <span tal:replace="group/label"/>
         </dt>
         <tal:comment replace="nothing">Group searches</tal:comment>
         <span tal:attributes="id group/labelId;
-                             style python:test(expanded, 'display:block', 'display:none')">
+                              style python:test(expanded, 'display:block', 'display:none')">
           <dt class="portletAppyItem portletSearch portletGroupItem" tal:repeat="search group/searches">
             <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
                          title search/descr;
