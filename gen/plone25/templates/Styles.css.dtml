@@ -2,58 +2,31 @@
 /* <dtml-with base_properties> (do not remove this :) */
 /* <dtml-call "REQUEST.set('portal_url', portal_url())"> (not this either :) */
 
-#portal-breadcrumbs {
-  display: none;
+#portal-breadcrumbs { display: none; }
+#importedElem { color: grey; font-style: italic; }
+
+.appyList { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
+.appyBullet { margin: 0; }
+.appyPod { float:right; }
+.appyNav { padding: 0.4em 0 0.4em 0; }
+.appyFocus { color: #900101; }
+.appyTabs { margin-bottom: 1em; }
+.appyTabs li a { border-bottom:1px solid transparent; font-size: 90%; }
+.appyTabs li a:visited { color: #578308; }
+.appyTitle { padding-top: 0.5em; font-size: 110%; }
+.appyLabel { font-weight: bold; padding-right: 0.4em; }
+.appyRefEdit { line-height: 1.5em; }
+
+.appyWorkflow {
+  text-align: center;
+  background-color: &dtml-globalBackgroundColor;;
 }
 
-.appyList {
-  line-height: 1.1em;
-  margin: 0 0 0.5em 1.2em;
-  padding: 0;
-}
-
-.appyBullet {
-  margin: 0;
-}
-
-.appyPod {
-  float:right;
-}
-
-.appyNav {
-  padding: 0.4em 0 0.4em 0;
-}
-
-.appyFocus {
-  color: #900101;
-}
-
-#importedElem {
-  color: grey;
-  font-style: italic;
-}
-
-.appyTabs {
-  margin-bottom: 1em;
-}
-
-.appyTabs li a {
-  border-bottom:1px solid transparent;
-  font-size: 90%;
-}
-
-.appyTabs li a:visited {
-  color: #578308;
-}
-
-.appyTitle {
-  padding-top: 0.5em;
-  font-size: 110%;
-}
-
-.appyLabel {
-  font-weight: bold;
-  padding-right: 0.4em;
+.appyPlusImg {
+  vertical-align: top;
+  position: relative;
+  left: -1.4em;
+  top: -0.55em;
 }
 
 .appyPhase {
@@ -97,7 +70,7 @@
   font-size: 105%;
 }
 
-/* stepxx classes are used for displaying status of a phase or state. */
+/* Following classes are used for displaying status of a phase or state. */
 .stepDone {
   background-color: #cde2a7;
   background-image: url(&dtml-portal_url;/skyn/done.png);
@@ -122,17 +95,6 @@
   background-color: #ffffff;
 }
 
-.appyPlusImg {
-  vertical-align: top;
-  position: relative;
-  left: -1.4em;
-  top: -0.55em;
-}
-
-.appyRefEdit {
-  line-height: 1.5em;
-}
-
 .appyCommonInfo {
   border-color: #ffa500;
   background-color: &dtml-evenRowBackgroundColor;;
@@ -141,22 +103,13 @@
   margin-bottom: 0.5em;
 }
 
-.appyWorkflow {
-  text-align: center;
-  background-color: &dtml-globalBackgroundColor;;
-}
-
-dl.expandedInlineCollapsible dt.collapsibleHeader, dl.expandedBlockCollapsible dt.collapsibleHeader {
-  background:#dee7ec url(treeExpanded.gif) no-repeat scroll 6px 50%;
-  border-width 1px;
-  border-color: #8cacbb;
-  border-style: solid;
-  border-width: thin;
-}
-
 /* With fields layout in columns, standard error frame is too large */
 .error {
   padding: 0.4em;
+}
+
+.odd {
+  background-color: white;
 }
 
 /* Table styles */

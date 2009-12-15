@@ -316,8 +316,8 @@
           Display the previous values of the fields whose value were modified in this change.</tal:comment>
         <table class="appyChanges" width="100%">
           <tr>
-            <th tal:content="python: tool.translate('modified_field')"></th>
-            <th tal:content="python: tool.translate('previous_value')"></th>
+            <th align="left" width="30%" tal:content="python: tool.translate('modified_field')"></th>
+            <th align="left" width="70%" tal:content="python: tool.translate('previous_value')"></th>
           </tr>
           <tr tal:repeat="change event/changes/items">
             <td tal:content="python: tool.translate(change[1][1])"></td>
@@ -669,7 +669,7 @@
     </tr></table>
 
     <table tal:define="fieldDescrs python: tool.getResultColumns(objs[0], contentType)"
-         class="vertical listing" width="100%" cellpadding="0" cellspacing="0">
+         class="listing nosort" width="100%" cellpadding="0" cellspacing="0">
     <tal:comment replace="nothing">Every item in fieldDescr is a FieldDescr instance,
       excepted for workflow state (which is not a field): in this case it is simply the
       string "workflowState".</tal:comment>
@@ -723,7 +723,9 @@
     </tr>
 
     <tal:comment replace="nothing">Results</tal:comment>
-    <tr tal:repeat="obj objs" id="query_row">
+    <tal:row repeat="obj objs">
+    <tr id="query_row" tal:define="odd repeat/obj/odd"
+        tal:attributes="class python:test(odd, 'even', 'odd')">
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
       <td id="field_title"><a
@@ -777,6 +779,7 @@
         </table>
       </td>
     </tr>
+    </tal:row>
     </table>
 
     <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>

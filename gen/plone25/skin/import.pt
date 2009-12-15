@@ -79,7 +79,7 @@
   </form>
 
   <h1 tal:content="python: tool.translate('import_title')"></h1><br/>
-  <table cellpadding="0" cellspacing="0" class="vertical listing" width="100%">
+  <table cellpadding="0" cellspacing="0" class="listing nosort" width="100%">
     <tr>
       <th tal:repeat="columnHeader python: importElems[0]">
         <img tal:condition="python: repeat['columnHeader'].number() == 1"
@@ -96,9 +96,11 @@
     </tr>
     <tal:row repeat="row python: importElems[1]">
     <tr tal:define="alreadyImported python: tool.isAlreadyImported(contentType, row[0]);
-                    global allAreImported python: allAreImported and alreadyImported"
+                    global allAreImported python: allAreImported and alreadyImported;
+                    odd repeat/row/odd"
         tal:attributes="id python:test(alreadyImported, 'importedElem', 'notImportedElem');
-                        style python:test(alreadyImported, 'display:none', 'display:table-row')">
+                        style python:test(alreadyImported, 'display:none', 'display:table-row');
+                        class python:test(odd, 'even', 'odd')">
       <td tal:repeat="elem python: row[1:]" tal:content="elem">
       </td>
       <td>

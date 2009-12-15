@@ -178,7 +178,7 @@
         </table>
 
         <tal:comment replace="nothing">Show forward reference(s)</tal:comment>
-        <table tal:attributes="class python:test(innerRef, '', 'vertical listing');
+        <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
                                width python:test(innerRef, '100%', test(appyType['wide'], '100%', ''))"
                align="right" tal:condition="python: not isBack and objs" cellpadding="0" cellspacing="0">
           <tr tal:condition="appyType/showHeaders">
@@ -195,7 +195,9 @@
             </th>
             <th tal:content="python: tool.translate('ref_actions')"></th>
           </tr>
-          <tr tal:repeat="obj objs" valign="top">
+          <tal:row repeat="obj objs">
+          <tr valign="top" tal:define="odd repeat/obj/odd"
+              tal:attributes="class python:test(odd, 'even', 'odd')">
             <tal:comment replace="nothing">Object title, shown here if not specified somewhere
               else in appyType.shownInfo.</tal:comment>
             <td tal:condition="python: 'title' not in appyType['shownInfo']"><metal:showObjectTitle
@@ -233,6 +235,7 @@
               <metal:showObjectActions use-macro="here/skyn/ref/macros/objectActions" />
             </td>
           </tr>
+          </tal:row>
         </table>
 
         </td></tr>

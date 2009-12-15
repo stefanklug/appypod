@@ -163,7 +163,10 @@ class AbstractMixin:
            modified values.'''
         # Remove from previousData all values that were not changed
         for fieldName in previousData.keys():
-            if getattr(self, fieldName) == previousData[fieldName][0]:
+            prev = previousData[fieldName][0]
+            curr = getattr(self, fieldName)
+            if (prev == curr) or ((prev == None) and (curr == '')) or \
+               ((prev == '') and (curr == None)):
                 del previousData[fieldName]
         if previousData:
             # Create the event to add in the history
