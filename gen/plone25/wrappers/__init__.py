@@ -2,7 +2,8 @@
    developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
-import time, os.path, mimetypes, unicodedata, random
+import os, os.path, time, mimetypes, unicodedata, random
+import appy.pod
 from appy.gen import Search
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder
@@ -236,14 +237,22 @@ class AbstractWrapper:
         wfTool.doActionFor(self.o, transitionName, comment=comment)
         del self.o._v_appy_do
 
-    def log(self, message, logLevel='info'):
+    def log(self, message, type='info'):
         '''Logs a message in the log file. p_logLevel may be "info", "warning"
            or "error".'''
         logger = self.o.getProductConfig().logger
-        if logLevel == 'warning': logMethod = logger.warn
-        elif logLevel == 'error': logMethod = logger.error
+        if type == 'warning': logMethod = logger.warn
+        elif type == 'error': logMethod = logger.error
         else: logMethod = logger.info
         logMethod(message)
+
+    def say(self, message, type='info'):
+        '''Prints a message in the user interface. p_logLevel may be "info",
+           "warning" or "error".'''
+        mType = type
+        if mType == 'warning': mType = 'warn'
+        elif mType == 'error': mType = 'stop'
+        self.o.plone_utils.addPortalMessage(message, type=mType)
 
     def normalize(self, s):
         '''Returns a version of string p_s whose special chars have been
@@ -338,11 +347,16 @@ class FileWrapper:
             raise 'Impossible to set attribute %s. "Settable" attributes ' \
                   'are "name", "content" and "mimeType".' % name
 
-    def dump(self, filePath=None):
+    def dump(self, filePath=None, format=None, tool=None):
         '''Writes the file on disk. If p_filePath is specified, it is the
            path name where the file will be dumped; folders mentioned in it
            must exist. If not, the file will be dumped in the OS temp folder.
-           The absolute path name of the dumped file is returned.'''
+           The absolute path name of the dumped file is returned.
+           If an error occurs, the method returns None. If p_format is
+           specified, OpenOffice will be called for converting the dumped file
+           to the desired format. In this case, p_tool, a Appy tool, must be
+           provided. Indeed, any Appy tool contains parameters for contacting
+           OpenOffice in server mode.'''
         if not filePath:
             filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
                 self.name)
@@ -358,5 +372,20 @@ class FileWrapper:
             # Only one chunk
             f.write(self.content)
         f.close()
+        if format:
+            if not tool: return
+            # Convert the dumped file using OpenOffice
+            convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
+            cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
+                filePath, format, tool.openOfficePort)
+            res = os.system(cmd)
+            os.remove(filePath)
+            if res != 0: return
+            # Return the name of the converted file.
+            baseName, ext = os.path.splitext(filePath)
+            if (ext == '.%s' % format):
+                filePath = '%s.res.%s' % (baseName, format)
+            else:
+                filePath = '%s.%s' % (baseName, format)
         return filePath
 # ------------------------------------------------------------------------------

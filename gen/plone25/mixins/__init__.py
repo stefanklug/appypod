@@ -33,9 +33,13 @@ class AbstractMixin:
             # creates the final object from the temp object.
         previousData = None
         if not created: previousData = self.rememberPreviousData()
-        # We do not process form data (=real update on the object) if the tool
-        # itself is being created.
-        if obj._appy_meta_type != 'tool': obj.processForm()
+        # Perform the change on the object, unless self is a tool being created.
+        if (obj._appy_meta_type == 'tool') and created:
+            # We do not process form data (=real update on the object) if the
+            # tool itself is being created.
+            pass
+        else:
+            obj.processForm()
         if previousData:
             # Keep in history potential changes on historized fields
             self.historizeData(previousData)
@@ -389,7 +393,7 @@ class AbstractMixin:
             fieldDescr = fieldDescr.__dict__
         appyType = fieldDescr['appyType']
         if isEdit and (appyType['type']=='Ref') and appyType['add']:return False
-        if isEdit and (appyType['type'] in ('Action', 'Computed')): return False
+        if isEdit and (appyType['type'] == 'Action'): return False
         if (fieldDescr['widgetType'] == 'backField') and \
            not self.getBRefs(fieldDescr['fieldRel']): return False
         # Do not show field if it is optional and not selected in flavour

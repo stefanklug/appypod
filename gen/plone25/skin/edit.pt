@@ -3,23 +3,19 @@
                    errors request/errors | python:{};
                    Iterator python:modules['Products.Archetypes'].IndexIterator;
                    schematas contextObj/Schemata;
-                   fieldsets python:[key for key in schematas.keys() if (key != 'metadata') and (schematas[key].editableFields(here, visible_only=True))];
+                   fieldsets python:[key for key in schematas.keys() if (key != 'metadata') and (schematas[key].editableFields(contextObj, visible_only=True))];
                    default_fieldset python:(not schematas or schematas.has_key('default')) and 'default' or fieldsets[0];
                    fieldset request/fieldset|options/fieldset|default_fieldset;
-                   fields python:schematas[fieldset].editableFields(here);
-                   dummy python:here.at_isEditable(fields);
-                   portal_type python:here.getPortalTypeName().lower().replace(' ', '_');
-                   type_name here/getPortalTypeName|here/archetype_name;
-                   lockable python:hasattr(here, 'wl_isLocked');
-                   isLocked python:lockable and here.wl_isLocked();
-                   tabindex tabindex|python:Iterator(pos=7000);
+                   fields python:schematas[fieldset].editableFields(contextObj);
+                   lockable python:hasattr(contextObj, 'wl_isLocked');
+                   isLocked python:lockable and contextObj.wl_isLocked();
                    isEdit python:True;
                    tool contextObj/getTool;
                    flavour python: tool.getFlavour(contextObj);
                    appFolder tool/getAppFolder;
                    appName appFolder/id;
-                   css python:here.getUniqueWidgetAttr(fields, 'helper_css');
-                   js python:here.getUniqueWidgetAttr(fields, 'helper_js');
+                   css python:contextObj.getUniqueWidgetAttr(fields, 'helper_css');
+                   js python:contextObj.getUniqueWidgetAttr(fields, 'helper_js');
                    phaseInfo python: contextObj.getAppyPhases(fieldset=fieldset, forPlone=True);
                    phase request/phase|phaseInfo/name;
                    pageName python: contextObj.getAppyPage(isEdit, phaseInfo);">
@@ -91,24 +87,20 @@
           <tal:previousButton condition="python: pageIndex &gt; 0">
             <input class="context" type="submit" name="buttonPrevious"
                    i18n:attributes="value label_previous;" i18n:domain="plone"
-                   tal:attributes="tabindex tabindex/next;
-                                   disabled python:test(isLocked, 'disabled', None);"/>
+                   tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
             <input type="hidden" name="previousPage" tal:attributes="value python: pages[pageIndex-1]"/>
           </tal:previousButton>
           <tal:nextButton condition="python: pageIndex &lt; numberOfPages - 1">
             <input class="context" type="submit" name="buttonNext" value="Next"
                    i18n:attributes="value label_next;" i18n:domain="plone"
-                   tal:attributes="tabindex tabindex/next;
-                                   disabled python:test(isLocked, 'disabled', None);"/>
+                   tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
             <input type="hidden" name="nextPage" tal:attributes="value python: pages[pageIndex+1]"/>
           </tal:nextButton>
           <input class="context" type="submit" name="buttonOk"
                  i18n:attributes="value label_save;" i18n:domain="plone"
-                 tal:attributes="tabindex tabindex/next;
-                                 disabled python:test(isLocked, 'disabled', None);"/>
+                 tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
           <input class="standalone" type="submit" name="buttonCancel"
-                 i18n:attributes="value label_cancel;" i18n:domain="plone"
-                 tal:attributes="tabindex tabindex/next"/>
+                 i18n:attributes="value label_cancel;" i18n:domain="plone"/>
         </metal:block>
       </form>
       <div metal:use-macro="here/skyn/macros/macros/showPageFooter"/>

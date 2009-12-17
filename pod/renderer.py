@@ -25,7 +25,7 @@ import appy.pod
 from appy.pod import PodError
 from appy.shared.xml_parser import XmlElement
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
-from appy.pod.converter import ODT_FILE_TYPES
+from appy.pod.converter import FILE_TYPES
 from appy.pod.buffers import FileBuffer
 from appy.pod.xhtml2odt import Xhtml2OdtConverter
 from appy.pod.doc_importers import OdtImporter, ImageImporter, PdfImporter
@@ -423,9 +423,9 @@ class Renderer:
                 os.rename(resultOdtName, self.result)
             else:
                 if resultType.startswith('.'): resultType = resultType[1:]
-                if not resultType in ODT_FILE_TYPES.keys():
+                if not resultType in FILE_TYPES.keys():
                     raise PodError(BAD_RESULT_TYPE % (
-                        self.result, ODT_FILE_TYPES.keys()))
+                        self.result, FILE_TYPES.keys()))
                 # Call OpenOffice to perform the conversion or document update
                 self.callOpenOffice(resultOdtName, resultType)
                 # I have the result. Move it to the correct name

@@ -202,7 +202,7 @@
       <metal:editRef use-macro="here/skyn/ref/macros/editReference" />
     </tal:ref>
   </tal:editRef>
-  <tal:computedField condition="python: (not isEdit) and (appyType['type'] == 'Computed')">
+  <tal:computedField condition="python: appyType['type'] == 'Computed'">
     <metal:cf use-macro="here/skyn/macros/macros/showComputedField" />
   </tal:computedField>
   <tal:actionField condition="python: appyType['type'] == 'Action'">
