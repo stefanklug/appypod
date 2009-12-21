@@ -98,7 +98,7 @@
 </div>
 
 <div metal:define-macro="showInfoField">
-  <span class="appyLabel" tal:content="label"></span>
+  <span class="appyLabel" tal:content="structure label"></span>
   <span tal:content="structure description"></span>
 </div>
 

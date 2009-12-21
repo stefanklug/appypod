@@ -33,6 +33,27 @@ except ImportError:
     hasSap = False
 
 # ------------------------------------------------------------------------------
+class SapResult:
+    '''Represents a result as returned by SAP. It defines a __getattr__ method
+       that allows to retrieve SAP "output" parameters (export, tables) by their
+       name (as if they were attributes of this class), in a Python format
+       (list, dict, simple value).'''
+    def __init__(self, function):
+        # The pysap function obj that was called and that produced this result.
+        self.function = function
+    def __getattr__(self, name):
+        '''Allows a smart access to self.function's results.'''
+        if name.startswith('__'): raise AttributeError
+        paramValue = self.function[name]
+        paramType = paramValue.__class__.__name__
+        if paramType == 'ItTable':
+            return paramValue.to_list()
+        elif paramType == 'STRUCT':
+            return paramValue.to_dict()
+        else:
+            return paramValue
+
+# ------------------------------------------------------------------------------
 class Sap:
     '''Represents a remote SAP system. This class allows to connect to a distant
        SAP system and perform RFC calls.'''
@@ -43,6 +64,7 @@ class Sap:
         self.user = user
         self.password = password
         self.sap = None # Will hold the handler to the SAP distant system.
+        self.functionName = None # The name of the next function to call.
         if not hasSap: raise SapError(SAP_MODULE_ERROR)
 
     def connect(self):
@@ -84,9 +106,11 @@ class Sap:
             res[name.lower()] = v
         return res
 
-    def call(self, functionName, **params):
+    def call(self, functionName=None, **params):
         '''Calls a function on the SAP server.'''
         try:
+            if not functionName:
+                functionName = self.functionName
             function = self.sap.get_interface(functionName)
             # Specify the parameters
             for name, value in params.iteritems():
@@ -118,6 +142,14 @@ class Sap:
             function()
         except pysap.BaseSapRfcError, se:
             raise SapError(SAP_FUNCTION_ERROR % (functionName, str(se)))
+        return SapResult(function)
+
+    def __getattr__(self, name):
+        '''The user can directly call self.<sapFunctionName>(params) instead of
+           calling self.call(<sapFunctionName>, params).'''
+        if name.startswith('__'): raise AttributeError
+        self.functionName = name
+        return self.call
 
     def getTypeInfo(self, typeName):
         '''Returns information about the type (structure) named p_typeName.'''

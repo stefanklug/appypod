@@ -197,7 +197,14 @@ class AbstractMixin:
            history, for example).'''
         # Which value will we use ?
         if useParamValue: v = value
-        else: v = eval('self.%s' % name)
+        else:
+            try:
+                v = eval('self.%s' % name)
+            except AttributeError:
+                # Probably a newly created attribute.
+                # In this case, return the default value.
+                v = None
+                if appyType: v = appyType['default']
         if not appyType: return v
         if (v == None) or (v == ''): return v
         vType = appyType['type']

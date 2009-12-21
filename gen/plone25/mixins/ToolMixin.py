@@ -124,7 +124,8 @@ class ToolMixin(AbstractMixin):
            useful for some usages like knowing the number of objects without
            needing to get information about them). If no p_maxResults is
            specified, the method returns maximum
-           self.getNumberOfResultsPerPage(). p_maxResults is ignored if
+           self.getNumberOfResultsPerPage(). The method returns all objects if
+           p_maxResults equals string "NO_LIMIT". p_maxResults is ignored if
            p_brainsOnly is True.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
@@ -164,6 +165,7 @@ class ToolMixin(AbstractMixin):
         brains = self.portal_catalog.searchResults(**params)
         if brainsOnly: return brains
         if not maxResults: maxResults = self.getNumberOfResultsPerPage()
+        elif maxResults == 'NO_LIMIT': maxResults = None
         res = SomeObjects(brains, maxResults, startNumber)
         res.brainsToObjects()
         # In some cases (p_remember=True), we need to keep some information

@@ -102,6 +102,9 @@ class AbstractWrapper:
         key = self.o.workflow_history.keys()[0]
         return self.o.workflow_history[key]
     history = property(get_history)
+    def get_user(self):
+        return self.o.portal_membership.getAuthenticatedMember()
+    user = property(get_user)
 
     def link(self, fieldName, obj):
         '''This method links p_obj to this one through reference field
@@ -270,6 +273,10 @@ class AbstractWrapper:
         contentType = flavour.o.getPortalType(klass)
         # Create the Search object
         search = Search('customSearch', sortBy=sortBy, **fields)
+        if not maxResults:
+            maxResults = 'NO_LIMIT'
+            # If I let maxResults=None, only a subset of the results will be
+            # returned by method executeResult.
         res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
             maxResults=maxResults)
         return [o.appy() for o in res['objects']]

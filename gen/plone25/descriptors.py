@@ -194,6 +194,7 @@ class ArchetypeFieldDescriptor:
         # field is invisible; we will display it ourselves (like for Ref fields)
 
     alwaysAValidatorFor = ('Ref', 'Integer', 'Float')
+    notToValidateFields = ('Info', 'Computed', 'Action')
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
            Archetype elements to generate.'''
@@ -233,13 +234,15 @@ class ArchetypeFieldDescriptor:
         # - slaves ?
         if self.appyType.slaves: self.widgetParams['visible'] = False
         # Archetypes will believe the field is invisible; we will display it
-        # ourselves (like for Ref fields)
+        # ourselves (like for Ref fields).
         # - need to generate a field validator?
-        # In all cases, add an i18n message for the validation error for this
-        # field.
-        label = '%s_%s_valid' % (self.classDescr.name, self.fieldName)
-        poMsg = PoMessage(label, '', PoMessage.DEFAULT_VALID_ERROR)
-        self.generator.labels.append(poMsg)
+        # In all cases excepted for "immutable" fields, add an i18n message for
+        # the validation error for this field.
+        if self.appyType.type not in self.notToValidateFields:
+            label = '%s_%s_valid' % (self.classDescr.name, self.fieldName)
+            poMsg = PoMessage(label, '', PoMessage.DEFAULT_VALID_ERROR)
+            self.generator.labels.append(poMsg)
+        # Generate a validator for the field if needed.
         if (type(self.appyType.validator) == types.FunctionType) or \
            (type(self.appyType.validator) == type(String.EMAIL)) or \
            (self.appyType.type in self.alwaysAValidatorFor):
