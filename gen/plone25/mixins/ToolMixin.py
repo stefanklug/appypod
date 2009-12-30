@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
+from appy.gen import Type
 from appy.gen.utils import FieldDescr, SomeObjects
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
@@ -111,12 +112,19 @@ class ToolMixin(AbstractMixin):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
-           corresponds to a search defined on p_contentType: additional search
-           criteria will be added to the query. We will retrieve objects from
-           p_startNumber. If p_search is defined, it corresponds to a custom
-           Search instance (instead of a predefined named search like in
-           p_searchName). If both p_searchName and p_search are given, p_search
-           is ignored. This method returns a list of objects in the form of the
+           corresponds to:
+             1) a search defined on p_contentType: additional search criteria
+                will be added to the query, or;
+             2) "_advanced": in this case, additional search criteria will also
+                be added to the query, but those criteria come from the session
+                and were created from search.pt.
+
+           We will retrieve objects from p_startNumber. If p_search is defined,
+           it corresponds to a custom Search instance (instead of a predefined
+           named search like in p_searchName). If both p_searchName and p_search
+           are given, p_search is ignored.
+
+           This method returns a list of objects in the form of the
            __dict__ attribute of an instance of SomeObjects (see in
            appy.gen.utils). We return the __dict__ attribute instead of real
            instance: that way, it can be used in ZPTs without security problems.
@@ -143,8 +151,9 @@ class ToolMixin(AbstractMixin):
             # In this case, contentType must contain a single content type.
             appyClass = self.getAppyClass(contentType)
             if searchName:
-                search = ArchetypesClassDescriptor.getSearch(
-                    appyClass, searchName)
+                if searchName != '_advanced':
+                    search = ArchetypesClassDescriptor.getSearch(
+                        appyClass, searchName)
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
@@ -361,6 +370,26 @@ class ToolMixin(AbstractMixin):
             return True
         else:
             return False
+
+    def getSearchableFields(self, contentType):
+        '''Returns the list of fields that may be searched on objects on type
+           p_contentType (=indexed fields).'''
+        appyClass = self.getAppyClass(contentType)
+        res = []
+        for attrName in dir(appyClass):
+            attr = getattr(appyClass, attrName)
+            if isinstance(attr, Type) and attr.indexed:
+                dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
+                res.append((attrName, dAttr))
+        return res
+
+    def onSearchObjects(self):
+        '''This method is called when the user triggers a search from
+           search.pt.'''
+        rq = self.REQUEST
+        backUrl = '%s/query?type_name=%s&flavourNumber=%d&search=_advanced' % \
+            (os.path.dirname(rq['URL']), rq['type_name'], rq['flavourNumber'])
+        return self.goto(backUrl)
 
     def getJavascriptMessages(self):
         '''Returns the translated version of messages that must be shown in

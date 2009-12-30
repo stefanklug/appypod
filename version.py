@@ -1,0 +1,2 @@
+short='dev'
+verbose='dev'

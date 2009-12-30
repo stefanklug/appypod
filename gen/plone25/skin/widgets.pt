@@ -1,0 +1,39 @@
+<metal:searchInteger define-macro="searchInteger">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchInteger>
+
+<metal:searchFloat define-macro="searchFloat">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchFloat>
+
+<metal:searchString define-macro="searchString">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchString>
+
+<metal:searchBoolean define-macro="searchBoolean">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchBoolean>
+
+<metal:searchDate define-macro="searchDate">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchDate>
+
+<metal:searchFile define-macro="searchFile">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchFile>
+
+<metal:searchRef define-macro="searchRef">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchRef>
+
+<metal:searchComputed define-macro="searchComputed">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchComputed>
+
+<metal:searchAction define-macro="searchAction">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchAction>
+
+<metal:searchInfo define-macro="searchInfo">
+  <p tal:content="fieldName">Hello</p>
+</metal:searchInfo>

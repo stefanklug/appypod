@@ -639,7 +639,7 @@
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
-               searchLabel   python: '%s_search_%s' % (contentType, searchName);
+               searchLabel   python: test(searchName=='_advanced', 'search_results', '%s_search_%s' % (contentType, searchName));
                searchDescr   python: '%s_descr' % searchLabel;
                severalTypes  python: contentType and (contentType.find(',') != -1);
                queryResult   python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber, remember=True);
@@ -909,6 +909,11 @@
                  tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootClass);
                                  src string: $portal_url/skyn/import.png;
                                  title python: tool.translate('query_import')"/>
+            <tal:comment replace="nothing">Search objects of this type (todo: update flavourNumber)</tal:comment>
+            <img style="cursor:pointer"
+                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/search?type_name=%s&flavourNumber=1\'' % (appFolder.absolute_url(), rootClass);
+                                 src string: $portal_url/skyn/search.gif;
+                                 title python: tool.translate('search_objects')"/>
           </td>
         </tr>
       </table>

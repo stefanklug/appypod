@@ -1,0 +1,44 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      metal:use-macro="here/main_template/macros/master">
+
+<tal:comment replace="nothing">Disable standard Plone green tabs</tal:comment>
+<div metal:fill-slot="top_slot">
+  <metal:block metal:use-macro="here/global_defines/macros/defines" />
+  <div tal:define="dummy python:request.set('disable_border', 1)" />
+</div>
+
+<tal:comment replace="nothing">Fill main slot of Plone main_template</tal:comment>
+<body>
+<metal:fill fill-slot="main"
+       tal:define="appFolder context/getParentNode;
+                   contentType request/type_name;
+                   tool python: portal.get('portal_%s' % appFolder.id.lower());
+                   searchableFields python: tool.getSearchableFields(contentType)">
+
+  <tal:comment replace="nothing">Search title</tal:comment>  
+  <h1 tal:content="python: tool.translate('search_title')"></h1><br/>
+
+  <tal:comment replace="nothing">Form for searching objects of request/type_name.</tal:comment>
+  <form name="search" tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
+    <input type="hidden" name="action" value="SearchObjects"/>
+    <input type="hidden" name="type_name" tal:attributes="value contentType"/>
+    <input type="hidden" name="flavourNumber:int" tal:attributes="value request/flavourNumber"/>
+
+    <tal:searchFields repeat="searchField searchableFields">
+      <tal:showSearchField define="fieldName python:searchField[0];
+                                   appyType python:searchField[1]">
+        <metal:searchField use-macro="python: appFolder.skyn.widgets.macros.get('search%s' % searchField[1]['type'])"/>
+      </tal:showSearchField>
+    </tal:searchFields>
+
+  <tal:comment replace="nothing">Submit button</tal:comment>
+  <p align="right"><br/>
+    <input type="submit" tal:attributes="value python:tool.translate('search_button')"/>
+  </p>
+  </form>
+</metal:fill>
+</body>
+</html>
