@@ -8,7 +8,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes
 import appy.gen
-from appy.gen import String
+from appy.gen import String, Selection
 from appy.gen.utils import FieldDescr, GroupDescr, PhaseDescr, StateDescr, \
                            ValidationErrors, sequenceTypes, SomeObjects
 from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
@@ -216,13 +216,20 @@ class AbstractMixin:
         elif vType == 'String':
             if not v: return v
             if appyType['isSelect']:
-                maxMult = appyType['multiplicity'][1]
-                t = self.translate
-                if (maxMult == None) or (maxMult > 1):
-                    return [t('%s_%s_list_%s' % (self.meta_type, name, e)) \
-                            for e in v]
+                validator = appyType['validator']
+                if isinstance(validator, Selection):
+                    # Value(s) come from a dynamic vocabulary
+                    return validator.getText(self, v)
                 else:
-                    return t('%s_%s_list_%s' % (self.meta_type, name, v))
+                    # Value(s) come from a fixed vocabulary whose texts are in
+                    # i18n files.
+                    maxMult = appyType['multiplicity'][1]
+                    t = self.translate
+                    if (maxMult == None) or (maxMult > 1):
+                        return [t('%s_%s_list_%s' % (self.meta_type, name, e)) \
+                                for e in v]
+                    else:
+                        return t('%s_%s_list_%s' % (self.meta_type, name, v))
             return v
         elif vType == 'Boolean':
             if v: return self.translate('yes', domain='plone')
@@ -866,6 +873,10 @@ class AbstractMixin:
             # I create a new entry "backd"; if I put the dict in "back" I
             # really modify the initial appyType object and I don't want to do
             # this.
+        # Add the i18n label for the field
+        if not res.has_key('label'):
+            res['label'] = '%s_%s' % (self._appy_getAtType(appyType.selfClass),
+                                      fieldName)
         return res
  
     def _appy_getAtType(self, appyClass, flavour=None):
@@ -977,6 +988,26 @@ class AbstractMixin:
         for v in values:
             i += 1
             res.append( (v, self.utranslate(labels[i], domain=domain)))
+        return self.getProductConfig().DisplayList(tuple(res))
+
+    def _appy_getDynamicDisplayList(self, methodName):
+        '''Calls the method named p_methodName for producing a DisplayList from
+           values computed dynamically. If methodName begins with _appy_, it is
+           a special Appy method: we will call it on the Mixin directly. Else,
+           it is a user method: we will call it on the wrapper. Some args can
+           be hidden into p_methodName, separated with stars, like in this
+           example: method1*arg1*arg2. Only string params are supported.'''
+        # Unwrap parameters if any.
+        if methodName.find('*') != -1:
+            elems = methodName.split('*')
+            methodName = elems[0]
+            args = elems[1:]
+        else:
+            args = ()
+        if methodName.startswith('_appy_'):
+            exec 'res = self.%s(*args)' % methodName
+        else:
+            exec 'res = self.appy().%s(*args)' % methodName
         return self.getProductConfig().DisplayList(tuple(res))
 
     nullValues = (None, '', ' ')

@@ -647,7 +647,8 @@
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
-               baseUrl       python: tool.getQueryUrl(contentType, flavourNumber, searchName, startNumber='**v**')">
+               baseUrl       python: tool.getQueryUrl(contentType, flavourNumber, searchName, startNumber='**v**');
+               newSearchUrl  python: '%s/skyn/search?type_name=%s&flavourNumber=%d' % (tool.getAppFolder().absolute_url(), contentType, flavourNumber);">
 
   <tal:result condition="objs">
 
@@ -655,6 +656,10 @@
     <legend>
       <span tal:replace="structure python: test(searchName, tool.translate(searchLabel), test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
       (<span tal:replace="totalNumber"/>)
+      <tal:newSearch condition="python: searchName == '_advanced'">
+        &nbsp;&nbsp;—&nbsp;&nbsp;<i><a tal:attributes="href newSearchUrl"
+        tal:content="python: tool.translate('search_new')"></a></i>
+      </tal:newSearch>
     </legend>
 
     <table cellpadding="0" cellspacing="0" width="100%"><tr>
@@ -787,9 +792,13 @@
   </fieldset>
   </tal:result>
 
-  <span tal:condition="not: objs"
-        tal:content="python: tool.translate('query_no_result')">No result.
-  </span>
+  <tal:noResult condition="not: objs">
+    <span tal:replace="python: tool.translate('query_no_result')"/>
+    <tal:newSearch condition="python: searchName == '_advanced'">
+        <br/><i class="discreet"><a tal:attributes="href newSearchUrl"
+        tal:content="python: tool.translate('search_new')"></a></i>
+      </tal:newSearch>
+  </tal:noResult>
 
 </metal:queryResults>
 
@@ -883,7 +892,9 @@
   <tal:comment replace="nothing">TODO: implement a widget for selecting the needed flavour.</tal:comment>
   
   <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
-  <tal:section repeat="rootClass rootClasses" define="flavourNumber python:1">
+  <tal:section repeat="rootClass rootClasses"
+               define="flavourNumber python:1;
+                       flavour python: tool.getFlavour('Dummy_%d' % flavourNumber)">
     <tal:comment replace="nothing">Section title, with action icons</tal:comment>
     <dt tal:attributes="class python:test(repeat['rootClass'].number()==1, 'portletAppyItem', 'portletAppyItem portletSep')">
       <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
@@ -911,6 +922,8 @@
                                  title python: tool.translate('query_import')"/>
             <tal:comment replace="nothing">Search objects of this type (todo: update flavourNumber)</tal:comment>
             <img style="cursor:pointer"
+                 tal:define="showSearch python: flavour.getAttr('enableAdvancedSearchFor%s' % rootClass)"
+                 tal:condition="showSearch"
                  tal:attributes="onClick python: 'href: window.location=\'%s/skyn/search?type_name=%s&flavourNumber=1\'' % (appFolder.absolute_url(), rootClass);
                                  src string: $portal_url/skyn/search.gif;
                                  title python: tool.translate('search_objects')"/>

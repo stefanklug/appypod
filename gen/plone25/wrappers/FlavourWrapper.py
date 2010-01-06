@@ -41,6 +41,18 @@ class FlavourWrapper:
                Stores the list of columns that must be show when displaying
                instances of the a given root p_klass.
 
+           "enableAdvancedSearch"
+               Determines if the advanced search screen must be enabled for
+               p_klass.
+
+           "numberOfSearchColumns"
+               Determines in how many columns the search screen for p_klass
+               is rendered.
+
+           "searchFields"
+               Determines, among all indexed fields for p_klass, which one will
+               really be used in the search screen.
+
            "optionalFields"
                Stores the list of optional attributes that are in use in the
                current flavour for the given p_klass.

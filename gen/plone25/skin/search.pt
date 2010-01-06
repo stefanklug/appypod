@@ -16,10 +16,12 @@
        tal:define="appFolder context/getParentNode;
                    contentType request/type_name;
                    tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   searchableFields python: tool.getSearchableFields(contentType)">
+                   flavour python: tool.getFlavour('Dummy_%s' % request['flavourNumber']);
+                   searchableFields python: flavour.getSearchableFields(contentType)">
 
   <tal:comment replace="nothing">Search title</tal:comment>  
-  <h1 tal:content="python: tool.translate('search_title')"></h1><br/>
+  <h1><span tal:replace="python: tool.translate('%s_plural' % contentType)"/> —
+      <span tal:replace="python: tool.translate('search_title')"/></h1><br/>
 
   <tal:comment replace="nothing">Form for searching objects of request/type_name.</tal:comment>
   <form name="search" tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
@@ -27,12 +29,20 @@
     <input type="hidden" name="type_name" tal:attributes="value contentType"/>
     <input type="hidden" name="flavourNumber:int" tal:attributes="value request/flavourNumber"/>
 
-    <tal:searchFields repeat="searchField searchableFields">
-      <tal:showSearchField define="fieldName python:searchField[0];
-                                   appyType python:searchField[1]">
-        <metal:searchField use-macro="python: appFolder.skyn.widgets.macros.get('search%s' % searchField[1]['type'])"/>
-      </tal:showSearchField>
-    </tal:searchFields>
+    <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%"
+           tal:define="numberOfColumns python: flavour.getAttr('numberOfSearchColumnsFor%s' % contentType)">
+      <tr tal:repeat="searchRow python: tool.tabularize(searchableFields, numberOfColumns)" valign="top" class="appySearchRow">
+        <td tal:repeat="searchField searchRow">
+          <tal:field condition="searchField">
+            <tal:showSearchField define="fieldName python:searchField[0];
+                                         appyType python:searchField[1];
+                                         widgetName python: 'w_%s' % fieldName">
+              <metal:searchField use-macro="python: appFolder.skyn.widgets.macros.get('search%s' % searchField[1]['type'])"/>
+            </tal:showSearchField>
+          </tal:field><br/><br class="discreet"/>
+        </td>
+      </tr>
+    </table>
 
   <tal:comment replace="nothing">Submit button</tal:comment>
   <p align="right"><br/>

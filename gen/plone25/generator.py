@@ -121,6 +121,7 @@ class Generator(AbstractGenerator):
             msg('search_objects',       '', msg.SEARCH_OBJECTS),
             msg('search_results',       '', msg.SEARCH_RESULTS),
             msg('search_results_descr', '', ' '),
+            msg('search_new',           '', msg.SEARCH_NEW),
             msg('ref_invalid_index',    '', msg.REF_INVALID_INDEX),
             msg('bad_int',              '', msg.BAD_INT),
             msg('bad_float',            '', msg.BAD_FLOAT),
@@ -136,6 +137,7 @@ class Generator(AbstractGenerator):
             msg('goto_next',            '', msg.GOTO_NEXT),
             msg('goto_last',            '', msg.GOTO_LAST),
             msg('goto_source',          '', msg.GOTO_SOURCE),
+            msg('whatever',             '', msg.WHATEVER),
         ]
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()
@@ -299,6 +301,12 @@ class Generator(AbstractGenerator):
             theImport = 'import %s' % classDescr.klass.__module__
             if theImport not in imports:
                 imports.append(theImport)
+        # Compute ordered lists of attributes for every Appy class.
+        attributes = []
+        for classDescr in classDescrs:
+            classAttrs = [a[0] for a in classDescr.getOrderedAppyAttributes()]
+            attrs = ','.join([('"%s"' % a) for a in classAttrs])
+            attributes.append('"%s":[%s]' % (classDescr.name, attrs))
         # Compute root classes
         rootClasses = ''
         for classDescr in self.classes:
@@ -317,6 +325,7 @@ class Generator(AbstractGenerator):
         repls['referers'] = referers
         repls['workflowInstancesInit'] = wfInit
         repls['imports'] = '\n'.join(imports)
+        repls['attributes'] = ',\n    '.join(attributes)
         repls['defaultAddRoles'] = ','.join(
             ['"%s"' % r for r in self.config.defaultCreators])
         repls['addPermissions'] = addPermissions
@@ -598,9 +607,10 @@ class Generator(AbstractGenerator):
                     fieldType.group = childDescr.klass.__name__
                     Flavour._appy_addField(childFieldName,fieldType,childDescr)
             if classDescr.isRoot():
-                # We must be able to configure query results from the
-                # flavour.
+                # We must be able to configure query results from the flavour.
                 Flavour._appy_addQueryResultColumns(classDescr)
+                # Add the search-related fields.
+                Flavour._appy_addSearchRelatedFields(classDescr)
         Flavour._appy_addWorkflowFields(self.flavourDescr)
         Flavour._appy_addWorkflowFields(self.podTemplateDescr)
         # Generate the flavour class and related i18n messages

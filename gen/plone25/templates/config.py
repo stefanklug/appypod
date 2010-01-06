@@ -42,4 +42,8 @@ referers = {
 # names of DC transitions.
 workflowInstances = {}
 <!workflowInstancesInit!>
+
+# In the following dict, we store, for every Appy class, the ordered list of
+# attributes (included inherited attributes).
+attributes = {<!attributes!>}
 # ------------------------------------------------------------------------------

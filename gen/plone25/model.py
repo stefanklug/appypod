@@ -7,7 +7,7 @@
 
 # ------------------------------------------------------------------------------
 import copy, types
-from appy.gen import Type, Integer, String, File, Ref, Boolean
+from appy.gen import Type, Integer, String, File, Ref, Boolean, Selection
 
 # ------------------------------------------------------------------------------
 class ModelClass:
@@ -22,13 +22,14 @@ class ModelClass:
                      # instance of a ModelClass, those attributes must not be
                      # given in the constructor.
 
+    @classmethod
     def _appy_addField(klass, fieldName, fieldType, classDescr):
         exec "klass.%s = fieldType" % fieldName
         klass._appy_attributes.append(fieldName)
         if hasattr(klass, '_appy_classes'):
             klass._appy_classes[fieldName] = classDescr.name
-    _appy_addField = classmethod(_appy_addField)
 
+    @classmethod
     def _appy_getTypeBody(klass, appyType):
         '''This method returns the code declaration for p_appyType.'''
         typeArgs = ''
@@ -45,10 +46,12 @@ class ModelClass:
                     attrValue = attrValue.__name__
                 else:
                     attrValue = '%s.%s' % (moduleName, attrValue.__name__)
+            elif isinstance(attrValue, Selection):
+                attrValue = 'Selection("%s")' % attrValue.methodName
             typeArgs += '%s=%s,' % (attrName, attrValue)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
-    _appy_getTypeBody = classmethod(_appy_getTypeBody)
 
+    @classmethod
     def _appy_getBody(klass):
         '''This method returns the code declaration of this class. We will dump
            this in appyWrappers.py in the resulting product.'''
@@ -57,7 +60,6 @@ class ModelClass:
             exec 'appyType = klass.%s' % attrName
             res += '    %s=%s\n' % (attrName, klass._appy_getTypeBody(appyType))
         return res
-    _appy_getBody = classmethod(_appy_getBody)
 
 class PodTemplate(ModelClass):
     description = String(format=String.TEXT)
@@ -86,7 +88,8 @@ class Flavour(ModelClass):
     _appy_classes = {} # ~{s_attributeName: s_className}~
     # We need to remember the original classes related to the flavour attributes
     _appy_attributes = list(defaultFlavourAttrs)
-    
+
+    @classmethod
     def _appy_clean(klass):
         toClean = []
         for k, v in klass.__dict__.iteritems():
@@ -97,8 +100,8 @@ class Flavour(ModelClass):
             exec 'del klass.%s' % k
         klass._appy_attributes = list(defaultFlavourAttrs)
         klass._appy_classes = {}
-    _appy_clean = classmethod(_appy_clean)
 
+    @classmethod
     def _appy_copyField(klass, appyType):
         '''From a given p_appyType, produce a type definition suitable for
            storing the default value for this field.'''
@@ -121,8 +124,8 @@ class Flavour(ModelClass):
             res.back.show = False
             res.select = None # Not callable from flavour
         return res
-    _appy_copyField = classmethod(_appy_copyField)
 
+    @classmethod
     def _appy_addOptionalField(klass, fieldDescr):
         className = fieldDescr.classDescr.name
         fieldName = 'optionalFieldsFor%s' % className
@@ -134,8 +137,8 @@ class Flavour(ModelClass):
         fieldType.validator.append(fieldDescr.fieldName)
         fieldType.page = 'data'
         fieldType.group = fieldDescr.classDescr.klass.__name__
-    _appy_addOptionalField = classmethod(_appy_addOptionalField)
 
+    @classmethod
     def _appy_addDefaultField(klass, fieldDescr):
         className = fieldDescr.classDescr.name
         fieldName = 'defaultValueFor%s_%s' % (className, fieldDescr.fieldName)
@@ -143,8 +146,8 @@ class Flavour(ModelClass):
         klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
         fieldType.page = 'data'
         fieldType.group = fieldDescr.classDescr.klass.__name__
-    _appy_addDefaultField = classmethod(_appy_addDefaultField)
 
+    @classmethod
     def _appy_addPodField(klass, classDescr):
         '''Adds a POD field to the flavour and also an integer field that will
            determine the maximum number of documents to show at once on consult
@@ -163,21 +166,47 @@ class Flavour(ModelClass):
         klass._appy_addField(fieldName, fieldType, classDescr)
         classDescr.flavourFieldsToPropagate.append(
             ('podMaxShownTemplatesFor%s', copy.copy(fieldType)) )
-    _appy_addPodField = classmethod(_appy_addPodField)
 
+    @classmethod
     def _appy_addQueryResultColumns(klass, classDescr):
+        '''Adds, for class p_classDescr, the attribute in the flavour that
+           allows to select what default columns will be shown on query
+           results.'''
         className = classDescr.name
         fieldName = 'resultColumnsFor%s' % className
-        attrNames = [a[0] for a in classDescr.getOrderedAppyAttributes()]
-        attrNames.append('workflowState') # Object state from workflow
-        if 'title' in attrNames:
-            attrNames.remove('title') # Included by default.
-        fieldType = String(multiplicity=(0,None), validator=attrNames,
-                           page='userInterface',
-                           group=classDescr.klass.__name__)
+        fieldType = String(multiplicity=(0,None), validator=Selection(
+            '_appy_getAllFields*%s' % className), page='userInterface',
+            group=classDescr.klass.__name__)
         klass._appy_addField(fieldName, fieldType, classDescr)
-    _appy_addQueryResultColumns = classmethod(_appy_addQueryResultColumns)
 
+    @classmethod
+    def _appy_addSearchRelatedFields(klass, classDescr):
+        '''Adds, for class p_classDescr, attributes related to the search
+           functionality for class p_classDescr.'''
+        className = classDescr.name
+        # Field that defines if advanced search is enabled for class
+        # p_classDescr or not.
+        fieldName = 'enableAdvancedSearchFor%s' % className
+        fieldType = Boolean(default=True, page='userInterface',
+                            group=classDescr.klass.__name__)
+        klass._appy_addField(fieldName, fieldType, classDescr)
+        # Field that defines how many columns are shown on the custom search
+        # screen.
+        fieldName = 'numberOfSearchColumnsFor%s' % className
+        fieldType = Integer(default=3, page='userInterface',
+                            group=classDescr.klass.__name__)
+        klass._appy_addField(fieldName, fieldType, classDescr)
+        # Field that allows to select, among all indexed fields, what fields
+        # must really be used in the search screen.
+        fieldName = 'searchFieldsFor%s' % className
+        defaultValue = [a[0] for a in classDescr.getOrderedAppyAttributes(
+            condition='attrValue.indexed')]
+        fieldType = String(multiplicity=(0,None), validator=Selection(
+            '_appy_getSearchableFields*%s' % className), default=defaultValue,
+            page='userInterface', group=classDescr.klass.__name__)
+        klass._appy_addField(fieldName, fieldType, classDescr)
+
+    @classmethod
     def _appy_addWorkflowFields(klass, classDescr):
         '''Adds, for a given p_classDescr, the workflow-related fields.'''
         className = classDescr.name
@@ -208,8 +237,6 @@ class Flavour(ModelClass):
         fieldType = Boolean(default=defaultValue, page='userInterface',
                             group=groupName)
         klass._appy_addField(fieldName, fieldType, classDescr)
-        
-    _appy_addWorkflowFields = classmethod(_appy_addWorkflowFields)
 
 class Tool(ModelClass):
     flavours = Ref(None, multiplicity=(1,None), add=True, link=False,

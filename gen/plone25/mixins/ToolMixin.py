@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
-from appy.gen import Type
+from appy.gen import Type, Search
 from appy.gen.utils import FieldDescr, SomeObjects
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
@@ -117,7 +117,7 @@ class ToolMixin(AbstractMixin):
                 will be added to the query, or;
              2) "_advanced": in this case, additional search criteria will also
                 be added to the query, but those criteria come from the session
-                and were created from search.pt.
+                (in key "searchCriteria") and were created from search.pt.
 
            We will retrieve objects from p_startNumber. If p_search is defined,
            it corresponds to a custom Search instance (instead of a predefined
@@ -154,6 +154,9 @@ class ToolMixin(AbstractMixin):
                 if searchName != '_advanced':
                     search = ArchetypesClassDescriptor.getSearch(
                         appyClass, searchName)
+                else:
+                    fields = self.REQUEST.SESSION['searchCriteria']
+                    search = Search('customSearch', **fields)
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
@@ -162,7 +165,12 @@ class ToolMixin(AbstractMixin):
                 elif attrName == 'description': attrName = 'Description'
                 elif attrName == 'state': attrName = 'review_state'
                 else: attrName = 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
-                params[attrName] = fieldValue
+                if isinstance(fieldValue, basestring) and \
+                   fieldValue.endswith('*'):
+                    v = fieldValue[:-1]
+                    params[attrName] = {'query':[v,v+'Z'], 'range':'minmax'}
+                else:
+                    params[attrName] = fieldValue
             # Add a sort order if specified
             sb = search.sortBy
             if sb:
@@ -335,19 +343,20 @@ class ToolMixin(AbstractMixin):
            p_contentType.'''
         appyClass = self.getAppyClass(contentType)
         importParams = self.getCreateMeans(appyClass)['import']
-        columnMethod = importParams['columnMethod'].__get__('')
-        sortMethod = importParams['sortMethod']
+        onElement = importParams['onElement'].__get__('')
+        sortMethod = importParams['sort']
         if sortMethod: sortMethod = sortMethod.__get__('')
         elems = []
         for elem in os.listdir(importParams['path']):
             elemFullPath = os.path.join(importParams['path'], elem)
-            niceElem = columnMethod(elemFullPath)
-            niceElem.insert(0, elemFullPath) # To the result, I add the full
-            # path of the elem, which will not be shown.
-            elems.append(niceElem)
+            elemInfo = onElement(elemFullPath)
+            if elemInfo:
+                elemInfo.insert(0, elemFullPath) # To the result, I add the full
+                # path of the elem, which will not be shown.
+                elems.append(elemInfo)
         if sortMethod:
             elems = sortMethod(elems)
-        return [importParams['columnHeaders'], elems]
+        return [importParams['headers'], elems]
 
     def onImportObjects(self):
         '''This method is called when the user wants to create objects from
@@ -371,22 +380,25 @@ class ToolMixin(AbstractMixin):
         else:
             return False
 
-    def getSearchableFields(self, contentType):
-        '''Returns the list of fields that may be searched on objects on type
-           p_contentType (=indexed fields).'''
-        appyClass = self.getAppyClass(contentType)
-        res = []
-        for attrName in dir(appyClass):
-            attr = getattr(appyClass, attrName)
-            if isinstance(attr, Type) and attr.indexed:
-                dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
-                res.append((attrName, dAttr))
-        return res
-
     def onSearchObjects(self):
         '''This method is called when the user triggers a search from
            search.pt.'''
         rq = self.REQUEST
+        # Store the search criteria in the session
+        criteria = {}
+        for attrName in rq.form.keys():
+            if attrName.startswith('w_'):
+                attrValue = rq.form[attrName]
+                if attrValue:
+                    if attrName.find('*') != -1:
+                        attrName, attrType = attrName.split('*')
+                        if attrType == 'bool':
+                            exec 'attrValue = %s' % attrValue
+                    if isinstance(attrValue, list):
+                        attrValue = ' OR '.join(attrValue)
+                    criteria[attrName[2:]] = attrValue
+        rq.SESSION['searchCriteria'] = criteria
+        # Goto the screen that displays search results
         backUrl = '%s/query?type_name=%s&flavourNumber=%d&search=_advanced' % \
             (os.path.dirname(rq['URL']), rq['type_name'], rq['flavourNumber'])
         return self.goto(backUrl)
@@ -556,4 +568,30 @@ class ToolMixin(AbstractMixin):
                     navUrl = baseUrl + '/?nav=' + newNav % (index + 1)
                     res['%sUrl' % urlType] = navUrl
         return res
+
+    def tabularize(self, data, numberOfRows):
+        '''This method transforms p_data, which must be a "flat" list or tuple,
+           into a list of lists, where every sub-list has length p_numberOfRows.
+           This method is typically used for rendering elements in a table of
+           p_numberOfRows rows.'''
+        if numberOfRows > 1:
+            res = []
+            row = []
+            for elem in data:
+                row.append(elem)
+                if len(row) == numberOfRows:
+                    res.append(row)
+                    row = []
+            # Complete the last unfinished line if required.
+            if row:
+                while len(row) < numberOfRows: row.append(None)
+                res.append(row)
+            return res
+        else:
+            return data
+
+    def truncate(self, value, numberOfChars):
+        '''Truncates string p_value to p_numberOfChars.'''
+        if len(value) > numberOfChars: return value[:numberOfChars] + '...'
+        return value
 # ------------------------------------------------------------------------------

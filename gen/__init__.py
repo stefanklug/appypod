@@ -21,15 +21,28 @@ class Page:
 class Import:
     '''Used for describing the place where to find the data to use for creating
        an object.'''
-    def __init__(self, path, columnMethod=None, columnHeaders=(),
-                 sortMethod=None):
+    def __init__(self, path, onElement=None, headers=(), sort=None):
         self.id = 'import'
         self.path = path
-        self.columnMethod = columnMethod
-        # This method allows to split every element into subElements that can
-        # be shown as column values in a table.
-        self.columnHeaders = columnHeaders
-        self.sortMethod = sortMethod
+        # p_onElement hereafter must be a function (or a static method) that
+        # will be called every time an element to import is found. It takes a
+        # single arg that is the absolute filen name of the file to import,
+        # within p_path. It must return a list of info about the element, or
+        # None if the element must be ignored. The list will be used to display
+        # information about the element in a tabular form.
+        self.onElement = onElement
+        # The following attribute must contain the names of the column headers
+        # of the table that will display elements to import (retrieved from
+        # calls to self.onElement). Every not-None element retrieved from
+        # self.onElement must have the same length as self.headers.
+        self.headers = headers
+        # The following attribute must store a function or static method that
+        # will be used to sort elements to import. It will be called with a
+        # single param containing the list of all not-None elements as retrieved
+        # by calls to self.onElement (but with one additional first element in
+        # every list, which is the absolute file name of the element to import)
+        # and must return a similar, sorted, list.
+        self.sort = sort
 
 class Search:
     '''Used for specifying a search for a given type.'''
@@ -561,7 +574,25 @@ class Selection:
     '''Instances of this class may be given as validator of a String, in order
        to tell Appy that the validator is a selection that will be computed
        dynamically.'''
-    pass
+    def __init__(self, methodName):
+        # The p_methodName parameter must be the name of a method that will be
+        # called every time Appy will need to get the list of possible values
+        # for the related field. It must correspond to an instance method of
+        # the class defining the related field. This method accepts no argument
+        # and must return a list (or tuple) of pairs (lists or tuples):
+        # (id, text), where "id" is one of the possible values for the field,
+        # and "text" is the value as will be shown on the screen. You can use
+        # self.translate within this method to produce an internationalized
+        # "text" if needed.
+        self.methodName = methodName
+
+    def getText(self, obj, value):
+        '''Gets the text that corresponds to p_value.'''
+        vocab = obj._appy_getDynamicDisplayList(self.methodName)
+        if type(value) in sequenceTypes:
+            return [vocab.getValue(v) for v in value]
+        else:
+            return vocab.getValue(value)
 
 # ------------------------------------------------------------------------------
 class Tool:

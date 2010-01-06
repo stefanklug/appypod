@@ -11,7 +11,7 @@ from utils import stringify
 import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
-from appy.gen import Date, String, State, Transition, Type, Search
+from appy.gen import Date, String, State, Transition, Type, Search, Selection
 from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
      sequenceTypes
 TABS = 4 # Number of blanks in a Python indentation.
@@ -111,8 +111,7 @@ class ArchetypeFieldDescriptor:
                 # Elements common to all selection fields
                 methodName = 'list_%s_values' % self.fieldName
                 self.fieldParams['vocabulary'] = methodName
-                self.classDescr.addSelectMethod(
-                    methodName, self, self.appyType.isMultiValued())
+                self.classDescr.addSelectMethod(methodName, self)
                 self.fieldParams['enforceVocabulary'] = True
             else:
                 self.fieldType = 'StringField'
@@ -370,7 +369,7 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
                 field = ArchetypeFieldDescriptor(attrName, attrValue, self)
                 self.schema += '\n' + field.generate()
 
-    def addSelectMethod(self, methodName, fieldDescr, isMultivalued=False):
+    def addSelectMethod(self, methodName, fieldDescr):
         '''For the selection field p_fieldDescr I need to generate a method
            named p_methodName that will generate the vocabulary for
            p_fieldDescr.'''
@@ -395,11 +394,16 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
             # Generate a method that returns a DisplayList
             appName = self.generator.applicationName
             allValues = appyType.validator
-            if not isMultivalued:
+            if not appyType.isMultiValued():
                 allValues = [''] + appyType.validator
                 labels.insert(0, 'choose_a_value')
             m += ' '*spaces + 'return self._appy_getDisplayList' \
                  '(%s, %s, %s)\n' % (s(allValues), s(labels), s(appName))
+        elif isinstance(appyType.validator, Selection):
+            # Call the custom method that will produce dynamically the list of
+            # values.
+            m += ' '*spaces + 'return self._appy_getDynamicDisplayList' \
+                 '(%s)\n' % s(appyType.validator.methodName)
         self.methods = m
 
     def addValidateMethod(self, methodName, label, fieldDescr,

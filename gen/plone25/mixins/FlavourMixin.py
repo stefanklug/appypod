@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import appy.gen
+from appy.gen import Type
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
 
@@ -110,4 +111,41 @@ class FlavourMixin(AbstractMixin):
         '''Gets on this flavour attribute named p_attrName. Useful because we
            can't use getattr directly in Zope Page Templates.'''
         return getattr(self, attrName, None)
+
+    def _appy_getAllFields(self, contentType):
+        '''Returns the (translated) names of fields of p_contentType.'''
+        res = []
+        for attrName in self.getProductConfig().attributes[contentType]:
+            if attrName != 'title': # Will be included by default.
+                label = '%s_%s' % (contentType, attrName)
+                res.append((attrName, self.translate(label)))
+        # Add object state
+        res.append(('workflowState', self.translate('workflow_state')))
+        return res
+
+    def _appy_getSearchableFields(self, contentType):
+        '''Returns the (translated) names of fields that may be searched on
+           objects of type p_contentType (=indexed fields).'''
+        tool = self.getParentNode()
+        appyClass = tool.getAppyClass(contentType)
+        attrNames = self.getProductConfig().attributes[contentType]
+        res = []
+        for attrName in attrNames:
+            attr = getattr(appyClass, attrName)
+            if isinstance(attr, Type) and attr.indexed:
+                label = '%s_%s' % (contentType, attrName)
+                res.append((attrName, self.translate(label)))
+        return res
+
+    def getSearchableFields(self, contentType):
+        '''Returns, among the list of all searchable fields (see method above),
+           the list of fields that the user has configured in the flavour as
+           being effectively used in the search screen.'''
+        res = []
+        appyClass = self.getAppyClass(contentType)
+        for attrName in getattr(self, 'searchFieldsFor%s' % contentType):
+            attr = getattr(appyClass, attrName)
+            dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
+            res.append((attrName, dAttr))
+        return res
 # ------------------------------------------------------------------------------

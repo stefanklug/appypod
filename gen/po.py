@@ -61,6 +61,7 @@ class PoMessage:
     SEARCH_BUTTON = 'Search'
     SEARCH_OBJECTS = 'Search objects of this type.'
     SEARCH_RESULTS = 'Search results'
+    SEARCH_NEW = 'New search'
     WORKFLOW_COMMENT = 'Optional comment'
     WORKFLOW_STATE = 'state'
     DATA_CHANGE = 'Data change'
@@ -93,6 +94,7 @@ class PoMessage:
     GOTO_NEXT = 'Go to next'
     GOTO_LAST = 'Go to end'
     GOTO_SOURCE = 'Go back'
+    WHATEVER = 'Whatever'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[]):
         self.id = id

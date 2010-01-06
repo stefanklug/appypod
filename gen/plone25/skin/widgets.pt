@@ -7,11 +7,35 @@
 </metal:searchFloat>
 
 <metal:searchString define-macro="searchString">
-  <p tal:content="fieldName">Hello</p>
+  <label tal:attributes="for widgetName" tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
+  <tal:comment replace="nothing">Show a simple search field for most String fields.</tal:comment>
+  <tal:simpleSearch condition="not: appyType/isSelect">
+    <input type="text" tal:attributes="name widgetName"/>
+  </tal:simpleSearch>
+  <tal:comment replace="nothing">Show a multi-selection box for fields whose validator defines a list of values.</tal:comment>
+  <tal:selectSearch condition="appyType/isSelect">
+    <select tal:attributes="name widgetName" multiple="multiple" size="5">
+      <option tal:repeat="v appyType/validator" tal:attributes="value v"
+              tal:content="python: tool.truncate(tool.translate('%s_list_%s' % (appyType['label'], v)), 70)">
+      </option>
+    </select>
+  </tal:selectSearch>
 </metal:searchString>
 
-<metal:searchBoolean define-macro="searchBoolean">
-  <p tal:content="fieldName">Hello</p>
+<metal:searchBoolean define-macro="searchBoolean" tal:define="typedWidget python:'%s*bool' % widgetName">
+  <label tal:attributes="for widgetName" tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
+  <tal:yes define="valueId python:'%s_yes' % fieldName">
+    <input type="radio" class="noborder" value="True" tal:attributes="name typedWidget; id valueId"/>
+    <label tal:attributes="for valueId" i18n:translate="yes" i18n:domain="plone"></label>
+  </tal:yes>
+  <tal:no define="valueId python:'%s_no' % fieldName">
+    <input type="radio" class="noborder" value="False" tal:attributes="name typedWidget; id valueId"/>
+    <label tal:attributes="for valueId" i18n:translate="no" i18n:domain="plone"></label>
+  </tal:no>
+  <tal:whatever define="valueId python:'%s_whatever' % fieldName">
+    <input type="radio" class="noborder" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
+    <label tal:attributes="for valueId" tal:content="python: tool.translate('whatever')"></label>
+  </tal:whatever>
 </metal:searchBoolean>
 
 <metal:searchDate define-macro="searchDate">

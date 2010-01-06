@@ -13,15 +13,20 @@ class Descriptor: # Abstract
 
 class ClassDescriptor(Descriptor):
     '''This class gives information about an Appy class.'''
-    def getOrderedAppyAttributes(self):
+    def getOrderedAppyAttributes(self, condition=None):
         '''Returns the appy types for all attributes of this class and parent
-           class(es).'''
+           class(es). If a p_condition is specified, ony Appy types matching
+           the condition will be returned. p_condition must be a string
+           containing an expression that will be evaluated with, in its context,
+           "self" being this ClassDescriptor and "attrValue" being the current
+           Type instance.'''
         res = []
         # First, get the attributes for the current class
         for attrName in self.orderedAttributes:
             attrValue = getattr(self.klass, attrName)
             if isinstance(attrValue, Type):
-                res.append( (attrName, attrValue) )
+                if not condition or eval(condition):
+                    res.append( (attrName, attrValue) )
         # Then, add attributes from parent classes
         for baseClass in self.klass.__bases__:
             # Find the classDescr that corresponds to baseClass
