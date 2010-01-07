@@ -62,6 +62,8 @@ class PoMessage:
     SEARCH_OBJECTS = 'Search objects of this type.'
     SEARCH_RESULTS = 'Search results'
     SEARCH_NEW = 'New search'
+    SEARCH_FROM = 'From'
+    SEARCH_TO = 'to'
     WORKFLOW_COMMENT = 'Optional comment'
     WORKFLOW_STATE = 'state'
     DATA_CHANGE = 'Data change'

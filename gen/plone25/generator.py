@@ -122,6 +122,8 @@ class Generator(AbstractGenerator):
             msg('search_results',       '', msg.SEARCH_RESULTS),
             msg('search_results_descr', '', ' '),
             msg('search_new',           '', msg.SEARCH_NEW),
+            msg('search_from',          '', msg.SEARCH_FROM),
+            msg('search_to',            '', msg.SEARCH_TO),
             msg('ref_invalid_index',    '', msg.REF_INVALID_INDEX),
             msg('bad_int',              '', msg.BAD_INT),
             msg('bad_float',            '', msg.BAD_FLOAT),

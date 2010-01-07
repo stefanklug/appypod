@@ -199,7 +199,12 @@ class String(Type):
         if complement:
             return (97 - (number % 97)) == checkNumber
         else:
-            return (number % 97) == checkNumber
+            # The check number can't be 0. In this case, we force it to be 97.
+            # This is the way Belgian bank account numbers work. I hope this
+            # behaviour is general enough to be implemented here.
+            mod97 = (number % 97)
+            if mod97 == 0: return checkNumber == 97
+            else:          return checkNumber == mod97
     @staticmethod
     def MODULO_97(obj, value): return String._MODULO_97(obj, value)
     @staticmethod

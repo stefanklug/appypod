@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
 from appy.gen import Type, Search
-from appy.gen.utils import FieldDescr, SomeObjects
+from appy.gen.utils import FieldDescr, SomeObjects, sequenceTypes
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
@@ -160,15 +160,30 @@ class ToolMixin(AbstractMixin):
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
+                # Make the correspondance between the name of the field and the
+                # name of the corresponding index.
                 attrName = fieldName
                 if attrName == 'title': attrName = 'Title'
                 elif attrName == 'description': attrName = 'Description'
                 elif attrName == 'state': attrName = 'review_state'
                 else: attrName = 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
+                # Express the field value in the way needed by the index
                 if isinstance(fieldValue, basestring) and \
                    fieldValue.endswith('*'):
                     v = fieldValue[:-1]
-                    params[attrName] = {'query':[v,v+'Z'], 'range':'minmax'}
+                    params[attrName] = {'query':(v,v+'Z'), 'range':'minmax'}
+                elif type(fieldValue) in sequenceTypes:
+                    # We have a range of values instead of a single value
+                    minv, maxv = fieldValue
+                    rangev = 'minmax'
+                    queryv = fieldValue
+                    if minv == None:
+                        rangev = 'max'
+                        queryv = maxv
+                    elif maxv == None:
+                        rangev = 'min'
+                        queryv = minv
+                    params[attrName] = {'query':queryv, 'range':rangev}
                 else:
                     params[attrName] = fieldValue
             # Add a sort order if specified
@@ -380,6 +395,48 @@ class ToolMixin(AbstractMixin):
         else:
             return False
 
+    def _searchValueIsEmpty(self, key):
+        '''Returns True if request value in key p_key can be considered as
+           empty.'''
+        rq = self.REQUEST.form
+        if key.endswith('*int'):
+            # We return True if "from" AND "to" values are empty.
+            toKey = '%s_to' % key[2:-4]
+            return not rq[key].strip() and not rq[toKey].strip()
+        elif key.endswith('*date'):
+            # We return True if "from" AND "to" values are empty. A value is
+            # considered as not empty if at least the year is specified.
+            toKey = '%s_to_year' % key[2:-5]
+            return not rq[key] and not rq[toKey]
+        else:
+            return not rq[key]
+
+    def _getDateTime(self, year, month, day, setMin):
+        '''Gets a valid DateTime instance from date information coming from the
+           request as strings in p_year, p_month and p_day. Returns None if
+           p_year is empty. If p_setMin is True, when some
+           information is missing (month or day), we will replace it with the
+           minimum value (=1). Else, we will replace it with the maximum value
+           (=12, =31).'''
+        if not year: return None
+        if not month:
+            if setMin: month = 1
+            else:      month = 12
+        if not day:
+            if setMin: day = 1
+            else:      day = 31
+        DateTime = self.getProductConfig().DateTime
+        # We loop until we find a valid date. For example, we could loop from
+        # 2009/02/31 to 2009/02/28.
+        dateIsWrong = True
+        while dateIsWrong:
+            try:
+                res = DateTime('%s/%s/%s' % (year, month, day))
+                dateIsWrong = False
+            except:
+                day = int(day)-1
+        return res
+
     def onSearchObjects(self):
         '''This method is called when the user triggers a search from
            search.pt.'''
@@ -387,16 +444,40 @@ class ToolMixin(AbstractMixin):
         # Store the search criteria in the session
         criteria = {}
         for attrName in rq.form.keys():
-            if attrName.startswith('w_'):
+            if attrName.startswith('w_') and \
+               not self._searchValueIsEmpty(attrName):
+                # We have a(n interval of) value(s) that is not empty for a
+                # given field.
                 attrValue = rq.form[attrName]
-                if attrValue:
-                    if attrName.find('*') != -1:
-                        attrName, attrType = attrName.split('*')
-                        if attrType == 'bool':
-                            exec 'attrValue = %s' % attrValue
-                    if isinstance(attrValue, list):
-                        attrValue = ' OR '.join(attrValue)
-                    criteria[attrName[2:]] = attrValue
+                if attrName.find('*') != -1:
+                    attrName, attrType = attrName.split('*')
+                    if attrType == 'bool':
+                        exec 'attrValue = %s' % attrValue
+                    elif attrType == 'int':
+                        # Get the "from" value
+                        if not attrValue.strip(): attrValue = None
+                        else:                     attrValue = int(attrValue)
+                        # Get the "to" value
+                        toValue = rq.form['%s_to' % attrName[2:]].strip()
+                        if not toValue:           toValue = None
+                        else:                     toValue = int(toValue)
+                        attrValue = (attrValue, toValue)
+                    elif attrType == 'date':
+                        prefix = attrName[2:]
+                        # Get the "from" value
+                        year  = attrValue
+                        month = rq.form['%s_from_month' % prefix]
+                        day   = rq.form['%s_from_day' % prefix]
+                        fromDate = self._getDateTime(year, month, day, True)
+                        # Get the "to" value"
+                        year  = rq.form['%s_to_year' % prefix]
+                        month = rq.form['%s_to_month' % prefix]
+                        day   = rq.form['%s_to_day' % prefix]
+                        toDate = self._getDateTime(year, month, day, False)
+                        attrValue = (fromDate, toDate)
+                if isinstance(attrValue, list):
+                    attrValue = ' OR '.join(attrValue)
+                criteria[attrName[2:]] = attrValue
         rq.SESSION['searchCriteria'] = criteria
         # Goto the screen that displays search results
         backUrl = '%s/query?type_name=%s&flavourNumber=%d&search=_advanced' % \
@@ -594,4 +675,12 @@ class ToolMixin(AbstractMixin):
         '''Truncates string p_value to p_numberOfChars.'''
         if len(value) > numberOfChars: return value[:numberOfChars] + '...'
         return value
+
+    monthsIds = {
+        1:  'month_jan', 2:  'month_feb', 3:  'month_mar', 4:  'month_apr',
+        5:  'month_may', 6:  'month_jun', 7:  'month_jul', 8:  'month_aug',
+        9:  'month_sep', 10: 'month_oct', 11: 'month_nov', 12: 'month_dec'}
+    def getMonthName(self, monthNumber):
+        '''Gets the translated month name of month numbered p_monthNumber.'''
+        return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
 # ------------------------------------------------------------------------------

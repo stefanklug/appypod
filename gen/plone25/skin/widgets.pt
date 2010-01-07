@@ -1,5 +1,13 @@
 <metal:searchInteger define-macro="searchInteger">
-  <p tal:content="fieldName">Hello</p>
+  <label tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
+  <tal:from define="fromName python: '%s*int' % widgetName">
+    <label tal:attributes="for fromName" tal:content="python: tool.translate('search_from')"></label>
+    <input type="text" tal:attributes="name fromName" size="4"/>
+  </tal:from>
+  <tal:to define="toName python: '%s_to' % fieldName">
+    <label tal:attributes="for toName" tal:content="python: tool.translate('search_to')"></label>
+    <input type="text" tal:attributes="name toName" size="4"/>
+  </tal:to><br/>
 </metal:searchInteger>
 
 <metal:searchFloat define-macro="searchFloat">
@@ -19,10 +27,11 @@
               tal:content="python: tool.truncate(tool.translate('%s_list_%s' % (appyType['label'], v)), 70)">
       </option>
     </select>
-  </tal:selectSearch>
+  </tal:selectSearch><br/>
 </metal:searchString>
 
-<metal:searchBoolean define-macro="searchBoolean" tal:define="typedWidget python:'%s*bool' % widgetName">
+<metal:searchBoolean define-macro="searchBoolean"
+                     tal:define="typedWidget python:'%s*bool' % widgetName">
   <label tal:attributes="for widgetName" tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
   <tal:yes define="valueId python:'%s_yes' % fieldName">
     <input type="radio" class="noborder" value="True" tal:attributes="name typedWidget; id valueId"/>
@@ -35,29 +44,79 @@
   <tal:whatever define="valueId python:'%s_whatever' % fieldName">
     <input type="radio" class="noborder" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
     <label tal:attributes="for valueId" tal:content="python: tool.translate('whatever')"></label>
-  </tal:whatever>
+  </tal:whatever><br/>
 </metal:searchBoolean>
 
 <metal:searchDate define-macro="searchDate">
-  <p tal:content="fieldName">Hello</p>
+  <label tal:content="python: tool.translate(appyType['label'])"></label>
+  <table cellpadding="0" cellspacing="0">
+    <tal:comment replace="nothing">From</tal:comment>
+    <tr tal:define="fromName python: '%s*date' % widgetName">
+      <td width="10px">&nbsp;</td>
+      <td>
+        <label tal:content="python: tool.translate('search_from')"></label>
+      </td>
+      <td>
+        <select tal:attributes="name fromName">
+          <option value="">--</option>
+          <option tal:repeat="value python:range(appyType['startYear'], appyType['endYear']+1)"
+                  tal:content="value" tal:attributes="value value"></option>
+        </select> /
+        <select tal:attributes="name python: '%s_from_month' % fieldName">
+          <option value="">--</option>
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
+                  tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
+        </select> /
+        <select tal:attributes="name python: '%s_from_day' % fieldName">
+          <option value="">--</option>
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
+                  tal:content="value" tal:attributes="value value"></option>
+        </select>
+      </td>
+    </tr>
+    <tal:comment replace="nothing">To</tal:comment>
+    <tr>
+      <td></td>
+      <td>
+        <label tal:content="python: tool.translate('search_to')"></label>
+      </td>
+      <td>
+        <select tal:attributes="name python: '%s_to_year' % fieldName">
+          <option value="">--</option>
+          <option tal:repeat="value python:range(appyType['startYear'], appyType['endYear']+1)"
+                 tal:content="value" tal:attributes="value value"></option>
+        </select> /
+        <select tal:attributes="name python: '%s_to_month' % fieldName">
+          <option value="">--</option>
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
+                  tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
+        </select> /
+        <select tal:attributes="name python: '%s_to_day' % fieldName">
+          <option value="">--</option>
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
+                  tal:content="value" tal:attributes="value value"></option>
+        </select>
+      </td>
+    </tr>
+  </table>
 </metal:searchDate>
 
 <metal:searchFile define-macro="searchFile">
-  <p tal:content="fieldName">Hello</p>
+  <p tal:content="fieldName"></p>
 </metal:searchFile>
 
 <metal:searchRef define-macro="searchRef">
-  <p tal:content="fieldName">Hello</p>
+  <p tal:content="fieldName"></p>
 </metal:searchRef>
 
 <metal:searchComputed define-macro="searchComputed">
-  <p tal:content="fieldName">Hello</p>
+  <p tal:content="fieldName"></p>
 </metal:searchComputed>
 
 <metal:searchAction define-macro="searchAction">
-  <p tal:content="fieldName">Hello</p>
+  <p tal:content="fieldName"></p>
 </metal:searchAction>
 
 <metal:searchInfo define-macro="searchInfo">
-  <p tal:content="fieldName">Hello</p>
+  <p tal:content="fieldName"></p>
 </metal:searchInfo>
