@@ -504,9 +504,11 @@
             <span tal:replace="python:tool.translate('%s_phase_%s' % (contextObj.meta_type, phase))"/>
           </span>
           <tal:comment replace="nothing">When no tabs are shown, we provide an edit icon.</tal:comment>
-          <img tal:define="editPageName python:test(pageName=='main', 'default', pageName)"
+          <img tal:define="editPageName python:test(pageName=='main', 'default', pageName);
+                           nav request/nav|nothing;
+                           nav python: test(nav, '&nav=%s' % nav, '')"
                title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase);
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s%s\'' % (contextObj.absolute_url(), editPageName, phase, nav);
                                src string: $portal_url/skyn/edit.gif"
                tal:condition="python: (len(appyPages)==1) and member.has_permission('Modify portal content', contextObj)"/>
         </td>
@@ -583,9 +585,11 @@
           <a tal:content="pageLabel"
              tal:attributes="href python: contextObj.absolute_url() + '/skyn/view?phase=%s&pageName=%s' % (phase, thePage)">
           </a>
-          <img tal:define="editPageName python:test(thePage=='main', 'default', thePage)"
+          <img tal:define="editPageName python:test(thePage=='main', 'default', thePage);
+                           nav request/nav|nothing;
+                           nav python: test(nav, '&nav=%s' % nav, '')"
                title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer" class="appyPlusImg"
-               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s\'' % (contextObj.absolute_url(), editPageName, phase);
+               tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?fieldset=%s&phase=%s%s\'' % (contextObj.absolute_url(), editPageName, phase, nav);
                                src string: $portal_url/skyn/edit.gif"
                tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
         </tal:tab>
@@ -679,12 +683,12 @@
       excepted for workflow state (which is not a field): in this case it is simply the
       string "workflowState".</tal:comment>
 
-    <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
+    <tal:comment replace="nothing">Headers, with (disabled) filters and sort arrows</tal:comment>
     <tr>
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <th><img tal:attributes= "src string: $portal_url/arrowDown.gif;
+      <th><!--img tal:attributes= "src string: $portal_url/arrowDown.gif;
                                 onClick python:'javascript:onSort(\'title\')';"
-               id="arrow_title" style="cursor:pointer"/>
+               id="arrow_title" style="cursor:pointer"/-->
         <span tal:content="python: tool.translate('ref_name')"/>
         <!--input id="filter_title" type="text" size="5" onkeyup="javascript:onTextEntered('title')"/-->
         <tal:comment replace="nothing">Input fields like this have been commented out because they will
@@ -695,10 +699,10 @@
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:columnHeader repeat="fieldDescr fieldDescrs">
        <th tal:define="fieldName fieldDescr/atField/getName|string:workflow_state">
-        <img tal:attributes= "src string: $portal_url/arrowDown.gif;
+        <!--img tal:attributes= "src string: $portal_url/arrowDown.gif;
                               onClick python:'javascript:onSort(\'%s\')' % fieldName;
                               id python: 'arrow_%s' % fieldName"
-             style="cursor:pointer"/>
+             style="cursor:pointer"/-->
         <tal:comment replace="nothing">Display header for a "standard" field</tal:comment>
         <tal:standardField condition="python: fieldName != 'workflow_state'">
           <span tal:replace="python: tool.translate(fieldDescr['atField'].widget.label_msgid)"/>
@@ -714,10 +718,10 @@
       </tal:columnHeader>
 
       <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
-      <th tal:condition="severalTypes"><img
+      <th tal:condition="severalTypes"><!--img
           tal:attributes= "src string: $portal_url/arrowDown.gif;
                            onClick python:'javascript:onSort(\'root_type\')';"
-          id = "arrow_root_type" style="cursor:pointer"/>
+          id = "arrow_root_type" style="cursor:pointer"/-->
         <span tal:replace="python: tool.translate('root_type')"/>
         <!--input type="text" size="5" id="filter_root_type"
                tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/-->

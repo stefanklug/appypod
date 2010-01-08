@@ -91,6 +91,7 @@ class AbstractMixin:
            the "final" object in the database. If the object is not a temporary
            one, this method updates its fields in the database.'''
         rq = self.REQUEST
+        # Dict for storing validation errors
         errors = {}
         errorMessage = self.translate(
             'Please correct the indicated errors.', domain='plone')
@@ -101,11 +102,10 @@ class AbstractMixin:
                 # Go back to the Plone site (no better solution at present).
                 urlBack = self.portal_url.getPortalObject().absolute_url()
             else:
-                urlBack = '%s/skyn/view?phase=%s&pageName=%s' % (
-                    self.absolute_url(), rq.get('phase'), rq.get('pageName'))
+                urlBack = '%s/skyn/view' % self.absolute_url()
             self.plone_utils.addPortalMessage(
                 self.translate('Changes canceled.', domain='plone'))
-            return self.goto(urlBack)
+            return self.goto(urlBack, True)
 
         # Trigger field-specific validation
         self.validate(REQUEST=rq, errors=errors, data=1, metadata=0)
@@ -128,9 +128,8 @@ class AbstractMixin:
                     # Go to the consult view for this object
                     obj.plone_utils.addPortalMessage(
                         obj.translate('Changes saved.', domain='plone'))
-                    urlBack = '%s/skyn/view?phase=%s&pageName=%s' % (
-                        obj.absolute_url(), rq.get('phase'), rq.get('pageName'))
-                    return self.goto(urlBack)
+                    urlBack = '%s/skyn/view' % obj.absolute_url()
+                    return self.goto(urlBack, True)
                 elif rq.get('buttonPrevious', None):
                     # Go to the edit view (previous page) for this object
                     rq.set('fieldset', rq.get('previousPage'))
@@ -145,7 +144,7 @@ class AbstractMixin:
         msg = self.translate('delete_done')
         self.delete()
         self.plone_utils.addPortalMessage(msg)
-        self.goto(rq['HTTP_REFERER'])
+        self.goto(rq['HTTP_REFERER'], True)
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
@@ -184,9 +183,20 @@ class AbstractMixin:
             histKey = self.workflow_history.keys()[0]
             self.workflow_history[histKey] += (event,)
 
-    def goto(self, url):
+    def goto(self, url, addParams=False):
         '''Brings the user to some p_url after an action has been executed.'''
-        return self.REQUEST.RESPONSE.redirect(url)
+        rq = self.REQUEST
+        if not addParams: return rq.RESPONSE.redirect(url)
+        # Add some context-related parameters if needed.
+        params = []
+        if rq.get('phase', ''):    params.append('phase=%s' %    rq['phase'])
+        if rq.get('pageName', ''): params.append('pageName=%s' % rq['pageName'])
+        if rq.get('nav', ''):      params.append('nav=%s' %      rq['nav'])
+        params = '&'.join(params)
+        if not params: return rq.RESPONSE.redirect(url)
+        if url.find('?') != -1: params = '&' + params
+        else:                   params = '?' + params
+        return rq.RESPONSE.redirect(url+params)
 
     def getAppyValue(self, name, appyType=None, useParamValue=False,value=None):
         '''Returns the value of field (or method) p_name for this object
@@ -741,7 +751,7 @@ class AbstractMixin:
             msg = self.translate(label)
         if (resultType == 'computation') or not successfull:
             self.plone_utils.addPortalMessage(msg)
-            return self.goto(rq['HTTP_REFERER'])
+            return self.goto(rq['HTTP_REFERER'], True)
         else:
             # msg does not contain a message, but a complete file to show as is.
             # (or, if your prefer, the message must be shown directly to the

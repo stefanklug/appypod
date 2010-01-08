@@ -75,6 +75,7 @@
         <input type="hidden" name="fieldset" tal:attributes="value fieldset"/>
         <input type="hidden" name="pageName" tal:attributes="value pageName"/>
         <input type="hidden" name="phase" tal:attributes="value phase"/>
+        <input type="hidden" name="nav" tal:attributes="value python:request.get('nav', '')"/>
         <input type="hidden" name="is_new"
                tal:attributes="value python: '/portal_factory/' in contextObj.absolute_url()"/>
 
