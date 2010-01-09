@@ -23,8 +23,8 @@
   <tal:comment replace="nothing">Show a multi-selection box for fields whose validator defines a list of values.</tal:comment>
   <tal:selectSearch condition="appyType/isSelect">
     <select tal:attributes="name widgetName" multiple="multiple" size="5">
-      <option tal:repeat="v appyType/validator" tal:attributes="value v"
-              tal:content="python: tool.truncate(tool.translate('%s_list_%s' % (appyType['label'], v)), 70)">
+      <option tal:repeat="v python:tool.getSelectValues(appyType)"
+              tal:attributes="value python:v[0]" tal:content="python: v[1]">
       </option>
     </select>
   </tal:selectSearch><br/>

@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
-from appy.gen import Type, Search
+from appy.gen import Type, Search, Selection
 from appy.gen.utils import FieldDescr, SomeObjects, sequenceTypes
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
@@ -683,4 +683,20 @@ class ToolMixin(AbstractMixin):
     def getMonthName(self, monthNumber):
         '''Gets the translated month name of month numbered p_monthNumber.'''
         return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
+
+    def getSelectValues(self, appyType):
+        '''Return the possible values (with their translation) of String type
+           p_appyType (dict version) which is a string whose validator limits
+           the possible values, either statically (validator is simply a list
+           of values) or dynamically (validator is a Selection instance).'''
+        validator = appyType['validator']
+        if isinstance(validator, Selection):
+            vocab = self._appy_getDynamicDisplayList(validator.methodName)
+            return vocab.items()
+        else:
+            res = []
+            for v in validator:
+                text = self.translate('%s_list_%s' % (appyType['label'], v))
+                res.append((v, self.truncate(text, 70)))
+        return res
 # ------------------------------------------------------------------------------

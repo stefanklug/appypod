@@ -1014,10 +1014,16 @@ class AbstractMixin:
             args = elems[1:]
         else:
             args = ()
+        # On what object must be call the method that will produce the values?
+        obj = self
+        if methodName.startswith('tool:'):
+            obj = self.getTool()
+            methodName = methodName[5:]
+        # Do we need to call the method on the object or on the wrapper?
         if methodName.startswith('_appy_'):
-            exec 'res = self.%s(*args)' % methodName
+            exec 'res = obj.%s(*args)' % methodName
         else:
-            exec 'res = self.appy().%s(*args)' % methodName
+            exec 'res = obj.appy().%s(*args)' % methodName
         return self.getProductConfig().DisplayList(tuple(res))
 
     nullValues = (None, '', ' ')
