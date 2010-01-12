@@ -175,7 +175,8 @@ class AppyRequest:
 class SomeObjects:
     '''Represents a bunch of objects retrieved from a reference or a query in
        portal_catalog.'''
-    def __init__(self, objects=None, batchSize=None, startNumber=0):
+    def __init__(self, objects=None, batchSize=None, startNumber=0,
+                 noSecurity=False):
         self.objects = objects or [] # The objects
         self.totalNumber = len(self.objects) # self.objects may only represent a
         # part of all available objects.
@@ -183,11 +184,16 @@ class SomeObjects:
         # self.objects.
         self.startNumber = startNumber # The index of first object in
         # self.objects in the whole list.
+        self.noSecurity = noSecurity
     def brainsToObjects(self):
         '''self.objects has been populated from brains from the portal_catalog,
            not from True objects. This method turns them (or some of them
-           depending on batchSize and startNumber) into real objects.'''
+           depending on batchSize and startNumber) into real objects.
+           If self.noSecurity is True, it gets the objects even if the logged
+           user does not have the right to get them.'''
         start = self.startNumber
         brains = self.objects[start:start + self.batchSize]
-        self.objects = [b.getObject() for b in brains]
+        if self.noSecurity: getMethod = '_unrestrictedGetObject'
+        else:               getMethod = 'getObject'
+        self.objects = [getattr(b, getMethod)() for b in brains]
 # ------------------------------------------------------------------------------

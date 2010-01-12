@@ -262,12 +262,14 @@ class AbstractWrapper:
            replaced with normal chars.'''
         return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
 
-    def search(self, klass, sortBy='', maxResults=None, **fields):
+    def search(self, klass, sortBy='', maxResults=None,
+               noSecurity=False, **fields):
         '''Searches objects of p_klass. p_sortBy must be the name of an indexed
            field (declared with indexed=True); every param in p_fields must
            take the name of an indexed field and take a possible value of this
            field. You can optionally specify a maximum number of results in
-           p_maxResults.'''
+           p_maxResults. If p_noSecurity is specified, you get all objects,
+           even if the logged user does not have the permission to view it.'''
         # Find the content type corresponding to p_klass
         flavour = self.flavour
         contentType = flavour.o.getPortalType(klass)
@@ -278,7 +280,7 @@ class AbstractWrapper:
             # If I let maxResults=None, only a subset of the results will be
             # returned by method executeResult.
         res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
-            maxResults=maxResults)
+            maxResults=maxResults, noSecurity=noSecurity)
         return [o.appy() for o in res['objects']]
 
     def count(self, klass, **fields):

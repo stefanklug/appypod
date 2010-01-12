@@ -108,7 +108,7 @@ class ToolMixin(AbstractMixin):
     _sortFields = {'title': 'sortable_title'}
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
                      startNumber=0, search=None, remember=False,
-                     brainsOnly=False, maxResults=None):
+                     brainsOnly=False, maxResults=None, noSecurity=False):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
@@ -134,7 +134,10 @@ class ToolMixin(AbstractMixin):
            specified, the method returns maximum
            self.getNumberOfResultsPerPage(). The method returns all objects if
            p_maxResults equals string "NO_LIMIT". p_maxResults is ignored if
-           p_brainsOnly is True.'''
+           p_brainsOnly is True.
+
+           If p_noSecurity is True, it gets all the objects, even those that the
+           currently logged user can't see.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             # Several content types are specified
@@ -194,11 +197,14 @@ class ToolMixin(AbstractMixin):
                 # (for searchability) and can't be used for sorting.
                 if self._sortFields.has_key(sb): sb = self._sortFields[sb]
                 params['sort_on'] = sb
-        brains = self.portal_catalog.searchResults(**params)
+        # Determine what method to call on the portal catalog
+        if noSecurity: catalogMethod = 'unrestrictedSearchResults'
+        else:          catalogMethod = 'searchResults'
+        exec 'brains = self.portal_catalog.%s(**params)' % catalogMethod
         if brainsOnly: return brains
         if not maxResults: maxResults = self.getNumberOfResultsPerPage()
         elif maxResults == 'NO_LIMIT': maxResults = None
-        res = SomeObjects(brains, maxResults, startNumber)
+        res = SomeObjects(brains, maxResults, startNumber,noSecurity=noSecurity)
         res.brainsToObjects()
         # In some cases (p_remember=True), we need to keep some information
         # about the query results in the current user's session, allowing him
