@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" i18n:domain="plone">
+<body>
+<tal:message i18n:domain="plone" metal:define-macro="portal_message">
+    <tal:comment replace="nothing">Single message from portal_status_message request key</tal:comment>
+    <div tal:define="msg request/portal_status_message | nothing"
+         tal:condition="msg" class="portalMessage" tal:content="msg" i18n:translate=""></div>
+
+    <tal:comment replace="nothing">Messages added via plone_utils</tal:comment>
+    <tal:messages define="messages putils/showPortalMessages" condition="messages">
+      <tal:msgs define="type_css_map python: {'info':'portalMessage', 'warn':'portalWarningMessage',
+                                              'stop':'portalStopMessage'};"
+                repeat="msg messages">
+        <div tal:define="mtype msg/type | nothing;"
+             tal:attributes="class python:mtype and type_css_map[mtype] or 'info';"
+             tal:content="structure msg/message | nothing" i18n:translate=""></div>
+      </tal:msgs>
+    </tal:messages>
+</tal:message>
+</body>
+</html>

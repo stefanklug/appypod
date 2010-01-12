@@ -775,6 +775,7 @@ class AbstractMixin:
         msg = self.translate(u'Your content\'s status has been modified.',
             domain='plone')
         self.plone_utils.addPortalMessage(msg)
+        self.reindexObject()
         return self.goto(urlBack)
 
     def callAppySelect(self, selectMethod, brains):
@@ -1110,24 +1111,22 @@ class AbstractMixin:
            performs inter-field validation. This way, the user must first
            correct individual fields before being confronted to potential
            inter-fields validation errors.'''
-        obj = self._appy_getWrapper()
+        obj = self.appy()
+        if not hasattr(obj, 'validate'): return
         appyRequest = getAppyRequest(REQUEST, obj)
-        try:
-            appyErrors = ValidationErrors()
-            obj.validate(appyRequest, appyErrors)
-            # This custom "validate" method may have added fields in the given
-            # ValidationErrors instance. Now we must fill the Zope "errors" dict
-            # based on it. For every error message that is not a string,
-            # we replace it with the standard validation error for the
-            # corresponding field.
-            for key, value in appyErrors.__dict__.iteritems():
-                resValue = value
-                if not isinstance(resValue, basestring):
-                    msgId = '%s_valid' % self.getLabelPrefix(key)
-                    resValue = self.utranslate(msgId, domain=self.i18nDomain)
-                errors[key] = resValue
-        except AttributeError:
-            pass
+        appyErrors = ValidationErrors()
+        obj.validate(appyRequest, appyErrors)
+        # This custom "validate" method may have added fields in the given
+        # ValidationErrors instance. Now we must fill the Zope "errors" dict
+        # based on it. For every error message that is not a string,
+        # we replace it with the standard validation error for the
+        # corresponding field.
+        for key, value in appyErrors.__dict__.iteritems():
+            resValue = value
+            if not isinstance(resValue, basestring):
+                msgId = '%s_valid' % self.getLabelPrefix(key)
+                resValue = self.utranslate(msgId, domain=self.i18nDomain)
+            errors[key] = resValue
 
     def _appy_getPortalType(self, request):
         '''Guess the portal_type of p_self from info about p_self and

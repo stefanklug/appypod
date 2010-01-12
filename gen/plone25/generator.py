@@ -162,6 +162,8 @@ class Generator(AbstractGenerator):
         self.copyFile('Portlet.pt', self.repls,
             destName='%s.pt' % self.portletName, destFolder=self.skinsFolder)
         self.copyFile('tool.gif', {})
+        self.copyFile(
+            'global_statusmessage.pt', {}, destFolder=self.skinsFolder)
         self.copyFile('Styles.css.dtml',self.repls, destFolder=self.skinsFolder,
                       destName = '%s.css.dtml' % self.applicationName)
         self.copyFile('IEFixes.css.dtml',self.repls,destFolder=self.skinsFolder)

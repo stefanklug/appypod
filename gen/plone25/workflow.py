@@ -160,7 +160,7 @@ def do(transitionName, stateChange, logger):
             # We do not notify if the "notify" flag in the flavour is disabled.
             doNotify = False
     if doAction or doNotify:
-        obj = ploneObj._appy_getWrapper(force=True)
+        obj = ploneObj.appy()
         if doAction:
             if type(transition.action) in (tuple, list):
                 # We need to execute a list of actions

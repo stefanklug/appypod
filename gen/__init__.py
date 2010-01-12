@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, time
+from appy.shared.utils import Traceback
 from appy.gen.utils import sequenceTypes, PageDescr
 from appy.shared.data import countries
 
@@ -436,7 +437,8 @@ class Action(Type):
             # anything), we consider the action as successfull.
             if res[0] == None: res[0] = True
         except Exception, e:
-            res = (False, str(e))
+            res = (False, 'An error occurred. %s' % str(e))
+            obj.log(Traceback.get(), type='error')
         return res
 
 class Info(Type):
