@@ -159,6 +159,28 @@ class AbstractMixin:
                                   atField.widget.label_msgid)
         return res
 
+    def addDataChange(self, changes, labels=False):
+        '''This method allows to add "manually" a data change into the objet's
+           history. Indeed, data changes are "automatically" recorded only when
+           a HTTP form is uploaded, not if, in the code, a setter is called on
+           a field. The method is also called by the method historizeData below,
+           that performs "automatic" recording when a HTTP form is uploaded.'''
+        # Add to the p_changes dict the field labels if they are not present
+        if not labels:
+            for fieldName in changes.iterkeys():
+                appyType = self.getAppyType(fieldName)
+                changes[fieldName] = (changes[fieldName], appyType['label'])
+        # Create the event to record in the history
+        DateTime = self.getProductConfig().DateTime
+        state = self.portal_workflow.getInfoFor(self, 'review_state')
+        user = self.portal_membership.getAuthenticatedMember()
+        event = {'action': '_datachange_', 'changes': changes,
+                 'review_state': state, 'actor': user.id,
+                 'time': DateTime(), 'comments': ''}
+        # Add the event to the history
+        histKey = self.workflow_history.keys()[0]
+        self.workflow_history[histKey] += (event,)
+
     def historizeData(self, previousData):
         '''Records in the object history potential changes on historized fields.
            p_previousData contains the values, before an update, of the
@@ -172,16 +194,7 @@ class AbstractMixin:
                ((prev == '') and (curr == None)):
                 del previousData[fieldName]
         if previousData:
-            # Create the event to add in the history
-            DateTime = self.getProductConfig().DateTime
-            state = self.portal_workflow.getInfoFor(self, 'review_state')
-            user = self.portal_membership.getAuthenticatedMember()
-            event = {'action': '_datachange_', 'changes': previousData,
-                     'review_state': state, 'actor': user.id,
-                     'time': DateTime(), 'comments': ''}
-            # Add the event to the history
-            histKey = self.workflow_history.keys()[0]
-            self.workflow_history[histKey] += (event,)
+            self.addDataChange(previousData, labels=True)
 
     def goto(self, url, addParams=False):
         '''Brings the user to some p_url after an action has been executed.'''
@@ -670,7 +683,7 @@ class AbstractMixin:
     def getHistory(self, startNumber=0, reverse=True, includeInvisible=False):
         '''Returns the history for this object, sorted in reverse order (most
            recent change first) if p_reverse is True.'''
-        batchSize = 3
+        batchSize = 5
         key = self.workflow_history.keys()[0]
         history = list(self.workflow_history[key][1:])
         if not includeInvisible:

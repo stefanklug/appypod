@@ -319,10 +319,16 @@
             <th align="left" width="30%" tal:content="python: tool.translate('modified_field')"></th>
             <th align="left" width="70%" tal:content="python: tool.translate('previous_value')"></th>
           </tr>
-          <tr tal:repeat="change event/changes/items">
+          <tr tal:repeat="change event/changes/items" valign="top">
             <td tal:content="python: tool.translate(change[1][1])"></td>
-            <td tal:define="appyType python:contextObj.getAppyType(change[0])"
-                tal:content="python: contextObj.getAppyValue(change[0], appyType, True, change[1][0])"></td>
+            <td tal:define="appyType python:contextObj.getAppyType(change[0]);
+                            appyValue python: contextObj.getAppyValue(change[0], appyType, True, change[1][0]);
+                            severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
+              <span tal:condition="not: severalValues" tal:replace="appyValue"></span>
+              <ul tal:condition="python: severalValues">
+                <li tal:repeat="av appyValue" tal:content="av"></li>
+              </ul>
+            </td>
           </tr>
         </table>
       </td>

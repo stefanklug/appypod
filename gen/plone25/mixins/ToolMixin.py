@@ -703,6 +703,6 @@ class ToolMixin(AbstractMixin):
             res = []
             for v in validator:
                 text = self.translate('%s_list_%s' % (appyType['label'], v))
-                res.append((v, self.truncate(text, 70)))
+                res.append((v, self.truncate(text, 50)))
         return res
 # ------------------------------------------------------------------------------

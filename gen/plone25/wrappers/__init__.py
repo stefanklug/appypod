@@ -324,6 +324,16 @@ class AbstractWrapper:
         else:
             return xml
 
+    def historize(self, data):
+        '''This method allows to add "manually" a "data-change" event into the
+           object's history. Indeed, data changes are "automatically" recorded
+           only when an object is edited through the edit form, not when a
+           setter is called from the code.
+
+           p_data must be a dictionary whose keys are field names (strings) and
+           whose values are the previous field values.'''
+        self.o.addDataChange(data, labels=False)
+
 # ------------------------------------------------------------------------------
 class FileWrapper:
     '''When you get, from an appy object, the value of a File attribute, you
