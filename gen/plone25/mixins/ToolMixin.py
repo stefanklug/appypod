@@ -176,17 +176,22 @@ class ToolMixin(AbstractMixin):
                     v = fieldValue[:-1]
                     params[attrName] = {'query':(v,v+'Z'), 'range':'minmax'}
                 elif type(fieldValue) in sequenceTypes:
-                    # We have a range of values instead of a single value
-                    minv, maxv = fieldValue
-                    rangev = 'minmax'
-                    queryv = fieldValue
-                    if minv == None:
-                        rangev = 'max'
-                        queryv = maxv
-                    elif maxv == None:
-                        rangev = 'min'
-                        queryv = minv
-                    params[attrName] = {'query':queryv, 'range':rangev}
+                    if fieldValue and isinstance(fieldValue[0], basestring):
+                        # We have a list of string values (ie: we need to
+                        # search v1 or v2 or...)
+                        params[attrName] = fieldValue
+                    else:
+                        # We have a range of (int, float, DateTime...) values
+                        minv, maxv = fieldValue
+                        rangev = 'minmax'
+                        queryv = fieldValue
+                        if minv == None:
+                            rangev = 'max'
+                            queryv = maxv
+                        elif maxv == None:
+                            rangev = 'min'
+                            queryv = minv
+                        params[attrName] = {'query':queryv, 'range':rangev}
                 else:
                     params[attrName] = fieldValue
             # Add a sort order if specified
@@ -405,9 +410,9 @@ class ToolMixin(AbstractMixin):
         '''Returns True if request value in key p_key can be considered as
            empty.'''
         rq = self.REQUEST.form
-        if key.endswith('*int'):
+        if key.endswith('*int') or key.endswith('*float'):
             # We return True if "from" AND "to" values are empty.
-            toKey = '%s_to' % key[2:-4]
+            toKey = '%s_to' % key[2:key.find('*')]
             return not rq[key].strip() and not rq[toKey].strip()
         elif key.endswith('*date'):
             # We return True if "from" AND "to" values are empty. A value is
@@ -459,14 +464,16 @@ class ToolMixin(AbstractMixin):
                     attrName, attrType = attrName.split('*')
                     if attrType == 'bool':
                         exec 'attrValue = %s' % attrValue
-                    elif attrType == 'int':
+                    elif attrType in ('int', 'float'):
                         # Get the "from" value
                         if not attrValue.strip(): attrValue = None
-                        else:                     attrValue = int(attrValue)
+                        else:
+                            exec 'attrValue = %s(attrValue)' % attrType
                         # Get the "to" value
                         toValue = rq.form['%s_to' % attrName[2:]].strip()
-                        if not toValue:           toValue = None
-                        else:                     toValue = int(toValue)
+                        if not toValue: toValue = None
+                        else:
+                            exec 'toValue = %s(toValue)' % attrType
                         attrValue = (attrValue, toValue)
                     elif attrType == 'date':
                         prefix = attrName[2:]
@@ -703,6 +710,6 @@ class ToolMixin(AbstractMixin):
             res = []
             for v in validator:
                 text = self.translate('%s_list_%s' % (appyType['label'], v))
-                res.append((v, self.truncate(text, 50)))
+                res.append((v, self.truncate(text, 30)))
         return res
 # ------------------------------------------------------------------------------

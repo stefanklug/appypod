@@ -11,7 +11,15 @@
 </metal:searchInteger>
 
 <metal:searchFloat define-macro="searchFloat">
-  <p tal:content="fieldName">Hello</p>
+  <label tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
+  <tal:from define="fromName python: '%s*float' % widgetName">
+    <label tal:attributes="for fromName" tal:content="python: tool.translate('search_from')"></label>
+    <input type="text" tal:attributes="name fromName" size="4"/>
+  </tal:from>
+  <tal:to define="toName python: '%s_to' % fieldName">
+    <label tal:attributes="for toName" tal:content="python: tool.translate('search_to')"></label>
+    <input type="text" tal:attributes="name toName" size="4"/>
+  </tal:to><br/>
 </metal:searchFloat>
 
 <metal:searchString define-macro="searchString">

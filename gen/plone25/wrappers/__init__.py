@@ -283,7 +283,7 @@ class AbstractWrapper:
             maxResults=maxResults, noSecurity=noSecurity)
         return [o.appy() for o in res['objects']]
 
-    def count(self, klass, **fields):
+    def count(self, klass, noSecurity=False, **fields):
         '''Identical to m_search above, but returns the number of objects that
            match the search instead of returning the objects themselves. Use
            this method instead of writing len(self.search(...)).'''
@@ -291,7 +291,7 @@ class AbstractWrapper:
         contentType = flavour.o.getPortalType(klass)
         search = Search('customSearch', **fields)
         res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
-            brainsOnly=True)
+            brainsOnly=True, noSecurity=noSecurity)
         if res: return res._len # It is a LazyMap instance
         else: return 0
 

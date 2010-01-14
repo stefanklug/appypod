@@ -247,10 +247,10 @@ class ZodbBackupScript:
         # Check command format
         if options.command:
             parts = options.command.split(':')
-            if len(parts) not in (3,4):
+            if len(parts) not in (4,5):
                 raise BackupError('Command format must be ' \
-                    '<PloneInstancePath>:<ApplicationName>:<ToolMethodName>' \
-                    '[:<args>]')
+                    '<ZopeAdmin><PloneInstancePath>:<ApplicationName>:' \
+                    '<ToolMethodName>[:<args>]')
 
     def run(self):
         optParser = OptionParser(usage=ZodbBackupScript.__doc__)
@@ -313,10 +313,11 @@ class ZodbBackupScript:
                              type='string')
         optParser.add_option("-c", "--command", dest="command",
             help="Command to execute while Zope is running. It must have the " \
-            "following format: <PloneInstancePath>:<ApplicationName>:" \
-            "<ToolMethodName>[:<args>]. <PloneInstancePath> is the path, " \
-            "within Zope, to the Plone Site object (if not at the root of " \
-            "the Zope hierarchy, use '/' as folder separator); " \
+            "following format: <ZopeAdmin>:<PloneInstancePath>:" \
+            "<ApplicationName>:<ToolMethodName>[:<args>]. <ZopeAdmin> is the " \
+            "user name of the Zope administrator; <PloneInstancePath> is the " \
+            "path, within Zope, to the Plone Site object (if not at the " \
+            "root of the Zope hierarchy, use '/' as folder separator); " \
             "<ApplicationName> is the name of the Appy application; " \
             "<ToolMethodName> is the name of the method to call on the tool " \
             "in this Appy application; (optional) <args> are the arguments " \
