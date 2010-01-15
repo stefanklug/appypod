@@ -1049,12 +1049,13 @@
                  previousUrl   navInfo/previousUrl;
                  nextUrl       navInfo/nextUrl;
                  lastUrl       navInfo/lastUrl;
-                 sourceUrl     navInfo/sourceUrl">
+                 sourceUrl     navInfo/sourceUrl;
+                 backText      navInfo/backText">
     <tr>
       <tal:comment replace="nothing">Go to the source URL (search or referred object)</tal:comment>
       <td><a tal:condition="sourceUrl" tal:attributes="href sourceUrl"><img style="cursor:pointer" 
         tal:attributes="src string: $portal_url/skyn/gotoSource.png;
-                        title python: tool.translate('goto_source')"/></a></td>
+                        title python: backText + ' : ' + tool.translate('goto_source')"/></a></td>
       <tal:comment replace="nothing">Go to the first page</tal:comment>
       <td><a tal:condition="firstUrl" tal:attributes="href firstUrl"><img style="cursor:pointer" 
         tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;

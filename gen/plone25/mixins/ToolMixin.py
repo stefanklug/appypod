@@ -587,6 +587,18 @@ class ToolMixin(AbstractMixin):
         t,d1,d2,currentNumber,totalNumber = self.REQUEST.get('nav').split('.')
         res['currentNumber'] = int(currentNumber)
         res['totalNumber'] = int(totalNumber)
+        # Compute the label of the search, or ref field
+        if t == 'search':
+            searchName = d2
+            if searchName == '_advanced': label = 'search_results'
+            else:
+                label = '%s_search_%s' % (d1.split(':')[0], searchName)
+            res['backText'] = self.translate(label)
+        else:
+            sourceObj = self.uid_catalog(UID=d1)[0].getObject()
+            label = '%s_%s' % (sourceObj.meta_type, d2)
+            res['backText'] = u'%s : %s' % \
+                              (sourceObj.Title(),self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
         # Among, first, previous, next and last, which one do I need?
         previousNeeded = False # Previous ?
