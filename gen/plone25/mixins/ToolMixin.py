@@ -724,4 +724,29 @@ class ToolMixin(AbstractMixin):
                 text = self.translate('%s_list_%s' % (appyType['label'], v))
                 res.append((v, self.truncate(text, 30)))
         return res
+
+    def logout(self):
+        '''Logs out the current user when he clicks on "disconnect".'''
+        rq = self.REQUEST
+        userId = self.portal_membership.getAuthenticatedMember().getId()
+        # Perform the logout in acl_users
+        try:
+            self.acl_users.logout(rq)
+        except:
+            pass
+        skinvar = self.portal_skins.getRequestVarname()
+        path = '/' + self.absolute_url(1)
+        if rq.has_key(skinvar) and not self.portal_skins.getCookiePersistence():
+            rq.RESPONSE.expireCookie(skinvar, path=path)
+        # Invalidate existing sessions, but only if they exist.
+        sdm = self.session_data_manager
+        session = sdm.getSessionData(create=0)
+        if session is not None:
+            session.invalidate()
+        from Products.CMFPlone import transaction_note
+        transaction_note('Logged out')
+        # Remove user from variable "loggedUsers"
+        from appy.gen.plone25.installer import loggedUsers
+        if loggedUsers.has_key(userId): del loggedUsers[userId]
+        return self.goto(self.getParentNode().absolute_url())
 # ------------------------------------------------------------------------------

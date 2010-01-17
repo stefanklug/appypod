@@ -2,7 +2,7 @@
    Plone product.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path
+import os, os.path, time
 from StringIO import StringIO
 from sets import Set
 import appy
@@ -397,6 +397,12 @@ class PloneInstaller:
         # Call custom installer if any
         if hasattr(self.appyTool, 'install'):
             self.tool.executeAppyAction('install', reindex=False)
+        # Patch the "logout" action with a custom Appy one that updates the
+        # list of currently logged users.
+        for action in site.portal_membership._actions:
+            if action.id == 'logout':
+                action.setActionExpression(
+                    'string:${portal_url}/%s/logout' % self.toolInstanceName)
         # Replace Plone front-page with an application-specific page if needed
         if self.appFrontPage:
             frontPageName = self.productName + 'FrontPage'
@@ -447,6 +453,22 @@ class PloneInstaller:
         self.log("Uninstallation of %s done." % self.productName)
         return self.toLog.getvalue()
 
+# Stuff for tracking user activity ---------------------------------------------
+loggedUsers = {}
+originalTraverse = None
+doNotTrack = ('.jpg','.gif','.png','.js','.class','.css')
+
+def traverseWrapper(self, path, response=None, validated_hook=None):
+    '''This function is called every time a users gets a URL, this is used for
+       tracking user activity. self is a BaseRequest'''
+    res = originalTraverse(self, path, response, validated_hook)
+    t = time.time()
+    if os.path.splitext(path)[-1].lower() not in doNotTrack:
+        # Do nothing when the user gets non-pages
+        userId = self['AUTHENTICATED_USER'].getId()
+        if userId: loggedUsers[userId] = t
+    return res
+
 # ------------------------------------------------------------------------------
 class ZopeInstaller:
     '''This Zope installer runs every time Zope starts and encounters this
@@ -494,6 +516,17 @@ class ZopeInstaller:
                 constructors = (constructors[i],),
                 permission = self.addContentPermissions[className])
 
+    def enableUserTracking(self):
+        '''Enables the machinery allowing to know who is currently logged in.
+           Information about logged users will be stored in RAM, in the variable
+           named loggedUsers defined above.'''
+        global originalTraverse
+        if not originalTraverse:
+            # User tracking is not enabled yet. Do it now.
+            BaseRequest = self.ploneStuff['BaseRequest']
+            originalTraverse = BaseRequest.traverse
+            BaseRequest.traverse = traverseWrapper
+
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         # Apply customization policy if any
@@ -505,5 +538,6 @@ class ZopeInstaller:
         self.installApplication()
         self.installTool()
         self.installTypes()
+        self.enableUserTracking()
         self.finalizeInstallation()
 # ------------------------------------------------------------------------------

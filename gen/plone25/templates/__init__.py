@@ -26,6 +26,7 @@ def countTest():
 
 # ------------------------------------------------------------------------------
 from config import *
+from ZPublisher.HTTPRequest import BaseRequest
 import logging
 try:
     import CustomizationPolicy
