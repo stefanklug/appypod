@@ -207,6 +207,18 @@ class Flavour(ModelClass):
         klass._appy_addField(fieldName, fieldType, classDescr)
 
     @classmethod
+    def _appy_addImportRelatedFields(klass, classDescr):
+        '''Adds, for class p_classDescr, attributes related to the import
+           functionality for class p_classDescr.'''
+        className = classDescr.name
+        # Field that defines the path of the files to import.
+        fieldName = 'importPathFor%s' % className
+        defValue = classDescr.getCreateMean('Import').path
+        fieldType = String(page='data', multiplicity=(1,1), default=defValue,
+                           group=classDescr.klass.__name__)
+        klass._appy_addField(fieldName, fieldType, classDescr)
+
+    @classmethod
     def _appy_addWorkflowFields(klass, classDescr):
         '''Adds, for a given p_classDescr, the workflow-related fields.'''
         className = classDescr.name

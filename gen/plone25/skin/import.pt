@@ -16,7 +16,8 @@
        tal:define="appFolder context/getParentNode;
                    contentType request/type_name;
                    tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   importElems python: tool.getImportElements(contentType);
+                   flavour python: tool.getFlavour(contentType);
+                   importElems python: flavour.getImportElements(contentType);
                    global allAreImported python:True">
 
   <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>

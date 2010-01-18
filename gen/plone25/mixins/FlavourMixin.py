@@ -1,4 +1,5 @@
 # ------------------------------------------------------------------------------
+import os, os.path
 import appy.gen
 from appy.gen import Type
 from appy.gen.plone25.mixins import AbstractMixin
@@ -148,4 +149,26 @@ class FlavourMixin(AbstractMixin):
             dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
             res.append((attrName, dAttr))
         return res
+
+    def getImportElements(self, contentType):
+        '''Returns the list of elements that can be imported from p_path for
+           p_contentType.'''
+        tool = self.getParentNode()
+        appyClass = tool.getAppyClass(contentType)
+        importParams = tool.getCreateMeans(appyClass)['import']
+        onElement = importParams['onElement'].__get__('')
+        sortMethod = importParams['sort']
+        if sortMethod: sortMethod = sortMethod.__get__('')
+        elems = []
+        importPath = getattr(self, 'importPathFor%s' % contentType)
+        for elem in os.listdir(importPath):
+            elemFullPath = os.path.join(importParams['path'], elem)
+            elemInfo = onElement(elemFullPath)
+            if elemInfo:
+                elemInfo.insert(0, elemFullPath) # To the result, I add the full
+                # path of the elem, which will not be shown.
+                elems.append(elemInfo)
+        if sortMethod:
+            elems = sortMethod(elems)
+        return [importParams['headers'], elems]
 # ------------------------------------------------------------------------------

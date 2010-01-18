@@ -11,7 +11,8 @@ from utils import stringify
 import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
-from appy.gen import Date, String, State, Transition, Type, Search, Selection
+from appy.gen import Date, String, State, Transition, Type, Search, \
+                     Selection, Import
 from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
      sequenceTypes
 TABS = 4 # Number of blanks in a Python indentation.
@@ -485,6 +486,20 @@ class ArchetypesClassDescriptor(ClassDescriptor):
             if theClass.__bases__:
                 res = self.isFolder(theClass.__bases__[0])
         return res
+
+    def getCreateMean(self, type='Import'):
+        '''Returns the mean for this class that corresponds to p_type, or
+           None if the class does not support this create mean.'''
+        if not self.klass.__dict__.has_key('create'): return None
+        else:
+            means = self.klass.create
+            if not means: return None
+            if not isinstance(means, tuple) and not isinstance(means, list):
+                means = [means]
+            for mean in means:
+                exec 'found = isinstance(mean, %s)' % type
+                if found: return mean
+        return None
 
     @staticmethod
     def getSearches(klass):

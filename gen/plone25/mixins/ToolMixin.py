@@ -364,26 +364,6 @@ class ToolMixin(AbstractMixin):
                     res[means.id] = means.__dict__
         return res
 
-    def getImportElements(self, contentType):
-        '''Returns the list of elements that can be imported from p_path for
-           p_contentType.'''
-        appyClass = self.getAppyClass(contentType)
-        importParams = self.getCreateMeans(appyClass)['import']
-        onElement = importParams['onElement'].__get__('')
-        sortMethod = importParams['sort']
-        if sortMethod: sortMethod = sortMethod.__get__('')
-        elems = []
-        for elem in os.listdir(importParams['path']):
-            elemFullPath = os.path.join(importParams['path'], elem)
-            elemInfo = onElement(elemFullPath)
-            if elemInfo:
-                elemInfo.insert(0, elemFullPath) # To the result, I add the full
-                # path of the elem, which will not be shown.
-                elems.append(elemInfo)
-        if sortMethod:
-            elems = sortMethod(elems)
-        return [importParams['headers'], elems]
-
     def onImportObjects(self):
         '''This method is called when the user wants to create objects from
            external data.'''

@@ -295,6 +295,42 @@ class AbstractWrapper:
         if res: return res._len # It is a LazyMap instance
         else: return 0
 
+    def compute(self, klass, context=None, expression=None, noSecurity=False,
+                **fields):
+        '''This method, like m_search and m_count above, performs a query on
+           objects of p_klass. But in this case, instead of returning a list of
+           matching objects (like m_search) or counting elements (like p_count),
+           it evaluates, on every matching object, a Python p_expression (which
+           may be an expression or a statement), and returns, if needed, a
+           result. The result may be initialized through parameter p_context.
+           p_expression is evaluated with 2 variables in its context: "obj"
+           which is the currently walked object, instance of p_klass, and "ctx",
+           which is the context as initialized (or not) by p_context. p_context
+           may be used as
+              (1) a variable that is updated on every call to produce a result;
+              (2) an input variable;
+              (3) both.
+
+           The method returns p_context, modified or not by evaluation of
+           p_expression on every matching object.
+
+           When you need to perform an action or computation on a lot of
+           objects, use this method instead of doing things like
+           
+                    "for obj in self.search(MyClass,...)"
+           '''
+        flavour = self.flavour
+        contentType = flavour.o.getPortalType(klass)
+        search = Search('customSearch', **fields)
+        # Initialize the context variable "ctx"
+        ctx = context
+        for brain in self.tool.o.executeQuery(contentType, flavour.number, \
+            search=search, brainsOnly=True, noSecurity=noSecurity):
+            # Get the Appy object from the brain
+            obj = brain.getObject().appy()
+            exec expression
+        return ctx
+
     def reindex(self):
         '''Asks a direct object reindexing. In most cases you don't have to
            reindex objects "manually" with this method. When an object is

@@ -615,6 +615,9 @@ class Generator(AbstractGenerator):
                 Flavour._appy_addQueryResultColumns(classDescr)
                 # Add the search-related fields.
                 Flavour._appy_addSearchRelatedFields(classDescr)
+                importMean = classDescr.getCreateMean('Import')
+                if importMean:
+                    Flavour._appy_addImportRelatedFields(classDescr)
         Flavour._appy_addWorkflowFields(self.flavourDescr)
         Flavour._appy_addWorkflowFields(self.podTemplateDescr)
         # Generate the flavour class and related i18n messages
