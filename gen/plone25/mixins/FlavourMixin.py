@@ -162,7 +162,7 @@ class FlavourMixin(AbstractMixin):
         elems = []
         importPath = getattr(self, 'importPathFor%s' % contentType)
         for elem in os.listdir(importPath):
-            elemFullPath = os.path.join(importParams['path'], elem)
+            elemFullPath = os.path.join(importPath, elem)
             elemInfo = onElement(elemFullPath)
             if elemInfo:
                 elemInfo.insert(0, elemFullPath) # To the result, I add the full

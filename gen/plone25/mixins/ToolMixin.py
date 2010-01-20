@@ -648,11 +648,18 @@ class ToolMixin(AbstractMixin):
             res[urlKey] = None
             if needIt:
                 exec 'index = %sIndex' % urlType
-                brain = self.uid_catalog(UID=uids[index])
-                if brain:
-                    baseUrl = brain[0].getObject().getUrl()
-                    navUrl = baseUrl + '/?nav=' + newNav % (index + 1)
-                    res['%sUrl' % urlType] = navUrl
+                uid = None
+                try:
+                    uid = uids[index]
+                    # uids can be a list (ref) or a dict (search)
+                except KeyError: pass
+                except IndexError: pass
+                if uid:
+                    brain = self.uid_catalog(UID=uid)
+                    if brain:
+                        baseUrl = brain[0].getObject().getUrl()
+                        navUrl = baseUrl + '/?nav=' + newNav % (index + 1)
+                        res[urlKey] = navUrl
         return res
 
     def tabularize(self, data, numberOfRows):

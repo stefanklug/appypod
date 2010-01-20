@@ -453,6 +453,7 @@ class Publisher:
         f.write(toc)
         f.close()
 
+    privateScripts = ('publish.py', 'zip.py', 'runOpenOffice.sh')
     def prepareGenFolder(self):
         '''Creates the basic structure of the temp folder where the appy
            website will be generated.'''
@@ -466,9 +467,12 @@ class Publisher:
         os.mkdir(genSrcFolder)
         for aFile in ('__init__.py',):
             shutil.copy('%s/%s' % (appyPath, aFile), genSrcFolder)
-        for aFolder in ('gen', 'pod', 'shared'):
+        for aFolder in ('gen', 'pod', 'shared', 'bin'):
             shutil.copytree('%s/%s' % (appyPath, aFolder),
                             '%s/%s' % (genSrcFolder, aFolder))
+        # Remove some scripts from bin
+        for script in self.privateScripts:
+            os.remove('%s/bin/%s' % (genSrcFolder, script))
         # Write the appy version into the code itself (in appy/version.py)'''
         print 'Publishing version %s...' % self.versionShort
         # Dump version info in appy/version.py

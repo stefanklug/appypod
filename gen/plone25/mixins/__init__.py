@@ -76,7 +76,12 @@ class AbstractMixin:
             rq.SESSION['initiatorField'] = rq.get('field')
             rq.SESSION['initiatorTarget'] = rq.get('type_name')
         if self._appy_meta_type == 'tool':
-            baseUrl = self.getAppFolder().absolute_url()
+            if rq.get('initiator', None):
+                # This is the creation of an object linked to the tool
+                baseUrl = self.absolute_url()
+            else:
+                # This is the creation of a root object in the app folder
+                baseUrl = self.getAppFolder().absolute_url()
         else:
             baseUrl = self.absolute_url()
         objId = self.generateUniqueId(rq.get('type_name'))
