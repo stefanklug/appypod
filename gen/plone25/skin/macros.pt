@@ -121,6 +121,14 @@
   <span tal:replace="v"></span>
 </metal:showDate>
 
+<metal:showFloat define-macro="showFloatField"
+                 tal:define="v python: contextObj.getAppyValue(field.getName(), appyType)">
+  <span tal:condition="showLabel" tal:content="label"
+        tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
+                        id python: v"></span>
+  <span tal:replace="v"></span>
+</metal:showFloat>
+
 <metal:showString define-macro="showStringField"
                   tal:define="v python: contextObj.getAppyValue(field.getName(), appyType);
                               fmt python: appyType['format'];
@@ -179,7 +187,10 @@
       <tal:string condition="python: appyType['type'] == 'String'">
         <metal:showString use-macro="here/skyn/macros/macros/showStringField"/>
       </tal:string>
-      <tal:simpleField condition="python: (appyType['type'] in ('Integer', 'Float', 'Boolean'))">
+      <tal:float condition="python: appyType['type'] == 'Float'">
+        <metal:showFloat use-macro="here/skyn/macros/macros/showFloatField"/>
+      </tal:float>
+      <tal:simpleField condition="python: (appyType['type'] in ('Integer', 'Boolean'))">
         <span tal:condition="showLabel" tal:content="label"
               tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
                               id python: field.getAccessor(contextObj)()"></span>

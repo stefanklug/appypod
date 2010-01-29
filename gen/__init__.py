@@ -158,12 +158,17 @@ class Float(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 master=None, masterValue=None, focus=False, historized=False,
+                 precision=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus, historized)
         self.pythonType = float
+        # The precision is the number of decimal digits. This number is used
+        # for rendering the float, but the internal float representation is not
+        # rounded.
+        self.precision = precision
 
 class String(Type):
     # Some predefined regular expressions that may be used as validators

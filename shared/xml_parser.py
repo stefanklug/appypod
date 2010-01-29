@@ -336,16 +336,22 @@ class XmlMarshaller:
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
 
-    def __init__(self, cdata=False):
+    def __init__(self, cdata=False, dumpUnicode=False):
         '''If p_cdata is True, all string values will be dumped as XML CDATA.'''
         self.cdata = cdata
+        self.dumpUnicode = dumpUnicode
 
     def dumpString(self, res, s):
         '''Dumps a string into the result.'''
-        if self.cdata: res.write('<![CDATA[')
+        if hasattr(self, 'cdata') and self.cdata: res.write('<![CDATA[')
         # Try to solve encoding problems
         try:
-            s = s.decode('utf-8')
+            if hasattr(self, 'dumpUnicode') and self.dumpUnicode:
+                # Produce a unicode
+                s = s.decode('utf-8')
+            else:
+                # Produce a str
+                s = s.decode('utf-8').encode('utf-8')
         except UnicodeEncodeError:
             pass
         # Replace special chars by XML entities
@@ -354,10 +360,11 @@ class XmlMarshaller:
                 res.write(self.xmlEntities[c])
             else:
                 res.write(c)
-        if self.cdata: res.write(']]>')
+        if hasattr(self, 'cdata') and self.cdata: res.write(']]>')
 
     def dumpFile(self, res, v):
         '''Dumps a file into the result.'''
+        if not v: return
         # p_value contains the (possibly binary) content of a file. We will
         # encode it in Base64, in one or several parts.
         res.write('<part type="base64" number="1">')

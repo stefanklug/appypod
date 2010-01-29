@@ -262,6 +262,12 @@ class AbstractMixin:
         elif vType == 'Boolean':
             if v: return self.translate('yes', domain='plone')
             else: return self.translate('no', domain='plone')
+        elif vType == 'Float':
+            if appyType['precision'] == None:
+                v = str(v)
+            else:
+                format = '%%.%df' % appyType['precision']
+                v = format % v
         return v
 
     def getAppyType(self, fieldName, forward=True, asDict=True):
