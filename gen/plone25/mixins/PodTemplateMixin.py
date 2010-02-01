@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import os, os.path, time
+import os, os.path, time, unicodedata
 from appy.shared import mimeTypes
 from appy.gen.plone25.mixins import AbstractMixin
 from StringIO import StringIO
@@ -40,6 +40,23 @@ DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
 # ------------------------------------------------------------------------------
 class PodTemplateMixin(AbstractMixin):
     _appy_meta_type = 'podtemplate'
+
+    unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
+    def _getFileName(self, obj):
+        '''Returns a valid, clean fileName for the document generated from
+           p_self for p_obj.'''
+        res = u'%s-%s' % (obj.Title().decode('utf-8'),
+                          self.Title().decode('utf-8'))
+        # Remove accents
+        res = unicodedata.normalize('NFKD', res).encode("ascii", "ignore")
+        # Remove unwanted chars (ie, chars that are not valid in file names
+        # under Windows)
+        finalRes = ''
+        for char in res:
+            if char not in self.unwantedChars:
+                finalRes += char
+        return finalRes
+
     def generateDocument(self, obj):
         '''Generates a document from this template, for object p_obj.'''
         appySelf = self._appy_getWrapper(force=True)
@@ -76,16 +93,12 @@ class PodTemplateMixin(AbstractMixin):
                 raise PodError(POD_ERROR % str(pe))
         # Open the temp file on the filesystem
         f = file(tempFileName, 'rb')
-        forBrowser = True
-        if forBrowser:
-            # Create a OFS.Image.File object that will manage correclty HTTP
-            # headers, etc.
-            theFile = self.getProductConfig().File('dummyId', 'dummyTitle', f,
-                           content_type=mimeTypes[appySelf.podFormat])
-            res = theFile.index_html(self.REQUEST, self.REQUEST.RESPONSE)
-        else:
-            # I must return the raw document content.
-            res = f.read()
+        res = f.read()
+        fileName = self._getFileName(obj)
+        response = obj.REQUEST.RESPONSE
+        response.setHeader('Content-Type', mimeTypes[self.getPodFormat()])
+        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"'\
+            % (fileName, self.getPodFormat()))
         f.close()
         # Returns the doc and removes the temp file
         try:
