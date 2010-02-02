@@ -20,7 +20,7 @@
 import xml.sax, difflib
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
-from StringIO import StringIO
+from appy.shared import UnicodeBuffer
 from appy.shared.errors import AppyError
 
 # Error-related constants ------------------------------------------------------
@@ -343,24 +343,16 @@ class XmlMarshaller:
 
     def dumpString(self, res, s):
         '''Dumps a string into the result.'''
-        if hasattr(self, 'cdata') and self.cdata: res.write('<![CDATA[')
-        # Try to solve encoding problems
-        try:
-            if hasattr(self, 'dumpUnicode') and self.dumpUnicode:
-                # Produce a unicode
-                s = s.decode('utf-8')
-            else:
-                # Produce a str
-                s = s.decode('utf-8').encode('utf-8')
-        except UnicodeEncodeError:
-            pass
+        if self.cdata: res.write('<![CDATA[')
+        if isinstance(s, str):
+            s = s.decode('utf-8')
         # Replace special chars by XML entities
         for c in s:
             if self.xmlEntities.has_key(c):
                 res.write(self.xmlEntities[c])
             else:
                 res.write(c)
-        if hasattr(self, 'cdata') and self.cdata: res.write(']]>')
+        if self.cdata: res.write(']]>')
 
     def dumpFile(self, res, v):
         '''Dumps a file into the result.'''
@@ -443,12 +435,15 @@ class XmlMarshaller:
         res.write('</'); res.write(fieldName); res.write('>')
 
     def marshall(self, instance, objectType='popo'):
-        '''Returns in a StringIO the XML version of p_instance. If p_instance
-           corresponds to a Plain Old Python Object, specify 'popo' for
-           p_objectType. If p_instance corresponds to an Archetypes object
+        '''Returns in a UnicodeBuffer the XML version of p_instance. If
+           p_instance corresponds to a Plain Old Python Object, specify 'popo'
+           for p_objectType. If p_instance corresponds to an Archetypes object
            (Zope/Plone), specify 'archetype' for p_objectType. if p_instance is
            a Appy object, specify "appy" as p_objectType.'''
-        res = StringIO()
+        if not hasattr(self, 'cdata'):
+            # The constructor has not been called. Do it now.
+            XmlMarshaller.__init__(self)
+        res = UnicodeBuffer()
         # Dump the XML prologue and root element
         if objectType in ('archetype', 'appy'):
             objectId = instance.UID() # ID in DB
@@ -508,9 +503,10 @@ class XmlMarshaller:
         self.marshallSpecificElements(instance, res)
         # Return the result
         res.write('</'); res.write(self.rootElementName); res.write('>')
-        data = res.getvalue()
-        res.close()
-        return data
+        res = res.buffer
+        if not self.dumpUnicode:
+            res = res.encode('utf-8')
+        return res
 
     def marshallSpecificElements(self, instance, res):
         '''You can use this marshaller as a base class for creating your own.

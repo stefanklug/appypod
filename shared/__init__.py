@@ -37,6 +37,20 @@ class UnmarshalledFile:
         self.content = '' # The binary content of the file of a file object
         self.size = 0 # The length of the file in bytes.
 
+class UnicodeBuffer:
+    '''With StringIO class, I have tons of encoding problems. So I define a
+       similar class here, that uses an internal unicode buffer.'''
+    def __init__(self):
+        self.buffer = u''
+    def write(self, s):
+        if s == None: return
+        if isinstance(s, unicode):
+            self.buffer += s
+        elif isinstance(s, str):
+            self.buffer += s.decode('utf-8')
+        else:
+            self.buffer += unicode(s)
+
 # ------------------------------------------------------------------------------
 class Dummy: pass
 # ------------------------------------------------------------------------------
