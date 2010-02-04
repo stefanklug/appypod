@@ -10,5 +10,5 @@ def versionIsGreaterThanOrEquals(version):
         return True
     else:
         paramVersion = [int(i) for i in version.split('.')]
-        currentVersion = (int(i) for i in appy.version.short.split('.'))
+        currentVersion = [int(i) for i in appy.version.short.split('.')]
         return currentVersion >= paramVersion

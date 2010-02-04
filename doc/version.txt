@@ -1,5 +1,5 @@
-0.5.0 (2010-01-29)
-- Lots of appy.gen improvements due to the development of a big project with the framework.
+0.5.1 (2010-02-02)
+- Bugfixes (encoding problems) in Python-to-XML marshaller.
 
 0.4.1 (2009-11-03)
 - Ajax framework within appy.gen
