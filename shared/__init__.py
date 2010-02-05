@@ -41,15 +41,17 @@ class UnicodeBuffer:
     '''With StringIO class, I have tons of encoding problems. So I define a
        similar class here, that uses an internal unicode buffer.'''
     def __init__(self):
-        self.buffer = u''
+        self.buffer = []
     def write(self, s):
         if s == None: return
         if isinstance(s, unicode):
-            self.buffer += s
+            self.buffer.append(s)
         elif isinstance(s, str):
-            self.buffer += s.decode('utf-8')
+            self.buffer.append(s.decode('utf-8'))
         else:
-            self.buffer += unicode(s)
+            self.buffer.append(unicode(s))
+    def getValue(self):
+        return u''.join(self.buffer)
 
 # ------------------------------------------------------------------------------
 class Dummy: pass

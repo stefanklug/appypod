@@ -581,6 +581,17 @@ class Permission:
 class ReadPermission(Permission): pass
 class WritePermission(Permission): pass
 
+class No:
+    '''When you write a workflow condition method and you want to return False
+       but you want to give to the user some explanations about why a transition
+       can't be triggered, do not return False, return an instance of No
+       instead. When creating such an instance, you can specify an error
+       message.'''
+    def __init__(self, msg):
+        self.msg = msg
+    def __nonzero__(self):
+        return False
+
 # ------------------------------------------------------------------------------
 class Selection:
     '''Instances of this class may be given as validator of a String, in order

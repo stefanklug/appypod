@@ -3,6 +3,8 @@ import os, os.path, time, unicodedata
 from appy.shared import mimeTypes
 from appy.gen.plone25.mixins import AbstractMixin
 from StringIO import StringIO
+import appy.pod
+from appy.pod.renderer import Renderer
 
 # ------------------------------------------------------------------------------
 class PodError(Exception): pass
@@ -81,8 +83,6 @@ class PodTemplateMixin(AbstractMixin):
         if appySelf.tool.openOfficePort:
             rendererParams['ooPort'] = appySelf.tool.openOfficePort
         # Launch the renderer
-        import appy.pod
-        from appy.pod.renderer import Renderer
         try:
             renderer = Renderer(**rendererParams)
             renderer.run()

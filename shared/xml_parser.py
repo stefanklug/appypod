@@ -503,7 +503,7 @@ class XmlMarshaller:
         self.marshallSpecificElements(instance, res)
         # Return the result
         res.write('</'); res.write(self.rootElementName); res.write('>')
-        res = res.buffer
+        res = res.getValue()
         if not self.dumpUnicode:
             res = res.encode('utf-8')
         return res
