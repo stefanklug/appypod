@@ -269,7 +269,7 @@ class PloneInstaller:
                     nvProps.manage_changeProperties(**{'idsNotToList': current})
 
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
-        self.appyTool = self.tool._appy_getWrapper(force=True)
+        self.appyTool = self.tool.appy()
         if self.reinstall:
             self.tool.createOrUpdate(False)
         else:

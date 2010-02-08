@@ -61,7 +61,7 @@ class PodTemplateMixin(AbstractMixin):
 
     def generateDocument(self, obj):
         '''Generates a document from this template, for object p_obj.'''
-        appySelf = self._appy_getWrapper(force=True)
+        appySelf = self.appy()
         appName = self.getProductConfig().PROJECTNAME
         appModule = getattr(self.getProductConfig(), appName)
         # Temporary file where to generate the result
@@ -69,7 +69,7 @@ class PodTemplateMixin(AbstractMixin):
             getOsTempFolder(), obj.UID(), time.time(), self.getPodFormat())
         # Define parameters to pass to the appy.pod renderer
         currentUser = self.portal_membership.getAuthenticatedMember()
-        podContext = {'self': obj._appy_getWrapper(force=True),
+        podContext = {'self': obj.appy(),
                       'user': currentUser,
                       'podTemplate': appySelf,
                       'now': self.getProductConfig().DateTime(),

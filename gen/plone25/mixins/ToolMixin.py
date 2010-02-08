@@ -43,7 +43,7 @@ class ToolMixin(AbstractMixin):
             # It is the contextObj, not a portal type name
             portalTypeName = contextObjOrPortalType.portal_type
         res = None
-        appyTool = self._appy_getWrapper(force=True)
+        appyTool = self.appy()
         flavourNumber = None
         nameElems = portalTypeName.split('_')
         if len(nameElems) > 1:
@@ -60,7 +60,7 @@ class ToolMixin(AbstractMixin):
             # Current object is the Flavour itself. In this cas we simply
             # return the wrapped contextObj. Here we are sure that
             # contextObjOrPortalType is an object, not a portal type.
-            res = contextObjOrPortalType._appy_getWrapper(force=True)
+            res = contextObjOrPortalType.appy()
         if not res and appyTool.flavours:
             res = appyTool.flavours[0]
         # If appy=False, return the Plone object and not the Appy wrapper
@@ -73,7 +73,7 @@ class ToolMixin(AbstractMixin):
     def getFlavoursInfo(self):
         '''Returns information about flavours.'''
         res = []
-        appyTool = self._appy_getWrapper(force=True)
+        appyTool = self.appy()
         for flavour in appyTool.flavours:
             if isinstance(flavour.o, FlavourMixin):
                 # This is a bug: sometimes other objects are associated as
@@ -286,7 +286,7 @@ class ToolMixin(AbstractMixin):
         if 'title' in appyType['shownInfo']:
             # We may place it at another place
             res = ''
-        appyObj = brain.getObject()._appy_getWrapper(force=True)
+        appyObj = brain.getObject().appy()
         for fieldName in appyType['shownInfo']:
             value = getattr(appyObj, fieldName)
             if isinstance(value, AbstractWrapper):

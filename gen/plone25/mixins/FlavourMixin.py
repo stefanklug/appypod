@@ -82,7 +82,7 @@ class FlavourMixin(AbstractMixin):
     def getAvailablePodTemplates(self, obj, phase='main'):
         '''Returns the POD templates which are available for generating a
            document from p_obj.'''
-        appySelf = self._appy_getWrapper()
+        appySelf = self.appy()
         fieldName = 'podTemplatesFor%s' % obj.meta_type
         res = []
         podTemplates = getattr(appySelf, fieldName, [])

@@ -175,7 +175,7 @@ class AbstractWrapper:
         # Create the object
         folder.invokeFactory(portalType, objId)
         ploneObj = getattr(folder, objId)
-        appyObj = ploneObj._appy_getWrapper(force=True)
+        appyObj = ploneObj.appy()
         # Set object attributes
         ploneObj._appy_manageSortedRefs()
         for attrName, attrValue in kwargs.iteritems():

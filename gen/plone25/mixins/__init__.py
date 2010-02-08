@@ -48,7 +48,7 @@ class AbstractMixin:
         obj._appy_manageRefs(created)
         if obj.wrapperClass:
             # Get the wrapper first
-            appyWrapper = obj._appy_getWrapper(force=True)
+            appyWrapper = obj.appy()
             # Call the custom "onEdit" if available
             try:
                 appyWrapper.onEdit(created)
@@ -394,7 +394,7 @@ class AbstractMixin:
         appyType = self.getAppyType(fieldName)
         tool = self.getTool()
         if self._appy_meta_type == 'flavour':
-            flavour = self._appy_getWrapper(force=True)
+            flavour = self.appy()
         else:
             portalTypeName = self._appy_getPortalType(self.REQUEST)
             flavour = tool.getFlavour(portalTypeName)
@@ -707,7 +707,7 @@ class AbstractMixin:
         '''Computes on p_self the value of the Computed field corresponding to
            p_appyType.'''
         res = ''
-        obj = self._appy_getWrapper(force=True)
+        obj = self.appy()
         if appyType['method']:
             try:
                 res = appyType['method'](obj)
@@ -731,8 +731,7 @@ class AbstractMixin:
                 # role.
                 res = user.has_role(transition.condition, self)
             elif type(transition.condition) == types.FunctionType:
-                obj = self._appy_getWrapper()
-                res = transition.condition(workflow, obj)
+                res = transition.condition(workflow, self.appy())
             elif type(transition.condition) in (tuple, list):
                 # It is a list of roles and or functions. Transition may be
                 # triggered if user has at least one of those roles and if all
@@ -745,8 +744,7 @@ class AbstractMixin:
                         if user.has_role(roleOrFunction, self):
                             hasRole = True
                     elif type(roleOrFunction) == types.FunctionType:
-                        obj = self._appy_getWrapper()
-                        if not roleOrFunction(workflow, obj):
+                        if not roleOrFunction(workflow, self.appy()):
                             return False
                 if hasRole != False:
                     res = True
@@ -756,7 +754,7 @@ class AbstractMixin:
         '''Executes action with p_fieldName on this object.'''
         appyClass = self.wrapperClass.__bases__[1]
         appyType = getattr(appyClass, actionName)
-        actionRes = appyType(self._appy_getWrapper(force=True))
+        actionRes = appyType(self.appy())
         self.reindexObject()
         return appyType.result, actionRes
 
@@ -805,9 +803,8 @@ class AbstractMixin:
     def callAppySelect(self, selectMethod, brains):
         '''Selects objects from a Reference field.'''
         if selectMethod:
-            obj = self._appy_getWrapper(force=True)
-            allObjects = [b.getObject()._appy_getWrapper() \
-                          for b in brains]
+            obj = self.appy()
+            allObjects = [b.getObject().appy() for b in brains]
             filteredObjects = selectMethod(obj, allObjects)
             filteredUids = [o.o.UID() for o in filteredObjects]
             res = []
@@ -876,18 +873,10 @@ class AbstractMixin:
                              fieldName)
         return res
 
-    def _appy_getWrapper(self, force=False):
-        '''Returns the wrapper object for p_self. It is created if it did not
-           exist.'''
-        if (not hasattr(self.aq_base, 'appyWrapper')) or force:
-            # In some cases (p_force=True), we need to re-generate the
-            # wrapper object. Else, acquisition may be lost on wrapper.o.
-            self.appyWrapper = self.wrapperClass(self)
-        return self.appyWrapper
-
     def appy(self):
-        '''Nice alias to the previous method.'''
-        return self._appy_getWrapper(force=True)
+        '''Returns a wrapper object allowing to manipulate p_self the Appy
+           way.'''
+        return self.wrapperClass(self)
 
     def _appy_getSourceClass(self, fieldName, baseClass):
         '''We know that p_fieldName was defined on Python class p_baseClass or
@@ -946,7 +935,7 @@ class AbstractMixin:
         objs = self.getBRefs(relName)
         for obj in objs:
             if not ploneObjects:
-                obj = obj._appy_getWrapper(force=True)
+                obj = obj.appy()
             res.append(obj)
         if res and noListIfSingleObj:
             className = self.__class__.__name__
@@ -962,19 +951,19 @@ class AbstractMixin:
     def _appy_showPage(self, page, pageShow):
         '''Must I show p_page?'''
         if callable(pageShow):
-            return pageShow(self._appy_getWrapper(force=True))
+            return pageShow(self.appy())
         else: return pageShow
 
     def _appy_showState(self, workflow, stateShow):
         '''Must I show a state whose "show value" is p_stateShow?'''
         if callable(stateShow):
-            return stateShow(workflow, self._appy_getWrapper())
+            return stateShow(workflow, self.appy())
         else: return stateShow
 
     def _appy_showTransition(self, workflow, transitionShow):
         '''Must I show a transition whose "show value" is p_transitionShow?'''
         if callable(transitionShow):
-            return transitionShow(workflow, self._appy_getWrapper())
+            return transitionShow(workflow, self.appy())
         else: return transitionShow
 
     def _appy_managePermissions(self):
@@ -1205,7 +1194,7 @@ class AbstractMixin:
                     initiator = initiatorRes[0].getObject()
             if initiator:
                 fieldName = session.get('initiatorField')
-                initiator._appy_getWrapper(force=True).link(fieldName, self)
+                initiator.appy().link(fieldName, self)
                 # Re-initialise the session
                 session['initiator'] = None
 
