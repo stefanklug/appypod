@@ -24,13 +24,13 @@ from UserDict import UserDict
 import appy.pod
 from appy.pod import PodError
 from appy.shared.xml_parser import XmlElement
+from appy.shared.utils import FolderDeleter, executeCommand
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
 from appy.pod.converter import FILE_TYPES
 from appy.pod.buffers import FileBuffer
 from appy.pod.xhtml2odt import Xhtml2OdtConverter
 from appy.pod.doc_importers import OdtImporter, ImageImporter, PdfImporter
 from appy.pod.styles_manager import StylesManager
-from appy.shared.utils import FolderDeleter
 
 # ------------------------------------------------------------------------------
 BAD_CONTEXT = 'Context must be either a dict, a UserDict or an instance.'
@@ -370,23 +370,9 @@ class Renderer:
                 cmd = '%s %s %s %s -p%d' % \
                     (self.pyPath, convScript, qResultOdtName, resultType,
                     self.ooPort)
-                prgPipes = os.popen3(cmd)
-                convertOutput = prgPipes[2].read()
-                for pipe in prgPipes:
-                    pipe.close()
+                convertOutput = executeCommand(cmd, ignoreLines='warning')
                 if convertOutput:
-                    # Remove warnings
-                    errors = []
-                    for error in convertOutput.split('\n'):
-                        error = error.strip()
-                        if not error:
-                            continue
-                        elif error.startswith('warning'):
-                            pass
-                        else:
-                            errors.append(error)
-                    if errors:
-                        raise PodError(CONVERT_ERROR % '\n'.join(errors))
+                    raise PodError(CONVERT_ERROR % convertOutput)
         except PodError, pe:
             # When trying to call OO in server mode for producing
             # ODT (=forceOoCall=True), if an error occurs we still

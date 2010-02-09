@@ -6,7 +6,7 @@ import os, os.path, time, mimetypes, unicodedata, random
 import appy.pod
 from appy.gen import Search
 from appy.gen.utils import sequenceTypes
-from appy.shared.utils import getOsTempFolder
+from appy.shared.utils import getOsTempFolder, executeCommand
 from appy.shared.xml_parser import XmlMarshaller
 
 # Some error messages ----------------------------------------------------------
@@ -372,6 +372,7 @@ class AbstractWrapper:
         self.o.addDataChange(data, labels=False)
 
 # ------------------------------------------------------------------------------
+CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
 class FileWrapper:
     '''When you get, from an appy object, the value of a File attribute, you
        get an instance of this class.'''
@@ -434,9 +435,11 @@ class FileWrapper:
             convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
             cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
                 filePath, format, tool.openOfficePort)
-            res = os.system(cmd)
+            errorMessage = executeCommand(cmd, ignoreLines='warning')
             os.remove(filePath)
-            if res != 0: return
+            if errorMessage:
+                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
+                return
             # Return the name of the converted file.
             baseName, ext = os.path.splitext(filePath)
             if (ext == '.%s' % format):

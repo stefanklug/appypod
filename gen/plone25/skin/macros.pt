@@ -319,7 +319,7 @@
                       fullname actor/fullname|nothing;
                       username actor/username|nothing"
           tal:content="python:fullname or username or actorid"/>
-      <td tal:content="python:contextObj.toLocalizedTime(event['time'],long_format=True)"/>
+      <td tal:content="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(event['time'],long_format=True)"/>
       <td tal:condition="not: isDataChange"><tal:comment condition="rhComments" tal:content="structure rhComments"/>
         <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
       <td tal:condition="isDataChange">
@@ -560,7 +560,7 @@
             </tal:creator>
             <tal:comment replace="nothing">Show last modification date</tal:comment>
             <span i18n:translate="box_last_modified" i18n:domain="plone"></span>
-            <span tal:replace="python:contextObj.toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
+            <span tal:replace="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
         </td>
         <td valign="top"><metal:pod use-macro="here/skyn/macros/macros/listPodTemplates"/>
         </td>

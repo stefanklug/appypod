@@ -57,4 +57,23 @@ def getOsTempFolder():
     else:
         raise "Sorry, I can't find a temp folder on your machine."
     return res
+
+# ------------------------------------------------------------------------------
+def executeCommand(cmd, ignoreLines=None):
+    '''Executes command p_cmd and returns the content of its stderr.
+       If p_ignoreLines is not None, we will remove from the result every line
+       starting with p_ignoreLines.'''
+    childStdIn, childStdOut, childStdErr = os.popen3(cmd)
+    res = childStdErr.read()
+    if res and ignoreLines:
+        # Remove every line starting with ignoreLines
+        keptLines = []
+        for line in res.split('\n'):
+            line = line.strip()
+            if not line or line.startswith(ignoreLines): continue
+            else:
+                keptLines.append(line)
+        res = '\n'.join(keptLines)
+    childStdIn.close(); childStdOut.close(); childStdErr.close()
+    return res
 # ------------------------------------------------------------------------------
