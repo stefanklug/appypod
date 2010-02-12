@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import os, os.path, time
+import os, os.path, time, types
 from StringIO import StringIO
 from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
@@ -128,7 +128,9 @@ class FlavourMixin(AbstractMixin):
         res['formats'] = getattr(appyFlavour, n)
         n = appyFlavour.getAttributeName('podTemplate', appyClass, fieldName)
         res['template'] = getattr(appyFlavour, n)
-        res['title'] = self.translate(getattr(appyClass, fieldName).label)
+        appyType = ploneObj.getAppyType(fieldName)
+        res['title'] = self.translate(appyType['label'])
+        res['context'] = appyType['context']
         return res
 
     def generateDocument(self):
@@ -141,11 +143,13 @@ class FlavourMixin(AbstractMixin):
         # Get the object
         objectUid = rq.get('objectUid')
         obj = self.uid_catalog(UID=objectUid)[0].getObject()
+        appyObj = obj.appy()
         # Get information about the document to render. Information comes from
         # a PodTemplate instance or from the flavour itself, depending on
         # whether we generate a doc from a class-wide template or from a pod
         # field.
         templateUid = rq.get('templateUid', None)
+        specificPodContext = None
         if templateUid:
             podTemplate = self.uid_catalog(UID=templateUid)[0].getObject()
             appyPt = podTemplate.appy()
@@ -158,18 +162,25 @@ class FlavourMixin(AbstractMixin):
             format = podInfo['formats'][0]
             template = podInfo['template'].content
             podTitle = podInfo['title']
+            if podInfo['context']:
+                if type(podInfo['context']) == types.FunctionType:
+                    specificPodContext = podInfo['context'](appyObj)
+                else:
+                    specificPodContext = podInfo['context']
         # Temporary file where to generate the result
         tempFileName = '%s/%s_%f.%s' % (
             getOsTempFolder(), obj.UID(), time.time(), format)
         # Define parameters to pass to the appy.pod renderer
         currentUser = self.portal_membership.getAuthenticatedMember()
-        podContext = {'tool': appyTool, 'flavour': self.appy(),
-                      'user': currentUser,
+        podContext = {'tool': appyTool,    'flavour': self.appy(),
+                      'user': currentUser, 'self': appyObj,
                       'now': self.getProductConfig().DateTime(),
                       'projectFolder': appyTool.getDiskFolder(),
                       }
+        if specificPodContext:
+            podContext.update(specificPodContext)
         if templateUid:
-            podContext['podTemplate'] = podContext['self'] = appyPt
+            podContext['podTemplate'] = appyPt
         rendererParams = {'template': StringIO(template),
                           'context': podContext,
                           'result': tempFileName}
