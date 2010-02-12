@@ -66,8 +66,8 @@ class PodTemplate(ModelClass):
     podTemplate = File(multiplicity=(1,1))
     podFormat = String(validator=['odt', 'pdf', 'rtf', 'doc'],
                        multiplicity=(1,1), default='odt')
-    phase = String(default='main')
-    _appy_attributes = ['description', 'podTemplate', 'podFormat', 'phase']
+    podPhase = String(default='main')
+    _appy_attributes = ['description', 'podTemplate', 'podFormat', 'podPhase']
 
 defaultFlavourAttrs = ('number', 'enableNotifications')
 flavourAttributePrefixes = ('optionalFieldsFor', 'defaultValueFor',
@@ -146,6 +146,26 @@ class Flavour(ModelClass):
         klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
         fieldType.page = 'data'
         fieldType.group = fieldDescr.classDescr.klass.__name__
+
+    @classmethod
+    def _appy_addPodRelatedFields(klass, fieldDescr):
+        '''Adds the fields needed in the Flavour for configuring a Pod field.
+           The following method, m_appy_addPodField, is the previous way to
+           manage gen-pod integration. For the moment, both approaches coexist.
+           In the future, only this one may subsist.'''
+        className = fieldDescr.classDescr.name
+        # On what page and group to display those fields ?
+        pg = {'page': 'documentGeneration',
+              'group': '%s_2' % fieldDescr.classDescr.klass.__name__}
+        # Add the field that will store the pod template.
+        fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)
+        fieldType = File(**pg)
+        klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
+        # Add the field that will store the output format(s)
+        fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
+        fieldType = String(validator=('odt', 'pdf', 'doc', 'rtf'),
+                           multiplicity=(1,None), default=('odt',), **pg)
+        klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
 
     @classmethod
     def _appy_addPodField(klass, classDescr):

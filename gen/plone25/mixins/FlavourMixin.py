@@ -1,9 +1,19 @@
 # ------------------------------------------------------------------------------
-import os, os.path
+import os, os.path, time
+from StringIO import StringIO
+from appy.shared import mimeTypes
+from appy.shared.utils import getOsTempFolder
+import appy.pod
+from appy.pod.renderer import Renderer
 import appy.gen
 from appy.gen import Type
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
+
+# Errors -----------------------------------------------------------------------
+DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
+POD_ERROR = 'An error occurred while generating the document. Please ' \
+            'contact the system administrator.'
 
 # ------------------------------------------------------------------------------
 class FlavourMixin(AbstractMixin):
@@ -88,7 +98,7 @@ class FlavourMixin(AbstractMixin):
         podTemplates = getattr(appySelf, fieldName, [])
         if not isinstance(podTemplates, list):
             podTemplates = [podTemplates]
-        res = [r.o for r in podTemplates if r.phase==phase]
+        res = [r.o for r in podTemplates if r.podPhase == phase]
         hasParents = True
         klass = obj.__class__
         while hasParents:
@@ -98,15 +108,106 @@ class FlavourMixin(AbstractMixin):
                 podTemplates = getattr(appySelf, fieldName, [])
                 if not isinstance(podTemplates, list):
                     podTemplates = [podTemplates]
-                res += [r.o for r in podTemplates if r.phase==phase]
+                res += [r.o for r in podTemplates if r.podPhase == phase]
                 klass = parent
             else:
                 hasParents = False
         return res
 
     def getMaxShownTemplates(self, obj):
-        attrName = 'podMaxShownTemplatesFor%s' % obj.meta_type
-        return getattr(self, attrName)
+        attrName = 'getPodMaxShownTemplatesFor%s' % obj.meta_type
+        return getattr(self, attrName)()
+
+    def getPodInfo(self, ploneObj, fieldName):
+        '''Returns POD-related information about Pod field p_fieldName defined
+           on class whose p_ploneObj is an instance of.'''
+        res = {}
+        appyClass = self.getParentNode().getAppyClass(ploneObj.meta_type)
+        appyFlavour = self.appy()
+        n = appyFlavour.getAttributeName('formats', appyClass, fieldName)
+        res['formats'] = getattr(appyFlavour, n)
+        n = appyFlavour.getAttributeName('podTemplate', appyClass, fieldName)
+        res['template'] = getattr(appyFlavour, n)
+        res['title'] = self.translate(getattr(appyClass, fieldName).label)
+        return res
+
+    def generateDocument(self):
+        '''Generates the document:
+           - from a PodTemplate instance if it is a class-wide pod template;
+           - from field-related info on the flavour if it is a Pod field.
+           UID of object that is the template target is given in the request.'''
+        rq = self.REQUEST
+        appyTool = self.getParentNode().appy()
+        # Get the object
+        objectUid = rq.get('objectUid')
+        obj = self.uid_catalog(UID=objectUid)[0].getObject()
+        # Get information about the document to render. Information comes from
+        # a PodTemplate instance or from the flavour itself, depending on
+        # whether we generate a doc from a class-wide template or from a pod
+        # field.
+        templateUid = rq.get('templateUid', None)
+        if templateUid:
+            podTemplate = self.uid_catalog(UID=templateUid)[0].getObject()
+            appyPt = podTemplate.appy()
+            format = podTemplate.getPodFormat()
+            template = appyPt.podTemplate.content
+            podTitle = podTemplate.Title()
+        else:
+            fieldName = rq.get('fieldName')
+            podInfo = self.getPodInfo(obj, fieldName)
+            format = podInfo['formats'][0]
+            template = podInfo['template'].content
+            podTitle = podInfo['title']
+        # Temporary file where to generate the result
+        tempFileName = '%s/%s_%f.%s' % (
+            getOsTempFolder(), obj.UID(), time.time(), format)
+        # Define parameters to pass to the appy.pod renderer
+        currentUser = self.portal_membership.getAuthenticatedMember()
+        podContext = {'tool': appyTool, 'flavour': self.appy(),
+                      'user': currentUser,
+                      'now': self.getProductConfig().DateTime(),
+                      'projectFolder': appyTool.getDiskFolder(),
+                      }
+        if templateUid:
+            podContext['podTemplate'] = podContext['self'] = appyPt
+        rendererParams = {'template': StringIO(template),
+                          'context': podContext,
+                          'result': tempFileName}
+        if appyTool.unoEnabledPython:
+            rendererParams['pythonWithUnoPath'] = appyTool.unoEnabledPython
+        if appyTool.openOfficePort:
+            rendererParams['ooPort'] = appyTool.openOfficePort
+        # Launch the renderer
+        try:
+            renderer = Renderer(**rendererParams)
+            renderer.run()
+        except appy.pod.PodError, pe:
+            if not os.path.exists(tempFileName):
+                # In some (most?) cases, when OO returns an error, the result is
+                # nevertheless generated.
+                appyTool.log(str(pe), type='error')
+                appyTool.say(POD_ERROR)
+                return self.goto(rq.get('HTTP_REFERER'))
+        # Open the temp file on the filesystem
+        f = file(tempFileName, 'rb')
+        res = f.read()
+        # Identify the filename to return
+        fileName = u'%s-%s' % (obj.Title().decode('utf-8'),
+                               podTitle.decode('utf-8'))
+        fileName = appyTool.normalize(fileName)
+        response = obj.REQUEST.RESPONSE
+        response.setHeader('Content-Type', mimeTypes[format])
+        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"'\
+            % (fileName, format))
+        f.close()
+        # Returns the doc and removes the temp file
+        try:
+            os.remove(tempFileName)
+        except OSError, oe:
+            appyTool.log(DELETE_TEMP_DOC_ERROR % str(oe), type='warning')
+        except IOError, ie:
+            appyTool.log(DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
+        return res
 
     def getAttr(self, attrName):
         '''Gets on this flavour attribute named p_attrName. Useful because we

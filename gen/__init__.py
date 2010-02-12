@@ -460,6 +460,23 @@ class Info(Type):
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus, historized)
 
+class Pod(Type):
+    '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
+       from data contained in Appy class and linked objects or anything you
+       want to put in it. It uses appy.pod.'''
+    def __init__(self, validator=None, index=None, default=None,
+                 optional=False, editDefault=False, show='view',
+                 page='main', group=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 master=None, masterValue=None, focus=False, historized=False,
+                 template=None):
+        Type.__init__(self, None, (0,1), index, default, optional,
+                      False, show, page, group, move, indexed, searchable,
+                      specificReadPermission, specificWritePermission, width,
+                      height, master, masterValue, focus, historized)
+        self.template = template # The path to a POD template
+
 # Workflow-specific types ------------------------------------------------------
 class State:
     def __init__(self, permissions, initial=False, phase='main', show=True):

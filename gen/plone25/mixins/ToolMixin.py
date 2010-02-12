@@ -577,8 +577,8 @@ class ToolMixin(AbstractMixin):
         else:
             sourceObj = self.uid_catalog(UID=d1)[0].getObject()
             label = '%s_%s' % (sourceObj.meta_type, d2)
-            res['backText'] = u'%s : %s' % \
-                              (sourceObj.Title(),self.translate(label))
+            res['backText'] = u'%s : %s' % (sourceObj.Title().decode('utf-8'),
+                                            self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
         # Among, first, previous, next and last, which one do I need?
         previousNeeded = False # Previous ?

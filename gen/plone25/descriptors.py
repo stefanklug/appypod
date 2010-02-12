@@ -193,8 +193,16 @@ class ArchetypeFieldDescriptor:
         self.widgetParams['visible'] = False # Archetypes will believe the
         # field is invisible; we will display it ourselves (like for Ref fields)
 
+    def walkPod(self):
+        '''How to dump a Pod type?'''
+        self.fieldType = 'FileField'
+        self.widgetType = 'FileWidget'
+        self.fieldParams['storage'] = 'python:AttributeStorage()'
+        # Add the POD-related fields on the Flavour
+        Flavour._appy_addPodRelatedFields(self)
+
     alwaysAValidatorFor = ('Ref', 'Integer', 'Float')
-    notToValidateFields = ('Info', 'Computed', 'Action')
+    notToValidateFields = ('Info', 'Computed', 'Action', 'Pod')
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
            Archetype elements to generate.'''
@@ -311,10 +319,12 @@ class ArchetypeFieldDescriptor:
         elif self.appyType.type == 'Computed': self.walkComputed()
         # Manage things which are specific to Actions
         elif self.appyType.type == 'Action': self.walkAction()
-        # Manage things which are specific to reference types
+        # Manage things which are specific to Ref types
         elif self.appyType.type == 'Ref': self.walkRef()
-        # Manage things which are specific to info types
+        # Manage things which are specific to Info types
         elif self.appyType.type == 'Info': self.walkInfo()
+        # Manage things which are specific to Pod types
+        elif self.appyType.type == 'Pod': self.walkPod()
 
     def generate(self):
         '''Produces the Archetypes field definition as a string.'''
@@ -523,15 +533,6 @@ class ArchetypesClassDescriptor(ClassDescriptor):
             if search.name == searchName:
                 return search
         return None
-
-    def addGenerateDocMethod(self):
-        m = self.methods
-        spaces = TABS
-        m += '\n' + ' '*spaces + 'def generateDocument(self):\n'
-        spaces += TABS
-        m += ' '*spaces + "'''Generates a document from p_self.'''\n"
-        m += ' '*spaces + 'return self._appy_generateDocument()\n'
-        self.methods = m
 
 class ToolClassDescriptor(ClassDescriptor):
     '''Represents the POD-specific fields that must be added to the tool.'''

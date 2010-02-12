@@ -1,7 +1,6 @@
 <tal:block metal:define-macro="master"
            define="contextObj python:context.getParentNode();
                    errors request/errors | python:{};
-                   Iterator python:modules['Products.Archetypes'].IndexIterator;
                    schematas contextObj/Schemata;
                    fieldsets python:[key for key in schematas.keys() if (key != 'metadata') and (schematas[key].editableFields(contextObj, visible_only=True))];
                    default_fieldset python:(not schematas or schematas.has_key('default')) and 'default' or fieldsets[0];

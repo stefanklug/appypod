@@ -121,11 +121,7 @@ class AbstractWrapper:
         objs.append(obj)
         exec 'self.o.s%s(objs)' % postfix
         # Update the ordered list of references
-        sortedRefField = '_appy_%s' % fieldName
-        if not hasattr(self.o.aq_base, sortedRefField):
-            exec 'self.o.%s = self.o.getProductConfig().PersistentList()' % \
-                 sortedRefField
-        getattr(self.o, sortedRefField).append(obj.UID())
+        self.o._appy_getSortedField(fieldName).append(obj.UID())
 
     def sort(self, fieldName):
         '''Sorts referred elements linked to p_self via p_fieldName. At
@@ -177,7 +173,6 @@ class AbstractWrapper:
         ploneObj = getattr(folder, objId)
         appyObj = ploneObj.appy()
         # Set object attributes
-        ploneObj._appy_manageSortedRefs()
         for attrName, attrValue in kwargs.iteritems():
             setterName = 'set%s%s' % (attrName[0].upper(), attrName[1:])
             if isinstance(attrValue, AbstractWrapper):
@@ -257,9 +252,21 @@ class AbstractWrapper:
         elif mType == 'error': mType = 'stop'
         self.o.plone_utils.addPortalMessage(message, type=mType)
 
-    def normalize(self, s):
+    unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
+    def normalize(self, s, usage='fileName'):
         '''Returns a version of string p_s whose special chars have been
            replaced with normal chars.'''
+        # We work in unicode. Convert p_s to unicode if not unicode.
+        if isinstance(s, str):           s = s.decode('utf-8')
+        elif not isinstance(s, unicode): s = unicode(s)
+        if usage == 'fileName':
+            # Remove any char that can't be found within a file name under
+            # Windows.
+            res = ''
+            for char in s:
+                if char not in self.unwantedChars:
+                    res += char
+            s = res
         return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
 
     def search(self, klass, sortBy='', maxResults=None,

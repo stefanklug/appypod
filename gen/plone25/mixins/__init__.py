@@ -258,6 +258,9 @@ class AbstractMixin:
                                 for e in v]
                     else:
                         return t('%s_%s_list_%s' % (self.meta_type, name, v))
+            if not isinstance(v, basestring):
+                # Archetypes "Description" fields may hold a BaseUnit instance.
+                v = unicode(v)
             return v
         elif vType == 'Boolean':
             if v: return self.translate('yes', domain='plone')
@@ -318,7 +321,7 @@ class AbstractMixin:
            If p_startNumber is a number, this method will return x objects,
            starting at p_startNumber, x being appyType.maxPerPage.'''
         appyType = self.getAppyType(fieldName)
-        sortedUids = getattr(self, '_appy_%s' % fieldName)
+        sortedUids = self._appy_getSortedField(fieldName)
         batchNeeded = startNumber != None
         exec 'refUids= self.getRaw%s%s()' % (fieldName[0].upper(),fieldName[1:])
         # There may be too much UIDs in sortedUids because these fields
@@ -370,8 +373,7 @@ class AbstractMixin:
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
-        sortedFieldName = '_appy_%s' % fieldName
-        sortedObjectsUids = getattr(self, sortedFieldName)
+        sortedObjectsUids = self._appy_getSortedField(fieldName)
         res = sortedObjectsUids.index(obj.UID())
         return res
 
@@ -627,8 +629,7 @@ class AbstractMixin:
         '''This method changes the position of object with uid p_objectUid in
            reference field p_fieldName to p_newIndex i p_isDelta is False, or
            to actualIndex+p_newIndex if p_isDelta is True.'''
-        sortedFieldName = '_appy_%s' % fieldName
-        sortedObjectsUids = getattr(self, sortedFieldName)
+        sortedObjectsUids = self._appy_getSortedField(fieldName)
         oldIndex = sortedObjectsUids.index(objectUid)
         sortedObjectsUids.remove(objectUid)
         if isDelta:
@@ -1155,31 +1156,19 @@ class AbstractMixin:
             res = self.portal_type
         return res
 
-    def _appy_generateDocument(self):
-        '''Generates the document from a template whose UID is specified in the
-           request for a given object whose UID is also in the request.'''
-        # Get the object
-        objectUid = self.REQUEST.get('objectUid')
-        obj = self.uid_catalog(UID=objectUid)[0].getObject()
-        # Get the POD template
-        templateUid = self.REQUEST.get('templateUid')
-        podTemplate = self.uid_catalog(UID=templateUid)[0].getObject()
-        return podTemplate.generateDocument(obj)
-
-    def _appy_manageSortedRefs(self):
-        '''For every reference field, this method creates the additional
-           reference lists that are ordered (if it did not already exist).'''
-        for field in self.schema.fields():
-            if field.type == 'reference':
-                sortedRefField = '_appy_%s' % field.getName()
-                if not hasattr(self.aq_base, sortedRefField):
-                    pList = self.getProductConfig().PersistentList
-                    exec 'self.%s = pList()' % sortedRefField
+    def _appy_getSortedField(self, fieldName):
+        '''Gets, for reference field p_fieldName, the Appy persistent list
+           that contains the sorted list of referred object UIDs. If this list
+           does not exist, it is created.'''
+        sortedFieldName = '_appy_%s' % fieldName
+        if not hasattr(self.aq_base, sortedFieldName):
+            pList = self.getProductConfig().PersistentList
+            exec 'self.%s = pList()' % sortedFieldName
+        return getattr(self, sortedFieldName)
 
     def _appy_manageRefs(self, created):
         '''Every time an object is created or updated, this method updates
            the Reference fields accordingly.'''
-        self._appy_manageSortedRefs()
         self._appy_manageRefsFromRequest()
         # If the creation was initiated by another object, update the
         # reference.
@@ -1207,7 +1196,7 @@ class AbstractMixin:
                 fieldName = requestKey[9:]
                 fieldsInRequest.append(fieldName)
                 fieldValue = self.REQUEST[requestKey]
-                sortedRefField = getattr(self, '_appy_%s' % fieldName)
+                sortedRefField = self._appy_getSortedField(fieldName)
                 del sortedRefField[:]
                 if not fieldValue: fieldValue = []
                 if isinstance(fieldValue, basestring):

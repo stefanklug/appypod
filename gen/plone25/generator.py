@@ -689,7 +689,6 @@ class Generator(AbstractGenerator):
                                                self.applicationName)
         if classDescr.isAbstract():
             register = ''
-        classDescr.addGenerateDocMethod() # For POD
         repls = self.repls.copy()
         repls.update({
           'imports': '\n'.join(imports), 'parents': parents,

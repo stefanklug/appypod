@@ -35,6 +35,7 @@ class PloneInstaller:
                                          # front page?
         self.showPortlet = showPortlet # Must we show the application portlet?
         self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
+        self.attributes = ploneStuff['GLOBALS']['attributes']
         self.toLog = StringIO()
         self.typeAliases = {'sharing': '', 'gethtml': '',
             '(Default)': 'skynView', 'edit': 'skyn/edit',
@@ -202,6 +203,7 @@ class PloneInstaller:
     def updatePodTemplates(self):
         '''Creates or updates the POD templates in flavours according to pod
            declarations in the application classes.'''
+        # Creates or updates the old-way class-related templates
         i = -1
         for klass in self.appClasses:
             i += 1
@@ -232,6 +234,30 @@ class PloneInstaller:
                                 flavour.create(podAttr, id=podId, podTemplate=f,
                                     title=produceNiceMessage(templateName))
                                 f.close()
+        # Creates the new-way templates for Pod fields if they do not exist.
+        for contentType, attrNames in self.attributes.iteritems():
+            appyClass = self.tool.getAppyClass(contentType)
+            for attrName in attrNames:
+                appyType = getattr(appyClass, attrName)
+                if appyType.type == 'Pod':
+                    # For every flavour, find the attribute that stores the
+                    # template, and store on it the default one specified in
+                    # the appyType if no template is stored yet.
+                    for flavour in self.appyTool.flavours:
+                        attrName = flavour.getAttributeName(
+                            'podTemplate', appyClass, attrName)
+                        fileObject = getattr(flavour.o, attrName)
+                        if not fileObject or (fileObject.size == 0):
+                            # There is no file. Put the one specified in the
+                            # appyType.
+                            fileName=os.path.join(self.appyTool.getDiskFolder(),
+                                                  appyType.template)
+                            if os.path.exists(fileName):
+                                setattr(flavour, attrName, fileName)
+                            else:
+                                self.appyTool.log(
+                                    'Template "%s" was not found!' % \
+                                    fileName, type='error')
 
     def installTool(self):
         '''Configures the application tool and flavours.'''

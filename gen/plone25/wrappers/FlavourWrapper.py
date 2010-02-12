@@ -37,6 +37,13 @@ class FlavourWrapper:
                number of available templates is higher, templates are shown in a
                drop-down list.
 
+           "podTemplate"
+               Stores the pod template for p_attrName.
+
+           "formats"
+               Stores the output format(s) of a given pod template for
+               p_attrName.
+
            "resultColumns"
                Stores the list of columns that must be show when displaying
                instances of the a given root p_klass.
@@ -71,8 +78,7 @@ class FlavourWrapper:
                simply show the current state, be it linked to the current phase
                or not.
         '''
-        fullClassName = '%s_%s' % (klass.__module__.replace('.', '_'),
-                                   klass.__name__)
+        fullClassName = self.o.getPortalType(klass)
         res = '%sFor%s' % (attributeType, fullClassName)
         if attrName: res += '_%s' % attrName
         return res
