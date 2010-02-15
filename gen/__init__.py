@@ -470,13 +470,17 @@ class Pod(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  master=None, masterValue=None, focus=False, historized=False,
-                 template=None, context=None):
+                 template=None, context=None, action=None, askAction=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus, historized)
         self.template = template # The path to a POD template
         self.context = context # A dict containing a specific pod context
+        self.action = action # A method that will be triggered after the
+        # document has been generated.
+        self.askAction = askAction # If True, the action will be triggered only
+        # if the user checks a checkbox, which, by default, will be unchecked.
 
 # Workflow-specific types ------------------------------------------------------
 class State:

@@ -6,7 +6,7 @@
           tal:repeat="podTemplate podTemplates">
       <a style="cursor: pointer"
          tal:define="podFormat podTemplate/getPodFormat"
-         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
+         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
         <img tal:attributes="src string: $portal_url/skyn/$podFormat.png"/>
         <span tal:replace="podTemplate/Title"/>
       </a>
@@ -15,7 +15,7 @@
   <select tal:condition="python: len(podTemplates)&gt;maxShownTemplates">
     <option value="" tal:content="python: tool.translate('choose_a_doc')"></option>
     <option tal:repeat="podTemplate podTemplates" tal:content="podTemplate/Title"
-            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
+            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
   </select>
   </tal:podTemplates>
 </div>
@@ -138,12 +138,19 @@
 </metal:showString>
 
 <metal:showPod define-macro="showPodField"
-               tal:define="fieldName field/getName;
-                           format python:flavour.getPodInfo(contextObj, fieldName)['formats'][0]">
-  <img tal:attributes="src string: $portal_url/skyn/${format}.png;
+               tal:define="fieldName field/getName">
+  <img tal:repeat="podFormat python:flavour.getPodInfo(contextObj, fieldName)['formats']"
+       tal:attributes="src string: $portal_url/skyn/${podFormat}.png;
                        title label;
-                       onClick python: 'javascript:generatePodDocument(\'%s\',\'\',\'%s\')' % (contextObj.UID(), fieldName)"
+                       onClick python: 'javascript:generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), fieldName, podFormat)"
        style="cursor:pointer"/>
+  <tal:askAction condition="appyType/askAction"
+                 define="doLabel python:'%s_askaction' % appyType['label'];
+                         chekboxId python: '%s_%s' % (contextObj.UID(), fieldName)">
+    <input type="checkbox" tal:attributes="name doLabel; id chekboxId"/>
+    <label tal:attributes="for chekboxId" class="discreet"
+           tal:content="python: tool.translate(doLabel)"></label>
+  </tal:askAction>
 </metal:showPod>
 
 <div metal:define-macro="showArchetypesField"
@@ -486,11 +493,17 @@
     createCookie(cookieId, newState);
   }
   // Function that allows to generate a document from a pod template.
-  function generatePodDocument(contextUid, templateUid, fieldName) {
+  function generatePodDocument(contextUid, templateUid, fieldName, podFormat) {
     var theForm = document.forms["podTemplateForm"];
     theForm.objectUid.value = contextUid;
     theForm.templateUid.value = templateUid;
     theForm.fieldName.value = fieldName;
+    theForm.podFormat.value = podFormat;
+    theForm.askAction.value = "False";
+    var askActionWidget = document.getElementById(contextUid + '_' + fieldName);
+    if (askActionWidget && askActionWidget.checked) {
+        theForm.askAction.value = "True";
+    }
     theForm.submit();
   }
 -->
@@ -504,9 +517,11 @@
   <form name="podTemplateForm" method="post"
         tal:attributes="action python: flavour.absolute_url() + '/generateDocument'">
     <input type="hidden" name="objectUid"/>
-    <tal:comment replace="nothing">templateUid is given if class-wide pod, fieldName is given if podField.</tal:comment>
+    <tal:comment replace="nothing">templateUid is given if class-wide pod, fieldName and podFormat are given if podField.</tal:comment>
     <input type="hidden" name="templateUid"/>
     <input type="hidden" name="fieldName"/>
+    <input type="hidden" name="podFormat"/>
+    <input type="hidden" name="askAction"/>
   </form>
 </div>
 

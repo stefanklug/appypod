@@ -131,6 +131,7 @@ class FlavourMixin(AbstractMixin):
         appyType = ploneObj.getAppyType(fieldName)
         res['title'] = self.translate(appyType['label'])
         res['context'] = appyType['context']
+        res['action'] = appyType['action']
         return res
 
     def generateDocument(self):
@@ -156,10 +157,11 @@ class FlavourMixin(AbstractMixin):
             format = podTemplate.getPodFormat()
             template = appyPt.podTemplate.content
             podTitle = podTemplate.Title()
+            doAction = False
         else:
             fieldName = rq.get('fieldName')
+            format = rq.get('podFormat')
             podInfo = self.getPodInfo(obj, fieldName)
-            format = podInfo['formats'][0]
             template = podInfo['template'].content
             podTitle = podInfo['title']
             if podInfo['context']:
@@ -167,6 +169,7 @@ class FlavourMixin(AbstractMixin):
                     specificPodContext = podInfo['context'](appyObj)
                 else:
                     specificPodContext = podInfo['context']
+            doAction = rq.get('askAction') == 'True'
         # Temporary file where to generate the result
         tempFileName = '%s/%s_%f.%s' % (
             getOsTempFolder(), obj.UID(), time.time(), format)
@@ -203,14 +206,16 @@ class FlavourMixin(AbstractMixin):
         f = file(tempFileName, 'rb')
         res = f.read()
         # Identify the filename to return
-        fileName = u'%s-%s' % (obj.Title().decode('utf-8'),
-                               podTitle.decode('utf-8'))
+        fileName = u'%s-%s' % (obj.Title().decode('utf-8'), podTitle)
         fileName = appyTool.normalize(fileName)
         response = obj.REQUEST.RESPONSE
         response.setHeader('Content-Type', mimeTypes[format])
         response.setHeader('Content-Disposition', 'inline;filename="%s.%s"'\
             % (fileName, format))
         f.close()
+        # Execute the related action if relevant
+        if doAction and podInfo['action']:
+            podInfo['action'](appyObj, podContext)
         # Returns the doc and removes the temp file
         try:
             os.remove(tempFileName)

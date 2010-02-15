@@ -198,6 +198,12 @@ class ArchetypeFieldDescriptor:
         self.fieldType = 'FileField'
         self.widgetType = 'FileWidget'
         self.fieldParams['storage'] = 'python:AttributeStorage()'
+        # Add i18n-specific messages
+        if self.appyType.askAction:
+            label = '%s_%s_askaction' % (self.classDescr.name, self.fieldName)
+            msg = PoMessage(label, '', PoMessage.POD_ASKACTION)
+            self.generator.labels.append(msg)
+            self.classDescr.labelsToPropagate.append(msg)
         # Add the POD-related fields on the Flavour
         Flavour._appy_addPodRelatedFields(self)
 
