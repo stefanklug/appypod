@@ -246,7 +246,7 @@ class PloneInstaller:
                     for flavour in self.appyTool.flavours:
                         attrName = flavour.getAttributeName(
                             'podTemplate', appyClass, attrName)
-                        fileObject = getattr(flavour.o, attrName)
+                        fileObject = getattr(flavour, attrName)
                         if not fileObject or (fileObject.size == 0):
                             # There is no file. Put the one specified in the
                             # appyType.
