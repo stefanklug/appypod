@@ -133,8 +133,7 @@ class ToolMixin(AbstractMixin):
            needing to get information about them). If no p_maxResults is
            specified, the method returns maximum
            self.getNumberOfResultsPerPage(). The method returns all objects if
-           p_maxResults equals string "NO_LIMIT". p_maxResults is ignored if
-           p_brainsOnly is True.
+           p_maxResults equals string "NO_LIMIT".
 
            If p_noSecurity is True, it gets all the objects, even those that the
            currently logged user can't see.'''
@@ -206,7 +205,10 @@ class ToolMixin(AbstractMixin):
         if noSecurity: catalogMethod = 'unrestrictedSearchResults'
         else:          catalogMethod = 'searchResults'
         exec 'brains = self.portal_catalog.%s(**params)' % catalogMethod
-        if brainsOnly: return brains
+        if brainsOnly:
+            # Return brains only.
+            if not maxResults: return brains
+            else: return brains[:maxResults]
         if not maxResults: maxResults = self.getNumberOfResultsPerPage()
         elif maxResults == 'NO_LIMIT': maxResults = None
         res = SomeObjects(brains, maxResults, startNumber,noSecurity=noSecurity)
@@ -570,8 +572,14 @@ class ToolMixin(AbstractMixin):
         # Compute the label of the search, or ref field
         if t == 'search':
             searchName = d2
-            if searchName == '_advanced': label = 'search_results'
+            if not searchName:
+                # We search all objects of a given type.
+                label = '%s_plural' % d1.split(':')[0]
+            elif searchName == '_advanced':
+                # This is an advanced, custom search.
+                label = 'search_results'
             else:
+                # This is a named, predefined search.
                 label = '%s_search_%s' % (d1.split(':')[0], searchName)
             res['backText'] = self.translate(label)
         else:

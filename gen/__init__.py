@@ -450,7 +450,7 @@ class Info(Type):
     '''An info is a field whose purpose is to present information
        (text, html...) to the user.'''
     def __init__(self, validator=None, multiplicity=(1,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
+                 default=None, optional=False, editDefault=False, show='view',
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,

@@ -269,8 +269,8 @@ class AbstractWrapper:
             s = res
         return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
 
-    def search(self, klass, sortBy='', maxResults=None,
-               noSecurity=False, **fields):
+    def search(self, klass, sortBy='', maxResults=None, noSecurity=False,
+               **fields):
         '''Searches objects of p_klass. p_sortBy must be the name of an indexed
            field (declared with indexed=True); every param in p_fields must
            take the name of an indexed field and take a possible value of this
@@ -302,8 +302,8 @@ class AbstractWrapper:
         if res: return res._len # It is a LazyMap instance
         else: return 0
 
-    def compute(self, klass, context=None, expression=None, noSecurity=False,
-                **fields):
+    def compute(self, klass, sortBy='', maxResults=None, context=None,
+                expression=None, noSecurity=False, **fields):
         '''This method, like m_search and m_count above, performs a query on
            objects of p_klass. But in this case, instead of returning a list of
            matching objects (like m_search) or counting elements (like p_count),
@@ -314,8 +314,9 @@ class AbstractWrapper:
            which is the currently walked object, instance of p_klass, and "ctx",
            which is the context as initialized (or not) by p_context. p_context
            may be used as
-              (1) a variable that is updated on every call to produce a result;
-              (2) an input variable;
+              (1) a variable or instance that is updated on every call to
+                  produce a result;
+              (2) an input variable or instance;
               (3) both.
 
            The method returns p_context, modified or not by evaluation of
@@ -328,11 +329,12 @@ class AbstractWrapper:
            '''
         flavour = self.flavour
         contentType = flavour.o.getPortalType(klass)
-        search = Search('customSearch', **fields)
+        search = Search('customSearch', sortBy=sortBy, **fields)
         # Initialize the context variable "ctx"
         ctx = context
         for brain in self.tool.o.executeQuery(contentType, flavour.number, \
-            search=search, brainsOnly=True, noSecurity=noSecurity):
+            search=search, brainsOnly=True, maxResults=maxResults,
+            noSecurity=noSecurity):
             # Get the Appy object from the brain
             obj = brain.getObject().appy()
             exec expression
