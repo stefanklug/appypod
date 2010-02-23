@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import xml.sax, difflib
+import xml.sax, difflib, types
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
 from appy.shared import UnicodeBuffer
@@ -401,6 +401,15 @@ class XmlMarshaller:
             self.dumpString(res, value)
         elif isinstance(value, bool):
             res.write(self.trueFalse[value])
+        elif self.isAnObject(value):
+            if hasattr(value, 'absolute_url'):
+                res.write(value.absolute_url())
+            else:
+                res.write(value)
+            # We could dump the entire object content, too. Maybe we could add a
+            # parameter to the marshaller to know how to marshall objects
+            # (produce an ID, an URL, include the entire tag but we need to take
+            # care of circular references,...)
         else:
             res.write(value)
 
@@ -411,12 +420,12 @@ class XmlMarshaller:
         fType = None # No type will mean "unicode".
         if fieldType == 'file': fType ='file'
         elif fieldType == 'ref': fType = 'list'
-        elif isinstance(fieldValue, bool): fType = 'bool'
-        elif isinstance(fieldValue, int): fType = 'int'
+        elif isinstance(fieldValue, bool):  fType = 'bool'
+        elif isinstance(fieldValue, int):   fType = 'int'
         elif isinstance(fieldValue, float): fType = 'float'
-        elif isinstance(fieldValue, long): fType = 'long'
+        elif isinstance(fieldValue, long):  fType = 'long'
         elif isinstance(fieldValue, tuple): fType = 'tuple'
-        elif isinstance(fieldValue, list): fType = 'list'
+        elif isinstance(fieldValue, list):  fType = 'list'
         elif fieldValue.__class__.__name__ == 'DateTime': fType = 'DateTime'
         if fType: res.write(' type="%s"' % fType)
         # Dump other attributes if needed
@@ -434,75 +443,95 @@ class XmlMarshaller:
         self.dumpValue(res, fieldValue, fieldType)
         res.write('</'); res.write(fieldName); res.write('>')
 
+    def isAnObject(self, instance):
+        '''Returns True if p_instance is a class instance, False if it is a
+           basic type, or tuple, sequence, etc.'''
+        iType = type(instance)
+        if iType == types.InstanceType:
+            return True
+        elif iType.__name__ == 'ImplicitAcquirerWrapper':
+            # This is the case with Archetype instances
+            return True
+        return False
+
     def marshall(self, instance, objectType='popo'):
         '''Returns in a UnicodeBuffer the XML version of p_instance. If
            p_instance corresponds to a Plain Old Python Object, specify 'popo'
            for p_objectType. If p_instance corresponds to an Archetypes object
            (Zope/Plone), specify 'archetype' for p_objectType. if p_instance is
-           a Appy object, specify "appy" as p_objectType.'''
+           a Appy object, specify "appy" as p_objectType. If p_instance is not
+           an instance at all, but another Python data structure or basic type,
+           p_objectType is ignored.'''
+        # Call the XmlMarshaller constructor if it hasn't been called yet.
         if not hasattr(self, 'cdata'):
-            # The constructor has not been called. Do it now.
             XmlMarshaller.__init__(self)
+        # Create the buffer where the XML result will be dumped.
         res = UnicodeBuffer()
-        # Dump the XML prologue and root element
-        if objectType in ('archetype', 'appy'):
-            objectId = instance.UID() # ID in DB
-        else: objectId = str(id(instance)) # ID in RAM
+        # Dump the XML prologue
         res.write(self.xmlPrologue)
-        res.write('<'); res.write(self.rootElementName)
-        res.write(' type="object" id="'); res.write(objectId); res.write('">')
-        # Dump the object ID and the value of the fields that must be dumped
-        if objectType == 'popo':
-            for fieldName, fieldValue in instance.__dict__.iteritems():
-                mustDump = False
-                if fieldName in self.fieldsToExclude:
+        if self.isAnObject(instance):
+            # Determine object ID
+            if objectType in ('archetype', 'appy'):
+                objectId = instance.UID() # ID in DB
+            else:
+                objectId = str(id(instance)) # ID in RAM
+            res.write('<'); res.write(self.rootElementName)
+            res.write(' type="object" id="');res.write(objectId);res.write('">')
+            # Dump the object ID and the value of the fields that must be dumped
+            if objectType == 'popo':
+                for fieldName, fieldValue in instance.__dict__.iteritems():
                     mustDump = False
-                elif self.fieldsToMarshall == 'all':
-                    mustDump = True
-                else:
-                    if (type(self.fieldsToMarshall) in self.sequenceTypes) and \
-                       (fieldName in self.fieldsToMarshall):
+                    if fieldName in self.fieldsToExclude:
+                        mustDump = False
+                    elif self.fieldsToMarshall == 'all':
                         mustDump = True
-                if mustDump:
-                    self.dumpField(res, fieldName, fieldValue)
-        elif objectType in ('archetype', 'appy'):
-            fields = instance.schema.fields()
-            for field in instance.schema.fields():
-                # Dump only needed fields
-                mustDump = False
-                if field.getName() in self.fieldsToExclude:
+                    else:
+                        if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                           and (fieldName in self.fieldsToMarshall):
+                            mustDump = True
+                    if mustDump:
+                        self.dumpField(res, fieldName, fieldValue)
+            elif objectType in ('archetype', 'appy'):
+                fields = instance.schema.fields()
+                for field in instance.schema.fields():
+                    # Dump only needed fields
                     mustDump = False
-                elif (self.fieldsToMarshall == 'all') and \
-                   (field.schemata != 'metadata'):
-                    mustDump = True
-                elif self.fieldsToMarshall == 'all_with_metadata':
-                    mustDump = True
-                else:
-                    if (type(self.fieldsToMarshall) in self.sequenceTypes) and \
-                       (field.getName() in self.fieldsToMarshall):
+                    if field.getName() in self.fieldsToExclude:
+                        mustDump = False
+                    elif (self.fieldsToMarshall == 'all') and \
+                       (field.schemata != 'metadata'):
                         mustDump = True
-                if mustDump:
-                    fieldType = 'basic'
-                    if field.type in self.atFiles:
-                        fieldType = 'file'
-                    elif field.type == 'reference':
-                        fieldType = 'ref'
-                    self.dumpField(res, field.getName(), field.get(instance),
-                        fieldType=fieldType)
-            if objectType == 'appy':
-                # Dump the object history.
-                res.write('<history type="list">')
-                wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
-                if wfInfo:
-                    history = instance.workflow_history[wfInfo[0].id]
-                    for event in history:
-                        res.write('<event type="object">')
-                        for k, v in event.iteritems(): self.dumpField(res, k, v)
-                        res.write('</event>')
-                res.write('</history>')
-        self.marshallSpecificElements(instance, res)
+                    elif self.fieldsToMarshall == 'all_with_metadata':
+                        mustDump = True
+                    else:
+                        if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                           and (field.getName() in self.fieldsToMarshall):
+                            mustDump = True
+                    if mustDump:
+                        fieldType = 'basic'
+                        if field.type in self.atFiles:
+                            fieldType = 'file'
+                        elif field.type == 'reference':
+                            fieldType = 'ref'
+                        self.dumpField(res, field.getName(),field.get(instance),
+                                       fieldType=fieldType)
+                if objectType == 'appy':
+                    # Dump the object history.
+                    res.write('<history type="list">')
+                    wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
+                    if wfInfo:
+                        history = instance.workflow_history[wfInfo[0].id]
+                        for event in history:
+                            res.write('<event type="object">')
+                            for k, v in event.iteritems():
+                                self.dumpField(res, k, v)
+                            res.write('</event>')
+                    res.write('</history>')
+            self.marshallSpecificElements(instance, res)
+            res.write('</'); res.write(self.rootElementName); res.write('>')
+        else:
+            self.dumpField(res, self.rootElementName, instance)
         # Return the result
-        res.write('</'); res.write(self.rootElementName); res.write('>')
         res = res.getValue()
         if not self.dumpUnicode:
             res = res.encode('utf-8')
