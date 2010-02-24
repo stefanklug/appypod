@@ -7,6 +7,7 @@
 
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes
+from appy.shared.utils import Traceback
 import appy.gen
 from appy.gen import String, Selection
 from appy.gen.utils import FieldDescr, GroupDescr, PhaseDescr, StateDescr, \
@@ -715,6 +716,7 @@ class AbstractMixin:
                 if not isinstance(res, basestring):
                     res = repr(res)
             except Exception, e:
+                obj.log(Traceback.get(), type='error')
                 res = str(e)
         return res
 
