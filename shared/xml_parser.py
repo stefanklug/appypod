@@ -336,10 +336,20 @@ class XmlMarshaller:
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
 
-    def __init__(self, cdata=False, dumpUnicode=False):
+    def __init__(self, cdata=False, dumpUnicode=False, conversionFunctions={}):
         '''If p_cdata is True, all string values will be dumped as XML CDATA.'''
         self.cdata = cdata
         self.dumpUnicode = dumpUnicode
+        # The following dict stores specific conversion (=Python to XML)
+        # functions. A specific conversion function is useful when you are not
+        # happy with the way built-in converters work, or if you want to
+        # specify a specific way to represent, in XML, some particular Python
+        # object or value. In this dict, every key represents a given type
+        # (class names must be full-path class names); every value is a function
+        # accepting 2 args: first one is the UnicodeBuffer where the result is
+        # being dumped, while the second one is the Python object or value to
+        # dump.
+        self.conversionFunctions = conversionFunctions
 
     def dumpString(self, res, s):
         '''Dumps a string into the result.'''
@@ -383,6 +393,12 @@ class XmlMarshaller:
 
     def dumpValue(self, res, value, fieldType):
         '''Dumps the XML version of p_value to p_res.'''
+        # Use a custom function if one is defined for this type of value.
+        fType = value.__class__.__name__
+        if fType in self.conversionFunctions:
+            self.conversionFunctions[fType](res, value)
+            return
+        # Use a standard conversion else.
         if fieldType == 'file':
             self.dumpFile(res, value)
         elif fieldType == 'ref':
@@ -394,7 +410,7 @@ class XmlMarshaller:
                     self.dumpField(res, 'url', value.absolute_url())
         elif type(value) in self.sequenceTypes:
             # The previous condition must be checked before this one because
-            # Referred objects may be stored in lists or tuples, too.
+            # referred objects may be stored in lists or tuples, too.
             for elem in value:
                 self.dumpField(res, 'e', elem)
         elif isinstance(value, basestring):
@@ -452,9 +468,11 @@ class XmlMarshaller:
         elif iType.__name__ == 'ImplicitAcquirerWrapper':
             # This is the case with Archetype instances
             return True
+        elif iType.__class__.__name__ == 'ExtensionClass':
+            return True
         return False
 
-    def marshall(self, instance, objectType='popo'):
+    def marshall(self, instance, objectType='popo', conversionFunctions={}):
         '''Returns in a UnicodeBuffer the XML version of p_instance. If
            p_instance corresponds to a Plain Old Python Object, specify 'popo'
            for p_objectType. If p_instance corresponds to an Archetypes object
@@ -465,6 +483,8 @@ class XmlMarshaller:
         # Call the XmlMarshaller constructor if it hasn't been called yet.
         if not hasattr(self, 'cdata'):
             XmlMarshaller.__init__(self)
+        if conversionFunctions:
+            self.conversionFunctions.update(conversionFunctions)
         # Create the buffer where the XML result will be dumped.
         res = UnicodeBuffer()
         # Dump the XML prologue
@@ -541,7 +561,7 @@ class XmlMarshaller:
         '''You can use this marshaller as a base class for creating your own.
            In this case, this method will be called by the marshall method
            for allowing your concrete marshaller to insert more things in the
-           result. p_res is the StringIO buffer where the result of the
+           result. p_res is the UnicodeBuffer buffer where the result of the
            marshalling process is currently dumped; p_instance is the instance
            currently marshalled.'''
 
