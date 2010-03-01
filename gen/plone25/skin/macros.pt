@@ -139,11 +139,6 @@
 
 <metal:showPod define-macro="showPodField"
                tal:define="fieldName field/getName">
-  <img tal:repeat="podFormat python:flavour.getPodInfo(contextObj, fieldName)['formats']"
-       tal:attributes="src string: $portal_url/skyn/${podFormat}.png;
-                       title label;
-                       onClick python: 'javascript:generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), fieldName, podFormat)"
-       style="cursor:pointer"/>
   <tal:askAction condition="appyType/askAction"
                  define="doLabel python:'%s_askaction' % appyType['label'];
                          chekboxId python: '%s_%s' % (contextObj.UID(), fieldName)">
@@ -151,6 +146,11 @@
     <label tal:attributes="for chekboxId" class="discreet"
            tal:content="python: tool.translate(doLabel)"></label>
   </tal:askAction>
+  <img tal:repeat="podFormat python:flavour.getPodInfo(contextObj, fieldName)['formats']"
+       tal:attributes="src string: $portal_url/skyn/${podFormat}.png;
+                       title label;
+                       onClick python: 'javascript:generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), fieldName, podFormat)"
+       style="cursor:pointer"/>
 </metal:showPod>
 
 <div metal:define-macro="showArchetypesField"
