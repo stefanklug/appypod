@@ -952,7 +952,7 @@ class AbstractMixin:
             res = None
             if objs:
                 res = objs[0]
-            if not ploneObjects:
+            if res and not ploneObjects:
                 res = res.appy()
         else:
             res = objs
