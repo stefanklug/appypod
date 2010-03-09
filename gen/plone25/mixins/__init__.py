@@ -933,14 +933,11 @@ class AbstractMixin:
         '''This method returns the list of objects linked to this one
            through the BackRef corresponding to the Archetypes
            relationship named p_relName.'''
-        res = []
-        referers = self.getProductConfig().referers
-        objs = self.getBRefs(relName)
-        for obj in objs:
-            if not ploneObjects:
-                obj = obj.appy()
-            res.append(obj)
-        if res and noListIfSingleObj:
+        # Preamble: must I return a list or a single element?
+        maxOne = False
+        if noListIfSingleObj:
+            # I must get the referred appyType to know its maximum multiplicity.
+            referers = self.getProductConfig().referers
             className = self.__class__.__name__
             appyType = None
             for anAppyType, rel in referers[className]:
@@ -948,7 +945,19 @@ class AbstractMixin:
                     appyType = anAppyType
                     break
             if appyType.back.multiplicity[1] == 1:
-                res = res[0]
+                maxOne = True
+        # Get the referred objects through the Archetypes relationship.
+        objs = self.getBRefs(relName)
+        if maxOne:
+            res = None
+            if objs:
+                res = objs[0]
+            if not ploneObjects:
+                res = res.appy()
+        else:
+            res = objs
+            if not ploneObjects:
+                res = [o.appy() for o in objs]
         return res
 
     def _appy_showPage(self, page, pageShow):
