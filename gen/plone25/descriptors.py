@@ -237,8 +237,7 @@ class ArchetypeFieldDescriptor:
             self.classDescr.addDefaultMethod(methodName, self)
         # - put an index on this field?
         if self.appyType.indexed:
-            if (self.appyType.type == 'String') and \
-               (self.appyType.isMultiValued()):
+            if (self.appyType.type == 'String') and (self.appyType.isSelect):
                 self.fieldParams['index'] = 'ZCTextIndex, lexicon_id=' \
                     'plone_lexicon, index_type=Okapi BM25 Rank'
             else:

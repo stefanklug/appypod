@@ -65,6 +65,8 @@ class PoMessage:
     SEARCH_NEW = 'New search'
     SEARCH_FROM = 'From'
     SEARCH_TO = 'to'
+    SEARCH_OR = 'or'
+    SEARCH_AND = 'and'
     WORKFLOW_COMMENT = 'Optional comment'
     WORKFLOW_STATE = 'state'
     DATA_CHANGE = 'Data change'

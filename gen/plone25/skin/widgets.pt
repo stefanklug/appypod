@@ -28,8 +28,19 @@
   <tal:simpleSearch condition="not: appyType/isSelect">
     <input type="text" tal:attributes="name widgetName"/>
   </tal:simpleSearch>
-  <tal:comment replace="nothing">Show a multi-selection box for fields whose validator defines a list of values.</tal:comment>
+  <tal:comment replace="nothing">Show a multi-selection box for fields whose validator defines a list of values, with a "AND/OR" checkbox.</tal:comment>
   <tal:selectSearch condition="appyType/isSelect">
+    <tal:comment replace="nothing">The "and" / "or" radio buttons</tal:comment>
+    <tal:operator define="operName python: 'o_%s'   % fieldName;
+                          orName   python: '%s_or'  % operName;
+                          andName  python: '%s_and' % operName;"
+                  condition="python: appyType['multiplicity'][1]!=1">
+    <input type="radio" class="noborder" tal:attributes="name operName; id orName" checked="checked" value="or"/>
+    <label tal:attributes="for orName" tal:content="python: tool.translate('search_or')"></label>
+    <input type="radio" class="noborder" tal:attributes="name operName; id andName" value="and"/>
+    <label tal:attributes="for andName" tal:content="python: tool.translate('search_and')"></label><br/>
+    </tal:operator>
+    <tal:comment replace="nothing">The list of values</tal:comment>
     <select tal:attributes="name widgetName" multiple="multiple" size="5">
       <option tal:repeat="v python:tool.getSelectValues(appyType)"
               tal:attributes="value python:v[0]" tal:content="python: v[1]">

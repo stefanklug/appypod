@@ -443,6 +443,7 @@ class ToolMixin(AbstractMixin):
                 # given field.
                 attrValue = rq.form[attrName]
                 if attrName.find('*') != -1:
+                    # The type of the value is encoded after char "*".
                     attrName, attrType = attrName.split('*')
                     if attrType == 'bool':
                         exec 'attrValue = %s' % attrValue
@@ -471,7 +472,12 @@ class ToolMixin(AbstractMixin):
                         toDate = self._getDateTime(year, month, day, False)
                         attrValue = (fromDate, toDate)
                 if isinstance(attrValue, list):
-                    attrValue = ' OR '.join(attrValue)
+                    # It is a list of values. Check if we have an operator for
+                    # the field, to see if we make an "and" or "or" for all
+                    # those values. "or" will be the default.
+                    operKey = 'o_%s' % attrName[2:]
+                    oper = ' %s ' % rq.form.get(operKey, 'or').upper()
+                    attrValue = oper.join(attrValue)
                 criteria[attrName[2:]] = attrValue
         rq.SESSION['searchCriteria'] = criteria
         # Goto the screen that displays search results
