@@ -196,4 +196,37 @@ class SomeObjects:
         if self.noSecurity: getMethod = '_unrestrictedGetObject'
         else:               getMethod = 'getObject'
         self.objects = [getattr(b, getMethod)() for b in brains]
+
+# ------------------------------------------------------------------------------
+class Keywords:
+    '''This class allows to handle keywords that a user enters and that will be
+       used as basis for performing requests in a Zope ZCTextIndex.'''
+
+    toRemove = '?-+*()'
+    def __init__(self, keywords, operator='AND'):
+        # Clean the p_keywords that the user has entered.
+        words = keywords.strip()
+        if words == '*': words = ''
+        for c in self.toRemove: words = words.replace(c, ' ')
+        self.keywords = words.split()
+        # Store the operator to apply to the keywords (AND or OR)
+        self.operator = operator
+
+    def merge(self, other, append=False):
+        '''Merges our keywords with those from p_other. If p_append is True,
+           p_other keywords are appended at the end; else, keywords are appended
+           at the begin.'''
+        for word in other.keywords:
+            if word not in self.keywords:
+                if append:
+                    self.keywords.append(word)
+                else:
+                    self.keywords.insert(0, word)
+
+    def get(self):
+        '''Returns the keywords as needed by the ZCTextIndex.'''
+        if self.keywords:
+            op = ' %s ' % self.operator
+            return op.join(self.keywords)+'*'
+        return ''
 # ------------------------------------------------------------------------------

@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, traceback
+import os, os.path, sys, traceback, unicodedata
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:
@@ -76,4 +76,22 @@ def executeCommand(cmd, ignoreLines=None):
         res = '\n'.join(keptLines)
     childStdIn.close(); childStdOut.close(); childStdErr.close()
     return res
+
+# ------------------------------------------------------------------------------
+unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
+def normalizeString(s, usage='fileName'):
+    '''Returns a version of string p_s whose special chars have been
+       replaced with normal chars.'''
+    # We work in unicode. Convert p_s to unicode if not unicode.
+    if isinstance(s, str):           s = s.decode('utf-8')
+    elif not isinstance(s, unicode): s = unicode(s)
+    if usage == 'fileName':
+        # Remove any char that can't be found within a file name under
+        # Windows.
+        res = ''
+        for char in s:
+            if char not in unwantedChars:
+                res += char
+        s = res
+    return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
 # ------------------------------------------------------------------------------

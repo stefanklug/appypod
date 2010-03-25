@@ -7,7 +7,17 @@ appyPath = os.path.realpath(os.path.dirname(appy.__file__))
 mimeTypes = {'odt': 'application/vnd.oasis.opendocument.text',
              'doc': 'application/msword',
              'rtf': 'text/rtf',
-             'pdf': 'application/pdf'}
+             'pdf': 'application/pdf'
+             }
+mimeTypesExts = {
+             'application/vnd.oasis.opendocument.text': 'odt',
+             'application/msword'                     : 'doc',
+             'text/rtf'                               : 'rtf',
+             'application/pdf'                        : 'pdf',
+             'image/png'                              : 'png',
+             'image/jpeg'                             : 'jpg',
+             'image/gif'                              : 'gif'
+             }
 
 # ------------------------------------------------------------------------------
 class UnmarshalledObject:

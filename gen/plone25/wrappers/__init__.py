@@ -2,11 +2,11 @@
    developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, time, mimetypes, unicodedata, random
+import os, os.path, time, mimetypes, random
 import appy.pod
 from appy.gen import Search
 from appy.gen.utils import sequenceTypes
-from appy.shared.utils import getOsTempFolder, executeCommand
+from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
 
 # Some error messages ----------------------------------------------------------
@@ -256,18 +256,7 @@ class AbstractWrapper:
     def normalize(self, s, usage='fileName'):
         '''Returns a version of string p_s whose special chars have been
            replaced with normal chars.'''
-        # We work in unicode. Convert p_s to unicode if not unicode.
-        if isinstance(s, str):           s = s.decode('utf-8')
-        elif not isinstance(s, unicode): s = unicode(s)
-        if usage == 'fileName':
-            # Remove any char that can't be found within a file name under
-            # Windows.
-            res = ''
-            for char in s:
-                if char not in self.unwantedChars:
-                    res += char
-            s = res
-        return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
+        return normalizeString(s, usage)
 
     def search(self, klass, sortBy='', maxResults=None, noSecurity=False,
                **fields):

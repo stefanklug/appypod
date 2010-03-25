@@ -23,6 +23,7 @@ from UserDict import UserDict
 
 import appy.pod
 from appy.pod import PodError
+from appy.shared import mimeTypesExts
 from appy.shared.xml_parser import XmlElement
 from appy.shared.utils import FolderDeleter, executeCommand
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
@@ -230,11 +231,6 @@ class Renderer:
         return ifFalse
 
     imageFormats = ('png', 'jpeg', 'jpg', 'gif')
-    mimeTypes = {
-        'application/vnd.oasis.opendocument.text': 'odt',
-        'application/msword': 'doc', 'text/rtf': 'rtf',
-        'application/pdf' : 'pdf', 'image/png': 'png',
-        'image/jpeg': 'jpg', 'image/gif': 'gif'}
     ooFormats = ('odt',)
     def importDocument(self, content=None, at=None, format=None,
                        anchor='as-char'):
@@ -256,8 +252,8 @@ class Renderer:
             format = os.path.splitext(at)[1][1:]
         else:
             # If format is a mimeType, convert it to an extension
-            if self.mimeTypes.has_key(format):
-                format = self.mimeTypes[format]
+            if mimeTypesExts.has_key(format):
+                format = mimeTypesExts[format]
         isImage = False
         if format in self.ooFormats:
             importer = OdtImporter
@@ -322,6 +318,8 @@ class Renderer:
             stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
             self.stylesManager.stylesMapping = stylesMapping
         except PodError, po:
+            self.contentParser.env.currentBuffer.content.close()
+            self.stylesParser.env.currentBuffer.content.close()
             if os.path.exists(self.tempFolder):
                 FolderDeleter.delete(self.tempFolder)
             raise po
@@ -395,7 +393,10 @@ class Renderer:
             except Exception, e:
                 print WARNING_FINALIZE_ERROR % str(e)
         resultOdtName = os.path.join(self.tempFolder, 'result.odt')
-        resultOdt = zipfile.ZipFile(resultOdtName, 'w')
+        try:
+            resultOdt = zipfile.ZipFile(resultOdtName,'w', zipfile.ZIP_DEFLATED)
+        except RuntimeError:
+            resultOdt = zipfile.ZipFile(resultOdtName,'w')
         os.chdir(self.unzipFolder)
         for dir, dirnames, filenames in os.walk('.'):
             for f in filenames:

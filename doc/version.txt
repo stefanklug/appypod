@@ -1,3 +1,6 @@
+0.5.4 (2010-03-24)
+- Improved gen search screens and many more minor bugfixes and features.
+
 0.5.3 (2010-02-15)
 - Improved gen/pod integration by adding a Pod field for appy.gen applications.
 
