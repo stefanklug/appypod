@@ -17,7 +17,8 @@
                    js python:contextObj.getUniqueWidgetAttr(fields, 'helper_js');
                    phaseInfo python: contextObj.getAppyPhases(fieldset=fieldset, forPlone=True);
                    phase request/phase|phaseInfo/name;
-                   pageName python: contextObj.getAppyPage(isEdit, phaseInfo);">
+                   appyPages python: contextObj.getAppyPages(phase);
+                   pageName python: contextObj.getAppyPage(isEdit, phaseInfo, appyPages);">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
       xmlns:tal="http://xml.zope.org/namespaces/tal"

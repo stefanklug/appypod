@@ -12,7 +12,7 @@
                       appName string:<!applicationName!>;
                       appFolder tool/getAppFolder;
                       flavours tool/getFlavoursInfo" class="portlet">
-        <metal:content use-macro="here/skyn/macros/macros/portletContent"/>
+        <metal:content use-macro="here/skyn/portlet/macros/portletContent"/>
       </dl>
     </div>
   </body>

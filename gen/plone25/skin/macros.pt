@@ -85,11 +85,15 @@
 
 <div metal:define-macro="showActionField">
   <form name="executeAppyAction"
-        tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
+        tal:define="formId python: '%s_%s' % (contextObj.UID(), field.getName())"
+        tal:attributes="id formId; action python: contextObj.absolute_url()+'/skyn/do'">
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value field/getName"/>
-    <input type="submit" name="do" tal:attributes="value label" onClick="javascript:;"/>
+    <input type="button" tal:condition="appyType/confirm"
+           tal:attributes="value label; onClick python: 'javascript:askConfirm(\'%s\')' % formId"/>
+    <input type="submit" name="do" tal:condition="not: appyType/confirm"
+           tal:attributes="value label" onClick="javascript:;"/>
     <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone
       from adding a CSS class that displays a popup when the user triggers the form multiple
       times.</tal:comment>
@@ -506,6 +510,42 @@
     }
     theForm.submit();
   }
+  // Functions for opening and closing a popup
+  function openPopup(popupId) {
+    // Open the popup
+    var popup = document.getElementById(popupId);
+    // Put it at the right place on the screen
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+    popup.style.top = (scrollTop + 150) + 'px';
+    popup.style.display = "block";
+    // Show the greyed zone
+    var greyed = document.getElementById('appyGrey');
+    greyed.style.top = scrollTop + 'px';
+    greyed.style.display = "block";
+  }
+  function closePopup(popupId) {
+    // Close the popup
+    var popup = document.getElementById(popupId);
+    popup.style.display = "none";
+    // Hide the greyed zone
+    var greyed = document.getElementById('appyGrey');
+    greyed.style.display = "none";
+  }
+  // Function triggered when an action needs to be confirmed by the user
+  function askConfirm(formId) {
+    // Store the ID of the form to send if the users confirms.
+    var confirmForm = document.getElementById('confirmActionForm');
+    confirmForm.actionFormId.value = formId;
+    openPopup("confirmActionPopup");
+  }
+  // Function triggered when an action confirmed by the user must be performed
+  function doConfirm() {
+    // The user confirmed: retrieve the form to send and send it.
+    var confirmForm = document.getElementById('confirmActionForm');
+    var actionFormId = confirmForm.actionFormId.value;
+    var actionForm = document.getElementById(actionFormId);
+    actionForm.submit();
+  }
 -->
   </script>
   <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
@@ -526,8 +566,7 @@
 </div>
 
 <div metal:define-macro="showPageHeader"
-     tal:define="appyPages python: contextObj.getAppyPages(phase);
-                 showCommonInfo python: not isEdit;
+     tal:define="showCommonInfo python: not isEdit;
                  hasHistory contextObj/hasHistory;
                  historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
                  creator contextObj/Creator"
@@ -913,126 +952,6 @@
     </table>
   </form>
 </metal:transitions>
-
-<metal:portletContent define-macro="portletContent"
-   tal:define="queryUrl python: '%s/skyn/query' % appFolder.absolute_url();
-               currentSearch request/search|nothing;
-               currentType request/type_name|nothing;">
-  <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
-  <dt class="portletHeader">
-    <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
-        title allows to see all root objects in the database.</tal:comment>
-    <table cellpadding="0" cellspacing="0" width="100%">
-    <tr>
-      <td>
-        <a tal:condition="python: len(flavours)==1"
-           tal:attributes="href python:'%s?type_name=%s&flavourNumber=1' % (queryUrl, ','.join(rootClasses))"
-           tal:content="python: tool.translate(appName)"></a>
-        <span tal:condition="python: len(flavours)&gt;1"
-              tal:replace="python: tool.translate(appName)"/>
-      </td>
-    <td align="right">
-      <img style="cursor:pointer"
-           tal:condition="python: member.has_role('Manager')"
-           tal:attributes="onClick python: 'href: window.location=\'%s/skyn/view\'' % tool.absolute_url();
-                           title python: tool.translate('%sTool' % appName);
-                           src string:$portal_url/skyn/appyConfig.gif"/>
-    </td>
-  </dt>
-
-  <tal:comment replace="nothing">TODO: implement a widget for selecting the needed flavour.</tal:comment>
-  
-  <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
-  <tal:section repeat="rootClass rootClasses"
-               define="flavourNumber python:1;
-                       flavour python: tool.getFlavour('Dummy_%d' % flavourNumber)">
-    <tal:comment replace="nothing">Section title, with action icons</tal:comment>
-    <dt tal:attributes="class python:test(repeat['rootClass'].number()==1, 'portletAppyItem', 'portletAppyItem portletSep')">
-      <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
-        <tr>
-          <td>
-            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s' % (queryUrl, rootClass, flavourNumber);
-                               class python:test(not currentSearch and (currentType==rootClass), 'portletCurrent', '')"
-               tal:content="python: tool.translate(rootClass + '_plural')"></a>
-          </td>
-          <td align="right"
-              tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
-                          userMayAdd python: member.has_permission(addPermission, appFolder);
-                          createMeans python: tool.getCreateMeans(rootClass)">
-            <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
-            <img style="cursor:pointer"
-                 tal:condition="python: ('form' in createMeans) and userMayAdd"
-                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s\'' % (appFolder.absolute_url(), rootClass);
-                                 src string: $portal_url/skyn/plus.png;
-                                 title python: tool.translate('query_create')"/>
-            <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
-            <img style="cursor:pointer"
-                 tal:condition="python: ('import' in createMeans) and userMayAdd"
-                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootClass);
-                                 src string: $portal_url/skyn/import.png;
-                                 title python: tool.translate('query_import')"/>
-            <tal:comment replace="nothing">Search objects of this type (todo: update flavourNumber)</tal:comment>
-            <img style="cursor:pointer"
-                 tal:define="showSearch python: flavour.getAttr('enableAdvancedSearchFor%s' % rootClass)"
-                 tal:condition="showSearch"
-                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/search?type_name=%s&flavourNumber=1\'' % (appFolder.absolute_url(), rootClass);
-                                 src string: $portal_url/skyn/search.gif;
-                                 title python: tool.translate('search_objects')"/>
-          </td>
-        </tr>
-      </table>
-    </dt>
-    <tal:comment replace="nothing">Searches for this content type.</tal:comment>
-    <tal:searchOrGroup repeat="searchOrGroup python: tool.getSearches(rootClass)">
-      <tal:group condition="searchOrGroup/isGroup">
-      <tal:expanded define="group searchOrGroup;
-                            expanded python: tool.getCookieValue(group['labelId'], default='collapsed') == 'expanded'">
-        <tal:comment replace="nothing">Group name</tal:comment>
-        <dt class="portletAppyItem portletGroup">
-          <img align="left" style="cursor:pointer"
-               tal:attributes="id python: '%s_img' % group['labelId'];
-                               src python:test(expanded, 'skyn/collapse.gif', 'skyn/expand.gif');
-                               onClick python:'javascript:toggleCookie(\'%s\')' % group['labelId']"/>&nbsp;
-          <span tal:replace="group/label"/>
-        </dt>
-        <tal:comment replace="nothing">Group searches</tal:comment>
-        <span tal:attributes="id group/labelId;
-                              style python:test(expanded, 'display:block', 'display:none')">
-          <dt class="portletAppyItem portletSearch portletGroupItem" tal:repeat="search group/searches">
-            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
-                         title search/descr;
-                         class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
-               tal:content="structure search/label"></a>
-          </dt>
-        </span>
-      </tal:expanded>
-      </tal:group>
-      <dt tal:define="search searchOrGroup" tal:condition="not: searchOrGroup/isGroup"
-          class="portletAppyItem portletSearch">
-
-        <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
-                     title search/descr;
-                     class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
-           tal:content="structure search/label"></a>
-      </dt>
-    </tal:searchOrGroup>
-  </tal:section>
-
-  <tal:comment replace="nothing">All objects in flavour</tal:comment>
-  <!--dt class="portletAppyItem" tal:define="flavourInfo python: flavours[0]">
-    <a tal:define="flavourNumber flavourInfo/number;
-                   rootTypes python: test(flavourNumber==1, rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
-                   rootClassesQuery python:','.join(rootTypes)"
-       tal:content="flavourInfo/title"
-       tal:attributes="title python: tool.translate('query_consult_all');
-                       href python:'%s?type_name=%s&flavourNumber=%d' % (queryUrl, rootClassesQuery, flavourNumber)"></a>
-  </dt-->
-
-  <dt class="portletAppyItem" tal:define="contextObj tool/getPublishedObject"
-      tal:condition="python: contextObj.meta_type in rootClasses">
-    <metal:phases use-macro="here/skyn/macros/macros/phases"/>
-  </dt>
-</metal:portletContent>
 
 <div metal:define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize" align="right">
   <tal:comment replace="nothing">

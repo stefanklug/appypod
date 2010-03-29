@@ -25,7 +25,8 @@
                   appName appFolder/id;
                   phaseInfo python: contextObj.getAppyPhases(currentOnly=True, forPlone=False);
                   phase request/phase|phaseInfo/name;
-                  pageName python: contextObj.getAppyPage(isEdit, phaseInfo);
+                  appyPages python: contextObj.getAppyPages(phase);
+                  pageName python: contextObj.getAppyPage(isEdit, phaseInfo, appyPages);
                   showWorkflow python: flavour.getAttr('showWorkflowFor' + contextObj.meta_type)">
       <metal:prologue use-macro="here/skyn/macros/macros/pagePrologue"/>
       <metal:header   use-macro="here/skyn/macros/macros/showPageHeader"/>

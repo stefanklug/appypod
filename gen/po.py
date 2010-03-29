@@ -100,6 +100,9 @@ class PoMessage:
     GOTO_LAST = 'Go to end'
     GOTO_SOURCE = 'Go back'
     WHATEVER = 'Whatever'
+    CONFIRM = 'Are you sure ?'
+    YES = 'Yes'
+    NO = 'No'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[]):
         self.id = id

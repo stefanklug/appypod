@@ -403,7 +403,7 @@ class Action(Type):
                  page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 action=None, result='computation', master=None,
+                 action=None, result='computation', confirm=False, master=None,
                  masterValue=None, focus=False, historized=False):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, move, indexed, False,
@@ -414,6 +414,8 @@ class Action(Type):
         # compute things and redirect the user to the same page, with some
         # status message about execution of the action. 'file' means that the
         # result is the binary content of a file that the user will download.
+        self.confirm = confirm # If True, a popup will ask the user if she is
+        # really sure about triggering this action.
 
     def __call__(self, obj):
         '''Calls the action on p_obj.'''

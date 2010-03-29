@@ -142,6 +142,9 @@ class Generator(AbstractGenerator):
             msg('goto_last',            '', msg.GOTO_LAST),
             msg('goto_source',          '', msg.GOTO_SOURCE),
             msg('whatever',             '', msg.WHATEVER),
+            msg('confirm',              '', msg.CONFIRM),
+            msg('yes',                  '', msg.YES),
+            msg('no',                   '', msg.NO),
         ]
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()

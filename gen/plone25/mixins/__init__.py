@@ -544,9 +544,10 @@ class AbstractMixin:
                     res.append(transition)
         return res
 
-    def getAppyPage(self, isEdit, phaseInfo, appyName=True):
+    def getAppyPage(self, isEdit, phaseInfo, appyPages, appyName=True):
         '''On which page am I? p_isEdit indicates if the current page is an
-           edit or consult view. p_phaseInfo indicates the current phase.'''
+           edit or consult view. p_phaseInfo indicates the current phase.
+           p_appyPages is the list of displayable appy pages.'''
         pageAttr = 'pageName'
         if isEdit:
             pageAttr = 'fieldset' # Archetypes page name
@@ -555,6 +556,11 @@ class AbstractMixin:
         res = self.REQUEST.get(pageAttr, default)
         if appyName and (res == 'default'):
             res = 'main'
+        # If the page is not among currently displayable pages, return the
+        # default page
+        if res not in appyPages:
+            res = 'main'
+            if not appyName: res = 'default'
         return res
 
     def getAppyPages(self, phase='main'):
