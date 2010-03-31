@@ -340,16 +340,19 @@ class AbstractWrapper:
 
     def export(self, at='string'):
         '''Creates an "exportable", XML version of this object. If p_at is
-           "string", this method returns the XML version. Else, (a) if not p_at,
-           the XML will be exported on disk, in the OS temp folder, with an
-           ugly name; (b) else, it will be exported at path p_at.'''
+           "string", this method returns the XML version, without the XML
+           prologue. Else, (a) if not p_at, the XML will be exported on disk,
+           in the OS temp folder, with an ugly name; (b) else, it will be
+           exported at path p_at.'''
         # Determine where to put the result
         toDisk = (at != 'string')
         if toDisk and not at:
             at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
         # Create the XML version of the object
-        xml = XmlMarshaller(cdata=True, dumpUnicode=True).marshall(
-            self.o, objectType='appy')
+        marshaller = XmlMarshaller(cdata=True, dumpUnicode=True,
+                                   dumpXmlPrologue=toDisk,
+                                   rootTag=self.klass.__name__)
+        xml = marshaller.marshall(self.o, objectType='appy')
         # Produce the desired result
         if toDisk:
             f = file(at, 'w')

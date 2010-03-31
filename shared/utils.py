@@ -94,4 +94,8 @@ def normalizeString(s, usage='fileName'):
                 res += char
         s = res
     return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
+
+# ------------------------------------------------------------------------------
+typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
+               'l': list, 'd': dict}
 # ------------------------------------------------------------------------------

@@ -20,7 +20,7 @@
 import xml.sax, difflib, types
 from xml.sax.handler import ContentHandler, ErrorHandler
 from xml.sax.xmlreader import InputSource
-from appy.shared import UnicodeBuffer
+from appy.shared import UnicodeBuffer, xmlPrologue
 from appy.shared.errors import AppyError
 
 # Error-related constants ------------------------------------------------------
@@ -157,24 +157,30 @@ class XmlUnmarshaller(XmlParser):
        If "object" is specified, it means that the tag contains sub-tags, each
        one corresponding to the value of an attribute for this object.
        if "tuple" is specified, it will be converted to a list.'''
-    def __init__(self, klass=None, tagTypes={}, conversionFunctions={}):
+    def __init__(self, classes={}, tagTypes={}, conversionFunctions={}):
         XmlParser.__init__(self)
-        self.klass = klass # If a klass is given here, instead of creating
-        # a root UnmarshalledObject instance, we will create an instance of this
-        # class (only if the root object is an object; this does not apply if
-        # it is a list or tuple; yes, technically the root tag can be a list or
-        # tuple even if it is silly because only one root tag can exist). But be
-        # careful: we will not call the constructor of this class. We will
-        # simply create an instance of UnmarshalledObject and dynamically change
-        # the class of the created instance to this class.
-        self.tagTypes = tagTypes
+        # self.classes below is a dict whose keys are tag names and values are
+        # Python classes. During the unmarshalling process, when an object is
+        # encountered, instead of creating an instance of UnmarshalledObject,
+        # we will create an instance of the class specified in self.classes.
+        # Root tag is named "xmlPythonData" by default by the XmlMarshaller.
+        # This will not work if the object in the specified tag is not a
+        # UnmarshalledObject instance (ie it is a list or tuple or simple
+        # value). Note that we will not call the constructor of the specified
+        # class. We will simply create an instance of UnmarshalledObject and
+        # dynamically change the class of the created instance to this class.
+        if not isinstance(classes, dict) and classes:
+            # The user may only need to define a class for the root tag
+            self.classes = {'xmlPythonData': classes}
+        else:
+            self.classes = classes
         # We expect that the parsed XML file will follow some conventions
         # (ie, a tag that corresponds to a list has attribute type="list" or a
         # tag that corresponds to an object has attribute type="object".). If
         # it is not the case of p_xmlContent, you can provide the missing type
         # information in p_tagTypes. Here is an example of p_tagTypes:
         # {"information": "list", "days": "list", "person": "object"}.
-        self.conversionFunctions = conversionFunctions
+        self.tagTypes = tagTypes
         # The parser assumes that data is represented in some standard way. If
         # it is not the case, you may provide, in this dict, custom functions
         # allowing to convert values of basic types (long, float, DateTime...).
@@ -186,7 +192,8 @@ class XmlUnmarshaller(XmlParser):
         # NOTE: you can even invent a new basic type, put it in self.tagTypes,
         # and create a specific conversionFunction for it. This way, you can
         # for example convert strings that have specific values (in this case,
-        # knowing that the value is a 'string' is not sufficient).
+        # knowing that the value is a 'string' is not sufficient).        
+        self.conversionFunctions = conversionFunctions
 
     def convertAttrs(self, attrs):
         '''Converts XML attrs to a dict.'''
@@ -236,14 +243,15 @@ class XmlUnmarshaller(XmlParser):
 
     def storeValue(self, name, value):
         '''Stores the newly parsed p_value (contained in tag p_name) on the
-           current container in environment p_e.'''
+           current container in environment self.env.'''
         e = self.env
+        # Change the class of the value if relevant
+        if (name in self.classes) and isinstance(value, UnmarshalledObject):
+            value.__class__ = self.classes[name]
         # Where must I store this value?
         if not e.containerStack:
             # I store the object at the root of the web.
             self.res = value
-            if self.klass and isinstance(value, UnmarshalledObject):
-                self.res.__class__ = self.klass
         else:
             currentContainer = e.containerStack[-1]
             if isinstance(currentContainer, list):
@@ -252,7 +260,8 @@ class XmlUnmarshaller(XmlParser):
                 currentContainer.content += value
             else:
                 # Current container is an object
-                if hasattr(currentContainer, name):
+                if hasattr(currentContainer, name) and \
+                   getattr(currentContainer, name):
                     # We have already encountered a sub-object with this name.
                     # Having several sub-objects with the same name, we will
                     # create a list.
@@ -326,19 +335,19 @@ class XmlMarshaller:
     '''This class allows to produce a XML version of a Python object, which
        respects some conventions as described in the doc of the corresponding
        Unmarshaller (see above).'''
-    xmlPrologue = '<?xml version="1.0" encoding="utf-8"?>'
     xmlEntities = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
                    "'": '&apos;'}
     trueFalse = {True: 'True', False: 'False'}
     sequenceTypes = (tuple, list)
-    rootElementName = 'xmlPythonData'
     fieldsToMarshall = 'all'
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
 
-    def __init__(self, cdata=False, dumpUnicode=False, conversionFunctions={}):
-        '''If p_cdata is True, all string values will be dumped as XML CDATA.'''
+    def __init__(self, cdata=False, dumpUnicode=False, conversionFunctions={},
+                 dumpXmlPrologue=True, rootTag='xmlPythonData'):
+        # If p_cdata is True, all string values will be dumped as XML CDATA.
         self.cdata = cdata
+        # If p_dumpUnicode is True, the result will be unicode.
         self.dumpUnicode = dumpUnicode
         # The following dict stores specific conversion (=Python to XML)
         # functions. A specific conversion function is useful when you are not
@@ -350,6 +359,10 @@ class XmlMarshaller:
         # being dumped, while the second one is the Python object or value to
         # dump.
         self.conversionFunctions = conversionFunctions
+        # If dumpXmlPrologue is True, the XML prologue will be dumped.
+        self.dumpXmlPrologue = dumpXmlPrologue
+        # The name of the root tag
+        self.rootElementName = rootTag
 
     def dumpString(self, res, s):
         '''Dumps a string into the result.'''
@@ -391,17 +404,17 @@ class XmlMarshaller:
             res.write(v.encode('base64'))
         res.write('</part>')
 
-    def dumpValue(self, res, value, fieldType):
+    def dumpValue(self, res, value, fieldType, isRef=False):
         '''Dumps the XML version of p_value to p_res.'''
         # Use a custom function if one is defined for this type of value.
-        fType = value.__class__.__name__
-        if fType in self.conversionFunctions:
-            self.conversionFunctions[fType](res, value)
+        className = value.__class__.__name__
+        if className in self.conversionFunctions:
+            self.conversionFunctions[className](res, value)
             return
         # Use a standard conversion else.
         if fieldType == 'file':
             self.dumpFile(res, value)
-        elif fieldType == 'ref':
+        elif isRef:
             if value:
                 if type(value) in self.sequenceTypes:
                     for elem in value:
@@ -417,7 +430,7 @@ class XmlMarshaller:
             self.dumpString(res, value)
         elif isinstance(value, bool):
             res.write(self.trueFalse[value])
-        elif self.isAnObject(value):
+        elif fieldType == 'object':
             if hasattr(value, 'absolute_url'):
                 res.write(value.absolute_url())
             else:
@@ -434,20 +447,21 @@ class XmlMarshaller:
         res.write('<'); res.write(fieldName);
         # Dump the type of the field as an XML attribute
         fType = None # No type will mean "unicode".
-        if fieldType == 'file': fType ='file'
-        elif fieldType == 'ref': fType = 'list'
-        elif isinstance(fieldValue, bool):  fType = 'bool'
-        elif isinstance(fieldValue, int):   fType = 'int'
-        elif isinstance(fieldValue, float): fType = 'float'
-        elif isinstance(fieldValue, long):  fType = 'long'
-        elif isinstance(fieldValue, tuple): fType = 'tuple'
-        elif isinstance(fieldValue, list):  fType = 'list'
+        if   fieldType == 'file':                         fType = 'file'
+        elif fieldType == 'ref':                          fType = 'list'
+        elif isinstance(fieldValue, bool):                fType = 'bool'
+        elif isinstance(fieldValue, int):                 fType = 'int'
+        elif isinstance(fieldValue, float):               fType = 'float'
+        elif isinstance(fieldValue, long):                fType = 'long'
+        elif isinstance(fieldValue, tuple):               fType = 'tuple'
+        elif isinstance(fieldValue, list):                fType = 'list'
         elif fieldValue.__class__.__name__ == 'DateTime': fType = 'DateTime'
+        elif self.isAnObject(fieldValue):                 fType = 'object'
         if fType: res.write(' type="%s"' % fType)
         # Dump other attributes if needed
         if type(fieldValue) in self.sequenceTypes:
             res.write(' count="%d"' % len(fieldValue))
-        if fieldType == 'file':
+        if fType == 'file':
             if hasattr(fieldValue, 'content_type'):
                 res.write(' mimeType="%s"' % fieldValue.content_type)
             if hasattr(fieldValue, 'filename'):
@@ -456,7 +470,7 @@ class XmlMarshaller:
                 res.write('"')
         res.write('>')
         # Dump the field value
-        self.dumpValue(res, fieldValue, fieldType)
+        self.dumpValue(res, fieldValue, fType, isRef=(fieldType=='ref'))
         res.write('</'); res.write(fieldName); res.write('>')
 
     def isAnObject(self, instance):
@@ -487,8 +501,9 @@ class XmlMarshaller:
             self.conversionFunctions.update(conversionFunctions)
         # Create the buffer where the XML result will be dumped.
         res = UnicodeBuffer()
-        # Dump the XML prologue
-        res.write(self.xmlPrologue)
+        # Dump the XML prologue if required
+        if self.dumpXmlPrologue:
+            res.write(xmlPrologue)
         if self.isAnObject(instance):
             # Determine object ID
             if objectType in ('archetype', 'appy'):
@@ -572,7 +587,7 @@ class XmlHandler(ContentHandler):
        (like dates) from a file that need to be compared to another file.'''
     def __init__(self, xmlTagsToIgnore, xmlAttrsToIgnore):
         ContentHandler.__init__(self)
-        self.res = u'<?xml version="1.0" encoding="UTF-8"?>'
+        self.res = unicode(xmlPrologue)
         self.namespaces = {} # ~{s_namespaceUri:s_namespaceName}~
         self.indentLevel = -1
         self.tabWidth = 3
