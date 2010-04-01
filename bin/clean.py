@@ -1,22 +1,12 @@
 # Imports ----------------------------------------------------------------------
 import os, os.path
 from appy.shared import appyPath
-from appy.shared.utils import FolderDeleter
+from appy.shared.utils import FolderDeleter, cleanFolder
 
 # ------------------------------------------------------------------------------
 class Cleaner:
-    exts = ('.pyc', '.class')
     def run(self, verbose=True):
-        print 'Cleaning folder', appyPath, '...'
-        # Remove files with an extension listed in self.exts
-        for root, dirs, files in os.walk(appyPath):
-            for fileName in files:
-                ext = os.path.splitext(fileName)[1]
-                if (ext in Cleaner.exts) or ext.endswith('~'):
-                    fileToRemove = os.path.join(root, fileName)
-                    if verbose:
-                        print 'Removing %s...' % fileToRemove
-                    os.remove(fileToRemove)
+        cleanFolder(appyPath, verbose=True)
         # Remove all files in temp folders
         for tempFolder in ('%s/temp' % appyPath,
                            '%s/pod/test/temp' % appyPath):

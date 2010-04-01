@@ -33,6 +33,21 @@ class FolderDeleter:
     delete = staticmethod(delete)
 
 # ------------------------------------------------------------------------------
+extsToClean = ('.pyc', '.pyo')
+def cleanFolder(folder, exts=extsToClean, verbose=False):
+    '''This function allows to remove, in p_folder and subfolders, any file
+       whose extension is in p_exts.'''
+    if verbose: print 'Cleaning folder', folder, '...'
+    # Remove files with an extension listed in exts
+    for root, dirs, files in os.walk(folder):
+        for fileName in files:
+            ext = os.path.splitext(fileName)[1]
+            if (ext in exts) or ext.endswith('~'):
+                fileToRemove = os.path.join(root, fileName)
+                if verbose: print 'Removing %s...' % fileToRemove
+                os.remove(fileToRemove)
+
+# ------------------------------------------------------------------------------
 class Traceback:
     '''Dumps the last traceback into a string.'''
     def get():
