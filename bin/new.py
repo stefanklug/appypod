@@ -36,7 +36,7 @@ class NewScript:
                        instance (should not already exist).'''
     ploneVersions = ('plone25', 'plone3')
 
-    def createInstance(self):
+    def createInstance(self, linksForProducts):
         '''Calls the Zope script that allows to create a Zope instance and copy
            into it all the Plone packages and products.'''
         # Find the Python interpreter running Zope
@@ -69,17 +69,31 @@ class NewScript:
         libFolder = os.path.join(self.instancePath, 'lib/python')
         print 'Copying Plone stuff in the Zope instance...'
         if self.ploneVersion == 'plone25':
-            self.installPlone25Stuff(productsFolder, libFolder)
+            self.installPlone25Stuff(productsFolder,libFolder,linksForProducts)
         elif self.ploneVersion == 'plone3':
             self.installPlone3Stuff(productsFolder, libFolder)
         # Clean the copied folders
         cleanFolder(productsFolder)
         cleanFolder(libFolder)
 
-    def installPlone25Stuff(self, productsFolder, libFolder):
-        '''Here, we will copy all Plone3-related stuff in the Zope instance
-           we've created, to get a full Plone-ready Zope instance.'''
-        pass
+    def installPlone25Stuff(self, productsFolder, libFolder, linksForProducts):
+        '''Here, we will copy all Plone2-related stuff in the Zope instance
+           we've created, to get a full Plone-ready Zope instance. If
+           p_linksForProducts is True, we do not perform a real copy: we will
+           create symlinks to products lying within Plone installer files.'''
+        installerProducts = os.path.join(self.plonePath, 'zeocluster/Products')
+        for name in os.listdir(installerProducts):
+            folderName = os.path.join(installerProducts, name)
+            if os.path.isdir(folderName):
+                destFolder = os.path.join(productsFolder, name)
+                # This is a Plone product. Copy it to the instance.
+                if (self.ploneVersion == 'plone25') and linksForProducts:
+                    # Create a symlink to this product in the instance
+                    cmd = 'ln -s %s %s' % (folderName, destFolder)
+                    os.system(cmd)
+                else:
+                    # Copy thre product into the instance
+                    shutil.copytree(folderName, destFolder)
 
     uglyChunks = ('pkg_resources', '.declare_namespace(')
     wrongPackages = [os.sep.join(['plone', 'app', 'content']),
@@ -202,7 +216,7 @@ class NewScript:
                     shutil.copytree(packageFolder, destFolder)
 
     def manageArgs(self, args):
-        '''Ensures that the script was call with the right parameters.'''
+        '''Ensures that the script was called with the right parameters.'''
         if len(args) != 3: raise NewError(WRONG_NB_OF_ARGS)
         self.ploneVersion, self.plonePath, self.instancePath = args
         # Check Plone version
@@ -219,11 +233,18 @@ class NewScript:
 
     def run(self):
         optParser = OptionParser(usage=NewScript.__doc__)
+        optParser.add_option("-l", "--links", action="store_true",
+            help="[Linux, plone25 only] Within the created instance, symlinks "\
+                 "to Products lying within the Plone installer files are " \
+                 "created instead of copying them into the instance. This " \
+                 "avoids duplicating the Products source code and is " \
+                 "interesting if you create a lot of Zope instances.")
         (options, args) = optParser.parse_args()
+        linksForProducts = options.links
         try:
             self.manageArgs(args)
             print 'Creating new %s instance...' % self.ploneVersion
-            self.createInstance()
+            self.createInstance(linksForProducts)
         except NewError, ne:
             optParser.print_help()
             print
