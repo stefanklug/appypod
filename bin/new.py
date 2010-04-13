@@ -96,9 +96,6 @@ class NewScript:
                     shutil.copytree(folderName, destFolder)
 
     uglyChunks = ('pkg_resources', '.declare_namespace(')
-    wrongPackages = [os.sep.join(['plone', 'app', 'content']),
-                     os.sep.join(['.egg', 'wicked'])
-                    ]
     def findPythonPackageInEgg(self, currentFolder):
         '''Finds the Python package that is deeply hidden into the egg.'''
         # Find the file __init__.py
@@ -112,15 +109,21 @@ class NewScript:
                 # Is it a awful egg init ?
                 for chunk in self.uglyChunks:
                     if content.find(chunk) == -1:
-                        isFinalPackage = True
+                        isFinalPackage = True # It is not an ugly egg init.
                         break
-                # Goddamned, there are exceptions.
-                for wrongPackage in self.wrongPackages:
-                    if currentFolder.endswith(wrongPackage) and \
-                        not isFinalPackage:
-                        isFinalPackage = True
-                break
         if not isFinalPackage:
+            # Maybe we are wrong: our way to identify egg-viciated __init__
+            # files is approximative. If we believe it is not the final package,
+            # but we find other Python files in the folder, we must admit that
+            # we've nevertheless found the final Python package.
+            otherPythonFiles = False
+            for elem in os.listdir(currentFolder):
+                if elem.endswith('.py') and (elem != '__init__.py'):
+                    otherPythonFiles = True
+                    break
+            if otherPythonFiles:
+                # Ok, this is the final Python package
+                return currentFolder
             # Find the subfolder and find the Python package into it.
             for elem in os.listdir(currentFolder):
                 elemPath = os.path.join(currentFolder, elem)
@@ -137,6 +140,33 @@ class NewScript:
             if (elem != 'EGG-INFO') and os.path.isdir(elemPath):
                 return elemPath
         return None
+
+    viciatedFiles = {'meta.zcml':      'includePlugins',
+                     'configure.zcml': 'includePlugins',
+                     'overrides.zcml': 'includePluginsOverrides'}
+    def patchPlone(self, productsFolder, libFolder):
+        '''Auto-proclaimed ugly code in z3c forces us to patch some files
+           in Products.CMFPlone because these guys make the assumption that
+           "plone.xxx" packages are within eggs when they've implemented their
+           ZCML directives "includePlugins" and "includePluginsOverrides".
+           So in this method, I remove every call to those directives in
+           CMFPlone files. It does not seem to affect Plone behaviour. Indeed,
+           these directives seem to be useful only when adding sad (ie, non
+           Appy) Plone plug-ins.'''
+        ploneFolder = os.path.join(productsFolder, 'CMFPlone')
+        # Patch viciated files
+        for fileName, uglyDirective in self.viciatedFiles.iteritems():
+            filePath = os.path.join(ploneFolder, fileName)
+            f = file(filePath)
+            fileContent = f.read()
+            f.close()
+            if fileContent.find(uglyDirective) != -1:
+                toReplace = '<%s package="plone" file="%s" />' % \
+                            (uglyDirective, fileName)
+                fileContent = fileContent.replace(toReplace, '')
+                f = file(filePath, 'w')
+                f.write(fileContent)
+                f.close()
 
     def installPlone3Stuff(self, productsFolder, libFolder):
         '''Here, we will copy all Plone3-related stuff in the Zope instance
@@ -199,10 +229,9 @@ class NewScript:
                             if not os.path.exists(subFolderPath):
                                 os.mkdir(subFolderPath)
                                 # Create an empty __init__.py in it.
-                                init = os.path.join(subFolderPath,
-                                                    '__init__.py')
+                                init = os.path.join(subFolderPath,'__init__.py')
                                 f = file(init, 'w')
-                                f.write('#Makes me a Python package.')
+                                f.write('# Makes me a Python package.')
                                 f.close()
                             baseFolder = subFolderPath
                         destFolder = os.sep.join(destFolders)
@@ -214,6 +243,7 @@ class NewScript:
                     destFolder = os.path.join(
                         destFolder, os.path.basename(packageFolder))
                     shutil.copytree(packageFolder, destFolder)
+        self.patchPlone(productsFolder, libFolder)
 
     def manageArgs(self, args):
         '''Ensures that the script was called with the right parameters.'''
