@@ -78,9 +78,15 @@ class ZodbBackuper:
         if os.path.exists(self.logsBackupFolder):
             # Ok, we can make the backup of the log files.
             # Get the folder where logs lie
+            logsFolder = self.options.logsFolder
             d = os.path.dirname
             j = os.path.join
-            logsFolder = j(d(d(self.storageLocation)), 'log')
+            if not logsFolder:
+                logsFolder = j(d(d(self.storageLocation)), 'log')
+            if not os.path.isdir(logsFolder):
+                w('Cannot backup log files because folder "%s" does not ' \
+                  'exist. Try using option "-g".' % logsFolder)
+                return
             for logFileName in os.listdir(logsFolder):
                 if logFileName.endswith('.log'):
                     backupTime = DateTime().strftime('%Y_%m_%d_%H_%M')
@@ -225,6 +231,9 @@ class ZodbBackupScript:
         # Check backupFolder
         if not os.path.isdir(args[1]):
             raise BackupError('"%s" does not exist or is not a folder.'%args[1])
+        # Check logs folder
+        if options.logsFolder and not os.path.isdir(options.logsFolder):
+            raise BackupError('"%s" is not a folder.' % options.logsFolder)
         # Try to create a file in this folder to check if we have write
         # access in it.
         fileName = '%s/%s.tmp' % (args[1], str(time.time()))
@@ -290,11 +299,20 @@ class ZodbBackupScript:
                              help="Folder used by OO for producing temp " \
                                   "files. Defaults to /tmp.",
                              default='/tmp', metavar="TEMP", type='string')
+        optParser.add_option("-g", "--logsFolder",dest="logsFolder",
+                             help="Folder where Zope log files are " \
+                                  "(typically: event.log and Z2.log). If no " \
+                                  "folder is provided, we will consider to " \
+                                  "work on a standard Zope instance and " \
+                                  "decide that the log folder is, from " \
+                                  "'storageLocation', located at ../log",
+                             metavar="LOGSFOLDER", type='string')
         optParser.add_option("-b", "--logsBackupFolder",dest="logsBackupFolder",
                              help="Folder where backups of log files " \
                                   "(event.log and Z2.log) will be stored.",
                              default='./logsbackup', metavar="LOGSBACKUPFOLDER",
                              type='string')
+
         optParser.add_option("-u", "--user", dest="zopeUser",
                              help="User and group that must own Data.fs. " \
                                   "Defaults to zope:www-data. If " \
@@ -330,9 +348,8 @@ class ZodbBackupScript:
             backuper = ZodbBackuper(args[0], args[1], options)
             backuper.run()
         except BackupError, be:
-            sys.stderr.write(str(be))
-            sys.stderr.write('\n')
-            optParser.print_help()
+            sys.stderr.write(str(be) + '\nRun the script without any ' \
+                                       'argument for getting help.\n')
             sys.exit(ERROR_CODE)
 
 # ------------------------------------------------------------------------------
