@@ -173,7 +173,8 @@ class ToolMixin(AbstractMixin):
                 if isinstance(fieldValue, basestring) and \
                    fieldValue.endswith('*'):
                     v = fieldValue[:-1]
-                    params[attrName] = {'query':(v,v+'Z'), 'range':'minmax'}
+                    params[attrName] = {'query':(v,v+'z'), 'range':'min:max'}
+                    # Warning: 'z' is higher than 'Z'!
                 elif type(fieldValue) in sequenceTypes:
                     if fieldValue and isinstance(fieldValue[0], basestring):
                         # We have a list of string values (ie: we need to
@@ -430,6 +431,8 @@ class ToolMixin(AbstractMixin):
                 day = int(day)-1
         return res
 
+    transformMethods = {'uppercase': 'upper', 'lowercase': 'lower',
+                        'capitalize': 'capitalize'}
     def onSearchObjects(self):
         '''This method is called when the user triggers a search from
            search.pt.'''
@@ -471,6 +474,14 @@ class ToolMixin(AbstractMixin):
                         day   = rq.form['%s_to_day' % prefix]
                         toDate = self._getDateTime(year, month, day, False)
                         attrValue = (fromDate, toDate)
+                    elif attrType.startswith('string'):
+                        # In the case of a string, it could be necessary to
+                        # apply some text transform.
+                        if len(attrType) > 6:
+                            transform = attrType.split('-')[1]
+                            if (transform != 'none') and attrValue:
+                                exec 'attrValue = attrValue.%s()' % \
+                                     self.transformMethods[transform]
                 if isinstance(attrValue, list):
                     # It is a list of values. Check if we have an operator for
                     # the field, to see if we make an "and" or "or" for all

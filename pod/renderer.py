@@ -337,6 +337,7 @@ class Renderer:
     def callOpenOffice(self, resultOdtName, resultType):
         '''Call Open Office in server mode to convert or update the ODT
            result.'''
+        ooOutput = ''
         try:
             if (not isinstance(self.ooPort, int)) and \
             (not isinstance(self.ooPort, long)):
@@ -368,9 +369,7 @@ class Renderer:
                 cmd = '%s %s %s %s -p%d' % \
                     (self.pyPath, convScript, qResultOdtName, resultType,
                     self.ooPort)
-                convertOutput = executeCommand(cmd, ignoreLines='warning')
-                if convertOutput:
-                    raise PodError(CONVERT_ERROR % convertOutput)
+                ooOutput = executeCommand(cmd)
         except PodError, pe:
             # When trying to call OO in server mode for producing
             # ODT (=forceOoCall=True), if an error occurs we still
@@ -380,6 +379,7 @@ class Renderer:
                 print WARNING_INCOMPLETE_ODT % str(pe)
             else:
                 raise pe
+        return ooOutput
 
     def finalize(self):
         '''Re-zip the result and potentially call OpenOffice if target format is
@@ -414,8 +414,8 @@ class Renderer:
                     raise PodError(BAD_RESULT_TYPE % (
                         self.result, FILE_TYPES.keys()))
                 # Call OpenOffice to perform the conversion or document update
-                self.callOpenOffice(resultOdtName, resultType)
-                # I have the result. Move it to the correct name
+                output = self.callOpenOffice(resultOdtName, resultType)
+                # I (should) have the result. Move it to the correct name
                 resPrefix = os.path.splitext(resultOdtName)[0] + '.'
                 if resultType == 'odt':
                     # converter.py has (normally!) created a second file
@@ -427,6 +427,8 @@ class Renderer:
                         # update indexes, sections, etc.
                 else:
                     resultName = resPrefix + resultType
+                if not os.path.exists(resultName):
+                    raise PodError(CONVERT_ERROR % output)
                 os.rename(resultName, self.result)
         finally:
             os.chdir(self.curdir)

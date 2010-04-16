@@ -26,7 +26,8 @@
   <label tal:attributes="for widgetName" tal:content="python: tool.translate(appyType['label'])"></label><br>&nbsp;&nbsp;
   <tal:comment replace="nothing">Show a simple search field for most String fields.</tal:comment>
   <tal:simpleSearch condition="not: appyType/isSelect">
-    <input type="text" tal:attributes="name widgetName"/>
+    <input type="text" tal:attributes="name python: '%s*string-%s' % (widgetName, appyType['transform']);
+                                       style python: 'text-transform:%s' % appyType['transform']"/>
   </tal:simpleSearch>
   <tal:comment replace="nothing">Show a multi-selection box for fields whose validator defines a list of values, with a "AND/OR" checkbox.</tal:comment>
   <tal:selectSearch condition="appyType/isSelect">

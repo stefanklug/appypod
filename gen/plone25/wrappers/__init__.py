@@ -436,16 +436,20 @@ class FileWrapper:
             convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
             cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
                 filePath, format, tool.openOfficePort)
-            errorMessage = executeCommand(cmd, ignoreLines='warning')
+            errorMessage = executeCommand(cmd)
+            # Even if we have an "error" message, it could be a simple warning.
+            # So we will continue here and, as a subsequent check for knowing if
+            # an error occurred or not, we will test the existence of the
+            # converted file (see below).
             os.remove(filePath)
-            if errorMessage:
-                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
-                return
             # Return the name of the converted file.
             baseName, ext = os.path.splitext(filePath)
             if (ext == '.%s' % format):
                 filePath = '%s.res.%s' % (baseName, format)
             else:
                 filePath = '%s.%s' % (baseName, format)
+            if not os.path.exists(filePath):
+                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
+                return
         return filePath
 # ------------------------------------------------------------------------------

@@ -276,13 +276,20 @@ class String(Type):
                  show=True, page='main', group=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 master=None, masterValue=None, focus=False, historized=False,
+                 transform='none'):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, move, indexed, searchable,
                       specificReadPermission, specificWritePermission, width,
                       height, master, masterValue, focus, historized)
         self.format = format
         self.isSelect = self.isSelection()
+        # The following field has a direct impact on the text entered by the
+        # user. It applies a transformation on it, exactly as does the CSS
+        # "text-transform" property. Allowed values are those allowed for the
+        # CSS property: "none" (default), "uppercase", "capitalize" or
+        # "lowercase".
+        self.transform = transform
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
            into which the user must select one or more values?'''
