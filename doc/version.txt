@@ -1,3 +1,6 @@
+0.5.5 (2010-04-21)
+- Lots of minor improvements and implementation of first elements for a Plone3 generator.
+
 0.5.4 (2010-03-24)
 - Improved gen search screens and many more minor bugfixes and features.
 

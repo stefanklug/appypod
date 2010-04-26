@@ -237,6 +237,7 @@ class PloneInstaller:
         # Creates the new-way templates for Pod fields if they do not exist.
         for contentType, attrNames in self.attributes.iteritems():
             appyClass = self.tool.getAppyClass(contentType)
+            if not appyClass: continue # May be an abstract class
             for attrName in attrNames:
                 appyType = getattr(appyClass, attrName)
                 if appyType.type == 'Pod':

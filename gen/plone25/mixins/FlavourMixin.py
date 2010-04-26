@@ -261,7 +261,7 @@ class FlavourMixin(AbstractMixin):
            being effectively used in the search screen.'''
         res = []
         appyClass = self.getAppyClass(contentType)
-        for attrName in getattr(self, 'searchFieldsFor%s' % contentType):
+        for attrName in getattr(self, 'searchFieldsFor%s' % contentType, ()):
             attr = getattr(appyClass, attrName)
             dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
             res.append((attrName, dAttr))

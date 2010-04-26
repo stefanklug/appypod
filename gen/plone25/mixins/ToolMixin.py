@@ -333,13 +333,14 @@ class ToolMixin(AbstractMixin):
         '''Gets the Appy Python class that is related to p_contentType.'''
         # Retrieve first the Archetypes class corresponding to p_ContentType
         portalType = self.portal_types.get(contentType)
+        if not portalType: return None
         atClassName = portalType.getProperty('content_meta_type')
         appName = self.getProductConfig().PROJECTNAME
         exec 'from Products.%s.%s import %s as atClass' % \
             (appName, atClassName, atClassName)
         # Get then the Appy Python class
         return atClass.wrapperClass.__bases__[-1]
-        
+
     def getCreateMeans(self, contentTypeOrAppyClass):
         '''Gets the different ways objects of p_contentTypeOrAppyClass (which
            can be a Plone content type or a Appy class) can be created

@@ -261,7 +261,10 @@ class AbstractMixin:
                         return t('%s_%s_list_%s' % (self.meta_type, name, v))
             if not isinstance(v, basestring):
                 # Archetypes "Description" fields may hold a BaseUnit instance.
-                v = unicode(v)
+                try:
+                    v = unicode(v)
+                except UnicodeDecodeError:
+                    v = str(v)
             return v
         elif vType == 'Boolean':
             if v: return self.translate('yes', domain='plone')
