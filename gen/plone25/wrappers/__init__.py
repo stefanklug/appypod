@@ -123,13 +123,17 @@ class AbstractWrapper:
         # Update the ordered list of references
         self.o._appy_getSortedField(fieldName).append(obj.UID())
 
-    def sort(self, fieldName):
-        '''Sorts referred elements linked to p_self via p_fieldName. At
-           present, it can only sort elements based on their title.'''
+    def sort(self, fieldName, sortKey='title', reverse=False):
+        '''Sorts referred elements linked to p_self via p_fieldName according
+           to a given p_sortKey which must be an attribute set on referred
+           objects ("title", by default).'''
         sortedUids = getattr(self.o, '_appy_%s' % fieldName)
         c = self.o.uid_catalog
         sortedUids.sort(lambda x,y: \
-           cmp(c(UID=x)[0].getObject().Title(),c(UID=y)[0].getObject().Title()))
+           cmp(getattr(c(UID=x)[0].getObject().appy(), sortKey),
+               getattr(c(UID=y)[0].getObject().appy(), sortKey)))
+        if reverse:
+            sortedUids.reverse()
 
     def create(self, fieldNameOrClass, **kwargs):
         '''If p_fieldNameOfClass is the name of a field, this method allows to

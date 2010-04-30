@@ -10,11 +10,25 @@ class Descr:
 
 class FieldDescr(Descr):
     def __init__(self, atField, appyType, fieldRel):
-        self.atField = atField # The corresponding Archetypes field (may be None
-        # in the case of backward references)
-        self.appyType = appyType # The corresponding Appy type
-        self.fieldRel = fieldRel # The field relatonship, needed when the field
-        # description is a backward reference.
+        # The corresponding Archetypes field (may be None in the case of
+        # backward references)
+        self.atField = atField
+        # The corresponding Appy type
+        self.appyType = appyType
+        # The field relationship, needed when the field description is a
+        # backward reference.
+        self.fieldRel = fieldRel
+        # Can we sort this field ?
+        at = self.appyType
+        self.sortable = False
+        if not fieldRel and ((self.atField.getName() == 'title') or \
+                             (at['indexed'])):
+            self.sortable = True
+        # Can we filter this field?
+        self.filterable = False
+        if not fieldRel and at['indexed'] and (at['type'] == 'String') and \
+           (at['format'] == 0) and not at['isSelect']:
+            self.filterable = True
         if fieldRel:
             self.widgetType = 'backField'
             self.group = appyType['backd']['group']
@@ -25,6 +39,7 @@ class FieldDescr(Descr):
             self.group = appyType['group']
             self.show = appyType['show']
             self.page = appyType['page']
+            fieldName = self.atField.getName()
 
 class GroupDescr(Descr):
     def __init__(self, name, cols, page):

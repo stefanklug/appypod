@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 import re, time
 from appy.shared.utils import Traceback
-from appy.gen.utils import sequenceTypes, PageDescr
+from appy.gen.utils import sequenceTypes, PageDescr, Keywords
 from appy.shared.data import countries
 
 # Default Appy permissions -----------------------------------------------------
@@ -54,6 +54,56 @@ class Search:
         self.limit = limit
         self.fields = fields # This is a dict whose keys are indexed field
         # names and whose values are search values.
+    @staticmethod
+    def getIndexName(fieldName, usage='search'):
+        '''Gets the name of the technical index that corresponds to field named
+           p_fieldName. Indexes can be used for searching (p_usage="search") or
+           for sorting (usage="sort"). The method returns None if the field
+           named p_fieldName can't be used for p_usage.'''
+        if fieldName == 'title':
+            if usage == 'search':  return 'Title'
+            else:                  return 'sortable_title'
+            # Indeed, for field 'title', Plone has created a specific index
+            # 'sortable_title', because index 'Title' is a ZCTextIndex
+            # (for searchability) and can't be used for sorting.
+        elif fieldName == 'description':
+            if usage == 'search':  return 'Description'
+            else:                  return None
+        elif fieldName == 'state': return 'review_state'
+        else:
+            return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
+    @staticmethod
+    def getSearchValue(fieldName, fieldValue):
+        '''Returns a transformed p_fieldValue for producing a valid search
+           value as required for searching in the index corresponding to
+           p_fieldName.'''
+        if fieldName == 'title':
+            # Title is a ZCTextIndex. We must split p_fieldValue into keywords.
+            res = Keywords(fieldValue.decode('utf-8')).get()
+        elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
+            v = fieldValue[:-1]
+            # Warning: 'z' is higher than 'Z'!
+            res = {'query':(v,v+'z'), 'range':'min:max'}
+        elif type(fieldValue) in sequenceTypes:
+            if fieldValue and isinstance(fieldValue[0], basestring):
+                # We have a list of string values (ie: we need to
+                # search v1 or v2 or...)
+                res = fieldValue
+            else:
+                # We have a range of (int, float, DateTime...) values
+                minv, maxv = fieldValue
+                rangev = 'minmax'
+                queryv = fieldValue
+                if minv == None:
+                    rangev = 'max'
+                    queryv = maxv
+                elif maxv == None:
+                    rangev = 'min'
+                    queryv = minv
+                res = {'query':queryv, 'range':rangev}
+        else:
+            res = fieldValue
+        return res
 
 # ------------------------------------------------------------------------------
 class Type:

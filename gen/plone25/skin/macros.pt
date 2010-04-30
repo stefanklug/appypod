@@ -295,12 +295,12 @@
                   batchSize   historyInfo/batchSize;
                   totalNumber historyInfo/totalNumber;
                   ajaxHookId  python:'appyHistory';
-                  baseUrl     python: contextObj.getUrl('showHistory', startNumber='**v**');
+                  navBaseCall python: 'askObjectHistory(\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url());
                   tool        contextObj/getTool">
 
   <tal:comment replace="nothing">Table containing the history</tal:comment>
   <tal:history condition="objs">
-  <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+  <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
   <table width="100%" class="listing nosort">
     <tr i18n:domain="plone">
       <th i18n:translate="listingheader_action"/>
@@ -370,8 +370,11 @@
     this.xhr = false;
     if (window.XMLHttpRequest) this.xhr = new XMLHttpRequest();
     else this.xhr = new ActiveXObject("Microsoft.XMLHTTP");
-    this.hook = ''; // The ID of the HTML element in the page that will be
-    // replaced by result of executing the Ajax request.
+    this.hook = '';  /* The ID of the HTML element in the page that will be
+                        replaced by result of executing the Ajax request. */
+    this.onGet = ''; /* The name of a Javascript function to call once we
+                        receive the result. */
+    this.info = {};  /* An associative array for putting anything else. */
   }
 
   function getAjaxChunk(pos) {
@@ -391,15 +394,35 @@
         var hookElem = document.getElementById(hook);
         if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
           hookElem.innerHTML = xhrObjects[pos].xhr.responseText;
+          // Call a custom Javascript function if required
+          if (xhrObjects[pos].onGet) {
+            xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
+          }
         }
         xhrObjects[pos].freed = 1;
       }
     }
   }
 
-  function askAjaxChunk(hook, url) {
-    // This function will ask to get a chunk of HTML on the server by
-    // triggering a XMLHttpRequest.
+  function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
+    /* This function will ask to get a chunk of HTML on the server through a
+       XMLHttpRequest. p_mode can be 'GET' or 'POST'. p_url is the URL of a
+       given server object. On this URL we will call the page "ajax.pt" that
+       will call a specific p_macro in a given p_page with some additional
+       p_params (must be an associative array) if required.
+
+       p_hook is the ID of the HTML element that will be filled with the HTML
+       result from the server.
+
+       p_beforeSend is a Javascript function to call before sending the request.
+       This function will get 2 args: the XMLHttpRequest object and the
+       p_params. This method can return, in a string, additional parameters to
+       send, ie: "&param1=blabla&param2=blabla".
+
+       p_onGet is a Javascript function to call when we will receive the answer.
+       This function will get 2 args, too: the XMLHttpRequest object and the
+       HTML node element into which the result has been inserted.
+    */
     // First, get a non-busy XMLHttpRequest object.
     var pos = -1;
     for (var i=0; i < xhrObjects.length; i++) {
@@ -410,14 +433,84 @@
       xhrObjects[pos] = new XhrObject();
     }
     xhrObjects[pos].hook = hook;
+    xhrObjects[pos].onGet = onGet;
     if (xhrObjects[pos].xhr) {
-      xhrObjects[pos].freed = 0;
-      // Perform the asynchronous HTTP GET
-      xhrObjects[pos].xhr.open('GET', url, true);
-      xhrObjects[pos].xhr.onreadystatechange = function() { getAjaxChunk(pos); }
-      if (window.XMLHttpRequest) { xhrObjects[pos].xhr.send(null); }
-      else if (window.ActiveXObject) { xhrObjects[pos].xhr.send(); }
+      var rq = xhrObjects[pos];
+      rq.freed = 0;
+      // Construct parameters
+      var paramsFull = 'page=' + page + '&macro=' + macro;
+      if (params) {
+        for (var paramName in params)
+          paramsFull = paramsFull + '&' + paramName + '=' + params[paramName];
+      }
+      // Call beforeSend if required
+      if (beforeSend) {
+         var res = beforeSend(rq, params);
+         if (res) paramsFull = paramsFull + res;
+      }
+      // Construct the URL to call
+      var urlFull = url + '/skyn/ajax';
+      if (mode == 'GET') {
+        urlFull = urlFull + '?' + paramsFull;
+      }
+      // Perform the asynchronous HTTP GET or POST
+      rq.xhr.open(mode, urlFull, true);
+      if (mode == 'POST') {
+        // Set the correct HTTP headers
+        rq.xhr.setRequestHeader(
+          "Content-Type", "application/x-www-form-urlencoded");
+        rq.xhr.setRequestHeader("Content-length", paramsFull.length);
+        rq.xhr.setRequestHeader("Connection", "close");
+        rq.xhr.onreadystatechange = function(){ getAjaxChunk(pos); }
+        rq.xhr.send(paramsFull);
+      }
+      else if (mode == 'GET') {
+        rq.xhr.onreadystatechange = function() { getAjaxChunk(pos); }
+        if (window.XMLHttpRequest) { rq.xhr.send(null); }
+        else if (window.ActiveXObject) { rq.xhr.send(); }
+      }
     }
+  }
+
+  /* The functions below wrap askAjaxChunk for getting specific content through
+     an Ajax request. */
+  function askQueryResult(hookId, objectUrl, contentType, flavourNumber,
+              searchName, startNumber, sortKey, sortOrder, filterKey) {
+    // Sends an Ajax request for getting the result of a query.
+    var params = {'type_name': contentType, 'flavourNumber': flavourNumber,
+                  'search': searchName, 'startNumber': startNumber};
+    if (sortKey) params['sortKey'] = sortKey;
+    if (sortOrder) params['sortOrder'] = sortOrder;
+    if (filterKey) {
+      var filterWidget = document.getElementById(hookId + '_' + filterKey);
+      if (filterWidget && filterWidget.value) {
+        params['filterKey'] = filterKey;
+        params['filterValue'] = filterWidget.value;
+      }
+    }
+    askAjaxChunk(hookId,'GET',objectUrl,'macros','queryResult',params);
+  }
+
+  function askObjectHistory(hookId, objectUrl, startNumber) {
+    // Sends an Ajax request for getting the history of an object
+    var params = {'startNumber': startNumber};
+    askAjaxChunk(hookId, 'GET', objectUrl, 'macros', 'history', params);
+  }
+
+  function askRefField(hookId, objectUrl, fieldName, isBack, innerRef, labelId,
+                       descrId, startNumber, action, actionParams){
+    // Sends an Ajax request for getting the content of a reference field.
+    var startKey = hookId + '_startNumber';
+    var params = {'fieldName': fieldName, 'isBack': isBack,
+                  'innerRef': innerRef, 'labelId': labelId,
+                  'descrId': descrId };
+    params[startKey] =  startNumber;
+    if (action) params['action'] = action;
+    if (actionParams) {
+        for (key in actionParams) { params[key] = actionParams[key]; };
+    }
+    askAjaxChunk(hookId, 'GET', objectUrl, 'ref', 'showReferenceContent',
+                 params);
   }
 
   // Function used by checkbox widgets for having radio-button-like behaviour
@@ -633,10 +726,9 @@
         <td colspan="2">
           <span id="appyHistory"
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
-          <div tal:define="ajaxHookId python: contextObj.UID() + '_history';
-                           ajaxUrl python: contextObj.getUrl('showHistory')"
+          <div tal:define="ajaxHookId python: contextObj.UID() + '_history';"
                tal:attributes="id ajaxHookId">
-             <script language="javascript" tal:content="python: 'askAjaxChunk(\'%s\',\'%s\')' % (ajaxHookId, ajaxUrl)">
+             <script language="javascript" tal:content="python: 'askObjectHistory(\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url())">
              </script>
           </div>
           </span>
@@ -655,7 +747,7 @@
         </td>
       </tr>
     </table>
-    <metal:nav use-macro="here/skyn/macros/macros/objectNavigate"/>
+    <metal:nav use-macro="here/skyn/navigate/macros/objectNavigate"/>
 
     <tal:comment replace="nothing">Tabs</tal:comment>
     <ul class="contentViews appyTabs" tal:condition="python: len(appyPages)&gt;1">
@@ -726,12 +818,16 @@
                searchLabel   python: test(searchName=='_advanced', 'search_results', '%s_search_%s' % (contentType, searchName));
                searchDescr   python: '%s_descr' % searchLabel;
                severalTypes  python: contentType and (contentType.find(',') != -1);
-               queryResult   python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber, remember=True);
+               sortKey       request/sortKey| python:'';
+               sortOrder     request/sortOrder| python:'asc';
+               filterKey     request/filterKey| python:'';
+               filterValue   request/filterValue | python:'';
+               queryResult   python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
-               baseUrl       python: tool.getQueryUrl(contentType, flavourNumber, searchName, startNumber='**v**');
+               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, flavourNumber, searchName);
                newSearchUrl  python: '%s/skyn/search?type_name=%s&flavourNumber=%d' % (tool.getAppFolder().absolute_url(), contentType, flavourNumber);">
 
   <tal:result condition="objs">
@@ -753,7 +849,7 @@
       </td>
       <td align="right" width="25%">
         <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-        <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+        <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
       </td>
     </tr></table>
 
@@ -763,26 +859,20 @@
       excepted for workflow state (which is not a field): in this case it is simply the
       string "workflowState".</tal:comment>
 
-    <tal:comment replace="nothing">Headers, with (disabled) filters and sort arrows</tal:comment>
+    <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <th><!--img tal:attributes= "src string: $portal_url/arrowDown.gif;
-                                onClick python:'javascript:onSort(\'title\')';"
-               id="arrow_title" style="cursor:pointer"/-->
+      
+      <th tal:define="fieldName python:'title'; sortable python:True; filterable python:True">
         <span tal:content="python: tool.translate('ref_name')"/>
-        <!--input id="filter_title" type="text" size="5" onkeyup="javascript:onTextEntered('title')"/-->
-        <tal:comment replace="nothing">Input fields like this have been commented out because they will
-          be replaced by Ajax server- searches that will be more relevant (the current Javascript search
-          is limited to the batch, which has little interest).</tal:comment>
+        <metal:sortAndFilter use-macro="here/skyn/navigate/macros/sortAndFilter"/>
       </th>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:columnHeader repeat="fieldDescr fieldDescrs">
-       <th tal:define="fieldName fieldDescr/atField/getName|string:workflow_state">
-        <!--img tal:attributes= "src string: $portal_url/arrowDown.gif;
-                              onClick python:'javascript:onSort(\'%s\')' % fieldName;
-                              id python: 'arrow_%s' % fieldName"
-             style="cursor:pointer"/-->
+       <th tal:define="fieldName  fieldDescr/atField/getName|string:workflow_state;
+                       sortable   fieldDescr/sortable|nothing;
+                       filterable fieldDescr/filterable|nothing;">
         <tal:comment replace="nothing">Display header for a "standard" field</tal:comment>
         <tal:standardField condition="python: fieldName != 'workflow_state'">
           <span tal:replace="python: tool.translate(fieldDescr['atField'].widget.label_msgid)"/>
@@ -791,20 +881,13 @@
         <tal:workflowState condition="python: fieldName == 'workflow_state'">
            <span tal:replace="python: tool.translate('workflow_state')"/>
         </tal:workflowState>
-        <!--input type="text" size="5"
-               tal:attributes="id python: 'filter_%s' % fieldName;
-                               onkeyup python:'javascript:onTextEntered(\'%s\')' % fieldName"/-->
+        <metal:sortAndFilter use-macro="here/skyn/navigate/macros/sortAndFilter"/>
        </th>
       </tal:columnHeader>
 
       <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
-      <th tal:condition="severalTypes"><!--img
-          tal:attributes= "src string: $portal_url/arrowDown.gif;
-                           onClick python:'javascript:onSort(\'root_type\')';"
-          id = "arrow_root_type" style="cursor:pointer"/-->
+      <th tal:condition="severalTypes">
         <span tal:replace="python: tool.translate('root_type')"/>
-        <!--input type="text" size="5" id="filter_root_type"
-               tal:attributes="onkeyup python:'javascript:onTextEntered(\'root_type\')'"/-->
       </th>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
@@ -872,7 +955,7 @@
     </table>
 
     <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-    <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+    <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
   </fieldset>
   </tal:result>
 
@@ -952,91 +1035,3 @@
     </table>
   </form>
 </metal:transitions>
-
-<div metal:define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize" align="right">
-  <tal:comment replace="nothing">
-     Buttons for navigating among a list of elements (next, back, first, last, etc).
-  </tal:comment>
-  <table cellpadding="0" cellspacing="0" class="appyNav">
-    <tr>
-      <tal:comment replace="nothing">Go to the first page</tal:comment>
-      <td><img style="cursor:pointer" tal:condition="python: (startNumber != 0) and (startNumber != batchSize)"
-        tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;
-                        title python: tool.translate('goto_first');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', '0'))"/></td>
-      <tal:comment replace="nothing">Go to the previous page</tal:comment>
-      <td><img style="cursor:pointer" tal:condition="python: startNumber != 0"
-        tal:define="sNumber python: startNumber - batchSize"
-        tal:attributes="src string: $portal_url/skyn/arrowLeftSimple.png;
-                        title python: tool.translate('goto_previous');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
-      <tal:comment replace="nothing">Explain which elements are currently shown</tal:comment>
-      <td class="discreet" valign="middle">&nbsp;
-        <span tal:replace="python: startNumber+1"/>
-        <img tal:attributes="src string: $portal_url/skyn/to.png"/>
-        <span tal:replace="python: startNumber+len(objs)"/>&nbsp;<b>//</b>
-        <span tal:replace="python: totalNumber"/>&nbsp;&nbsp;
-      </td>
-      <tal:comment replace="nothing">Go to the next page</tal:comment>
-      <td><img style="cursor:pointer" tal:condition="python: sNumber &lt; totalNumber"
-        tal:define="sNumber python: startNumber + batchSize"
-        tal:attributes="src string: $portal_url/skyn/arrowRightSimple.png;
-                        title python: tool.translate('goto_next');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
-      <tal:comment replace="nothing">Go to the last page</tal:comment>
-      <td><img style="cursor:pointer" tal:condition="python: (startNumber != sNumber) and (startNumber != sNumber-batchSize)"
-        tal:define="lastPageIsIncomplete python: totalNumber % batchSize;
-                    nbOfCompletePages python: totalNumber/batchSize;
-                    nbOfCountedPages python: test(lastPageIsIncomplete, nbOfCompletePages, nbOfCompletePages-1);
-                    sNumber python: (nbOfCountedPages*batchSize)"
-        tal:attributes="src string: $portal_url/skyn/arrowRightDouble.png;
-                        title python: tool.translate('goto_last');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, baseUrl.replace('**v**', str(sNumber)))"/></td>
-    </tr>
-  </table>
-</div>
-
-<div metal:define-macro="objectNavigate" tal:condition="request/nav|nothing" align="right">
-  <tal:comment replace="nothing">
-     Buttons for going to next/previous elements if this one is among bunch of referenced or searched objects.
-     currentNumber starts with 1.
-  </tal:comment>
-  <table cellpadding="0" cellspacing="0"
-         tal:define="navInfo   tool/getNavigationInfo;
-                 currentNumber navInfo/currentNumber;
-                 totalNumber   navInfo/totalNumber;
-                 firstUrl      navInfo/firstUrl;
-                 previousUrl   navInfo/previousUrl;
-                 nextUrl       navInfo/nextUrl;
-                 lastUrl       navInfo/lastUrl;
-                 sourceUrl     navInfo/sourceUrl;
-                 backText      navInfo/backText">
-    <tr>
-      <tal:comment replace="nothing">Go to the source URL (search or referred object)</tal:comment>
-      <td><a tal:condition="sourceUrl" tal:attributes="href sourceUrl"><img style="cursor:pointer" 
-        tal:attributes="src string: $portal_url/skyn/gotoSource.png;
-                        title python: backText + ' : ' + tool.translate('goto_source')"/></a></td>
-      <tal:comment replace="nothing">Go to the first page</tal:comment>
-      <td><a tal:condition="firstUrl" tal:attributes="href firstUrl"><img style="cursor:pointer" 
-        tal:attributes="src string: $portal_url/skyn/arrowLeftDouble.png;
-                        title python: tool.translate('goto_first')"/></a></td>
-      <tal:comment replace="nothing">Go to the previous page</tal:comment>
-      <td><a tal:condition="previousUrl" tal:attributes="href previousUrl"><img style="cursor:pointer" 
-        tal:attributes="src string: $portal_url/skyn/arrowLeftSimple.png;
-                        title python: tool.translate('goto_previous')"/></a></td>
-      <tal:comment replace="nothing">Explain which element is currently shown</tal:comment>
-      <td class="discreet" valign="middle">&nbsp;
-        <span tal:replace="python: currentNumber"/>&nbsp;<b>//</b>
-        <span tal:replace="python: totalNumber"/>&nbsp;&nbsp;
-      </td>
-      <tal:comment replace="nothing">Go to the next page</tal:comment>
-      <td><a tal:condition="python: nextUrl" tal:attributes="href nextUrl"><img style="cursor:pointer" 
-        tal:attributes="src string: $portal_url/skyn/arrowRightSimple.png;
-                        title python: tool.translate('goto_next')"/></a></td>
-      <tal:comment replace="nothing">Go to the last page</tal:comment>
-      <td><a tal:condition="lastUrl" tal:attributes="href lastUrl"><img style="cursor:pointer" 
-        tal:attributes="src string: $portal_url/skyn/arrowRightDouble.png;
-                        title python: tool.translate('goto_last')"/></a></td>
-    </tr>
-  </table>
-</div>

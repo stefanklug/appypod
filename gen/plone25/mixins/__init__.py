@@ -659,6 +659,15 @@ class AbstractMixin:
         isDelta = True
         self.changeRefOrder(rq['fieldName'], rq['refObjectUid'], move, isDelta)
 
+    def onSortReference(self):
+        '''This method is called when the user wants to sort the content of a
+           reference field.'''
+        rq = self.REQUEST
+        fieldName = rq.get('fieldName')
+        sortKey = rq.get('sortKey')
+        reverse = rq.get('reverse') == 'True'
+        self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
+
     def getWorkflow(self, appy=True):
         '''Returns the Appy workflow instance that is relevant for this
            object. If p_appy is False, it returns the DC workflow.'''
@@ -1243,27 +1252,9 @@ class AbstractMixin:
                     exec 'self.set%s%s([])' % (fieldName[0].upper(),
                                                fieldName[1:])
 
-    def getUrl(self, t='view', **kwargs):
-        '''This method returns various URLs about this object.'''
-        baseUrl = self.absolute_url()
-        params = ''
-        rq = self.REQUEST
-        for k, v in kwargs.iteritems(): params += '&%s=%s' % (k, v)
-        if params: params = params[1:]
-        if t == 'showRef':
-            chunk = '/skyn/ajax?objectUid=%s&page=ref&' \
-                'macro=showReferenceContent&' % self.UID()
-            startKey = '%s%s_startNumber' % (self.UID(), kwargs['fieldName'])
-            if rq.has_key(startKey) and not kwargs.has_key(startKey):
-                params += '&%s=%s' % (startKey, rq[startKey])
-            return baseUrl + chunk + params
-        elif t == 'showHistory':
-            chunk = '/skyn/ajax?objectUid=%s&page=macros&macro=history' % \
-                self.UID()
-            if params: params = '&' + params
-            return baseUrl + chunk + params
-        else: # We consider t=='view'
-            return baseUrl + '/skyn/view' + params
+    def getUrl(self):
+        '''Returns the Appy URL for viewing this object.'''
+        return self.absolute_url() + '/skyn/view'
 
     def translate(self, label, mapping={}, domain=None, default=None):
         '''Translates a given p_label into p_domain with p_mapping.'''

@@ -105,10 +105,11 @@ class ToolMixin(AbstractMixin):
         if res: return res[0].getObject()
         return None
 
-    _sortFields = {'title': 'sortable_title'}
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
                      startNumber=0, search=None, remember=False,
-                     brainsOnly=False, maxResults=None, noSecurity=False):
+                     brainsOnly=False, maxResults=None, noSecurity=False,
+                     sortBy=None, sortOrder='asc',
+                     filterKey=None, filterValue=None):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. Portal types are from the
            flavour numbered p_flavourNumber. If p_searchName is specified, it
@@ -136,7 +137,16 @@ class ToolMixin(AbstractMixin):
            p_maxResults equals string "NO_LIMIT".
 
            If p_noSecurity is True, it gets all the objects, even those that the
-           currently logged user can't see.'''
+           currently logged user can't see.
+
+           The result is sorted according to the potential sort key defined in
+           the Search instance (Search.sortBy). But if parameter p_sortBy is
+           given, it defines or overrides the sort. In this case, p_sortOrder
+           gives the order (*asc*ending or *desc*ending).
+
+           If p_filterKey is given, it represents an additional search parameter
+           to take into account: the corresponding search value is in
+           p_filterValue.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             # Several content types are specified
@@ -149,59 +159,40 @@ class ToolMixin(AbstractMixin):
         params = {'portal_type': portalTypes}
         if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
-        if searchName or search:
+        if searchName:
             # In this case, contentType must contain a single content type.
             appyClass = self.getAppyClass(contentType)
-            if searchName:
-                if searchName != '_advanced':
-                    search = ArchetypesClassDescriptor.getSearch(
-                        appyClass, searchName)
-                else:
-                    fields = self.REQUEST.SESSION['searchCriteria']
-                    search = Search('customSearch', **fields)
+            if searchName != '_advanced':
+                search = ArchetypesClassDescriptor.getSearch(
+                    appyClass, searchName)
+            else:
+                fields = self.REQUEST.SESSION['searchCriteria']
+                search = Search('customSearch', **fields)
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
                 # Make the correspondance between the name of the field and the
                 # name of the corresponding index.
-                attrName = fieldName
-                if attrName == 'title': attrName = 'Title'
-                elif attrName == 'description': attrName = 'Description'
-                elif attrName == 'state': attrName = 'review_state'
-                else: attrName = 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
+                attrName = Search.getIndexName(fieldName)
                 # Express the field value in the way needed by the index
-                if isinstance(fieldValue, basestring) and \
-                   fieldValue.endswith('*'):
-                    v = fieldValue[:-1]
-                    params[attrName] = {'query':(v,v+'z'), 'range':'min:max'}
-                    # Warning: 'z' is higher than 'Z'!
-                elif type(fieldValue) in sequenceTypes:
-                    if fieldValue and isinstance(fieldValue[0], basestring):
-                        # We have a list of string values (ie: we need to
-                        # search v1 or v2 or...)
-                        params[attrName] = fieldValue
-                    else:
-                        # We have a range of (int, float, DateTime...) values
-                        minv, maxv = fieldValue
-                        rangev = 'minmax'
-                        queryv = fieldValue
-                        if minv == None:
-                            rangev = 'max'
-                            queryv = maxv
-                        elif maxv == None:
-                            rangev = 'min'
-                            queryv = minv
-                        params[attrName] = {'query':queryv, 'range':rangev}
-                else:
-                    params[attrName] = fieldValue
+                params[attrName] = Search.getSearchValue(fieldName, fieldValue)
             # Add a sort order if specified
-            sb = search.sortBy
-            if sb:
-                # For field 'title', Plone has created a specific index
-                # 'sortable_title', because index 'Title' is a ZCTextIndex
-                # (for searchability) and can't be used for sorting.
-                if self._sortFields.has_key(sb): sb = self._sortFields[sb]
-                params['sort_on'] = sb
+            sortKey = search.sortBy
+            if sortKey:
+                params['sort_on'] = Search.getIndexName(sortKey, usage='sort')
+        # Determine or override sort if specified.
+        if sortBy:
+            params['sort_on'] = Search.getIndexName(sortBy, usage='sort')
+            if sortOrder == 'desc': params['sort_order'] = 'reverse'
+            else:                   params['sort_order'] = None
+        # If defined, add the filter among search parameters.
+        if filterKey:
+            filterKey = Search.getIndexName(filterKey)
+            filterValue = Search.getSearchValue(filterKey, filterValue)
+            params[filterKey] = filterValue
+            # TODO This value needs to be merged with an existing one if already
+            # in params, or, in a first step, we should avoid to display the
+            # corresponding filter widget on the screen.
         # Determine what method to call on the portal catalog
         if noSecurity: catalogMethod = 'unrestrictedSearchResults'
         else:          catalogMethod = 'searchResults'
@@ -544,14 +535,13 @@ class ToolMixin(AbstractMixin):
         if cookieValue: return cookieValue.value
         return default
 
-    def getQueryUrl(self, contentType, flavourNumber, searchName, ajax=True,
+    def getQueryUrl(self, contentType, flavourNumber, searchName,
                     startNumber=None):
-        '''This method creates the URL that allows to perform an ajax GET
+        '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName
-           on p_contentType from flavour numbered p_flavourNumber. If p_ajax
-           is False, it returns the non-ajax URL.'''
+           on p_contentType from flavour numbered p_flavourNumber.'''
         baseUrl = self.getAppFolder().absolute_url() + '/skyn'
-        baseParams = 'type_name=%s&flavourNumber=%s'%(contentType,flavourNumber)
+        baseParams= 'type_name=%s&flavourNumber=%s' %(contentType,flavourNumber)
         # Manage start number
         rq = self.REQUEST
         if startNumber != None:
@@ -559,12 +549,8 @@ class ToolMixin(AbstractMixin):
         elif rq.has_key('startNumber'):
             baseParams += '&startNumber=%s' % rq['startNumber']
         # Manage search name
-        if searchName or ajax: baseParams += '&search=%s' % searchName
-        if ajax:
-            return '%s/ajax?objectUid=%s&page=macros&macro=queryResult&%s' % \
-                   (baseUrl, self.UID(), baseParams)
-        else:
-            return '%s/query?%s' % (baseUrl, baseParams)
+        if searchName: baseParams += '&search=%s' % searchName
+        return '%s/query?%s' % (baseUrl, baseParams)
 
     def computeStartNumberFrom(self, currentNumber, totalNumber, batchSize):
         '''Returns the number (start at 0) of the first element in a list
@@ -666,7 +652,7 @@ class ToolMixin(AbstractMixin):
             startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
                 res['totalNumber'], batchSize)
             res['sourceUrl'] = self.getQueryUrl(contentType, flavourNumber,
-                searchName, ajax=False, startNumber=startNumber)
+                searchName, startNumber=startNumber)
         # Compute URLs
         for urlType in ('previous', 'next', 'first', 'last'):
             exec 'needIt = %sNeeded' % urlType

@@ -20,19 +20,19 @@
     <tr>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
     <td class="noPadding" tal:condition="python: (len(objs)&gt;1) and member.has_permission('Modify portal content', contextObj)">
-      <tal:moveRef define="objectIndex python:contextObj.getAppyRefIndex(fieldName, obj);
-                           baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId, '%s_startNumber' % ajaxHookId: startNumber, 'action':'ChangeRefOrder', 'refObjectUid': obj.UID()})">
+      <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
+                           ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
       <tal:comment replace="nothing">Move up</tal:comment>
-      <img tal:define="ajaxUrl python: baseUrl + '&move=up'" tal:condition="python: objectIndex &gt; 0"
+      <img tal:condition="python: objectIndex &gt; 0"
         tal:attributes="src string: $portal_url/skyn/arrowUp.png;
                         title python: tool.translate('move_up');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, ajaxUrl)"
+                        onClick python: ajaxBaseCall.replace('**v**', 'up')"
         style="cursor:pointer"/>
       <tal:comment replace="nothing">Move down</tal:comment>
-      <img tal:define="ajaxUrl python: baseUrl + '&move=down'" tal:condition="python: objectIndex &lt; (totalNumber-1)"
+      <img tal:condition="python: objectIndex &lt; (totalNumber-1)"
         tal:attributes="src string: $portal_url/skyn/arrowDown.png;
                         title python: tool.translate('move_down');
-                        onClick python: 'askAjaxChunk(\'%s\', \'%s\')' % (ajaxHookId, ajaxUrl)"
+                        onClick python: ajaxBaseCall.replace('**v**', 'down')"
         style="cursor:pointer"/>
       </tal:moveRef>
     </td>
@@ -64,6 +64,22 @@
 </metal:plusIcon>
 
 <tal:comment replace="nothing">
+  This macro displays, in a cell header from a ref table, icons for sorting the
+  ref field according to the field that corresponds to this column.
+</tal:comment>
+<metal:sortIcons define-macro="sortIcons"
+    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))">
+  <img style="cursor:pointer"
+       tal:attributes="src string:$portal_url/skyn/sortAsc.png;
+                       title python: tool.translate('sort_asc');
+                       onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
+  <img style="cursor:pointer"
+       tal:attributes="src string:$portal_url/skyn/sortDesc.png;
+                       title python: tool.translate('sort_desc');
+                       onClick python: ajaxBaseCall.replace('**v**', 'True')"/>
+</metal:sortIcons>
+
+<tal:comment replace="nothing">
   This macro shows a reference field. More precisely, it shows nothing, but calls
   a Javascript function that will asynchonously call (via a XmlHttpRequest object) the
   macro 'showReferenceContent' defined below, that will really show content.
@@ -77,11 +93,10 @@
    - descrId (string) the i18n id of the reference field description
 </tal:comment>
 <div metal:define-macro="showReference"
-     tal:define="ajaxHookId python: contextObj.UID() + fieldName;
-                 ajaxUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId})"
+     tal:define="ajaxHookId   python: contextObj.UID() + fieldName"
      tal:attributes="id ajaxHookId">
   <script language="javascript"
-          tal:content="python: 'askAjaxChunk(\'%s\',\'%s\')' % (ajaxHookId, ajaxUrl)">
+          tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), fieldName, isBack, innerRef, labelId, descrId)">
   </script>
 </div>
 
@@ -113,7 +128,7 @@
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: tool.translate(labelId);
                  description python: tool.translate(descrId);
-                 baseUrl python: contextObj.getUrl('showRef', **{'fieldName': fieldName, 'isBack': isBack, 'innerRef': innerRef, 'labelId': labelId, 'descrId': descrId, '%s_startNumber' % ajaxHookId: '**v**'})">
+                 navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, isBack, innerRef, labelId, descrId)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
 
@@ -159,7 +174,7 @@
          tal:content="description" class="discreet" ></p>
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-      <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+      <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
 
       <tal:comment replace="nothing">No object is present</tal:comment>
       <p tal:condition="not:objs" tal:content="python: tool.translate('no_ref')"></p>
@@ -183,14 +198,21 @@
                align="right" tal:condition="python: not isBack and objs" cellpadding="0" cellspacing="0">
           <tr tal:condition="appyType/showHeaders">
             <th tal:condition="python: 'title' not in appyType['shownInfo']"
-                tal:content="python: tool.translate('ref_name')"></th>
+                tal:define="shownField python:'title'">
+              <span tal:content="python: tool.translate('ref_name')"></span>
+              <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
+            </th>
             <th tal:repeat="shownField appyType/shownInfo">
               <tal:showHeader condition="python: objs[0].getField(shownField)">
-                <tal:titleHeader condition="python: shownField == 'title'"
-                                 content="python: tool.translate('ref_name')"/>
+                <tal:titleHeader condition="python: shownField == 'title'">
+                  <span tal:content="python: tool.translate('ref_name')"></span>
+                  <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
+                </tal:titleHeader>
                 <tal:otherHeader condition="python: shownField != 'title'"
-                                 define="labelId python: objs[0].getField(shownField).widget.label_msgid"
-                                 content="python: tool.translate(labelId)"/>
+                                 define="labelId python: objs[0].getField(shownField).widget.label_msgid">
+                  <span tal:content="python: tool.translate(labelId)"></span>
+                  <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
+                </tal:otherHeader>
               </tal:showHeader>
             </th>
             <th tal:content="python: tool.translate('ref_actions')"></th>
@@ -242,7 +264,7 @@
       </table>
 
       <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-      <metal:nav use-macro="here/skyn/macros/macros/appyNavigate"/>
+      <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
 
     </fieldset>
     <tal:comment replace="nothing">A carriage return needed in some cases.</tal:comment>
