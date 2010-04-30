@@ -668,6 +668,13 @@ class AbstractMixin:
         reverse = rq.get('reverse') == 'True'
         self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
 
+    def isRefSortable(self, fieldName):
+        '''Can p_fieldName, which is a field defined on self, be used as a sort
+           key in a reference field?'''
+        appyType = self.getAppyType(fieldName, asDict=False)
+        if not appyType: return True # Probably implicit field 'title'.
+        return appyType.isSortable(usage='ref')
+
     def getWorkflow(self, appy=True):
         '''Returns the Appy workflow instance that is relevant for this
            object. If p_appy is False, it returns the DC workflow.'''

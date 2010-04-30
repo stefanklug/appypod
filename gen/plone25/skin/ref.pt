@@ -68,14 +68,12 @@
   ref field according to the field that corresponds to this column.
 </tal:comment>
 <metal:sortIcons define-macro="sortIcons"
-    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))">
+    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))" tal:condition="python: canWrite and objs[0].isRefSortable(shownField)">
   <img style="cursor:pointer"
        tal:attributes="src string:$portal_url/skyn/sortAsc.png;
-                       title python: tool.translate('sort_asc');
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
   <img style="cursor:pointer"
        tal:attributes="src string:$portal_url/skyn/sortDesc.png;
-                       title python: tool.translate('sort_desc');
                        onClick python: ajaxBaseCall.replace('**v**', 'True')"/>
 </metal:sortIcons>
 
@@ -122,9 +120,10 @@
                  flavour python:tool.getFlavour(contextObj);
                  linkedPortalType python:flavour.getPortalType(appyType['klass']);
                  addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
+                 canWrite python: not isBack and member.has_permission(contextObj.getField(fieldName).write_permission, contextObj);
                  multiplicity python:test(isBack, appyType['backd']['multiplicity'], appyType['multiplicity']);
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
-                 showPlusIcon python:not isBack and appyType['add'] and not maxReached and member.has_permission(addPermission, folder);
+                 showPlusIcon python:not isBack and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: tool.translate(labelId);
                  description python: tool.translate(descrId);

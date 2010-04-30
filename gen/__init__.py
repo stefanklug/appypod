@@ -189,6 +189,15 @@ class Type:
             res = True
         return res
 
+    def isSortable(self, usage='search'):
+        '''Can fields of this type be used for sorting purposes (when sorting
+           search results (p_usage="search") or when sorting reference fields
+           (p_usage="ref")?'''
+        if usage == 'search': return self.indexed
+        elif usage == 'ref':
+            return self.type in ('Integer', 'Float', 'Boolean', 'Date') or \
+                   ((self.type == 'String') and (self.format == 0))
+
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
