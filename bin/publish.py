@@ -1,6 +1,6 @@
 #!/usr/bin/python2.4.4
 # Imports ----------------------------------------------------------------------
-import os, os.path, shutil, re, zipfile, sys, ftplib
+import os, os.path, shutil, re, zipfile, sys, ftplib, time
 from appy.shared import appyPath
 from appy.shared.utils import FolderDeleter
 from appy.bin.clean import Cleaner
@@ -227,51 +227,6 @@ class Text2Html:
         self.txtFile.close()
         self.htmlFile.close()
 
-class VersionsConverter(Text2Html):
-    title = 'Versions'
-    firstChar = 0
-    svnUrl = 'http://svn.communesplone.org/svn/communesplone/appy'
-    setupToolsUrl = 'http://peak.telecommunity.com/DevCenter/setuptools'
-    def retainLine(self, line):
-        return len(line) > 1
-    def getCleanLine(self, line, isTitle=False):
-        line = Text2Html.getCleanLine(self, line, isTitle)
-        if isTitle:
-            # This title represents a version of the appy framework.
-            version = versionRex.search(line).group(1)
-            if os.path.exists('%s/versions/appy.%s.zip' % (
-                appyPath, version)):
-                line = '%s (download <a href="versions/appy.%s.zip">zip</a>)' %(
-                    line, version)
-        return line
-    def getProlog(self):
-        return '<p>Appy releases are available for download as zip files ' \
-               'below. Under Windows, unzip the file with a tool like ' \
-               '<a href="http://www.7-zip.org/">7zip</a> and copy the ' \
-               '"appy" folder to &lt;where_you_installed_python&gt;\Lib\s' \
-               'ite-packages\. Under Linux, unzip the file by typing "unzip ' \
-               'appy-x.x.x.zip", copy the appy folder wherever you want (in ' \
-               '/opt/appy for example) and make a symbolic link in your ' \
-               'Python lib folder (for example: "ln -s /opt/appy /usr/lib/' \
-               'python2.5/site-packages/appy").</p>' \
-               '<!--p>Appy releases are also available as eggs. In order to ' \
-               'install an appy egg, install setuptools ' \
-               '(more info on <a href="%s">%s</a>) and type "sudo ' \
-               'easy_install appy".</p--> ' \
-               '<p> In order to check that everything works, launch a Python ' \
-               'shell and type "import appy". If you get the &gt;&gt;&gt; '\
-               'prompt again without error it\'s ok. You may also want to ' \
-               'launch the automated pod test suite: go to the pod test ' \
-               'folder (in &lt;pod folder&gt;/test, where &lt;pod ' \
-               'folder&gt; may be something like /usr/lib/python2.5/' \
-               'site-packages/appy/pod or /usr/lib/python2.5/site-packages/' \
-               'appy-0.3.0-py2.5.egg/appy/pod) and type "sudo python ' \
-               'Tester.py".</p>' \
-               '<!--p>You may also access directly the SVN repository of ' \
-               'the project: <a href="%s">%s</a>.</p-->' % (
-                 self.setupToolsUrl, self.setupToolsUrl,
-                 self.svnUrl, self.svnUrl)
-
 # ------------------------------------------------------------------------------
 class Publisher:
     '''Publishes Appy on the web.'''
@@ -286,10 +241,10 @@ class Publisher:
         # Retrieve version-related information
         versionFileName = '%s/doc/version.txt' % appyPath
         f = file(versionFileName)
-        self.versionLong = f.readline().strip()
-        # Long version includes version number & date
-        self.versionShort = versionRex.search(self.versionLong).group(1).strip()
-        # Short version includes version number only
+        self.versionShort = f.read().strip()
+        # Long version includes release date
+        self.versionLong = '%s (%s)' % (self.versionShort,
+                                        time.strftime('%Y/%m/%d %H:%M'))
         f.close()
 
     def executeCommand(self, cmd):
@@ -298,23 +253,8 @@ class Publisher:
         os.system(cmd)
 
     def createCodeAndEggReleases(self):
-        '''Updates the subversion repository as needed (tags, branches)
-           and publishes the needed eggs on pypi.python.org.'''
-        # Update subversion repository
+        '''Publishes the egg on pypi.python.org.'''
         curdir = os.getcwd()
-        # Create a branch for this new version if the user wants it.
-        lastDotIndex = self.versionShort.rfind('.')
-        branchName = self.versionShort[:lastDotIndex]
-        cmd = 'svn cp -m "Branch for releases %s.x" %s/trunk %s/branches/%s' % (
-            branchName, self.svnServer, self.svnServer, branchName)
-        if askQuestion('Create new branch? (%s)' % cmd, default='no'):
-            os.system(cmd)
-        # Create a tag for this version if the user wants it.
-        tagUrl = '%s/tags/%s' % (self.svnServer, self.versionShort)
-        cmd = 'svn cp -m "Tag for release %s" %s/trunk %s' % (
-            self.versionShort, self.svnServer, tagUrl)
-        if askQuestion('Create new tag? (%s)' % cmd, default='no'):
-            os.system(cmd)
         if askQuestion('Upload eggs on PyPI?', default='no'):
             # Create egg structure
             eggFolder = '%s/egg' % self.genFolder
@@ -347,7 +287,7 @@ class Publisher:
 
     def createZipRelease(self):
         '''Creates a zip file with the appy sources.'''
-        newZipRelease = '%s/versions/appy.%s.zip' % (appyPath, self.versionShort)
+        newZipRelease = '%s/versions/appy%s.zip' % (appyPath, self.versionShort)
         if os.path.exists(newZipRelease):
             if not askQuestion('"%s" already exists. Replace it?' % \
                                newZipRelease, default='yes'):
@@ -364,9 +304,9 @@ class Publisher:
                 zipFile.write(fileName)
                 # [2:] is there to avoid havin './' in the path in the zip file.
         zipFile.close()
-        # Copy the new zip release to the gen folder
-        shutil.copy(newZipRelease, '%s/versions' % self.genFolder)
         os.chdir(curdir)
+        # Remove the "appy" folder within the gen folder.
+        FolderDeleter.delete(os.path.join(self.genFolder, 'appy'))
 
     def applyTemplate(self):
         '''Decorates each page with the template.'''
@@ -401,7 +341,7 @@ class Publisher:
             res = produceNiceMessage(res[3:])
         return res
 
-    mainToc = re.compile('<td class="doc"(.*?)</td>')
+    mainToc = re.compile('<span class="doc"(.*?)</span>', re.S)
     tocLink = re.compile('<a href="(.*?)">(.*?)</a>')
     subSection = re.compile('<h1>(.*?)</h1>')
     subSectionContent = re.compile('<a name="(.*?)">.*?</a>(.*)')
@@ -461,11 +401,10 @@ class Publisher:
         if os.path.exists(self.genFolder):
             FolderDeleter.delete(self.genFolder)
         shutil.copytree('%s/doc' % appyPath, self.genFolder)
-        shutil.copytree('%s/versions' % appyPath, '%s/versions' %self.genFolder)
         # Create a temp clean copy of appy sources (without .svn folders, etc)
         genSrcFolder = '%s/appy' % self.genFolder
         os.mkdir(genSrcFolder)
-        for aFile in ('__init__.py',):
+        for aFile in ('__init__.py', 'install.txt'):
             shutil.copy('%s/%s' % (appyPath, aFile), genSrcFolder)
         for aFolder in ('gen', 'pod', 'shared', 'bin'):
             shutil.copytree('%s/%s' % (appyPath, aFolder),
@@ -490,9 +429,6 @@ class Publisher:
             for dirName in dirs:
                 if dirName == '.svn':
                     FolderDeleter.delete(os.path.join(root, dirName))
-        # Generates the "versions" page, based on version.txt
-        VersionsConverter('%s/doc/version.txt' % appyPath,
-                          '%s/version.html' % self.genFolder).run()
 
     def run(self):
         Cleaner().run(verbose=False)
@@ -501,7 +437,7 @@ class Publisher:
         self.createDocToc()
         self.applyTemplate()
         self.createZipRelease()
-        self.createCodeAndEggReleases()
+        #self.createCodeAndEggReleases()
         if askQuestion('Do you want to publish the site on ' \
                        'appyframework.org?', default='no'):
             AppySite().publish()

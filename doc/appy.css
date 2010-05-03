@@ -7,19 +7,19 @@ a:hover  { COLOR: #888888; text-decoration: underline; }
 
 input {
   font-family: Verdana;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight:normal;
 }
 
 textarea {
   font-family: Verdana;
-  font-size: 9pt;
+  font-size: 10pt;
   width: auto;
 }
 
 select {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight:normal;
   width: auto;
 }
@@ -35,12 +35,12 @@ tr {
 
 td {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 th {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
   font-style: italic;
   font-weight: bold;
   padding: 0 1em 0.1em 0;
@@ -50,7 +50,7 @@ th {
 
 p {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 img {
@@ -59,7 +59,7 @@ img {
 
 div {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 body {
@@ -76,20 +76,20 @@ h1 {
 
 h2 {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 10pt;
+  font-size: 11pt;
   font-style: italic;
   font-weight: normal;
 }
 
 ul {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
   list-style-type:circle;
 }
 
 li {
   font-family: Verdana, helvetica, sans-serif;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 /* Classes */
@@ -113,18 +113,19 @@ li {
 
 .siteTitle {
   font-size: 12pt;
+  padding-left: 10px;
 }
 
 .headerStrip {
   text-align: right;
-  font-size: 10pt;
+  font-size: 11pt;
   font-style: italic;
   background-color: #f1f1ed;
   padding-right: 1em;
 }
 
 .bottomStrip {
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight:bold;
   background-color: #F8F8F8;
   padding-bottom: 0.1em;
@@ -132,15 +133,13 @@ li {
 }
 
 .doc {
-  padding-left: 2em;
-  padding-top: 0.5em;
-  font-size: 9pt;
+  padding-left: 14px;
   font-style: italic;
 }
 
 .tabs {
   padding-left: 1em;
-  font-size: 9pt;
+  font-size: 10pt;
 }
 
 .footer {
