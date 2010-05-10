@@ -421,7 +421,7 @@ class FileWrapper:
            OpenOffice in server mode.'''
         if not filePath:
             filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
-                self.name)
+                normalizeString(self.name))
         f = file(filePath, 'w')
         if self.content.__class__.__name__ == 'Pdata':
             # The file content is splitted in several chunks.

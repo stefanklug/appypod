@@ -91,7 +91,7 @@ def normalizeString(s, usage='fileName'):
     elif not isinstance(s, unicode): s = unicode(s)
     if usage == 'fileName':
         # Remove any char that can't be found within a file name under
-        # Windows.
+        # Windows or that could lead to problems with OpenOffice.
         res = ''
         for char in s:
             if char not in unwantedChars:

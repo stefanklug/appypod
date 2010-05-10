@@ -72,6 +72,7 @@
 
 <div metal:define-macro="showComputedField">
   <span class="appyLabel" tal:condition="showLabel" tal:content="label"></span>
+  <span class="formHelp" tal:content="structure description"></span>
   <tal:showValue define="theValue python: contextObj.getComputedValue(appyType)">
     <span tal:condition="appyType/plainText" tal:replace="theValue"/>
     <span tal:condition="not: appyType/plainText" tal:replace="structure theValue"/>
@@ -80,7 +81,7 @@
 
 <div metal:define-macro="showInfoField">
   <span class="appyLabel" tal:content="structure label"></span>
-  <span tal:content="structure description"></span>
+  <span class="formHelp" tal:content="structure description"></span>
 </div>
 
 <div metal:define-macro="showActionField">
@@ -122,7 +123,7 @@
   <tal:simpleString condition="python: fmt in (0, 3)">
     <span tal:condition="showLabel" tal:content="label" class="appyLabel"
           tal:attributes="class python: 'appyLabel ' + contextObj.getCssClasses(appyType, asSlave=False);
-                          id python: v"></span>
+                          id python: contextObj.getAppyValue(field.getName(), appyType, forMasterId=True)"></span>
     <ul class="appyList" tal:condition="python: v and severalValues">
       <li class="appyBullet" tal:repeat="sv v"><i tal:content="structure sv"></i></li>
     </ul>
@@ -223,7 +224,7 @@
   <tal:masterString condition="python: isEdit and (appyType['type'] in ('String', 'Boolean')) and (appyType['slaves'])">
     <metal:mf use-macro="here/skyn/macros/macros/editField" />
   </tal:masterString>
-  <tal:infoField condition="python: (not isEdit) and (appyType['type'] == 'Info')">
+  <tal:infoField condition="python: appyType['type'] == 'Info'">
     <metal:af use-macro="here/skyn/macros/macros/showInfoField" />
   </tal:infoField>
   <tal:podField condition="python: (not isEdit) and (appyType['type'] == 'Pod')">

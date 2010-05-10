@@ -217,13 +217,18 @@ class AbstractMixin:
         else:                   params = '?' + params
         return rq.RESPONSE.redirect(url+params)
 
-    def getAppyValue(self, name, appyType=None, useParamValue=False,value=None):
+    def getAppyValue(self, name, appyType=None, useParamValue=False,
+                     value=None, forMasterId=False):
         '''Returns the value of field (or method) p_name for this object
            (p_self). If p_appyType (the corresponding Appy type) is provided,
            it gives additional information about the way to render the value.
            If p_useParamValue is True, the method uses p_value instead of the
            real field value (useful for rendering a value from the object
-           history, for example).'''
+           history, for example).
+
+           If p_forMasterId is True, it returns the value as will be needed to
+           produce an identifier used within HTML pages for master/slave
+           relationships.'''
         # Which value will we use ?
         if useParamValue: v = value
         else:
@@ -243,7 +248,7 @@ class AbstractMixin:
                 res += ' %s' % v.strftime('%H:%M')
             return res
         elif vType == 'String':
-            if not v: return v
+            if not v or forMasterId: return v
             if appyType['isSelect']:
                 validator = appyType['validator']
                 if isinstance(validator, Selection):
