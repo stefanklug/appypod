@@ -131,14 +131,9 @@ class Generator:
         if not os.path.exists(self.templatesFolder):
             print WARN_NO_TEMPLATE % self.templatesFolder
         # Default descriptor classes
-        self.classDescriptor = ClassDescriptor
-        self.workflowDescriptor = WorkflowDescriptor
-        self.customToolClassDescriptor = ClassDescriptor
-        self.customFlavourClassDescriptor = ClassDescriptor
-        # Custom tool and flavour classes, if they are defined in the
-        # application
-        self.customToolDescr = None
-        self.customFlavourDescr = None
+        self.descriptorClasses = {
+            'class': ClassDescriptor, 'tool': ClassDescriptor,
+            'flavour': ClassDescriptor, 'workflow': WorkflowDescriptor}
         # The following dict contains a series of replacements that need to be
         # applied to file templates to generate files.
         self.repls = {'applicationName': self.applicationName,
@@ -146,6 +141,8 @@ class Generator:
                       'codeHeader': CODE_HEADER}
         # List of Appy classes and workflows found in the application
         self.classes = []
+        self.tool = None
+        self.flavour = None
         self.workflows = []
         self.initialize()
         self.config = Config.getDefault()
@@ -225,24 +222,30 @@ class Generator:
                     # of their definition).
                     attrs = astClasses[moduleElem.__name__].attributes
                     if appyType == 'class':
+                        # Determine the class type (standard, tool, flavour...)
                         if issubclass(moduleElem, Tool):
-                            descrClass = self.customToolClassDescriptor
-                            self.customToolDescr = descrClass(
-                                moduleElem, attrs, self)
+                            if not self.tool:
+                                klass = self.descriptorClasses['tool']
+                                self.tool = klass(moduleElem, attrs, self)
+                            else:
+                                self.tool.update(moduleElem, attrs)
                         elif issubclass(moduleElem, Flavour):
-                            descrClass = self.customFlavourClassDescriptor
-                            self.customFlavourDescr = descrClass(
-                                moduleElem, attrs, self)
+                            if not self.flavour:
+                                klass = self.descriptorClasses['flavour']
+                                self.flavour = klass(moduleElem, attrs, self)
+                            else:
+                                self.flavour.update(moduleElem, attrs)
                         else:
-                            descrClass = self.classDescriptor
-                            self.classes.append(
-                                descrClass(moduleElem, attrs, self))
+                            descriptorClass = self.descriptorClasses['class']
+                            descriptor = descriptorClass(moduleElem,attrs, self)
+                            self.classes.append(descriptor)
+                        # Manage classes containing tests
                         if self.containsTests(moduleElem):
                             self.modulesWithTests.add(moduleObj.__name__)
                     elif appyType == 'workflow':
-                        descrClass = self.workflowDescriptor
-                        self.workflows.append(
-                            descrClass(moduleElem, attrs, self))
+                        descriptorClass = self.descriptorClasses['workflow']
+                        descriptor = descriptorClass(moduleElem, attrs, self)
+                        self.workflows.append(descriptor)
                         if self.containsTests(moduleElem):
                             self.modulesWithTests.add(moduleObj.__name__)
             elif isinstance(moduleElem, Config):
@@ -331,8 +334,8 @@ class Generator:
 
     def run(self):
         self.walkApplication()
-        for classDescr in self.classes: self.generateClass(classDescr)
-        for wfDescr in self.workflows: self.generateWorkflow(wfDescr)
+        for descriptor in self.classes: self.generateClass(descriptor)
+        for descriptor in self.workflows: self.generateWorkflow(descriptor)
         self.finalize()
         msg = ''
         if self.totalNumberOfTests:

@@ -5,7 +5,7 @@
 import os, os.path, time, mimetypes, random
 import appy.pod
 from appy.gen import Search
-from appy.gen.utils import sequenceTypes
+from appy.gen.utils import sequenceTypes, FileWrapper
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
 
@@ -32,9 +32,9 @@ class AbstractWrapper:
               v MIME type of the file.'''
         ploneFileClass = self.o.getProductConfig().File
         if isinstance(v, ploneFileClass):
-            exec "self.o.set%s%s(v)" % (name[0].upper(), name[1:])
+            setattr(self.o, name, v)
         elif isinstance(v, FileWrapper):
-            setattr(self, name, v._atFile)
+            setattr(self.o, name, v._atFile)
         elif isinstance(v, basestring):
             f = file(v)
             fileName = os.path.basename(v)
@@ -42,7 +42,7 @@ class AbstractWrapper:
             ploneFile = ploneFileClass(fileId, fileName, f)
             ploneFile.filename = fileName
             ploneFile.content_type = mimetypes.guess_type(fileName)[0]
-            setattr(self, name, ploneFile)
+            setattr(self.o, name, ploneFile)
             f.close()
         elif type(v) in sequenceTypes:
             # It should be a 2-tuple or 3-tuple
@@ -61,15 +61,20 @@ class AbstractWrapper:
                 if not mimeType:
                     mimeType = mimetypes.guess_type(fileName)[0]
                 ploneFile.content_type = mimeType
-                setattr(self, name, ploneFile)
+                setattr(self.o, name, ploneFile)
     def __setattr__(self, name, v):
+        if name == 'title':
+            self.o.setTitle(v)
+            return
         appyType = self.o.getAppyType(name)
-        if not appyType and (name != 'title'):
+        if not appyType:
             raise 'Attribute "%s" does not exist.' % name
-        if appyType and (appyType['type'] == 'File'):
+        if appyType.type == 'File':
             self._set_file_attribute(name, v)
+        elif appyType.type == 'Ref':
+            raise "Use methods 'link' or 'create' to modify references."
         else:
-            exec "self.o.set%s%s(v)" % (name[0].upper(), name[1:])
+            setattr(self.o, name, v)
     def __repr__(self):
         return '<%s wrapper at %s>' % (self.klass.__name__, id(self))
     def __cmp__(self, other):
@@ -94,17 +99,18 @@ class AbstractWrapper:
         appName = self.o.getProductConfig().PROJECTNAME
         return self.o.utranslate(self.o.getWorkflowLabel(), domain=appName)
     stateLabel = property(get_stateLabel)
-    def get_klass(self): return self.__class__.__bases__[1]
+    def get_klass(self): return self.__class__.__bases__[-1]
     klass = property(get_klass)
-    def get_url(self): return self.o.absolute_url()+'/skyn/view'
+    def get_url(self): return self.o.absolute_url()
     url = property(get_url)
     def get_history(self):
         key = self.o.workflow_history.keys()[0]
         return self.o.workflow_history[key]
     history = property(get_history)
-    def get_user(self):
-        return self.o.portal_membership.getAuthenticatedMember()
+    def get_user(self): return self.o.portal_membership.getAuthenticatedMember()
     user = property(get_user)
+    def get_fields(self): return self.o.getAllAppyTypes()
+    fields = property(get_fields)
 
     def link(self, fieldName, obj):
         '''This method links p_obj to this one through reference field
@@ -178,7 +184,6 @@ class AbstractWrapper:
         appyObj = ploneObj.appy()
         # Set object attributes
         for attrName, attrValue in kwargs.iteritems():
-            setterName = 'set%s%s' % (attrName[0].upper(), attrName[1:])
             if isinstance(attrValue, AbstractWrapper):
                 try:
                     refAppyType = getattr(appyObj.__class__.__bases__[-1],
@@ -187,7 +192,7 @@ class AbstractWrapper:
                 except AttributeError, ae:
                     pass
             else:
-                getattr(ploneObj, setterName)(attrValue)
+                setattr(appyObj, attrName, attrValue)
         if isField:
             # Link the object to this one
             self.link(fieldName, ploneObj)
@@ -375,85 +380,4 @@ class AbstractWrapper:
            p_data must be a dictionary whose keys are field names (strings) and
            whose values are the previous field values.'''
         self.o.addDataChange(data, labels=False)
-
-# ------------------------------------------------------------------------------
-CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
-class FileWrapper:
-    '''When you get, from an appy object, the value of a File attribute, you
-       get an instance of this class.'''
-    def __init__(self, atFile):
-        '''This constructor is only used by Appy to create a nice File instance
-           from a Plone/Zope corresponding instance (p_atFile). If you need to
-           create a new file and assign it to a File attribute, use the
-           attribute setter, do not create yourself an instance of this
-           class.'''
-        d = self.__dict__
-        d['_atFile'] = atFile # Not for you!
-        d['name'] = atFile.filename
-        d['content'] = atFile.data
-        d['mimeType'] = atFile.content_type
-        d['size'] = atFile.size # In bytes
-
-    def __setattr__(self, name, v):
-        d = self.__dict__
-        if name == 'name':
-            self._atFile.filename = v
-            d['name'] = v
-        elif name == 'content':
-            self._atFile.update_data(v, self.mimeType, len(v))
-            d['content'] = v
-            d['size'] = len(v)
-        elif name == 'mimeType':
-            self._atFile.content_type = self.mimeType = v
-        else:
-            raise 'Impossible to set attribute %s. "Settable" attributes ' \
-                  'are "name", "content" and "mimeType".' % name
-
-    def dump(self, filePath=None, format=None, tool=None):
-        '''Writes the file on disk. If p_filePath is specified, it is the
-           path name where the file will be dumped; folders mentioned in it
-           must exist. If not, the file will be dumped in the OS temp folder.
-           The absolute path name of the dumped file is returned.
-           If an error occurs, the method returns None. If p_format is
-           specified, OpenOffice will be called for converting the dumped file
-           to the desired format. In this case, p_tool, a Appy tool, must be
-           provided. Indeed, any Appy tool contains parameters for contacting
-           OpenOffice in server mode.'''
-        if not filePath:
-            filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
-                normalizeString(self.name))
-        f = file(filePath, 'w')
-        if self.content.__class__.__name__ == 'Pdata':
-            # The file content is splitted in several chunks.
-            f.write(self.content.data)
-            nextPart = self.content.next
-            while nextPart:
-                f.write(nextPart.data)
-                nextPart = nextPart.next
-        else:
-            # Only one chunk
-            f.write(self.content)
-        f.close()
-        if format:
-            if not tool: return
-            # Convert the dumped file using OpenOffice
-            convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
-            cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
-                filePath, format, tool.openOfficePort)
-            errorMessage = executeCommand(cmd)
-            # Even if we have an "error" message, it could be a simple warning.
-            # So we will continue here and, as a subsequent check for knowing if
-            # an error occurred or not, we will test the existence of the
-            # converted file (see below).
-            os.remove(filePath)
-            # Return the name of the converted file.
-            baseName, ext = os.path.splitext(filePath)
-            if (ext == '.%s' % format):
-                filePath = '%s.res.%s' % (baseName, format)
-            else:
-                filePath = '%s.%s' % (baseName, format)
-            if not os.path.exists(filePath):
-                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
-                return
-        return filePath
 # ------------------------------------------------------------------------------

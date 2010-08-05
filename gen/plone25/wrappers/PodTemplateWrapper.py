@@ -1,3 +1,6 @@
 # ------------------------------------------------------------------------------
-class PodTemplateWrapper: pass
+from appy.gen.plone25.wrappers import AbstractWrapper
+
+# ------------------------------------------------------------------------------
+class PodTemplateWrapper(AbstractWrapper): pass
 # ------------------------------------------------------------------------------

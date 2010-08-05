@@ -12,4 +12,4 @@ else:
         from Products.CMFCore.utils import getToolByName
         portal = getToolByName(obj, 'portal_url').getPortalObject()
         obj = portal.get('portal_%s' % obj.id.lower()) # The tool
-return obj.getAppyValue('on'+action)()
+return obj.getMethod('on'+action)()

@@ -27,7 +27,6 @@ class <!applicationName!>PodTemplate(BaseContent, PodTemplateMixin):
     suppl_views = ()
     typeDescription = "<!applicationName!>PodTemplate"
     typeDescMsgId = '<!applicationName!>_edit_descr'
-    _at_rename_after_creation = True
     wrapperClass = <!wrapperClass!>
     schema = fullSchema
     for elem in dir(PodTemplateMixin):

@@ -33,11 +33,4 @@ def updateRolesForPermission(permission, roles, obj):
             existingRoles = perm.getRoles()
     allRoles = set(existingRoles).union(roles)
     obj.manage_permission(permission, tuple(allRoles), acquire=0)
-
-# ------------------------------------------------------------------------------
-from appy.gen.utils import AppyRequest
-def getAppyRequest(zopeRequest, obj=None):
-    '''This method creates a nice (Appy) object representation of a
-       dictionary-like Zope REQUEST object.'''
-    return AppyRequest(zopeRequest, obj)
 # ------------------------------------------------------------------------------

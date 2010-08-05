@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 from appy.gen import *
-from appy.gen.plone25.wrappers import AbstractWrapper, FileWrapper
+from appy.gen.plone25.wrappers import AbstractWrapper
 from appy.gen.plone25.wrappers.ToolWrapper import ToolWrapper
 from appy.gen.plone25.wrappers.FlavourWrapper import FlavourWrapper
 from appy.gen.plone25.wrappers.PodTemplateWrapper import PodTemplateWrapper

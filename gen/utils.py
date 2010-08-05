@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
-import re
-
+import re, os, os.path, time
+from appy.shared.utils import getOsTempFolder, normalizeString
 sequenceTypes = (list, tuple)
 
 # Classes used by edit/view templates for accessing information ----------------
@@ -8,111 +8,100 @@ class Descr:
     '''Abstract class for description classes.'''
     def get(self): return self.__dict__
 
-class FieldDescr(Descr):
-    def __init__(self, atField, appyType, fieldRel):
-        # The corresponding Archetypes field (may be None in the case of
-        # backward references)
-        self.atField = atField
-        # The corresponding Appy type
-        self.appyType = appyType
-        # The field relationship, needed when the field description is a
-        # backward reference.
-        self.fieldRel = fieldRel
-        # Can we sort this field ?
-        at = self.appyType
-        self.sortable = False
-        if not fieldRel and ((self.atField.getName() == 'title') or \
-                             (at['indexed'])):
-            self.sortable = True
-        # Can we filter this field?
-        self.filterable = False
-        if not fieldRel and at['indexed'] and (at['type'] == 'String') and \
-           (at['format'] == 0) and not at['isSelect']:
-            self.filterable = True
-        if fieldRel:
-            self.widgetType = 'backField'
-            self.group = appyType['backd']['group']
-            self.show = appyType['backd']['show']
-            self.page = appyType['backd']['page']
-        else:
-            self.widgetType = 'field'
-            self.group = appyType['group']
-            self.show = appyType['show']
-            self.page = appyType['page']
-            fieldName = self.atField.getName()
-
 class GroupDescr(Descr):
-    def __init__(self, name, cols, page):
-        self.name = name
-        self.cols = cols # The nb of columns for placing fields into the group
-        self.rows = None # The number of rows
+    def __init__(self, group, page, metaType):
+        '''Creates the data structure manipulated in ZPTs from p_group, the
+           Group instance used in the field definition.'''
+        self.type = 'group'
+        # All p_group attributes become self attributes.
+        for name, value in group.__dict__.iteritems():
+            if not name.startswith('_'):
+                setattr(self, name, value)
+        self.columnsWidths = [col.width for col in group.columns]
+        self.columnsAligns = [col.align for col in group.columns]
+        # Names of i18n labels
+        self.labelId = '%s_group_%s' % (metaType, self.name)
+        self.descrId = self.labelId + '_descr'
+        self.helpId  = self.labelId + '_help'
+        # The name of the page where the group lies
         self.page = page
-        self.fields = []
-        self.widgetType = 'group'
+        # The widgets belonging to the group that the current user may see.
+        # They will be stored by m_addWidget below as a list of lists because
+        # they will be rendered as a table.
+        self.widgets = [[]]
 
-    def computeRows(groupDict):
-        '''Computes self.rows. But because at this time the object has already
-           been converted to a dict (for being maniputated within ZPTs, this
-           method is a static method that takes the dict as arg.'''
-        groupDict['rows'] = len(groupDict['fields']) / groupDict['cols']
-        if len(groupDict['fields']) % groupDict['cols']:
-            groupDict['rows'] += 1
-    computeRows = staticmethod(computeRows)
+    @staticmethod
+    def addWidget(groupDict, newWidget):
+        '''Adds p_newWidget into p_groupDict['widgets']. We try first to add
+           p_newWidget into the last widget row. If it is not possible, we
+           create a new row.
 
-    def getGroupInfo(groupName):
-        '''In the group name, the user may optionally specify at the end the
-           number of columns for placing fields into the group. This method
-           returns the real group name and the number of columns.'''
-        res = groupName.rsplit('_', 1)
-        if len(res) == 1:
-            res.append(1) # Append the default numer of columns
+           This method is a static method taking p_groupDict as first param
+           instead of being an instance method because at this time the object
+           has already been converted to a dict (for being maniputated within
+           ZPTs).'''
+        # Get the last row
+        widgetRow = groupDict['widgets'][-1]
+        numberOfColumns = len(groupDict['columnsWidths'])
+        # Computes the number of columns already filled by widgetRow
+        rowColumns = 0
+        for widget in widgetRow: rowColumns += widget['colspan']
+        freeColumns = numberOfColumns - rowColumns
+        if freeColumns >= newWidget['colspan']:
+            # We can add the widget in the last row.
+            widgetRow.append(newWidget)
         else:
-            try:
-                res[1] = int(res[1])
-            except ValueError:
-                res[1] = 1
-        return res
-    getGroupInfo = staticmethod(getGroupInfo)
+            if freeColumns:
+                # Terminate the current row by appending empty cells
+                for i in range(freeColumns): widgetRow.append('')
+            # Create a new row
+            newRow = [newWidget]
+            groupDict['widgets'].append(newRow)
 
 class PageDescr(Descr):
-    def getPageInfo(pageOrName, pageKlass):
+    @staticmethod
+    def getPageInfo(pageOrName):
         '''pageOrName can be:
            - a string containing the name of the page
            - a string containing <pageName>_<phaseName>
            - a appy.gen.Page instance for a more detailed page description.
            This method returns a normalized tuple containing page-related
            information.'''
-        if isinstance(pageOrName, pageKlass):
-            res = [pageOrName.name, pageOrName.phase, pageOrName.show]
-        else:
+        if isinstance(pageOrName, basestring):
             res = pageOrName.rsplit('_', 1)
             if len(res) == 1:
                 res.append('main')
             res.append(True)
+        else:
+            res = [pageOrName.name, pageOrName.phase, pageOrName.show]
         return res
-    getPageInfo = staticmethod(getPageInfo)
 
 class PhaseDescr(Descr):
-    def __init__(self, name, states, forPlone, ploneObj):
+    def __init__(self, name, states, obj):
         self.name = name
         self.states = states
-        self.forPlone = forPlone
-        self.ploneObj = ploneObj
+        self.obj = obj
         self.phaseStatus = None
         self.pages = [] # The list of pages in this phase
         self.totalNbOfPhases = None
+        # The following attributes allows to browse, from a given page, to the
+        # last page of the previous phase and to the first page of the following
+        # phase if allowed by phase state.
+        self.previousPhase = None
+        self.nextPhase = None
+
     def addPage(self, appyType, obj):
-        toAdd = appyType['page']
-        if (toAdd == 'main') and self.forPlone:
-            toAdd = 'default'
+        toAdd = appyType.page
         if (toAdd not in self.pages) and \
-           obj._appy_showPage(appyType['page'], appyType['pageShow']):
+           obj._appy_showPage(appyType.page, appyType.pageShow):
             self.pages.append(toAdd)
-    def computeStatus(self):
+
+    def computeStatus(self, allPhases):
         '''Compute status of whole phase based on individual status of states
            in this phase. If this phase includes no state, the concept of phase
            is simply used as a tab, and its status depends on the page currently
-           shown.'''
+           shown. This method also fills fields "previousPhase" and "nextPhase"
+           if relevant, based on list of p_allPhases.'''
         res = 'Current'
         if self.states:
             # Compute status base on states
@@ -124,17 +113,19 @@ class PhaseDescr(Descr):
                         break
         else:
             # Compute status based on current page
-            rq = self.ploneObj.REQUEST
-            if rq.has_key('fieldset'):
-                pageName = rq['fieldset']
-                if not self.forPlone and (pageName == 'default'):
-                    pageName = 'main'
-            else:
-                pageName = rq.get('pageName', 'main')
-            if pageName in self.pages:
+            page = self.obj.REQUEST.get('page', 'main')
+            if page in self.pages:
                 res = 'Current'
             else:
                 res = 'Deselected'
+            # Identify previous and next phases
+            for phaseInfo in allPhases:
+                if phaseInfo['name'] == self.name:
+                    i = allPhases.index(phaseInfo)
+                    if i > 0:
+                        self.previousPhase = allPhases[i-1]
+                    if i < (len(allPhases)-1):
+                        self.nextPhase = allPhases[i+1]
         self.phaseStatus = res
 
 class StateDescr(Descr):
@@ -159,32 +150,7 @@ def produceNiceMessage(msg):
     return res
 
 # ------------------------------------------------------------------------------
-class ValidationErrors: pass
-class AppyRequest:
-    def __init__(self, zopeRequest, appyObj=None):
-        self.zopeRequest = zopeRequest
-        self.appyObj = appyObj
-    def __str__(self): return '<AppyRequest object>'
-    def __repr__(self): return '<AppyRequest object>'
-    def __getattr__(self, attr):
-        res = None
-        if self.appyObj:
-            # I can retrieve type information from the ploneObj.
-            appyType = self.appyObj.o.getAppyType(attr)
-            if appyType['type'] == 'Ref':
-                res = self.zopeRequest.get('appy_ref_%s' % attr, None)
-            else:
-                res = self.zopeRequest.get(attr, None)
-                if appyType['pythonType']:
-                    try:
-                        exec 'res = %s' % res # bool('False') gives True, so we
-                        # can't write: res = appyType['pythonType'](res)
-                    except SyntaxError, se:
-                        # Can happen when for example, an Integer value is empty
-                        res = None
-        else:
-            res = self.zopeRequest.get(attr, None)
-        return res
+class AppyObject: pass
 
 # ------------------------------------------------------------------------------
 class SomeObjects:
@@ -261,4 +227,85 @@ class FakeBrain:
     def pretty_title_or_id(self): return self.Title
     def getObject(self, REQUEST=None): return self
     def getRID(self): return self.url
+
+# ------------------------------------------------------------------------------
+CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
+class FileWrapper:
+    '''When you get, from an appy object, the value of a File attribute, you
+       get an instance of this class.'''
+    def __init__(self, atFile):
+        '''This constructor is only used by Appy to create a nice File instance
+           from a Plone/Zope corresponding instance (p_atFile). If you need to
+           create a new file and assign it to a File attribute, use the
+           attribute setter, do not create yourself an instance of this
+           class.'''
+        d = self.__dict__
+        d['_atFile'] = atFile # Not for you!
+        d['name'] = atFile.filename
+        d['content'] = atFile.data
+        d['mimeType'] = atFile.content_type
+        d['size'] = atFile.size # In bytes
+
+    def __setattr__(self, name, v):
+        d = self.__dict__
+        if name == 'name':
+            self._atFile.filename = v
+            d['name'] = v
+        elif name == 'content':
+            self._atFile.update_data(v, self.mimeType, len(v))
+            d['content'] = v
+            d['size'] = len(v)
+        elif name == 'mimeType':
+            self._atFile.content_type = self.mimeType = v
+        else:
+            raise 'Impossible to set attribute %s. "Settable" attributes ' \
+                  'are "name", "content" and "mimeType".' % name
+
+    def dump(self, filePath=None, format=None, tool=None):
+        '''Writes the file on disk. If p_filePath is specified, it is the
+           path name where the file will be dumped; folders mentioned in it
+           must exist. If not, the file will be dumped in the OS temp folder.
+           The absolute path name of the dumped file is returned.
+           If an error occurs, the method returns None. If p_format is
+           specified, OpenOffice will be called for converting the dumped file
+           to the desired format. In this case, p_tool, a Appy tool, must be
+           provided. Indeed, any Appy tool contains parameters for contacting
+           OpenOffice in server mode.'''
+        if not filePath:
+            filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
+                normalizeString(self.name))
+        f = file(filePath, 'w')
+        if self.content.__class__.__name__ == 'Pdata':
+            # The file content is splitted in several chunks.
+            f.write(self.content.data)
+            nextPart = self.content.next
+            while nextPart:
+                f.write(nextPart.data)
+                nextPart = nextPart.next
+        else:
+            # Only one chunk
+            f.write(self.content)
+        f.close()
+        if format:
+            if not tool: return
+            # Convert the dumped file using OpenOffice
+            convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
+            cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
+                filePath, format, tool.openOfficePort)
+            errorMessage = executeCommand(cmd)
+            # Even if we have an "error" message, it could be a simple warning.
+            # So we will continue here and, as a subsequent check for knowing if
+            # an error occurred or not, we will test the existence of the
+            # converted file (see below).
+            os.remove(filePath)
+            # Return the name of the converted file.
+            baseName, ext = os.path.splitext(filePath)
+            if (ext == '.%s' % format):
+                filePath = '%s.res.%s' % (baseName, format)
+            else:
+                filePath = '%s.%s' % (baseName, format)
+            if not os.path.exists(filePath):
+                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
+                return
+        return filePath
 # ------------------------------------------------------------------------------

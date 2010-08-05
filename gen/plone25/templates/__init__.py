@@ -45,8 +45,9 @@ def initialize(context):
 <!imports!>
     # I need to do those imports here; else, types and add permissions will not
     # be registered.
+    classes = [<!classes!>]
     ZopeInstaller(context, PROJECTNAME,
         <!applicationName!>Tool.<!applicationName!>Tool,
         DEFAULT_ADD_CONTENT_PERMISSION, ADD_CONTENT_PERMISSIONS,
-        logger, globals()).install()
+        logger, globals(), classes).install()
 # ------------------------------------------------------------------------------

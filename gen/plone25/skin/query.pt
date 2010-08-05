@@ -20,7 +20,7 @@
                  flavourNumber python:int(context.REQUEST.get('flavourNumber'));
                  searchName python:context.REQUEST.get('search', '')">
 
-  <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
+  <div metal:use-macro="here/skyn/page/macros/prologue"/>
   <tal:comment replace="nothing">Query result</tal:comment>
   <div id="queryResult"></div>
 

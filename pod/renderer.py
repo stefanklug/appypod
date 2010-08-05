@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import zipfile, shutil, xml.sax, os, os.path, re
+import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
 
 from UserDict import UserDict
 
@@ -134,33 +134,45 @@ class Renderer:
         self.stylesManager = None # Manages the styles defined into the ODT
         # template
         self.tempFolder = None
-        self.curdir = os.getcwd()
         self.env = None
         self.pyPath = pythonWithUnoPath
         self.ooPort = ooPort
         self.forceOoCall = forceOoCall
         self.finalizeFunction = finalizeFunction
+        # Retain potential files or images that will be included through
+        # "do ... from document" statements: we will need to declare them in
+        # META-INF/manifest.xml.
+        self.fileNames = []
         self.prepareFolders()
         # Unzip template
         self.unzipFolder = os.path.join(self.tempFolder, 'unzip')
         os.mkdir(self.unzipFolder)
         for zippedFile in self.templateZip.namelist():
-            fileName = os.path.basename(zippedFile)
-            folderName = os.path.dirname(zippedFile)
-            # Create folder if needed
-            fullFolderName = self.unzipFolder
-            if folderName:
-                fullFolderName = os.path.join(fullFolderName, folderName)
-                if not os.path.exists(fullFolderName):
-                    os.makedirs(fullFolderName)
-            # Unzip file
+            # Before writing the zippedFile into self.unzipFolder, create the
+            # intermediary subfolder(s) if needed.
+            fileName = None
+            if zippedFile.endswith('/') or zippedFile.endswith(os.sep):
+                # This is an empty folder. Create it nevertheless.
+                os.makedirs(os.path.join(self.unzipFolder, zippedFile))
+            else:
+                fileName = os.path.basename(zippedFile)
+                folderName = os.path.dirname(zippedFile)
+                fullFolderName = self.unzipFolder
+                if folderName:
+                    fullFolderName = os.path.join(fullFolderName, folderName)
+                    if not os.path.exists(fullFolderName):
+                        os.makedirs(fullFolderName)
+            # Unzip the file in self.unzipFolder
             if fileName:
                 fullFileName = os.path.join(fullFolderName, fileName)
                 f = open(fullFileName, 'wb')
                 fileContent = self.templateZip.read(zippedFile)
-                if fileName == 'content.xml':
+                if (fileName == 'content.xml') and not folderName:
+                    # content.xml files may reside in subfolders.
+                    # We modify only the one in the root folder.
                     self.contentXml = fileContent
-                elif fileName == 'styles.xml':
+                elif (fileName == 'styles.xml') and not folderName:
+                    # Same remark as above.
                     self.stylesManager = StylesManager(fileContent)
                     self.stylesXml = fileContent
                 f.write(fileContent)
@@ -268,7 +280,10 @@ class Renderer:
         imp = importer(content, at, format, self.tempFolder, ns)
         if isImage:
             imp.setAnchor(anchor)
-        return imp.run()
+        res = imp.run()
+        if imp.fileNames:
+            self.fileNames += imp.fileNames
+        return res
 
     def prepareFolders(self):
         # Check if I can write the result
@@ -293,6 +308,27 @@ class Renderer:
         except OSError, oe:
             raise PodError(CANT_WRITE_TEMP_FOLDER % (self.result, oe))
 
+    def patchManifest(self):
+        '''Declares, in META-INF/manifest.xml, images or files included via the
+           "do... from document" statements if any.'''
+        if self.fileNames:
+            j = os.path.join
+            toInsert = ''
+            for fileName in self.fileNames:
+                mimeType = mimetypes.guess_type(fileName)[0]
+                toInsert += ' <manifest:file-entry manifest:media-type="%s" ' \
+                            'manifest:full-path="%s"/>\n' % (mimeType, fileName)
+            manifestName = j(self.unzipFolder, j('META-INF', 'manifest.xml'))
+            f = file(manifestName)
+            manifestContent = f.read()
+            hook = '</manifest:manifest>'
+            manifestContent = manifestContent.replace(hook, toInsert+hook)
+            f.close()
+            # Write the new manifest content
+            f = file(manifestName, 'w')
+            f.write(manifestContent)
+            f.close()
+
     # Public interface
     def run(self):
         '''Renders the result.'''
@@ -303,6 +339,8 @@ class Renderer:
         self.currentParser = self.stylesParser
         # Create the resulting styles.xml
         self.currentParser.parse(self.stylesXml)
+        # Patch META-INF/manifest.xml
+        self.patchManifest()
         # Re-zip the result
         self.finalize()
 
@@ -397,11 +435,18 @@ class Renderer:
             resultOdt = zipfile.ZipFile(resultOdtName,'w', zipfile.ZIP_DEFLATED)
         except RuntimeError:
             resultOdt = zipfile.ZipFile(resultOdtName,'w')
-        os.chdir(self.unzipFolder)
-        for dir, dirnames, filenames in os.walk('.'):
+        for dir, dirnames, filenames in os.walk(self.unzipFolder):
             for f in filenames:
-                resultOdt.write(os.path.join(dir, f)[2:])
-                # [2:] is there to avoid havin './' in the path in the zip file.
+                folderName = dir[len(self.unzipFolder)+1:]
+                resultOdt.write(os.path.join(dir, f),
+                                os.path.join(folderName, f))
+            if not dirnames and not filenames:
+                # This is an empty leaf folder. We must create an entry in the
+                # zip for him
+                folderName = dir[len(self.unzipFolder):]
+                zInfo = zipfile.ZipInfo("%s/" % folderName,time.localtime()[:6])
+                zInfo.external_attr = 48
+                resultOdt.writestr(zInfo, '')
         resultOdt.close()
         resultType = os.path.splitext(self.result)[1]
         try:
@@ -431,6 +476,5 @@ class Renderer:
                     raise PodError(CONVERT_ERROR % output)
                 os.rename(resultName, self.result)
         finally:
-            os.chdir(self.curdir)
             FolderDeleter.delete(self.tempFolder)
 # ------------------------------------------------------------------------------

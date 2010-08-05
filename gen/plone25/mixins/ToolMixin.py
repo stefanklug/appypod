@@ -1,40 +1,18 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
+from appy.shared.utils import getOsTempFolder
 from appy.gen import Type, Search, Selection
-from appy.gen.utils import FieldDescr, SomeObjects, sequenceTypes
+from appy.gen.utils import SomeObjects, sequenceTypes
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
-from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
+from appy.gen.plone25.descriptors import ClassDescriptor
 
-_PY = 'Please specify a file corresponding to a Python interpreter ' \
-      '(ie "/usr/bin/python").'
-FILE_NOT_FOUND = 'Path "%s" was not found.'
-VALUE_NOT_FILE = 'Path "%s" is not a file. ' + _PY
-NO_PYTHON = "Name '%s' does not starts with 'python'. " + _PY
-NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
-                         'To check if a Python interpreter is UNO-enabled, ' \
-                         'launch it and type "import uno". If you have no ' \
-                         'ImportError exception it is ok.'
 jsMessages = ('no_elem_selected', 'delete_confirm')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(AbstractMixin):
-    _appy_meta_type = 'tool'
-    def _appy_validateUnoEnabledPython(self, value):
-        '''This method represents the validator for field unoEnabledPython.
-           This field is present on the Tool only if POD is needed.'''
-        if value:
-            if not os.path.exists(value):
-                return FILE_NOT_FOUND % value
-            if not os.path.isfile(value):
-                return VALUE_NOT_FILE % value
-            if not os.path.basename(value).startswith('python'):
-                return NO_PYTHON % value
-            if os.system('%s -c "import uno"' % value):
-                return NOT_UNO_ENABLED_PYTHON % value
-        return None
-
+    _appy_meta_type = 'Tool'
     def getFlavour(self, contextObjOrPortalType, appy=False):
         '''Gets the flavour that corresponds to p_contextObjOrPortalType.'''
         if isinstance(contextObjOrPortalType, basestring):
@@ -102,8 +80,11 @@ class ToolMixin(AbstractMixin):
     def getObject(self, uid, appy=False):
         '''Allows to retrieve an object from its p_uid.'''
         res = self.uid_catalog(UID=uid)
-        if res: return res[0].getObject()
-        return None
+        if res:
+            res = res[0].getObject()
+            if appy:
+                res = res.appy()
+        return res
 
     def executeQuery(self, contentType, flavourNumber=1, searchName=None,
                      startNumber=0, search=None, remember=False,
@@ -133,7 +114,7 @@ class ToolMixin(AbstractMixin):
            useful for some usages like knowing the number of objects without
            needing to get information about them). If no p_maxResults is
            specified, the method returns maximum
-           self.getNumberOfResultsPerPage(). The method returns all objects if
+           self.numberOfResultsPerPage. The method returns all objects if
            p_maxResults equals string "NO_LIMIT".
 
            If p_noSecurity is True, it gets all the objects, even those that the
@@ -163,7 +144,7 @@ class ToolMixin(AbstractMixin):
             # In this case, contentType must contain a single content type.
             appyClass = self.getAppyClass(contentType)
             if searchName != '_advanced':
-                search = ArchetypesClassDescriptor.getSearch(
+                search = ClassDescriptor.getSearch(
                     appyClass, searchName)
             else:
                 fields = self.REQUEST.SESSION['searchCriteria']
@@ -201,7 +182,7 @@ class ToolMixin(AbstractMixin):
             # Return brains only.
             if not maxResults: return brains
             else: return brains[:maxResults]
-        if not maxResults: maxResults = self.getNumberOfResultsPerPage()
+        if not maxResults: maxResults = self.appy().numberOfResultsPerPage
         elif maxResults == 'NO_LIMIT': maxResults = None
         res = SomeObjects(brains, maxResults, startNumber,noSecurity=noSecurity)
         res.brainsToObjects()
@@ -249,25 +230,30 @@ class ToolMixin(AbstractMixin):
     def getResultColumns(self, anObject, contentType):
         '''What columns must I show when displaying a list of root class
            instances? Result is a list of tuples containing the name of the
-           column (=name of the field) and a FieldDescr instance.'''
+           column (=name of the field) and the corresponding appyType (dict
+           version).'''
         res = []
         for fieldName in self.getResultColumnsNames(contentType):
             if fieldName == 'workflowState':
-                # We do not return a FieldDescr instance if the attributes is
-                # not a *real* attribute but the workfow state.
+                # We do not return a appyType if the attribute is not a *real*
+                # attribute, but the workfow state.
                 res.append(fieldName)
             else:
-                # Create a FieldDescr instance
-                appyType = anObject.getAppyType(fieldName)
+                appyType = anObject.getAppyType(fieldName, asDict=True)
                 if not appyType:
-                    res.append({'atField': None, 'name': fieldName})
+                    res.append({'name': fieldName, '_wrong': True})
                     # The field name is wrong.
                     # We return it so we can show it in an error message.
                 else:
-                    atField = anObject.schema.get(fieldName)
-                    fieldDescr = FieldDescr(atField, appyType, None)
-                    res.append(fieldDescr.get())
+                    res.append(appyType)
         return res
+
+    def truncateValue(self, value, appyType):
+        '''Truncates the p_value according to p_appyType width.'''
+        maxWidth = appyType['width']
+        if len(value) > maxWidth:
+            return value[:maxWidth] + '...'
+        return value
 
     xhtmlToText = re.compile('<.*?>', re.S)
     def getReferenceLabel(self, brain, appyType):
@@ -288,8 +274,8 @@ class ToolMixin(AbstractMixin):
             elif isinstance(value, basestring):
                 value = value.decode('utf-8')
                 refAppyType = appyObj.o.getAppyType(fieldName)
-                if refAppyType and (refAppyType['type'] == 'String') and \
-                   (refAppyType['format'] == 2):
+                if refAppyType and (refAppyType.type == 'String') and \
+                   (refAppyType.format == 2):
                     value = self.xhtmlToText.sub(' ', value)
             else:
                 value = str(value)
@@ -312,13 +298,21 @@ class ToolMixin(AbstractMixin):
         appName = self.getProductConfig().PROJECTNAME
         return self.utranslate(label, self.translationMapping, domain=appName)
 
-    def getPublishedObject(self):
-        '''Gets the currently published object.'''
+    def getPublishedObject(self, rootClasses):
+        '''Gets the currently published object, if its meta_class is among
+           p_rootClasses or if it is the corresponding tool or flavour.'''
         rq = self.REQUEST
         obj = rq['PUBLISHED']
         parent = obj.getParentNode()
-        if parent.id == 'skyn': return parent.getParentNode()
-        return rq['PUBLISHED']
+        if parent.id == 'skyn':
+            obj = parent.getParentNode()
+        if obj.meta_type in rootClasses:
+            return obj
+        else:
+            appName = self.getAppName()
+            if obj.meta_type in ('%sTool' % appName, '%sFlavour' % appName):
+                return obj
+        return None
 
     def getAppyClass(self, contentType):
         '''Gets the Appy Python class that is related to p_contentType.'''
@@ -358,6 +352,17 @@ class ToolMixin(AbstractMixin):
                 else:
                     res[means.id] = means.__dict__
         return res
+
+    def userMayAdd(self, rootClass):
+        '''For deciding if a user may add a new instance of a class, beyond the
+           permission-based check, we can have a custom method that proposes an
+           additional condition. This method checks if there is such a custom
+           method (must be named "mayCreate") define on p_rootClass, and calls
+           it if yes. If no, it returns True.'''
+        pythonClass = self.getAppyClass(rootClass)
+        if 'mayCreate' in pythonClass.__dict__:
+            return pythonClass.mayCreate(self.appy())
+        return True
 
     def onImportObjects(self):
         '''This method is called when the user wants to create objects from
@@ -503,7 +508,7 @@ class ToolMixin(AbstractMixin):
         appyClass = self.getAppyClass(contentType)
         res = []
         visitedGroups = {} # Names of already visited search groups
-        for search in ArchetypesClassDescriptor.getSearches(appyClass):
+        for search in ClassDescriptor.getSearches(appyClass):
             # Determine first group label, we will need it.
             groupLabel = ''
             if search.group:
@@ -610,7 +615,7 @@ class ToolMixin(AbstractMixin):
         if t == 'ref': # Manage navigation from a reference
             fieldName = d2
             masterObj = self.getObject(d1)
-            batchSize = masterObj.getAppyType(fieldName)['maxPerPage']
+            batchSize = masterObj.getAppyType(fieldName).maxPerPage
             uids = getattr(masterObj, '_appy_%s' % fieldName)
             # In the case of a reference, we retrieve ALL surrounding objects.
             
@@ -679,21 +684,18 @@ class ToolMixin(AbstractMixin):
            into a list of lists, where every sub-list has length p_numberOfRows.
            This method is typically used for rendering elements in a table of
            p_numberOfRows rows.'''
-        if numberOfRows > 1:
-            res = []
-            row = []
-            for elem in data:
-                row.append(elem)
-                if len(row) == numberOfRows:
-                    res.append(row)
-                    row = []
-            # Complete the last unfinished line if required.
-            if row:
-                while len(row) < numberOfRows: row.append(None)
+        res = []
+        row = []
+        for elem in data:
+            row.append(elem)
+            if len(row) == numberOfRows:
                 res.append(row)
-            return res
-        else:
-            return data
+                row = []
+        # Complete the last unfinished line if required.
+        if row:
+            while len(row) < numberOfRows: row.append(None)
+            res.append(row)
+        return res
 
     def truncate(self, value, numberOfChars):
         '''Truncates string p_value to p_numberOfChars.'''
@@ -707,22 +709,6 @@ class ToolMixin(AbstractMixin):
     def getMonthName(self, monthNumber):
         '''Gets the translated month name of month numbered p_monthNumber.'''
         return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
-
-    def getSelectValues(self, appyType):
-        '''Return the possible values (with their translation) of String type
-           p_appyType (dict version) which is a string whose validator limits
-           the possible values, either statically (validator is simply a list
-           of values) or dynamically (validator is a Selection instance).'''
-        validator = appyType['validator']
-        if isinstance(validator, Selection):
-            vocab = self._appy_getDynamicDisplayList(validator.methodName)
-            return vocab.items()
-        else:
-            res = []
-            for v in validator:
-                text = self.translate('%s_list_%s' % (appyType['label'], v))
-                res.append((v, self.truncate(text, 30)))
-        return res
 
     def logout(self):
         '''Logs out the current user when he clicks on "disconnect".'''
@@ -748,4 +734,20 @@ class ToolMixin(AbstractMixin):
         from appy.gen.plone25.installer import loggedUsers
         if loggedUsers.has_key(userId): del loggedUsers[userId]
         return self.goto(self.getParentNode().absolute_url())
+
+    def tempFile(self):
+        '''A temp file has been created in a temp folder. This method returns
+           this file to the browser.'''
+        rq = self.REQUEST
+        baseFolder = os.path.join(getOsTempFolder(), self.getAppName())
+        baseFolder = os.path.join(baseFolder, rq.SESSION.id)
+        fileName   = os.path.join(baseFolder, rq.get('name', ''))
+        if os.path.exists(fileName):
+            f = file(fileName)
+            content = f.read()
+            f.close()
+            # Remove the temp file
+            os.remove(fileName)
+            return content
+        return 'File does not exist'
 # ------------------------------------------------------------------------------

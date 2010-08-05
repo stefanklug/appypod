@@ -7,7 +7,7 @@
 
 # ------------------------------------------------------------------------------
 import copy, types
-from appy.gen import Type, Integer, String, File, Ref, Boolean, Selection
+from appy.gen import Type, Integer, String, File, Ref, Boolean, Selection, Group
 
 # ------------------------------------------------------------------------------
 class ModelClass:
@@ -17,10 +17,12 @@ class ModelClass:
        prefixed with _appy_ in order to avoid name conflicts with user-defined
        parts of the application model.'''
     _appy_attributes = [] # We need to keep track of attributes order.
-    _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'selfClass',
-                     'phase', 'pageShow', 'isSelect') # When creating a new
-                     # instance of a ModelClass, those attributes must not be
-                     # given in the constructor.
+    # When creating a new instance of a ModelClass, the following attributes
+    # must not be given in the constructor (they are computed attributes).
+    _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'phase', 'pageShow',
+                     'isSelect', 'hasLabel', 'hasDescr', 'hasHelp',
+                     'master_css', 'layouts', 'required', 'filterable',
+                     'validable', 'backd', 'isBack')
 
     @classmethod
     def _appy_addField(klass, fieldName, fieldType, classDescr):
@@ -38,8 +40,11 @@ class ModelClass:
                 continue
             if isinstance(attrValue, basestring):
                 attrValue = '"%s"' % attrValue
-            elif isinstance(attrValue, Type):
-                attrValue = klass._appy_getTypeBody(attrValue)
+            elif isinstance(attrValue, Ref):
+                if attrValue.isBack:
+                    attrValue = klass._appy_getTypeBody(attrValue)
+                else:
+                    continue
             elif type(attrValue) == type(ModelClass):
                 moduleName = attrValue.__module__
                 if moduleName.startswith('appy.gen'):
@@ -48,6 +53,10 @@ class ModelClass:
                     attrValue = '%s.%s' % (moduleName, attrValue.__name__)
             elif isinstance(attrValue, Selection):
                 attrValue = 'Selection("%s")' % attrValue.methodName
+            elif isinstance(attrValue, Group):
+                attrValue = 'Group("%s")' % attrValue.name
+            elif type(attrValue) == types.FunctionType:
+                attrValue = '%sWrapper.%s'% (klass.__name__, attrValue.__name__)
             typeArgs += '%s=%s,' % (attrName, attrValue)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
 
@@ -106,10 +115,15 @@ class Flavour(ModelClass):
         '''From a given p_appyType, produce a type definition suitable for
            storing the default value for this field.'''
         res = copy.copy(appyType)
+        # A fiekd in the flavour can't have parameters that would lead to the
+        # creation of new fields in the flavour.
         res.editDefault = False
         res.optional = False
         res.show = True
+        res.group = copy.copy(appyType.group)
         res.phase = 'main'
+        # Set default layouts for all Flavour fields
+        res.layouts = None
         res.specificReadPermission = False
         res.specificWritePermission = False
         res.multiplicity = (0, appyType.multiplicity[1])
@@ -136,7 +150,7 @@ class Flavour(ModelClass):
             klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
         fieldType.validator.append(fieldDescr.fieldName)
         fieldType.page = 'data'
-        fieldType.group = fieldDescr.classDescr.klass.__name__
+        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
 
     @classmethod
     def _appy_addDefaultField(klass, fieldDescr):
@@ -145,7 +159,7 @@ class Flavour(ModelClass):
         fieldType = klass._appy_copyField(fieldDescr.appyType)
         klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
         fieldType.page = 'data'
-        fieldType.group = fieldDescr.classDescr.klass.__name__
+        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
 
     @classmethod
     def _appy_addPodRelatedFields(klass, fieldDescr):
@@ -276,7 +290,9 @@ class Tool(ModelClass):
                    # First arg is None because we don't know yet if it will link
                    # to the predefined Flavour class or a custom class defined
                    # in the application.
-    unoEnabledPython = String(group="connectionToOpenOffice")
+    def validPythonWithUno(self, value): pass
+    unoEnabledPython = String(group="connectionToOpenOffice",
+                              validator=validPythonWithUno)
     openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
     numberOfResultsPerPage = Integer(default=30)
     listBoxesMaximumWidth = Integer(default=100)

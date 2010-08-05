@@ -7,11 +7,9 @@ import Products.<!applicationName!>.config
 from appy.gen.plone25.mixins.ToolMixin import ToolMixin
 from Extensions.appyWrappers import AbstractWrapper, <!wrapperClass!>
 
-predefinedSchema = Schema((<!predefinedFields!>
-),)
 schema = Schema((<!fields!>
 ),)
-fullSchema = OrderedBaseFolderSchema.copy() + predefinedSchema.copy() + schema.copy()
+fullSchema = OrderedBaseFolderSchema.copy() + schema.copy()
 
 class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     '''Tool for <!applicationName!>.'''
@@ -32,7 +30,6 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     typeDescMsgId = '<!toolName!>_edit_descr'
     i18nDomain = '<!applicationName!>'
     wrapperClass = <!wrapperClass!>
-    _at_rename_after_creation = True
     schema = fullSchema
     schema["id"].widget.visible = False
     schema["title"].widget.visible = False
@@ -47,6 +44,5 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
         OrderedBaseFolder.__init__(self, '<!toolInstanceName!>')
         self.setTitle('<!applicationName!>')
 <!commonMethods!>
-<!predefinedMethods!>
 <!methods!>
 registerType(<!toolName!>, '<!applicationName!>')

@@ -1,14 +1,21 @@
 # ------------------------------------------------------------------------------
-import re, time
+import re, time, copy, sys, types, os, os.path
 from appy.shared.utils import Traceback
-from appy.gen.utils import sequenceTypes, PageDescr, Keywords
+from appy.gen.layout import Table
+from appy.gen.layout import defaultFieldLayouts
+from appy.gen.po import PoMessage
+from appy.gen.utils import sequenceTypes, PageDescr, GroupDescr, Keywords, \
+                           FileWrapper
 from appy.shared.data import countries
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
-digit = re.compile('[0-9]')
-alpha = re.compile('[a-zA-Z0-9]')
+digit  = re.compile('[0-9]')
+alpha  = re.compile('[a-zA-Z0-9]')
 letter = re.compile('[a-zA-Z]')
+nullValues = (None, '', ' ')
+validatorTypes = (types.FunctionType, type(re.compile('')))
+emptyTuple = ()
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -18,6 +25,148 @@ class Page:
         self.name = name
         self.phase = phase
         self.show = show
+
+class Group:
+    '''Used for describing a group of widgets within a page.'''
+    def __init__(self, name, columns=['100%'], wide=True, style='fieldset',
+                 hasLabel=True, hasDescr=False, hasHelp=False,
+                 hasHeaders=False, group=None, colspan=1):
+        self.name = name
+        # In its simpler form, field "columns" below can hold a list or tuple
+        # of column widths expressed as strings, that will be given as is in
+        # the "width" attributes of the corresponding "td" tags. Instead of
+        # strings, within this list or tuple, you may give Column instances
+        # (see below).
+        self.columns = columns
+        self._setColumns()
+        # If field "wide" below is True, the HTML table corresponding to this
+        # group will have width 100%.
+        self.wide = wide
+        # If style = 'fieldset', all widgets within the group will be rendered
+        # within an HTML fieldset. If style is 'section1' or 'section2', widgets
+        # will be rendered after the group title.
+        self.style = style
+        # If hasLabel is True, the group will have a name and the corresponding
+        # i18n label will be generated.
+        self.hasLabel = hasLabel
+        # If hasDescr is True, the group will have a description and the
+        # corresponding i18n label will be generated.
+        self.hasDescr = hasDescr
+        # If hasHelp is True, the group will have a help text associated and the
+        # corresponding i18n label will be generated.
+        self.hasHelp = hasHelp
+        # If hasheaders is True, group content will begin with a row of headers,
+        # and a i18n label will be generated for every header.
+        self.hasHeaders = hasHeaders
+        self.nbOfHeaders = len(columns)
+        # If this group is himself contained in another group, the following
+        # attribute is filled.
+        self.group = Group.get(group)
+        # If the group is rendered into another group, we can specify the number
+        # of columns that this group will span.
+        self.colspan = colspan
+        if style == 'tabs':
+            # Group content will be rendered as tabs. In this case, some
+            # param combinations have no sense.
+            self.hasLabel = self.hasDescr = self.hasHelp = False
+            # The rendering is forced to a single column
+            self.columns = self.columns[:1]
+            # Header labels will be used as labels for the tabs.
+            self.hasHeaders = True
+
+    def _setColumns(self):
+        '''Standardizes field "columns" as a list of Column instances. Indeed,
+           the initial value for field "columns" may be a list or tuple of
+           Column instances or strings.'''
+        for i in range(len(self.columns)):
+            columnData = self.columns[i]
+            if not isinstance(columnData, Column):
+                self.columns[i] = Column(self.columns[i])
+
+    @staticmethod
+    def get(groupData):
+        '''Produces a Group instance from p_groupData. User-defined p_groupData
+           can be a string or a Group instance; this method returns always a
+           Group instance.'''
+        res = groupData
+        if res and isinstance(res, basestring):
+            # Group data is given as a string. 2 more possibilities:
+            # (a) groupData is simply the name of the group;
+            # (b) groupData is of the form <groupName>_<numberOfColumns>.
+            groupElems = groupData.rsplit('_', 1)
+            if len(groupElems) == 1:
+                # We have case (a)
+                res = Group(groupElems[0])
+            else:
+                try:
+                    nbOfColumns = int(groupElems[1])
+                except ValueError:
+                    nbOfColumns = 1
+                width = 100.0 / nbOfColumns
+                res = Group(groupElems[0], ['%.2f%%' % width] * nbOfColumns)
+        return res
+
+    def generateLabels(self, messages, classDescr, walkedGroups):
+        '''This method allows to generate all the needed i18n labels related to
+           this group. p_messages is the list of i18n p_messages that we are
+           currently building; p_classDescr is the descriptor of the class where
+           this group is defined.'''
+        if self.hasLabel:
+            msgId = '%s_group_%s' % (classDescr.name, self.name)
+            poMsg = PoMessage(msgId, '', self.name, niceDefault=True)
+            if poMsg not in messages:
+                messages.append(poMsg)
+                classDescr.labelsToPropagate.append(poMsg)
+        if self.hasDescr:
+            msgId = '%s_group_%s_descr' % (classDescr.name, self.name)
+            poMsg = PoMessage(msgId, '', ' ')
+            if poMsg not in messages:
+                messages.append(poMsg)
+                classDescr.labelsToPropagate.append(poMsg)
+        if self.hasHelp:
+            msgId = '%s_group_%s_help' % (classDescr.name, self.name)
+            poMsg = PoMessage(msgId, '', ' ')
+            if poMsg not in messages:
+                messages.append(poMsg)
+                classDescr.labelsToPropagate.append(poMsg)
+        if self.hasHeaders:
+            for i in range(self.nbOfHeaders):
+                msgId = '%s_group_%s_col%d' % (classDescr.name, self.name, i+1)
+                poMsg = PoMessage(msgId, '', ' ')
+                if poMsg not in messages:
+                    messages.append(poMsg)
+                    classDescr.labelsToPropagate.append(poMsg)
+        walkedGroups.add(self)
+        if self.group and (self.group not in walkedGroups):
+            # We remember walked groups for avoiding infinite recursion.
+            self.group.generateLabels(messages, classDescr, walkedGroups)
+
+    def insertInto(self, widgets, groupDescrs, page, metaType):
+        '''Inserts the GroupDescr instance corresponding to this Group instance
+           into p_widgets, the recursive structure used for displaying all
+           widgets in a given p_page, and returns this GroupDescr instance.'''
+        # First, create the corresponding GroupDescr if not already in
+        # p_groupDescrs.
+        if self.name not in groupDescrs:
+            groupDescr = groupDescrs[self.name] = GroupDescr(self, page,
+                                                             metaType).get()
+            # Insert the group at the higher level (ie, directly in p_widgets)
+            # if the group is not itself in a group.
+            if not self.group:
+                widgets.append(groupDescr)
+            else:
+                outerGroupDescr = self.group.insertInto(widgets, groupDescrs,
+                                                        page, metaType)
+                GroupDescr.addWidget(outerGroupDescr, groupDescr)
+        else:
+            groupDescr = groupDescrs[self.name]
+        return groupDescr
+
+class Column:
+    '''Used for describing a column within a Group like defined above.'''
+    def __init__(self, width, align="left"):
+        self.width = width
+        self.align = align
 
 class Import:
     '''Used for describing the place where to find the data to use for creating
@@ -109,9 +258,10 @@ class Search:
 class Type:
     '''Basic abstract class for defining any appy type.'''
     def __init__(self, validator, multiplicity, index, default, optional,
-                 editDefault, show, page, group, move, indexed, searchable,
-                 specificReadPermission, specificWritePermission, width,
-                 height, master, masterValue, focus, historized):
+                 editDefault, show, page, group, layouts, move, indexed,
+                 searchable, specificReadPermission, specificWritePermission,
+                 width, height, colspan, master, masterValue, focus,
+                 historized):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -132,6 +282,8 @@ class Type:
         self.default = default
         # Is the field optional or not ?
         self.optional = optional
+        # Is the field required or not ? (derived from multiplicity)
+        self.required = self.multiplicity[0] > 0
         # May the user configure a default value ?
         self.editDefault = editDefault
         # Must the field be visible or not?
@@ -139,10 +291,10 @@ class Type:
         # When displaying/editing the whole object, on what page and phase must
         # this field value appear? Default is ('main', 'main'). pageShow
         # indicates if the page must be shown or not.
-        self.page, self.phase, self.pageShow = PageDescr.getPageInfo(page, Page)
+        self.page, self.phase, self.pageShow = PageDescr.getPageInfo(page)
         # Within self.page, in what group of fields must this field value
         # appear?
-        self.group = group
+        self.group = Group.get(group)
         # The following attribute allows to move a field back to a previous
         # position (useful for content types that inherit from others).
         self.move = move
@@ -162,10 +314,18 @@ class Type:
         # Widget width and height
         self.width = width
         self.height = height
+        # If the widget is in a group with multiple columns, the following
+        # attribute specifies on how many columns to span the widget.
+        self.colspan = colspan
         # The behaviour of this field may depend on another, "master" field
         self.master = master
+        self.slaves = [] # The list of slaves of this field, if it is a master
+        # Every HTML input field corresponding to a master must get some
+        # CSS classes for controlling its slaves.
+        self.master_css = ''
         if master:
             self.master.slaves.append(self)
+            self.master.master_css = 'appyMaster master_%s' % self.master.id
         # When master has some value(s), there is impact on this field.
         self.masterValue = masterValue
         # If a field must retain attention in a particular way, set focus=True.
@@ -177,9 +337,64 @@ class Type:
         self.id = id(self)
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
-        self.slaves = [] # The list of slaves of this field
-        self.selfClass = None # The Python class to which this Type definition
-        # is linked. This will be computed at runtime.
+        # Get the layouts. Consult layout.py for more info about layouts.
+        areDefaultLayouts = False
+        if not layouts:
+            # Get the default layouts as defined by the subclass
+            areDefaultLayouts = True
+            layouts = self.getDefaultLayouts()
+            if not layouts:
+                # Get the global default layouts
+                layouts = copy.deepcopy(defaultFieldLayouts)
+        else:
+            layouts = copy.deepcopy(layouts)
+            # We make copies of layouts, because every layout can be different,
+            # even if the user decides to reuse one from one field to another.
+            # This is because we modify every layout for adding
+            # master/slave-related info, focus-related info, etc, which can be
+            # different from one field to the other.
+        # Express the layouts in a standardized way.
+        self.layouts = self.formatLayouts(layouts, areDefaultLayouts)
+        self.hasLabel = self.hasLayoutElement('l')
+        self.hasDescr = self.hasLayoutElement('d')
+        self.hasHelp  = self.hasLayoutElement('h')
+        # Can we filter this field?
+        self.filterable = False
+        # Can this field have values that can be edited and validated?
+        self.validable = True
+
+    def init(self, name, klass, appName):
+        '''When the application server starts, this secondary constructor is
+           called for storing the names of the Appy field (p_name) and other
+           attributes that are based on the name of the Appy p_klass, and the
+           application name (p_appName).'''
+        self.name = name
+        # Determine ids of i18n labels for this field
+        if not klass: prefix = appName
+        elif klass.__module__.endswith('.appyWrappers'):
+            prefix = appName + klass.__name__
+        elif Tool in klass.__bases__:
+            prefix = appName + 'Tool'
+        elif Flavour in klass.__bases__:
+            prefix = appName + 'Flavour'
+        else:
+            prefix = klass.__module__.replace('.', '_') + '_' + klass.__name__
+        self.labelId = '%s_%s' % (prefix, name)
+        self.descrId = self.labelId + '_descr'
+        self.helpId  = self.labelId + '_help'
+        # Determine read and write permissions for this field
+        if self.specificReadPermission:
+            self.readPermission = '%s: Read %s %s' % (appName, prefix, name)
+        else:
+            self.readPermission = 'View'
+        if self.specificWritePermission:
+            self.writePermission = '%s: Write %s %s' % (appName, prefix, name)
+        else:
+            self.writePermission = 'Modify portal content'
+        if isinstance(self, Ref):
+            self.backd = self.back.__dict__
+        if isinstance(self, Ref) and not self.isBack:
+            self.back.relationship = '%s_%s_rel' % (prefix, name)
 
     def isMultiValued(self):
         '''Does this type definition allow to define multiple values?'''
@@ -198,36 +413,247 @@ class Type:
             return self.type in ('Integer', 'Float', 'Boolean', 'Date') or \
                    ((self.type == 'String') and (self.format == 0))
 
+    def isShowable(self, obj, layoutType):
+        '''When displaying p_obj on a given p_layoutType, must we show this
+           field?'''
+        isEdit = layoutType == 'edit'
+        # Do not show field if it is optional and not selected in flavour
+        if self.optional:
+            tool = obj.getTool()
+            flavour = tool.getFlavour(obj, appy=True)
+            flavourAttrName = 'optionalFieldsFor%s' % obj.meta_type
+            flavourAttrValue = getattr(flavour, flavourAttrName, ())
+            if self.name not in flavourAttrValue:
+                return False
+        # Check if the user has the permission to view or edit the field
+        user = obj.portal_membership.getAuthenticatedMember()
+        if isEdit:
+            perm = self.writePermission
+        else:
+            perm = self.readPermission
+        if not user.has_permission(perm, obj):
+            return False
+        # Evaluate self.show
+        if callable(self.show):
+            res = self.show(obj.appy())
+        else:
+            res = self.show
+        # Take into account possible values 'view' and 'edit' for 'show' param.
+        if (res == 'view' and isEdit) or (res == 'edit' and not isEdit):
+            res = False
+        return res
+
+    def formatLayouts(self, layouts, areDefault):
+        '''Standardizes the given dict of p_layouts. p_areDefault is True if
+           p_layouts are the global default layouts or a subclass-specific set
+           of default layouts.'''
+        # Create a Table instance for every simple layout string.
+        for layoutType in layouts.iterkeys():
+            if isinstance(layouts[layoutType], basestring):
+                layouts[layoutType] = Table(layouts[layoutType])
+        # Create the "cell" layout if not specified.
+        if 'cell' not in layouts:
+            layouts['cell'] = Table('f')
+        # Put the required CSS classes in the layouts
+        layouts['cell'].addCssClasses('no-style-table')
+        if self.master:
+            # This type has a master (so is a slave): we add css classes
+            # allowing to show/hide, in Javascript, its widget according to
+            # master value.
+            classes = 'slave_%s' % self.master.id
+            classes += ' slaveValue_%s_%s' % (self.master.id, self.masterValue)
+            layouts['view'].addCssClasses(classes)
+            layouts['edit'].addCssClasses(classes)
+        if self.focus:
+            # We need to make it flashy
+            layouts['view'].addCssClasses('appyFocus')
+            layouts['edit'].addCssClasses('appyFocus')
+        # If layouts are the default ones, set width=None instead of width=100%
+        # for the field if it is not in a group.
+        if areDefault and not self.group:
+            for layoutType in layouts.iterkeys():
+                layouts[layoutType].width = ''
+        # Remove letters "r" from the layouts if the field is not required.
+        if not self.required:
+            for layoutType in layouts.iterkeys():
+                layouts[layoutType].removeElement('r')
+        # Store Table instance's dicts instead of instances: this way, they can
+        # be manipulated in ZPTs.
+        for layoutType in layouts.iterkeys():
+            layouts[layoutType] = layouts[layoutType].get()
+        return layouts
+
+    def hasLayoutElement(self, element):
+        '''This method returns True if the given layout p_element can be found
+           at least once among the various p_layouts defined for this field.'''
+        for layout in self.layouts.itervalues():
+            if element in layout['layoutString']: return True
+        return False
+
+    def getDefaultLayouts(self):
+        '''Any subclass can define this for getting a specific set of
+           default layouts. If None is returned, a global set of default layouts
+           will be used.'''
+
+    def getCss(self, layoutType):
+        '''This method returns a list of CSS files that are required for
+           displaying widgets of self's type on a given p_layoutType.'''
+
+    def getJs(self, layoutType):
+        '''This method returns a list of Javascript files that are required for
+           displaying widgets of self's type on a given p_layoutType.'''
+
+    def getValue(self, obj):
+        '''Gets, on_obj, the value conforming to self's type definition.'''
+        value = getattr(obj, self.name, None)
+        if (value == None):
+            # If there is no value, get the default value if any
+            if not self.editDefault: return self.default
+            # If value is editable, get the default value from the flavour
+            portalTypeName = obj._appy_getPortalType(obj.REQUEST)
+            tool = obj.getTool()
+            flavour = tool.getFlavour(portalTypeName, appy=True)
+            return getattr(flavour, 'defaultValueFor%s' % self.labelId)
+        return value
+
+    def getFormattedValue(self, obj, value):
+        '''p_value is a real p_obj(ect) value from a field from this type. This
+           method returns a pretty, string-formatted version, for displaying
+           purposes. Needs to be overridden by some child classes.'''
+        if value in nullValues: return ''
+        return value
+
+    def getRequestValue(self, request):
+        '''Gets the string or (or list of strings if multi-valued)
+           representation of this field as found in the p_request.'''
+        return request.get(self.name, None)
+
+    def getStorableValue(self, value):
+        '''p_value is a valid value initially computed through calling
+           m_getRequestValue. So, it is a valid string (or list of strings)
+           representation of the field value coming from the request.
+           This method computes the real (potentially converted or manipulated
+           in some other way) value as can be stored in the database.'''
+        if value in nullValues: return None
+        return value
+
+    def validateValue(self, obj, value):
+        '''This method may be overridden by child classes and will be called at
+           the right moment by m_validate defined below for triggering
+           type-specific validation. p_value is never empty.'''
+        return None
+
+    def validate(self, obj, value):
+        '''This method checks that p_value, coming from the request (p_obj is
+           being created or edited) and formatted through a call to
+           m_getRequestValue defined above, is valid according to this type
+           definition. If it is the case, None is returned. Else, a translated
+           error message is returned.'''
+        # Check that a value is given if required.
+        if value in nullValues:
+            if self.required: return obj.translate('field_required')
+            else:             return None
+        # Triggers the sub-class-specific validation for this value
+        message = self.validateValue(obj, value)
+        if message: return message
+        # Evaluate the custom validator if one has been specified
+        value = self.getStorableValue(value)
+        if self.validator and (type(self.validator) in validatorTypes):
+            obj = obj.appy()
+            if type(self.validator) == validatorTypes[0]:
+                # It is a custom function. Execute it.
+                try:
+                    validValue = self.validator(obj, value)
+                    if isinstance(validValue, basestring) and validValue:
+                        # Validation failed; and p_validValue contains an error
+                        # message.
+                        return validValue
+                    else:
+                        if not validValue:
+                            return obj.translate('%s_valid' % self.labelId)
+                except Exception, e:
+                    return str(e)
+                except:
+                    return obj.translate('%s_valid' % self.labelId)
+            elif type(self.validator) == validatorTypes[1]:
+                # It is a regular expression
+                if not validator.match(value):
+                    # If the regular expression is among the default ones, we
+                    # generate a specific error message.
+                    if validator == String.EMAIL:
+                        return obj.translate('bad_email')
+                    elif validator == String.URL:
+                        return obj.translate('bad_url')
+                    elif validator == String.ALPHANUMERIC:
+                        return obj.translate('bad_alphanumeric')
+                    else:
+                        return obj.translate('%s_valid' % self.labelId)
+
+    def store(self, obj, value):
+        '''Stores the p_value (produced by m_getStorableValue) that complies to
+           p_self type definition on p_obj.'''
+        setattr(obj, self.name, value)
+
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 specificWritePermission=False, width=6, height=None,
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, searchable,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                      editDefault, show, page, group, layouts, move, indexed,
+                      searchable, specificReadPermission,
+                      specificWritePermission, width, height, colspan, master,
+                      masterValue, focus, historized)
         self.pythonType = long
+
+    def validateValue(self, obj, value):
+        try:
+            value = self.pythonType(value)
+        except ValueError:
+            return obj.translate('bad_%s' % self.pythonType.__name__)
+
+    def getStorableValue(self, value):
+        if value not in nullValues: return self.pythonType(value)
 
 class Float(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 precision=None):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
-        self.pythonType = float
+                 specificWritePermission=False, width=6, height=None,
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False, precision=None):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
         self.precision = precision
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      False, specificReadPermission, specificWritePermission,
+                      width, height, colspan, master, masterValue, focus,
+                      historized)
+        self.pythonType = float
+
+    def getFormattedValue(self, obj, value):
+        if value in nullValues: return ''
+        if self.precision == None:
+            res = str(value)
+        else:
+            format = '%%.%df' % appyType.precision
+            res = format % value
+        return res
+
+    def validateValue(self, obj, value):
+        try:
+            value = self.pythonType(value)
+        except ValueError:
+            return obj.translate('bad_%s' % self.pythonType.__name__)
+
+    def getStorableValue(self, value):
+        if value not in nullValues: return self.pythonType(value)
 
 class String(Type):
     # Some predefined regular expressions that may be used as validators
@@ -275,6 +701,7 @@ class String(Type):
     @staticmethod
     def MODULO_97_COMPLEMENT(obj, value):
         return String._MODULO_97(obj, value, True)
+    BELGIAN_ENTERPRISE_NUMBER = MODULO_97_COMPLEMENT
     @staticmethod
     def IBAN(obj, value):
         '''Checks that p_value corresponds to a valid IBAN number. IBAN stands
@@ -332,23 +759,34 @@ class String(Type):
     PASSWORD = 3
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, format=LINE,
-                 show=True, page='main', group=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 transform='none'):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, searchable,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False, transform='none'):
         self.format = format
-        self.isSelect = self.isSelection()
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
         # "text-transform" property. Allowed values are those allowed for the
         # CSS property: "none" (default), "uppercase", "capitalize" or
         # "lowercase".
         self.transform = transform
+        # Default width and height vary according to String format
+        if width == None:
+            if format == String.TEXT: width  = 60
+            else:                     width  = 30
+        if height == None:
+            if format == String.TEXT: height = 5
+            else:                     height = 1
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      searchable, specificReadPermission,
+                      specificWritePermission, width, height, colspan, master,
+                      masterValue, focus, historized)
+        self.isSelect = self.isSelection()
+        self.filterable = self.indexed and (self.format == String.LINE) and \
+                          not self.isSelect
+
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
            into which the user must select one or more values?'''
@@ -363,101 +801,419 @@ class String(Type):
                 res = False
         return res
 
+    def getDefaultLayouts(self):
+        '''Returns the default layouts for this type. Default layouts can vary
+           acccording to format or multiplicity.'''
+        if self.format in (String.TEXT, String.XHTML):
+            return {'view': 'l-d-f', 'edit': 'lrv-d-f'}
+        elif self.isMultiValued():
+            return {'view': 'l-f', 'edit': 'lrv-f'}
+
+    def getValue(self, obj):
+        value = Type.getValue(self, obj)
+        if not value:
+            if self.isMultiValued(): return emptyTuple
+            else: return value
+        if isinstance(value, basestring) and self.isMultiValued():
+            value = [value]
+        elif value.__class__.__name__ == 'BaseUnit':
+            try:
+                value = unicode(value)
+            except UnicodeDecodeError:
+                value = str(value)
+        return value
+
+    def getFormattedValue(self, obj, value):
+        if value in nullValues: return ''
+        res = value
+        if self.isSelect:
+            if isinstance(self.validator, Selection):
+                # Value(s) come from a dynamic vocabulary
+                val = self.validator
+                if self.isMultiValued():
+                    return [val.getText(obj, v, self) for v in value]
+                else:
+                    return val.getText(obj, value, self)
+            else:
+                # Value(s) come from a fixed vocabulary whose texts are in
+                # i18n files.
+                t = obj.translate
+                if self.isMultiValued():
+                    res = [t('%s_list_%s' % (self.labelId, v)) for v in value]
+                else:
+                    res = t('%s_list_%s' % (self.labelId, value))
+        elif not isinstance(value, basestring):
+            # Archetypes "Description" fields may hold a BaseUnit instance.
+            try:
+                res = unicode(value)
+            except UnicodeDecodeError:
+                res = str(value)
+        return res
+
+    def getPossibleValues(self,obj,withTranslations=False,withBlankValue=False):
+        '''Returns the list of possible values for this field if it is a
+           selection field. If p_withTranslations is True,
+           instead of returning a list of string values, the result is a list
+           of tuples (s_value, s_translation). If p_withBlankValue is True, a
+           blank value is prepended to the list, excepted if the type is
+           multivalued.'''
+        if not self.isSelect: raise 'This field is not a selection.'
+        if isinstance(self.validator, Selection):
+            # We need to call self.methodName for getting the (dynamic) values.
+            # If methodName begins with _appy_, it is a special Appy method:
+            # we will call it on the Mixin (=p_obj) directly. Else, it is a
+            # user method: we will call it on the wrapper (p_obj.appy()). Some
+            # args can be hidden into p_methodName, separated with stars,
+            # like in this example: method1*arg1*arg2. Only string params are
+            # supported.
+            methodName = self.validator.methodName
+            # Unwrap parameters if any.
+            if methodName.find('*') != -1:
+                elems = methodName.split('*')
+                methodName = elems[0]
+                args = elems[1:]
+            else:
+                args = ()
+            # On what object must we call the method that will produce the
+            # values?
+            if methodName.startswith('tool:'):
+                obj = obj.getTool()
+                methodName = methodName[5:]
+            # Do we need to call the method on the object or on the wrapper?
+            if methodName.startswith('_appy_'):
+                exec 'res = obj.%s(*args)' % methodName
+            else:
+                exec 'res = obj.appy().%s(*args)' % methodName
+            if not withTranslations: res = [v[0] for v in res]
+            elif isinstance(res, list): res = res[:]
+        else:
+            # The list of (static) values is directly given in self.validator.
+            res = []
+            for value in self.validator:
+                label = '%s_list_%s' % (self.labelId, value)
+                if withTranslations:
+                    res.append( (value, obj.translate(label)) )
+                else:
+                    res.append(value)
+        if withBlankValue and not self.isMultiValued():
+            # Create the blank value to insert at the beginning of the list
+            if withTranslations:
+                blankValue = ('', obj.translate('choose_a_value'))
+            else:
+                blankValue = ''
+            # Insert the blank value in the result
+            if isinstance(res, tuple):
+                res = (blankValue,) + res
+            else:
+                res.insert(0, blankValue)
+        return res
+
+    def validateValue(self, obj, value):
+        if self.isSelect:
+            possibleValues = self.getPossibleValues(obj)
+            if isinstance(value, basestring):
+                error = value not in possibleValues
+            else:
+                error = False
+                for v in value:
+                    if v not in possibleValues:
+                        error = True
+                        break
+            # Check that the value is among possible values
+            if error: obj.translate('bad_select_value')
+
+    def store(self, obj, value):
+        if self.isMultiValued() and isinstance(value, basestring):
+            value = [value]
+        setattr(obj, self.name, value)
+
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts = None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False):
         Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, searchable,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                      editDefault, show, page, group, layouts, move, indexed,
+                      searchable, specificReadPermission,
+                      specificWritePermission, width, height, colspan, master,
+                      masterValue, focus, historized)
         self.pythonType = bool
+
+    def getDefaultLayouts(self):
+        return {'view': 'l;f!_', 'edit': Table('f;lrv;=', width=None)}
+
+    def getFormattedValue(self, obj, value):
+        if value in nullValues: return ''
+        if value: res = obj.translate('yes', domain='plone')
+        else:     res = obj.translate('no', domain='plone')
+        return res
+
+    def getStorableValue(self, value):
+        if value not in nullValues:
+            exec 'res = %s' % value
+            return res
 
 class Date(Type):
     # Possible values for "format"
     WITH_HOUR = 0
     WITHOUT_HOUR = 1
+    dateParts = ('year', 'month', 'day')
+    hourParts = ('hour', 'minute')
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False,
                  format=WITH_HOUR, startYear=time.localtime()[0]-10,
                  endYear=time.localtime()[0]+10, show=True, page='main',
-                 group=None, move=0, indexed=False, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False, historized=False):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, searchable,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                 group=None, layouts=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False):
         self.format = format
         self.startYear = startYear
         self.endYear = endYear
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      searchable, specificReadPermission,
+                      specificWritePermission, width, height, colspan, master,
+                      masterValue, focus, historized)
+
+    def getCss(self, layoutType):
+        if layoutType == 'edit': return ('jscalendar/calendar-system.css',)
+
+    def getJs(self, layoutType):
+        if layoutType == 'edit':
+            return ('jscalendar/calendar_stripped.js',
+                    'jscalendar/calendar-en.js')
+
+    def getFormattedValue(self, obj, value):
+        if value in nullValues: return ''
+        res = value.strftime('%d/%m/') + str(value.year())
+        if self.format == Date.WITH_HOUR:
+            res += ' %s' % value.strftime('%H:%M')
+        return res
+
+    def getRequestValue(self, request):
+        # Manage the "date" part
+        value = ''
+        for part in self.dateParts:
+            valuePart = request.get('%s_%s' % (self.name, part), None)
+            if not valuePart: return None
+            value += valuePart + '/'
+        value = value[:-1]
+        # Manage the "hour" part
+        if self.format == self.WITH_HOUR:
+            value += ' '
+            for part in self.hourParts:
+                valuePart = request.get('%s_%s' % (self.name, part), None)
+                if not valuePart: return None
+                value += valuePart + ':'
+            value = value[:-1]
+        return value
+
+    def getStorableValue(self, value):
+        if value not in nullValues:
+            import DateTime
+            return DateTime.DateTime(value)
 
 class File(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 isImage=False):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False, isImage=False):
         self.isImage = isImage
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      False, specificReadPermission, specificWritePermission,
+                      width, height, colspan, master, masterValue, focus,
+                      historized)
+
+    def getValue(self, obj):
+        value = Type.getValue(self, obj)
+        if value: value = FileWrapper(value)
+        return value
+
+    def getFormattedValue(self, obj, value):
+        if not value: return value
+        return value._atFile
+
+    def getRequestValue(self, request):
+        res = request.get('%s_file' % self.name)
+        return request.get('%s_file' % self.name)
+
+    def getDefaultLayouts(self): return {'view':'lf','edit':'lrv-f'}
+
+    imageExts = ('.jpg', '.jpeg', '.png', '.gif')
+    def validateValue(self, obj, value):
+        form = obj.REQUEST.form
+        action = '%s_delete' % self.name
+        if not value.filename and form.has_key(action) and not form[action]:
+            # If this key is present but empty, it means that the user selected
+            # "replace the file with a new one". So in this cas he must provide
+            # a new file to upload.
+            return obj.translate('file_required')
+        # Check that, if self.isImage, the uploaded file is really an image
+        if value and value.filename and self.isImage:
+            ext = os.path.splitext(value.filename)[1].lower()
+            if ext not in File.imageExts:
+                return obj.translate('image_required')
+
+    defaultMimeType = 'application/octet-stream'
+    def store(self, obj, value):
+        '''Stores the p_value (produced by m_getStorableValue) that complies to
+           p_self type definition on p_obj.'''
+        if value:
+            # Retrieve the existing value, or create one if None
+            existingValue = getattr(obj, self.name, None)
+            if not existingValue:
+                import OFS.Image
+                existingValue = OFS.Image.File(self.name, '', '')
+            # Set mimetype
+            if value.headers.has_key('content-type'):
+                mimeType = value.headers['content-type']
+            else:
+                mimeType = File.defaultMimeType
+            existingValue.content_type = mimeType
+            # Set filename
+            fileName = value.filename
+            filename = fileName[max(fileName.rfind('/'), fileName.rfind('\\'),
+                                    fileName.rfind(':'))+1:]
+            existingValue.filename = fileName
+            # Set content
+            existingValue.manage_upload(value)
+            setattr(obj, self.name, existingValue)
+        else:
+            # What must I do: delete the existing file or keep it ?
+            action = obj.REQUEST.get('%s_delete' % self.name)
+            if action == 'nochange': pass
+            else: setattr(obj, self.name, None)
 
 class Ref(Type):
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), index=None, default=None, optional=False,
                  editDefault=False, add=False, link=True, unlink=False,
-                 back=None, isBack=False, show=True, page='main', group=None,
-                 showHeaders=False, shownInfo=(), wide=False, select=None,
-                 maxPerPage=30, move=0, indexed=False, searchable=False,
+                 back=None, show=True, page='main', group=None, layouts=None,
+                 showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
+                 move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, master=None, masterValue=None,
-                 focus=False, historized=False):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                 width=None, height=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False):
         self.klass = klass
         self.attribute = attribute
-        self.add = add # May the user add new objects through this ref ?
-        self.link = link # May the user link existing objects through this ref?
-        self.unlink = unlink # May the user unlink existing objects?
-        self.back = back
-        self.isBack = isBack # Should always be False
-        self.showHeaders = showHeaders # When displaying a tabular list of
-        # referenced objects, must we show the table headers?
-        self.shownInfo = shownInfo # When displaying referenced object(s),
-        # we will display its title + all other fields whose names are listed
-        # in this attribute.
-        self.wide = wide # If True, the table of references will be as wide
-        # as possible
-        self.select = select # If a method is defined here, it will be used to
+        # May the user add new objects through this ref ?
+        self.add = add
+        # May the user link existing objects through this ref?
+        self.link = link
+        # May the user unlink existing objects?
+        self.unlink = unlink
+        if back:
+            # It is a forward reference
+            self.isBack = False
+            # Initialise the backward reference
+            self.back = back
+            self.backd = back.__dict__
+            back.isBack = True
+            back.back = self
+            back.backd = self.__dict__
+        # When displaying a tabular list of referenced objects, must we show
+        # the table headers?
+        self.showHeaders = showHeaders
+        # When displaying referenced object(s), we will display its title + all
+        # other fields whose names are listed in the following attribute.
+        self.shownInfo = shownInfo
+        # If a method is defined in this field "select", it will be used to
         # filter the list of available tied objects.
-        self.maxPerPage = maxPerPage # Maximum number of referenced objects
-        # shown at once.
+        self.select = select
+        # Maximum number of referenced objects shown at once.
+        self.maxPerPage = maxPerPage 
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      False, specificReadPermission, specificWritePermission,
+                      width, height, colspan, master, masterValue, focus,
+                      historized)
+        self.validable = self.link
+
+    def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
+    def isShowable(self, obj, layoutType):
+        if (layoutType == 'edit') and self.add: return False
+        if self.isBack:
+            if layoutType == 'edit': return False
+            else:
+                return obj.getBRefs(self.relationship)
+        return Type.isShowable(self, obj, layout)
+
+    def getValue(self, obj):
+        if self.isBack:
+            return obj._appy_getRefsBack(self.name, self.relationship,
+                                         noListIfSingleObj=True)
+        else:
+            return obj._appy_getRefs(self.name, noListIfSingleObj=True).objects
+
+    def getFormattedValue(self, obj, value):
+        return value
+
+    def getRequestValue(self, request):
+        return request.get('appy_ref_%s' % self.name, None)
+
+    def validateValue(self, obj, value):
+        if not self.link: return None
+        # We only check "link" Refs because in edit views, "add" Refs are
+        # not visible. So if we check "add" Refs, on an "edit" view we will
+        # believe that that there is no referred object even if there is.
+        # If the field is a reference, we must ensure itself that multiplicities
+        # are enforced.
+        if not value:
+            nbOfRefs = 0
+        elif isinstance(value, basestring):
+            nbOfRefs = 1
+        else:
+            nbOfRefs = len(value)
+        minRef = self.multiplicity[0]
+        maxRef = self.multiplicity[1]
+        if maxRef == None:
+            maxRef = sys.maxint
+        if nbOfRefs < minRef:
+            return obj.translate('min_ref_violated')
+        elif nbOfRefs > maxRef:
+            return obj.translate('max_ref_violated')
 
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show='view',
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 method=None, plainText=True, master=None, masterValue=None,
-                 focus=False, historized=False):
+                 colspan=1, method=None, plainText=True, master=None,
+                 masterValue=None, focus=False, historized=False):
+        # The Python method used for computing the field value
+        self.method = method
+        # Does field computation produce plain text or XHTML?
+        self.plainText = plainText
         Type.__init__(self, None, multiplicity, index, default, optional,
-                      False, show, page, group, move, indexed, False,
+                      False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
-        self.method = method # The method used for computing the field value
-        self.plainText = plainText # Does field computation produce pain text
-        # or XHTML?
+                      height, colspan, master, masterValue, focus, historized)
+        self.validable = False
+
+    def getValue(self, obj):
+        '''Computes the value instead of getting it in the database.'''
+        if not self.method: return ''
+        obj = obj.appy()
+        try:
+            res = self.method(obj)
+            if not isinstance(res, basestring):
+                res = repr(res)
+        except Exception, e:
+            obj.log(Traceback.get(), type='error')
+            res = str(e)
+        return res
+
+    def getFormattedValue(self, obj, value): return self.getValue(obj)
 
 class Action(Type):
     '''An action is a workflow-independent Python method that can be triggered
@@ -466,23 +1222,29 @@ class Action(Type):
        tool class. An action is rendered as a button.'''
     def __init__(self, validator=None, multiplicity=(1,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 action=None, result='computation', confirm=False, master=None,
-                 masterValue=None, focus=False, historized=False):
+                 colspan=1, action=None, result='computation', confirm=False,
+                 master=None, masterValue=None, focus=False, historized=False):
+        # Can be a single method or a list/tuple of methods
+        self.action = action
+        # For the following field, value 'computation' means that the action
+        # will simply compute things and redirect the user to the same page,
+        # with some status message about execution of the action. 'file' means
+        # that the result is the binary content of a file that the user will
+        # download.
+        self.result = result
+        # If following field "confirm" is True, a popup will ask the user if
+        # she is really sure about triggering this action.
+        self.confirm = confirm
         Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, move, indexed, False,
+                      False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
-        self.action = action # Can be a single method or a list/tuple of methods
-        self.result = result # 'computation' means that the action will simply
-        # compute things and redirect the user to the same page, with some
-        # status message about execution of the action. 'file' means that the
-        # result is the binary content of a file that the user will download.
-        self.confirm = confirm # If True, a popup will ask the user if she is
-        # really sure about triggering this action.
+                      height, colspan, master, masterValue, focus, historized)
+        self.validable = False
 
+    def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
     def __call__(self, obj):
         '''Calls the action on p_obj.'''
         try:
@@ -514,19 +1276,25 @@ class Action(Type):
             obj.log(Traceback.get(), type='error')
         return res
 
+    def isShowable(self, obj, layoutType):
+        if layoutType == 'edit': return False
+        else: return Type.isShowable(self, obj, layoutType)
+
 class Info(Type):
     '''An info is a field whose purpose is to present information
        (text, html...) to the user.'''
     def __init__(self, validator=None, multiplicity=(1,1), index=None,
                  default=None, optional=False, editDefault=False, show='view',
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False):
         Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, move, indexed, False,
+                      False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
+                      height, colspan, master, masterValue, focus, historized)
+        self.validable = False
 
 class Pod(Type):
     '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
@@ -534,21 +1302,29 @@ class Pod(Type):
        want to put in it. It uses appy.pod.'''
     def __init__(self, validator=None, index=None, default=None,
                  optional=False, editDefault=False, show='view',
-                 page='main', group=None, move=0, indexed=False,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 template=None, context=None, action=None, askAction=False):
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False, template=None, context=None, action=None,
+                 askAction=False):
+        # The following param stores the path to a POD template
+        self.template = template
+        # The context is a dict containing a specific pod context, or a method
+        # that returns such a dict.
+        self.context = context
+        # Next one is a method that will be triggered after the document has
+        # been generated.
+        self.action = action
+        # If askAction is True, the action will be triggered only if the user
+        # checks a checkbox, which, by default, will be unchecked.
+        self.askAction = askAction
         Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, move, indexed, searchable,
-                      specificReadPermission, specificWritePermission, width,
-                      height, master, masterValue, focus, historized)
-        self.template = template # The path to a POD template
-        self.context = context # A dict containing a specific pod context
-        self.action = action # A method that will be triggered after the
-        # document has been generated.
-        self.askAction = askAction # If True, the action will be triggered only
-        # if the user checks a checkbox, which, by default, will be unchecked.
+                      False, show, page, group, layouts, move, indexed,
+                      searchable, specificReadPermission,
+                      specificWritePermission, width, height, colspan, master,
+                      masterValue, focus, historized)
+        self.validable = False
 
 # Workflow-specific types ------------------------------------------------------
 class State:
@@ -693,19 +1469,18 @@ class Selection:
         # for the related field. It must correspond to an instance method of
         # the class defining the related field. This method accepts no argument
         # and must return a list (or tuple) of pairs (lists or tuples):
-        # (id, text), where "id" is one of the possible values for the field,
-        # and "text" is the value as will be shown on the screen. You can use
-        # self.translate within this method to produce an internationalized
-        # "text" if needed.
+        # (id, text), where "id" is one of the possible values for the
+        # field, and "text" is the value as will be shown on the screen.
+        # You can use self.translate within this method to produce an
+        # internationalized version of "text" if needed.
         self.methodName = methodName
 
-    def getText(self, obj, value):
+    def getText(self, obj, value, appyType):
         '''Gets the text that corresponds to p_value.'''
-        vocab = obj._appy_getDynamicDisplayList(self.methodName)
-        if type(value) in sequenceTypes:
-            return [vocab.getValue(v) for v in value]
-        else:
-            return vocab.getValue(value)
+        for v, text in appyType.getPossibleValues(obj, withTranslations=True):
+            if v == value:
+                return text
+        return value
 
 # ------------------------------------------------------------------------------
 class Tool:
@@ -756,4 +1531,10 @@ class Config:
         # concepts differently. For example, class Thing in flavour 2 may have
         # i18n label "MyProject_Thing_2".
         self.numberOfFlavours = 2
+
+# ------------------------------------------------------------------------------
+# Special field "type" is mandatory for every class. If one class does not
+# define it, we will add a copy of the instance defined below.
+title = String(multiplicity=(1,1), indexed=True, show='edit')
+title.init('title', None, 'appy')
 # ------------------------------------------------------------------------------

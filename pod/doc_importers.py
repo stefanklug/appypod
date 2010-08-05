@@ -45,6 +45,10 @@ class DocImporter:
         self.svgNs = ns[OdfEnvironment.NS_SVG]
         self.tempFolder = tempFolder
         self.importFolder = self.getImportFolder()
+        # If the importer generates one or several images, we will retain their
+        # names here, because we will need to declare them in
+        # META-INF/manifest.xml
+        self.fileNames = []
         if self.at:
             # Check that the file exists
             if not os.path.isfile(self.at):
@@ -142,6 +146,7 @@ class PdfImporter(DocImporter):
                     self.tempFolder, self.ns)
                 imgImporter.setAnchor('paragraph')
                 self.res += imgImporter.run()
+                self.fileNames += imgImporter.fileNames
                 os.remove(nextImage)
             else:
                 noMoreImages = True
@@ -214,6 +219,7 @@ class ImageImporter(DocImporter):
         # Compute path to image
         i = self.importPath.rfind('/Pictures/')
         imagePath = self.importPath[i+1:]
+        self.fileNames.append(imagePath)
         # Compute image size
         width, height = getSize(self.importPath, self.format)
         if width != None:

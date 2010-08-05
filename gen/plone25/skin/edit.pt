@@ -1,24 +1,18 @@
-<tal:block metal:define-macro="master"
-           define="contextObj python:context.getParentNode();
-                   errors request/errors | python:{};
-                   schematas contextObj/Schemata;
-                   fieldsets python:[key for key in schematas.keys() if (key != 'metadata') and (schematas[key].editableFields(contextObj, visible_only=True))];
-                   default_fieldset python:(not schematas or schematas.has_key('default')) and 'default' or fieldsets[0];
-                   fieldset request/fieldset|options/fieldset|default_fieldset;
-                   fields python:schematas[fieldset].editableFields(contextObj);
-                   lockable python:hasattr(contextObj, 'wl_isLocked');
-                   isLocked python:lockable and contextObj.wl_isLocked();
-                   isEdit python:True;
-                   tool contextObj/getTool;
-                   flavour python: tool.getFlavour(contextObj);
-                   appFolder tool/getAppFolder;
-                   appName appFolder/id;
-                   css python:contextObj.getUniqueWidgetAttr(fields, 'helper_css');
-                   js python:contextObj.getUniqueWidgetAttr(fields, 'helper_js');
-                   phaseInfo python: contextObj.getAppyPhases(fieldset=fieldset, forPlone=True);
-                   phase request/phase|phaseInfo/name;
-                   appyPages python: contextObj.getAppyPages(phase);
-                   pageName python: contextObj.getAppyPage(isEdit, phaseInfo, appyPages);">
+<tal:edit metal:define-macro="master"
+          define="contextObj  python:context.getParentNode();
+                  errors      request/errors | python:{};
+                  layoutType  python:'edit';
+                  layout      python: contextObj.getPageLayout(layoutType);
+                  tool        contextObj/getTool;
+                  flavour     python: tool.getFlavour(contextObj);
+                  appFolder   tool/getAppFolder;
+                  appName     appFolder/getId;
+                  page        request/page|python:'main';
+                  cssAndJs    python: contextObj.getCssAndJs(layoutType, page);
+                  css         python: cssAndJs[0];
+                  js          python: cssAndJs[1];
+                  phaseInfo   python: contextObj.getAppyPhases(page=page);
+                  phase       phaseInfo/name">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
       xmlns:tal="http://xml.zope.org/namespaces/tal"
@@ -32,80 +26,38 @@
     <div tal:define="dummy python:request.set('disable_border', 1)" />
   </div>
 
-  <tal:comment replace="nothing">Archetypes stuff for managing Javascript and CSS.
-    If I remove this stuff, Javascript popup for dates does not work anyore.</tal:comment>
-  <metal:javascript_head fill-slot="javascript_head_slot">
-    <tal:block define="macro here/archetypes_custom_js/macros/javascript_head | nothing"
-               condition="macro">
-      <metal:block use-macro="macro" />
-    </tal:block>
-    <tal:js condition="js" repeat="item js">
+  <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
+  <metal:js fill-slot="javascript_head_slot">
+    <tal:js condition="js" repeat="jsFile js">
       <script type="text/javascript" charset="iso-8859-1"
-              tal:condition="python:exists('portal/%s' % item)"
-              tal:attributes="src string:$portal_url/$item">
+              tal:condition="python:exists('portal/%s' % jsFile)"
+              tal:attributes="src string:$portal_url/$jsFile">
       </script>
     </tal:js>
-    <tal:block define="macro edit_macros/javascript_head | nothing" condition="macro">
-      <metal:block use-macro="macro" />
-    </tal:block>
-  </metal:javascript_head>
-
+  </metal:js>
   <metal:css fill-slot="css_slot">
-    <tal:css condition="css" repeat="item css">
+    <tal:css condition="css" repeat="cssFile css">
       <style type="text/css" media="all"
-             tal:condition="python:exists('portal/%s' % item)"
-             tal:content="structure string:<!-- @import url($portal_url/$item); -->">
+             tal:condition="python:exists('portal/%s' % cssFile)"
+             tal:content="structure string:<!-- @import url($portal_url/$cssFile); -->">
       </style>
     </tal:css>
-    <tal:block define="macro edit_macros/css | nothing" condition="macro">
-      <metal:block use-macro="macro" />
-    </tal:block>
   </metal:css>
 
   <body>
     <metal:fill fill-slot="main">
-      <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
-      <div metal:use-macro="here/skyn/macros/macros/showPageHeader"/>
-
+      <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
       <form name="edit_form" method="post" enctype="multipart/form-data"
             class="enableUnloadProtection atBaseEditForm"
             tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
-        <div metal:use-macro="here/skyn/macros/macros/listFields" /><br/>
         <input type="hidden" name="action" value="Update"/>
-        <input type="hidden" name="fieldset" tal:attributes="value fieldset"/>
-        <input type="hidden" name="pageName" tal:attributes="value pageName"/>
-        <input type="hidden" name="phase" tal:attributes="value phase"/>
+        <input type="hidden" name="page" tal:attributes="value page"/>
         <input type="hidden" name="nav" tal:attributes="value python:request.get('nav', '')"/>
-        <input type="hidden" name="is_new"
-               tal:attributes="value python: '/portal_factory/' in contextObj.absolute_url()"/>
-
-        <tal:comment replace="nothing">Buttons (Previous, Next, Save, etc)</tal:comment>
-        <metal:block define-slot="buttons"
-                     tal:define="pages phaseInfo/pages;
-                                 pageIndex python:pages.index(fieldset);
-                                 numberOfPages python:len(pages)">
-
-          <tal:previousButton condition="python: pageIndex &gt; 0">
-            <input class="context" type="submit" name="buttonPrevious"
-                   i18n:attributes="value label_previous;" i18n:domain="plone"
-                   tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
-            <input type="hidden" name="previousPage" tal:attributes="value python: pages[pageIndex-1]"/>
-          </tal:previousButton>
-          <tal:nextButton condition="python: pageIndex &lt; numberOfPages - 1">
-            <input class="context" type="submit" name="buttonNext" value="Next"
-                   i18n:attributes="value label_next;" i18n:domain="plone"
-                   tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
-            <input type="hidden" name="nextPage" tal:attributes="value python: pages[pageIndex+1]"/>
-          </tal:nextButton>
-          <input class="context" type="submit" name="buttonOk"
-                 i18n:attributes="value label_save;" i18n:domain="plone"
-                 tal:attributes="disabled python:test(isLocked, 'disabled', None);"/>
-          <input class="standalone" type="submit" name="buttonCancel"
-                 i18n:attributes="value label_cancel;" i18n:domain="plone"/>
-        </metal:block>
+        <input type="hidden" name="is_new" tal:attributes="value contextObj/checkCreationFlag"/>
+        <metal:show use-macro="here/skyn/page/macros/show"/>
       </form>
-      <div metal:use-macro="here/skyn/macros/macros/showPageFooter"/>
+      <metal:footer use-macro="here/skyn/page/macros/footer"/>
     </metal:fill>
   </body>
 </html>
-</tal:block>
+</tal:edit>

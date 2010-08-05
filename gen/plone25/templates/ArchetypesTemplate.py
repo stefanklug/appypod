@@ -26,7 +26,6 @@ class <!genClassName!>(<!parents!>):
     suppl_views = ()
     typeDescription = '<!genClassName!>'
     typeDescMsgId = '<!genClassName!>_edit_descr'
-    _at_rename_after_creation = True
     i18nDomain = '<!applicationName!>'
     schema = fullSchema
     wrapperClass = <!genClassName!>_Wrapper

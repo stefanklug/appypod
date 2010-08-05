@@ -18,7 +18,7 @@ mimeTypesExts = {
              'image/jpeg'                             : 'jpg',
              'image/gif'                              : 'gif'
              }
-xmlPrologue = '<?xml version="1.0" encoding="utf-8"?>'
+xmlPrologue = '<?xml version="1.0" encoding="utf-8"?>\n'
 
 # ------------------------------------------------------------------------------
 class UnmarshalledObject:

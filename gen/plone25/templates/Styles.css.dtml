@@ -4,23 +4,16 @@
 
 #portal-breadcrumbs { display: none; }
 #importedElem { color: grey; font-style: italic; }
-
-.appyList { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
-.appyBullet { margin: 0; }
-.appyPod { float:right; }
-.appyNav { padding: 0.4em 0 0.4em 0; }
-.appyFocus { color: #900101; }
-.appyTabs { margin-bottom: 1em; }
-.appyTabs li a { border-bottom:1px solid transparent; font-size: 90%; }
-.appyTabs li a:visited { color: #578308; }
-.appyTitle { padding-top: 0.5em; font-size: 110%; }
-.appyLabel { font-weight: bold; padding-right: 0.4em; }
-.appyRefEdit { line-height: 1.5em; }
-
-.appyWorkflow {
-  text-align: center;
-  background-color: &dtml-globalBackgroundColor;;
-}
+label         { font-weight: bold;  font-style: italic; }
+.discreet     { font-size: 94%; }
+.appyList     { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
+.appyBullet   { margin: 0; }
+.appyPod      { float:right; }
+.appyNav      { padding: 0.4em 0 0.4em 0; }
+.appyFocus    { color: #900101; }
+.appyTitle    { padding-top: 0.5em; font-size: 110%; }
+.appyRefEdit  { line-height: 1.5em; }
+.appyWorkflow { text-align: center; background-color: &dtml-globalBackgroundColor;;}
 
 .appyPlusImg {
   vertical-align: top;
@@ -30,10 +23,9 @@
 }
 
 .appyPhase {
-  border-style: solid;
+  border-style: dashed;
   border-width: thin;
-  text-align: center;
-  padding: 0 1em 0 1.3em;
+  padding: 0 0.1em 0 1em;
 }
 
 .appyState {
@@ -75,14 +67,14 @@
   background-color: #cde2a7;
   background-image: url(&dtml-portal_url;/skyn/done.png);
   background-repeat: no-repeat;
-  background-position: center left;
+  background-position: -1px 4px;
 }
 
 .stepCurrent {
-  background-color: #ffce7b;
+  background-color: #eef3f5;
   background-image: url(&dtml-portal_url;/skyn/current.png);
   background-repeat: no-repeat;
-  background-position: center left;
+  background-position: -1px 4px;
 }
 
 .stepFuture {
@@ -104,13 +96,7 @@
 }
 
 /* With fields layout in columns, standard error frame is too large */
-.error {
-  padding: 0.4em;
-}
-
-.odd {
-  background-color: white;
-}
+.odd {  background-color: white; }
 
 /* Table styles */
 .no-style-table {
@@ -125,18 +111,41 @@
   margin: 0 !important;
 }
 
-/* Minor layout changes in fieldsets and tables */
 fieldset {
-  margin: 0 0 0 0;
   line-height: 1em;
+  border: 2px solid #8CACBB;
+  margin: 0.5em 0em 0.5em 0em;
+  padding: 0 0.7em 0.5em;
 }
 
-.fieldset {
-  line-height: 1em;
+th {
+  font-style: italic;
+  font-weight: normal;
 }
-/* Group fieldsets */
-.appyGroup {
-  border-width: 2px;
+
+.section1 {
+  font-size: 120%;
+  margin: 0.45em 0em 0.1em 0;
+  padding: 0.3em 0em 0.2em 0.1em;
+  background-color: #eef3f5;
+  border-top: 1px solid #8CACBB;
+  border-bottom: 1px solid #8CACBB;
+}
+
+.section2 {
+  font-size: 110%;
+  font-style: italic;
+  margin: 0.45em 0em 0.1em 0;
+  border-bottom: 2px solid #8CACBB;
+}
+
+.section3 {
+  font-size: 100%;
+  font-style: italic;
+  margin: 0.45em 0em 0.1em 0;
+  background-color: #efeae8;
+  text-align: center;
+  color: grey;
 }
 
 .imageInput {
@@ -169,6 +178,7 @@ fieldset {
   padding-left: 0.3em;
   padding-top: 0.3em;
   padding-bottom: 0em;
+  border-top : 1px solid #8CACBB;
 }
 
 .vertical td {
@@ -212,9 +222,6 @@ fieldset {
   font-weight: normal;
   text-transform: none;
 }
-.portletSep {
-  border-top: 1px dashed #8cacbb;
-}
 .portletSearch {
   padding: 0 0 0 0.6em;
   font-style: normal;
@@ -225,13 +232,11 @@ fieldset {
   font-weight: bold;
   font-style: normal;
 }
-.portletGroupItem {
-  padding-left: 0.8em;
-  font-style: italic;
-}
-.portletCurrent {
-  font-weight: bold;
-}
+.portletSep       {  border-top: 1px dashed #8cacbb; }
+.portletGroupItem { padding-left: 0.8em; font-style: italic; }
+.portletPageItem  { font-style: italic; }
+.portletCurrent   { font-weight: bold; }
+
 div.appyGrey {
   display: none;
   position: absolute;

@@ -18,7 +18,7 @@ from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
 TABS = 4 # Number of blanks in a Python indentation.
 
 # ------------------------------------------------------------------------------
-class ArchetypeFieldDescriptor:
+class FieldDescriptor:
     '''This class allows to gather information needed to generate an Archetypes
        definition (field + widget) from an Appy type. An Appy type is used for
        defining the type of attributes defined in the user application.'''
@@ -39,7 +39,6 @@ class ArchetypeFieldDescriptor:
         self.widgetParams = {}
         self.fieldType = None
         self.widgetType = None
-        self.walkAppyType()
 
     def __repr__(self):
         return '<Field %s, %s>' % (self.fieldName, self.classDescr)
@@ -59,8 +58,8 @@ class ArchetypeFieldDescriptor:
         return res
 
     def produceMessage(self, msgId, isLabel=True):
-        '''Gets the default label or description (if p_isLabel is False) for
-           i18n message p_msgId.'''
+        '''Gets the default label, description or help (depending on p_msgType)
+           for i18n message p_msgId.'''
         default = ' '
         produceNice = False
         if isLabel:
@@ -75,82 +74,22 @@ class ArchetypeFieldDescriptor:
             msg.produceNiceDefault()
         return msg
 
-    def walkBasicType(self):
-        '''How to dump a basic type?'''
-        self.fieldType = '%sField' % self.appyType.type
-        self.widgetType = "%sWidget" % self.appyType.type
-        if self.appyType.type == 'Date':
-            self.fieldType = 'DateTimeField'
-            self.widgetType = 'CalendarWidget'
-            if self.appyType.format == Date.WITHOUT_HOUR:
-                self.widgetParams['show_hm'] = False
-                self.widgetParams['starting_year'] = self.appyType.startYear
-                self.widgetParams['ending_year'] = self.appyType.endYear
-        elif self.appyType.type == 'Float':
-            self.widgetType = 'DecimalWidget'
-        elif self.appyType.type == 'File':
-            if self.appyType.isImage:
-                self.fieldType = 'ImageField'
-                self.widgetType = 'ImageWidget'
-            self.fieldParams['storage'] = 'python:AttributeStorage()'
-
     def walkString(self):
         '''How to generate an Appy String?'''
-        if self.appyType.format == String.LINE:
-            if self.appyType.isSelection():
-                if self.appyType.isMultiValued():
-                    self.fieldType = 'LinesField'
-                    self.widgetType = 'MultiSelectionWidget'
-                    self.fieldParams['multiValued'] = True
-                    if (type(self.appyType.validator) in sequenceTypes) and \
-                        len(self.appyType.validator) <= 5:
-                        self.widgetParams['format'] = 'checkbox'
-                else:
-                    self.fieldType = 'StringField'
-                    self.widgetType = 'SelectionWidget'
-                    self.widgetParams['format'] = 'select'
-                # Elements common to all selection fields
-                methodName = 'list_%s_values' % self.fieldName
-                self.fieldParams['vocabulary'] = methodName
-                self.classDescr.addSelectMethod(methodName, self)
-                self.fieldParams['enforceVocabulary'] = True
-            else:
-                self.fieldType = 'StringField'
-                self.widgetType = 'StringWidget'
-                self.widgetParams['size'] = 50
-                if self.appyType.width:
-                    self.widgetParams['size'] = self.appyType.width
-        elif self.appyType.format == String.TEXT:
-            self.fieldType = 'TextField'
-            self.widgetType = 'TextAreaWidget'
-            if self.appyType.height:
-                self.widgetParams['rows'] = self.appyType.height
-        elif self.appyType.format == String.XHTML:
-            self.fieldType = 'TextField'
-            self.widgetType = 'RichWidget'
-            self.fieldParams['allowable_content_types'] = ('text/html',)
-            self.fieldParams['default_output_type'] = "text/html"
-        elif self.appyType.format == String.PASSWORD:
-            self.fieldType = 'StringField'
-            self.widgetType = 'PasswordWidget'
-            if self.appyType.width:
-                self.widgetParams['size'] = self.appyType.width
-
-    def walkComputed(self):
-        '''How to generate a computed field? We generate an Archetypes String
-           field.'''
-        self.fieldType = 'StringField'
-        self.widgetType = 'StringWidget'
-        self.widgetParams['visible'] = False # Archetypes will believe the
-        # field is invisible; we will display it ourselves (like for Ref fields)
+        if self.appyType.isSelect and \
+           (type(self.appyType.validator) in (list, tuple)):
+            # Generate i18n messages for every possible value if the list
+            # of values is fixed.
+            for value in self.appyType.validator:
+                msgLabel = '%s_%s_list_%s' % (self.classDescr.name,
+                    self.fieldName, value)
+                poMsg = PoMessage(msgLabel, '', value)
+                poMsg.produceNiceDefault()
+                self.generator.labels.append(poMsg)
 
     def walkAction(self):
         '''How to generate an action field ? We generate an Archetypes String
            field.'''
-        self.fieldType = 'StringField'
-        self.widgetType = 'StringWidget'
-        self.widgetParams['visible'] = False # Archetypes will believe the
-        # field is invisible; we will display it ourselves (like for Ref fields)
         # Add action-specific i18n messages
         for suffix in ('ok', 'ko'):
             label = '%s_%s_action_%s' % (self.classDescr.name, self.fieldName,
@@ -168,36 +107,22 @@ class ArchetypeFieldDescriptor:
         self.fieldParams['relationship'] = relationship
         if self.appyType.isMultiValued():
             self.fieldParams['multiValued'] = True
-        self.widgetParams['visible'] = False
         # Update the list of referers
         self.generator.addReferer(self, relationship)
         # Add the widget label for the back reference
-        refClassName = ArchetypesClassDescriptor.getClassName(
-            self.appyType.klass)
+        refClassName = ClassDescriptor.getClassName(self.appyType.klass)
         if issubclass(self.appyType.klass, ModelClass):
             refClassName = self.applicationName + self.appyType.klass.__name__
         elif issubclass(self.appyType.klass, appy.gen.Tool):
             refClassName = '%sTool' % self.applicationName
         elif issubclass(self.appyType.klass, appy.gen.Flavour):
             refClassName = '%sFlavour' % self.applicationName
-        backLabel = "%s_%s_back" % (refClassName, self.appyType.back.attribute)
+        backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
         poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
         poMsg.produceNiceDefault()
         self.generator.labels.append(poMsg)
 
-    def walkInfo(self):
-        '''How to generate an Info field? We generate an Archetypes String
-           field.'''
-        self.fieldType = 'StringField'
-        self.widgetType = 'StringWidget'
-        self.widgetParams['visible'] = False # Archetypes will believe the
-        # field is invisible; we will display it ourselves (like for Ref fields)
-
     def walkPod(self):
-        '''How to dump a Pod type?'''
-        self.fieldType = 'FileField'
-        self.widgetType = 'FileWidget'
-        self.fieldParams['storage'] = 'python:AttributeStorage()'
         # Add i18n-specific messages
         if self.appyType.askAction:
             label = '%s_%s_askaction' % (self.classDescr.name, self.fieldName)
@@ -207,47 +132,23 @@ class ArchetypeFieldDescriptor:
         # Add the POD-related fields on the Flavour
         Flavour._appy_addPodRelatedFields(self)
 
-    alwaysAValidatorFor = ('Ref', 'Integer', 'Float')
     notToValidateFields = ('Info', 'Computed', 'Action', 'Pod')
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
-           Archetype elements to generate.'''
+           i18n labels.'''
         # Manage things common to all Appy types
-        # - special accessor for fields "title" and "description"
-        if self.fieldName in self.specialParams:
-            self.fieldParams['accessor'] = self.fieldName.capitalize()
-        # - default value
-        if self.appyType.default != None:
-            self.fieldParams['default'] = self.appyType.default
-        # - required?
-        if self.appyType.multiplicity[0] >= 1:
-            if self.appyType.type != 'Ref': self.fieldParams['required'] = True
-            # Indeed, if it is a ref appy will manage itself field updates in
-            # onEdit, so Archetypes must not enforce required=True
         # - optional ?
         if self.appyType.optional:
             Flavour._appy_addOptionalField(self)
-            self.widgetParams['condition'] = ' python: ' \
-                'here.fieldIsUsed("%s")'% self.fieldName
         # - edit default value ?
         if self.appyType.editDefault:
             Flavour._appy_addDefaultField(self)
-            methodName = 'getDefaultValueFor%s' % self.fieldName
-            self.fieldParams['default_method'] = methodName
-            self.classDescr.addDefaultMethod(methodName, self)
         # - put an index on this field?
-        if self.appyType.indexed:
-            if (self.appyType.type == 'String') and (self.appyType.isSelect):
-                self.fieldParams['index'] = 'ZCTextIndex, lexicon_id=' \
-                    'plone_lexicon, index_type=Okapi BM25 Rank'
-            else:
-                self.fieldParams['index'] = 'FieldIndex'
-        # - searchable ?
-        if self.appyType.searchable: self.fieldParams['searchable'] = True
-        # - slaves ?
-        if self.appyType.slaves: self.widgetParams['visible'] = False
-        # Archetypes will believe the field is invisible; we will display it
-        # ourselves (like for Ref fields).
+        if self.appyType.indexed and \
+           (self.fieldName not in ('title', 'description')):
+            self.classDescr.addIndexMethod(self)
+        # - searchable ? TODO
+        #if self.appyType.searchable: self.fieldParams['searchable'] = True
         # - need to generate a field validator?
         # In all cases excepted for "immutable" fields, add an i18n message for
         # the validation error for this field.
@@ -255,43 +156,18 @@ class ArchetypeFieldDescriptor:
             label = '%s_%s_valid' % (self.classDescr.name, self.fieldName)
             poMsg = PoMessage(label, '', PoMessage.DEFAULT_VALID_ERROR)
             self.generator.labels.append(poMsg)
-        # Generate a validator for the field if needed.
-        if (type(self.appyType.validator) == types.FunctionType) or \
-           (type(self.appyType.validator) == type(String.EMAIL)) or \
-           (self.appyType.type in self.alwaysAValidatorFor):
-            # For references, we always add a validator because gen validates
-            # itself things like multiplicities;
-            # For integers and floats, we also need validators because, by
-            # default, Archetypes produces an exception if the field value does
-            # not have the correct type, for example.
-            methodName = 'validate_%s' % self.fieldName
-            # Add a validate method for this
-            specificType = None
-            if self.appyType.type in self.alwaysAValidatorFor:
-                specificType = self.appyType.type
-            self.classDescr.addValidateMethod(methodName, label, self,
-                specificType=specificType)
-        # Manage specific permissions
-        permFieldName = '%s %s' % (self.classDescr.name, self.fieldName)
-        if self.appyType.specificReadPermission:
-            self.fieldParams['read_permission'] = '%s: Read %s' % \
-                (self.generator.applicationName, permFieldName)
-        if self.appyType.specificWritePermission:
-            self.fieldParams['write_permission'] = '%s: Write %s' % \
-                (self.generator.applicationName, permFieldName)
         # i18n labels
         i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
-        wp = self.widgetParams
-        wp['label'] = self.fieldName
-        wp['label_msgid'] = '%s' % i18nPrefix
-        wp['description'] = '%sDescr' % i18nPrefix
-        wp['description_msgid'] = '%s_descr' % i18nPrefix
-        wp['i18n_domain'] = self.applicationName
         # Create labels for generating them in i18n files.
         messages = self.generator.labels
-        messages.append(self.produceMessage(wp['label_msgid']))
-        messages.append(self.produceMessage(wp['description_msgid'],
-                        isLabel=False))
+        if self.appyType.hasLabel:
+            messages.append(self.produceMessage(i18nPrefix))
+        if self.appyType.hasDescr:
+            descrId = i18nPrefix + '_descr'
+            messages.append(self.produceMessage(descrId,isLabel=False))
+        if self.appyType.hasHelp:
+            helpId = i18nPrefix + '_help'
+            messages.append(self.produceMessage(helpId, isLabel=False))
         # Create i18n messages linked to pages and phases
         messages = self.generator.labels
         pageMsgId = '%s_page_%s' % (self.classDescr.name, self.appyType.page)
@@ -305,34 +181,22 @@ class ArchetypeFieldDescriptor:
                 messages.append(poMsg)
                 self.classDescr.labelsToPropagate.append(poMsg)
         # Create i18n messages linked to groups
-        if self.appyType.group:
-            groupName, cols = GroupDescr.getGroupInfo(self.appyType.group)
-            msgId = '%s_group_%s' % (self.classDescr.name, groupName)
-            poMsg = PoMessage(msgId, '', groupName)
-            poMsg.produceNiceDefault()
-            if poMsg not in messages:
-                messages.append(poMsg)
-                self.classDescr.labelsToPropagate.append(poMsg)
-        # Manage schemata
-        if self.appyType.page != 'main':
-            self.fieldParams['schemata'] = self.appyType.page
-        # Manage things which are specific to basic types
-        if self.appyType.type in self.singleValuedTypes: self.walkBasicType()
+        group = self.appyType.group
+        if group:
+            group.generateLabels(messages, self.classDescr, set())
         # Manage things which are specific to String types
-        elif self.appyType.type == 'String': self.walkString()
-        # Manage things which are specific to Computed types
-        elif self.appyType.type == 'Computed': self.walkComputed()
+        if self.appyType.type == 'String': self.walkString()
         # Manage things which are specific to Actions
         elif self.appyType.type == 'Action': self.walkAction()
         # Manage things which are specific to Ref types
         elif self.appyType.type == 'Ref': self.walkRef()
-        # Manage things which are specific to Info types
-        elif self.appyType.type == 'Info': self.walkInfo()
         # Manage things which are specific to Pod types
         elif self.appyType.type == 'Pod': self.walkPod()
 
     def generate(self):
-        '''Produces the Archetypes field definition as a string.'''
+        '''Generates the i18n labels for this type.'''
+        self.walkAppyType()
+        if self.appyType.type != 'Ref': return
         res = ''
         s = stringify
         spaces = TABS
@@ -376,89 +240,41 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         # for child classes of this class as well, but at this time we don't
         # know yet every sub-class. So we store field definitions here; the
         # Generator will propagate them later.
+        self.name = self.getClassName(klass)
+        self.predefined = False
+        self.customized = False
 
-    def generateSchema(self):
-        '''Generates the corresponding Archetypes schema in self.schema.'''
+    def getParents(self, allClasses):
+        parentWrapper = 'AbstractWrapper'
+        parentClass = '%s.%s' % (self.klass.__module__, self.klass.__name__)
+        if self.klass.__bases__:
+            baseClassName = self.klass.__bases__[0].__name__
+            for k in allClasses:
+                if self.klass.__name__ == baseClassName:
+                    parentWrapper = '%s_Wrapper' % k.name
+        return (parentWrapper, parentClass)
+
+    def generateSchema(self, configClass=False):
+        '''Generates the corresponding Archetypes schema in self.schema. If we
+           are generating a schema for a class that is in the configuration
+           (tool, flavour, etc) we must avoid having attributes that rely on
+           the configuration (ie attributes that are optional, with
+           editDefault=True, etc).'''
         for attrName in self.orderedAttributes:
-            attrValue = getattr(self.klass, attrName)
+            try:
+                attrValue = getattr(self.klass, attrName)
+            except AttributeError:
+                attrValue = getattr(self.modelClass, attrName)
             if isinstance(attrValue, Type):
-                field = ArchetypeFieldDescriptor(attrName, attrValue, self)
-                self.schema += '\n' + field.generate()
-
-    def addSelectMethod(self, methodName, fieldDescr):
-        '''For the selection field p_fieldDescr I need to generate a method
-           named p_methodName that will generate the vocabulary for
-           p_fieldDescr.'''
-        # Generate the method signature
-        m = self.methods
-        s = stringify
-        spaces = TABS
-        m += '\n' + ' '*spaces + 'def %s(self):\n' % methodName
-        spaces += TABS
-        appyType = fieldDescr.appyType
-        if type(appyType.validator) in (list, tuple):
-            # Generate i18n messages for every possible value
-            f = fieldDescr
-            labels = []
-            for value in appyType.validator:
-                msgLabel = '%s_%s_list_%s' % (f.classDescr.name, f.fieldName,
-                                              value)
-                labels.append(msgLabel) # I will need it later
-                poMsg = PoMessage(msgLabel, '', value)
-                poMsg.produceNiceDefault()
-                self.generator.labels.append(poMsg)
-            # Generate a method that returns a DisplayList
-            appName = self.generator.applicationName
-            allValues = appyType.validator
-            if not appyType.isMultiValued():
-                allValues = [''] + appyType.validator
-                labels.insert(0, 'choose_a_value')
-            m += ' '*spaces + 'return self._appy_getDisplayList' \
-                 '(%s, %s, %s)\n' % (s(allValues), s(labels), s(appName))
-        elif isinstance(appyType.validator, Selection):
-            # Call the custom method that will produce dynamically the list of
-            # values.
-            m += ' '*spaces + 'return self._appy_getDynamicDisplayList' \
-                 '(%s)\n' % s(appyType.validator.methodName)
-        self.methods = m
-
-    def addValidateMethod(self, methodName, label, fieldDescr,
-                          specificType=None):
-        '''For the field p_fieldDescr I need to generate a validation method.
-           If p_specificType is not None, it corresponds to the name of a type
-           like Ref, Integer or Float, for which specific validation is needed,
-           beyond the potential custom validation specified by a user-defined
-           validator method.'''
-        # Generate the method signature
-        m = self.methods
-        s = stringify
-        spaces = TABS
-        m += '\n' + ' '*spaces + 'def %s(self, value):\n' % methodName
-        spaces += TABS
-        m += ' '*spaces + 'return self._appy_validateField(%s, value, %s, ' \
-             '%s)\n' %  (s(fieldDescr.fieldName), s(label), s(specificType))
-        self.methods = m
-
-    def addDefaultMethod(self, methodName, fieldDescr):
-        '''When the default value of a field may be edited, we must add a method
-           that will gather the default value from the flavour.'''
-        m = self.methods
-        spaces = TABS
-        m += '\n' + ' '*spaces + 'def %s(self):\n' % methodName
-        spaces += TABS
-        m += ' '*spaces + 'return self.getDefaultValueFor("%s")\n' % \
-             fieldDescr.fieldName
-        self.methods = m
-
-class ArchetypesClassDescriptor(ClassDescriptor):
-    '''Represents an Archetypes-compliant class that corresponds to an
-       application class.'''
-    predefined = False
-    def __init__(self, klass, orderedAttributes, generator):
-        ClassDescriptor.__init__(self, klass, orderedAttributes, generator)
-        if not hasattr(self, 'name'):
-            self.name = self.getClassName(klass)
-        self.generateSchema()
+                if configClass:
+                    attrValue = copy.copy(attrValue)
+                    attrValue.optional = False
+                    attrValue.editDefault = False
+                field = FieldDescriptor(attrName, attrValue, self)
+                fieldDef = field.generate()
+                if fieldDef:
+                    # Currently, we generate Archetypes fields for Refs only.
+                    self.schema += '\n' + fieldDef
 
     @staticmethod
     def getClassName(klass):
@@ -502,6 +318,13 @@ class ArchetypesClassDescriptor(ClassDescriptor):
                 res = self.isFolder(theClass.__bases__[0])
         return res
 
+    def getCreators(self):
+        '''Gets the specific creators defined for this class.'''
+        res = []
+        if self.klass.__dict__.has_key('creators') and self.klass.creators:
+            res += list(self.klass.creators)
+        return res
+
     def getCreateMean(self, type='Import'):
         '''Returns the mean for this class that corresponds to p_type, or
            None if the class does not support this create mean.'''
@@ -534,74 +357,86 @@ class ArchetypesClassDescriptor(ClassDescriptor):
     @staticmethod
     def getSearch(klass, searchName):
         '''Gets the search named p_searchName.'''
-        for search in ArchetypesClassDescriptor.getSearches(klass):
+        for search in ClassDescriptor.getSearches(klass):
             if search.name == searchName:
                 return search
         return None
 
-class ToolClassDescriptor(ClassDescriptor):
-    '''Represents the POD-specific fields that must be added to the tool.'''
-    predefined = True
-    def __init__(self, klass, generator):
-        ClassDescriptor.__init__(self, klass, klass._appy_attributes, generator)
-        self.name = '%sTool' % generator.applicationName
-    def isFolder(self, klass=None): return True
-    def isRoot(self): return False
-    def addUnoValidator(self):
+    def addIndexMethod(self, field):
+        '''For indexed p_field, this method generates a method that allows to
+           get the value of the field as must be copied into the corresponding
+           index.'''
         m = self.methods
         spaces = TABS
-        m += '\n' + ' '*spaces + 'def validate_unoEnabledPython(self, value):\n'
+        n = field.fieldName
+        m += '\n' + ' '*spaces + 'def get%s%s(self):\n' % (n[0].upper(), n[1:])
         spaces += TABS
-        m += ' '*spaces + 'return self._appy_validateUnoEnabledPython(value)\n'
+        m += ' '*spaces + "'''Gets indexable value of field \"%s\".'''\n" % n
+        m += ' '*spaces + 'return self.getAppyType("%s").getValue(self)\n' % n
         self.methods = m
+
+class ToolClassDescriptor(ClassDescriptor):
+    '''Represents the POD-specific fields that must be added to the tool.'''
+    def __init__(self, klass, generator):
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.name = '%sTool' % generator.applicationName
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()):
+        res = ['Tool']
+        if self.customized:
+            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
+        return res
+    def update(self, klass, attributes):
+        '''This method is called by the generator when he finds a custom tool
+           definition. We must then add the custom tool elements in this default
+           Tool descriptor.'''
+        self.orderedAttributes += attributes
+        self.klass = klass
+        self.customized = True
+    def isFolder(self, klass=None): return True
+    def isRoot(self): return False
     def generateSchema(self):
-        ClassDescriptor.generateSchema(self)
-        self.addUnoValidator()
+        ClassDescriptor.generateSchema(self, configClass=True)
 
 class FlavourClassDescriptor(ClassDescriptor):
     '''Represents an Archetypes-compliant class that corresponds to the Flavour
        for the generated application.'''
-    predefined = True
     def __init__(self, klass, generator):
-        ClassDescriptor.__init__(self, klass, klass._appy_attributes, generator)
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
         self.name = '%sFlavour' % generator.applicationName
         self.attributesByClass = klass._appy_classes
-        # We don't generate the schema automatically here because we need to
-        # add more fields.
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()):
+        res = ['Flavour']
+        if self.customized:
+            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
+        return res
+    def update(self, klass, attributes):
+        '''This method is called by the generator when he finds a custom flavour
+           definition. We must then add the custom flavour elements in this
+           default Flavour descriptor.'''
+        self.orderedAttributes += attributes
+        self.klass = klass
+        self.customized = True
     def isFolder(self, klass=None): return True
     def isRoot(self): return False
+    def generateSchema(self):
+        ClassDescriptor.generateSchema(self, configClass=True)
 
 class PodTemplateClassDescriptor(ClassDescriptor):
     '''Represents a POD template.'''
-    predefined = True
     def __init__(self, klass, generator):
-        ClassDescriptor.__init__(self, klass, klass._appy_attributes, generator)
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
         self.name = '%sPodTemplate' % generator.applicationName
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()): return ['PodTemplate']
     def isRoot(self): return False
-
-class CustomToolClassDescriptor(ArchetypesClassDescriptor):
-    '''If the user defines a class that inherits from Tool, we will add those
-       fields to the tool.'''
-    predefined = False
-    def __init__(self, *args):
-        self.name = '%sTool' % args[2].applicationName
-        ArchetypesClassDescriptor.__init__(self, *args)
-    def generateSchema(self):
-        '''Custom tool fields may not use the variability mechanisms, ie
-           'optional' or 'editDefault' attributes.'''
-        for attrName in self.orderedAttributes:
-            attrValue = getattr(self.klass, attrName)
-            if isinstance(attrValue, Type):
-                attrValue = copy.copy(attrValue)
-                attrValue.optional = False
-                attrValue.editDefault = False
-                field = ArchetypeFieldDescriptor(attrName, attrValue, self)
-                self.schema += '\n' + field.generate()
-
-class CustomFlavourClassDescriptor(CustomToolClassDescriptor):
-    def __init__(self, *args):
-        self.name = '%sFlavour' % args[2].applicationName
-        ArchetypesClassDescriptor.__init__(self, *args)
 
 class WorkflowDescriptor(appy.gen.descriptors.WorkflowDescriptor):
     '''Represents a workflow.'''

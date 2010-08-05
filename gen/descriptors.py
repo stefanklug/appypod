@@ -4,10 +4,13 @@ from appy.gen import State, Transition, Type
 # ------------------------------------------------------------------------------
 class Descriptor: # Abstract
     def __init__(self, klass, orderedAttributes, generator):
-        self.klass = klass # The corresponding Python class
-        self.orderedAttributes = orderedAttributes # Names of the static appy-
-        # compliant attributes declared in self.klass
-        self.generator = generator # A reference to the code generator.
+        # The corresponding Python class
+        self.klass = klass
+        # The names of the static appy-compliant attributes declared in
+        # self.klass
+        self.orderedAttributes = orderedAttributes
+        # A reference to the code generator.
+        self.generator = generator
 
     def __repr__(self): return '<Class %s>' % self.klass.__name__
 
@@ -19,14 +22,22 @@ class ClassDescriptor(Descriptor):
            the condition will be returned. p_condition must be a string
            containing an expression that will be evaluated with, in its context,
            "self" being this ClassDescriptor and "attrValue" being the current
-           Type instance.'''
-        res = []
+           Type instance.
+           
+           Order of returned attributes already takes into account type's
+           "move" attributes.'''
+        attrs = []
         # First, get the attributes for the current class
         for attrName in self.orderedAttributes:
-            attrValue = getattr(self.klass, attrName)
+            try:
+                attrValue = getattr(self.klass, attrName)
+                hookClass = self.klass
+            except AttributeError:
+                attrValue = getattr(self.modelClass, attrName)
+                hookClass = self.modelClass
             if isinstance(attrValue, Type):
                 if not condition or eval(condition):
-                    res.append( (attrName, attrValue) )
+                    attrs.append( (attrName, attrValue, hookClass) )
         # Then, add attributes from parent classes
         for baseClass in self.klass.__bases__:
             # Find the classDescr that corresponds to baseClass
@@ -36,7 +47,17 @@ class ClassDescriptor(Descriptor):
                     baseClassDescr = classDescr
                     break
             if baseClassDescr:
-                res = baseClassDescr.getOrderedAppyAttributes() + res
+                attrs = baseClassDescr.getOrderedAppyAttributes() + attrs
+        # Modify attributes order by using "move" attributes
+        res = []
+        for name, appyType, klass in attrs:
+            if appyType.move:
+                newPosition = len(res) - abs(appyType.move)
+                if newPosition <= 0:
+                    newPosition = 0
+                res.insert(newPosition, (name, appyType, klass))
+            else:
+                res.append((name, appyType, klass))
         return res
 
     def getChildren(self):
@@ -51,7 +72,7 @@ class ClassDescriptor(Descriptor):
     def getPhases(self):
         '''Gets the phases defined on fields of this class.'''
         res = []
-        for fieldName, appyType in self.getOrderedAppyAttributes():
+        for fieldName, appyType, klass in self.getOrderedAppyAttributes():
             if appyType.phase not in res:
                 res.append(appyType.phase)
         return res

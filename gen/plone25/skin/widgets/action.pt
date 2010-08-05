@@ -1,0 +1,30 @@
+<tal:comment replace="nothing">View macro for an Action.</tal:comment>
+<metal:view define-macro="view">
+  <form name="executeAppyAction"
+        tal:define="formId python: '%s_%s' % (contextObj.UID(), name);
+                    label  python: contextObj.translate(widget['labelId'])"
+        tal:attributes="id formId; action python: contextObj.absolute_url()+'/skyn/do'">
+    <input type="hidden" name="action" value="ExecuteAppyAction"/>
+    <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
+    <input type="hidden" name="fieldName" tal:attributes="value name"/>
+    <input type="button" tal:condition="widget/confirm"
+           tal:attributes="value label;
+                           onClick python: 'javascript:askConfirm(\'%s\')' % formId"/>
+    <input type="submit" name="do" tal:condition="not: widget/confirm"
+           tal:attributes="value label" onClick="javascript:;"/>
+    <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone
+      from adding a CSS class that displays a popup when the user triggers the form multiple
+      times.</tal:comment>
+  </form>
+</metal:view>
+
+<tal:comment replace="nothing">Edit macro for an Action.</tal:comment>
+<metal:edit define-macro="edit"></metal:edit>
+
+<tal:comment replace="nothing">Cell macro for an Action.</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="portal/skyn/widgets/action/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro for an Action.</tal:comment>
+<metal:search define-macro="search"></metal:search>

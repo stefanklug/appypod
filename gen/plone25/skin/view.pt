@@ -18,20 +18,19 @@
       tal:define="contextObj python:context.getParentNode();
                   portal_type python:here.getPortalTypeName().lower().replace(' ', '_');
                   errors python:request.get('errors', {});
-                  isEdit python:False;
+                  layoutType python:'view';
+                  layout python: contextObj.getPageLayout(layoutType);
                   tool contextObj/getTool;
                   flavour python: tool.getFlavour(contextObj);
                   appFolder tool/getAppFolder;
-                  appName appFolder/id;
-                  phaseInfo python: contextObj.getAppyPhases(currentOnly=True, forPlone=False);
-                  phase request/phase|phaseInfo/name;
-                  appyPages python: contextObj.getAppyPages(phase);
-                  pageName python: contextObj.getAppyPage(isEdit, phaseInfo, appyPages);
+                  appName appFolder/getId;
+                  page request/page|python:'main';
+                  phaseInfo python: contextObj.getAppyPhases(page=page);
+                  phase phaseInfo/name;
                   showWorkflow python: flavour.getAttr('showWorkflowFor' + contextObj.meta_type)">
-      <metal:prologue use-macro="here/skyn/macros/macros/pagePrologue"/>
-      <metal:header   use-macro="here/skyn/macros/macros/showPageHeader"/>
-      <metal:fields   use-macro="here/skyn/macros/macros/listFields" />
-      <metal:footer   use-macro="here/skyn/macros/macros/showPageFooter"/>
+      <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
+      <metal:show     use-macro="here/skyn/page/macros/show"/>
+      <metal:footer   use-macro="here/skyn/page/macros/footer"/>
     </metal:fill>
   </body>
 </html>

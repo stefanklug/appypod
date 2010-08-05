@@ -1,6 +1,8 @@
 # ------------------------------------------------------------------------------
-class FlavourWrapper:
+from appy.gen.plone25.wrappers import AbstractWrapper
 
+# ------------------------------------------------------------------------------
+class FlavourWrapper(AbstractWrapper):
     def onEdit(self, created):
         if created:
             nbOfFlavours = len(self.tool.flavours)
@@ -8,8 +10,7 @@ class FlavourWrapper:
                 self.number = nbOfFlavours
                 self.o.registerPortalTypes()
         # Call the custom flavour "onEdit" method if it exists
-        customFlavour = self.__class__.__bases__[1]
-        if customFlavour.__name__ != 'Flavour':
+        if len(self.__class__.__bases__) > 1:
             # There is a custom flavour
             if customFlavour.__dict__.has_key('onEdit'):
                 customFlavour.__dict__['onEdit'](self, created)

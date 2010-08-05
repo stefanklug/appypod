@@ -32,13 +32,13 @@
     <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%"
            tal:define="numberOfColumns python: flavour.getAttr('numberOfSearchColumnsFor%s' % contentType)">
       <tr tal:repeat="searchRow python: tool.tabularize(searchableFields, numberOfColumns)" valign="top">
-        <td tal:repeat="searchField searchRow" tal:attributes="width python:'%d%%' % (100/numberOfColumns)">
-          <tal:field condition="searchField">
-            <tal:showSearchField define="fieldName python:searchField[0];
-                                         appyType python:searchField[1];
-                                         widgetName python: 'w_%s' % fieldName">
-              <metal:searchField use-macro="python: appFolder.skyn.widgets.macros.get('search%s' % searchField[1]['type'])"/>
-            </tal:showSearchField>
+        <td tal:repeat="widget searchRow" tal:attributes="width python:'%d%%' % (100/numberOfColumns)">
+          <tal:field condition="widget">
+            <tal:show define="name widget/name;
+                                   widgetName python: 'w_%s' % name;
+                                   macroPage python: widget['type'].lower()">
+              <metal:call use-macro="python: appFolder.skyn.widgets.get(macroPage).macros.get('search')"/>
+            </tal:show>
           </tal:field><br class="discreet"/>
         </td>
       </tr>

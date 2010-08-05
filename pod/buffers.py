@@ -23,6 +23,7 @@ from appy.pod import PodError, XML_SPECIAL_CHARS
 from appy.pod.elements import *
 from appy.pod.actions import IfAction, ElseAction, ForAction, VariableAction, \
                              NullAction
+from appy.shared import xmlPrologue
 
 # ------------------------------------------------------------------------------
 class ParsingError(Exception): pass
@@ -158,7 +159,7 @@ class FileBuffer(Buffer):
         Buffer.__init__(self, env, None)
         self.result = result
         self.content = file(result, 'w')
-        self.content.write('<?xml version="1.0" encoding="UTF-8"?>')
+        self.content.write(xmlPrologue)
     def getLength(self): return 0
     # getLength is used to manage insertions into sub-buffers. But in the case
     # of a FileBuffer, we will only have 1 sub-buffer at a time, and we don't

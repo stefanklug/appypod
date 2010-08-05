@@ -69,6 +69,7 @@ class PoMessage:
     SEARCH_AND = 'and'
     WORKFLOW_COMMENT = 'Optional comment'
     WORKFLOW_STATE = 'state'
+    APPY_TITLE = 'Title'
     DATA_CHANGE = 'Data change'
     MODIFIED_FIELD = 'Modified field'
     PREVIOUS_VALUE = 'Previous value'
@@ -78,12 +79,13 @@ class PoMessage:
     CHOOSE_A_DOC = '[ Documents ]'
     MIN_REF_VIOLATED = 'You must choose more elements here.'
     MAX_REF_VIOLATED = 'Too much elements are selected here.'
-    BAD_INT = 'An integer value is expected; do not enter any space.'
+    BAD_LONG = 'An integer value is expected; do not enter any space.'
     BAD_FLOAT = 'A floating-point number is expected; use the dot as decimal ' \
                 'separator, not a comma; do not enter any space.'
     BAD_EMAIL = 'Please enter a valid email.'
     BAD_URL = 'Please enter a valid URL.'
     BAD_ALPHANUMERIC = 'Please enter a valid alphanumeric value.'
+    BAD_SELECT_VALUE = 'The value is not among possible values for this field.'
     ACTION_OK = 'The action has been successfully executed.'
     ACTION_KO = 'A problem occurred while executing the action.'
     FRONT_PAGE_TEXT = 'Welcome to this Appy-powered Plone site.'
@@ -103,11 +105,16 @@ class PoMessage:
     CONFIRM = 'Are you sure ?'
     YES = 'Yes'
     NO = 'No'
+    FIELD_REQUIRED = 'Please fill this field.'
+    FILE_REQUIRED = 'Please select a file.'
+    IMAGE_REQUIRED = 'The uploaded file must be an image.'
 
-    def __init__(self, id, msg, default, fuzzy=False, comments=[]):
+    def __init__(self, id, msg, default, fuzzy=False, comments=[],
+                 niceDefault=False):
         self.id = id
         self.msg = msg
         self.default = default
+        if niceDefault: self.produceNiceDefault()
         self.fuzzy = fuzzy # True if the default value has changed in the pot
         # file: the msg in the po file needs to be translated again.
         self.comments = comments

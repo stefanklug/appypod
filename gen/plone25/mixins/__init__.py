@@ -6,14 +6,13 @@
    The AbstractMixin defined hereafter is the base class of any mixin.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, types, mimetypes
-from appy.shared.utils import Traceback
+import os, os.path, types, mimetypes
 import appy.gen
-from appy.gen import String, Selection
-from appy.gen.utils import FieldDescr, GroupDescr, PhaseDescr, StateDescr, \
-                           ValidationErrors, sequenceTypes, SomeObjects
-from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
-from appy.gen.plone25.utils import updateRolesForPermission, getAppyRequest
+from appy.gen import Type, String, Selection
+from appy.gen.utils import *
+from appy.gen.layout import Table, defaultPageLayouts
+from appy.gen.plone25.descriptors import ClassDescriptor
+from appy.gen.plone25.utils import updateRolesForPermission
 
 # ------------------------------------------------------------------------------
 class AbstractMixin:
@@ -21,12 +20,13 @@ class AbstractMixin:
        inherits from this class. It contains basic functions allowing to
        minimize the amount of generated code.'''
 
-    def createOrUpdate(self, created):
+    def createOrUpdate(self, created, values):
         '''This method creates (if p_created is True) or updates an object.
-           In the case of an object creation, p_self is a temporary object
-           created in the request by portal_factory, and this method creates
-           the corresponding final object. In the case of an update, this
-           method simply updates fields of p_self.'''
+           p_values are manipulated versions of those from the HTTP request.
+           In the case of an object creation (p_created is True), p_self is a
+           temporary object created in the request by portal_factory, and this
+           method creates the corresponding final object. In the case of an
+           update, this method simply updates fields of p_self.'''
         rq = self.REQUEST
         obj = self
         if created:
@@ -35,12 +35,18 @@ class AbstractMixin:
         previousData = None
         if not created: previousData = self.rememberPreviousData()
         # Perform the change on the object, unless self is a tool being created.
-        if (obj._appy_meta_type == 'tool') and created:
+        if (obj._appy_meta_type == 'Tool') and created:
             # We do not process form data (=real update on the object) if the
             # tool itself is being created.
             pass
         else:
-            obj.processForm()
+            # Store in the database the new value coming from the form
+            for appyType in self.getAppyTypes('edit', rq.get('page')):
+                value = getattr(values, appyType.name, None)
+                appyType.store(obj, value)
+            if created:
+                # Now we have a title for the object, so we derive a nice id
+                obj._renameAfterCreation(check_auto_id=True)
         if previousData:
             # Keep in history potential changes on historized fields
             self.historizeData(previousData)
@@ -49,12 +55,10 @@ class AbstractMixin:
         obj._appy_manageRefs(created)
         if obj.wrapperClass:
             # Get the wrapper first
-            appyWrapper = obj.appy()
+            appyObject = obj.appy()
             # Call the custom "onEdit" if available
-            try:
-                appyWrapper.onEdit(created)
-            except AttributeError, ae:
-                pass
+            if hasattr(appyObject, 'onEdit'):
+                appyObject.onEdit(created)
         # Manage "add" permissions
         obj._appy_managePermissions()
         # Reindex object
@@ -72,11 +76,10 @@ class AbstractMixin:
         if rq.get('initiator', None):
             # The object to create will be linked to an initiator object through
             # a ref field.
-            initiatorRes=self.uid_catalog.searchResults(UID=rq.get('initiator'))
             rq.SESSION['initiator'] = rq.get('initiator')
             rq.SESSION['initiatorField'] = rq.get('field')
             rq.SESSION['initiatorTarget'] = rq.get('type_name')
-        if self._appy_meta_type == 'tool':
+        if self._appy_meta_type == 'Tool':
             if rq.get('initiator', None):
                 # This is the creation of an object linked to the tool
                 baseUrl = self.absolute_url()
@@ -90,6 +93,43 @@ class AbstractMixin:
             (baseUrl, rq.get('type_name'), objId)
         return self.goto(urlBack)
 
+    def intraFieldValidation(self, errors, values):
+        '''This method performs field-specific validation for every field from
+           the page that is being created or edited. For every field whose
+           validation generates an error, we add an entry in p_errors. For every
+           field, we add in p_values an entry with the "ready-to-store" field
+           value.'''
+        rq = self.REQUEST
+        for appyType in self.getAppyTypes('edit', rq.form.get('page')):
+            if not appyType.validable: continue
+            value = appyType.getRequestValue(rq)
+            message = appyType.validate(self, value)
+            if message:
+                setattr(errors, appyType.name, message)
+            else:
+                setattr(values, appyType.name, appyType.getStorableValue(value))
+
+    def interFieldValidation(self, errors, values):
+        '''This method is called when individual validation of all fields
+           succeed (when editing or creating an object). Then, this method
+           performs inter-field validation. This way, the user must first
+           correct individual fields before being confronted to potential
+           inter-field validation errors.'''
+        obj = self.appy()
+        if not hasattr(obj, 'validate'): return
+        obj.validate(values, errors)
+        # This custom "validate" method may have added fields in the given
+        # p_errors object. Within this object, for every error message that is
+        # not a string, we replace it with the standard validation error for the
+        # corresponding field.
+        for key, value in errors.__dict__.iteritems():
+            resValue = value
+            if not isinstance(resValue, basestring):
+                appyType = self.getAppyType(key)
+                msgId = '%s_valid' % appyType.labelId
+                resValue = self.translate(msgId)
+            setattr(errors, key, resValue)
+
     def onUpdate(self):
         '''This method is executed when a user wants to update an object.
            The object may be a temporary object created by portal_factory in
@@ -97,53 +137,76 @@ class AbstractMixin:
            the "final" object in the database. If the object is not a temporary
            one, this method updates its fields in the database.'''
         rq = self.REQUEST
-        # Dict for storing validation errors
-        errors = {}
         errorMessage = self.translate(
             'Please correct the indicated errors.', domain='plone')
+        isNew = rq.get('is_new') == 'True'
 
         # Go back to the consult view if the user clicked on 'Cancel'
-        if rq.get('buttonCancel', None):
-            if '/portal_factory/' in self.absolute_url():
+        if rq.get('buttonCancel.x', None):
+            if isNew:
                 # Go back to the Plone site (no better solution at present).
                 urlBack = self.portal_url.getPortalObject().absolute_url()
             else:
-                urlBack = '%s/skyn/view' % self.absolute_url()
+                urlBack = self.absolute_url()
             self.plone_utils.addPortalMessage(
                 self.translate('Changes canceled.', domain='plone'))
             return self.goto(urlBack, True)
 
+        # Object for storing validation errors
+        errors = AppyObject()
+        # Object for storing the (converted) values from the request
+        values = AppyObject()
+
         # Trigger field-specific validation
-        self.validate(REQUEST=rq, errors=errors, data=1, metadata=0)
-        if errors:
-            rq.set('errors', errors)
+        self.intraFieldValidation(errors, values)
+        if errors.__dict__:
+            rq.set('errors', errors.__dict__)
             self.plone_utils.addPortalMessage(errorMessage)
             return self.skyn.edit(self)
-        else:
-            # Trigger inter-field validation
-            self.validateAllFields(rq, errors)
-            if errors:
-                rq.set('errors', errors)
-                self.plone_utils.addPortalMessage(errorMessage)
-                return self.skyn.edit(self)
+
+        # Trigger inter-field validation
+        self.interFieldValidation(errors, values)
+        if errors.__dict__:
+            rq.set('errors', errors.__dict__)
+            self.plone_utils.addPortalMessage(errorMessage)
+            return self.skyn.edit(self)
+
+        # Create or update the object in the database
+        obj = self.createOrUpdate(isNew, values)
+
+        # Redirect the user to the appropriate page
+        msg = obj.translate('Changes saved.', domain='plone')
+        if rq.get('buttonOk.x', None):
+            # Go to the consult view for this object
+            obj.plone_utils.addPortalMessage(msg)
+            return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+        if rq.get('buttonPrevious.x', None):
+            # Go to the previous page (edit mode) for this object.
+            # We recompute the list of phases and pages because things
+            # may have changed since the object has been updated (ie,
+            # additional pages may be shown or hidden now, so the next and
+            # previous pages may have changed).
+            currentPage = rq.get('page')
+            phaseInfo = self.getAppyPhases(page=currentPage)
+            previousPage = self.getPreviousPage(phaseInfo, currentPage)
+            if previousPage:
+                rq.set('page', previousPage)
+                return obj.skyn.edit(obj)
             else:
-                # Create or update the object in the database
-                obj = self.createOrUpdate(rq.get('is_new') == 'True')
-                # Redirect the user to the appropriate page
-                if rq.get('buttonOk', None):
-                    # Go to the consult view for this object
-                    obj.plone_utils.addPortalMessage(
-                        obj.translate('Changes saved.', domain='plone'))
-                    urlBack = '%s/skyn/view' % obj.absolute_url()
-                    return self.goto(urlBack, True)
-                elif rq.get('buttonPrevious', None):
-                    # Go to the edit view (previous page) for this object
-                    rq.set('fieldset', rq.get('previousPage'))
-                    return obj.skyn.edit(obj)
-                elif rq.get('buttonNext', None):
-                    # Go to the edit view (next page) for this object
-                    rq.set('fieldset', rq.get('nextPage'))
-            return obj.skyn.edit(obj)
+                obj.plone_utils.addPortalMessage(msg)
+                return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+        if rq.get('buttonNext.x', None):
+            # Go to the next page (edit mode) for this object
+            currentPage = rq.get('page')
+            phaseInfo = self.getAppyPhases(page=currentPage)
+            nextPage = self.getNextPage(phaseInfo, currentPage)
+            if nextPage:
+                rq.set('page', nextPage)
+                return obj.skyn.edit(obj)
+            else:
+                obj.plone_utils.addPortalMessage(msg)
+                return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+        return obj.skyn.edit(obj)
 
     def onDelete(self):
         rq = self.REQUEST
@@ -157,12 +220,10 @@ class AbstractMixin:
            every historized field, the previous value. Result is a dict
            ~{s_fieldName: previousFieldValue}~'''
         res = {}
-        for atField in self.Schema().filterFields(isMetadata=0):
-            fieldName = atField.getName()
-            appyType = self.getAppyType(fieldName, asDict=False)
-            if appyType and appyType.historized:
-                res[fieldName] = (getattr(self, fieldName),
-                                  atField.widget.label_msgid)
+        for appyType in self.getAllAppyTypes():
+            if appyType.historized:
+                res[appyType.name] = (getattr(self, appyType.name),
+                                      appyType.labelId)
         return res
 
     def addDataChange(self, changes, labels=False):
@@ -175,7 +236,7 @@ class AbstractMixin:
         if not labels:
             for fieldName in changes.iterkeys():
                 appyType = self.getAppyType(fieldName)
-                changes[fieldName] = (changes[fieldName], appyType['label'])
+                changes[fieldName] = (changes[fieldName], appyType.labelId)
         # Create the event to record in the history
         DateTime = self.getProductConfig().DateTime
         state = self.portal_workflow.getInfoFor(self, 'review_state')
@@ -208,20 +269,26 @@ class AbstractMixin:
         if not addParams: return rq.RESPONSE.redirect(url)
         # Add some context-related parameters if needed.
         params = []
-        if rq.get('phase', ''):    params.append('phase=%s' %    rq['phase'])
-        if rq.get('pageName', ''): params.append('pageName=%s' % rq['pageName'])
-        if rq.get('nav', ''):      params.append('nav=%s' %      rq['nav'])
+        if rq.get('page', ''): params.append('page=%s' % rq['page'])
+        if rq.get('nav', ''):  params.append('nav=%s' %  rq['nav'])
         params = '&'.join(params)
         if not params: return rq.RESPONSE.redirect(url)
         if url.find('?') != -1: params = '&' + params
         else:                   params = '?' + params
         return rq.RESPONSE.redirect(url+params)
 
-    def getAppyValue(self, name, appyType=None, useParamValue=False,
-                     value=None, forMasterId=False):
-        '''Returns the value of field (or method) p_name for this object
-           (p_self). If p_appyType (the corresponding Appy type) is provided,
-           it gives additional information about the way to render the value.
+    def showField(self, name, layoutType='view'):
+        '''Must I show field named p_name on this p_layoutType ?'''
+        return self.getAppyType(name).isShowable(self, layoutType)
+
+    def getMethod(self, methodName):
+        '''Returns the method named p_methodName.'''
+        return getattr(self, methodName, None)
+
+    def getFormattedValue(self, name, useParamValue=False, value=None,
+                          forMasterId=False):
+        '''Returns the value of field named p_name for this object (p_self).
+
            If p_useParamValue is True, the method uses p_value instead of the
            real field value (useful for rendering a value from the object
            history, for example).
@@ -229,96 +296,14 @@ class AbstractMixin:
            If p_forMasterId is True, it returns the value as will be needed to
            produce an identifier used within HTML pages for master/slave
            relationships.'''
+        appyType = self.getAppyType(name)
         # Which value will we use ?
-        if useParamValue: v = value
-        else:
-            try:
-                v = eval('self.%s' % name)
-            except AttributeError:
-                # Probably a newly created attribute.
-                # In this case, return the default value.
-                v = None
-                if appyType: v = appyType['default']
-        if not appyType: return v
-        if (v == None) or (v == ''): return v
-        vType = appyType['type']
-        if vType == 'Date':
-            res = v.strftime('%d/%m/') + str(v.year())
-            if appyType['format'] == 0:
-                res += ' %s' % v.strftime('%H:%M')
-            return res
-        elif vType == 'String':
-            if not v or forMasterId: return v
-            if appyType['isSelect']:
-                validator = appyType['validator']
-                if isinstance(validator, Selection):
-                    # Value(s) come from a dynamic vocabulary
-                    return validator.getText(self, v)
-                else:
-                    # Value(s) come from a fixed vocabulary whose texts are in
-                    # i18n files.
-                    maxMult = appyType['multiplicity'][1]
-                    t = self.translate
-                    if (maxMult == None) or (maxMult > 1):
-                        return [t('%s_%s_list_%s' % (self.meta_type, name, e)) \
-                                for e in v]
-                    else:
-                        return t('%s_%s_list_%s' % (self.meta_type, name, v))
-            if not isinstance(v, basestring):
-                # Archetypes "Description" fields may hold a BaseUnit instance.
-                try:
-                    v = unicode(v)
-                except UnicodeDecodeError:
-                    v = str(v)
-            return v
-        elif vType == 'Boolean':
-            if v: return self.translate('yes', domain='plone')
-            else: return self.translate('no', domain='plone')
-        elif vType == 'Float':
-            if appyType['precision'] == None:
-                v = str(v)
-            else:
-                format = '%%.%df' % appyType['precision']
-                v = format % v
-        return v
-
-    def getAppyType(self, fieldName, forward=True, asDict=True):
-        '''Returns the Appy type corresponding to p_fieldName. If you want to
-           get the Appy type corresponding to a backward field, set p_forward
-           to False and specify the corresponding Archetypes relationship in
-           p_fieldName.'''
-        res = None
-        if forward:
-            if fieldName == 'id': return res
-            if self.wrapperClass:
-                baseClass = self.wrapperClass.__bases__[-1]
-                try:
-                    # If I get the attr on self instead of baseClass, I get the
-                    # property field that is redefined at the wrapper level.
-                    res = appyType = getattr(baseClass, fieldName)
-                    if asDict:
-                        res = self._appy_getTypeAsDict(
-                            fieldName, appyType, baseClass)
-                except AttributeError:
-                    # Check for another parent
-                    if self.wrapperClass.__bases__[0].__bases__:
-                        baseClass = self.wrapperClass.__bases__[0].__bases__[-1]
-                        try:
-                            res = appyType = getattr(baseClass, fieldName)
-                            if asDict:
-                                res = self._appy_getTypeAsDict(
-                                    fieldName, appyType, baseClass)
-                        except AttributeError:
-                            pass
-        else:
-            referers = self.getProductConfig().referers
-            for appyType, rel in referers[self.__class__.__name__]:
-                if rel == fieldName:
-                    res = appyType
-                    if asDict:
-                        res = appyType.__dict__
-                        res['backd'] = appyType.back.__dict__
-        return res
+        if not useParamValue:
+            value = appyType.getValue(self)
+        # Return the value as is if it is None or forMasterId
+        if forMasterId: return value
+        # Return the formatted value else
+        return appyType.getFormattedValue(self, value)
 
     def _appy_getRefs(self, fieldName, ploneObjects=False,
                       noListIfSingleObj=False, startNumber=None):
@@ -346,7 +331,7 @@ class AbstractMixin:
         res = SomeObjects()
         res.totalNumber = res.batchSize = len(sortedUids)
         if batchNeeded:
-            res.batchSize = appyType['maxPerPage']
+            res.batchSize = appyType.maxPerPage
         if startNumber != None:
             res.startNumber = startNumber
         # Get the needed referred objects
@@ -362,23 +347,21 @@ class AbstractMixin:
             res.objects.append(refObject)
             i += 1
         if res.objects and noListIfSingleObj:
-            if appyType['multiplicity'][1] == 1:
+            if appyType.multiplicity[1] == 1:
                 res.objects = res.objects[0]
         return res
 
-    def getAppyRefs(self, fieldName, forward=True, startNumber=None):
-        '''Gets the objects linked to me through p_fieldName. If you need to
-           get a backward reference, set p_forward to False and specify the
-           corresponding Archetypes relationship in p_fieldName.
+    def getAppyRefs(self, appyType, startNumber=None):
+        '''Gets the objects linked to me through Ref p_appyType.
            If p_startNumber is None, this method returns all referred objects.
            If p_startNumber is a number, this method will return x objects,
            starting at p_startNumber, x being appyType.maxPerPage.'''
-        if forward:
-            return self._appy_getRefs(fieldName, ploneObjects=True,
+        if not appyType['isBack']:
+            return self._appy_getRefs(appyType['name'], ploneObjects=True,
                 startNumber=startNumber).__dict__
         else:
-            # Note Pagination is not yet implemented for backward ref.
-            return SomeObjects(self.getBRefs(fieldName)).__dict__
+            # Note Pagination is not yet implemented for backward refs.
+            return SomeObjects(self.getBRefs(appyType['relationship'])).__dict__
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
@@ -386,131 +369,80 @@ class AbstractMixin:
         res = sortedObjectsUids.index(obj.UID())
         return res
 
-    def getAppyBackRefs(self):
-        '''Returns the list of back references (=types, not objects) that are
-           defined for this class.'''
-        className = self.__class__.__name__
-        referers = self.getProductConfig().referers
-        res = []
-        if referers.has_key(className):
-            for appyType, relationship in referers[className]:
-                d = appyType.__dict__
-                d['backd'] = appyType.back.__dict__
-                res.append((d, relationship))
-        return res
-
     def getAppyRefPortalType(self, fieldName):
         '''Gets the portal type of objects linked to me through Ref field named
            p_fieldName.'''
         appyType = self.getAppyType(fieldName)
         tool = self.getTool()
-        if self._appy_meta_type == 'flavour':
+        if self._appy_meta_type == 'Flavour':
             flavour = self.appy()
         else:
             portalTypeName = self._appy_getPortalType(self.REQUEST)
             flavour = tool.getFlavour(portalTypeName)
-        return self._appy_getAtType(appyType['klass'], flavour)
+        return self._appy_getAtType(appyType.klass, flavour)
 
-    def _appy_getOrderedFields(self, isEdit):
-        '''Gets all fields (normal fields, back references, fields to show,
-           fields to hide) in order, in the form of a list of FieldDescr
-           instances.'''
-        orderedFields = []
-        # Browse Archetypes fields
-        for atField in self.Schema().filterFields(isMetadata=0):
-            fieldName = atField.getName()
-            appyType = self.getAppyType(fieldName)
-            if not appyType:
-                if isEdit and (fieldName == 'title'):
-                    # We must provide a dummy appy type for it. Else, it will
-                    # not be rendered in the "edit" form.
-                    appyType = String(multiplicity=(1,1)).__dict__
-                else:
-                    continue # Special fields like 'id' are not relevant
-            # Do not display title on view page; it is already in the header
-            if not isEdit and (fieldName=='title'): pass
-            else:
-                orderedFields.append(FieldDescr(atField, appyType, None))
-        # Browse back references
-        for appyType, fieldRel in self.getAppyBackRefs():
-            orderedFields.append(FieldDescr(None, appyType, fieldRel))
-        # If some fields must be moved, do it now
-        res = []
-        for fieldDescr in orderedFields:
-            if fieldDescr.appyType['move']:
-                newPosition = len(res) - abs(fieldDescr.appyType['move'])
-                if newPosition <= 0:
-                    newPosition = 0
-                res.insert(newPosition, fieldDescr)
-            else:
-                res.append(fieldDescr)
-        return res
+    def getAppyType(self, name, asDict=False, className=None):
+        '''Returns the Appy type named p_name. If no p_className is defined, the
+           field is supposed to belong to self's class.'''
+        className = className or self.__class__.__name__
+        attrs = self.getProductConfig().attributesDict[className]
+        appyType = attrs.get(name, None)
+        if appyType and asDict: return appyType.__dict__
+        return appyType
 
-    def showField(self, fieldDescr, isEdit=False):
-        '''Must I show field corresponding to p_fieldDescr?'''
-        if isinstance(fieldDescr, FieldDescr):
-            fieldDescr = fieldDescr.__dict__
-        appyType = fieldDescr['appyType']
-        if isEdit and (appyType['type']=='Ref') and appyType['add']:return False
-        if isEdit and (appyType['type'] == 'Action'): return False
-        if (fieldDescr['widgetType'] == 'backField') and \
-           not self.getBRefs(fieldDescr['fieldRel']): return False
-        # Do not show field if it is optional and not selected in flavour
-        if appyType['optional']:
-            tool = self.getTool()
-            flavour = tool.getFlavour(self, appy=True)
-            flavourAttrName = 'optionalFieldsFor%s' % self.meta_type
-            flavourAttrValue = getattr(flavour, flavourAttrName, ())
-            if fieldDescr['atField'].getName() not in flavourAttrValue:
-                return False
-        # Check if the user has the permission to view or edit the field
-        if fieldDescr['widgetType'] != 'backField':
-            user = self.portal_membership.getAuthenticatedMember()
-            if isEdit:
-                perm = fieldDescr['atField'].write_permission
-            else:
-                perm = fieldDescr['atField'].read_permission
-            if not user.has_permission(perm, self):
-                return False
-        # Evaluate fieldDescr['show']
-        if callable(fieldDescr['show']):
-            res = fieldDescr['show'](self.appy())
-        else:
-            res = fieldDescr['show']
-        # Take into account possible values 'view' and 'edit' for 'show' param.
-        if (res == 'view' and isEdit) or (res == 'edit' and not isEdit):
-            res = False
-        return res
+    def getAllAppyTypes(self, className=None):
+        '''Returns the ordered list of all Appy types for self's class if
+           p_className is not specified, or for p_className else.'''
+        className = className or self.__class__.__name__
+        return self.getProductConfig().attributes[className]
 
-    def getAppyFields(self, isEdit, page):
-        '''Returns the fields sorted by group. For every field, a dict
-           containing the relevant info needed by the view or edit templates is
-           given.'''
+    def getGroupedAppyTypes(self, layoutType, page):
+        '''Returns the fields sorted by group. For every field, the appyType
+           (dict version) is given.'''
         res = []
         groups = {} # The already encountered groups
-        for fieldDescr in self._appy_getOrderedFields(isEdit):
-            # Select only widgets shown on current page
-            if fieldDescr.page != page: continue
-            # Do not take into account hidden fields and fields that can't be
-            # edited through the edit view
-            if not self.showField(fieldDescr, isEdit): continue
-            if not fieldDescr.group:
-                res.append(fieldDescr.get())
+        for appyType in self.getAllAppyTypes():
+            if appyType.page != page: continue
+            if not appyType.isShowable(self, layoutType): continue
+            if not appyType.group:
+                res.append(appyType.__dict__)
             else:
-                # Have I already met this group?
-                groupName, cols = GroupDescr.getGroupInfo(fieldDescr.group)
-                if not groups.has_key(groupName):
-                    groupDescr = GroupDescr(groupName, cols,
-                                            fieldDescr.appyType['page']).get()
-                    groups[groupName] = groupDescr
-                    res.append(groupDescr)
-                else:
-                    groupDescr = groups[groupName]
-                groupDescr['fields'].append(fieldDescr.get())
-        if groups:
-            for groupDict in groups.itervalues():
-                GroupDescr.computeRows(groupDict)
+                # Insert the GroupDescr instance corresponding to
+                # appyType.group at the right place
+                groupDescr = appyType.group.insertInto(res, groups,
+                    appyType.page, self.meta_type)
+                GroupDescr.addWidget(groupDescr, appyType.__dict__)
         return res
+
+    def getAppyTypes(self, layoutType, page):
+        '''Returns the list of appyTypes that belong to a given p_page, for a
+           given p_layoutType.'''
+        res = []
+        for appyType in self.getAllAppyTypes():
+            if appyType.page != page: continue
+            if not appyType.isShowable(self, layoutType): continue
+            res.append(appyType)
+        return res
+
+    def getCssAndJs(self, layoutType, page):
+        '''Returns the CSS and Javascript files that need to be loaded by the
+           p_page for the given p_layoutType.'''
+        css = []
+        js = []
+        for appyType in self.getAppyTypes(layoutType, page):
+            typeCss = appyType.getCss(layoutType)
+            if typeCss:
+                for tcss in typeCss:
+                    if tcss not in css: css.append(tcss)
+            typeJs = appyType.getJs(layoutType)
+            if typeJs:
+                for tjs in typeJs:
+                    if tjs not in js: js.append(tjs)
+        return css, js
+
+    def getAppyTypesFromNames(self, fieldNames, asDict=True):
+        '''Gets the appy types names p_fieldNames.'''
+        return [self.getAppyType(name, asDict) for name in fieldNames]
 
     def getAppyStates(self, phase, currentOnly=False):
         '''Returns information about the states that are related to p_phase.
@@ -552,73 +484,23 @@ class AbstractMixin:
                     res.append(transition)
         return res
 
-    def getAppyPage(self, isEdit, phaseInfo, appyPages, appyName=True):
-        '''On which page am I? p_isEdit indicates if the current page is an
-           edit or consult view. p_phaseInfo indicates the current phase.
-           p_appyPages is the list of displayable appy pages.'''
-        pageAttr = 'pageName'
-        if isEdit:
-            pageAttr = 'fieldset' # Archetypes page name
-        default = phaseInfo['pages'][0]
-        # Default page is the first page of the current phase
-        res = self.REQUEST.get(pageAttr, default)
-        if appyName and (res == 'default'):
-            res = 'main'
-        # If the page is not among currently displayable pages, return the
-        # default page
-        if res not in appyPages:
-            res = 'main'
-            if not appyName: res = 'default'
-        return res
-
-    def getAppyPages(self, phase='main'):
-        '''Gets the list of pages that are defined for this content type.'''
-        res = []
-        for atField in self.Schema().filterFields(isMetadata=0):
-            appyType = self.getAppyType(atField.getName())
-            if not appyType: continue
-            if (appyType['phase'] == phase) and (appyType['page'] not in res) \
-               and self._appy_showPage(appyType['page'], appyType['pageShow']):
-                res.append(appyType['page'])
-        for appyType, fieldRel in self.getAppyBackRefs():
-            if (appyType['backd']['phase'] == phase) and \
-               (appyType['backd']['page'] not in res) and \
-               self._appy_showPage(appyType['backd']['page'],
-                                   appyType['backd']['pageShow']):
-                res.append(appyType['backd']['page'])
-        return res
-
-    def getAppyPhases(self, currentOnly=False, fieldset=None, forPlone=False):
+    def getAppyPhases(self, currentOnly=False, page=None):
         '''Gets the list of phases that are defined for this content type. If
            p_currentOnly is True, the search is limited to the current phase.
-           If p_fieldset is not None, the search is limited to the phase
-           corresponding the Plone fieldset whose name is given in this
-           parameter. If p_forPlone=True, among phase info we write Plone
-           fieldset names, which are a bit different from Appy page names.'''
+           If p_page is not None, the search is limited to the phase
+           where p_page lies.'''
         # Get the list of phases
         res = [] # Ordered list of phases
         phases = {} # Dict of phases
-        for atField in self.Schema().filterFields(isMetadata=0):
-            appyType = self.getAppyType(atField.getName())
-            if not appyType: continue
-            if appyType['phase'] not in phases:
-                phase = PhaseDescr(appyType['phase'],
-                    self.getAppyStates(appyType['phase']), forPlone, self)
+        for appyType in self.getAllAppyTypes():
+            if appyType.phase not in phases:
+                states = self.getAppyStates(appyType.phase)
+                phase = PhaseDescr(appyType.phase, states, self)
                 res.append(phase.__dict__)
-                phases[appyType['phase']] = phase
+                phases[appyType.phase] = phase
             else:
-                phase = phases[appyType['phase']]
+                phase = phases[appyType.phase]
             phase.addPage(appyType, self)
-        for appyType, fieldRel in self.getAppyBackRefs():
-            if appyType['backd']['phase'] not in phases:
-                phase = PhaseDescr(appyType['backd']['phase'],
-                    self.getAppyStates(appyType['backd']['phase']),
-                    forPlone, self)
-                res.append(phase.__dict__)
-                phases[appyType['phase']] = phase
-            else:
-                phase = phases[appyType['backd']['phase']]
-            phase.addPage(appyType['backd'], self)
         # Remove phases that have no visible page
         for i in range(len(res)-1, -1, -1):
             if not res[i]['pages']:
@@ -626,19 +508,47 @@ class AbstractMixin:
                 del res[i]
         # Then, compute status of phases
         for ph in phases.itervalues():
-            ph.computeStatus()
+            ph.computeStatus(res)
             ph.totalNbOfPhases = len(res)
         # Restrict the result if we must not produce the whole list of phases
         if currentOnly:
             for phaseInfo in res:
                 if phaseInfo['phaseStatus'] == 'Current':
                     return phaseInfo
-        elif fieldset:
+        elif page:
             for phaseInfo in res:
-                if fieldset in phaseInfo['pages']:
+                if page in phaseInfo['pages']:
                     return phaseInfo
         else:
             return res
+
+    def getPreviousPage(self, phase, page):
+        '''Returns the page that precedes p_page which is in p_phase.'''
+        pageIndex = phase['pages'].index(page)
+        if pageIndex > 0:
+            # We stay on the same phase, previous page
+            return phase['pages'][pageIndex-1]
+        else:
+            if phase['previousPhase']:
+                # We go to the last page of previous phase
+                previousPhase = phase['previousPhase']
+                return previousPhase['pages'][-1]
+            else:
+                return None
+
+    def getNextPage(self, phase, page):
+        '''Returns the page that follows p_page which is in p_phase.'''
+        pageIndex = phase['pages'].index(page)
+        if pageIndex < len(phase['pages'])-1:
+            # We stay on the same phase, next page
+            return phase['pages'][pageIndex+1]
+        else:
+            if phase['nextPhase']:
+                # We go to the first page of next phase
+                nextPhase = phase['nextPhase']
+                return nextPhase['pages'][0]
+            else:
+                return None
 
     def changeRefOrder(self, fieldName, objectUid, newIndex, isDelta):
         '''This method changes the position of object with uid p_objectUid in
@@ -676,9 +586,7 @@ class AbstractMixin:
     def isRefSortable(self, fieldName):
         '''Can p_fieldName, which is a field defined on self, be used as a sort
            key in a reference field?'''
-        appyType = self.getAppyType(fieldName, asDict=False)
-        if not appyType: return True # Probably implicit field 'title'.
-        return appyType.isSortable(usage='ref')
+        return self.getAppyType(fieldName).isSortable(usage='ref')
 
     def getWorkflow(self, appy=True):
         '''Returns the Appy workflow instance that is relevant for this
@@ -688,7 +596,7 @@ class AbstractMixin:
             # Get the workflow class first
             workflowClass = None
             if self.wrapperClass:
-                appyClass = self.wrapperClass.__bases__[1]
+                appyClass = self.wrapperClass.__bases__[-1]
                 if hasattr(appyClass, 'workflow'):
                     workflowClass = appyClass.workflow
             if workflowClass:
@@ -735,21 +643,6 @@ class AbstractMixin:
         return {'events': history[startNumber:startNumber+batchSize],
                 'totalNumber': len(history), 'batchSize':batchSize}
 
-    def getComputedValue(self, appyType):
-        '''Computes on p_self the value of the Computed field corresponding to
-           p_appyType.'''
-        res = ''
-        obj = self.appy()
-        if appyType['method']:
-            try:
-                res = appyType['method'](obj)
-                if not isinstance(res, basestring):
-                    res = repr(res)
-            except Exception, e:
-                obj.log(Traceback.get(), type='error')
-                res = str(e)
-        return res
-
     def may(self, transitionName):
         '''May the user execute transition named p_transitionName?'''
         # Get the Appy workflow instance
@@ -785,8 +678,7 @@ class AbstractMixin:
 
     def executeAppyAction(self, actionName, reindex=True):
         '''Executes action with p_fieldName on this object.'''
-        appyClass = self.wrapperClass.__bases__[1]
-        appyType = getattr(appyClass, actionName)
+        appyType = self.getAppyType(actionName)
         actionRes = appyType(self.appy())
         self.reindexObject()
         return appyType.result, actionRes
@@ -802,7 +694,8 @@ class AbstractMixin:
             suffix = 'ko'
             if successfull:
                 suffix = 'ok'
-            label='%s_action_%s' % (self.getLabelPrefix(rq['fieldName']),suffix)
+            appyType = self.getAppyType(rq['fieldName'])
+            label = '%s_action_%s' % (appyType.labelId, suffix)
             msg = self.translate(label)
         if (resultType == 'computation') or not successfull:
             self.plone_utils.addPortalMessage(msg)
@@ -848,93 +741,74 @@ class AbstractMixin:
             res = brains
         return res
 
-    def getCssClasses(self, appyType, asSlave=True):
-        '''Gets the CSS classes (used for master/slave relationships, or if the
-           field corresponding to p_appyType is focus) for this object,
-           either as slave (p_asSlave=True) or as master. The HTML element on
-           which to define the CSS class for a slave or a master is
-           different. So this method is called either for getting CSS classes
-           as slave or as master. We set the focus-specific CSS class only when
-           p_asSlave is True, because we this place as being the "standard" one
-           for specifying CSS classes for a field.'''
-        res = ''
-        if not asSlave and appyType['slaves']:
-            res = 'appyMaster master_%s' % appyType['id']
-        elif asSlave and appyType['master']:
-            res = 'slave_%s' % appyType['master'].id
-            res += ' slaveValue_%s_%s' % (appyType['master'].id,
-                                          appyType['masterValue'])
-        # Add the focus-specific class if needed
-        if appyType['focus']:
-            prefix = ''
-            if res: prefix = ' '
-            res += prefix + 'appyFocus'
-        return res
-
-    def fieldValueSelected(self, fieldName, value, vocabValue):
+    def fieldValueSelected(self, fieldName, vocabValue):
         '''When displaying a selection box (ie a String with a validator being a
            list), must the _vocabValue appear as selected?'''
-        # Check according to database value
-        if (type(value) in sequenceTypes):
-            if vocabValue in value: return True
+        rq = self.REQUEST
+        # Get the value we must compare (from request or from database)
+        if rq.has_key(fieldName):
+            compValue = rq.get(fieldName)
         else:
-            if vocabValue == value: return True
-        # Check according to value in request
-        valueInReq = self.REQUEST.get(fieldName, None)
-        if type(valueInReq) in sequenceTypes:
-            if vocabValue in valueInReq: return True
+            compValue = self.getAppyType(fieldName).getValue(self)
+        # Compare the value
+        if type(compValue) in sequenceTypes:
+            if vocabValue in compValue: return True
         else:
-            if vocabValue == valueInReq: return True
-        return False
+            if vocabValue == compValue: return True
 
-    def checkboxChecked(self, fieldName, value):
+    def checkboxChecked(self, fieldName):
         '''When displaying a checkbox, must it be checked or not?'''
-        valueInReq = self.REQUEST.get(fieldName, None)
-        if valueInReq != None:
-            return valueInReq in ('True', 1, '1')
+        rq = self.REQUEST
+        # Get the value we must compare (from request or from database)
+        if rq.has_key(fieldName):
+            compValue = rq.get(fieldName)
+            compValue = compValue in ('True', 1, '1')
         else:
-            return value
+            compValue = self.getAppyType(fieldName).getValue(self)
+        # Compare the value
+        return compValue
 
-    def getLabelPrefix(self, fieldName=None):
-        '''For some i18n labels, wee need to determine a prefix, which may be
-           linked to p_fieldName. Indeed, the prefix may be based on the name
-           of the (super-)class where p_fieldName is defined.'''
-        res = self.meta_type
-        if fieldName:
-            appyType = self.getAppyType(fieldName)
-            res = '%s_%s' % (self._appy_getAtType(appyType['selfClass']),
-                             fieldName)
-        return res
+    def dateValueSelected(self, fieldName, fieldPart, dateValue):
+        '''When displaying a date field, must the particular p_dateValue be
+           selected in the field corresponding to the date part?'''
+        # Get the value we must compare (from request or from database)
+        rq = self.REQUEST
+        partName = '%s_%s' % (fieldName, fieldPart)
+        if rq.has_key(partName):
+            compValue = rq.get(partName)
+            if compValue.isdigit():
+                compValue = int(compValue)
+        else:
+            compValue = self.getAppyType(fieldName).getValue(self)
+            if compValue:
+                compValue = getattr(compValue, fieldPart)()
+        # Compare the value
+        return compValue == dateValue
+
+    def getPossibleValues(self, name, withTranslations, withBlankValue,
+                          className=None):
+        '''Gets the possible values for field named p_name. This field must be a
+           String with isSelection()=True. If p_withTranslations is True,
+           instead of returning a list of string values, the result is a list
+           of tuples (s_value, s_translation). If p_withBlankValue is True, a
+           blank value is prepended to the list. If no p_className is defined,
+           the field is supposed to belong to self's class'''
+        appyType = self.getAppyType(name, className=className)
+        return appyType.getPossibleValues(self,withTranslations,withBlankValue)
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy
            way.'''
-        return self.wrapperClass(self)
-
-    def _appy_getSourceClass(self, fieldName, baseClass):
-        '''We know that p_fieldName was defined on Python class p_baseClass or
-           one of its parents. This method returns the exact class (p_baseClass
-           or a parent) where it was defined.'''
-        if fieldName in baseClass.__dict__:
-            return baseClass
-        else:
-            return self._appy_getSourceClass(fieldName, baseClass.__bases__[0])
-
-    def _appy_getTypeAsDict(self, fieldName, appyType, baseClass):
-        '''Within page templates, the appyType is given as a dict instead of
-           an object in order to avoid security problems.'''
-        appyType.selfClass = self._appy_getSourceClass(fieldName, baseClass)
-        res = appyType.__dict__
-        if res.has_key('back') and res['back'] and (not res.has_key('backd')):
-            res['backd'] = res['back'].__dict__
-            # I create a new entry "backd"; if I put the dict in "back" I
-            # really modify the initial appyType object and I don't want to do
-            # this.
-        # Add the i18n label for the field
-        if not res.has_key('label'):
-            res['label'] = '%s_%s' % (self._appy_getAtType(appyType.selfClass),
-                                      fieldName)
-        return res
+        # Create the dict for storing Appy wrapper on the REQUEST if needed.
+        rq = self.REQUEST
+        if not hasattr(rq, 'appyWrappers'): rq.appyWrappers = {}
+        # Return the Appy wrapper from rq.appyWrappers if already there
+        uid = self.UID()
+        if uid in rq.appyWrappers: return rq.appyWrappers[uid]
+        # Create the Appy wrapper, cache it in rq.appyWrappers and return it
+        wrapper = self.wrapperClass(self)
+        rq.appyWrappers[uid] = wrapper
+        return wrapper
  
     def _appy_getAtType(self, appyClass, flavour=None):
         '''Gets the name of the Archetypes class that corresponds to
@@ -942,7 +816,7 @@ class AbstractMixin:
            application). If p_flavour is specified, the method returns the name
            of the specific Archetypes class in this flavour (ie suffixed with
            the flavour number).'''
-        res = ArchetypesClassDescriptor.getClassName(appyClass)
+        res = ClassDescriptor.getClassName(appyClass)
         appName = self.getProductConfig().PROJECTNAME
         if res.find('Extensions_appyWrappers') != -1:
             # This is not a content type defined Maybe I am a tool or flavour
@@ -967,14 +841,8 @@ class AbstractMixin:
         maxOne = False
         if noListIfSingleObj:
             # I must get the referred appyType to know its maximum multiplicity.
-            referers = self.getProductConfig().referers
-            className = self.__class__.__name__
-            appyType = None
-            for anAppyType, rel in referers[className]:
-                if rel == relName:
-                    appyType = anAppyType
-                    break
-            if appyType.back.multiplicity[1] == 1:
+            appyType = self.getAppyType(fieldName)
+            if appyType.multiplicity[1] == 1:
                 maxOne = True
         # Get the referred objects through the Archetypes relationship.
         objs = self.getBRefs(relName)
@@ -1021,9 +889,9 @@ class AbstractMixin:
         # On this folder, set "add" permissions for every content type that will
         # be created through reference fields
         allCreators = set()
-        for field in self.schema.fields():
-            if field.type == 'reference':
-                refContentTypeName= self.getAppyRefPortalType(field.getName())
+        for appyType in self.getAllAppyTypes():
+            if appyType.type == 'Ref':
+                refContentTypeName = self.getAppyRefPortalType(appyType.name)
                 refContentType = getattr(self.portal_types, refContentTypeName)
                 refMetaType = refContentType.content_meta_type
                 if refMetaType in self.getProductConfig(\
@@ -1045,143 +913,6 @@ class AbstractMixin:
         if allCreators:
             updateRolesForPermission('Add portal content', tuple(allCreators),
                                      folder)
-
-    def _appy_getDisplayList(self, values, labels, domain):
-        '''Creates a DisplayList given a list of p_values and corresponding
-           i18n p_labels.'''
-        res = []
-        i = -1
-        for v in values:
-            i += 1
-            res.append( (v, self.utranslate(labels[i], domain=domain)))
-        return self.getProductConfig().DisplayList(tuple(res))
-
-    def _appy_getDynamicDisplayList(self, methodName):
-        '''Calls the method named p_methodName for producing a DisplayList from
-           values computed dynamically. If methodName begins with _appy_, it is
-           a special Appy method: we will call it on the Mixin directly. Else,
-           it is a user method: we will call it on the wrapper. Some args can
-           be hidden into p_methodName, separated with stars, like in this
-           example: method1*arg1*arg2. Only string params are supported.'''
-        # Unwrap parameters if any.
-        if methodName.find('*') != -1:
-            elems = methodName.split('*')
-            methodName = elems[0]
-            args = elems[1:]
-        else:
-            args = ()
-        # On what object must be call the method that will produce the values?
-        obj = self
-        if methodName.startswith('tool:'):
-            obj = self.getTool()
-            methodName = methodName[5:]
-        # Do we need to call the method on the object or on the wrapper?
-        if methodName.startswith('_appy_'):
-            exec 'res = obj.%s(*args)' % methodName
-        else:
-            exec 'res = obj.appy().%s(*args)' % methodName
-        return self.getProductConfig().DisplayList(tuple(res))
-
-    nullValues = (None, '', ' ')
-    numbersMap = {'Integer': 'int', 'Float': 'float'}
-    validatorTypes = (types.FunctionType, type(String.EMAIL))
-    def _appy_validateField(self, fieldName, value, label, specificType):
-        '''Checks whether the p_value entered in field p_fieldName is
-           correct.'''
-        appyType = self.getAppyType(fieldName)
-        msgId = None
-        if (specificType == 'Ref') and appyType['link']:
-            # We only check "link" Refs because in edit views, "add" Refs are
-            # not visible. So if we check "add" Refs, on an "edit" view we will
-            # believe that that there is no referred object even if there is.
-            # If the field is a reference, appy must ensure itself that
-            # multiplicities are enforced.
-            fieldValue = self.REQUEST.get('appy_ref_%s' % fieldName, '')
-            if not fieldValue:
-                nbOfRefs = 0
-            elif isinstance(fieldValue, basestring):
-                nbOfRefs = 1
-            else:
-                nbOfRefs = len(fieldValue)
-            minRef = appyType['multiplicity'][0]
-            maxRef = appyType['multiplicity'][1]
-            if maxRef == None:
-                maxRef = sys.maxint
-            if nbOfRefs < minRef:
-                msgId = 'min_ref_violated'
-            elif nbOfRefs > maxRef:
-                msgId = 'max_ref_violated'
-        elif specificType in self.numbersMap: # Float, Integer
-            pyType = self.numbersMap[specificType]
-            # Validate only if input value is there.
-            # By the way, we also convert the value.
-            if value not in self.nullValues:
-                try:
-                    exec 'value = %s(value)' % pyType
-                except ValueError:
-                    msgId = 'bad_%s' % pyType
-            else:
-                value = None
-        # Apply the custom validator if it exists
-        validator = appyType['validator']
-        if not msgId and (type(validator) in self.validatorTypes):
-            obj = self.appy()
-            if type(validator) == self.validatorTypes[0]:
-                # It is a custom function. Execute it.
-                try:
-                    validValue = validator(obj, value)
-                    if isinstance(validValue, basestring) and validValue:
-                        # Validation failed; and p_validValue contains an error
-                        # message.
-                        return validValue
-                    else:
-                        if not validValue:
-                            msgId = label
-                except Exception, e:
-                    return str(e)
-                except:
-                    msgId = label
-            elif type(validator) == self.validatorTypes[1]:
-                # It is a regular expression
-                if (value not in self.nullValues) and \
-                   not validator.match(value):
-                    # If the regular expression is among the default ones, we
-                    # generate a specific error message.
-                    if validator == String.EMAIL:
-                        msgId = 'bad_email'
-                    elif validator == String.URL:
-                        msgId = 'bad_url'
-                    elif validator == String.ALPHANUMERIC:
-                        msgId = 'bad_alphanumeric'
-                    else:
-                        msgId = label
-        res = msgId
-        if msgId:
-            res = self.utranslate(msgId, domain=self.i18nDomain)
-        return res
-
-    def validateAllFields(self, REQUEST, errors):
-        '''This method is called when individual validation of all fields
-           succeed (when editing or creating an object). Then, this method
-           performs inter-field validation. This way, the user must first
-           correct individual fields before being confronted to potential
-           inter-fields validation errors.'''
-        obj = self.appy()
-        if not hasattr(obj, 'validate'): return
-        appyRequest = getAppyRequest(REQUEST, obj)
-        appyErrors = ValidationErrors()
-        obj.validate(appyRequest, appyErrors)
-        # This custom "validate" method may have added fields in the given
-        # ValidationErrors instance. Now we must fill the Zope "errors" dict
-        # based on it. For every error message that is not a string,
-        # we replace it with the standard validation error for the
-        # corresponding field.
-        for key, value in appyErrors.__dict__.iteritems():
-            resValue = value
-            if not isinstance(resValue, basestring):
-                msgId = '%s_valid' % self.getLabelPrefix(key)
-                resValue = self.utranslate(msgId, domain=self.i18nDomain)
-            errors[key] = resValue
 
     def _appy_getPortalType(self, request):
         '''Guess the portal_type of p_self from info about p_self and
@@ -1235,6 +966,9 @@ class AbstractMixin:
         for requestKey in self.REQUEST.keys():
             if requestKey.startswith('appy_ref_'):
                 fieldName = requestKey[9:]
+                # Security check
+                if not self.getAppyType(fieldName).isShowable(self, 'edit'):
+                    continue
                 fieldsInRequest.append(fieldName)
                 fieldValue = self.REQUEST[requestKey]
                 sortedRefField = self._appy_getSortedField(fieldName)
@@ -1250,19 +984,16 @@ class AbstractMixin:
                 exec 'self.set%s%s(refObjects)' % (fieldName[0].upper(),
                                                    fieldName[1:])
         # Manage Ref fields that are not present in the request
-        currentFieldset = self.REQUEST.get('fieldset', 'default')
-        for field in self.schema.fields():
-            if (field.type == 'reference') and \
-               (field.schemata == currentFieldset) and \
-               (field.getName() not in fieldsInRequest):
+        currentPage = self.REQUEST.get('page', 'main')
+        for appyType in self.getAllAppyTypes():
+            if (appyType.type == 'Ref') and not appyType.isBack and \
+               (appyType.page == currentPage) and \
+               (appyType.name not in fieldsInRequest):
                 # If this field is visible, it was not present in the request:
                 # it means that we must remove any Ref from it.
-                fieldName = field.getName()
-                appyType = self.getAppyType(fieldName)
-                fieldDescr = FieldDescr(field, appyType, None)
-                if self.showField(fieldDescr, isEdit=True):
-                    exec 'self.set%s%s([])' % (fieldName[0].upper(),
-                                               fieldName[1:])
+                if appyType.isShowable(self, 'edit'):
+                    exec 'self.set%s%s([])' % (appyType.name[0].upper(),
+                                               appyType.name[1:])
 
     def getUrl(self):
         '''Returns the Appy URL for viewing this object.'''
@@ -1274,4 +1005,40 @@ class AbstractMixin:
         if not domain: domain = cfg.PROJECTNAME
         return self.translation_service.utranslate(
             domain, label, mapping, self, default=default)
+
+    def getPageLayout(self, layoutType):
+        '''Returns the layout coresponding to p_layoutType for p_self.'''
+        appyClass = self.wrapperClass.__bases__[-1]
+        if hasattr(appyClass, 'layouts'):
+            layout = appyClass.layouts[layoutType]
+            if isinstance(layout, basestring):
+                layout = Table(layout)
+        else:
+            layout = defaultPageLayouts[layoutType]
+        return layout.get()
+
+    def getPageTemplate(self, skyn, templateName):
+        '''Returns, in the skyn folder, the page template corresponding to
+           p_templateName.'''
+        res = skyn
+        for name in templateName.split('/'):
+            res = res.get(name)
+        return res
+
+    def download(self):
+        '''Downloads the content of the file that is in the File field named
+           p_name.'''
+        name = self.REQUEST.get('name')
+        if not name: return
+        appyType = self.getAppyType(name)
+        if (not appyType.type =='File') or not appyType.isShowable(self,'view'):
+            return
+        theFile = getattr(self, name, None)
+        if theFile:
+            response = self.REQUEST.RESPONSE
+            response.setHeader('Content-Disposition', 'inline;filename="%s"' % \
+                               theFile.filename)
+            response.setHeader('Cachecontrol', 'no-cache')
+            response.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
+            return theFile.index_html(self.REQUEST, self.REQUEST.RESPONSE)
 # ------------------------------------------------------------------------------

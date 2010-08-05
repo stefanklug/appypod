@@ -1,0 +1,728 @@
+<tal:comment replace="nothing">
+  This macro contains global page-related Javascripts.
+</tal:comment>
+<div metal:define-macro="prologue">
+  <tal:comment replace="nothing">Global elements used in every page.</tal:comment>
+
+  <tal:comment replace="nothing">Javascript messages</tal:comment>
+  <script language="javascript" tal:content="tool/getJavascriptMessages"></script>
+
+  <tal:comment replace="nothing">"Static" javascripts</tal:comment>
+  <script language="javascript">
+  <!--
+  var isIe = (navigator.appName == "Microsoft Internet Explorer");
+  // AJAX machinery
+  var xhrObjects = new Array(); // An array of XMLHttpRequest objects
+  function XhrObject() { // Wraps a XmlHttpRequest object
+    this.freed = 1; // Is this xhr object already dealing with a request or not?
+    this.xhr = false;
+    if (window.XMLHttpRequest) this.xhr = new XMLHttpRequest();
+    else this.xhr = new ActiveXObject("Microsoft.XMLHTTP");
+    this.hook = '';  /* The ID of the HTML element in the page that will be
+                        replaced by result of executing the Ajax request. */
+    this.onGet = ''; /* The name of a Javascript function to call once we
+                        receive the result. */
+    this.info = {};  /* An associative array for putting anything else. */
+  }
+
+  function getAjaxChunk(pos) {
+    // This function is the callback called by the AJAX machinery (see function
+    // askAjaxChunk below) when an Ajax response is available.
+    // First, find back the correct XMLHttpRequest object
+    if ( (typeof(xhrObjects[pos]) != 'undefined') &&
+         (xhrObjects[pos].freed == 0)) {
+      var hook = xhrObjects[pos].hook;
+      if (xhrObjects[pos].xhr.readyState == 1) {
+        // The request has been initialized: display the waiting radar
+        var hookElem = document.getElementById(hook);
+        if (hookElem) hookElem.innerHTML = "<div align=\"center\"><img src=\"skyn/waiting.gif\"/><\/div>";
+      }
+      if (xhrObjects[pos].xhr.readyState == 4) {
+        // We have received the HTML chunk
+        var hookElem = document.getElementById(hook);
+        if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
+          hookElem.innerHTML = xhrObjects[pos].xhr.responseText;
+          // Call a custom Javascript function if required
+          if (xhrObjects[pos].onGet) {
+            xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
+          }
+        }
+        xhrObjects[pos].freed = 1;
+      }
+    }
+  }
+
+  function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
+    /* This function will ask to get a chunk of HTML on the server through a
+       XMLHttpRequest. p_mode can be 'GET' or 'POST'. p_url is the URL of a
+       given server object. On this URL we will call the page "ajax.pt" that
+       will call a specific p_macro in a given p_page with some additional
+       p_params (must be an associative array) if required.
+
+       p_hook is the ID of the HTML element that will be filled with the HTML
+       result from the server.
+
+       p_beforeSend is a Javascript function to call before sending the request.
+       This function will get 2 args: the XMLHttpRequest object and the
+       p_params. This method can return, in a string, additional parameters to
+       send, ie: "&param1=blabla&param2=blabla".
+
+       p_onGet is a Javascript function to call when we will receive the answer.
+       This function will get 2 args, too: the XMLHttpRequest object and the
+       HTML node element into which the result has been inserted.
+    */
+    // First, get a non-busy XMLHttpRequest object.
+    var pos = -1;
+    for (var i=0; i < xhrObjects.length; i++) {
+      if (xhrObjects[i].freed == 1) { pos = i; break; }
+    }
+    if (pos == -1) {
+      pos = xhrObjects.length;
+      xhrObjects[pos] = new XhrObject();
+    }
+    xhrObjects[pos].hook = hook;
+    xhrObjects[pos].onGet = onGet;
+    if (xhrObjects[pos].xhr) {
+      var rq = xhrObjects[pos];
+      rq.freed = 0;
+      // Construct parameters
+      var paramsFull = 'page=' + page + '&macro=' + macro;
+      if (params) {
+        for (var paramName in params)
+          paramsFull = paramsFull + '&' + paramName + '=' + params[paramName];
+      }
+      // Call beforeSend if required
+      if (beforeSend) {
+         var res = beforeSend(rq, params);
+         if (res) paramsFull = paramsFull + res;
+      }
+      // Construct the URL to call
+      var urlFull = url + '/skyn/ajax';
+      if (mode == 'GET') {
+        urlFull = urlFull + '?' + paramsFull;
+      }
+      // Perform the asynchronous HTTP GET or POST
+      rq.xhr.open(mode, urlFull, true);
+      if (mode == 'POST') {
+        // Set the correct HTTP headers
+        rq.xhr.setRequestHeader(
+          "Content-Type", "application/x-www-form-urlencoded");
+        rq.xhr.setRequestHeader("Content-length", paramsFull.length);
+        rq.xhr.setRequestHeader("Connection", "close");
+        rq.xhr.onreadystatechange = function(){ getAjaxChunk(pos); }
+        rq.xhr.send(paramsFull);
+      }
+      else if (mode == 'GET') {
+        rq.xhr.onreadystatechange = function() { getAjaxChunk(pos); }
+        if (window.XMLHttpRequest) { rq.xhr.send(null); }
+        else if (window.ActiveXObject) { rq.xhr.send(); }
+      }
+    }
+  }
+
+  /* The functions below wrap askAjaxChunk for getting specific content through
+     an Ajax request. */
+  function askQueryResult(hookId, objectUrl, contentType, flavourNumber,
+              searchName, startNumber, sortKey, sortOrder, filterKey) {
+    // Sends an Ajax request for getting the result of a query.
+    var params = {'type_name': contentType, 'flavourNumber': flavourNumber,
+                  'search': searchName, 'startNumber': startNumber};
+    if (sortKey) params['sortKey'] = sortKey;
+    if (sortOrder) params['sortOrder'] = sortOrder;
+    if (filterKey) {
+      var filterWidget = document.getElementById(hookId + '_' + filterKey);
+      if (filterWidget && filterWidget.value) {
+        params['filterKey'] = filterKey;
+        params['filterValue'] = filterWidget.value;
+      }
+    }
+    askAjaxChunk(hookId,'GET',objectUrl,'macros','queryResult',params);
+  }
+
+  function askObjectHistory(hookId, objectUrl, startNumber) {
+    // Sends an Ajax request for getting the history of an object
+    var params = {'startNumber': startNumber};
+    askAjaxChunk(hookId, 'GET', objectUrl, 'page', 'objectHistory', params);
+  }
+
+  function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
+                       action, actionParams){
+    // Sends an Ajax request for getting the content of a reference field.
+    var startKey = hookId + '_startNumber';
+    var params = {'fieldName': fieldName, 'innerRef': innerRef, };
+    params[startKey] =  startNumber;
+    if (action) params['action'] = action;
+    if (actionParams) {
+        for (key in actionParams) { params[key] = actionParams[key]; };
+    }
+    askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/ref', 'viewContent',params);
+  }
+
+  // Function used by checkbox widgets for having radio-button-like behaviour
+  function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
+    vis = document.getElementById(visibleCheckbox);
+    hidden = document.getElementById(hiddenBoolean);
+    if (vis.checked) hidden.value = 'True';
+    else hidden.value = 'False';
+  }
+  // Functions used for master/slave relationships between widgets
+  function getMasterValue(widget) {
+    // Returns an array of selected options in a select widget
+    res = new Array();
+    if (widget.type == 'checkbox') {
+      var mv = widget.checked + '';
+      mv = mv.charAt(0).toUpperCase() + mv.substr(1);
+      res.push(mv);
+    }
+    else { // SELECT widget
+      for (var i=0; i < widget.options.length; i++) {
+        if (widget.options[i].selected) res.push(widget.options[i].value);
+      }
+    }
+    return res;
+  }
+  function updateSlaves(masterValues, appyTypeId) {
+    // Given the value(s) selected in a master field, this function updates the
+    // state of all corresponding slaves.
+    var slaves = cssQuery('table.slave_' + appyTypeId);
+    for (var i=0; i< slaves.length; i++){
+      slaves[i].style.display = "none";
+    }
+    for (var i=0; i < masterValues.length; i++) {
+      var activeSlaves = cssQuery('table.slaveValue_' + appyTypeId + '_' + masterValues[i]);
+      for (var j=0; j < activeSlaves.length; j++){
+        activeSlaves[j].style.display = "";
+      }
+    }
+  }
+  // Function used for triggering a workflow transition
+  function triggerTransition(transitionId) {
+    var theForm = document.getElementById('triggerTransitionForm');
+    theForm.workflow_action.value = transitionId;
+    theForm.submit();
+  }
+  function onDeleteObject(objectUid) {
+    if (confirm(delete_confirm)) {
+       f = document.getElementById('deleteForm');
+       f.objectUid.value = objectUid;
+       f.submit();
+    }
+  }
+  function toggleCookie(cookieId) {
+    // What is the state of this boolean (expanded/collapsed) cookie?
+    var state = readCookie(cookieId);
+    if ((state != 'collapsed') && (state != 'expanded')) {
+      // No cookie yet, create it.
+      createCookie(cookieId, 'collapsed');
+      state = 'collapsed';
+    }
+    var hook = document.getElementById(cookieId); // The hook is the part of
+    // the HTML document that needs to be shown or hidden.
+    var displayValue = 'none';
+    var newState = 'collapsed';
+    var imgSrc = 'skyn/expand.gif';
+    if (state == 'collapsed') {
+      // Show the HTML zone
+      displayValue = 'block';
+      imgSrc = 'skyn/collapse.gif';
+      newState = 'expanded';
+    }
+    // Update the corresponding HTML element
+    hook.style.display = displayValue;
+    var img = document.getElementById(cookieId + '_img');
+    img.src = imgSrc;
+    // Inverse the cookie value
+    createCookie(cookieId, newState);
+  }
+  // Function that allows to generate a document from a pod template.
+  function generatePodDocument(contextUid, templateUid, fieldName, podFormat) {
+    var theForm = document.forms["podTemplateForm"];
+    theForm.objectUid.value = contextUid;
+    theForm.templateUid.value = templateUid;
+    theForm.fieldName.value = fieldName;
+    theForm.podFormat.value = podFormat;
+    theForm.askAction.value = "False";
+    var askActionWidget = document.getElementById(contextUid + '_' + fieldName);
+    if (askActionWidget && askActionWidget.checked) {
+        theForm.askAction.value = "True";
+    }
+    theForm.submit();
+  }
+  // Functions for opening and closing a popup
+  function openPopup(popupId) {
+    // Open the popup
+    var popup = document.getElementById(popupId);
+    // Put it at the right place on the screen
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+    popup.style.top = (scrollTop + 150) + 'px';
+    popup.style.display = "block";
+    // Show the greyed zone
+    var greyed = document.getElementById('appyGrey');
+    greyed.style.top = scrollTop + 'px';
+    greyed.style.display = "block";
+  }
+  function closePopup(popupId) {
+    // Close the popup
+    var popup = document.getElementById(popupId);
+    popup.style.display = "none";
+    // Hide the greyed zone
+    var greyed = document.getElementById('appyGrey');
+    greyed.style.display = "none";
+  }
+  // Function triggered when an action needs to be confirmed by the user
+  function askConfirm(formId) {
+    // Store the ID of the form to send if the users confirms.
+    var confirmForm = document.getElementById('confirmActionForm');
+    confirmForm.actionFormId.value = formId;
+    openPopup("confirmActionPopup");
+  }
+  // Function triggered when an action confirmed by the user must be performed
+  function doConfirm() {
+    // The user confirmed: retrieve the form to send and send it.
+    var confirmForm = document.getElementById('confirmActionForm');
+    var actionFormId = confirmForm.actionFormId.value;
+    var actionForm = document.getElementById(actionFormId);
+    actionForm.submit();
+  }
+  // Function that shows or hides a tab. p_action is 'show' or 'hide'.
+  function manageTab(tabId, action) {
+    // Manage the tab content (show it or hide it)
+    var content = document.getElementById('tabcontent_' + tabId);
+    if (action == 'show')   { content.style.display = 'table-row'; }
+    else                    { content.style.display = 'none'; }
+    // Manage the tab itself (show as selected or unselected)
+    var left = document.getElementById('tab_' + tabId + '_left');
+    var tab = document.getElementById('tab_' + tabId);
+    var right = document.getElementById('tab_' + tabId + '_right');
+    if (action == 'show') {
+        left.src  = "skyn/tabLeft.png";
+        tab.style.backgroundImage = "url(skyn/tabBg.png)";
+        right.src = "skyn/tabRight.png";
+    }
+    if (action == 'hide') {
+        left.src  = "skyn/tabLeftu.png";
+        tab.style.backgroundImage = "url(skyn/tabBgu.png)";
+        right.src = "skyn/tabRightu.png";
+    }
+  }
+  // Function used for displaying/hiding content of a tab
+  function showTab(tabId) {
+    // 1st, show the tab to show
+    manageTab(tabId, 'show');
+    // Compute the number of tabs.
+    var idParts = tabId.split('_');
+    var prefix = idParts[0] + '_';
+    // Store the currently selected tab in a cookie.
+    createCookie('tab_' + idParts[0], tabId);
+    var nbOfTabs = idParts[2]*1;
+    // Then, hide the other tabs.
+    for (var i=0; i<nbOfTabs; i++) {
+       var idTab = prefix + (i+1) + '_' + nbOfTabs;
+       if (idTab != tabId) {
+         manageTab(idTab, 'hide');
+       }
+    }
+  }
+  // Function that initializes the state of a tab
+  function initTab(cookieId, defaultValue) {
+    var toSelect = readCookie(cookieId);
+    if (!toSelect) { showTab(defaultValue) }
+    else { showTab(toSelect); }
+  }
+-->
+  </script>
+  <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
+  <form id="deleteForm" method="post" action="skyn/do">
+    <input type="hidden" name="action" value="Delete"/>
+    <input type="hidden" name="objectUid"/>
+  </form>
+  <tal:comment replace="nothing">Global form for generating a document from a pod template.</tal:comment>
+  <form name="podTemplateForm" method="post"
+        tal:attributes="action python: flavour.absolute_url() + '/generateDocument'">
+    <input type="hidden" name="objectUid"/>
+    <tal:comment replace="nothing">templateUid is given if class-wide pod, fieldName and podFormat are given if podField.</tal:comment>
+    <input type="hidden" name="templateUid"/>
+    <input type="hidden" name="fieldName"/>
+    <input type="hidden" name="podFormat"/>
+    <input type="hidden" name="askAction"/>
+  </form>
+</div>
+
+<tal:comment replace="nothing">
+  This macro shows the content of page. Because a page is a layouted object,
+  we simply call the macro that displays a layouted object.
+    contextObj         The Zope object for which this page must be shown
+    layoutType         The kind of layout: "view"? "edit"? "cell"?
+    layout             The layout object that will dictate how object content
+                       will be rendered.
+</tal:comment>
+<metal:show define-macro="show">
+  <metal:layout use-macro="here/skyn/widgets/show/macros/layout"/>
+</metal:show>
+
+<tal:comment replace="nothing">
+  This macro displays all widgets of a given page. It requires:
+    contextObj         The Zope object for which widgets must be shown
+    page               We show widgets of a given page
+    layoutType         We must know if we must render the widgets in a "view",
+                       "edit" or "cell" layout
+</tal:comment>
+<table metal:define-macro="widgets" cellpadding="0" cellspacing="0">
+  <tr tal:repeat="widget python: contextObj.getGroupedAppyTypes(layoutType, page)">
+    <td tal:condition="python: widget['type'] == 'group'">
+      <metal:call use-macro="portal/skyn/widgets/show/macros/group"/>
+    </td>
+    <td tal:condition="python: widget['type'] != 'group'">
+      <metal:call use-macro="portal/skyn/widgets/show/macros/field"/>
+    </td>
+  </tr>
+</table>
+
+<tal:comment replace="nothing">
+  This macro lists the POD templates that are available. It is used by macro "header" below.
+</tal:comment>
+<div metal:define-macro="listPodTemplates" class="appyPod" tal:condition="podTemplates"
+     tal:define="podTemplates python: flavour.getAvailablePodTemplates(contextObj, phase);">
+  <tal:podTemplates define="maxShownTemplates python: flavour.getMaxShownTemplates(contextObj)">
+    <tal:comment replace="nothing">Display templates as links if a few number of templates must be shown</tal:comment>
+    <span class="discreet" tal:condition="python: len(podTemplates)&lt;=maxShownTemplates"
+          tal:repeat="podTemplate podTemplates">
+      <a style="cursor: pointer"
+         tal:define="podFormat podTemplate/getPodFormat"
+         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
+        <img tal:attributes="src string: $portal_url/skyn/$podFormat.png"/>
+        <span tal:replace="podTemplate/Title"/>
+      </a>
+  &nbsp;</span>
+  <tal:comment replace="nothing">Display templates as a list if a lot of templates must be shown</tal:comment>
+  <select tal:condition="python: len(podTemplates)&gt;maxShownTemplates">
+    <option value="" tal:content="python: tool.translate('choose_a_doc')"></option>
+    <option tal:repeat="podTemplate podTemplates" tal:content="podTemplate/Title"
+            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
+  </select>
+  </tal:podTemplates>
+</div>
+
+<tal:comment replace="nothing">
+  This macro displays an object's history. It is used by macro "header" below.
+</tal:comment>
+<metal:history define-macro="objectHistory"
+      tal:define="startNumber request/startNumber|python:0;
+                  startNumber python: int(startNumber);
+                  historyInfo python: contextObj.getHistory(startNumber);
+                  objs        historyInfo/events;
+                  batchSize   historyInfo/batchSize;
+                  totalNumber historyInfo/totalNumber;
+                  ajaxHookId  python:'appyHistory';
+                  navBaseCall python: 'askObjectHistory(\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url());
+                  tool        contextObj/getTool">
+
+  <tal:comment replace="nothing">Table containing the history</tal:comment>
+  <tal:history condition="objs">
+  <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
+  <table width="100%" class="listing nosort">
+    <tr i18n:domain="plone">
+      <th i18n:translate="listingheader_action"/>
+      <th i18n:translate="listingheader_performed_by"/>
+      <th i18n:translate="listingheader_date_and_time"/>
+      <th i18n:translate="listingheader_comment"/>
+    </tr>
+    <tal:event repeat="event objs">
+    <tr tal:define="odd repeat/event/odd;
+                    rhComments event/comments|nothing;
+                    state event/review_state|nothing;
+                    isDataChange python: event['action'] == '_datachange_'"
+        tal:attributes="class python:test(odd, 'even', 'odd')" valign="top">
+      <td tal:condition="isDataChange" tal:content="python: tool.translate('data_change')"></td>
+      <td tal:condition="not: isDataChange"
+          tal:content="python: tool.translate(contextObj.getWorkflowLabel(event['action']))"
+          tal:attributes="class string:state-${state}"/>
+      <td tal:define="actorid python:event.get('actor');
+                      actor python:contextObj.portal_membership.getMemberInfo(actorid);
+                      fullname actor/fullname|nothing;
+                      username actor/username|nothing"
+          tal:content="python:fullname or username or actorid"/>
+      <td tal:content="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(event['time'],long_format=True)"/>
+      <td tal:condition="not: isDataChange"><tal:comment condition="rhComments" tal:content="structure rhComments"/>
+        <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
+      <td tal:condition="isDataChange">
+        <tal:comment replace="nothing">
+          Display the previous values of the fields whose value were modified in this change.</tal:comment>
+        <table class="appyChanges" width="100%">
+          <tr>
+            <th align="left" width="30%" tal:content="python: tool.translate('modified_field')"></th>
+            <th align="left" width="70%" tal:content="python: tool.translate('previous_value')"></th>
+          </tr>
+          <tr tal:repeat="change event/changes/items" valign="top">
+            <td tal:content="python: tool.translate(change[1][1])"></td>
+            <td tal:define="appyValue python: contextObj.getFormattedValue(change[0], useParamValue=True, value=change[1][0]);
+                            appyType python:contextObj.getAppyType(change[0], asDict=True);
+                            severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
+              <span tal:condition="not: severalValues" tal:replace="appyValue"></span>
+              <ul tal:condition="python: severalValues">
+                <li tal:repeat="av appyValue" tal:content="av"></li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    </tal:event>
+  </table>
+  </tal:history>
+</metal:history>
+
+<tal:comment replace="nothing">
+  This macro displays an object's state(s). It is used by macro "header" below.
+</tal:comment>
+<metal:states define-macro="states"
+              tal:define="showAllStatesInPhase python: flavour.getAttr('showAllStatesInPhaseFor' + contextObj.meta_type);
+                          states python: contextObj.getAppyStates(phase, currentOnly=not showAllStatesInPhase)"
+              tal:condition="python: test(showAllStatesInPhase, len(states)&gt;1, True)">
+  <table>
+    <tr>
+      <tal:state repeat="stateInfo states">
+        <td tal:attributes="class python: 'appyState step' + stateInfo['stateStatus']"
+            tal:content="python: tool.translate(contextObj.getWorkflowLabel(stateInfo['name']))">
+        </td>
+        <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
+          <img tal:attributes="src string: $portal_url/skyn/nextState.png"/>
+        </td>
+      </tal:state>
+    </tr>
+  </table>
+</metal:states>
+
+<tal:comment replace="nothing">
+  This macro displays an object's transitions(s). It is used by macro "header" below.
+</tal:comment>
+<metal:transitions define-macro="transitions"
+                   tal:define="transitions contextObj/getAppyTransitions"
+                   tal:condition="transitions">
+  <form id="triggerTransitionForm" method="post"
+        tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
+    <input type="hidden" name="action" value="TriggerTransition"/>
+    <input type="hidden" name="workflow_action"/>
+    <table>
+      <tr>
+        <tal:comment replace="nothing">Input field allowing to enter a comment before triggering a transition</tal:comment>
+        <td tal:define="showCommentsField python:flavour.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
+            align="right" tal:condition="showCommentsField">
+          <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
+          <input type="text" id="comment" name="comment" size="35"/>
+        </td>
+
+        <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
+        <td align="right" tal:repeat="transition transitions">
+          <input type="button" class="context"
+                 tal:attributes="value python: tool.translate(transition['name']);
+                                 onClick python: 'javascript: triggerTransition(\'%s\')' % transition['id'];"/>
+        </td>
+    </tr>
+    </table>
+  </form>
+</metal:transitions>
+
+<tal:comment replace="nothing">
+   This macros displays the page header, containing object title,
+   workflow-related info, object history, etc.
+</tal:comment>
+<div metal:define-macro="header"
+     tal:define="showCommonInfo python: layoutType == 'view';
+                 hasHistory contextObj/hasHistory;
+                 historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
+                 creator contextObj/Creator"
+     tal:condition="not: contextObj/isTemporary">
+
+    <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
+    <table width="100%" tal:condition="showCommonInfo" class="appyCommonInfo">
+      <tr valign="bottom">
+        <tal:comment replace="nothing">Title and state</tal:comment>
+        <td width="80%">
+          <b class="appyTitle" tal:content="contextObj/title_or_id"></b>
+        </td>
+        <td><metal:actions use-macro="here/document_actions/macros/document_actions"/>
+        </td>
+      </tr>
+      <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
+          tal:condition="descrLabel/strip" >
+        <tal:comment replace="nothing">Content type description</tal:comment>
+        <td colspan="2" class="discreet" tal:content="descrLabel"/>
+      </tr>
+      <tr>
+        <td class="documentByLine">
+          <tal:comment replace="nothing">Creator and last modification date</tal:comment>
+            <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
+            <tal:accessHistory condition="hasHistory">
+            <img align="left" style="cursor:pointer" onClick="javascript:toggleCookie('appyHistory')"
+                 tal:attributes="src python:test(historyExpanded, 'skyn/collapse.gif', 'skyn/expand.gif');"
+                 id="appyHistory_img"/>&nbsp;
+            <span i18n:translate="label_history" i18n:domain="plone" class="appyHistory"></span>&nbsp;
+            </tal:accessHistory>
+
+            <tal:comment replace="nothing">Show document creator</tal:comment>
+            <tal:creator condition="creator"
+                 define="author python:contextObj.portal_membership.getMemberInfo(creator)">
+            <span class="documentAuthor" i18n:domain="plone" i18n:translate="label_by_author">
+            by <a tal:attributes="href string:${portal_url}/author/${creator}"
+                  tal:content="python:author and author['fullname'] or creator"
+                  tal:omit-tag="not:author" i18n:name="author"/>
+            &mdash;
+            </span>
+            </tal:creator>
+            <tal:comment replace="nothing">Show last modification date</tal:comment>
+            <span i18n:translate="box_last_modified" i18n:domain="plone"></span>
+            <span tal:replace="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
+        </td>
+        <td valign="top"><metal:pod use-macro="here/skyn/page/macros/listPodTemplates"/>
+        </td>
+      </tr>
+      <tal:comment replace="nothing">Object history</tal:comment>
+      <tr tal:condition="hasHistory">
+        <td colspan="2">
+          <span id="appyHistory"
+                tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
+          <div tal:define="ajaxHookId python: contextObj.UID() + '_history';"
+               tal:attributes="id ajaxHookId">
+             <script language="javascript" tal:content="python: 'askObjectHistory(\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url())">
+             </script>
+          </div>
+          </span>
+        </td>
+      </tr>
+      <tal:comment replace="nothing">Workflow-related information and actions</tal:comment>
+      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()">
+        <td colspan="2" class="appyWorkflow">
+          <table width="100%">
+            <tr>
+              <td><metal:states use-macro="here/skyn/page/macros/states"/></td>
+              <td align="right"><metal:states use-macro="here/skyn/page/macros/transitions"/></td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+</div>
+
+<tal:comment replace="nothing">
+  The page footer.
+</tal:comment>
+<metal:footer define-macro="footer">
+<tal:dummy define="messages putils/showPortalMessages"/>
+<script language="javascript">
+<!--
+  // When the current page is loaded, we must set the correct state for all slave fields.
+  var masters = cssQuery('.appyMaster');
+  for (var i=0; i < masters.length; i++) {
+    var cssClasses = masters[i].className.split(' ');
+    for (var j=0; j < cssClasses.length; j++) {
+      if (cssClasses[j].indexOf('master_') == 0) {
+        var appyId = cssClasses[j].split('_')[1];
+        var masterValue = [];
+        if (masters[i].nodeName == 'SPAN'){
+          var idField = masters[i].id;
+          if (idField == '') {
+            masterValue.push(idField);
+          }
+          else {
+            if (idField[0] == '(') {
+              // There are multiple values, split it
+              var subValues = idField.substring(1, idField.length-1).split(',');
+              for (var k=0; k < subValues.length; k++){
+                var subValue = subValues[k].strip();
+                masterValue.push(subValue.substring(1, subValue.length-1));
+              }
+            }
+            else { masterValue.push(masters[i].id);
+            }
+          }
+        }
+        else { masterValue = getMasterValue(masters[i]);
+        }
+        updateSlaves(masterValue, appyId);
+      }
+    }
+  }
+-->
+</script>
+</metal:footer>
+
+<tal:comment replace="nothing">
+  This macro shows the range of buttons (next, previous, save,...).
+</tal:comment>
+<div metal:define-macro="buttons"
+     tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page);
+                 nextPage       python: contextObj.getNextPage(phaseInfo, page);
+                 isEdit         python: layoutType == 'edit';">
+    <br/>
+    <tal:previousButton condition="previousPage">
+      <tal:button condition="isEdit">
+        <input type="image" class="imageInput" style="cursor:pointer" name="buttonPrevious"
+               title="label_previous" i18n:attributes="title" i18n:domain="plone"
+               tal:attributes="src string:$portal_url/skyn/previous.png"/>
+        <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
+      </tal:button>
+      <tal:link condition="not: isEdit">
+        <a tal:attributes="href python: contextObj.getUrl()+'?page=%s' % previousPage">
+          <img tal:attributes="src string:$portal_url/skyn/previous.png"
+               title="label_previous" i18n:attributes="title" i18n:domain="plone"/>
+        </a>
+      </tal:link>
+    </tal:previousButton>
+
+    <tal:saveButton condition="isEdit">
+      <input type="image" class="imageInput" style="cursor:pointer" name="buttonOk"
+             title="label_save" i18n:attributes="title" i18n:domain="plone"
+             tal:attributes="src string:$portal_url/skyn/save.png"/>
+    </tal:saveButton>
+
+    <tal:cancelButton condition="isEdit">
+      <input type="image" class="imageInput" style="cursor:pointer" name="buttonCancel"
+             title="label_cancel" i18n:attributes="title" i18n:domain="plone"
+             tal:attributes="src string:$portal_url/skyn/cancel.png"/>
+    </tal:cancelButton>
+
+    <tal:editLink condition="not:isEdit">
+      <img tal:define="nav request/nav|nothing;
+                       nav python: test(nav, '&nav=%s' % nav, '')"
+           title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+           tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?page=%s%s\'' % (contextObj.absolute_url(), page, nav);
+                           src string: $portal_url/skyn/editBig.png"
+           tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
+    </tal:editLink>
+
+    <tal:nextButton condition="nextPage">
+      <tal:button condition="isEdit">
+        <input type="image" class="imageInput" style="cursor:pointer" name="buttonNext"
+               title="label_next" i18n:attributes="title" i18n:domain="plone"
+               tal:attributes="src string:$portal_url/skyn/next.png"/>
+        <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>
+      </tal:button>
+      <tal:link condition="not: isEdit">
+        <a tal:attributes="href python: contextObj.getUrl()+'?&page=%s' % nextPage">
+          <img tal:attributes="src string:$portal_url/skyn/next.png"
+               title="label_next" i18n:attributes="title" i18n:domain="plone"/>
+        </a>
+      </tal:link>
+    </tal:nextButton>
+</div>
+
+<tal:comment replace="nothing">
+  This macro displays the global message on the page.
+</tal:comment>
+<metal:message define-macro="message" i18n:domain="plone" >
+  <tal:comment replace="nothing">Single message from portal_status_message request key</tal:comment>
+  <div tal:define="msg request/portal_status_message | nothing"
+       tal:condition="msg" class="portalMessage" tal:content="msg" i18n:translate=""></div>
+
+  <tal:comment replace="nothing">Messages added via plone_utils</tal:comment>
+  <tal:messages define="messages putils/showPortalMessages" condition="messages">
+    <tal:msgs define="type_css_map python: {'info':'portalMessage', 'warn':'portalWarningMessage',
+                                            'stop':'portalStopMessage'};"
+              repeat="msg messages">
+      <div tal:define="mtype msg/type | nothing;"
+           tal:attributes="class python:mtype and type_css_map[mtype] or 'info';"
+           tal:content="structure msg/message | nothing" i18n:translate=""></div>
+    </tal:msgs>
+  </tal:messages>
+</metal:message>

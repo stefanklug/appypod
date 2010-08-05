@@ -1,0 +1,39 @@
+<tal:comment replace="nothing">View macro for a Boolean.</tal:comment>
+<metal:view define-macro="view"><span tal:replace="value"/></metal:view>
+
+<tal:comment replace="nothing">Edit macro for an Boolean.</tal:comment>
+<metal:edit define-macro="edit">
+  <input type="checkbox"
+         tal:attributes="name python: name + '_visible';
+                         id name;
+                         checked python:contextObj.checkboxChecked(name);
+                         onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(getMasterValue(this), \'%s\')' % (name, name, widget['id']);
+                         class python: 'noborder ' + widget['master_css']"/>
+  <input tal:attributes="name name;
+                         id string:${name}_hidden;
+                         value python: test(contextObj.checkboxChecked(name), 'True', 'False')"
+         type="hidden" />&nbsp;
+</metal:edit>
+
+<tal:comment replace="nothing">Cell macro for an Boolean.</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="portal/skyn/widgets/boolean/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro for an Boolean.</tal:comment>
+<metal:search define-macro="search"
+              tal:define="typedWidget python:'%s*bool' % widgetName">
+  <label tal:attributes="for widgetName" tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
+  <tal:yes define="valueId python:'%s_yes' % name">
+    <input type="radio" class="noborder" value="True" tal:attributes="name typedWidget; id valueId"/>
+    <label tal:attributes="for valueId" i18n:translate="yes" i18n:domain="plone"></label>
+  </tal:yes>
+  <tal:no define="valueId python:'%s_no' % name">
+    <input type="radio" class="noborder" value="False" tal:attributes="name typedWidget; id valueId"/>
+    <label tal:attributes="for valueId" i18n:translate="no" i18n:domain="plone"></label>
+  </tal:no>
+  <tal:whatever define="valueId python:'%s_whatever' % name">
+    <input type="radio" class="noborder" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
+    <label tal:attributes="for valueId" tal:content="python: tool.translate('whatever')"></label>
+  </tal:whatever><br/>
+</metal:search>

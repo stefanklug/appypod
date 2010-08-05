@@ -8,7 +8,7 @@ from appy.pod.renderer import Renderer
 import appy.gen
 from appy.gen import Type
 from appy.gen.plone25.mixins import AbstractMixin
-from appy.gen.plone25.descriptors import ArchetypesClassDescriptor
+from appy.gen.plone25.descriptors import ClassDescriptor
 
 # Errors -----------------------------------------------------------------------
 DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
@@ -17,7 +17,7 @@ POD_ERROR = 'An error occurred while generating the document. Please ' \
 
 # ------------------------------------------------------------------------------
 class FlavourMixin(AbstractMixin):
-    _appy_meta_type = 'flavour'
+    _appy_meta_type = 'Flavour'
     def getPortalType(self, metaTypeOrAppyType):
         '''Returns the name of the portal_type that is based on
            p_metaTypeOrAppyType in this flavour.'''
@@ -26,7 +26,7 @@ class FlavourMixin(AbstractMixin):
         isAppy = False
         appName = self.getProductConfig().PROJECTNAME
         if not isinstance(res, basestring):
-            res = ArchetypesClassDescriptor.getClassName(res)
+            res = ClassDescriptor.getClassName(res)
             isAppy = True
         if res.find('Extensions_appyWrappers') != -1:
             isPredefined = True
@@ -41,8 +41,9 @@ class FlavourMixin(AbstractMixin):
             isPredefined = True
             res = '%sFlavour' % appName
         if not isPredefined:
-            if self.getNumber() != 1:
-                res = '%s_%d' % (res, self.number)
+            number = self.appy().number
+            if number != 1:
+                res = '%s_%d' % (res, number)
         return res
 
     def registerPortalTypes(self):
@@ -129,9 +130,9 @@ class FlavourMixin(AbstractMixin):
         n = appyFlavour.getAttributeName('podTemplate', appyClass, fieldName)
         res['template'] = getattr(appyFlavour, n)
         appyType = ploneObj.getAppyType(fieldName)
-        res['title'] = self.translate(appyType['label'])
-        res['context'] = appyType['context']
-        res['action'] = appyType['action']
+        res['title'] = self.translate(appyType.labelId)
+        res['context'] = appyType.context
+        res['action'] = appyType.action
         return res
 
     def generateDocument(self):
@@ -225,18 +226,18 @@ class FlavourMixin(AbstractMixin):
             appyTool.log(DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
         return res
 
-    def getAttr(self, attrName):
+    def getAttr(self, name):
         '''Gets on this flavour attribute named p_attrName. Useful because we
            can't use getattr directly in Zope Page Templates.'''
-        return getattr(self, attrName, None)
+        return getattr(self.appy(), name, None)
 
     def _appy_getAllFields(self, contentType):
         '''Returns the (translated) names of fields of p_contentType.'''
         res = []
-        for attrName in self.getProductConfig().attributes[contentType]:
-            if attrName != 'title': # Will be included by default.
-                label = '%s_%s' % (contentType, attrName)
-                res.append((attrName, self.translate(label)))
+        for appyType in self.getProductConfig().attributes[contentType]:
+            if appyType.name != 'title': # Will be included by default.
+                label = '%s_%s' % (contentType, appyType.name)
+                res.append((appyType.name, self.translate(label)))
         # Add object state
         res.append(('workflowState', self.translate('workflow_state')))
         return res
@@ -244,15 +245,10 @@ class FlavourMixin(AbstractMixin):
     def _appy_getSearchableFields(self, contentType):
         '''Returns the (translated) names of fields that may be searched on
            objects of type p_contentType (=indexed fields).'''
-        tool = self.getParentNode()
-        appyClass = tool.getAppyClass(contentType)
-        attrNames = self.getProductConfig().attributes[contentType]
         res = []
-        for attrName in attrNames:
-            attr = getattr(appyClass, attrName)
-            if isinstance(attr, Type) and attr.indexed:
-                label = '%s_%s' % (contentType, attrName)
-                res.append((attrName, self.translate(label)))
+        for appyType in self.getProductConfig().attributes[contentType]:
+            if appyType.indexed:
+                res.append((appyType.name, self.translate(appyType.labelId)))
         return res
 
     def getSearchableFields(self, contentType):
@@ -260,11 +256,10 @@ class FlavourMixin(AbstractMixin):
            the list of fields that the user has configured in the flavour as
            being effectively used in the search screen.'''
         res = []
-        appyClass = self.getAppyClass(contentType)
-        for attrName in getattr(self, 'searchFieldsFor%s' % contentType, ()):
-            attr = getattr(appyClass, attrName)
-            dAttr = self._appy_getTypeAsDict(attrName, attr, appyClass)
-            res.append((attrName, dAttr))
+        fieldNames = getattr(self.appy(), 'searchFieldsFor%s' % contentType, ())
+        for name in fieldNames:
+            appyType = self.getAppyType(name, asDict=True,className=contentType)
+            res.append(appyType)
         return res
 
     def getImportElements(self, contentType):

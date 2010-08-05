@@ -46,7 +46,7 @@ class Generator(AbstractGenerator):
            into the ODT file. This method returns the list of "dumpable"
            fields.'''
         res = []
-        for fieldName, field in classDescr.getOrderedAppyAttributes():
+        for fieldName, field, klass in classDescr.getOrderedAppyAttributes():
             if (field.type not in self.undumpable) and \
                (not self.fieldIsStaticallyInvisible(field)):
                 res.append((fieldName, field))

@@ -1,0 +1,102 @@
+<tal:comment replace="nothing">View macro for a String.</tal:comment>
+<metal:view define-macro="view"
+       tal:define="fmt widget/format;
+                   maxMult python: widget['multiplicity'][1];
+                   severalValues python: (maxMult == None) or (maxMult &gt; 1)">
+  <span tal:condition="python: fmt in (0, 3)"
+        tal:attributes="class widget/master_css;
+                        id python: contextObj.getFormattedValue(name, forMasterId=True)">
+    <ul class="appyList" tal:condition="python: value and severalValues">
+      <li class="appyBullet" tal:repeat="sv value"><i tal:content="structure sv"></i></li>
+    </ul>
+    <tal:singleValue condition="python: value and not severalValues">
+      <span tal:condition="python: fmt != 3" tal:replace="structure value"/>
+      <span tal:condition="python: fmt == 3">********</span>
+    </tal:singleValue>
+  </span>
+  <tal:formattedString condition="python: fmt not in (0, 3)">
+    <span tal:condition="python: value and (fmt == 1)"
+          tal:replace="structure python: value.replace('\n', '&lt;br&gt;')"/>
+    <span tal:condition="python: value and (fmt == 2)" tal:replace="structure value"/>
+  </tal:formattedString>
+</metal:view>
+
+<tal:comment replace="nothing">Edit macro for a String.</tal:comment>
+<metal:edit define-macro="edit"
+            tal:define="fmt widget/format;
+                        isSelect widget/isSelect;
+                        isMaster widget/slaves;
+                        isOneLine python: fmt in (0,3)">
+
+  <tal:choice condition="isSelect">
+  <select tal:define="possibleValues python:contextObj.getPossibleValues(name, withTranslations=True, withBlankValue=True)"
+          tal:attributes="name name;
+                          id name;
+                          multiple python: test(widget['multiplicity'][1] != 1, 'multiple', '');
+                          onchange python: test(isMaster, 'javascript:updateSlaves(getMasterValue(this), \'%s\')' % widget['id'], '');
+                          class    widget/master_css">
+    <option tal:repeat="possibleValue possibleValues"
+            tal:attributes="value python: possibleValue[0];
+                            selected python:contextObj.fieldValueSelected(name, possibleValue[0])"
+            tal:content="python:tool.truncateValue(possibleValue[1], widget)"></option>
+  </select>
+  </tal:choice>
+  <tal:line condition="python: isOneLine and not isSelect">
+    <input tal:attributes="id name; name name; size widget/width;
+                           value python: test(inRequest, requestValue, value)" type="text"/>
+  </tal:line>
+  <tal:textarea condition="python: fmt == 1">
+    <textarea tal:attributes="id name; name name;
+                              cols widget/width;
+                              rows widget/height;"
+              tal:content="python: test(inRequest, requestValue, value)">
+    </textarea>
+    <input type="hidden" value="text/plain" originalvalue="text/plain"
+           tal:attributes="name python: '%s_text_format' % name"/>
+  </tal:textarea>
+  <tal:rich condition="python: fmt == 2">
+    <tal:editor define="editor python: member.getProperty('wysiwyg_editor','').lower();
+                        macrosFile python: path('nocall:here/%s_wysiwyg_support' % editor);
+                        fieldName name;
+                        inputname name;
+                        inputvalue python: test(inRequest, requestValue, value);
+                        dummy python: request.set('%s_text_format' % name, 'text/html')">
+     <metal:box use-macro="macrosFile/macros/wysiwygEditorBox"/>
+    </tal:editor>
+  </tal:rich>
+</metal:edit>
+
+<tal:comment replace="nothing">Cell macro for a String.</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="portal/skyn/widgets/string/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro for a String.</tal:comment>
+<metal:search define-macro="search">
+  <label tal:attributes="for widgetName" tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
+  <tal:comment replace="nothing">Show a simple search field for most String fields.</tal:comment>
+  <tal:simpleSearch condition="not: widget/isSelect">
+    <input type="text" tal:attributes="name python: '%s*string-%s' % (widgetName, widget['transform']);
+                                       style python: 'text-transform:%s' % widget['transform']"/>
+  </tal:simpleSearch>
+  <tal:comment replace="nothing">Show a multi-selection box for fields whose
+    validator defines a list of values, with a "AND/OR" checkbox.</tal:comment>
+  <tal:selectSearch condition="widget/isSelect">
+    <tal:comment replace="nothing">The "and" / "or" radio buttons</tal:comment>
+    <tal:operator define="operName python: 'o_%s'   % fieldName;
+                          orName   python: '%s_or'  % operName;
+                          andName  python: '%s_and' % operName;"
+                  condition="python: widget['multiplicity'][1]!=1">
+    <input type="radio" class="noborder" tal:attributes="name operName; id orName" checked="checked" value="or"/>
+    <label tal:attributes="for orName" tal:content="python: tool.translate('search_or')"></label>
+    <input type="radio" class="noborder" tal:attributes="name operName; id andName" value="and"/>
+    <label tal:attributes="for andName" tal:content="python: tool.translate('search_and')"></label><br/>
+    </tal:operator>
+    <tal:comment replace="nothing">The list of values</tal:comment>
+    <select tal:attributes="name widgetName" multiple="multiple" size="5">
+      <option tal:repeat="v python:tool.getPossibleValues(name, withTranslations=True, withBlankValue=False, className=contentType)"
+              tal:attributes="value python:v[0]" tal:content="python: v[1]">
+      </option>
+    </select>
+  </tal:selectSearch><br/>
+</metal:search>

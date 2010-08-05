@@ -20,7 +20,7 @@
                    importElems python: flavour.getImportElements(contentType);
                    global allAreImported python:True">
 
-  <div metal:use-macro="here/skyn/macros/macros/pagePrologue"/>
+  <div metal:use-macro="here/skyn/page/macros/prologue"/>
   <script language="javascript">
   <!--
   var importedElemsShown = false;

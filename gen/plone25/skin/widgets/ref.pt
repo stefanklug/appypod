@@ -1,5 +1,6 @@
-<tal:comment replace="nothing"> We begin with some sub-macros used within
-  macro "showReference" defined below.</tal:comment>
+<tal:comment replace="nothing">
+  We begin with some sub-macros used within macro "show" defined below.
+</tal:comment>
 
 <metal:objectTitle define-macro="objectTitle">
   <tal:comment replace="nothing">Displays the title of a referenced object, with a link on
@@ -9,7 +10,7 @@
     from one object to the next/previous on skyn/view.</tal:comment>
   <a tal:define="viewUrl obj/getUrl;
                  navInfo python:'nav=ref.%s.%s.%d.%d' % (contextObj.UID(), fieldName, repeat['obj'].number()+startNumber, totalNumber);
-                 fullUrl python: test(isBack, viewUrl + '/?pageName=%s&phase=%s' % (appyType['page'], appyType['phase']), viewUrl + '/?' + navInfo)"
+                 fullUrl python: test(appyType['isBack'], viewUrl + '/?page=%s' % appyType['page'], viewUrl + '/?' + navInfo)"
      tal:attributes="href fullUrl" tal:content="obj/Title"></a>
 </metal:objectTitle>
 
@@ -77,42 +78,28 @@
                        onClick python: ajaxBaseCall.replace('**v**', 'True')"/>
 </metal:sortIcons>
 
-<tal:comment replace="nothing">
-  This macro shows a reference field. More precisely, it shows nothing, but calls
-  a Javascript function that will asynchonously call (via a XmlHttpRequest object) the
-  macro 'showReferenceContent' defined below, that will really show content.
-  It requires:
-   - isBack (bool) Is the reference a backward or forward reference?
-   - fieldName (string) The name of the reference field (if it is a forward reference)
-                        or the name of the Archetypes relationship (if it is a backward reference)
-   - innerRef (bool) Are we rendering a reference within a reference or not?
-   - contextObj (object) the object from which the reference starts
-   - labelId (string) the i18n id of the reference field label
-   - descrId (string) the i18n id of the reference field description
-</tal:comment>
-<div metal:define-macro="showReference"
-     tal:define="ajaxHookId   python: contextObj.UID() + fieldName"
-     tal:attributes="id ajaxHookId">
+<tal:comment replace="nothing">View macro for a Ref.</tal:comment>
+<div metal:define-macro="view"
+     tal:define= "innerRef   innerRef|python:False;
+                  ajaxHookId python: contextObj.UID() + name"
+     tal:attributes = "id ajaxHookId">
   <script language="javascript"
-          tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), fieldName, isBack, innerRef, labelId, descrId)">
+          tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
   </script>
 </div>
 
 <tal:comment replace="nothing">
-   This macro is called by a XmlHttpRequest for displaying the paginated referred objects
-   of a reference field.
+   This macro is called by a XmlHttpRequest for displaying the paginated
+   referred objects of a reference field.
 </tal:comment>
-<div metal:define-macro="showReferenceContent"
+<div metal:define-macro="viewContent"
      tal:define="fieldName request/fieldName;
-                 isBack python: test(request['isBack']=='True', True, False);
+                 appyType python: contextObj.getAppyType(fieldName, asDict=True);
                  innerRef python: test(request['innerRef']=='True', True, False);
-                 labelId request/labelId;
-                 descrId request/descrId;
                  ajaxHookId python: contextObj.UID()+fieldName;
                  startNumber python: int(request.get('%s_startNumber' % ajaxHookId, 0));
-                 appyType python: contextObj.getAppyType(fieldName, not isBack);
                  tool contextObj/getTool;
-                 refObjects python:contextObj.getAppyRefs(fieldName, not isBack, startNumber);
+                 refObjects python:contextObj.getAppyRefs(appyType, startNumber);
                  objs refObjects/objects;
                  totalNumber refObjects/totalNumber;
                  batchSize refObjects/batchSize;
@@ -120,14 +107,14 @@
                  flavour python:tool.getFlavour(contextObj);
                  linkedPortalType python:flavour.getPortalType(appyType['klass']);
                  addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
-                 canWrite python: not isBack and member.has_permission(contextObj.getField(fieldName).write_permission, contextObj);
-                 multiplicity python:test(isBack, appyType['backd']['multiplicity'], appyType['multiplicity']);
+                 canWrite python: not appyType['isBack'] and member.has_permission(appyType['writePermission'], contextObj);
+                 multiplicity appyType/multiplicity;
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
-                 showPlusIcon python:not isBack and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
+                 showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
-                 label python: tool.translate(labelId);
-                 description python: tool.translate(descrId);
-                 navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, isBack, innerRef, labelId, descrId)">
+                 label python: tool.translate(appyType['labelId']);
+                 description python: tool.translate(appyType['descrId']);
+                 navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
 
@@ -139,20 +126,20 @@
     <tal:comment replace="nothing">Display a simplified widget if maximum number of
       referenced objects is 1.</tal:comment>
     <table class="no-style-table" cellpadding="0" cellspacing="0"><tr valign="top">
-      <td><span class="appyLabel" tal:condition="not: innerRef" tal:content="label"></span></td>
+      <td><span class="appyLabel" tal:condition="not: innerRef" tal:content="structure label"></span></td>
 
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
         <td tal:content="python: tool.translate('no_ref')"></td>
-        <td><metal:plusIcon use-macro="here/skyn/ref/macros/plusIcon"/></td>
+        <td><metal:plusIcon use-macro="portal/skyn/widgets/ref/macros/plusIcon"/></td>
       </tal:noObject>
 
       <tal:comment replace="nothing">If there is an object...</tal:comment>
       <tal:objectIsPresent condition="python: len(objs) == 1">
         <tal:obj repeat="obj objs">
-          <td><metal:showObjectTitle use-macro="here/skyn/ref/macros/objectTitle" /></td>
-          <td tal:condition="not: isBack">
-            <metal:showObjectActions use-macro="here/skyn/ref/macros/objectActions" />
+          <td><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" /></td>
+          <td tal:condition="not: appyType/isBack">
+            <metal:showObjectActions use-macro="portal/skyn/widgets/ref/macros/objectActions" />
           </td>
         </tal:obj>
       </tal:objectIsPresent>
@@ -165,12 +152,12 @@
       <legend tal:condition="python: not innerRef or showPlusIcon">
         <span tal:condition="not: innerRef" tal:content="label"/>
         (<span tal:replace="totalNumber"/>)
-        <metal:plusIcon use-macro="here/skyn/ref/macros/plusIcon"/>
+        <metal:plusIcon use-macro="portal/skyn/widgets/ref/macros/plusIcon"/>
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
-      <p tal:condition="python: not innerRef and description.strip()"
-         tal:content="description" class="discreet" ></p>
+      <!--p tal:condition="python: not innerRef and description.strip()"
+         tal:content="description" class="discreet" ></p-->
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
@@ -184,35 +171,29 @@
 
         <tal:comment replace="nothing">Show backward reference(s)</tal:comment>
         <table class="no-style-table" cellspacing="0" cellpadding="0"
-               tal:condition="python: isBack and objs">
+               tal:condition="python: appyType['isBack'] and objs">
           <tr tal:repeat="obj objs">
-            <td><metal:showObjectTitle use-macro="here/skyn/ref/macros/objectTitle" />
+            <td><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" />
             </td>
           </tr>
         </table>
 
         <tal:comment replace="nothing">Show forward reference(s)</tal:comment>
         <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
-                               width python:test(innerRef, '100%', test(appyType['wide'], '100%', ''))"
-               align="right" tal:condition="python: not isBack and objs" cellpadding="0" cellspacing="0">
+                               width python:test(innerRef, '100%', appyType['layouts']['view']['width']);"
+               align="right" tal:condition="python: not appyType['isBack'] and objs" cellpadding="0" cellspacing="0">
+          <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
           <tr tal:condition="appyType/showHeaders">
             <th tal:condition="python: 'title' not in appyType['shownInfo']"
                 tal:define="shownField python:'title'">
               <span tal:content="python: tool.translate('ref_name')"></span>
-              <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
+              <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
             </th>
-            <th tal:repeat="shownField appyType/shownInfo">
-              <tal:showHeader condition="python: objs[0].getField(shownField)">
-                <tal:titleHeader condition="python: shownField == 'title'">
-                  <span tal:content="python: tool.translate('ref_name')"></span>
-                  <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
-                </tal:titleHeader>
-                <tal:otherHeader condition="python: shownField != 'title'"
-                                 define="labelId python: objs[0].getField(shownField).widget.label_msgid">
-                  <span tal:content="python: tool.translate(labelId)"></span>
-                  <metal:sortIcons use-macro="here/skyn/ref/macros/sortIcons" />
-                </tal:otherHeader>
-              </tal:showHeader>
+            <th tal:repeat="widget widgets">
+              <tal:header define="shownField widget/name">
+                <span tal:content="python: tool.translate(widget['labelId'])"></span>
+                <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
+              </tal:header>
             </th>
             <th tal:content="python: tool.translate('ref_actions')"></th>
           </tr>
@@ -222,41 +203,27 @@
             <tal:comment replace="nothing">Object title, shown here if not specified somewhere
               else in appyType.shownInfo.</tal:comment>
             <td tal:condition="python: 'title' not in appyType['shownInfo']"><metal:showObjectTitle
-                use-macro="here/skyn/ref/macros/objectTitle"/>&nbsp;
+                use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>&nbsp;
             </td>
             <tal:comment replace="nothing">Additional fields that must be shown</tal:comment>
-            <td tal:repeat="shownField appyType/shownInfo">
-              <tal:showTitle condition="python: shownField == 'title'">
-                <metal:showObjectTitle use-macro="here/skyn/ref/macros/objectTitle"/>
+            <td tal:repeat="widget widgets">
+              <tal:showTitle condition="python: widget['name'] == 'title'">
+                <metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
               </tal:showTitle>
-              <tal:showOtherField define="appyType python: obj.getAppyType(shownField);
-                                          field python:obj.getField(shownField);
-                                          contextObj python:obj;"
-                                  condition="python: appyType and (shownField != 'title')">
-                <tal:showNormalField condition="python: appyType['type'] not in ('Ref', 'Computed', 'Action')">
-                  <metal:viewField use-macro="python: obj.widget(shownField, 'view', use_label=0)"/>
-                </tal:showNormalField>
-                <tal:showRef condition="python: appyType['type'] == 'Ref'">
-                  <tal:ref tal:define="isBack python:appyType['isBack'];
-                                       fieldName python: test(isBack, field.relationship, field.getName());
-                                       innerRef python:True">
-                    <metal:showField use-macro="here/skyn/ref/macros/showReference" />
-                  </tal:ref>
-                </tal:showRef>
-                <tal:showComputed condition="python: appyType['type'] == 'Computed'">
-                  <tal:computed content="python: obj.getComputedValue(appyType)"/>
-                </tal:showComputed>
-                <tal:showAction condition="python: appyType['type'] == 'Action'">
-                  <metal:action use-macro="here/skyn/macros/macros/showActionField" />
-                </tal:showAction>
+              <tal:showOtherField define="contextObj python:obj;
+                                          layoutType python: 'cell';
+                                          innerRef python:True"
+                                  condition="python: widget['name'] != 'title'">
+                <metal:showField use-macro="portal/skyn/widgets/show/macros/field" />
               </tal:showOtherField>&nbsp;
             </td>
             <tal:comment replace="nothing">Actions</tal:comment>
             <td align="right">
-              <metal:showObjectActions use-macro="here/skyn/ref/macros/objectActions" />
+              <metal:showObjectActions use-macro="portal/skyn/widgets/ref/macros/objectActions" />
             </td>
           </tr>
           </tal:row>
+          </tal:widgets>
         </table>
 
         </td></tr>
@@ -272,18 +239,17 @@
   </tal:anyNumberOfReferences>
 </div>
 
-<div metal:define-macro="editReference"
-     tal:define="refPortalType python:here.getAppyRefPortalType(field.getName());
-                 appyType python:here.getAppyType(field.getName());
+<tal:comment replace="nothing">Edit macro for an Ref.</tal:comment>
+<div define-macro="edit"
+     tal:condition="widget/link"
+     tal:define="refPortalType python: contextObj.getAppyRefPortalType(name);
                  allBrains python:here.uid_catalog(portal_type=refPortalType);
-                 brains python:here.callAppySelect(appyType['select'], allBrains);
-                 refUids python: [o.UID() for o in here.getAppyRefs(field.getName())['objects']];
-                 isMultiple python:test(appyType['multiplicity'][1]!=1, 'multiple', '');
-                 appyFieldName python: 'appy_ref_%s' % field.getName();
-                 inError python:test(errors.has_key(field.getName()), True, False);
-                 defaultValue python: contextObj.getDefault(field.getName());
-                 defaultValueUID defaultValue/UID|nothing;
-                 isBeingCreated python: contextObj.portal_factory.isTemporary(contextObj) or ('/portal_factory/' in contextObj.absolute_url())"
+                 brains python:contextObj.callAppySelect(widget['select'], allBrains);
+                 refUids python: [o.UID() for o in here.getAppyRefs(name)['objects']];
+                 isMultiple python:test(widget['multiplicity'][1]!=1, 'multiple', '');
+                 appyFieldName python: 'appy_ref_%s' % name;
+                 inError python:test(errors.has_key(name), True, False);
+                 isBeingCreated python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())"
      tal:attributes="class python:'appyRefEdit field' + test(inError, ' error', '')">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on an "edit" page</tal:comment>
@@ -301,3 +267,11 @@
                         selected python:test((valueIsInReq and (brain.UID in request.get(appyFieldName, []))) or (not valueIsInReq and ((brain.UID in refUids) or (isBeingCreated and (brain.UID==defaultValueUID)))), True, False)"/>
   </select>
 </div>
+
+<tal:comment replace="nothing">Cell macro for a Ref.</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="portal/skyn/widgets/ref/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro for a Ref.</tal:comment>
+<metal:search define-macro="search"></metal:search>

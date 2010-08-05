@@ -1,0 +1,18 @@
+<tal:comment replace="nothing">View macro for a Computed.</tal:comment>
+<metal:view define-macro="view">
+  <span tal:condition="widget/plainText" tal:replace="value"/>
+  <span tal:condition="not: widget/plainText" tal:replace="structure value"/>
+</metal:view>
+
+<tal:comment replace="nothing">Edit macro for a Computed.</tal:comment>
+<metal:edit define-macro="edit">
+  <metal:call use-macro="portal/skyn/widgets/computed/macros/view"/>
+</metal:edit>
+
+<tal:comment replace="nothing">Cell macro for a Computed.</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="portal/skyn/widgets/computed/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro for a Computed.</tal:comment>
+<metal:search define-macro="search"></metal:search>

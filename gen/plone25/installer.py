@@ -6,8 +6,14 @@ import os, os.path, time
 from StringIO import StringIO
 from sets import Set
 import appy
+from appy.gen import Type, Ref
 from appy.gen.utils import produceNiceMessage
 from appy.gen.plone25.utils import updateRolesForPermission
+
+class ZCTextIndexInfo:
+    '''Silly class used for storing information about a ZCTextIndex.'''
+    lexicon_id = "plone_lexicon"
+    index_type = 'Okapi BM25 Rank'
 
 class PloneInstaller:
     '''This Plone installer runs every time the generated Plone product is
@@ -45,6 +51,28 @@ class PloneInstaller:
         self.toolName = '%sTool' % self.productName
         self.toolInstanceName = 'portal_%s' % self.productName.lower()
 
+    @staticmethod
+    def updateIndexes(ploneSite, indexInfo, logger):
+        '''This method creates or updates, in a p_ploneSite, definitions of
+           indexes in its portal_catalog, based on index-related information
+           given in p_indexInfo. p_indexInfo is a dictionary of the form
+           {s_indexName:s_indexType}. Here are some examples of index types:
+           "FieldIndex", "ZCTextIndex", "DateIndex".'''
+        catalog = ploneSite.portal_catalog
+        indexNames = catalog.indexes()
+        for indexName, indexType in indexInfo.iteritems():
+            if indexName not in indexNames:
+                # We need to create this index
+                if indexType != 'ZCTextIndex':
+                    catalog.addIndex(indexName, indexType)
+                else:
+                    catalog.addIndex(indexName,indexType,extra=ZCTextIndexInfo)
+                # Indexing database content based on this index.
+                catalog.reindexIndex(indexName, ploneSite.REQUEST)
+                logger.info('Created index "%s" of type "%s"...' % \
+                            (indexName, indexType))
+        # TODO: if the index already exists but has not the same type, we
+        # re-create it with the same type and we reindex it.
 
     actionsToHide = {
         'portal_actions': ('sitemap', 'accessibility', 'change_state','sendto'),
@@ -235,18 +263,17 @@ class PloneInstaller:
                                     title=produceNiceMessage(templateName))
                                 f.close()
         # Creates the new-way templates for Pod fields if they do not exist.
-        for contentType, attrNames in self.attributes.iteritems():
+        for contentType, appyTypes in self.attributes.iteritems():
             appyClass = self.tool.getAppyClass(contentType)
             if not appyClass: continue # May be an abstract class
-            for attrName in attrNames:
-                appyType = getattr(appyClass, attrName)
+            for appyType in appyTypes:
                 if appyType.type == 'Pod':
                     # For every flavour, find the attribute that stores the
                     # template, and store on it the default one specified in
                     # the appyType if no template is stored yet.
                     for flavour in self.appyTool.flavours:
                         attrName = flavour.getAttributeName(
-                            'podTemplate', appyClass, attrName)
+                            'podTemplate', appyClass, appyType.name)
                         fileObject = getattr(flavour, attrName)
                         if not fileObject or (fileObject.size == 0):
                             # There is no file. Put the one specified in the
@@ -298,9 +325,9 @@ class PloneInstaller:
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
         self.appyTool = self.tool.appy()
         if self.reinstall:
-            self.tool.createOrUpdate(False)
+            self.tool.createOrUpdate(False, None)
         else:
-            self.tool.createOrUpdate(True)
+            self.tool.createOrUpdate(True, None)
 
         if not self.appyTool.flavours:
             # Create the default flavour
@@ -324,9 +351,9 @@ class PloneInstaller:
             self.productName, None)
 
     def installRolesAndGroups(self):
-        '''Registers roles used by workflows defined in this application if
-           they are not registered yet. Creates the corresponding groups if
-           needed.'''
+        '''Registers roles used by workflows and classes defined in this
+           application if they are not registered yet. Creates the corresponding
+           groups if needed.'''
         site = self.ploneSite
         data = list(site.__ac_roles__)
         for role in self.applicationRoles:
@@ -412,6 +439,22 @@ class PloneInstaller:
         if self.minimalistPlone:
             site.manage_changeProperties(right_slots=())
 
+    def manageIndexes(self):
+        '''For every indexed field, this method installs and updates the
+           corresponding index if it does not exist yet.'''
+        indexInfo = {}
+        for className, appyTypes in self.attributes.iteritems():
+            for appyType in appyTypes:
+                if appyType.indexed:
+                    n = appyType.name
+                    indexName = 'get%s%s' % (n[0].upper(), n[1:])
+                    indexType = 'FieldIndex'
+                    if (appyType.type == 'String') and appyType.isSelect:
+                        indexType = 'ZCTextIndex'
+                    indexInfo[indexName] = indexType
+        if indexInfo:
+            PloneInstaller.updateIndexes(self.ploneSite, indexInfo, self)
+
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         site = self.ploneSite
@@ -435,7 +478,8 @@ class PloneInstaller:
             frontPageName = self.productName + 'FrontPage'
             site.manage_changeProperties(default_page=frontPageName)
 
-    def log(self, msg): print >> self.toLog, msg
+    def log(self, msg): print msg
+    def info(self, msg): return self.log(msg)
 
     def install(self):
         self.log("Installation of %s:" % self.productName)
@@ -447,9 +491,9 @@ class PloneInstaller:
         self.installWorkflows()
         self.installStyleSheet()
         self.managePortlets()
+        self.manageIndexes()
         self.finalizeInstallation()
         self.log("Installation of %s done." % self.productName)
-        return self.toLog.getvalue()
 
     def uninstallTool(self):
         site = self.ploneSite
@@ -502,7 +546,7 @@ class ZopeInstaller:
        generated Zope product.'''
     def __init__(self, zopeContext, productName, toolClass,
                  defaultAddContentPermission, addContentPermissions,
-                 logger, ploneStuff):
+                 logger, ploneStuff, classes):
         self.zopeContext = zopeContext
         self.productName = productName
         self.toolClass = toolClass
@@ -510,6 +554,22 @@ class ZopeInstaller:
         self.addContentPermissions = addContentPermissions
         self.logger = logger
         self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
+        self.classes = classes
+
+    def completeAppyTypes(self):
+        '''We complete here the initialisation process of every Appy type of
+           every gen-class of the application.'''
+        for klass in self.classes:
+            for baseClass in klass.wrapperClass.__bases__:
+                for name, appyType in baseClass.__dict__.iteritems():
+                    if isinstance(appyType, Type):
+                        appyType.init(name, baseClass, self.productName)
+                    # Do not forget back references
+                    if isinstance(appyType, Ref):
+                        bAppyType = appyType.back
+                        bAppyType.init(bAppyType.attribute, appyType.klass,
+                                       self.productName)
+                        bAppyType.klass = baseClass
 
     def installApplication(self):
         '''Performs some application-wide installation steps.'''
@@ -562,6 +622,7 @@ class ZopeInstaller:
 
     def install(self):
         self.logger.info('is being installed...')
+        self.completeAppyTypes()
         self.installApplication()
         self.installTool()
         self.installTypes()

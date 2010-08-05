@@ -526,8 +526,7 @@ class XmlMarshaller:
                             mustDump = True
                     if mustDump:
                         self.dumpField(res, fieldName, fieldValue)
-            elif objectType in ('archetype', 'appy'):
-                fields = instance.schema.fields()
+            elif objectType == 'archetype':
                 for field in instance.schema.fields():
                     # Dump only needed fields
                     mustDump = False
@@ -550,18 +549,32 @@ class XmlMarshaller:
                             fieldType = 'ref'
                         self.dumpField(res, field.getName(),field.get(instance),
                                        fieldType=fieldType)
-                if objectType == 'appy':
-                    # Dump the object history.
-                    res.write('<history type="list">')
-                    wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
-                    if wfInfo:
-                        history = instance.workflow_history[wfInfo[0].id]
-                        for event in history:
-                            res.write('<event type="object">')
-                            for k, v in event.iteritems():
-                                self.dumpField(res, k, v)
-                            res.write('</event>')
-                    res.write('</history>')
+            elif objectType == 'appy':
+                for field in instance.getAllAppyTypes():
+                    # Dump only needed fields
+                    if field.name in self.fieldsToExclude: continue
+                    if (field.type == 'Ref') and field.isBack: continue
+                    if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                        and (field.name not in self.fieldsToMarshall): continue
+                    # Determine field type
+                    fieldType = 'basic'
+                    if field.type == 'File':
+                        fieldType = 'file'
+                    elif field.type == 'Ref':
+                        fieldType = 'ref'
+                    self.dumpField(res, field.name,field.getValue(instance),
+                                   fieldType=fieldType)
+                # Dump the object history.
+                res.write('<history type="list">')
+                wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
+                if wfInfo:
+                    history = instance.workflow_history[wfInfo[0].id]
+                    for event in history:
+                        res.write('<event type="object">')
+                        for k, v in event.iteritems():
+                            self.dumpField(res, k, v)
+                        res.write('</event>')
+                res.write('</history>')
             self.marshallSpecificElements(instance, res)
             res.write('</'); res.write(self.rootElementName); res.write('>')
         else:

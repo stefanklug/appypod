@@ -1,11 +1,8 @@
 <!codeHeader!>
-import os, os.path, sys
-try: # New CMF
-    from Products.CMFCore.permissions import setDefaultRoles
-except ImportError: # Old CMF
-    from Products.CMFCore.CMFCorePermissions import setDefaultRoles
-
-import Extensions.appyWrappers
+import os, os.path, sys, copy
+import appy.gen
+from Products.CMFCore.permissions import setDefaultRoles
+import Extensions.appyWrappers as wraps
 <!imports!>
     
 # The following imports are here for allowing mixin classes to access those
@@ -17,7 +14,6 @@ from OFS.Image import File
 from DateTime import DateTime
 from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.PloneBatch import Batch
-from Products.Archetypes.utils import DisplayList
 import logging
 logger = logging.getLogger('<!applicationName!>')
 
@@ -32,9 +28,7 @@ setDefaultRoles(DEFAULT_ADD_CONTENT_PERMISSION, tuple(defaultAddRoles))
 product_globals = globals()
 applicationRoles = [<!roles!>]
 rootClasses = [<!rootClasses!>]
-referers = {
-<!referers!>
-}
+
 # In the following dict, we keep one instance for every Appy workflow defined
 # in the application. Those prototypical instances will be used for executing
 # user-defined actions and transitions. For each instance, we add a special
@@ -44,6 +38,9 @@ workflowInstances = {}
 <!workflowInstancesInit!>
 
 # In the following dict, we store, for every Appy class, the ordered list of
-# attributes (included inherited attributes).
+# appy types (included inherited ones).
 attributes = {<!attributes!>}
+# In the followinf dict, we store, for every Appy class, a dict of appy types
+# keyed by their names.
+attributesDict = {<!attributesDict!>}
 # ------------------------------------------------------------------------------

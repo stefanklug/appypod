@@ -1,17 +1,21 @@
 '''job.py must be executed by a "zopectl run" command and, as single arg,
    must get a string with the following format:
 
-    <ZopeAdmin><PloneInstancePath>:<ApplicationName>:<ToolMethodName>[:<args>].
+    <ZopeAdmin>:<PloneInstancePath>:<ApplicationName>:<ToolMethodName>[:<args>].
 
      <ZopeAdmin> is the userName of the Zope administrator for this instance.
      <PloneInstancePath> is the path, within Zope, to the Plone Site object (if
                          not at the root of the Zope hierarchy, use '/' as
                          folder separator);
 
-     <ApplicationName> is the name of the Appy application;
+     <ApplicationName> is the name of the Appy application. If it begins with
+                       "path=", it does not represent an Appy application, but
+                       the path, within <PloneInstancePath>, to any Zope object
+                       (use '/' as folder separator)
 
      <ToolMethodName> is the name of the method to call on the tool in this
-                      Appy application;
+                      Appy application, or the method to call on the arbitrary
+                      Zope object if previous param starts with "path=".
 
      <args> (optional) are the arguments to give to this method (only strings
             are supported). Several arguments must be separated by '*'.'''
@@ -43,18 +47,24 @@ else:
         from AccessControl.SecurityManagement import newSecurityManager
         user = app.acl_users.getUserById(zopeUser)
         if not hasattr(user, 'aq_base'):
-            user = user.__of__(uf)
+            user = user.__of__(app.acl_users)
         newSecurityManager(None, user)
-
         # Get the Plone site
         ploneSite = app # Initialised with the Zope root object.
         for elem in plonePath.split('/'):
             ploneSite = getattr(ploneSite, elem)
-        # Get the tool corresponding to the Appy application
-        toolName = 'portal_%s' % appName.lower()
-        tool = getattr(ploneSite, toolName).appy()
-        # Execute the method on the tool
+        # If we are in a Appy application, the object on which we will call the
+        # method is the tool within this application.
+        if not appName.startswith('path='):
+            objectName = 'portal_%s' % appName.lower()
+            targetObject = getattr(ploneSite, objectName).appy()
+        else:
+            # It can be any object within the Plone site.
+            targetObject = ploneSite
+            for elem in appName[5:].split('/'):
+                targetObject = getattr(targetObject, elem)
+        # Execute the method on the target object
         if args: args = args.split('*')
-        exec 'tool.%s(*args)' % toolMethod
+        exec 'targetObject.%s(*args)' % toolMethod
         transaction.commit()
 # ------------------------------------------------------------------------------

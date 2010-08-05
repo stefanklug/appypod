@@ -2,9 +2,10 @@
     This macro displays the content of the application portlet.
 </tal:comment>
 <metal:portletContent define-macro="portletContent"
-   tal:define="queryUrl python: '%s/skyn/query' % appFolder.absolute_url();
-               currentSearch request/search|nothing;
-               currentType request/type_name|nothing;">
+   tal:define="queryUrl           python: '%s/skyn/query' % appFolder.absolute_url();
+               currentSearch      request/search|nothing;
+               currentType        request/type_name|nothing;
+               contextObj         python: tool.getPublishedObject(rootClasses)">
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
     <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
@@ -27,6 +28,14 @@
     </td>
   </dt>
 
+  <tal:publishedObject condition="python: contextObj">
+  <dt class="portletAppyItem portletCurrent">
+    <a tal:attributes="href python: contextObj.getUrl() + '?page=main'"
+       tal:content="contextObj/Title"></a>
+  </dt>
+  <dt class="portletAppyItem"><metal:phases use-macro="here/skyn/portlet/macros/phases"/></dt>
+  </tal:publishedObject>
+
   <tal:comment replace="nothing">TODO: implement a widget for selecting the needed flavour.</tal:comment>
   
   <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
@@ -34,7 +43,7 @@
                define="flavourNumber python:1;
                        flavour python: tool.getFlavour('Dummy_%d' % flavourNumber)">
     <tal:comment replace="nothing">Section title, with action icons</tal:comment>
-    <dt tal:attributes="class python:test(repeat['rootClass'].number()==1, 'portletAppyItem', 'portletAppyItem portletSep')">
+    <dt tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
       <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
         <tr>
           <td>
@@ -44,7 +53,7 @@
           </td>
           <td align="right"
               tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
-                          userMayAdd python: member.has_permission(addPermission, appFolder);
+                          userMayAdd python: member.has_permission(addPermission, appFolder) and tool.userMayAdd(rootClass);
                           createMeans python: tool.getCreateMeans(rootClass)">
             <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
             <img style="cursor:pointer"
@@ -115,11 +124,6 @@
                        href python:'%s?type_name=%s&flavourNumber=%d' % (queryUrl, rootClassesQuery, flavourNumber)"></a>
   </dt-->
 
-  <dt class="portletAppyItem" tal:define="contextObj tool/getPublishedObject"
-      tal:condition="python: contextObj.meta_type in rootClasses">
-    <metal:phases use-macro="here/skyn/macros/macros/phases"/>
-  </dt>
-
   <tal:comment replace="nothing">
     Greyed transparent zone that is deployed on the
     whole screen when a popup is displayed.
@@ -140,3 +144,52 @@
   </form>
   </div>
 </metal:portletContent>
+
+<tal:comment replace="nothing">
+   This macro displays, within the portlet, the navigation tree for the
+   currently shown object, made of phases and contained pages.
+</tal:comment>
+<metal:phases define-macro="phases">
+<table tal:define="phases   contextObj/getAppyPhases|nothing;
+                   page python: request.get('page', 'main')"
+       tal:condition="python: phases and not ((len(phases)==1) and len(phases[0]['pages'])==1)"
+       cellspacing="1" cellpadding="0" width="100%">
+  <tal:phase repeat="phase phases">
+    <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
+    <tr>
+      <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
+                      displayLink python: (phase['phaseStatus'] != 'Future') and ('/portal_factory' not in contextObj.absolute_url()) and (len(phase['pages']) == 1)"
+          tal:attributes="class python: 'appyPhase step' + phase['phaseStatus']">
+        <span class="portletGroup" tal:condition="python: len(phases) &gt; 1">
+        <a tal:attributes="href python: '%s?page=%s' % (contextObj.getUrl(), phase['pages'][0]);"
+           tal:condition="displayLink"
+           tal:content="python: tool.translate(label)"></a>
+        <span tal:condition="not: displayLink" tal:replace="python: tool.translate(label)"/>
+        </span>
+        <table width="100%" cellpadding="0" cellspacing="0"
+               tal:condition="python: len(phase['pages']) &gt; 1">
+          <tr tal:repeat="aPage phase/pages" valign="top">
+            <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPageItem', 'portletPageItem')">
+              <a tal:attributes="href python: contextObj.getUrl()+'?page=%s' % aPage"
+                 tal:content="structure python: tool.translate('%s_page_%s' % (contextObj.meta_type, aPage))">
+              </a>
+            </td>
+            <td>
+              <img tal:define="nav request/nav|nothing;
+                               nav python: test(nav, '&nav=%s' % nav, '')"
+                   title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+                   tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?page=%s%s\'' % (contextObj.absolute_url(), aPage, nav);
+                               src string: $portal_url/skyn/edit.gif"
+                   tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tal:comment replace="nothing">The down arrow pointing to the next phase (if any)</tal:comment>
+    <tr tal:condition="python: phase['name'] != phases[-1]['name']">
+      <td>&nbsp;&nbsp;<img tal:attributes="src string: $portal_url/skyn/nextPhase.png"/></td>
+    </tr>
+  </tal:phase>
+</table>
+</metal:phases>
