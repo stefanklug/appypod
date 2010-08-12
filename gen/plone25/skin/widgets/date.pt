@@ -15,7 +15,7 @@
     <tal:days repeat="day days">
       <option tal:define="zDay python: str(day).zfill(2)"
               tal:attributes="value zDay;
-                              selected python:contextObj.dateValueSelected(name, 'day', day)"
+                              selected python:contextObj.dateValueSelected(name, 'day', day, rawValue)"
               tal:content="zDay"></option>
     </tal:days>
   </select>
@@ -28,7 +28,7 @@
     <tal:months repeat="month months">
       <option tal:define="zMonth python: str(month).zfill(2)"
               tal:attributes="value zMonth;
-                              selected python:contextObj.dateValueSelected(name, 'month', month)"
+                              selected python:contextObj.dateValueSelected(name, 'month', month, rawValue)"
               tal:content="zMonth"></option>
     </tal:months>
   </select>
@@ -39,7 +39,7 @@
     <option value="">-</option>
     <option tal:repeat="year years"
             tal:attributes="value year;
-                            selected python:contextObj.dateValueSelected(name, 'year', year)"
+                            selected python:contextObj.dateValueSelected(name, 'year', year, rawValue)"
             tal:content="year"></option>
   </select>
   <tal:comment replace="nothing">The icon for displaying the date chooser</tal:comment>
@@ -53,7 +53,7 @@
       <tal:hours repeat="hour hours">
         <option tal:define="zHour python: str(hour).zfill(2)"
                 tal:attributes="value zHour;
-                                selected python:contextObj.dateValueSelected(name, 'hour', hour)"
+                                selected python:contextObj.dateValueSelected(name, 'hour', hour, rawValue)"
                 tal:content="zHour"></option>
       </tal:hours>
     </select> :
@@ -64,7 +64,7 @@
       <tal:minutes repeat="minute minutes">
         <option tal:define="zMinute python: str(minute).zfill(2)"
                 tal:attributes="value zMinute;
-                                selected python:contextObj.dateValueSelected(name, 'minute', minute)"
+                                selected python:contextObj.dateValueSelected(name, 'minute', minute, rawValue)"
                 tal:content="zMinute"></option>
       </tal:minutes>
     </select>

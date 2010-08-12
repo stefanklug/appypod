@@ -156,11 +156,8 @@ class Generator(AbstractGenerator):
         self.generateWorkflows()
         self.generateWrappers()
         self.generateTests()
-        if self.config.frontPage == True:
-            self.labels.append(msg('front_page_text', '', msg.FRONT_PAGE_TEXT))
-            self.copyFile('frontPage.pt', self.repls,
-                          destFolder=self.skinsFolder,
-                          destName='%sFrontPage.pt' % self.applicationName)
+        if self.config.frontPage:
+            self.generateFrontPage()
         self.copyFile('configure.zcml', self.repls)
         self.copyFile('import_steps.xml', self.repls,
                       destFolder='profiles/default')
@@ -169,8 +166,6 @@ class Generator(AbstractGenerator):
         self.copyFile('Portlet.pt', self.repls,
             destName='%s.pt' % self.portletName, destFolder=self.skinsFolder)
         self.copyFile('tool.gif', {})
-        self.copyFile(
-            'global_statusmessage.pt', {}, destFolder=self.skinsFolder)
         self.copyFile('Styles.css.dtml',self.repls, destFolder=self.skinsFolder,
                       destName = '%s.css.dtml' % self.applicationName)
         self.copyFile('IEFixes.css.dtml',self.repls,destFolder=self.skinsFolder)
@@ -418,7 +413,7 @@ class Generator(AbstractGenerator):
         repls['appClasses'] = "[%s]" % ','.join(appClasses)
         repls['minimalistPlone'] = self.config.minimalistPlone
         repls['showPortlet'] = self.config.showPortlet
-        repls['appFrontPage'] = self.config.frontPage == True
+        repls['appFrontPage'] = bool(self.config.frontPage)
         repls['workflows'] = workflows
         self.copyFile('Install.py', repls, destFolder='Extensions')
 
@@ -575,6 +570,27 @@ class Generator(AbstractGenerator):
         repls['imports'] = '\n'.join(['import %s' % m for m in modules])
         repls['modulesWithTests'] = ','.join(modules)
         self.copyFile('testAll.py', repls, destFolder='tests')
+
+    def generateFrontPage(self):
+        fp = self.config.frontPage
+        repls = self.repls.copy()
+        if fp == True:
+            # We need a front page, but no specific one has been given.
+            # So we will create a basic one that will simply display
+            # some translated text.
+            self.labels.append(msg('front_page_text', '', msg.FRONT_PAGE_TEXT))
+            repls['pageContent'] = '<span tal:replace="structure python: ' \
+                'tool.translateWithMapping(\'front_page_text\')"/>'
+        else:
+            # The user has specified a macro to show. So in the generated front
+            # page, we will call this macro. The user will need to add itself
+            # a .pt file containing this macro in the skins folder of the
+            # generated Plone product.
+            page, macro = fp.split('/')
+            repls['pageContent'] = '<metal:call use-macro=' \
+                                   '"context/%s/macros/%s"/>' % (page, macro)
+        self.copyFile('frontPage.pt', repls, destFolder=self.skinsFolder,
+                      destName='%sFrontPage.pt' % self.applicationName)
 
     def generateTool(self):
         '''Generates the Plone tool that corresponds to this application.'''

@@ -74,8 +74,16 @@ class ToolMixin(AbstractMixin):
         '''Returns the list of root classes for this application.'''
         return self.getProductConfig().rootClasses
 
-    def showPortlet(self):
-        return not self.portal_membership.isAnonymousUser()
+    def showPortlet(self, context):
+        if self.portal_membership.isAnonymousUser(): return False
+        if context.id == 'skyn': context = context.getParentNode()
+        res = True
+        if not self.getRootClasses():
+            res = False
+            # If there is no root class, show the portlet only if we are within
+            # the configuration.
+            if (self.id in context.absolute_url()): res = True
+        return res
 
     def getObject(self, uid, appy=False):
         '''Allows to retrieve an object from its p_uid.'''
@@ -630,7 +638,7 @@ class ToolMixin(AbstractMixin):
             contentType, flavourNumber = d1.split(':')
             flavourNumber = int(flavourNumber)
             searchName = keySuffix = d2
-            batchSize = self.getNumberOfResultsPerPage()
+            batchSize = self.appy().numberOfResultsPerPage
             if not searchName: keySuffix = contentType
             s = self.REQUEST.SESSION
             searchKey = 'search_%s_%s' % (flavourNumber, keySuffix)

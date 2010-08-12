@@ -455,7 +455,7 @@
           </tr>
           <tr tal:repeat="change event/changes/items" valign="top">
             <td tal:content="python: tool.translate(change[1][1])"></td>
-            <td tal:define="appyValue python: contextObj.getFormattedValue(change[0], useParamValue=True, value=change[1][0]);
+            <td tal:define="appyValue python: contextObj.getFieldValue(change[0], useParamValue=True, value=change[1][0]);
                             appyType python:contextObj.getAppyType(change[0], asDict=True);
                             severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
               <span tal:condition="not: severalValues" tal:replace="appyValue"></span>

@@ -6,12 +6,12 @@
   <input type="checkbox"
          tal:attributes="name python: name + '_visible';
                          id name;
-                         checked python:contextObj.checkboxChecked(name);
+                         checked python:contextObj.checkboxChecked(name, rawValue);
                          onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(getMasterValue(this), \'%s\')' % (name, name, widget['id']);
                          class python: 'noborder ' + widget['master_css']"/>
   <input tal:attributes="name name;
                          id string:${name}_hidden;
-                         value python: test(contextObj.checkboxChecked(name), 'True', 'False')"
+                         value python: test(contextObj.checkboxChecked(name, rawValue), 'True', 'False')"
          type="hidden" />&nbsp;
 </metal:edit>
 

@@ -285,23 +285,23 @@ class AbstractMixin:
         '''Returns the method named p_methodName.'''
         return getattr(self, methodName, None)
 
-    def getFormattedValue(self, name, useParamValue=False, value=None,
-                          forMasterId=False):
+    def getFieldValue(self, name, useParamValue=False, value=None,
+                      formatted=True):
         '''Returns the value of field named p_name for this object (p_self).
 
            If p_useParamValue is True, the method uses p_value instead of the
            real field value (useful for rendering a value from the object
            history, for example).
 
-           If p_forMasterId is True, it returns the value as will be needed to
-           produce an identifier used within HTML pages for master/slave
-           relationships.'''
+           If p_formatted is False, it will return the true database
+           (or default) value. Else, it will produce a nice, string and
+           potentially translated value.'''
         appyType = self.getAppyType(name)
         # Which value will we use ?
         if not useParamValue:
             value = appyType.getValue(self)
         # Return the value as is if it is None or forMasterId
-        if forMasterId: return value
+        if not formatted: return value
         # Return the formatted value else
         return appyType.getFormattedValue(self, value)
 
@@ -741,7 +741,7 @@ class AbstractMixin:
             res = brains
         return res
 
-    def fieldValueSelected(self, fieldName, vocabValue):
+    def fieldValueSelected(self, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (ie a String with a validator being a
            list), must the _vocabValue appear as selected?'''
         rq = self.REQUEST
@@ -749,14 +749,14 @@ class AbstractMixin:
         if rq.has_key(fieldName):
             compValue = rq.get(fieldName)
         else:
-            compValue = self.getAppyType(fieldName).getValue(self)
+            compValue = dbValue
         # Compare the value
         if type(compValue) in sequenceTypes:
             if vocabValue in compValue: return True
         else:
             if vocabValue == compValue: return True
 
-    def checkboxChecked(self, fieldName):
+    def checkboxChecked(self, fieldName, dbValue):
         '''When displaying a checkbox, must it be checked or not?'''
         rq = self.REQUEST
         # Get the value we must compare (from request or from database)
@@ -764,11 +764,11 @@ class AbstractMixin:
             compValue = rq.get(fieldName)
             compValue = compValue in ('True', 1, '1')
         else:
-            compValue = self.getAppyType(fieldName).getValue(self)
+            compValue = dbValue
         # Compare the value
         return compValue
 
-    def dateValueSelected(self, fieldName, fieldPart, dateValue):
+    def dateValueSelected(self, fieldName, fieldPart, dateValue, dbValue):
         '''When displaying a date field, must the particular p_dateValue be
            selected in the field corresponding to the date part?'''
         # Get the value we must compare (from request or from database)
@@ -779,7 +779,7 @@ class AbstractMixin:
             if compValue.isdigit():
                 compValue = int(compValue)
         else:
-            compValue = self.getAppyType(fieldName).getValue(self)
+            compValue = dbValue
             if compValue:
                 compValue = getattr(compValue, fieldPart)()
         # Compare the value

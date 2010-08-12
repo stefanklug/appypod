@@ -27,14 +27,16 @@ WRONG_INSTANCE_PATH = '"%s" must be an existing folder for creating the ' \
 class NewScript:
     '''usage: %prog ploneVersion plonePath instancePath
 
-       "ploneVersion"  can be plone25 or plone3
+       "ploneVersion"  can be plone25, plone30, or plone3x
+                       (plone3x can be Plone 3.2.x, Plone 3.3.5...)
        
        "plonePath"     is the (absolute) path to you plone installation.
-                       Plone 2.5 is typically installed in /opt/Plone-2.5.5,
-                       while Plone 3 is typically installed in /usr/local/Plone.
+                       Plone 2.5 and 3.0 are typically installed in
+                       /opt/Plone-x.x.x, while Plone 3 > 3.0 is typically
+                       installed in in /usr/local/Plone.
        "instancePath"  is the (absolute) path where you want to create your
                        instance (should not already exist).'''
-    ploneVersions = ('plone25', 'plone3')
+    ploneVersions = ('plone25', 'plone30', 'plone3x')
 
     def createInstance(self, linksForProducts):
         '''Calls the Zope script that allows to create a Zope instance and copy
@@ -65,35 +67,44 @@ class NewScript:
         print cmd
         os.system(cmd)
         # Now, make the instance Plone-ready
-        productsFolder = os.path.join(self.instancePath, 'Products')
-        libFolder = os.path.join(self.instancePath, 'lib/python')
-        print 'Copying Plone stuff in the Zope instance...'
-        if self.ploneVersion == 'plone25':
-            self.installPlone25Stuff(productsFolder,libFolder,linksForProducts)
-        elif self.ploneVersion == 'plone3':
-            self.installPlone3Stuff(productsFolder, libFolder)
+        action = 'Copying'
+        if linksForProducts:
+            action = 'Symlinking'
+        print '%s Plone stuff in the Zope instance...' % action
+        if self.ploneVersion in ('plone25', 'plone30'):
+            self.installPlone25or30Stuff(linksForProducts)
+        elif self.ploneVersion == 'plone3x':
+            self.installPlone3Stuff()
         # Clean the copied folders
-        cleanFolder(productsFolder)
-        cleanFolder(libFolder)
+        cleanFolder(os.path.join(self.instancePath, 'Products'))
+        cleanFolder(os.path.join(self.instancePath, 'lib/python'))
 
-    def installPlone25Stuff(self, productsFolder, libFolder, linksForProducts):
+    def installPlone25or30Stuff(self, linksForProducts):
         '''Here, we will copy all Plone2-related stuff in the Zope instance
            we've created, to get a full Plone-ready Zope instance. If
            p_linksForProducts is True, we do not perform a real copy: we will
            create symlinks to products lying within Plone installer files.'''
-        installerProducts = os.path.join(self.plonePath, 'zeocluster/Products')
-        for name in os.listdir(installerProducts):
-            folderName = os.path.join(installerProducts, name)
-            if os.path.isdir(folderName):
-                destFolder = os.path.join(productsFolder, name)
-                # This is a Plone product. Copy it to the instance.
-                if (self.ploneVersion == 'plone25') and linksForProducts:
-                    # Create a symlink to this product in the instance
-                    cmd = 'ln -s %s %s' % (folderName, destFolder)
-                    os.system(cmd)
-                else:
-                    # Copy thre product into the instance
-                    shutil.copytree(folderName, destFolder)
+        j = os.path.join
+        if self.ploneVersion == 'plone25':
+            sourceFolders = ('zeocluster/Products',)
+        else:
+            sourceFolders = ('zinstance/Products', 'zinstance/lib/python')
+        for sourceFolder in sourceFolders:
+            sourceBase = j(self.plonePath, sourceFolder)
+            destBase = j(self.instancePath,
+                         sourceFolder[sourceFolder.find('/')+1:])
+            for name in os.listdir(sourceBase):
+                folderName = j(sourceBase, name)
+                if os.path.isdir(folderName):
+                    destFolder = j(destBase, name)
+                    # This is a Plone product. Copy it to the instance.
+                    if linksForProducts:
+                        # Create a symlink to this product in the instance
+                        cmd = 'ln -s %s %s' % (folderName, destFolder)
+                        os.system(cmd)
+                    else:
+                        # Copy thre product into the instance
+                        shutil.copytree(folderName, destFolder)
 
     uglyChunks = ('pkg_resources', '.declare_namespace(')
     def findPythonPackageInEgg(self, currentFolder):
@@ -168,7 +179,7 @@ class NewScript:
                 f.write(fileContent)
                 f.close()
 
-    def installPlone3Stuff(self, productsFolder, libFolder):
+    def installPlone3Stuff(self):
         '''Here, we will copy all Plone3-related stuff in the Zope instance
            we've created, to get a full Plone-ready Zope instance.'''
         # All Plone 3 eggs are in buildout-cache/eggs. We will extract from
@@ -179,14 +190,16 @@ class NewScript:
         #   <zopeInstance>/lib/python (ie, like Appy applications)
         # - Zope products that will be copied in
         #   <zopeInstance>/Products (ie, like Appy generated Zope products)
-        eggsFolder = os.path.join(self.plonePath, 'buildout-cache/eggs')
+        j = os.path.join
+        eggsFolder = j(self.plonePath, 'buildout-cache/eggs')
+        productsFolder = j(self.instancePath, 'Products')
+        libFolder = j(self.instancePath, 'lib/python')
         for name in os.listdir(eggsFolder):
-            eggMainFolder = os.path.join(eggsFolder, name)
+            eggMainFolder = j(eggsFolder, name)
             if name.startswith('Products.'):
                 # A Zope product. Copy its content in Products.
                 innerFolder= self.getSubFolder(self.getSubFolder(eggMainFolder))
-                destFolder = os.path.join(productsFolder,
-                                          os.path.basename(innerFolder))
+                destFolder = j(productsFolder, os.path.basename(innerFolder))
                 shutil.copytree(innerFolder, destFolder)
             else:
                 # A standard Python package. Copy its content in lib/python.
@@ -197,7 +210,7 @@ class NewScript:
                     # Copy those files directly in libFolder.
                     for fileName in os.listdir(eggMainFolder):
                         if fileName.endswith('.py'):
-                            fullFileName= os.path.join(eggMainFolder, fileName)
+                            fullFileName= j(eggMainFolder, fileName)
                             shutil.copy(fullFileName, libFolder)
                     continue
                 eggFolderName = os.path.basename(eggFolder)
@@ -205,8 +218,7 @@ class NewScript:
                     # Goddamned. This should go in productsFolder and not in
                     # libFolder.
                     innerFolder = self.getSubFolder(eggFolder)
-                    destFolder = os.path.join(productsFolder,
-                                              os.path.basename(innerFolder))
+                    destFolder = j(productsFolder,os.path.basename(innerFolder))
                     shutil.copytree(innerFolder, destFolder)
                 else:
                     packageFolder = self.findPythonPackageInEgg(eggFolder)
@@ -225,23 +237,22 @@ class NewScript:
                         # before copying the Python package.
                         baseFolder = libFolder
                         for subFolder in destFolders:
-                            subFolderPath=os.path.join(baseFolder,subFolder)
+                            subFolderPath = j(baseFolder,subFolder)
                             if not os.path.exists(subFolderPath):
                                 os.mkdir(subFolderPath)
                                 # Create an empty __init__.py in it.
-                                init = os.path.join(subFolderPath,'__init__.py')
+                                init = j(subFolderPath,'__init__.py')
                                 f = file(init, 'w')
                                 f.write('# Makes me a Python package.')
                                 f.close()
                             baseFolder = subFolderPath
                         destFolder = os.sep.join(destFolders)
-                        destFolder = os.path.join(libFolder, destFolder)
+                        destFolder = j(libFolder, destFolder)
                         if not os.path.exists(destFolder):
                             os.makedirs(destFolder)
                     else:
                         destFolder = libFolder
-                    destFolder = os.path.join(
-                        destFolder, os.path.basename(packageFolder))
+                    destFolder = j(destFolder, os.path.basename(packageFolder))
                     shutil.copytree(packageFolder, destFolder)
         self.patchPlone(productsFolder, libFolder)
 
@@ -264,11 +275,12 @@ class NewScript:
     def run(self):
         optParser = OptionParser(usage=NewScript.__doc__)
         optParser.add_option("-l", "--links", action="store_true",
-            help="[Linux, plone25 only] Within the created instance, symlinks "\
-                 "to Products lying within the Plone installer files are " \
-                 "created instead of copying them into the instance. This " \
-                 "avoids duplicating the Products source code and is " \
-                 "interesting if you create a lot of Zope instances.")
+            help="[Linux, plone25 or plone30 only] Within the created " \
+                 "instance, symlinks to Products lying within the Plone " \
+                 "installer files are created instead of copying them into " \
+                 "the instance. This avoids duplicating the Products source " \
+                 "code and is interesting if you create a lot of Zope " \
+                 "instances.")
         (options, args) = optParser.parse_args()
         linksForProducts = options.links
         try:

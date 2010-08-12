@@ -5,7 +5,7 @@
     <div metal:define-macro="portlet"
          tal:define="tool python: context.<!toolInstanceName!>;
                      flavour python: tool.getFlavour(tool);"
-         tal:condition="tool/showPortlet">
+         tal:condition="python: tool.showPortlet(context)">
       <metal:block metal:use-macro="here/global_defines/macros/defines" />
       <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
       <dl tal:define="rootClasses tool/getRootClasses;

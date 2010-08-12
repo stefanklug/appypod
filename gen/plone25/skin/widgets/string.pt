@@ -4,8 +4,7 @@
                    maxMult python: widget['multiplicity'][1];
                    severalValues python: (maxMult == None) or (maxMult &gt; 1)">
   <span tal:condition="python: fmt in (0, 3)"
-        tal:attributes="class widget/master_css;
-                        id python: contextObj.getFormattedValue(name, forMasterId=True)">
+        tal:attributes="class widget/master_css; id rawValue">
     <ul class="appyList" tal:condition="python: value and severalValues">
       <li class="appyBullet" tal:repeat="sv value"><i tal:content="structure sv"></i></li>
     </ul>
@@ -29,15 +28,17 @@
                         isOneLine python: fmt in (0,3)">
 
   <tal:choice condition="isSelect">
-  <select tal:define="possibleValues python:contextObj.getPossibleValues(name, withTranslations=True, withBlankValue=True)"
+  <select tal:define="possibleValues python:contextObj.getPossibleValues(name, withTranslations=True, withBlankValue=True);
+                      multiValued python: (widget['multiplicity'][1] != 1) and True or False"
           tal:attributes="name name;
                           id name;
-                          multiple python: test(widget['multiplicity'][1] != 1, 'multiple', '');
-                          onchange python: test(isMaster, 'javascript:updateSlaves(getMasterValue(this), \'%s\')' % widget['id'], '');
-                          class    widget/master_css">
+                          multiple python: multiValued and 'multiple' or '';
+                          onchange python: isMaster and ('javascript:updateSlaves(getMasterValue(this), \'%s\')' % widget['id']) or '';
+                          class    widget/master_css;
+                          size     python: multiValued and widget['height'] or 1">
     <option tal:repeat="possibleValue possibleValues"
             tal:attributes="value python: possibleValue[0];
-                            selected python:contextObj.fieldValueSelected(name, possibleValue[0])"
+                            selected python:contextObj.fieldValueSelected(name, possibleValue[0], rawValue)"
             tal:content="python:tool.truncateValue(possibleValue[1], widget)"></option>
   </select>
   </tal:choice>
@@ -83,7 +84,7 @@
     validator defines a list of values, with a "AND/OR" checkbox.</tal:comment>
   <tal:selectSearch condition="widget/isSelect">
     <tal:comment replace="nothing">The "and" / "or" radio buttons</tal:comment>
-    <tal:operator define="operName python: 'o_%s'   % fieldName;
+    <tal:operator define="operName python: 'o_%s'   % name;
                           orName   python: '%s_or'  % operName;
                           andName  python: '%s_and' % operName;"
                   condition="python: widget['multiplicity'][1]!=1">

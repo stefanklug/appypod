@@ -248,10 +248,10 @@ class PoFile:
                keepExistingOrder=True):
         '''Updates the existing messages with p_newMessages.
            If p_removeNotNewMessages is True, all messages in self.messages
-           that are not in newMessages will be removed. If p_keepExistingOrder
-           is False, self.messages will be sorted according to p_newMessages.
-           Else, newMessages that are not yet in self.messages will be appended
-           to the end of self.messages.'''
+           that are not in newMessages will be removed, excepted if they start
+           with "custom_". If p_keepExistingOrder is False, self.messages will
+           be sorted according to p_newMessages. Else, newMessages that are not
+           yet in self.messages will be appended to the end of self.messages.'''
         # First, remove not new messages if necessary
         newIds = [m.id for m in newMessages]
         removedIds = []
@@ -259,7 +259,7 @@ class PoFile:
             i = len(self.messages)-1
             while i >= 0:
                 oldId = self.messages[i].id
-                if oldId not in newIds:
+                if not oldId.startswith('custom_') and (oldId not in newIds):
                     del self.messages[i]
                     del self.messagesDict[oldId]
                     removedIds.append(oldId)

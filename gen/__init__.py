@@ -306,9 +306,20 @@ class Type:
         self.searchable = searchable
         # Normally, permissions to read or write every attribute in a type are
         # granted if the user has the global permission to read or
-        # create/edit instances of the whole type. If you want a given attribute
+        # edit instances of the whole type. If you want a given attribute
         # to be protected by specific permissions, set one or the 2 next boolean
-        # values to "True".
+        # values to "True". In this case, you will create a new "field-only"
+        # read and/or write permission. If you need to protect several fields
+        # with the same read/write permission, you can avoid defining one
+        # specific permission for every field by specifying a "named"
+        # permission (string) instead of assigning "True" to the following
+        # arg(s). A named permission will be global to your whole Zope site, so
+        # take care to the naming convention. Typically, a named permission is
+        # of the form: "<yourAppName>: Write|Read xxx". If, for example, I want
+        # to define, for my application "MedicalFolder" a specific permission
+        # for a bunch of fields that can only be modified by a doctor, I can
+        # define a permission "MedicalFolder: Write medical information" and
+        # assign it to the "specificWritePermission" of every impacted field.
         self.specificReadPermission = specificReadPermission
         self.specificWritePermission = specificWritePermission
         # Widget width and height
@@ -383,12 +394,18 @@ class Type:
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # Determine read and write permissions for this field
-        if self.specificReadPermission:
+        rp = self.specificReadPermission
+        if rp and not isinstance(rp, basestring):
             self.readPermission = '%s: Read %s %s' % (appName, prefix, name)
+        elif rp and isinstance(rp, basestring):
+            self.readPermission = rp
         else:
             self.readPermission = 'View'
-        if self.specificWritePermission:
+        wp = self.specificWritePermission
+        if wp and not isinstance(wp, basestring):
             self.writePermission = '%s: Write %s %s' % (appName, prefix, name)
+        elif wp and isinstance(wp, basestring):
+            self.writePermission = wp
         else:
             self.writePermission = 'Modify portal content'
         if isinstance(self, Ref):
@@ -508,7 +525,12 @@ class Type:
         value = getattr(obj, self.name, None)
         if (value == None):
             # If there is no value, get the default value if any
-            if not self.editDefault: return self.default
+            if not self.editDefault:
+                # Return self.default, of self.default() if it is a method
+                if type(self.default) == types.FunctionType:
+                    return self.default(obj.appy())
+                else:
+                    return self.default
             # If value is editable, get the default value from the flavour
             portalTypeName = obj._appy_getPortalType(obj.REQUEST)
             tool = obj.getTool()
@@ -577,14 +599,14 @@ class Type:
                     return obj.translate('%s_valid' % self.labelId)
             elif type(self.validator) == validatorTypes[1]:
                 # It is a regular expression
-                if not validator.match(value):
+                if not self.validator.match(value):
                     # If the regular expression is among the default ones, we
                     # generate a specific error message.
-                    if validator == String.EMAIL:
+                    if self.validator == String.EMAIL:
                         return obj.translate('bad_email')
-                    elif validator == String.URL:
+                    elif self.validator == String.URL:
                         return obj.translate('bad_url')
-                    elif validator == String.ALPHANUMERIC:
+                    elif self.validator == String.ALPHANUMERIC:
                         return obj.translate('bad_alphanumeric')
                     else:
                         return obj.translate('%s_valid' % self.labelId)
@@ -771,19 +793,20 @@ class String(Type):
         # CSS property: "none" (default), "uppercase", "capitalize" or
         # "lowercase".
         self.transform = transform
-        # Default width and height vary according to String format
-        if width == None:
-            if format == String.TEXT: width  = 60
-            else:                     width  = 30
-        if height == None:
-            if format == String.TEXT: height = 5
-            else:                     height = 1
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
                       masterValue, focus, historized)
         self.isSelect = self.isSelection()
+        # Default width and height vary according to String format
+        if width == None:
+            if format == String.TEXT: self.width  = 60
+            else:                     self.width  = 30
+        if height == None:
+            if format == String.TEXT: self.height = 5
+            elif self.isSelect:       self.height = 4
+            else:                     self.height = 1
         self.filterable = self.indexed and (self.format == String.LINE) and \
                           not self.isSelect
 
@@ -1139,6 +1162,7 @@ class Ref(Type):
         self.validable = self.link
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
+
     def isShowable(self, obj, layoutType):
         if (layoutType == 'edit') and self.add: return False
         if self.isBack:
@@ -1438,9 +1462,14 @@ class Permission:
        defining a workflow, for example, you need to use instances of
        "ReadPermission" and "WritePermission", the 2 children classes of this
        class. For example, if you need to refer to write permission of
-       attribute "t1" of class A, write: "WritePermission("A.t1") or
+       attribute "t1" of class A, write: WritePermission("A.t1") or
        WritePermission("x.y.A.t1") if class A is not in the same module as
-       where you instantiate the class.'''
+       where you instantiate the class.
+
+       Note that this holds only if you use attributes "specificReadPermission"
+       and "specificWritePermission" as booleans. When defining named
+       (string) permissions, for referring to it you simply use those strings,
+       you do not create instances of ReadPermission or WritePermission.'''
     def __init__(self, fieldDescriptor):
         self.fieldDescriptor = fieldDescriptor
 
