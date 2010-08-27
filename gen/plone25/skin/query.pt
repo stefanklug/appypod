@@ -17,7 +17,7 @@
                  tool python: portal.get('portal_%s' % appName.lower());
                  contentType python:context.REQUEST.get('type_name');
                  flavour python: tool.getFlavour(contentType);
-                 flavourNumber python:int(context.REQUEST.get('flavourNumber'));
+                 flavourNumber python:int(context.REQUEST.get('flavourNumber', 1));
                  searchName python:context.REQUEST.get('search', '')">
 
   <div metal:use-macro="here/skyn/page/macros/prologue"/>

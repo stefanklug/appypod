@@ -1,4 +1,3 @@
-#!/usr/bin/python2.4.4
 '''This script allows to create a brand new read-to-use Plone/Zone instance.
    As prerequisite, you must have installed Plone through the Unifier installer
    available at http://plone.org.'''

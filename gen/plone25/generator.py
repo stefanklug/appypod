@@ -148,6 +148,9 @@ class Generator(AbstractGenerator):
             msg('file_required',        '', msg.FILE_REQUIRED),
             msg('image_required',       '', msg.IMAGE_REQUIRED),
         ]
+        # Create a label for every role added by this application
+        for role in self.getAllUsedRoles(appOnly=True):
+            self.labels.append(msg('role_%s' % role,'', role, niceDefault=True))
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()
         self.generateConfig()
@@ -224,7 +227,7 @@ class Generator(AbstractGenerator):
             if not poFile.generated:
                 poFile.generate()
 
-    ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer')
+    ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer', 'Anonymous')
     def getAllUsedRoles(self, appOnly=False):
         '''Produces a list of all the roles used within all workflows and
            classes defined in this application. If p_appOnly is True, it

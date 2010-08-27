@@ -9,9 +9,10 @@
     on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
     from one object to the next/previous on skyn/view.</tal:comment>
   <a tal:define="viewUrl obj/getUrl;
+                 includeShownInfo includeShownInfo | python:False;
                  navInfo python:'nav=ref.%s.%s.%d.%d' % (contextObj.UID(), fieldName, repeat['obj'].number()+startNumber, totalNumber);
-                 fullUrl python: test(appyType['isBack'], viewUrl + '/?page=%s' % appyType['page'], viewUrl + '/?' + navInfo)"
-     tal:attributes="href fullUrl" tal:content="obj/Title"></a>
+                 fullUrl python: appyType['isBack'] and (viewUrl + '/?page=%s' % appyType['backd']['page']) or (viewUrl + '/?' + navInfo)"
+     tal:attributes="href fullUrl" tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a>
 </metal:objectTitle>
 
 <metal:objectActions define-macro="objectActions">
@@ -99,7 +100,7 @@
                  ajaxHookId python: contextObj.UID()+fieldName;
                  startNumber python: int(request.get('%s_startNumber' % ajaxHookId, 0));
                  tool contextObj/getTool;
-                 refObjects python:contextObj.getAppyRefs(appyType, startNumber);
+                 refObjects python:contextObj.getAppyRefs(fieldName, startNumber);
                  objs refObjects/objects;
                  totalNumber refObjects/totalNumber;
                  batchSize refObjects/batchSize;
@@ -126,7 +127,8 @@
     <tal:comment replace="nothing">Display a simplified widget if maximum number of
       referenced objects is 1.</tal:comment>
     <table class="no-style-table" cellpadding="0" cellspacing="0"><tr valign="top">
-      <td><span class="appyLabel" tal:condition="not: innerRef" tal:content="structure label"></span></td>
+      <td><span class="appyLabel" tal:condition="python: not innerRef and not appyType['link']"
+                tal:content="structure label"></span></td>
 
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
@@ -135,9 +137,9 @@
       </tal:noObject>
 
       <tal:comment replace="nothing">If there is an object...</tal:comment>
-      <tal:objectIsPresent condition="python: len(objs) == 1">
+      <tal:objectIsPresent condition="objs">
         <tal:obj repeat="obj objs">
-          <td><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" /></td>
+          <td tal:define="includeShownInfo python:True"><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" /></td>
           <td tal:condition="not: appyType/isBack">
             <metal:showObjectActions use-macro="portal/skyn/widgets/ref/macros/objectActions" />
           </td>
@@ -240,31 +242,25 @@
 </div>
 
 <tal:comment replace="nothing">Edit macro for an Ref.</tal:comment>
-<div define-macro="edit"
+<div metal:define-macro="edit"
      tal:condition="widget/link"
-     tal:define="refPortalType python: contextObj.getAppyRefPortalType(name);
-                 allBrains python:here.uid_catalog(portal_type=refPortalType);
-                 brains python:contextObj.callAppySelect(widget['select'], allBrains);
-                 refUids python: [o.UID() for o in here.getAppyRefs(name)['objects']];
-                 isMultiple python:test(widget['multiplicity'][1]!=1, 'multiple', '');
-                 appyFieldName python: 'appy_ref_%s' % name;
-                 inError python:test(errors.has_key(name), True, False);
-                 isBeingCreated python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())"
-     tal:attributes="class python:'appyRefEdit field' + test(inError, ' error', '')">
+     tal:define="rname           python: 'appy_ref_%s' % name;
+                 requestValue    python: request.get(rname, []);
+                 inRequest       python: request.has_key(rname);
+                 allObjects      python: contextObj.getSelectableAppyRefs(name);
+                 refUids         python: [o.UID() for o in here.getAppyRefs(name)['objects']];
+                 isBeingCreated  python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())">
 
-  <tal:comment replace="nothing">This macro displays the Reference widget on an "edit" page</tal:comment>
-
-  <label tal:attributes="for python:appyFieldName" tal:content="label"></label>&nbsp;
-  <span class="fieldRequired" tal:condition="python: appyType['multiplicity'][0]&gt;0"></span><br/>
-  <div tal:condition="inError" tal:content="python: errors[field.getName()]"></div>
-  <select tal:define="valueIsInReq python:test(request.get(appyFieldName, None) != None, True, False)"
-          tal:attributes="name python:'appy_ref_%s' % field.getName();
-                          multiple isMultiple">
-    <option tal:condition="not: isMultiple" value="" i18n:translate="choose_a_value"/>
-    <option tal:repeat="brain brains"
-        tal:content="python: tool.getReferenceLabel(brain, appyType)"
-        tal:attributes="value brain/UID;
-                        selected python:test((valueIsInReq and (brain.UID in request.get(appyFieldName, []))) or (not valueIsInReq and ((brain.UID in refUids) or (isBeingCreated and (brain.UID==defaultValueUID)))), True, False)"/>
+  <select tal:attributes="name rname;
+                          multiple python: isMultiple and 'multiple' or ''">
+    <option tal:condition="not: isMultiple" i18n:translate="choose_a_value"></option>
+    <tal:ref repeat="refObj allObjects">
+      <option tal:define="uid python: contextObj.getReferenceUid(refObj)"
+              tal:content="python: contextObj.getReferenceLabel(name, refObj)"
+              tal:attributes="value uid;
+                              selected python:(inRequest and (uid in requestValue) or (not inRequest and ((uid in refUids)))) and True or False">
+      </option>
+    </tal:ref>
   </select>
 </div>
 

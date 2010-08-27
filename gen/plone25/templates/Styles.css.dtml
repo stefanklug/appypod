@@ -14,7 +14,6 @@ label         { font-weight: bold;  font-style: italic; }
 .appyNav      { padding: 0.4em 0 0.4em 0; }
 .appyFocus    { color: #900101; }
 .appyTitle    { padding-top: 0.5em; font-size: 110%; }
-.appyRefEdit  { line-height: 1.5em; }
 .appyWorkflow { text-align: center; background-color: &dtml-globalBackgroundColor;;}
 
 .appyPlusImg {

@@ -263,39 +263,6 @@ class ToolMixin(AbstractMixin):
             return value[:maxWidth] + '...'
         return value
 
-    xhtmlToText = re.compile('<.*?>', re.S)
-    def getReferenceLabel(self, brain, appyType):
-        '''p_appyType is a Ref with link=True. I need to display, on an edit
-           view, the referenced object p_brain in the listbox that will allow
-           the user to choose which object(s) to link through the Ref.
-           According to p_appyType, the label may only be the object title,
-           or more if parameter appyType.shownInfo is used.'''
-        res = brain.Title
-        if 'title' in appyType['shownInfo']:
-            # We may place it at another place
-            res = ''
-        appyObj = brain.getObject().appy()
-        for fieldName in appyType['shownInfo']:
-            value = getattr(appyObj, fieldName)
-            if isinstance(value, AbstractWrapper):
-                value = value.title.decode('utf-8')
-            elif isinstance(value, basestring):
-                value = value.decode('utf-8')
-                refAppyType = appyObj.o.getAppyType(fieldName)
-                if refAppyType and (refAppyType.type == 'String') and \
-                   (refAppyType.format == 2):
-                    value = self.xhtmlToText.sub(' ', value)
-            else:
-                value = str(value)
-            prefix = ''
-            if res:
-                prefix = ' | '
-            res += prefix + value.encode('utf-8')
-        maxWidth = self.getListBoxesMaximumWidth()
-        if len(res) > maxWidth:
-            res = res[:maxWidth-2] + '...'
-        return res
-
     translationMapping = {'portal_path': ''}
     def translateWithMapping(self, label):
         '''Translates p_label in the application domain, with a default

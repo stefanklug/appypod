@@ -133,7 +133,6 @@ class PloneInstaller:
         if not hasattr(site.portal_types, self.appyFolderType):
             self.registerAppyFolderType()
         # Create the folder
-        
         if not hasattr(site.aq_base, self.productName):
             # Temporarily allow me to create Appy large plone folders
             getattr(site.portal_types, self.appyFolderType).global_allow = 1
@@ -144,29 +143,31 @@ class PloneInstaller:
                                title=self.productName)
             getattr(site.portal_types, self.appyFolderType).global_allow = 0
         appFolder = getattr(site, self.productName)
-        
         # All roles defined as creators should be able to create the
         # corresponding root content types in this folder.
         i = -1
         allCreators = set()
         for klass in self.appClasses:
             i += 1
-            if klass.__dict__.has_key('root') and klass.__dict__['root']:
-                # It is a root class.
-                creators = getattr(klass, 'creators', None)
-                if not creators: creators = self.defaultAddRoles
-                allCreators = allCreators.union(creators)
-                className = self.appClassNames[i]
-                updateRolesForPermission(self.getAddPermission(className),
-                                         tuple(creators), appFolder)
+            if not klass.__dict__.has_key('root') or not klass.__dict__['root']:
+                continue # It is not a root class
+            creators = getattr(klass, 'creators', None)
+            if not creators: creators = self.defaultAddRoles
+            allCreators = allCreators.union(creators)
+            className = self.appClassNames[i]
+            permission = self.getAddPermission(className)
+            updateRolesForPermission(permission, tuple(creators), appFolder)
         # Beyond content-type-specific "add" permissions, creators must also
         # have the main permission "Add portal content".
-        updateRolesForPermission('Add portal content', tuple(allCreators),
-            appFolder)
+        permission = 'Add portal content'
+        updateRolesForPermission(permission, tuple(allCreators), appFolder)
         # Creates the "appy" Directory view
-        if not hasattr(site.aq_base, 'skyn'):
-            addDirView = self.ploneStuff['manage_addDirectoryView']
-            addDirView(site, appy.getPath() + '/gen/plone25/skin',id='skyn')
+        if hasattr(site.aq_base, 'skyn'):
+            site.manage_delObjects(['skyn'])
+        # This way, if Appy has moved from one place to the other, the
+        # directory view will always refer to the correct place.
+        addDirView = self.ploneStuff['manage_addDirectoryView']
+        addDirView(site, appy.getPath() + '/gen/plone25/skin', id='skyn')
 
     def installTypes(self):
         '''Registers and configures the Plone content types that correspond to

@@ -351,17 +351,61 @@ class AbstractMixin:
                 res.objects = res.objects[0]
         return res
 
-    def getAppyRefs(self, appyType, startNumber=None):
-        '''Gets the objects linked to me through Ref p_appyType.
+    def getAppyRefs(self, name, startNumber=None):
+        '''Gets the objects linked to me through Ref field named p_name.
            If p_startNumber is None, this method returns all referred objects.
            If p_startNumber is a number, this method will return x objects,
            starting at p_startNumber, x being appyType.maxPerPage.'''
-        if not appyType['isBack']:
-            return self._appy_getRefs(appyType['name'], ploneObjects=True,
-                startNumber=startNumber).__dict__
+        appyType = self.getAppyType(name)
+        if not appyType.isBack:
+            return self._appy_getRefs(name, ploneObjects=True,
+                                      startNumber=startNumber).__dict__
         else:
-            # Note Pagination is not yet implemented for backward refs.
-            return SomeObjects(self.getBRefs(appyType['relationship'])).__dict__
+            # Note that pagination is not yet implemented for backward refs.
+            return SomeObjects(self.getBRefs(appyType.relationship)).__dict__
+
+    def getSelectableAppyRefs(self, name):
+        '''p_name is the name of a Ref field. This method returns the list of
+           all objects that can be selected to be linked as references to p_self
+           through field p_name.'''
+        appyType = self.getAppyType(name)
+        if not appyType.select:
+            # No select method has been defined: we must retrieve all objects
+            # of the referred type that the user is allowed to access.
+            return self.appy().search(appyType.klass)
+        else:
+            return appyType.select(self.appy())
+
+    xhtmlToText = re.compile('<.*?>', re.S)
+    def getReferenceLabel(self, name, refObject):
+        '''p_name is the name of a Ref field with link=True. I need to display,
+           on an edit view, the p_refObject in the listbox that will allow
+           the user to choose which object(s) to link through the Ref.
+           The information to display may only be the object title or more if
+           field.shownInfo is used.'''
+        appyType = self.getAppyType(name)
+        res = refObject.title
+        if 'title' in appyType.shownInfo:
+            # We may place it at another place
+            res = ''
+        for fieldName in appyType.shownInfo:
+            refType = refObject.o.getAppyType(fieldName)
+            value = getattr(refObject, fieldName)
+            value = refType.getFormattedValue(refObject.o, value)
+            if (refType.type == 'String') and (refType.format == 2):
+                value = self.xhtmlToText.sub(' ', value)
+            prefix = ''
+            if res:
+                prefix = ' | '
+            res += prefix + value
+        maxWidth = appyType.width or 30
+        if len(res) > maxWidth:
+            res = res[:maxWidth-2] + '...'
+        return res
+
+    def getReferenceUid(self, refObject):
+        '''Returns the UID of referred object p_refObject.'''
+        return refObject.o.UID()
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
@@ -726,20 +770,9 @@ class AbstractMixin:
         self.reindexObject()
         return self.goto(urlBack)
 
-    def callAppySelect(self, selectMethod, brains):
-        '''Selects objects from a Reference field.'''
-        if selectMethod:
-            obj = self.appy()
-            allObjects = [b.getObject().appy() for b in brains]
-            filteredObjects = selectMethod(obj, allObjects)
-            filteredUids = [o.o.UID() for o in filteredObjects]
-            res = []
-            for b in brains:
-                if b.UID in filteredUids:
-                    res.append(b)
-        else:
-            res = brains
-        return res
+    def getFlavour(self):
+        '''Returns the flavour corresponding to this object.'''
+        return self.getTool().getFlavour(self.portal_type)
 
     def fieldValueSelected(self, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (ie a String with a validator being a
@@ -888,31 +921,38 @@ class AbstractMixin:
             folder = self.getParentNode()
         # On this folder, set "add" permissions for every content type that will
         # be created through reference fields
-        allCreators = set()
+        allCreators = {} # One key for every add permission
+        addPermissions = self.getProductConfig().ADD_CONTENT_PERMISSIONS
         for appyType in self.getAllAppyTypes():
-            if appyType.type == 'Ref':
-                refContentTypeName = self.getAppyRefPortalType(appyType.name)
-                refContentType = getattr(self.portal_types, refContentTypeName)
-                refMetaType = refContentType.content_meta_type
-                if refMetaType in self.getProductConfig(\
-                    ).ADD_CONTENT_PERMISSIONS:
-                    # No specific "add" permission is defined for tool and
-                    # flavour, for example.
-                    appyClass = refContentType.wrapperClass.__bases__[-1]
-                    # Get roles that may add this content type
-                    creators = getattr(appyClass, 'creators', None)
-                    if not creators:
-                        creators = self.getProductConfig().defaultAddRoles
-                    allCreators = allCreators.union(creators)
-                    # Grant this "add" permission to those roles
-                    updateRolesForPermission(
-                        self.getProductConfig().ADD_CONTENT_PERMISSIONS[\
-                            refMetaType], creators, folder)
+            if appyType.type != 'Ref': continue
+            if appyType.isBack or appyType.link: continue
+            # Indeed, no possibility to create objects with such Ref
+            refContentTypeName = self.getAppyRefPortalType(appyType.name)
+            refContentType = getattr(self.portal_types, refContentTypeName)
+            refMetaType = refContentType.content_meta_type
+            if refMetaType not in addPermissions: continue
+            # Indeed, there is no specific "add" permission is defined for tool
+            # and flavour, for example.
+            appyClass = refContentType.wrapperClass.__bases__[-1]
+            # Get roles that may add this content type
+            creators = getattr(appyClass, 'creators', None)
+            if not creators:
+                creators = self.getProductConfig().defaultAddRoles
+            # Add those creators to the list of creators for this meta_type
+            addPermission = addPermissions[refMetaType]
+            if addPermission in allCreators:
+                allCreators[addPermission] = allCreators[\
+                                             addPermission].union(creators)
+            else:
+                allCreators[addPermission] = set(creators)
+        # Update the permissions
+        for permission, creators in allCreators.iteritems():
+            updateRolesForPermission(permission, tuple(creators), folder)
         # Beyond content-type-specific "add" permissions, creators must also
         # have the main permission "Add portal content".
-        if allCreators:
-            updateRolesForPermission('Add portal content', tuple(allCreators),
-                                     folder)
+        permission = 'Add portal content'
+        for creators in allCreators.itervalues():
+            updateRolesForPermission(permission, tuple(creators), folder)
 
     def _appy_getPortalType(self, request):
         '''Guess the portal_type of p_self from info about p_self and

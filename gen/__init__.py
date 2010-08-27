@@ -30,7 +30,7 @@ class Group:
     '''Used for describing a group of widgets within a page.'''
     def __init__(self, name, columns=['100%'], wide=True, style='fieldset',
                  hasLabel=True, hasDescr=False, hasHelp=False,
-                 hasHeaders=False, group=None, colspan=1):
+                 hasHeaders=False, group=None, colspan=1, valign='top'):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -65,6 +65,7 @@ class Group:
         # If the group is rendered into another group, we can specify the number
         # of columns that this group will span.
         self.colspan = colspan
+        self.valign = valign
         if style == 'tabs':
             # Group content will be rendered as tabs. In this case, some
             # param combinations have no sense.
@@ -987,7 +988,8 @@ class Date(Type):
     hourParts = ('hour', 'minute')
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False,
-                 format=WITH_HOUR, startYear=time.localtime()[0]-10,
+                 format=WITH_HOUR, calendar=True,
+                 startYear=time.localtime()[0]-10,
                  endYear=time.localtime()[0]+10, show=True, page='main',
                  group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
@@ -995,6 +997,7 @@ class Date(Type):
                  colspan=1, master=None, masterValue=None, focus=False,
                  historized=False):
         self.format = format
+        self.calendar = calendar
         self.startYear = startYear
         self.endYear = endYear
         Type.__init__(self, validator, multiplicity, index, default, optional,
@@ -1164,12 +1167,14 @@ class Ref(Type):
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
 
     def isShowable(self, obj, layoutType):
+        res = Type.isShowable(self, obj, layout)
+        if not res: return res
         if (layoutType == 'edit') and self.add: return False
         if self.isBack:
             if layoutType == 'edit': return False
             else:
                 return obj.getBRefs(self.relationship)
-        return Type.isShowable(self, obj, layout)
+        return True
 
     def getValue(self, obj):
         if self.isBack:

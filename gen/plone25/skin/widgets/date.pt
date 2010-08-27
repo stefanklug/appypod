@@ -42,8 +42,9 @@
                             selected python:contextObj.dateValueSelected(name, 'year', year, rawValue)"
             tal:content="year"></option>
   </select>
-  <tal:comment replace="nothing">The icon for displaying the date chooser</tal:comment>
-  <a tal:attributes="onclick python: 'return showJsCalendar(\'%s_month\', \'%s\', \'%s_year\', \'%s_month\', \'%s_day\', null, null, %d, %d)' % (name, dummyName, name, name, name, years[0], years[-1])"><img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
+  <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
+  <a tal:condition="widget/calendar"
+     tal:attributes="onclick python: 'return showJsCalendar(\'%s_month\', \'%s\', \'%s_year\', \'%s_month\', \'%s_day\', null, null, %d, %d)' % (name, dummyName, name, name, name, years[0], years[-1])"><img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
 
   <tal:hour condition="python: widget['format'] == 0">
     <select tal:define="hours python:range(0,24);"

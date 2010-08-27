@@ -1,14 +1,12 @@
 <tal:comment replace="nothing">View macro for a String.</tal:comment>
 <metal:view define-macro="view"
-       tal:define="fmt widget/format;
-                   maxMult python: widget['multiplicity'][1];
-                   severalValues python: (maxMult == None) or (maxMult &gt; 1)">
+       tal:define="fmt widget/format">
   <span tal:condition="python: fmt in (0, 3)"
         tal:attributes="class widget/master_css; id rawValue">
-    <ul class="appyList" tal:condition="python: value and severalValues">
+    <ul class="appyList" tal:condition="python: value and isMultiple">
       <li class="appyBullet" tal:repeat="sv value"><i tal:content="structure sv"></i></li>
     </ul>
-    <tal:singleValue condition="python: value and not severalValues">
+    <tal:singleValue condition="python: value and not isMultiple">
       <span tal:condition="python: fmt != 3" tal:replace="structure value"/>
       <span tal:condition="python: fmt == 3">********</span>
     </tal:singleValue>

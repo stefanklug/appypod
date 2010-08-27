@@ -59,7 +59,9 @@
                    requestValue    python: request.get(name, None);
                    inRequest       python: request.has_key(name);
                    errors          errors | python: ();
-                   inError         python: test(widget['name'] in errors, True, False)">
+                   inError         python: (widget['name'] in errors) and True or False;
+                   isMultiple      python: (widget['multiplicity'][1] == None) or (widget['multiplicity'][1] &gt; 1)">
+
   <metal:layout use-macro="here/skyn/widgets/show/macros/layout"/>
 </metal:field>
 
@@ -89,7 +91,7 @@
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
   <table cellpadding="0" cellspacing="0" tal:attributes="width python: test(widget['wide'], '100%', '')">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
-    <tr><td style="border-bottom: 1px solid #ff8040">
+    <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
       <table cellpadding="0" cellspacing="0" style="position:relative; bottom:-1px;">
         <tr valign="bottom">
           <tal:tab repeat="widgetRow widget/widgets">
@@ -157,7 +159,7 @@
     </th>
   </tr>
   <tal:comment replace="nothing">The rows of widgets</tal:comment>
-  <tr valign="top" tal:repeat="widgetRow widget/widgets">
+  <tr tal:attributes="valign widget/valign" tal:repeat="widgetRow widget/widgets">
     <td tal:repeat="widget widgetRow"
         tal:attributes="colspan widget/colspan|python:1;
                         style python: test(repeat['widget'].number() != len(widgetRow), 'padding-right: 0.6em', '')">
@@ -176,7 +178,7 @@
 <tal:comment replace="nothing">Displays a field label.</tal:comment>
 <tal:label metal:define-macro="label" condition="widget/hasLabel">
   <label tal:attributes="for widget/name"
-         tal:condition="python: widget['type'] not in ('Action', 'Ref')"
+         tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))"
          tal:content="structure python: contextObj.translate(widget['labelId'])"></label>
 </tal:label>
 
