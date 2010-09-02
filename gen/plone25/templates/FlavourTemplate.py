@@ -20,7 +20,6 @@ class <!flavourName!>(OrderedBaseFolder, FlavourMixin):
     allowed_content_types = []
     filter_content_types = 0
     global_allow = 1
-    #content_icon = '<!flavourName!>.gif'
     immediate_view = 'skyn/view'
     default_view = 'skyn/view'
     suppl_views = ()

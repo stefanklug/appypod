@@ -5,8 +5,8 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.utils import sequenceTypes, PageDescr, GroupDescr, Keywords, \
-                           FileWrapper
-from appy.shared.data import countries
+                           FileWrapper, getClassName
+from appy.shared.data import languages
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -14,7 +14,8 @@ digit  = re.compile('[0-9]')
 alpha  = re.compile('[a-zA-Z0-9]')
 letter = re.compile('[a-zA-Z]')
 nullValues = (None, '', ' ')
-validatorTypes = (types.FunctionType, type(re.compile('')))
+validatorTypes = (types.FunctionType, types.UnboundMethodType,
+                  type(re.compile('')))
 emptyTuple = ()
 
 # Descriptor classes used for refining descriptions of elements in types
@@ -383,14 +384,7 @@ class Type:
         self.name = name
         # Determine ids of i18n labels for this field
         if not klass: prefix = appName
-        elif klass.__module__.endswith('.appyWrappers'):
-            prefix = appName + klass.__name__
-        elif Tool in klass.__bases__:
-            prefix = appName + 'Tool'
-        elif Flavour in klass.__bases__:
-            prefix = appName + 'Flavour'
-        else:
-            prefix = klass.__module__.replace('.', '_') + '_' + klass.__name__
+        else: prefix = getClassName(klass, appName)
         self.labelId = '%s_%s' % (prefix, name)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
@@ -583,7 +577,7 @@ class Type:
         value = self.getStorableValue(value)
         if self.validator and (type(self.validator) in validatorTypes):
             obj = obj.appy()
-            if type(self.validator) == validatorTypes[0]:
+            if type(self.validator) != validatorTypes[-1]:
                 # It is a custom function. Execute it.
                 try:
                     validValue = self.validator(obj, value)
@@ -598,7 +592,7 @@ class Type:
                     return str(e)
                 except:
                     return obj.translate('%s_valid' % self.labelId)
-            elif type(self.validator) == validatorTypes[1]:
+            else:
                 # It is a regular expression
                 if not self.validator.match(value):
                     # If the regular expression is among the default ones, we
@@ -739,7 +733,7 @@ class String(Type):
         # Maximum size is 34 chars
         if (len(v) < 8) or (len(v) > 34): return False
         # 2 first chars must be a valid country code
-        if not countries.exists(v[:2].lower()): return False
+        if not languages.exists(v[:2].lower()): return False
         # 2 next chars are a control code whose value must be between 0 and 96.
         try:
             code = int(v[2:4])
@@ -768,7 +762,7 @@ class String(Type):
         for c in value[:4]:
             if not letter.match(c): return False
         # 2 next chars must be a valid country code
-        if not countries.exists(value[4:6].lower()): return False
+        if not languages.exists(value[4:6].lower()): return False
         # Last chars represent some location within a country (a city, a
         # province...). They can only be letters or figures.
         for c in value[6:]:
@@ -1356,24 +1350,71 @@ class Pod(Type):
         self.validable = False
 
 # Workflow-specific types ------------------------------------------------------
+class Role:
+    '''Represents a role.'''
+    ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer', 'Anonymous',
+                  'Authenticated')
+    ploneLocalRoles = ('Owner',)
+    ploneUngrantableRoles = ('Anonymous', 'Authenticated')
+    def __init__(self, name, local=False, grantable=True):
+        self.name = name
+        self.local = local # True if it can be used as local role only.
+        # It is a standard Plone role or an application-specific one?
+        self.plone = name in self.ploneRoles
+        if self.plone and (name in self.ploneLocalRoles):
+            self.local = True
+        self.grantable = grantable
+        if self.plone and (name in self.ploneUngrantableRoles):
+            self.grantable = False
+        # An ungrantable role is one that is, like the Anonymous or
+        # Authenticated roles, automatically attributed to a user.
+
 class State:
     def __init__(self, permissions, initial=False, phase='main', show=True):
-        self.permissions = permissions #~{s_permissionName:[s_roleName]}~ This
-        # dict gives, for every permission managed by a workflow, the list of
-        # roles for which the permission is granted in this state.
-        # Standard permissions are 'read', 'write' and 'delete'.
+        self.usedRoles = {}
+        # The following dict ~{s_permissionName:[s_roleName|Role_role]}~
+        # gives, for every permission managed by a workflow, the list of roles
+        # for which the permission is granted in this state. Standard
+        # permissions are 'read', 'write' and 'delete'.
+        self.permissions = permissions 
         self.initial = initial
         self.phase = phase
         self.show = show
-    def getUsedRoles(self):
-        res = set()
-        for roleValue in self.permissions.itervalues():
-            if isinstance(roleValue, basestring):
-                res.add(roleValue)
-            elif roleValue:
-                for role in roleValue:
-                    res.add(role)
-        return list(res)
+        # Standardize the way roles are expressed within self.permissions
+        self.standardizeRoles()
+
+    def getRole(self, role):
+        '''p_role can be the name of a role or a Role instance. If it is the
+           name of a role, this method returns self.usedRoles[role] if it
+           exists, or creates a Role instance, puts it in self.usedRoles and
+           returns it else. If it is a Role instance, the method stores it in
+           self.usedRoles if it not in it yet and returns it.'''
+        if isinstance(role, basestring):
+            if role in self.usedRoles:
+                return self.usedRoles[role]
+            else:
+                theRole = Role(role)
+                self.usedRoles[role] = theRole
+                return theRole
+        else:
+            if role.name not in self.usedRoles:
+                self.usedRoles[role.name] = role
+            return role
+
+    def standardizeRoles(self):
+        '''This method converts, within self.permissions, every role to a
+           Role instance. Every used role is stored in self.usedRoles.'''
+        for permission, roles in self.permissions.items():
+            if isinstance(roles, basestring) or isinstance(roles, Role):
+                self.permissions[permission] = [self.getRole(roles)]
+            elif roles:
+                rolesList = []
+                for role in roles:
+                    rolesList.append(self.getRole(role))
+                self.permissions[permission] = rolesList
+
+    def getUsedRoles(self): return self.usedRoles.values()
+
     def getTransitions(self, transitions, selfIsFromState=True):
         '''Among p_transitions, returns those whose fromState is p_self (if
            p_selfIsFromState is True) or those whose toState is p_self (if
@@ -1383,6 +1424,7 @@ class State:
             if self in t.getStates(selfIsFromState):
                 res.append(t)
         return res
+
     def getPermissions(self):
         '''If you get the permissions mapping through self.permissions, dict
            values may be of different types (a list of roles, a single role or
@@ -1407,6 +1449,9 @@ class Transition:
         # transition at several places in the state-transition diagram. It may
         # be useful for "undo" transitions, for example.
         self.condition = condition
+        if isinstance(condition, basestring):
+            # The condition specifies the name of a role.
+            self.condition = Role(condition)
         self.action = action
         self.notify = notify # If not None, it is a method telling who must be
         # notified by email after the transition has been executed.
@@ -1414,14 +1459,14 @@ class Transition:
         # the transition. It will only be possible by code.
 
     def getUsedRoles(self):
-        '''If self.condition is specifies a role.'''
+        '''self.condition can specify a role.'''
         res = []
-        if isinstance(self.condition, basestring):
-            res = [self.condition]
+        if isinstance(self.condition, Role):
+            res.append(self.condition)
         return res
 
     def isSingle(self):
-        '''If this transitions is only define between 2 states, returns True.
+        '''If this transition is only defined between 2 states, returns True.
            Else, returns False.'''
         return isinstance(self.states[0], State)
 
@@ -1517,13 +1562,16 @@ class Selection:
         return value
 
 # ------------------------------------------------------------------------------
-class Tool:
+class Model: pass
+class Tool(Model):
     '''If you want so define a custom tool class, she must inherit from this
        class.'''
-class Flavour:
+class Flavour(Model):
     '''A flavour represents a given group of configuration options. If you want
        to define a custom flavour class, she must inherit from this class.'''
     def __init__(self, name): self.name = name
+class User(Model):
+    '''If you want to extend or modify the User class, subclass me.'''
 
 # ------------------------------------------------------------------------------
 class Config:
@@ -1544,6 +1592,11 @@ class Config:
         # For every language code that you specify in this list, appy.gen will
         # produce and maintain translation files.
         self.languages = ['en']
+        # If languageSelector is True, on every page, a language selector will
+        # allow to switch between languages defined in self.languages. Else,
+        # the browser-defined language will be used for choosing the language
+        # of returned pages.
+        self.languageSelector = False
         # People having one of these roles will be able to create instances
         # of classes defined in your application.
         self.defaultCreators = ['Manager', 'Owner']

@@ -1,8 +1,9 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, Cookie
 from appy.shared.utils import getOsTempFolder
+import appy.gen
 from appy.gen import Type, Search, Selection
-from appy.gen.utils import SomeObjects, sequenceTypes
+from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
 from appy.gen.plone25.mixins import AbstractMixin
 from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
@@ -13,6 +14,17 @@ jsMessages = ('no_elem_selected', 'delete_confirm')
 # ------------------------------------------------------------------------------
 class ToolMixin(AbstractMixin):
     _appy_meta_type = 'Tool'
+    def getPortalType(self, metaTypeOrAppyClass):
+        '''Returns the name of the portal_type that is based on
+           p_metaTypeOrAppyType in this flavour.'''
+        appName = self.getProductConfig().PROJECTNAME
+        if not isinstance(metaTypeOrAppyClass, basestring):
+            res = getClassName(metaTypeOrAppyClass, appName)
+        if res.find('Extensions_appyWrappers') != -1:
+            elems = res.split('_')
+            res = '%s%s' % (elems[1], elems[4])
+        return res
+
     def getFlavour(self, contextObjOrPortalType, appy=False):
         '''Gets the flavour that corresponds to p_contextObjOrPortalType.'''
         if isinstance(contextObjOrPortalType, basestring):

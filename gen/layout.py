@@ -185,6 +185,6 @@ class Table(LayoutElement):
 
 # ------------------------------------------------------------------------------
 defaultPageLayouts  = {
-    'view': Table('m;-s|-n!-w;-b|'), 'edit': Table('m;-s|-n!-w;-b|')}
+    'view': Table('m;-s|-n!-w|-b|'), 'edit': Table('m;-w|-b|')}
 defaultFieldLayouts = {'view': 'l;f!', 'edit': 'lrv;f!'}
 # ------------------------------------------------------------------------------

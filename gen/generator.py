@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, parser, symbol, token, types
-from appy.gen import Type, State, Config, Tool, Flavour
+from appy.gen import Type, State, Config, Tool, Flavour, User
 from appy.gen.descriptors import *
 from appy.gen.utils import produceNiceMessage
 import appy.pod, appy.pod.renderer
@@ -133,7 +133,8 @@ class Generator:
         # Default descriptor classes
         self.descriptorClasses = {
             'class': ClassDescriptor, 'tool': ClassDescriptor,
-            'flavour': ClassDescriptor, 'workflow': WorkflowDescriptor}
+            'flavour': ClassDescriptor, 'user': ClassDescriptor,
+            'workflow': WorkflowDescriptor}
         # The following dict contains a series of replacements that need to be
         # applied to file templates to generate files.
         self.repls = {'applicationName': self.applicationName,
@@ -143,6 +144,7 @@ class Generator:
         self.classes = []
         self.tool = None
         self.flavour = None
+        self.user = None
         self.workflows = []
         self.initialize()
         self.config = Config.getDefault()
@@ -235,6 +237,12 @@ class Generator:
                                 self.flavour = klass(moduleElem, attrs, self)
                             else:
                                 self.flavour.update(moduleElem, attrs)
+                        elif issubclass(moduleElem, User):
+                            if not self.user:
+                                klass = self.descriptorClasses['user']
+                                self.user = klass(moduleElem, attrs, self)
+                            else:
+                                self.user.update(moduleElem, attrs)
                         else:
                             descriptorClass = self.descriptorClasses['class']
                             descriptor = descriptorClass(moduleElem,attrs, self)

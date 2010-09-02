@@ -18,33 +18,10 @@ POD_ERROR = 'An error occurred while generating the document. Please ' \
 # ------------------------------------------------------------------------------
 class FlavourMixin(AbstractMixin):
     _appy_meta_type = 'Flavour'
-    def getPortalType(self, metaTypeOrAppyType):
+    def getPortalType(self, metaTypeOrAppyClass):
         '''Returns the name of the portal_type that is based on
            p_metaTypeOrAppyType in this flavour.'''
-        res = metaTypeOrAppyType
-        isPredefined = False
-        isAppy = False
-        appName = self.getProductConfig().PROJECTNAME
-        if not isinstance(res, basestring):
-            res = ClassDescriptor.getClassName(res)
-            isAppy = True
-        if res.find('Extensions_appyWrappers') != -1:
-            isPredefined = True
-            elems = res.split('_')
-            res = '%s%s' % (elems[1], elems[4])
-        elif isAppy and issubclass(metaTypeOrAppyType, appy.gen.Tool):
-            # This is the custom tool
-            isPredefined = True
-            res = '%sTool' % appName
-        elif isAppy and issubclass(metaTypeOrAppyType, appy.gen.Flavour):
-            # This is the custom Flavour
-            isPredefined = True
-            res = '%sFlavour' % appName
-        if not isPredefined:
-            number = self.appy().number
-            if number != 1:
-                res = '%s_%d' % (res, number)
-        return res
+        return self.getParentNode().getPortalType(metaTypeOrAppyClass)
 
     def registerPortalTypes(self):
         '''Registers, into portal_types, the portal types which are specific

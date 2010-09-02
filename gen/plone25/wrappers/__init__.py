@@ -151,13 +151,13 @@ class AbstractWrapper:
         isField = isinstance(fieldNameOrClass, basestring)
         # Determine the portal type of the object to create
         if isField:
-            fieldName = fieldNameOrClass
-            idPrefix = fieldName
-            portalType = self.o.getAppyRefPortalType(fieldName)
+            fieldName = idPrefix = fieldNameOrClass
+            appyType = self.o.getAppyType(fieldName)
+            portalType = self.tool.o.getPortalType(appyType.klass)
         else:
-            theClass = fieldNameOrClass
-            idPrefix = theClass.__name__
-            portalType = self.o._appy_getAtType(theClass, self.flavour.o)
+            klass = fieldNameOrClass
+            idPrefix = klass.__name__
+            portalType = self.tool.o.getPortalType(klass)
         # Determine object id
         if kwargs.has_key('id'):
             objId = kwargs['id']

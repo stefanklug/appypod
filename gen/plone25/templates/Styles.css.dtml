@@ -170,21 +170,13 @@ th {
   /* overflow: visible; IE produces ugly results with this */
 }
 
-.listing {
-  margin: 0em 0em;
-}
-
+.listing { margin: 0em 0em; }
 .listing td, .stx table td {
-  padding-right: 0.1em;
-  padding-left: 0.3em;
-  padding-top: 0.3em;
-  padding-bottom: 0em;
+  padding : 0.1em 0.3em 0.1em 0.3em;
   border-top : 1px solid #8CACBB;
 }
-
-.vertical td {
-  padding-left: 0.3em;
-}
+.listing th, .stx table th { padding: 0.25em 0.3em; }
+.vertical td { padding-left: 0.3em; }
 
 .innerAppyTable {
   border-width: 0px;

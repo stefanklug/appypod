@@ -5,20 +5,178 @@
 # ------------------------------------------------------------------------------
 import os, os.path
 
+# List of names of language in their own language ------------------------------
+# It was copied from Plone 2.5.5 (PloneLanguageTool), don't know any "authentic
+# source" for that.
+nativeNames = {
+  'aa' : 'магIарул мацI',
+  'ab' : 'бызшәа',
+  'af' : 'Afrikaans',
+  'am' : 'አማርኛ',
+  'ar' : 'العربية',
+  'as' : 'অসমিয়া',
+  'ay' : 'Aymara',
+  'az' : 'Azəri Türkçəsi',
+  'ba' : 'Bashkir',
+  'be' : 'Беларускі',
+  'bg' : 'Български',
+  'bh' : 'Bihari',
+  'bi' : 'Bislama',
+  'bn' : 'বাংলা',
+  'bo' : 'བོད་སྐད་',
+  'bs' : 'Bosanski',
+  'br' : 'Brezhoneg',
+  'ca' : 'Català',
+  'ch' : 'Chamoru',
+  'co' : 'Corsu',
+  'cs' : 'Čeština',
+  'cy' : 'Cymraeg',
+  'da' : 'Dansk',
+  'de' : 'Deutsch',
+  'dz' : 'རྫོང་ཁ',
+  'el' : 'Ελληνικά',
+  'en' : 'English',
+  'eo' : 'Esperanto',
+  'es' : 'Español',
+  'et' : 'Eesti',
+  'eu' : 'Euskara',
+  'fa' : 'فارسی',
+  'fi' : 'Suomi',
+  'fj' : 'Fiji',
+  'fo' : 'Føroyska',
+  'fr' : 'Français',
+  'fy' : 'Frysk',
+  'ga' : 'Gaeilge',
+  'gd' : 'Gàidhlig',
+  'gl' : 'Galego',
+  'gn' : 'Guarani',
+  'gu' : 'ગુજરાતી',
+  'gv' : 'Gaelg',
+  'ha' : 'هَوُس',
+  'he' : 'עברית',
+  'hi' : 'हिंदी',
+  'hr' : 'Hrvatski',
+  'hu' : 'Magyar',
+  'hy' : 'Հայերէն',
+  'ia' : 'Interlingua',
+  'id' : 'Bahasa Indonesia',
+  'ie' : 'Interlingue',
+  'ik' : 'Inupiak',
+  'is' : 'Íslenska',
+  'it' : 'Italiano',
+  'iu' : 'ᐃᓄᒃᑎᑐᑦ',
+  'ja' : '日本語',
+  'jbo': 'lojban',
+  'jw' : 'Basa Jawi',
+  'ka' : 'ქართული',
+  'kk' : 'ﻗﺎﺯﺍﻗﺸﺎ',
+  'kl' : 'Greenlandic',
+  'km' : 'ខ្មែរ',
+  'kn' : 'ಕನ್ನಡ',
+  'ko' : '한국어',
+  'ks' : 'काऽशुर',
+  'ku' : 'Kurdí',
+  'kw' : 'Kernewek',
+  'ky' : 'Кыргыз',
+  'la' : 'Latin',
+  'lb' : 'Lëtzebuergesch',
+  'li' : 'Limburgs',
+  'ln' : 'Lingala',
+  'lo' : 'ພາສາລາວ',
+  'lt' : 'Lietuviskai',
+  'lv' : 'Latviešu',
+  'mg' : 'Malagasy',
+  'mi' : 'Maori',
+  'mk' : 'Македонски',
+  'ml' : 'മലയാളം',
+  'mn' : 'Монгол',
+  'mo' : 'Moldavian',
+  'mr' : 'मराठी',
+  'ms' : 'Bahasa Melayu',
+  'mt' : 'Malti',
+  'my' : 'Burmese',
+  'na' : 'Nauru',
+  'ne' : 'नेपाली',
+  'nl' : 'Nederlands',
+  'no' : 'Norsk',
+  'nn' : 'Nynorsk',
+  'oc' : 'Languedoc',
+  'om' : 'Oromo',
+  'or' : 'ଓଡ଼ିଆ',
+  'pa' : 'ਪੰਜਾਬੀ',
+  'pl' : 'Polski',
+  'ps' : 'پښتو',
+  'pt' : 'Português',
+  'qu' : 'Quechua',
+  'rm' : 'Rumantsch',
+  'rn' : 'Kirundi',
+  'ro' : 'Română',
+  'ru' : 'Русский',
+  'rw' : 'Kiyarwanda',
+  'sa' : 'संस्कृत',
+  'sd' : 'Sindhi',
+  'se' : 'Northern Sámi',
+  'sg' : 'Sangho',
+  'sh' : 'Serbo-Croatian',
+  'si' : 'Singhalese',
+  'sk' : 'Slovenčina',
+  'sl' : 'Slovenščina',
+  'sm' : 'Samoan',
+  'sn' : 'Shona',
+  'so' : 'Somali',
+  'sq' : 'Shqip',
+  'sr' : 'српски',
+  'ss' : 'Siswati',
+  'st' : 'Sesotho',
+  'su' : 'Sudanese',
+  'sv' : 'Svenska',
+  'sw' : 'Kiswahili',
+  'ta' : 'தமிழ',
+  'te' : 'తెలుగు',
+  'tg' : 'Тоҷики',
+  'th' : 'ไทย',
+  'ti' : 'ትግርኛ',
+  'tk' : 'түркmенче',
+  'tl' : 'Tagalog',
+  'tn' : 'Setswana',
+  'to' : 'Lea faka-Tonga',
+  'tr' : 'Türkçe',
+  'ts' : 'Tsonga',
+  'tt' : 'татарча',
+  'tw' : 'Twi',
+  'ug' : 'Uigur',
+  'uk' : 'Українська',
+  'ur' : 'اردو',
+  'uz' : 'Ўзбекча',
+  'vi' : 'Tiếng Việt',
+  'vo' : 'Volapük',
+  'wa' : 'Walon',
+  'wo' : 'Wolof',
+  'xh' : 'isiXhosa',
+  'yi' : 'ײִדיש',
+  'yo' : 'Yorùbá',
+  'za' : 'Zhuang',
+  'zh' : '中文',
+  'zu' : 'isiZulu'
+}
 # ------------------------------------------------------------------------------
-class Countries:
-    '''This class gives access to the country codes as standardized by
+class Languages:
+    '''This class gives access to the language codes as standardized by
        ISO-639. The file has been downloaded in July 2009 from
        http://www.loc.gov/standards/iso639-2/ascii_8bits.html (UTF-8 version)'''
     def __init__(self):
-        self.fileName = os.path.dirname(__file__) + '/CountryCodesIso639.2.txt'
+        self.fileName = os.path.dirname(__file__) + '/LanguageCodesIso639.2.txt'
         self.languageCodes = []
+        # Names of languages in English
         self.languageNames = []
+        # Names of languages in their language. It is not part of ISO 639.2 and
+        # is taken from dict languageNames above.
+        self.nativeNames = []
         self.parseFile()
 
     def parseFile(self):
         '''Parses the language codes and names in the ISO file and puts them in
-           self.languageCodes and self.languageNames.'''
+           self.languageCodes, self.languageNames and self.nativeNames.'''
         f = file(self.fileName)
         for line in f:
             if line.strip():
@@ -27,11 +185,16 @@ class Countries:
                     # I take only those that have a 2-chars ISO-639-1 code.
                     self.languageCodes.append(lineElems[2])
                     self.languageNames.append(lineElems[3])
+                    if lineElems[2] in nativeNames:
+                        self.nativeNames.append(nativeNames[lineElems[2]])
+                    else:
+                        # Put the english name nevertheless.
+                        self.nativeNames.append(lineElems[3])
         f.close()
 
-    def exists(self, countryCode):
-        '''Is p_countryCode a valid 2-digits country code?'''
-        return countryCode in self.languageCodes
+    def exists(self, code):
+        '''Is p_code a valid 2-digits language/country code?'''
+        return code in self.languageCodes
 
     def __repr__(self):
         i = -1
@@ -41,7 +204,7 @@ class Countries:
             res += 'Language: ' + languageCode + ' - ' + self.languageNames[i]
             res += '\n'
         return res
-countries = Countries() # As this is international, I instantiate it.
+languages = Languages() # As this is international, I instantiate it.
 
 # ------------------------------------------------------------------------------
 class BelgianCities:

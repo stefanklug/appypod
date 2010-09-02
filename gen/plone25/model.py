@@ -7,7 +7,7 @@
 
 # ------------------------------------------------------------------------------
 import copy, types
-from appy.gen import Type, Integer, String, File, Ref, Boolean, Selection, Group
+from appy.gen import *
 
 # ------------------------------------------------------------------------------
 class ModelClass:
@@ -69,6 +69,25 @@ class ModelClass:
             exec 'appyType = klass.%s' % attrName
             res += '    %s=%s\n' % (attrName, klass._appy_getTypeBody(appyType))
         return res
+
+class User(ModelClass):
+    # All methods defined below are fake. Real versions are in the wrapper.
+    title = String(show=False)
+    gm = {'group': 'main', 'multiplicity': (1,1)}
+    name = String(**gm)
+    firstName = String(**gm)
+    def showLogin(self): pass
+    def validateLogin(self): pass
+    login = String(show=showLogin, validator=validateLogin, **gm)
+    def showPassword(self): pass
+    def validatePassword(self): pass
+    password1 = String(format=String.PASSWORD, show=showPassword,
+                       validator=validatePassword, **gm)
+    password2 = String(format=String.PASSWORD, show=showPassword, **gm)
+    gm['multiplicity'] = (0, None)
+    roles = String(validator=Selection('getGrantableRoles'), **gm)
+    _appy_attributes = ['title', 'name', 'firstName', 'login',
+                        'password1', 'password2', 'roles']
 
 class PodTemplate(ModelClass):
     description = String(format=String.TEXT)
@@ -290,12 +309,18 @@ class Tool(ModelClass):
                    # First arg is None because we don't know yet if it will link
                    # to the predefined Flavour class or a custom class defined
                    # in the application.
-    def validPythonWithUno(self, value): pass
+    users = Ref(None, multiplicity=(0,None), add=True, link=False,
+                back=Ref(attribute='toTool'), page='users',
+                shownInfo=('login', 'title', 'roles'), showHeaders=True)
+    # First arg is None because we don't know yet if it will link to the
+    # predefined User class or a custom class defined in the application.
+    def validPythonWithUno(self, value): pass # Real method in the wrapper
     unoEnabledPython = String(group="connectionToOpenOffice",
                               validator=validPythonWithUno)
     openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
     numberOfResultsPerPage = Integer(default=30)
     listBoxesMaximumWidth = Integer(default=100)
-    _appy_attributes = ['flavours', 'unoEnabledPython', 'openOfficePort',
-                        'numberOfResultsPerPage', 'listBoxesMaximumWidth']
+    _appy_attributes = ['flavours', 'users', 'unoEnabledPython',
+                        'openOfficePort', 'numberOfResultsPerPage',
+                        'listBoxesMaximumWidth']
 # ------------------------------------------------------------------------------

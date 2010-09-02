@@ -40,6 +40,7 @@ class PoMessage:
         'comment every time a transition is triggered'
     MSG_showAllStatesInPhaseFor = 'Show all states in phase'
     POD_TEMPLATE = 'POD template'
+    USER = 'User'
     POD_ASKACTION = 'Trigger related action'
     DEFAULT_VALID_ERROR = 'Please fill or correct this.'
     REF_NO = 'No object.'

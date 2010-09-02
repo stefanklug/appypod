@@ -5,7 +5,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, shutil
 from optparse import OptionParser
-from appy.shared.utils import cleanFolder
+from appy.shared.utils import cleanFolder, copyFolder
 
 # ------------------------------------------------------------------------------
 class NewError(Exception): pass
@@ -103,7 +103,7 @@ class NewScript:
                         os.system(cmd)
                     else:
                         # Copy thre product into the instance
-                        shutil.copytree(folderName, destFolder)
+                        copyFolder(folderName, destFolder)
 
     uglyChunks = ('pkg_resources', '.declare_namespace(')
     def findPythonPackageInEgg(self, currentFolder):
@@ -199,7 +199,7 @@ class NewScript:
                 # A Zope product. Copy its content in Products.
                 innerFolder= self.getSubFolder(self.getSubFolder(eggMainFolder))
                 destFolder = j(productsFolder, os.path.basename(innerFolder))
-                shutil.copytree(innerFolder, destFolder)
+                copyFolder(innerFolder, destFolder)
             else:
                 # A standard Python package. Copy its content in lib/python.
                 # Go into the subFolder that is not EGG-INFO.
@@ -218,7 +218,7 @@ class NewScript:
                     # libFolder.
                     innerFolder = self.getSubFolder(eggFolder)
                     destFolder = j(productsFolder,os.path.basename(innerFolder))
-                    shutil.copytree(innerFolder, destFolder)
+                    copyFolder(innerFolder, destFolder)
                 else:
                     packageFolder = self.findPythonPackageInEgg(eggFolder)
                     # Create the destination folder(s) in the instance,
@@ -252,7 +252,7 @@ class NewScript:
                     else:
                         destFolder = libFolder
                     destFolder = j(destFolder, os.path.basename(packageFolder))
-                    shutil.copytree(packageFolder, destFolder)
+                    copyFolder(packageFolder, destFolder)
         self.patchPlone(productsFolder, libFolder)
 
     def manageArgs(self, args):

@@ -308,4 +308,21 @@ class FileWrapper:
                 tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
                 return
         return filePath
+
+# ------------------------------------------------------------------------------
+def getClassName(klass, appName=None):
+    '''Generates, from appy-class p_klass, the name of the corresponding
+       Archetypes class. For some classes, name p_appName is required: it is
+       part of the class name.'''
+    moduleName = klass.__module__
+    if (moduleName == 'appy.gen.plone25.model') or \
+       moduleName.endswith('.appyWrappers'):
+        # This is a model (generation time or run time)
+        res = appName + klass.__name__
+    elif klass.__bases__ and (klass.__bases__[-1].__module__ == 'appy.gen'):
+        # This is a customized class (inherits from appy.gen.Tool, User,...)
+        res = appName + klass.__bases__[-1].__name__
+    else: # This is a standard class
+        res = klass.__module__.replace('.', '_') + '_' + klass.__name__
+    return res
 # ------------------------------------------------------------------------------

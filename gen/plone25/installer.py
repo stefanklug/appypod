@@ -18,30 +18,27 @@ class ZCTextIndexInfo:
 class PloneInstaller:
     '''This Plone installer runs every time the generated Plone product is
        installed or uninstalled (in the Plone configuration interface).'''
-    def __init__(self, reinstall, productName, ploneSite, minimalistPlone,
-        appClasses, appClassNames, allClassNames, catalogMap, applicationRoles,
-        defaultAddRoles, workflows, appFrontPage, showPortlet, ploneStuff):
+    def __init__(self, reinstall, ploneSite, config):
+        # p_cfg is the configuration module of the Plone product.
         self.reinstall = reinstall # Is it a fresh install or a re-install?
-        self.productName = productName
         self.ploneSite = ploneSite
-        self.minimalistPlone = minimalistPlone # If True, lots of basic Plone
-                                               # stuff will be hidden.
-        self.appClasses = appClasses # The list of classes declared in the
-                                     # gen-application.
-        self.appClassNames = appClassNames # Names of those classes
-        self.allClassNames = allClassNames # Includes Flavour and PodTemplate
-        self.catalogMap = catalogMap # Indicates classes to be indexed or not
-        self.applicationRoles = applicationRoles # Roles defined in the app
-        self.defaultAddRoles = defaultAddRoles # The default roles that can add
-                                               # content
-        self.workflows = workflows # Dict whose keys are class names and whose
-                                   # values are workflow names (=the workflow
-                                   # used by the content type)
-        self.appFrontPage = appFrontPage # Does this app define a site-wide
-                                         # front page?
-        self.showPortlet = showPortlet # Must we show the application portlet?
-        self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
-        self.attributes = ploneStuff['GLOBALS']['attributes']
+        self.config = cfg = config
+        # Unwrap some useful variables from config
+        self.productName = cfg.PROJECTNAME
+        self.minimalistPlone = cfg.minimalistPlone
+        self.appClasses = cfg.appClasses
+        self.appClassNames = cfg.appClassNames
+        self.allClassNames = cfg.allClassNames
+        self.catalogMap = cfg.catalogMap
+        self.applicationRoles = cfg.applicationRoles # Roles defined in the app
+        self.defaultAddRoles = cfg.defaultAddRoles
+        self.workflows = cfg.workflows
+        self.appFrontPage = cfg.appFrontPage
+        self.showPortlet = cfg.showPortlet
+        self.languages = cfg.languages
+        self.languageSelector = cfg.languageSelector
+        self.attributes = cfg.attributes
+        # A buffer for logging purposes
         self.toLog = StringIO()
         self.typeAliases = {'sharing': '', 'gethtml': '',
             '(Default)': 'skynView', 'edit': 'skyn/edit',
@@ -166,7 +163,7 @@ class PloneInstaller:
             site.manage_delObjects(['skyn'])
         # This way, if Appy has moved from one place to the other, the
         # directory view will always refer to the correct place.
-        addDirView = self.ploneStuff['manage_addDirectoryView']
+        addDirView = self.config.manage_addDirectoryView
         addDirView(site, appy.getPath() + '/gen/plone25/skin', id='skyn')
 
     def installTypes(self):
@@ -174,11 +171,9 @@ class PloneInstaller:
            gen-classes.'''
         site = self.ploneSite
         # Do Plone-based type registration
-        classes = self.ploneStuff['listTypes'](self.productName)
-        self.ploneStuff['installTypes'](site, self.toLog, classes,
-            self.productName)
-        self.ploneStuff['install_subskin'](site, self.toLog,
-            self.ploneStuff['GLOBALS'])
+        classes = self.config.listTypes(self.productName)
+        self.config.installTypes(site, self.toLog, classes, self.productName)
+        self.config.install_subskin(site, self.toLog, self.config.__dict__)
         # Set appy view/edit pages for every created type
         for className in self.allClassNames + ['%sTool' % self.productName]:
             # I did not put the app tool in self.allClassNames because it
@@ -204,7 +199,7 @@ class PloneInstaller:
         factoryTool.manage_setPortalFactoryTypes(listOfTypeIds=factoryTypes)
 
         # Configure CatalogMultiplex: tell what types will be catalogued or not.
-        atTool = getattr(site, self.ploneStuff['ARCHETYPETOOLNAME'])
+        atTool = getattr(site, self.config.ARCHETYPETOOLNAME)
         for meta_type in self.catalogMap:
             submap = self.catalogMap[meta_type]
             current_catalogs = Set(
@@ -294,7 +289,7 @@ class PloneInstaller:
         try:
             self.ploneSite.manage_addProduct[
                 self.productName].manage_addTool(self.toolName)
-        except self.ploneStuff['BadRequest']:
+        except self.config.BadRequest:
             # If an instance with the same name already exists, this error will
             # be unelegantly raised by Zope.
             pass
@@ -357,7 +352,7 @@ class PloneInstaller:
            groups if needed.'''
         site = self.ploneSite
         data = list(site.__ac_roles__)
-        for role in self.applicationRoles:
+        for role in self.config.applicationRoles:
             if not role in data:
                 data.append(role)
                 # Add to portal_role_manager
@@ -373,11 +368,13 @@ class PloneInstaller:
                             pass
                 except AttributeError:
                     pass
-            # Create a specific group and grant him this role
+            # If it is a global role, create a specific group and grant him
+            # this role
+            if role not in self.config.applicationGlobalRoles: continue
             group = '%s_group' % role
-            if not site.portal_groups.getGroupById(group):
-                site.portal_groups.addGroup(group, title=group)
-                site.portal_groups.setRolesForGroup(group, [role])
+            if site.portal_groups.getGroupById(group): continue # Already there
+            site.portal_groups.addGroup(group, title=group)
+            site.portal_groups.setRolesForGroup(group, [role])
         site.__ac_roles__ = tuple(data)
 
     def installWorkflows(self):
@@ -386,7 +383,7 @@ class PloneInstaller:
         for contentType, workflowName in self.workflows.iteritems():
             # Register the workflow if needed
             if workflowName not in wfTool.listWorkflows():
-                wfMethod = self.ploneStuff['ExternalMethod']('temp', 'temp',
+                wfMethod = self.config.ExternalMethod('temp', 'temp',
                     self.productName + '.workflows', 'create_%s' % workflowName)
                 workflow = wfMethod(self, workflowName)
                 wfTool._setObject(workflowName, workflow)
@@ -401,18 +398,14 @@ class PloneInstaller:
         cssName = self.productName + '.css'
         cssTitle = self.productName + ' CSS styles'
         cssInfo = {'id': cssName, 'title': cssTitle}
+        portalCss = self.ploneSite.portal_css
         try:
-            portalCss = self.ploneSite.portal_css
-            try:
-                portalCss.unregisterResource(cssInfo['id'])
-            except:
-                pass
-            defaults = {'id': '', 'media': 'all', 'enabled': True}
-            defaults.update(cssInfo)
-            portalCss.registerStylesheet(**defaults)
+            portalCss.unregisterResource(cssInfo['id'])
         except:
-            # No portal_css registry
             pass
+        defaults = {'id': '', 'media': 'all', 'enabled': True}
+        defaults.update(cssInfo)
+        portalCss.registerStylesheet(**defaults)
 
     def managePortlets(self):
         '''Shows or hides the application-specific portlet and configures other
@@ -456,6 +449,22 @@ class PloneInstaller:
         if indexInfo:
             PloneInstaller.updateIndexes(self.ploneSite, indexInfo, self)
 
+    def manageLanguages(self):
+        '''Manages the languages supported by the application.'''
+        if self.languageSelector:
+            # We must install the PloneLanguageTool if not done yet
+            qi = self.ploneSite.portal_quickinstaller
+            if not qi.isProductInstalled('PloneLanguageTool'):
+                qi.installProduct('PloneLanguageTool')
+            languageTool = self.ploneSite.portal_languages
+            defLanguage = self.languages[0]
+            languageTool.manage_setLanguageSettings(defaultLanguage=defLanguage,
+                supportedLanguages=self.languages, setContentN=None,
+                setCookieN=True, setRequestN=True, setPathN=True,
+                setForcelanguageUrls=True, setAllowContentLanguageFallback=None,
+                setUseCombinedLanguageCodes=None, displayFlags=False,
+                startNeutral=False)
+
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         site = self.ploneSite
@@ -493,6 +502,7 @@ class PloneInstaller:
         self.installStyleSheet()
         self.managePortlets()
         self.manageIndexes()
+        self.manageLanguages()
         self.finalizeInstallation()
         self.log("Installation of %s done." % self.productName)
 
@@ -545,17 +555,16 @@ def traverseWrapper(self, path, response=None, validated_hook=None):
 class ZopeInstaller:
     '''This Zope installer runs every time Zope starts and encounters this
        generated Zope product.'''
-    def __init__(self, zopeContext, productName, toolClass,
-                 defaultAddContentPermission, addContentPermissions,
-                 logger, ploneStuff, classes):
+    def __init__(self, zopeContext, toolClass, config, classes):
         self.zopeContext = zopeContext
-        self.productName = productName
         self.toolClass = toolClass
-        self.defaultAddContentPermission = defaultAddContentPermission
-        self.addContentPermissions = addContentPermissions
-        self.logger = logger
-        self.ploneStuff = ploneStuff # A dict of some Plone functions or vars
+        self.config = cfg = config
         self.classes = classes
+        # Unwrap some useful config variables
+        self.productName = cfg.PROJECTNAME
+        self.logger = cfg.logger
+        self.defaultAddContentPermission = cfg.DEFAULT_ADD_CONTENT_PERMISSION
+        self.addContentPermissions = cfg.ADD_CONTENT_PERMISSIONS
 
     def completeAppyTypes(self):
         '''We complete here the initialisation process of every Appy type of
@@ -574,23 +583,23 @@ class ZopeInstaller:
 
     def installApplication(self):
         '''Performs some application-wide installation steps.'''
-        register = self.ploneStuff['DirectoryView'].registerDirectory
-        register('skins', self.ploneStuff['product_globals'])
+        register = self.config.DirectoryView.registerDirectory
+        register('skins', self.config.__dict__)
         # Register the appy skin folder among DirectoryView'able folders
         register('skin', appy.getPath() + '/gen/plone25')
 
     def installTool(self):
         '''Installs the tool.'''
-        self.ploneStuff['ToolInit'](self.productName + ' Tools',
+        self.config.ToolInit(self.productName + ' Tools',
             tools = [self.toolClass], icon='tool.gif').initialize(
                 self.zopeContext)
 
     def installTypes(self):
         '''Installs and configures the types defined in the application.'''
-        contentTypes, constructors, ftis = self.ploneStuff['process_types'](
-            self.ploneStuff['listTypes'](self.productName), self.productName)
+        contentTypes, constructors, ftis = self.config.process_types(
+            self.config.listTypes(self.productName), self.productName)
 
-        self.ploneStuff['cmfutils'].ContentInit(self.productName + ' Content',
+        self.config.cmfutils.ContentInit(self.productName + ' Content',
             content_types = contentTypes,
             permission = self.defaultAddContentPermission,
             extra_constructors = constructors, fti = ftis).initialize(
@@ -611,14 +620,14 @@ class ZopeInstaller:
         global originalTraverse
         if not originalTraverse:
             # User tracking is not enabled yet. Do it now.
-            BaseRequest = self.ploneStuff['BaseRequest']
+            BaseRequest = self.config.BaseRequest
             originalTraverse = BaseRequest.traverse
             BaseRequest.traverse = traverseWrapper
 
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         # Apply customization policy if any
-        cp = self.ploneStuff['CustomizationPolicy']
+        cp = self.config.CustomizationPolicy
         if cp and hasattr(cp, 'register'): cp.register(context)
 
     def install(self):

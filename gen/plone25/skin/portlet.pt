@@ -174,7 +174,7 @@
                  tal:content="structure python: tool.translate('%s_page_%s' % (contextObj.meta_type, aPage))">
               </a>
             </td>
-            <td>
+            <td align="right">
               <img tal:define="nav request/nav|nothing;
                                nav python: test(nav, '&nav=%s' % nav, '')"
                    title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"

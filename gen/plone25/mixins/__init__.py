@@ -8,7 +8,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, types, mimetypes
 import appy.gen
-from appy.gen import Type, String, Selection
+from appy.gen import Type, String, Selection, Role
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.plone25.descriptors import ClassDescriptor
@@ -338,14 +338,30 @@ class AbstractMixin:
         i = res.startNumber
         # Is it possible and more efficient to perform a single query in
         # uid_catalog and get the result in the order of specified uids?
+        toUnlink = []
         while i < (res.startNumber + res.batchSize):
             if i >= res.totalNumber: break
             refUid = sortedUids[i]
             refObject = self.uid_catalog(UID=refUid)[0].getObject()
+            i += 1
+            tool = self.getTool()
+            if refObject.meta_type != tool.getPortalType(appyType.klass):
+                toUnlink.append(refObject)
+                continue
             if not ploneObjects:
                 refObject = refObject.appy()
             res.objects.append(refObject)
-            i += 1
+        # Unlink dummy linked objects
+        if toUnlink:
+            suffix = '%s%s' % (fieldName[0].upper(), fieldName[1:])
+            exec 'linkedObjects = self.get%s()' % suffix
+            for dummyObject in toUnlink:
+                linkedObjects.remove(dummyObject)
+                self.getProductConfig().logger.warn('DB error: Ref %s.%s ' \
+                    'contains a %s instance "%s". It was removed.' % \
+                    (self.meta_type, fieldName, dummyObject.meta_type,
+                     dummyObject.getId()))
+            exec 'self.set%s(linkedObjects)' % suffix
         if res.objects and noListIfSingleObj:
             if appyType.multiplicity[1] == 1:
                 res.objects = res.objects[0]
@@ -412,18 +428,6 @@ class AbstractMixin:
         sortedObjectsUids = self._appy_getSortedField(fieldName)
         res = sortedObjectsUids.index(obj.UID())
         return res
-
-    def getAppyRefPortalType(self, fieldName):
-        '''Gets the portal type of objects linked to me through Ref field named
-           p_fieldName.'''
-        appyType = self.getAppyType(fieldName)
-        tool = self.getTool()
-        if self._appy_meta_type == 'Flavour':
-            flavour = self.appy()
-        else:
-            portalTypeName = self._appy_getPortalType(self.REQUEST)
-            flavour = tool.getFlavour(portalTypeName)
-        return self._appy_getAtType(appyType.klass, flavour)
 
     def getAppyType(self, name, asDict=False, className=None):
         '''Returns the Appy type named p_name. If no p_className is defined, the
@@ -696,10 +700,10 @@ class AbstractMixin:
             # Get the corresponding Appy transition
             transition = workflow._transitionsMapping[transitionName]
             user = self.portal_membership.getAuthenticatedMember()
-            if isinstance(transition.condition, basestring):
+            if isinstance(transition.condition, Role):
                 # It is a role. Transition may be triggered if the user has this
                 # role.
-                res = user.has_role(transition.condition, self)
+                res = user.has_role(transition.condition.name, self)
             elif type(transition.condition) == types.FunctionType:
                 res = transition.condition(workflow, self.appy())
             elif type(transition.condition) in (tuple, list):
@@ -843,28 +847,6 @@ class AbstractMixin:
         rq.appyWrappers[uid] = wrapper
         return wrapper
  
-    def _appy_getAtType(self, appyClass, flavour=None):
-        '''Gets the name of the Archetypes class that corresponds to
-           p_appyClass (which is a Python class coming from the user
-           application). If p_flavour is specified, the method returns the name
-           of the specific Archetypes class in this flavour (ie suffixed with
-           the flavour number).'''
-        res = ClassDescriptor.getClassName(appyClass)
-        appName = self.getProductConfig().PROJECTNAME
-        if res.find('Extensions_appyWrappers') != -1:
-            # This is not a content type defined Maybe I am a tool or flavour
-            res = appName + appyClass.__name__
-        elif issubclass(appyClass, appy.gen.Tool):
-            # This is the custom tool
-            res = '%sTool' % appName
-        elif issubclass(appyClass, appy.gen.Flavour):
-            # This is the custom Flavour
-            res = '%sFlavour' % appName
-        else:
-            if flavour and flavour.number != 1:
-                res += '_%d' % flavour.number
-        return res
-
     def _appy_getRefsBack(self, fieldName, relName, ploneObjects=False,
                            noListIfSingleObj=False):
         '''This method returns the list of objects linked to this one
@@ -927,19 +909,14 @@ class AbstractMixin:
             if appyType.type != 'Ref': continue
             if appyType.isBack or appyType.link: continue
             # Indeed, no possibility to create objects with such Ref
-            refContentTypeName = self.getAppyRefPortalType(appyType.name)
-            refContentType = getattr(self.portal_types, refContentTypeName)
-            refMetaType = refContentType.content_meta_type
-            if refMetaType not in addPermissions: continue
-            # Indeed, there is no specific "add" permission is defined for tool
-            # and flavour, for example.
-            appyClass = refContentType.wrapperClass.__bases__[-1]
+            refType = self.getTool().getPortalType(appyType.klass)
+            if refType not in addPermissions: continue
             # Get roles that may add this content type
-            creators = getattr(appyClass, 'creators', None)
+            creators = getattr(appyType.klass, 'creators', None)
             if not creators:
                 creators = self.getProductConfig().defaultAddRoles
             # Add those creators to the list of creators for this meta_type
-            addPermission = addPermissions[refMetaType]
+            addPermission = addPermissions[refType]
             if addPermission in allCreators:
                 allCreators[addPermission] = allCreators[\
                                              addPermission].union(creators)

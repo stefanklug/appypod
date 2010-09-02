@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, traceback, unicodedata
+import os, os.path, sys, traceback, unicodedata, shutil
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:
@@ -46,6 +46,29 @@ def cleanFolder(folder, exts=extsToClean, verbose=False):
                 fileToRemove = os.path.join(root, fileName)
                 if verbose: print 'Removing %s...' % fileToRemove
                 os.remove(fileToRemove)
+
+
+def copyFolder(source, dest, cleanDest=False):
+    '''Copies the content of folder p_source to folder p_dest. p_dest is
+       created, with intermediary subfolders if required. If p_cleanDest is
+       True, it removes completely p_dest if it existed.'''
+    dest = os.path.abspath(dest)
+    # Delete the dest folder if required
+    if os.path.exists(dest) and cleanDest:
+        FolderDeleter.delete(dest)
+    # Create the dest folder if it does not exist
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    # Copy the content of p_source to p_dest.
+    for name in os.listdir(source):
+        sourceName = os.path.join(source, name)
+        destName = os.path.join(dest, name)
+        if os.path.isfile(sourceName):
+            # Copy a single file
+            shutil.copy(sourceName, destName)
+        elif os.path.isdir(sourceName):
+            # Copy a subfolder (recursively)
+            copyFolder(sourceName, destName)
 
 # ------------------------------------------------------------------------------
 class Traceback:

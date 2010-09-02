@@ -7,10 +7,12 @@ import appy.gen
 from appy.gen import *
 from appy.gen.po import PoMessage, PoFile, PoParser
 from appy.gen.generator import Generator as AbstractGenerator
-from model import ModelClass, PodTemplate, Flavour, Tool
+from appy.gen.utils import getClassName
+from model import ModelClass, PodTemplate, User, Flavour, Tool
 from descriptors import FieldDescriptor, ClassDescriptor, \
                         WorkflowDescriptor, ToolClassDescriptor, \
-                        FlavourClassDescriptor, PodTemplateClassDescriptor
+                        FlavourClassDescriptor, PodTemplateClassDescriptor, \
+                        UserClassDescriptor
 
 # Common methods that need to be defined on every Archetype class --------------
 COMMON_METHODS = '''
@@ -36,12 +38,14 @@ class Generator(AbstractGenerator):
         self.tool = ToolClassDescriptor(Tool, self)
         self.flavour = FlavourClassDescriptor(Flavour, self)
         self.podTemplate = PodTemplateClassDescriptor(PodTemplate, self)
+        self.user = UserClassDescriptor(User, self)
         # i18n labels to generate
         self.labels = [] # i18n labels
         self.toolName = '%sTool' % self.applicationName
         self.flavourName = '%sFlavour' % self.applicationName
         self.toolInstanceName = 'portal_%s' % self.applicationName.lower()
         self.podTemplateName = '%sPodTemplate' % self.applicationName
+        self.userName = '%sUser' % self.applicationName
         self.portletName = '%s_portlet' % self.applicationName.lower()
         self.queryName = '%s_query' % self.applicationName.lower()
         self.skinsFolder = 'skins/%s' % self.applicationName
@@ -54,7 +58,7 @@ class Generator(AbstractGenerator):
             {'toolName': self.toolName, 'flavourName': self.flavourName,
              'portletName': self.portletName, 'queryName': self.queryName,
              'toolInstanceName': self.toolInstanceName,
-             'podTemplateName': self.podTemplateName,
+             'podTemplateName': self.podTemplateName, 'userName': self.userName,
              'commonMethods': commonMethods})
         self.referers = {}
 
@@ -149,18 +153,19 @@ class Generator(AbstractGenerator):
             msg('image_required',       '', msg.IMAGE_REQUIRED),
         ]
         # Create a label for every role added by this application
-        for role in self.getAllUsedRoles(appOnly=True):
-            self.labels.append(msg('role_%s' % role,'', role, niceDefault=True))
+        for role in self.getAllUsedRoles():
+            self.labels.append(msg('role_%s' % role.name,'', role.name,
+                                   niceDefault=True))
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()
         self.generateConfig()
         self.generateInit()
-        self.generateInstall()
         self.generateWorkflows()
         self.generateWrappers()
         self.generateTests()
         if self.config.frontPage:
             self.generateFrontPage()
+        self.copyFile('Install.py', self.repls, destFolder='Extensions')
         self.copyFile('configure.zcml', self.repls)
         self.copyFile('import_steps.xml', self.repls,
                       destFolder='profiles/default')
@@ -227,41 +232,49 @@ class Generator(AbstractGenerator):
             if not poFile.generated:
                 poFile.generate()
 
-    ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer', 'Anonymous')
-    def getAllUsedRoles(self, appOnly=False):
+    def getAllUsedRoles(self, plone=None, local=None, grantable=None):
         '''Produces a list of all the roles used within all workflows and
-           classes defined in this application. If p_appOnly is True, it
-           returns only roles which are specific to this application (ie it
-           removes predefined Plone roles like Member, Manager, etc.'''
-        res = []
+           classes defined in this application.
+
+           If p_plone is True, it keeps only Plone-standard roles; if p_plone
+           is False, it keeps only roles which are specific to this application;
+           if p_plone is None it has no effect (so it keeps both roles).
+
+           If p_local is True, it keeps only local roles (ie, roles that can
+           only be granted locally); if p_local is False, it keeps only "global"
+           roles; if p_local is None it has no effect (so it keeps both roles).
+
+           If p_grantable is True, it keeps only roles that the admin can
+           grant; if p_grantable is False, if keeps only ungrantable roles (ie
+           those that are implicitly granted by the system like role
+           "Authenticated"); if p_grantable is None it keeps both roles.'''
+        allRoles = {} # ~{s_roleName:Role_role}~
+        # Gather roles from workflow states and transitions
         for wfDescr in self.workflows:
-            # Browse states and transitions
             for attr in dir(wfDescr.klass):
                 attrValue = getattr(wfDescr.klass, attr)
                 if isinstance(attrValue, State) or \
                    isinstance(attrValue, Transition):
-                    res += attrValue.getUsedRoles()
+                    for role in attrValue.getUsedRoles():
+                        if role.name not in allRoles:
+                            allRoles[role.name] = role
+        # Gather roles from "creators" attributes from every class
         for cDescr in self.getClasses(include='all'):
-            res += cDescr.getCreators()
-        res = list(set(res))
-        if appOnly:
-            for ploneRole in self.ploneRoles:
-                if ploneRole in res:
-                    res.remove(ploneRole)
+            for role in cDescr.getCreators():
+                if role.name not in allRoles:
+                    allRoles[role.name] = role
+        res = allRoles.values()
+        # Filter the result according to parameters
+        for p in ('plone', 'local', 'grantable'):
+            if eval(p) != None:
+                res = [r for r in res if eval('r.%s == %s' % (p, p))]
         return res
 
     def addReferer(self, fieldDescr, relationship):
         '''p_fieldDescr is a Ref type definition. We will create in config.py a
            dict that lists all back references, by type.'''
         k = fieldDescr.appyType.klass
-        if issubclass(k, ModelClass):
-            refClassName = self.applicationName + k.__name__
-        elif issubclass(k, appy.gen.Tool):
-            refClassName = '%sTool' % self.applicationName
-        elif issubclass(k, appy.gen.Flavour):
-            refClassName = '%sFlavour' % self.applicationName
-        else:
-            refClassName = ClassDescriptor.getClassName(k)
+        refClassName = getClassName(k, self.applicationName)
         if not self.referers.has_key(refClassName):
             self.referers[refClassName] = []
         self.referers[refClassName].append( (fieldDescr, relationship))
@@ -277,6 +290,59 @@ class Generator(AbstractGenerator):
         return res
 
     def generateConfig(self):
+        repls = self.repls.copy()
+        # Compute imports
+        imports = ['import %s' % self.applicationName]
+        classDescrs = self.getClasses(include='custom')
+        for classDescr in (classDescrs + self.workflows):
+            theImport = 'import %s' % classDescr.klass.__module__
+            if theImport not in imports:
+                imports.append(theImport)
+        repls['imports'] = '\n'.join(imports)
+        # Compute default add roles
+        repls['defaultAddRoles'] = ','.join(
+                              ['"%s"' % r for r in self.config.defaultCreators])
+        # Compute list of add permissions
+        addPermissions = ''
+        for classDescr in self.getClasses(include='allButTool'):
+            addPermissions += '    "%s":"%s: Add %s",\n' % (classDescr.name,
+                self.applicationName, classDescr.name)
+        repls['addPermissions'] = addPermissions
+        # Compute root classes
+        rootClasses = ''
+        for classDescr in self.classes:
+            if classDescr.isRoot():
+                rootClasses += "'%s'," % classDescr.name
+        repls['rootClasses'] = rootClasses
+        # Compute list of class definitions
+        appClasses = []
+        for classDescr in self.classes:
+            k = classDescr.klass
+            appClasses.append('%s.%s' % (k.__module__, k.__name__))
+        repls['appClasses'] = "[%s]" % ','.join(appClasses)
+        # Compute lists of class names
+        allClassNames = '"%s",' % self.flavourName
+        allClassNames += '"%s",' % self.podTemplateName
+        appClassNames = ','.join(['"%s"' % c.name for c in self.classes])
+        allClassNames += appClassNames
+        repls['allClassNames'] = allClassNames
+        repls['appClassNames'] = appClassNames
+        # Compute classes whose instances must not be catalogued.
+        catalogMap = ''
+        blackClasses = [self.toolName, self.flavourName, self.podTemplateName]
+        for blackClass in blackClasses:
+            catalogMap += "catalogMap['%s'] = {}\n" % blackClass
+            catalogMap += "catalogMap['%s']['black'] = " \
+                          "['portal_catalog']\n" % blackClass
+        repls['catalogMap'] = catalogMap
+        # Compute workflows
+        workflows = ''
+        for classDescr in self.getClasses(include='all'):
+            if hasattr(classDescr.klass, 'workflow'):
+                wfName = WorkflowDescriptor.getWorkflowName(
+                    classDescr.klass.workflow)
+                workflows += '\n    "%s":"%s",' % (classDescr.name, wfName)
+        repls['workflows'] = workflows
         # Compute workflow instances initialisation
         wfInit = ''
         for workflowDescr in self.workflows:
@@ -295,24 +361,7 @@ class Generator(AbstractGenerator):
             for stateName in workflowDescr.getStateNames(ordered=True):
                 wfInit += 'wf._states.append("%s")\n' % stateName
             wfInit += 'workflowInstances[%s] = wf\n' % className
-        # Compute imports
-        imports = ['import %s' % self.applicationName]
-        classDescrs = self.getClasses(include='custom')
-        for classDescr in (classDescrs + self.workflows):
-            theImport = 'import %s' % classDescr.klass.__module__
-            if theImport not in imports:
-                imports.append(theImport)
-        # Compute root classes
-        rootClasses = ''
-        for classDescr in self.classes:
-            if classDescr.isRoot():
-                rootClasses += "'%s'," % classDescr.name
-        # Compute list of add permissions
-        addPermissions = ''
-        for classDescr in self.classes:
-            addPermissions += '    "%s":"%s: Add %s",\n' % (classDescr.name,
-                self.applicationName, classDescr.name)
-        repls = self.repls.copy()
+        repls['workflowInstancesInit'] = wfInit
         # Compute the list of ordered attributes (foward and backward, inherited
         # included) for every Appy class.
         attributes = []
@@ -348,17 +397,22 @@ class Generator(AbstractGenerator):
                 aDict += '"%s":attributes["%s"][%d],' % \
                          (attrNames[i], classDescr.name, i)
             attributesDict.append('"%s":{%s}' % (classDescr.name, aDict))
-        # Compute list of used roles for registering them if needed
-        repls['roles'] = ','.join(['"%s"' % r for r in \
-                                  self.getAllUsedRoles(appOnly=True)])
-        repls['rootClasses'] = rootClasses
-        repls['workflowInstancesInit'] = wfInit
-        repls['imports'] = '\n'.join(imports)
         repls['attributes'] = ',\n    '.join(attributes)
         repls['attributesDict'] = ',\n    '.join(attributesDict)
-        repls['defaultAddRoles'] = ','.join(
-            ['"%s"' % r for r in self.config.defaultCreators])
-        repls['addPermissions'] = addPermissions
+        # Compute list of used roles for registering them if needed
+        specificRoles = self.getAllUsedRoles(plone=False)
+        repls['roles'] = ','.join(['"%s"' % r.name for r in specificRoles])
+        globalRoles = self.getAllUsedRoles(plone=False, local=False)
+        repls['gRoles'] = ','.join(['"%s"' % r.name for r in globalRoles])
+        grantableRoles = self.getAllUsedRoles(local=False, grantable=True)
+        repls['grRoles'] = ','.join(['"%s"' % r.name for r in grantableRoles])
+        # Generate configuration options
+        repls['showPortlet'] = self.config.showPortlet
+        repls['languages'] = ','.join('"%s"' % l for l in self.config.languages)
+        repls['languageSelector'] = self.config.languageSelector
+        repls['minimalistPlone'] = self.config.minimalistPlone
+        
+        repls['appFrontPage'] = bool(self.config.frontPage)
         self.copyFile('config.py', repls)
 
     def generateInit(self):
@@ -375,50 +429,6 @@ class Generator(AbstractGenerator):
         repls['classes'] = ','.join(classNames)
         repls['totalNumberOfTests'] = self.totalNumberOfTests
         self.copyFile('__init__.py', repls)
-
-    def generateInstall(self):
-        # Compute lists of class names
-        allClassNames = '"%s",' % self.flavourName
-        allClassNames += '"%s",' % self.podTemplateName
-        appClassNames = ','.join(['"%s"' % c.name for c in self.classes])
-        allClassNames += appClassNames
-        # Compute imports
-        imports = []
-        for classDescr in self.classes:
-            theImport = 'import %s' % classDescr.klass.__module__
-            if theImport not in imports:
-                imports.append(theImport)
-        # Compute list of application classes
-        appClasses = []
-        for classDescr in self.classes:
-            k = classDescr.klass
-            appClasses.append('%s.%s' % (k.__module__, k.__name__))
-        # Compute classes whose instances must not be catalogued.
-        catalogMap = ''
-        blackClasses = [self.toolName, self.flavourName, self.podTemplateName]
-        for blackClass in blackClasses:
-            catalogMap += "catalogMap['%s'] = {}\n" % blackClass
-            catalogMap += "catalogMap['%s']['black'] = " \
-                          "['portal_catalog']\n" % blackClass
-        # Compute workflows
-        workflows = ''
-        for classDescr in self.getClasses(include='all'):
-            if hasattr(classDescr.klass, 'workflow'):
-                wfName = WorkflowDescriptor.getWorkflowName(
-                    classDescr.klass.workflow)
-                workflows += '\n    "%s":"%s",' % (classDescr.name, wfName)
-        # Generate the resulting file.
-        repls = self.repls.copy()
-        repls['allClassNames'] = allClassNames
-        repls['appClassNames'] = appClassNames
-        repls['catalogMap'] = catalogMap
-        repls['imports'] = '\n'.join(imports)
-        repls['appClasses'] = "[%s]" % ','.join(appClasses)
-        repls['minimalistPlone'] = self.config.minimalistPlone
-        repls['showPortlet'] = self.config.showPortlet
-        repls['appFrontPage'] = bool(self.config.frontPage)
-        repls['workflows'] = workflows
-        self.copyFile('Install.py', repls, destFolder='Extensions')
 
     def generateWorkflows(self):
         '''Generates the file that contains one function by workflow.
@@ -468,14 +478,18 @@ class Generator(AbstractGenerator):
         '''Returns the descriptors for all the classes in the generated
            gen-application. If p_include is "all", it includes the descriptors
            for the config-related classes (tool, flavour, etc); if
-           p_include is "custom", it includes descriptors for the
-           config-related classes for which the user has created a sub-class.'''
+           p_include is "allButTool", it includes the same descriptors, the
+           tool excepted; if p_include is "custom", it includes descriptors
+           for the config-related classes for which the user has created a
+           sub-class.'''
         if not include: return self.classes
         else:
             res = self.classes[:]
-            configClasses = [self.tool, self.flavour, self.podTemplate]
+            configClasses = [self.tool,self.flavour,self.podTemplate,self.user]
             if include == 'all':
                 res += configClasses
+            elif include == 'allButTool':
+                res += configClasses[1:]
             elif include == 'custom':
                 res += [c for c in configClasses if c.customized]
             return res
@@ -564,6 +578,7 @@ class Generator(AbstractGenerator):
         repls['toolBody'] = Tool._appy_getBody()
         repls['flavourBody'] = Flavour._appy_getBody()
         repls['podTemplateBody'] = PodTemplate._appy_getBody()
+        repls['userBody'] = User._appy_getBody()
         self.copyFile('appyWrappers.py', repls, destFolder='Extensions')
 
     def generateTests(self):
@@ -581,7 +596,8 @@ class Generator(AbstractGenerator):
             # We need a front page, but no specific one has been given.
             # So we will create a basic one that will simply display
             # some translated text.
-            self.labels.append(msg('front_page_text', '', msg.FRONT_PAGE_TEXT))
+            self.labels.append(PoMessage('front_page_text', '',
+                                         PoMessage.FRONT_PAGE_TEXT))
             repls['pageContent'] = '<span tal:replace="structure python: ' \
                 'tool.translateWithMapping(\'front_page_text\')"/>'
         else:
@@ -605,6 +621,9 @@ class Generator(AbstractGenerator):
         Tool.flavours.klass = Flavour
         if self.flavour.customized:
             Tool.flavours.klass = self.flavour.klass
+        Tool.users.klass = User
+        if self.user.customized:
+            Tool.users.klass = self.user.klass
         self.tool.generateSchema()
         repls['fields'] = self.tool.schema
         repls['methods'] = self.tool.methods
@@ -659,6 +678,16 @@ class Generator(AbstractGenerator):
         repls['wrapperClass'] = '%s_Wrapper' % self.podTemplate.name
         self.copyFile('PodTemplate.py', repls,
                         destName='%s.py' % self.podTemplateName)
+        # Generate the User class
+        self.user.generateSchema()
+        self.labels += [ Msg(self.userName, '', Msg.USER),
+                         Msg('%s_edit_descr' % self.userName, '', ' ')]
+        repls = self.repls.copy()
+        repls['fields'] = self.user.schema
+        repls['methods'] = self.user.methods
+        repls['wrapperClass'] = '%s_Wrapper' % self.user.name
+        self.copyFile('UserTemplate.py', repls,
+                      destName='%s.py' % self.userName)
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for
@@ -681,7 +710,7 @@ class Generator(AbstractGenerator):
         implements = [baseClass]
         for baseClass in classDescr.klass.__bases__:
             if self.determineAppyType(baseClass) == 'class':
-                bcName = ClassDescriptor.getClassName(baseClass)
+                bcName = getClassName(baseClass)
                 parents.remove('ClassMixin')
                 parents.append(bcName)
                 implements.append(bcName)

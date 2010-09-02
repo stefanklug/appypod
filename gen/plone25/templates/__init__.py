@@ -25,20 +25,8 @@ def countTest():
     numberOfExecutedTests += 1
 
 # ------------------------------------------------------------------------------
-from config import *
-from ZPublisher.HTTPRequest import BaseRequest
-import logging
-try:
-    import CustomizationPolicy
-except ImportError:
-    CustomizationPolicy = None
-from Products.CMFCore import utils as cmfutils
-from Products.CMFCore import DirectoryView
-from Products.CMFPlone.utils import ToolInit
-from Products.Archetypes.atapi import *
-from Products.Archetypes import listTypes
+import config
 from appy.gen.plone25.installer import ZopeInstaller
-logger = logging.getLogger(PROJECTNAME)
 
 # Zope-level installation of the generated product. ----------------------------
 def initialize(context):
@@ -46,8 +34,6 @@ def initialize(context):
     # I need to do those imports here; else, types and add permissions will not
     # be registered.
     classes = [<!classes!>]
-    ZopeInstaller(context, PROJECTNAME,
-        <!applicationName!>Tool.<!applicationName!>Tool,
-        DEFAULT_ADD_CONTENT_PERMISSION, ADD_CONTENT_PERMISSIONS,
-        logger, globals(), classes).install()
+    ZopeInstaller(context, <!applicationName!>Tool.<!applicationName!>Tool,
+        config, classes).install()
 # ------------------------------------------------------------------------------

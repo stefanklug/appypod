@@ -12,9 +12,9 @@ import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
 from appy.gen import Date, String, State, Transition, Type, Search, \
-                     Selection, Import
+                     Selection, Import, Role
 from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
-     sequenceTypes
+     sequenceTypes, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
 
 # ------------------------------------------------------------------------------
@@ -110,13 +110,7 @@ class FieldDescriptor:
         # Update the list of referers
         self.generator.addReferer(self, relationship)
         # Add the widget label for the back reference
-        refClassName = ClassDescriptor.getClassName(self.appyType.klass)
-        if issubclass(self.appyType.klass, ModelClass):
-            refClassName = self.applicationName + self.appyType.klass.__name__
-        elif issubclass(self.appyType.klass, appy.gen.Tool):
-            refClassName = '%sTool' % self.applicationName
-        elif issubclass(self.appyType.klass, appy.gen.Flavour):
-            refClassName = '%sFlavour' % self.applicationName
+        refClassName = getClassName(self.appyType.klass, self.applicationName)
         backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
         poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
         poMsg.produceNiceDefault()
@@ -240,7 +234,7 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         # for child classes of this class as well, but at this time we don't
         # know yet every sub-class. So we store field definitions here; the
         # Generator will propagate them later.
-        self.name = self.getClassName(klass)
+        self.name = getClassName(self.klass, generator.applicationName)
         self.predefined = False
         self.customized = False
 
@@ -275,11 +269,6 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
                 if fieldDef:
                     # Currently, we generate Archetypes fields for Refs only.
                     self.schema += '\n' + fieldDef
-
-    @staticmethod
-    def getClassName(klass):
-        '''Generates the name of the corresponding Archetypes class.'''
-        return klass.__module__.replace('.', '_') + '_' + klass.__name__
 
     def isAbstract(self):
         '''Is self.klass abstract?'''
@@ -322,7 +311,14 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         '''Gets the specific creators defined for this class.'''
         res = []
         if self.klass.__dict__.has_key('creators') and self.klass.creators:
-            res += list(self.klass.creators)
+            for creator in self.klass.creators:
+                if isinstance(creator, Role):
+                    if creator.local:
+                        raise 'Local role "%s" cannot be used as a creator.' % \
+                              creator.name
+                    res.append(creator)
+                else:
+                    res.append(Role(creator))
         return res
 
     def getCreateMean(self, type='Import'):
@@ -379,7 +375,6 @@ class ToolClassDescriptor(ClassDescriptor):
     '''Represents the POD-specific fields that must be added to the tool.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.name = '%sTool' % generator.applicationName
         self.modelClass = self.klass
         self.predefined = True
         self.customized = False
@@ -405,7 +400,6 @@ class FlavourClassDescriptor(ClassDescriptor):
        for the generated application.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.name = '%sFlavour' % generator.applicationName
         self.attributesByClass = klass._appy_classes
         self.modelClass = self.klass
         self.predefined = True
@@ -431,12 +425,36 @@ class PodTemplateClassDescriptor(ClassDescriptor):
     '''Represents a POD template.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.name = '%sPodTemplate' % generator.applicationName
         self.modelClass = self.klass
         self.predefined = True
         self.customized = False
     def getParents(self, allClasses=()): return ['PodTemplate']
     def isRoot(self): return False
+
+class UserClassDescriptor(ClassDescriptor):
+    '''Represents an Archetypes-compliant class that corresponds to the User
+       for the generated application.'''
+    def __init__(self, klass, generator):
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()):
+        res = ['User']
+        if self.customized:
+            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
+        return res
+    def update(self, klass, attributes):
+        '''This method is called by the generator when he finds a custom user
+           definition. We must then add the custom user elements in this
+           default User descriptor.'''
+        self.orderedAttributes += attributes
+        self.klass = klass
+        self.customized = True
+    def isFolder(self, klass=None): return True
+    def isRoot(self): return False
+    def generateSchema(self):
+        ClassDescriptor.generateSchema(self, configClass=True)
 
 class WorkflowDescriptor(appy.gen.descriptors.WorkflowDescriptor):
     '''Represents a workflow.'''
@@ -497,11 +515,11 @@ class WorkflowDescriptor(appy.gen.descriptors.WorkflowDescriptor):
             permissionsMapping = {}
             for permission, roles in state.getPermissions().iteritems():
                 for plonePerm in self.getPlonePermissions(permission):
-                    permissionsMapping[plonePerm] = roles
+                    permissionsMapping[plonePerm] = [r.name for r in roles]
             # Add 'Review portal content' to anyone; this is not a security
             # problem because we limit the triggering of every transition
             # individually.
-            allRoles = self.generator.getAllUsedRoles()
+            allRoles = [r.name for r in self.generator.getAllUsedRoles()]
             if 'Manager' not in allRoles: allRoles.append('Manager')
             permissionsMapping['Review portal content'] = allRoles
             res[stateName] = (tNames, permissionsMapping)

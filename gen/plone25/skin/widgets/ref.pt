@@ -104,7 +104,7 @@
                  objs refObjects/objects;
                  totalNumber refObjects/totalNumber;
                  batchSize refObjects/batchSize;
-                 folder python: test(contextObj.isPrincipiaFolderish, contextObj, contextObj.getParentNode());
+                 folder python: contextObj.isPrincipiaFolderish and contextObj or contextObj.getParentNode();
                  flavour python:tool.getFlavour(contextObj);
                  linkedPortalType python:flavour.getPortalType(appyType['klass']);
                  addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
@@ -205,7 +205,7 @@
             <tal:comment replace="nothing">Object title, shown here if not specified somewhere
               else in appyType.shownInfo.</tal:comment>
             <td tal:condition="python: 'title' not in appyType['shownInfo']"><metal:showObjectTitle
-                use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>&nbsp;
+                use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
             </td>
             <tal:comment replace="nothing">Additional fields that must be shown</tal:comment>
             <td tal:repeat="widget widgets">
@@ -217,7 +217,7 @@
                                           innerRef python:True"
                                   condition="python: widget['name'] != 'title'">
                 <metal:showField use-macro="portal/skyn/widgets/show/macros/field" />
-              </tal:showOtherField>&nbsp;
+              </tal:showOtherField>
             </td>
             <tal:comment replace="nothing">Actions</tal:comment>
             <td align="right">
@@ -248,7 +248,7 @@
                  requestValue    python: request.get(rname, []);
                  inRequest       python: request.has_key(rname);
                  allObjects      python: contextObj.getSelectableAppyRefs(name);
-                 refUids         python: [o.UID() for o in here.getAppyRefs(name)['objects']];
+                 refUids         python: [o.UID() for o in contextObj.getAppyRefs(name)['objects']];
                  isBeingCreated  python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())">
 
   <select tal:attributes="name rname;

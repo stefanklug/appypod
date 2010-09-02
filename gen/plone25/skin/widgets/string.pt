@@ -26,14 +26,13 @@
                         isOneLine python: fmt in (0,3)">
 
   <tal:choice condition="isSelect">
-  <select tal:define="possibleValues python:contextObj.getPossibleValues(name, withTranslations=True, withBlankValue=True);
-                      multiValued python: (widget['multiplicity'][1] != 1) and True or False"
+  <select tal:define="possibleValues python:contextObj.getPossibleValues(name, withTranslations=True, withBlankValue=True)"
           tal:attributes="name name;
                           id name;
-                          multiple python: multiValued and 'multiple' or '';
+                          multiple python: isMultiple and 'multiple' or '';
                           onchange python: isMaster and ('javascript:updateSlaves(getMasterValue(this), \'%s\')' % widget['id']) or '';
                           class    widget/master_css;
-                          size     python: multiValued and widget['height'] or 1">
+                          size     python: isMultiple and widget['height'] or 1">
     <option tal:repeat="possibleValue possibleValues"
             tal:attributes="value python: possibleValue[0];
                             selected python:contextObj.fieldValueSelected(name, possibleValue[0], rawValue)"
@@ -42,7 +41,8 @@
   </tal:choice>
   <tal:line condition="python: isOneLine and not isSelect">
     <input tal:attributes="id name; name name; size widget/width;
-                           value python: test(inRequest, requestValue, value)" type="text"/>
+                           value python: test(inRequest, requestValue, value);
+                           type  python: (widget['format'] == 3) and 'password' or 'text'"/>
   </tal:line>
   <tal:textarea condition="python: fmt == 1">
     <textarea tal:attributes="id name; name name;
@@ -66,8 +66,14 @@
 </metal:edit>
 
 <tal:comment replace="nothing">Cell macro for a String.</tal:comment>
-<metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/string/macros/view"/>
+<metal:cell define-macro="cell"
+            tal:define="multipleValues python: value and isMultiple">
+  <tal:multiple condition="multipleValues"
+                content="python: ', '.join(value)">
+  </tal:multiple>
+  <tal:notMultiple condition="not: multipleValues">
+    <metal:call use-macro="portal/skyn/widgets/string/macros/view"/>
+  </tal:notMultiple>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for a String.</tal:comment>
