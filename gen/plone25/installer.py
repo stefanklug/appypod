@@ -139,7 +139,15 @@ class PloneInstaller:
             site.invokeFactory(self.appyFolderType, self.productName,
                                title=self.productName)
             getattr(site.portal_types, self.appyFolderType).global_allow = 0
-        appFolder = getattr(site, self.productName)
+            # Manager has been granted Add permissions for all root classes.
+            # This may not be desired, so remove this.
+            appFolder = getattr(site, self.productName)
+            for className in self.config.rootClasses:
+                permission = self.getAddPermission(className)
+                print 'Permission is', permission
+                appFolder.manage_permission(permission, (), acquire=0)
+        else:
+            appFolder = getattr(site, self.productName)
         # All roles defined as creators should be able to create the
         # corresponding root content types in this folder.
         i = -1

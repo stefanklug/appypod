@@ -93,7 +93,7 @@
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
       <table cellpadding="0" cellspacing="0" style="position:relative; bottom:-1px;">
-        <tr valign="bottom">
+        <tr valign="middle">
           <tal:tab repeat="widgetRow widget/widgets">
           <tal:id define="tabId python:'tab_%s_%d_%d' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))">
           <td><img tal:attributes="src string: $portal_url/skyn/tabLeft.png;
@@ -134,12 +134,13 @@
   This macro displays the content of a group of widgets.
   It is exclusively called by macro "group" above.
 </tal:comment>
-<table metal:define-macro="groupContent" align="center"
-       tal:attributes="width python: test(widget['wide'], '100%', '')">
+<table metal:define-macro="groupContent"
+       tal:attributes="width python: test(widget['wide'], '100%', '');
+                       align widget/align">
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);
-                        class widget/style">
+                        class widget/style" align="left">
       <span tal:replace="structure python: contextObj.translate(widget['labelId'])"/>
       <tal:help condition="widget/hasHelp">
         <metal:call use-macro="portal/skyn/widgets/show/macros/help"/>

@@ -4,10 +4,6 @@
   border-left: 1px solid #8cacbb;
   border-right: 1px solid #8cacbb;
 }
-.portletGroup {
-  font-size: 85%;
-  padding-left: 0.7em;
-}
 
 /* Stylesheet with Internet Explorer-specific workarounds. */
 * html #portal-columns {

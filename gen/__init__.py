@@ -31,7 +31,8 @@ class Group:
     '''Used for describing a group of widgets within a page.'''
     def __init__(self, name, columns=['100%'], wide=True, style='fieldset',
                  hasLabel=True, hasDescr=False, hasHelp=False,
-                 hasHeaders=False, group=None, colspan=1, valign='top'):
+                 hasHeaders=False, group=None, colspan=1, align='center',
+                 valign='top'):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -66,6 +67,7 @@ class Group:
         # If the group is rendered into another group, we can specify the number
         # of columns that this group will span.
         self.colspan = colspan
+        self.align = align
         self.valign = valign
         if style == 'tabs':
             # Group content will be rendered as tabs. In this case, some
@@ -351,26 +353,7 @@ class Type:
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
         # Get the layouts. Consult layout.py for more info about layouts.
-        areDefaultLayouts = False
-        if not layouts:
-            # Get the default layouts as defined by the subclass
-            areDefaultLayouts = True
-            layouts = self.getDefaultLayouts()
-            if not layouts:
-                # Get the global default layouts
-                layouts = copy.deepcopy(defaultFieldLayouts)
-        else:
-            layouts = copy.deepcopy(layouts)
-            # We make copies of layouts, because every layout can be different,
-            # even if the user decides to reuse one from one field to another.
-            # This is because we modify every layout for adding
-            # master/slave-related info, focus-related info, etc, which can be
-            # different from one field to the other.
-        # Express the layouts in a standardized way.
-        self.layouts = self.formatLayouts(layouts, areDefaultLayouts)
-        self.hasLabel = self.hasLayoutElement('l')
-        self.hasDescr = self.hasLayoutElement('d')
-        self.hasHelp  = self.hasLayoutElement('h')
+        self.layouts = self.formatLayouts(layouts)
         # Can we filter this field?
         self.filterable = False
         # Can this field have values that can be edited and validated?
@@ -451,21 +434,57 @@ class Type:
         else:
             res = self.show
         # Take into account possible values 'view' and 'edit' for 'show' param.
-        if (res == 'view' and isEdit) or (res == 'edit' and not isEdit):
-            res = False
+        if res == 'view':
+            if isEdit: res = False
+            else:      res = True
+        elif res == 'edit':
+            if isEdit: res = True
+            else:      res = False
         return res
 
-    def formatLayouts(self, layouts, areDefault):
-        '''Standardizes the given dict of p_layouts. p_areDefault is True if
-           p_layouts are the global default layouts or a subclass-specific set
-           of default layouts.'''
-        # Create a Table instance for every simple layout string.
+    def showPage(self, obj):
+        '''Must the page where this field lies be shown ? "Show value" can be
+           True, False or 'view' (page is available only in "view" mode).'''
+        if callable(self.pageShow):
+            return self.pageShow(obj.appy())
+        else:
+            return self.pageShow
+
+    def formatLayouts(self, layouts):
+        '''Standardizes the given p_layouts. .'''
+        # First, get the layouts as a dictionary, if p_layouts is None or
+        # expressed as a simple string.
+        areDefault = False
+        if not layouts:
+            # Get the default layouts as defined by the subclass
+            areDefault = True
+            layouts = self.getDefaultLayouts()
+            if not layouts:
+                # Get the global default layouts
+                layouts = copy.deepcopy(defaultFieldLayouts)
+        else:
+            if isinstance(layouts, basestring) or isinstance(layouts, Table):
+                # The user specified a single layoutString (the "edit" one)
+                layouts = {'edit': layouts}
+            else:
+                layouts = copy.deepcopy(layouts)
+                # Here, we make a copy of the layouts, because every layout can
+                # be different, even if the user decides to reuse one from one
+                # field to another. This is because we modify every layout for
+                # adding master/slave-related info, focus-related info, etc,
+                # which can be different from one field to the other.
+        # We have now a dict of layouts in p_layouts. Ensure now that a Table
+        # instance is created for every layout (=value from the dict). Indeed,
+        # a layout could have been expressed as a simple layout string.
         for layoutType in layouts.iterkeys():
             if isinstance(layouts[layoutType], basestring):
                 layouts[layoutType] = Table(layouts[layoutType])
-        # Create the "cell" layout if not specified.
+        # Create the "view" layout from the "edit" layout if not specified
+        if 'view' not in layouts:
+            layouts['view'] = Table(other=layouts['edit'], derivedType='view')
+        # Create the "cell" layout from the 'view' layout if not specified.
         if 'cell' not in layouts:
-            layouts['cell'] = Table('f')
+            layouts['cell'] = Table(other=layouts['view'], derivedType='cell')
         # Put the required CSS classes in the layouts
         layouts['cell'].addCssClasses('no-style-table')
         if self.master:
@@ -473,7 +492,12 @@ class Type:
             # allowing to show/hide, in Javascript, its widget according to
             # master value.
             classes = 'slave_%s' % self.master.id
-            classes += ' slaveValue_%s_%s' % (self.master.id, self.masterValue)
+            if type(self.masterValue) not in sequenceTypes:
+                masterValues = [self.masterValue]
+            else:
+                masterValues = self.masterValue
+            for masterValue in masterValues:
+                classes += ' slaveValue_%s_%s' % (self.master.id, masterValue)
             layouts['view'].addCssClasses(classes)
             layouts['edit'].addCssClasses(classes)
         if self.focus:
@@ -489,17 +513,21 @@ class Type:
         if not self.required:
             for layoutType in layouts.iterkeys():
                 layouts[layoutType].removeElement('r')
+        # Derive some boolean values from the layouts.
+        self.hasLabel = self.hasLayoutElement('l', layouts)
+        self.hasDescr = self.hasLayoutElement('d', layouts)
+        self.hasHelp  = self.hasLayoutElement('h', layouts)
         # Store Table instance's dicts instead of instances: this way, they can
         # be manipulated in ZPTs.
         for layoutType in layouts.iterkeys():
             layouts[layoutType] = layouts[layoutType].get()
         return layouts
 
-    def hasLayoutElement(self, element):
+    def hasLayoutElement(self, element, layouts):
         '''This method returns True if the given layout p_element can be found
            at least once among the various p_layouts defined for this field.'''
-        for layout in self.layouts.itervalues():
-            if element in layout['layoutString']: return True
+        for layout in layouts.itervalues():
+            if element in layout.layoutString: return True
         return False
 
     def getDefaultLayouts(self):
@@ -1161,14 +1189,16 @@ class Ref(Type):
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
 
     def isShowable(self, obj, layoutType):
-        res = Type.isShowable(self, obj, layout)
+        res = Type.isShowable(self, obj, layoutType)
         if not res: return res
+        # We add here specific Ref rules for preventing to show the field under
+        # some inappropriate circumstances.
         if (layoutType == 'edit') and self.add: return False
         if self.isBack:
             if layoutType == 'edit': return False
             else:
                 return obj.getBRefs(self.relationship)
-        return True
+        return res
 
     def getValue(self, obj):
         if self.isBack:
@@ -1622,6 +1652,6 @@ class Config:
 # ------------------------------------------------------------------------------
 # Special field "type" is mandatory for every class. If one class does not
 # define it, we will add a copy of the instance defined below.
-title = String(multiplicity=(1,1), indexed=True, show='edit')
+title = String(multiplicity=(1,1), show='edit')
 title.init('title', None, 'appy')
 # ------------------------------------------------------------------------------

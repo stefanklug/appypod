@@ -78,7 +78,7 @@ class User(ModelClass):
     firstName = String(**gm)
     def showLogin(self): pass
     def validateLogin(self): pass
-    login = String(show=showLogin, validator=validateLogin, **gm)
+    login = String(show=showLogin, validator=validateLogin, indexed=True, **gm)
     def showPassword(self): pass
     def validatePassword(self): pass
     password1 = String(format=String.PASSWORD, show=showPassword,
@@ -142,7 +142,7 @@ class Flavour(ModelClass):
         res.group = copy.copy(appyType.group)
         res.phase = 'main'
         # Set default layouts for all Flavour fields
-        res.layouts = None
+        res.layouts = res.formatLayouts(None)
         res.specificReadPermission = False
         res.specificWritePermission = False
         res.multiplicity = (0, appyType.multiplicity[1])

@@ -46,6 +46,7 @@ class AbstractMixin:
                 appyType.store(obj, value)
             if created:
                 # Now we have a title for the object, so we derive a nice id
+                obj.unmarkCreationFlag()
                 obj._renameAfterCreation(check_auto_id=True)
         if previousData:
             # Keep in history potential changes on historized fields
@@ -181,31 +182,45 @@ class AbstractMixin:
             obj.plone_utils.addPortalMessage(msg)
             return self.goto('%s/skyn/view' % obj.absolute_url(), True)
         if rq.get('buttonPrevious.x', None):
-            # Go to the previous page (edit mode) for this object.
+            # Go to the previous page for this object.
             # We recompute the list of phases and pages because things
             # may have changed since the object has been updated (ie,
             # additional pages may be shown or hidden now, so the next and
-            # previous pages may have changed).
+            # previous pages may have changed). Moreover, previous and next
+            # pages may not be available in "edit" mode, so we return the edit
+            # or view pages depending on page.show.
             currentPage = rq.get('page')
             phaseInfo = self.getAppyPhases(page=currentPage)
-            previousPage = self.getPreviousPage(phaseInfo, currentPage)
+            previousPage, show = self.getPreviousPage(phaseInfo, currentPage)
             if previousPage:
-                rq.set('page', previousPage)
-                return obj.skyn.edit(obj)
+                # Return the edit or view page?
+                if show != 'view':
+                    rq.set('page', previousPage)
+                    return obj.skyn.edit(obj)
+                else:
+                    urlBack = '%s/skyn/view?page=%s' % (obj.absolute_url(),
+                                                        previousPage)
+                    return self.goto(urlBack)
             else:
                 obj.plone_utils.addPortalMessage(msg)
-                return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+                return self.goto('%s/skyn/view' % obj.absolute_url())
         if rq.get('buttonNext.x', None):
-            # Go to the next page (edit mode) for this object
+            # Go to the next page for this object
             currentPage = rq.get('page')
             phaseInfo = self.getAppyPhases(page=currentPage)
-            nextPage = self.getNextPage(phaseInfo, currentPage)
+            nextPage, show = self.getNextPage(phaseInfo, currentPage)
             if nextPage:
-                rq.set('page', nextPage)
-                return obj.skyn.edit(obj)
+                # Return the edit or view page?
+                if show != 'view':
+                    rq.set('page', nextPage)
+                    return obj.skyn.edit(obj)
+                else:
+                    urlBack = '%s/skyn/view?page=%s' % (obj.absolute_url(),
+                                                        nextPage)
+                    return self.goto(urlBack)
             else:
                 obj.plone_utils.addPortalMessage(msg)
-                return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+                return self.goto('%s/skyn/view' % obj.absolute_url())
         return obj.skyn.edit(obj)
 
     def onDelete(self):
@@ -575,28 +590,36 @@ class AbstractMixin:
         pageIndex = phase['pages'].index(page)
         if pageIndex > 0:
             # We stay on the same phase, previous page
-            return phase['pages'][pageIndex-1]
+            res = phase['pages'][pageIndex-1]
+            show = phase['pageShows'][res]
+            return res, show
         else:
             if phase['previousPhase']:
                 # We go to the last page of previous phase
                 previousPhase = phase['previousPhase']
-                return previousPhase['pages'][-1]
+                res = previousPhase['pages'][-1]
+                show = previousPhase['pageShows'][res]
+                return res, show
             else:
-                return None
+                return None, None
 
     def getNextPage(self, phase, page):
         '''Returns the page that follows p_page which is in p_phase.'''
         pageIndex = phase['pages'].index(page)
         if pageIndex < len(phase['pages'])-1:
             # We stay on the same phase, next page
-            return phase['pages'][pageIndex+1]
+            res = phase['pages'][pageIndex+1]
+            show = phase['pageShows'][res]
+            return res, show
         else:
             if phase['nextPhase']:
                 # We go to the first page of next phase
                 nextPhase = phase['nextPhase']
-                return nextPhase['pages'][0]
+                res = nextPhase['pages'][0]
+                show = nextPhase['pageShows'][res]
+                return res, show
             else:
-                return None
+                return None, None
 
     def changeRefOrder(self, fieldName, objectUid, newIndex, isDelta):
         '''This method changes the position of object with uid p_objectUid in
@@ -872,12 +895,6 @@ class AbstractMixin:
             if not ploneObjects:
                 res = [o.appy() for o in objs]
         return res
-
-    def _appy_showPage(self, page, pageShow):
-        '''Must I show p_page?'''
-        if callable(pageShow):
-            return pageShow(self.appy())
-        else: return pageShow
 
     def _appy_showState(self, workflow, stateShow):
         '''Must I show a state whose "show value" is p_stateShow?'''

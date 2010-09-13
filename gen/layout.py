@@ -118,21 +118,47 @@ class Row(LayoutElement):
 # ------------------------------------------------------------------------------
 class Table(LayoutElement):
     '''Represents a table where to dispose graphical elements.'''
-    def __init__(self, layoutString, style=None, css_class='', cellpadding=0,
-                 cellspacing=0, width='100%', align='left'):
-        self.style = style
-        self.css_class = css_class
-        self.cellpadding = cellpadding
-        self.cellspacing = cellspacing
-        self.width = width
-        self.align = align
+    simpleParams = ('style', 'css_class', 'cellpadding', 'cellspacing', 'width',
+                    'align')
+    derivedRepls = {'view': 'hrv', 'cell': 'l'}
+    def __init__(self, layoutString=None, style=None, css_class='',
+                 cellpadding=0, cellspacing=0, width='100%', align='left',
+                 other=None, derivedType=None):
+        if other:
+            # We need to create a Table instance from another Table instance,
+            # given in p_other. In this case, we ignore previous params.
+            if derivedType != None:
+                # We will not simply clone p_other. If p_derivedType is:
+                # - "view", p_derivedFrom is an "edit" layout, and we must
+                #           create the corresponding "view" layout;
+                # - "cell", p_derivedFrom is a "view" layout, and we must
+                #           create the corresponding "cell" layout;
+                self.layoutString = Table.deriveLayout(other.layoutString,
+                                                       derivedType)
+            else:
+                self.layoutString = layoutString
+            source = 'other.'
+        else:
+            source = ''
+            self.layoutString = layoutString
+        # Initialise simple params, either from the true params, either from
+        # the p_other Table instance.
+        for param in Table.simpleParams:
+            exec 'self.%s = %s%s' % (param, source, param)
         # The following attribute will store a special Row instance used for
         # defining column properties.
         self.headerRow = None
-        # The content rows are stored hereafter.
+        # The content rows will be stored hereafter.
         self.rows = []
-        self.layoutString = layoutString
-        self.decodeRows(layoutString)
+        self.decodeRows(self.layoutString)
+
+    @staticmethod
+    def deriveLayout(layout, derivedType):
+        '''Returns a layout derived from p_layout.'''
+        res = layout
+        for letter in Table.derivedRepls[derivedType]:
+            res = res.replace(letter, '')
+        return res
 
     def addCssClasses(self, css_class):
         '''Adds a single or a group of p_css_class.'''
@@ -186,5 +212,5 @@ class Table(LayoutElement):
 # ------------------------------------------------------------------------------
 defaultPageLayouts  = {
     'view': Table('m;-s|-n!-w|-b|'), 'edit': Table('m;-w|-b|')}
-defaultFieldLayouts = {'view': 'l;f!', 'edit': 'lrv;f!'}
+defaultFieldLayouts = {'edit': 'lrv;f!'}
 # ------------------------------------------------------------------------------

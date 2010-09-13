@@ -652,6 +652,7 @@ class Generator(AbstractGenerator):
                     Flavour._appy_addImportRelatedFields(classDescr)
         Flavour._appy_addWorkflowFields(self.flavour)
         Flavour._appy_addWorkflowFields(self.podTemplate)
+        Flavour._appy_addWorkflowFields(self.user)
         # Complete self.flavour.orderedAttributes from the attributes that we
         # just added to the Flavour model class.
         for fieldName in Flavour._appy_attributes:

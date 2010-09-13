@@ -651,8 +651,8 @@
   This macro shows the range of buttons (next, previous, save,...).
 </tal:comment>
 <div metal:define-macro="buttons"
-     tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page);
-                 nextPage       python: contextObj.getNextPage(phaseInfo, page);
+     tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page)[0];
+                 nextPage       python: contextObj.getNextPage(phaseInfo, page)[0];
                  isEdit         python: layoutType == 'edit';">
     <br/>
     <tal:previousButton condition="previousPage">
@@ -682,7 +682,7 @@
              tal:attributes="src string:$portal_url/skyn/cancel.png"/>
     </tal:cancelButton>
 
-    <tal:editLink condition="not:isEdit">
+    <tal:editLink condition="python: not isEdit and (phaseInfo['pageShows'][page] != 'view')">
       <img tal:define="nav request/nav|nothing;
                        nav python: test(nav, '&nav=%s' % nav, '')"
            title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"

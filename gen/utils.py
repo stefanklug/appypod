@@ -83,6 +83,9 @@ class PhaseDescr(Descr):
         self.obj = obj
         self.phaseStatus = None
         self.pages = [] # The list of pages in this phase
+        # Below, a dict of "show" values (True, False or 'view') for every page
+        # in self.pages.
+        self.pageShows = {}
         self.totalNbOfPhases = None
         # The following attributes allows to browse, from a given page, to the
         # last page of the previous phase and to the first page of the following
@@ -92,9 +95,11 @@ class PhaseDescr(Descr):
 
     def addPage(self, appyType, obj):
         toAdd = appyType.page
-        if (toAdd not in self.pages) and \
-           obj._appy_showPage(appyType.page, appyType.pageShow):
-            self.pages.append(toAdd)
+        if toAdd not in self.pages:
+            showValue = appyType.showPage(obj)
+            if showValue:
+                self.pages.append(toAdd)
+                self.pageShows[toAdd] = showValue
 
     def computeStatus(self, allPhases):
         '''Compute status of whole phase based on individual status of states

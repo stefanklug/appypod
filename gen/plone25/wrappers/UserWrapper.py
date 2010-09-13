@@ -63,6 +63,9 @@ class UserWrapper(AbstractWrapper):
         # Perform updates on the corresponding Plone user
         ploneUser = self.o.portal_membership.getMemberById(self.login)
         ploneUser.setMemberProperties({'fullname': self.title})
+        # This object must be owned by its Plone user
+        if 'Owner' not in self.o.get_local_roles_for_userid(self.login):
+            self.o.manage_addLocalRoles(self.login, ('Owner',))
         # Change group membership according to self.roles. Indeed, instead of
         # granting roles directly to the user, we will add the user to a
         # Appy-created group having this role.

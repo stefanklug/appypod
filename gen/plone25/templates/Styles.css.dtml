@@ -6,7 +6,7 @@ textarea { width: 99%; }
 
 #portal-breadcrumbs { display: none; }
 #importedElem { color: grey; font-style: italic; }
-label         { font-weight: bold;  font-style: italic; }
+label         { font-weight: bold; font-style: italic; line-height: 1.4em;}
 .discreet     { font-size: 94%; }
 .appyList     { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
 .appyBullet   { margin: 0; }
@@ -26,7 +26,7 @@ label         { font-weight: bold;  font-style: italic; }
 .appyPhase {
   border-style: dashed;
   border-width: thin;
-  padding: 0 0.1em 0 1em;
+  padding: 0 0.6em 0 1em;
 }
 
 .appyState {
@@ -68,14 +68,14 @@ label         { font-weight: bold;  font-style: italic; }
   background-color: #cde2a7;
   background-image: url(&dtml-portal_url;/skyn/done.png);
   background-repeat: no-repeat;
-  background-position: -1px 4px;
+  background-position: -1px 7px;
 }
 
 .stepCurrent {
   background-color: #eef3f5;
   background-image: url(&dtml-portal_url;/skyn/current.png);
   background-repeat: no-repeat;
-  background-position: -1px 4px;
+  background-position: -1px 7px;
 }
 
 .stepFuture {
@@ -224,11 +224,13 @@ th {
   font-variant: small-caps;
   font-weight: bold;
   font-style: normal;
+  margin: 0.3em 0 0.3em 0;
 }
 .portletSep       {  border-top: 1px dashed #8cacbb; }
 .portletGroupItem { padding-left: 0.8em; font-style: italic; }
 .portletPageItem  { font-style: italic; }
 .portletCurrent   { font-weight: bold; }
+.portletMenu      { margin-bottom: 0.4em; }
 
 div.appyGrey {
   display: none;
