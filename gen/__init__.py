@@ -664,17 +664,28 @@ class Integer(Type):
         if value not in nullValues: return self.pythonType(value)
 
 class Float(Type):
+    allowedDecimalSeps = (',', '.')
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, precision=None):
+                 historized=False, precision=None, sep=(',', '.')):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
         self.precision = precision
+        # The decimal separator can be a tuple if several are allowed, ie
+        # ('.', ',')
+        if type(sep) not in sequenceTypes:
+            self.sep = (sep,)
+        else:
+            self.sep = sep
+        # Check that the separator(s) are among allowed decimal separators
+        for sep in self.sep:
+            if sep not in Float.allowedDecimalSeps:
+                raise 'Char "%s" is not allowed as decimal separator.' % sep
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
@@ -684,21 +695,41 @@ class Float(Type):
 
     def getFormattedValue(self, obj, value):
         if value in nullValues: return ''
+        # Determine the field separator
+        sep = self.sep[0]
+        # Produce the rounded string representation
         if self.precision == None:
             res = str(value)
         else:
-            format = '%%.%df' % appyType.precision
+            format = '%%.%df' % self.precision
             res = format % value
+        # Use the correct decimal separator
+        res = res.replace('.', sep)
+        # Remove the decimal part if = 0
+        splitted = res.split(sep)
+        if len(splitted) > 1:
+            try:
+                decPart = int(splitted[1])
+                if decPart == 0:
+                    res = splitted[0]
+            except ValueError:
+                # This exception may occur when the float value has an "exp"
+                # part, like in this example: 4.345e-05.
+                pass
         return res
 
     def validateValue(self, obj, value):
+        # Replace used separator with the Python separator '.'
+        for sep in self.sep: value = value.replace(sep, '.')
         try:
             value = self.pythonType(value)
         except ValueError:
             return obj.translate('bad_%s' % self.pythonType.__name__)
 
     def getStorableValue(self, value):
-        if value not in nullValues: return self.pythonType(value)
+        if value not in nullValues:
+            for sep in self.sep: value = value.replace(sep, '.')
+            return self.pythonType(value)
 
 class String(Type):
     # Some predefined regular expressions that may be used as validators

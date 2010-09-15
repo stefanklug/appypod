@@ -504,7 +504,7 @@ class AbstractMixin:
         return css, js
 
     def getAppyTypesFromNames(self, fieldNames, asDict=True):
-        '''Gets the appy types names p_fieldNames.'''
+        '''Gets the Appy types names p_fieldNames.'''
         return [self.getAppyType(name, asDict) for name in fieldNames]
 
     def getAppyStates(self, phase, currentOnly=False):
