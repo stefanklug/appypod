@@ -157,6 +157,12 @@
     }
     askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/ref', 'viewContent',params);
   }
+  function askComputedField(hookId, objectUrl, fieldName) {
+    // Sends an Ajax request for getting the content of a computed field
+    var params = {'fieldName': fieldName};
+    askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/computed', 'viewContent',
+                 params);
+  }
 
   // Function used by checkbox widgets for having radio-button-like behaviour
   function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
@@ -455,7 +461,7 @@
           </tr>
           <tr tal:repeat="change event/changes/items" valign="top">
             <td tal:content="python: tool.translate(change[1][1])"></td>
-            <td tal:define="appyValue python: contextObj.getFieldValue(change[0], useParamValue=True, value=change[1][0]);
+            <td tal:define="appyValue python: contextObj.getFormattedFieldValue(change[0], change[1][0]);
                             appyType python:contextObj.getAppyType(change[0], asDict=True);
                             severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
               <span tal:condition="not: severalValues" tal:replace="appyValue"></span>

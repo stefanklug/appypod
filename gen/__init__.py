@@ -265,7 +265,7 @@ class Type:
                  editDefault, show, page, group, layouts, move, indexed,
                  searchable, specificReadPermission, specificWritePermission,
                  width, height, colspan, master, masterValue, focus,
-                 historized):
+                 historized, sync):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -349,6 +349,9 @@ class Type:
         # If we must keep track of changes performed on a field, "historized"
         # must be set to True.
         self.historized = historized
+        # self.sync below determines if the field representations will be
+        # retrieved in a synchronous way by the browser or not (Ajax).
+        self.sync = self.formatSync(sync)
         self.id = id(self)
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
@@ -449,6 +452,16 @@ class Type:
             return self.pageShow(obj.appy())
         else:
             return self.pageShow
+
+    def formatSync(self, sync):
+        '''Creates a dictionary indicating, for every layout type, if the field
+           value must be retrieved synchronously or not.'''
+        if isinstance(sync, bool):
+            sync = {'edit': sync, 'view': sync, 'cell': sync}
+        for layoutType in ('edit', 'view', 'cell'):
+            if layoutType not in sync:
+                sync[layoutType] = False
+        return sync
 
     def formatLayouts(self, layouts):
         '''Standardizes the given p_layouts. .'''
@@ -651,7 +664,7 @@ class Integer(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized)
+                      masterValue, focus, historized, True)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -690,7 +703,7 @@ class Float(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized)
+                      historized, True)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -851,7 +864,7 @@ class String(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized)
+                      masterValue, focus, historized, True)
         self.isSelect = self.isSelection()
         # Default width and height vary according to String format
         if width == None:
@@ -1016,14 +1029,13 @@ class Boolean(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized)
+                      masterValue, focus, historized, True)
         self.pythonType = bool
 
     def getDefaultLayouts(self):
         return {'view': 'l;f!_', 'edit': Table('f;lrv;=', width=None)}
 
     def getFormattedValue(self, obj, value):
-        if value in nullValues: return ''
         if value: res = obj.translate('yes', domain='plone')
         else:     res = obj.translate('no', domain='plone')
         return res
@@ -1057,7 +1069,7 @@ class Date(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized)
+                      masterValue, focus, historized, True)
 
     def getCss(self, layoutType):
         if layoutType == 'edit': return ('jscalendar/calendar-system.css',)
@@ -1110,7 +1122,7 @@ class File(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized)
+                      historized, True)
 
     def getValue(self, obj):
         value = Type.getValue(self, obj)
@@ -1209,12 +1221,14 @@ class Ref(Type):
         # filter the list of available tied objects.
         self.select = select
         # Maximum number of referenced objects shown at once.
-        self.maxPerPage = maxPerPage 
+        self.maxPerPage = maxPerPage
+        # Specifies sync
+        sync = {'view': False, 'edit':True}
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized)
+                      historized, sync)
         self.validable = self.link
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -1273,7 +1287,7 @@ class Computed(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, method=None, plainText=True, master=None,
-                 masterValue=None, focus=False, historized=False):
+                 masterValue=None, focus=False, historized=False, sync=True):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -1281,7 +1295,8 @@ class Computed(Type):
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized)
+                      height, colspan, master, masterValue, focus, historized,
+                      sync)
         self.validable = False
 
     def getValue(self, obj):
@@ -1297,7 +1312,7 @@ class Computed(Type):
             res = str(e)
         return res
 
-    def getFormattedValue(self, obj, value): return self.getValue(obj)
+    def getFormattedValue(self, obj, value): return value
 
 class Action(Type):
     '''An action is a workflow-independent Python method that can be triggered
@@ -1325,7 +1340,8 @@ class Action(Type):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized)
+                      height, colspan, master, masterValue, focus, historized,
+                      False)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -1377,7 +1393,8 @@ class Info(Type):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized)
+                      height, colspan, master, masterValue, focus, historized,
+                      False)
         self.validable = False
 
 class Pod(Type):
@@ -1407,7 +1424,7 @@ class Pod(Type):
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized)
+                      masterValue, focus, historized, False)
         self.validable = False
 
 # Workflow-specific types ------------------------------------------------------

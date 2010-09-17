@@ -1,7 +1,26 @@
 <tal:comment replace="nothing">View macro for a Computed.</tal:comment>
 <metal:view define-macro="view">
-  <span tal:condition="widget/plainText" tal:replace="value"/>
-  <span tal:condition="not: widget/plainText" tal:replace="structure value"/>
+  <tal:sync condition="sync">
+    <span tal:condition="widget/plainText" tal:replace="value"/>
+    <span tal:condition="not: widget/plainText" tal:replace="structure value"/>
+  </tal:sync>
+  <tal:async condition="not: sync">
+    <div tal:define= "ajaxHookId python: contextObj.UID() + name"
+         tal:attributes = "id ajaxHookId">
+      <script language="javascript"
+          tal:content="python: 'askComputedField(\'%s\',\'%s\',\'%s\')' % (ajaxHookId, contextObj.absolute_url(), name)">
+      </script>
+    </div>
+  </tal:async>
+</metal:view>
+
+<tal:comment replace="nothing">Ajax-called view content of a non sync Computed field.</tal:comment>
+<metal:view define-macro="viewContent"
+            tal:define="name request/fieldName;
+                        widget python: contextObj.getAppyType(name, asDict=True);
+                        value python: contextObj.getFieldValue(name);
+                        sync python:True">
+  <metal:call use-macro="portal/skyn/widgets/computed/macros/view"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for a Computed.</tal:comment>

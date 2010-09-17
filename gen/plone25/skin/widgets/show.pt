@@ -54,8 +54,9 @@
        tal:define="contextMacro    python: portal.skyn.widgets;
                    layout          python: widget['layouts'][layoutType];
                    name            widget/name;
-                   value           python: contextObj.getFieldValue(name);
-                   rawValue        python: contextObj.getFieldValue(name, formatted=False);
+                   sync            python: widget['sync'][layoutType];
+                   rawValue        python: sync and contextObj.getFieldValue(name) or None;
+                   value           python: sync and contextObj.getFormattedFieldValue(name, rawValue) or None;
                    requestValue    python: request.get(name, None);
                    inRequest       python: request.has_key(name);
                    errors          errors | python: ();

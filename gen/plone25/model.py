@@ -22,7 +22,7 @@ class ModelClass:
     _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'phase', 'pageShow',
                      'isSelect', 'hasLabel', 'hasDescr', 'hasHelp',
                      'master_css', 'layouts', 'required', 'filterable',
-                     'validable', 'backd', 'isBack')
+                     'validable', 'backd', 'isBack', 'sync')
 
     @classmethod
     def _appy_addField(klass, fieldName, fieldType, classDescr):

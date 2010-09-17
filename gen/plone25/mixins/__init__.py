@@ -300,25 +300,14 @@ class AbstractMixin:
         '''Returns the method named p_methodName.'''
         return getattr(self, methodName, None)
 
-    def getFieldValue(self, name, useParamValue=False, value=None,
-                      formatted=True):
-        '''Returns the value of field named p_name for this object (p_self).
+    def getFieldValue(self, name):
+        '''Returns the database value of field named p_name for p_self.'''
+        return self.getAppyType(name).getValue(self)
 
-           If p_useParamValue is True, the method uses p_value instead of the
-           real field value (useful for rendering a value from the object
-           history, for example).
-
-           If p_formatted is False, it will return the true database
-           (or default) value. Else, it will produce a nice, string and
-           potentially translated value.'''
-        appyType = self.getAppyType(name)
-        # Which value will we use ?
-        if not useParamValue:
-            value = appyType.getValue(self)
-        # Return the value as is if it is None or forMasterId
-        if not formatted: return value
-        # Return the formatted value else
-        return appyType.getFormattedValue(self, value)
+    def getFormattedFieldValue(self, name, value):
+        '''Gets a nice, string representation of p_value which is a value from
+           field named p_name.'''
+        return self.getAppyType(name).getFormattedValue(self, value)
 
     def _appy_getRefs(self, fieldName, ploneObjects=False,
                       noListIfSingleObj=False, startNumber=None):
