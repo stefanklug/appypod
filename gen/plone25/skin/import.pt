@@ -86,14 +86,14 @@
         <img tal:condition="python: repeat['columnHeader'].number() == 1"
              tal:attributes="src string:$portal_url/skyn/eye.png;
                              title python: tool.translate('import_show_hide')"
-             style="cursor:pointer" onClick="javascript:toggleViewableElements()" align="left" />
+             style="cursor:pointer" onClick="toggleViewableElements()" align="left" />
         <span tal:replace="columnHeader"/>
       </th>
       <th tal:content="python: tool.translate('ref_actions')"></th>
       <th width="20px"><img
         tal:attributes="src string: $portal_url/skyn/select_elems.png;
                         title python: tool.translate('select_delesect')"
-        onClick="javascript:toggleCheckboxes()" style="cursor:pointer"/>
+        onClick="toggleCheckboxes()" style="cursor:pointer"/>
     </tr>
     <tal:row repeat="row python: importElems[1]">
     <tr tal:define="alreadyImported python: tool.isAlreadyImported(contentType, row[0]);
@@ -106,7 +106,7 @@
       </td>
       <td>
         <input type="button" tal:condition="not: alreadyImported"
-               tal:attributes="onClick python: 'javascript:importSingleElement(\'%s\')' % row[0];
+               tal:attributes="onClick python: 'importSingleElement(\'%s\')' % row[0];
                                value python: tool.translate('query_import')"/>
         <span tal:condition="alreadyImported" tal:replace="python: tool.translate('import_already')"/>
       </td>
@@ -118,7 +118,7 @@
   </table>
   <tal:comment replace="nothing">Button for importing several elements at once.</tal:comment>
   <p align="right"><br/>
-    <input type="button" onClick="javascript:importManyElements()"
+    <input type="button" onClick="importManyElements()"
            tal:condition="python: importElems[1] and not allAreImported"
            tal:attributes="value python:tool.translate('import_many')"/>
   </p>

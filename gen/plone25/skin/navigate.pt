@@ -46,7 +46,7 @@
   </table>
 </div>
 
-<div metal:define-macro="objectNavigate" tal:condition="request/nav|nothing" align="right">
+<div metal:define-macro="objectNavigate" tal:condition="request/nav|nothing">
   <tal:comment replace="nothing">
      Buttons for going to next/previous elements if this one is among bunch of referenced or searched objects.
      currentNumber starts with 1.

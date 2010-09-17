@@ -55,8 +55,8 @@
                    layout          python: widget['layouts'][layoutType];
                    name            widget/name;
                    sync            python: widget['sync'][layoutType];
-                   rawValue        python: sync and contextObj.getFieldValue(name) or None;
-                   value           python: sync and contextObj.getFormattedFieldValue(name, rawValue) or None;
+                   rawValue        python: contextObj.getFieldValue(name, onlyIfSync=True, layoutType=layoutType);
+                   value           python: contextObj.getFormattedFieldValue(name, rawValue);
                    requestValue    python: request.get(name, None);
                    inRequest       python: request.has_key(name);
                    errors          errors | python: ();
@@ -103,7 +103,7 @@
                               id tabId">
             <a style="cursor:pointer"
                tal:content="python: tool.translate('%s_col%d' % (widget['labelId'], repeat['widgetRow'].number()))"
-               tal:attributes="onClick python: 'javascript:showTab(\'%s_%d_%d\')' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))"></a>
+               tal:attributes="onClick python: 'showTab(\'%s_%d_%d\')' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))"></a>
           </td>
           <td><img tal:attributes="src string: $portal_url/skyn/tabRight.png;
                                    id python: '%s_right' % tabId"/><td>

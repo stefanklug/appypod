@@ -91,7 +91,7 @@ class AbstractMixin:
             baseUrl = self.absolute_url()
         objId = self.generateUniqueId(rq.get('type_name'))
         urlBack = '%s/portal_factory/%s/%s/skyn/edit' % \
-            (baseUrl, rq.get('type_name'), objId)
+                  (baseUrl, rq.get('type_name'), objId)
         return self.goto(urlBack)
 
     def intraFieldValidation(self, errors, values):
@@ -148,10 +148,10 @@ class AbstractMixin:
                 # Go back to the Plone site (no better solution at present).
                 urlBack = self.portal_url.getPortalObject().absolute_url()
             else:
-                urlBack = self.absolute_url()
+                urlBack = self.getUrl()
             self.plone_utils.addPortalMessage(
                 self.translate('Changes canceled.', domain='plone'))
-            return self.goto(urlBack, True)
+            return self.goto(urlBack)
 
         # Object for storing validation errors
         errors = AppyObject()
@@ -180,7 +180,7 @@ class AbstractMixin:
         if rq.get('buttonOk.x', None):
             # Go to the consult view for this object
             obj.plone_utils.addPortalMessage(msg)
-            return self.goto('%s/skyn/view' % obj.absolute_url(), True)
+            return self.goto(obj.getUrl())
         if rq.get('buttonPrevious.x', None):
             # Go to the previous page for this object.
             # We recompute the list of phases and pages because things
@@ -193,34 +193,30 @@ class AbstractMixin:
             phaseInfo = self.getAppyPhases(page=currentPage)
             previousPage, show = self.getPreviousPage(phaseInfo, currentPage)
             if previousPage:
-                # Return the edit or view page?
+                # Return to the edit or view page?
                 if show != 'view':
                     rq.set('page', previousPage)
                     return obj.skyn.edit(obj)
                 else:
-                    urlBack = '%s/skyn/view?page=%s' % (obj.absolute_url(),
-                                                        previousPage)
-                    return self.goto(urlBack)
+                    return self.goto(obj.getUrl(page=previousPage))
             else:
                 obj.plone_utils.addPortalMessage(msg)
-                return self.goto('%s/skyn/view' % obj.absolute_url())
+                return self.goto(obj.getUrl())
         if rq.get('buttonNext.x', None):
             # Go to the next page for this object
             currentPage = rq.get('page')
             phaseInfo = self.getAppyPhases(page=currentPage)
             nextPage, show = self.getNextPage(phaseInfo, currentPage)
             if nextPage:
-                # Return the edit or view page?
+                # Return to the edit or view page?
                 if show != 'view':
                     rq.set('page', nextPage)
                     return obj.skyn.edit(obj)
                 else:
-                    urlBack = '%s/skyn/view?page=%s' % (obj.absolute_url(),
-                                                        nextPage)
-                    return self.goto(urlBack)
+                    return self.goto(obj.getUrl(page=nextPage))
             else:
                 obj.plone_utils.addPortalMessage(msg)
-                return self.goto('%s/skyn/view' % obj.absolute_url())
+                return self.goto(obj.getUrl())
         return obj.skyn.edit(obj)
 
     def onDelete(self):
@@ -228,7 +224,7 @@ class AbstractMixin:
         msg = self.translate('delete_done')
         self.delete()
         self.plone_utils.addPortalMessage(msg)
-        self.goto(rq['HTTP_REFERER'], True)
+        self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
@@ -280,17 +276,7 @@ class AbstractMixin:
 
     def goto(self, url, addParams=False):
         '''Brings the user to some p_url after an action has been executed.'''
-        rq = self.REQUEST
-        if not addParams: return rq.RESPONSE.redirect(url)
-        # Add some context-related parameters if needed.
-        params = []
-        if rq.get('page', ''): params.append('page=%s' % rq['page'])
-        if rq.get('nav', ''):  params.append('nav=%s' %  rq['nav'])
-        params = '&'.join(params)
-        if not params: return rq.RESPONSE.redirect(url)
-        if url.find('?') != -1: params = '&' + params
-        else:                   params = '?' + params
-        return rq.RESPONSE.redirect(url+params)
+        return self.REQUEST.RESPONSE.redirect(url)
 
     def showField(self, name, layoutType='view'):
         '''Must I show field named p_name on this p_layoutType ?'''
@@ -300,9 +286,14 @@ class AbstractMixin:
         '''Returns the method named p_methodName.'''
         return getattr(self, methodName, None)
 
-    def getFieldValue(self, name):
-        '''Returns the database value of field named p_name for p_self.'''
-        return self.getAppyType(name).getValue(self)
+    def getFieldValue(self, name, onlyIfSync=False, layoutType=None):
+        '''Returns the database value of field named p_name for p_self.
+           If p_onlyIfSync is True, it returns the value only if appyType can be
+           retrieved in synchronous mode.'''
+        appyType = self.getAppyType(name)
+        if not onlyIfSync or (onlyIfSync and appyType.sync[layoutType]):
+            return appyType.getValue(self)
+        return None
 
     def getFormattedFieldValue(self, name, value):
         '''Gets a nice, string representation of p_value which is a value from
@@ -759,7 +750,7 @@ class AbstractMixin:
             msg = self.translate(label)
         if (resultType == 'computation') or not successfull:
             self.plone_utils.addPortalMessage(msg)
-            return self.goto(rq['HTTP_REFERER'], True)
+            return self.goto(self.getUrl(rq['HTTP_REFERER']))
         else:
             # msg does not contain a message, but a complete file to show as is.
             # (or, if your prefer, the message must be shown directly to the
@@ -1018,9 +1009,38 @@ class AbstractMixin:
                     exec 'self.set%s%s([])' % (appyType.name[0].upper(),
                                                appyType.name[1:])
 
-    def getUrl(self):
-        '''Returns the Appy URL for viewing this object.'''
-        return self.absolute_url() + '/skyn/view'
+    getUrlDefaults = {'page':True, 'nav':True}
+    def getUrl(self, base=None, mode='view', **kwargs):
+        '''Returns a Appy URL.
+           * If p_base is None, it will be the base URL for this object
+             (ie, self.absolute_url()).
+           * p_mode can de "edit" or "view".
+           * p_kwargs can store additional parameters to add to the URL.
+             In this dict, every value that is a string will be added to the
+             URL as-is. Every value that is True will be replaced by the value
+             in the request for the corresponding key (if existing; else, the
+             param will not be included in the URL at all).'''
+        # Define base URL if ommitted
+        if not base: base = self.absolute_url()
+        # Manage default args
+        if not kwargs: kwargs = self.getUrlDefaults
+        if 'page' not in kwargs: kwargs['page'] = True
+        if 'nav'  not in kwargs: kwargs['nav'] = True
+        # Create URL parameters from kwargs
+        params = []
+        for name, value in kwargs.iteritems():
+            if isinstance(value, basestring):
+                params.append('%s=%s' % (name, value))
+            elif self.REQUEST.get(name, ''):
+                params.append('%s=%s' % (name, self.REQUEST[name]))
+        if params:
+            params = '&'.join(params)
+            if base.find('?') != -1: params = '&' + params
+            else:                    params = '?' + params
+        else:
+            params = ''
+        # Return the full constructed URL
+        return '%s/skyn/%s%s' % (base, mode, params)
 
     def translate(self, label, mapping={}, domain=None, default=None):
         '''Translates a given p_label into p_domain with p_mapping.'''
@@ -1030,7 +1050,7 @@ class AbstractMixin:
             domain, label, mapping, self, default=default)
 
     def getPageLayout(self, layoutType):
-        '''Returns the layout coresponding to p_layoutType for p_self.'''
+        '''Returns the layout corresponding to p_layoutType for p_self.'''
         appyClass = self.wrapperClass.__bases__[-1]
         if hasattr(appyClass, 'layouts'):
             layout = appyClass.layouts[layoutType]

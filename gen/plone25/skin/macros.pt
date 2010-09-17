@@ -91,8 +91,8 @@
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
       <td id="field_title"><a
-        tal:define="navInfo python:'nav=search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-        tal:content="obj/Title" tal:attributes="href python: obj.getUrl() + '/?' + navInfo"></a></td>
+        tal:define="navInfo python:'search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+        tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a></td>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:otherFields repeat="widget fieldDescrs">
@@ -124,8 +124,10 @@
         <table class="no-style-table" cellpadding="0" cellspacing="0">
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
-            <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
-                tal:condition="python: member.has_permission('Modify portal content', obj)">
+            <td class="noPadding">
+              <a tal:define="navInfo python:'search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+                 tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
+                 tal:condition="python: member.has_permission('Modify portal content', obj)">
                 <img title="Edit" i18n:domain="plone" i18n:attributes="title"
                      tal:attributes="src string: $portal_url/skyn/edit.gif"/>
             </a></td>
@@ -134,7 +136,7 @@
               <img tal:condition="python: member.has_permission('Delete objects', obj)"
                    title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
                    tal:attributes="src string: $portal_url/skyn/delete.png;
-                                   onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
+                                   onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
             </td>
           </tr>
         </table>

@@ -9,7 +9,7 @@
   </tal:askAction>
   <img tal:repeat="podFormat python:flavour.getPodInfo(contextObj, name)['formats']"
        tal:attributes="src string: $portal_url/skyn/${podFormat}.png;
-                       onClick python: 'javascript:generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), name, podFormat);
+                       onClick python: 'generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), name, podFormat);
                        title podFormat/capitalize"
        style="cursor:pointer"/>
 </metal:view>

@@ -30,7 +30,7 @@
           tal:attributes="name name;
                           id name;
                           multiple python: isMultiple and 'multiple' or '';
-                          onchange python: isMaster and ('javascript:updateSlaves(getMasterValue(this), \'%s\')' % widget['id']) or '';
+                          onchange python: isMaster and ('updateSlaves(getMasterValue(this), \'%s\')' % widget['id']) or '';
                           class    widget/master_css;
                           size     python: isMultiple and widget['height'] or 1">
     <option tal:repeat="possibleValue possibleValues"

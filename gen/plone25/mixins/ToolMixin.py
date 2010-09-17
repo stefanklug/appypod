@@ -285,20 +285,16 @@ class ToolMixin(AbstractMixin):
         appName = self.getProductConfig().PROJECTNAME
         return self.utranslate(label, self.translationMapping, domain=appName)
 
-    def getPublishedObject(self, rootClasses):
+    def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among
-           p_rootClasses or if it is the corresponding tool or flavour.'''
+           application classes.'''
         rq = self.REQUEST
         obj = rq['PUBLISHED']
         parent = obj.getParentNode()
         if parent.id == 'skyn':
             obj = parent.getParentNode()
-        if obj.meta_type in rootClasses:
+        if obj.meta_type in self.getProductConfig().attributes:
             return obj
-        else:
-            appName = self.getAppName()
-            if obj.meta_type in ('%sTool' % appName, '%sFlavour' % appName):
-                return obj
         return None
 
     def getAppyClass(self, contentType):
@@ -579,8 +575,9 @@ class ToolMixin(AbstractMixin):
                 label = '%s_search_%s' % (d1.split(':')[0], searchName)
             res['backText'] = self.translate(label)
         else:
+            fieldName, pageName = d2.split(':')
             sourceObj = self.uid_catalog(UID=d1)[0].getObject()
-            label = '%s_%s' % (sourceObj.meta_type, d2)
+            label = '%s_%s' % (sourceObj.meta_type, fieldName)
             res['backText'] = u'%s : %s' % (sourceObj.Title().decode('utf-8'),
                                             self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
@@ -600,7 +597,6 @@ class ToolMixin(AbstractMixin):
         if (nextIndex < lastIndex): lastNeeded = True
         # Get the list of available UIDs surrounding the current object
         if t == 'ref': # Manage navigation from a reference
-            fieldName = d2
             masterObj = self.getObject(d1)
             batchSize = masterObj.getAppyType(fieldName).maxPerPage
             uids = getattr(masterObj, '_appy_%s' % fieldName)
@@ -611,9 +607,9 @@ class ToolMixin(AbstractMixin):
             startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)
             startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
                 res['totalNumber'], batchSize)
-            res['sourceUrl'] = '%s?%s=%s' % (masterObj.getUrl(),
-                startNumberKey, startNumber)
-        else:          # Manage navigation from a search
+            res['sourceUrl'] = masterObj.getUrl(**{startNumberKey:startNumber,
+                                                   'page':pageName, 'nav':''})
+        else: # Manage navigation from a search
             contentType, flavourNumber = d1.split(':')
             flavourNumber = int(flavourNumber)
             searchName = keySuffix = d2
@@ -661,9 +657,9 @@ class ToolMixin(AbstractMixin):
                 if uid:
                     brain = self.uid_catalog(UID=uid)
                     if brain:
-                        baseUrl = brain[0].getObject().getUrl()
-                        navUrl = baseUrl + '/?nav=' + newNav % (index + 1)
-                        res[urlKey] = navUrl
+                        sibling = brain[0].getObject()
+                        res[urlKey] = sibling.getUrl(nav=newNav % (index + 1),
+                                                     page='main')
         return res
 
     def tabularize(self, data, numberOfRows):

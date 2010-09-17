@@ -242,7 +242,8 @@
   }
   // Function that allows to generate a document from a pod template.
   function generatePodDocument(contextUid, templateUid, fieldName, podFormat) {
-    var theForm = document.forms["podTemplateForm"];
+    var theForm = document.getElementsByName("podTemplateForm")[0];
+    alert('The form =' + theForm);
     theForm.objectUid.value = contextUid;
     theForm.templateUid.value = templateUid;
     theForm.fieldName.value = fieldName;
@@ -395,7 +396,7 @@
           tal:repeat="podTemplate podTemplates">
       <a style="cursor: pointer"
          tal:define="podFormat podTemplate/getPodFormat"
-         tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
+         tal:attributes="onclick python: 'generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
         <img tal:attributes="src string: $portal_url/skyn/$podFormat.png"/>
         <span tal:replace="podTemplate/Title"/>
       </a>
@@ -404,7 +405,7 @@
   <select tal:condition="python: len(podTemplates)&gt;maxShownTemplates">
     <option value="" tal:content="python: tool.translate('choose_a_doc')"></option>
     <option tal:repeat="podTemplate podTemplates" tal:content="podTemplate/Title"
-            tal:attributes="onclick python: 'javascript:generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
+            tal:attributes="onclick python: 'generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
   </select>
   </tal:podTemplates>
 </div>
@@ -522,7 +523,7 @@
         <td align="right" tal:repeat="transition transitions">
           <input type="button" class="context"
                  tal:attributes="value python: tool.translate(transition['name']);
-                                 onClick python: 'javascript: triggerTransition(\'%s\')' % transition['id'];"/>
+                                 onClick python: 'triggerTransition(\'%s\')' % transition['id'];"/>
         </td>
     </tr>
     </table>
@@ -560,7 +561,7 @@
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
-            <img align="left" style="cursor:pointer" onClick="javascript:toggleCookie('appyHistory')"
+            <img align="left" style="cursor:pointer" onClick="toggleCookie('appyHistory')"
                  tal:attributes="src python:test(historyExpanded, 'skyn/collapse.gif', 'skyn/expand.gif');"
                  id="appyHistory_img"/>&nbsp;
             <span i18n:translate="label_history" i18n:domain="plone" class="appyHistory"></span>&nbsp;
@@ -659,7 +660,7 @@
 <div metal:define-macro="buttons"
      tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page)[0];
                  nextPage       python: contextObj.getNextPage(phaseInfo, page)[0];
-                 isEdit         python: layoutType == 'edit';">
+                 isEdit         python: layoutType == 'edit'">
     <br/>
     <tal:previousButton condition="previousPage">
       <tal:button condition="isEdit">
@@ -669,7 +670,7 @@
         <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
       </tal:button>
       <tal:link condition="not: isEdit">
-        <a tal:attributes="href python: contextObj.getUrl()+'?page=%s' % previousPage">
+        <a tal:attributes="href python: contextObj.getUrl(page=previousPage)">
           <img tal:attributes="src string:$portal_url/skyn/previous.png"
                title="label_previous" i18n:attributes="title" i18n:domain="plone"/>
         </a>
@@ -689,10 +690,8 @@
     </tal:cancelButton>
 
     <tal:editLink condition="python: not isEdit and (phaseInfo['pageShows'][page] != 'view')">
-      <img tal:define="nav request/nav|nothing;
-                       nav python: test(nav, '&nav=%s' % nav, '')"
-           title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-           tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?page=%s%s\'' % (contextObj.absolute_url(), page, nav);
+      <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+           tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
                            src string: $portal_url/skyn/editBig.png"
            tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
     </tal:editLink>
@@ -705,7 +704,7 @@
         <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>
       </tal:button>
       <tal:link condition="not: isEdit">
-        <a tal:attributes="href python: contextObj.getUrl()+'?&page=%s' % nextPage">
+        <a tal:attributes="href python: contextObj.getUrl(page=nextPage)">
           <img tal:attributes="src string:$portal_url/skyn/next.png"
                title="label_next" i18n:attributes="title" i18n:domain="plone"/>
         </a>

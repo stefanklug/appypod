@@ -9,7 +9,7 @@
     <input type="hidden" name="fieldName" tal:attributes="value name"/>
     <input type="button" tal:condition="widget/confirm"
            tal:attributes="value label;
-                           onClick python: 'javascript:askConfirm(\'%s\')' % formId"/>
+                           onClick python: 'askConfirm(\'%s\')' % formId"/>
     <input type="submit" name="do" tal:condition="not: widget/confirm"
            tal:attributes="value label" onClick="javascript:;"/>
     <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone

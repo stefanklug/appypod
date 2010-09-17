@@ -8,10 +8,11 @@
     allows to reach the correct page where the forward reference is defined. If we are
     on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
     from one object to the next/previous on skyn/view.</tal:comment>
-  <a tal:define="viewUrl obj/getUrl;
-                 includeShownInfo includeShownInfo | python:False;
-                 navInfo python:'nav=ref.%s.%s.%d.%d' % (contextObj.UID(), fieldName, repeat['obj'].number()+startNumber, totalNumber);
-                 fullUrl python: appyType['isBack'] and (viewUrl + '/?page=%s' % appyType['backd']['page']) or (viewUrl + '/?' + navInfo)"
+  <a tal:define="includeShownInfo includeShownInfo | python:False;
+                 navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);
+                 navInfo python: appyType['isBack'] and '' or navInfo;
+                 pageName python: appyType['isBack'] and appyType['backd']['page'] or 'main';
+                 fullUrl python: obj.getUrl(page=pageName, nav=navInfo)"
      tal:attributes="href fullUrl" tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a>
 </metal:objectTitle>
 
@@ -39,7 +40,9 @@
       </tal:moveRef>
     </td>
     <tal:comment replace="nothing">Edit the element</tal:comment>
-    <td class="noPadding"><a tal:attributes="href python: obj.absolute_url() + '/skyn/edit'"
+    <td class="noPadding">
+       <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);"
+          tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
         tal:condition="python: member.has_permission('Modify portal content', obj)">
         <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
              tal:attributes="src string: $portal_url/skyn/edit.gif"/>
@@ -49,7 +52,7 @@
       <img tal:condition="python: member.has_permission('Delete objects', obj)"
            title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
            tal:attributes="src string: $portal_url/skyn/delete.png;
-                           onClick python:'javascript:onDeleteObject(\'%s\')' % obj.UID()"/>
+                           onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
     </td>
     </tr>
   </table>

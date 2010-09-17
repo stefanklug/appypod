@@ -5,7 +5,7 @@
    tal:define="queryUrl           python: '%s/skyn/query' % appFolder.absolute_url();
                currentSearch      request/search|nothing;
                currentType        request/type_name|nothing;
-               contextObj         python: tool.getPublishedObject(rootClasses)">
+               contextObj         python: tool.getPublishedObject()">
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
     <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
@@ -22,7 +22,7 @@
     <td align="right">
       <img style="cursor:pointer"
            tal:condition="python: member.has_role('Manager')"
-           tal:attributes="onClick python: 'href: window.location=\'%s/skyn/view\'' % tool.absolute_url();
+           tal:attributes="onClick python: 'href: window.location=\'%s\'' % tool.getUrl(page='main', nav='');
                            title python: tool.translate('%sTool' % appName);
                            src string:$portal_url/skyn/appyConfig.gif"/>
     </td>
@@ -30,7 +30,7 @@
 
   <tal:publishedObject condition="python: contextObj">
   <dt class="portletAppyItem portletCurrent">
-    <a tal:attributes="href python: contextObj.getUrl() + '?page=main'"
+    <a tal:attributes="href python: contextObj.getUrl(page='main')"
        tal:content="contextObj/Title"></a>
   </dt>
   <dt class="portletAppyItem"><metal:phases use-macro="here/skyn/portlet/macros/phases"/></dt>
@@ -88,7 +88,7 @@
           <img align="left" style="cursor:pointer"
                tal:attributes="id python: '%s_img' % group['labelId'];
                                src python:test(expanded, 'skyn/collapse.gif', 'skyn/expand.gif');
-                               onClick python:'javascript:toggleCookie(\'%s\')' % group['labelId']"/>&nbsp;
+                               onClick python:'toggleCookie(\'%s\')' % group['labelId']"/>&nbsp;
           <span tal:replace="group/label"/>
         </dt>
         <tal:comment replace="nothing">Group searches</tal:comment>
@@ -136,9 +136,9 @@
     <div align="center">
       <p tal:content="python: tool.translate('confirm')"></p>
       <input type="hidden" name="actionFormId"/>
-      <input type="button" onClick="javascript: doConfirm()"
+      <input type="button" onClick="doConfirm()"
              tal:attributes="value python:tool.translate('yes')"/>
-      <input type="button" value="No" onClick="javascript:closePopup('confirmActionPopup')"
+      <input type="button" value="No" onClick="closePopup('confirmActionPopup')"
              tal:attributes="value python:tool.translate('no')"/>
     </div>
   </form>
@@ -150,7 +150,7 @@
    currently shown object, made of phases and contained pages.
 </tal:comment>
 <metal:phases define-macro="phases">
-<table tal:define="phases   contextObj/getAppyPhases|nothing;
+<table tal:define="phases contextObj/getAppyPhases|nothing;
                    page python: request.get('page', 'main')"
        tal:condition="python: phases and not ((len(phases)==1) and len(phases[0]['pages'])==1)"
        cellspacing="1" cellpadding="2" width="100%">
@@ -161,27 +161,38 @@
                       displayLink python: (phase['phaseStatus'] != 'Future') and ('/portal_factory' not in contextObj.absolute_url()) and (len(phase['pages']) == 1)"
           tal:attributes="class python: (len(phases) &gt; 1) and ('appyPhase step%s' % phase['phaseStatus']) or 'appyPhase'">
         <div class="portletGroup" tal:condition="python: len(phases) &gt; 1">
-        <a tal:attributes="href python: '%s?page=%s' % (contextObj.getUrl(), phase['pages'][0]);"
-           tal:condition="displayLink"
-           tal:content="python: tool.translate(label)"></a>
+
+        <tal:comment replace="nothing">A single page in the phase</tal:comment>
+        <table tal:condition="displayLink" cellpadding="0" cellspacing="0" width="100%">
+          <tr tal:define="pageName python: phase['pages'][0]">
+            <td><a tal:attributes="href python: contextObj.getUrl(page=pageName)"
+                   tal:content="python: tool.translate(label)"></a>
+            </td>
+            <td align="right">
+              <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+                   tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=pageName);
+                                   src string: $portal_url/skyn/edit.gif"
+                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pageShows'][pageName] != 'view'"/>
+            </td>
+          </tr>
+        </table>
+        <tal:comment replace="nothing">Several pages in the phase</tal:comment>
         <span tal:condition="not: displayLink" tal:replace="python: tool.translate(label)"/>
         </div>
         <div class="portletMenu">
-        <table width="100%" cellpadding="0" cellspacing="0"
+        <table cellpadding="0" cellspacing="0" width="100%"
                tal:condition="python: len(phase['pages']) &gt; 1">
           <tr tal:repeat="aPage phase/pages" valign="top">
             <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPageItem', 'portletPageItem')">
-              <a tal:attributes="href python: contextObj.getUrl()+'?page=%s' % aPage"
+              <a tal:attributes="href python: contextObj.getUrl(page=aPage)"
                  tal:content="structure python: tool.translate('%s_page_%s' % (contextObj.meta_type, aPage))">
               </a>
             </td>
             <td align="right">
-              <img tal:define="nav request/nav|nothing;
-                               nav python: test(nav, '&nav=%s' % nav, '')"
-                   title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-                   tal:attributes="onClick python: 'href: window.location=\'%s/skyn/edit?page=%s%s\'' % (contextObj.absolute_url(), aPage, nav);
-                               src string: $portal_url/skyn/edit.gif"
-                   tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
+              <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+                   tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=aPage);
+                                   src string: $portal_url/skyn/edit.gif"
+                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pageShows'][aPage] != 'view'"/>
             </td>
           </tr>
         </table>
