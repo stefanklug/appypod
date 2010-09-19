@@ -74,25 +74,26 @@ class AbstractMixin:
         '''This method is called when a user wants to create a root object in
            the application folder or an object through a reference field.'''
         rq = self.REQUEST
-        if rq.get('initiator', None):
+        typeName = rq.get('type_name')
+        # Create the params to add to the URL we will redirect the user to
+        # create the object.
+        urlParams = {'mode':'edit', 'page':'main', 'nav':''}
+        if rq.get('nav', None):
             # The object to create will be linked to an initiator object through
-            # a ref field.
-            rq.SESSION['initiator'] = rq.get('initiator')
-            rq.SESSION['initiatorField'] = rq.get('field')
-            rq.SESSION['initiatorTarget'] = rq.get('type_name')
-        if self._appy_meta_type == 'Tool':
-            if rq.get('initiator', None):
-                # This is the creation of an object linked to the tool
-                baseUrl = self.absolute_url()
-            else:
-                # This is the creation of a root object in the app folder
-                baseUrl = self.getAppFolder().absolute_url()
-        else:
-            baseUrl = self.absolute_url()
-        objId = self.generateUniqueId(rq.get('type_name'))
-        urlBack = '%s/portal_factory/%s/%s/skyn/edit' % \
-                  (baseUrl, rq.get('type_name'), objId)
-        return self.goto(urlBack)
+            # a ref field. We create here a new navigation string with one more
+            # item, that will be the currently created item.
+            splitted = rq.get('nav').split('.')
+            splitted[-1] = splitted[-2] = str(int(splitted[-1])+1)
+            urlParams['nav'] = '.'.join(splitted)
+        # Determine base URL
+        baseUrl = self.absolute_url()
+        if (self._appy_meta_type == 'Tool') and not urlParams['nav']:
+            # This is the creation of a root object in the app folder
+            baseUrl = self.getAppFolder().absolute_url()
+        objId = self.generateUniqueId(typeName)
+        editUrl = '%s/portal_factory/%s/%s/skyn/edit' % \
+                  (baseUrl, typeName, objId)
+        return self.goto(self.getUrl(editUrl, **urlParams))
 
     def intraFieldValidation(self, errors, values):
         '''This method performs field-specific validation for every field from
@@ -145,8 +146,15 @@ class AbstractMixin:
         # Go back to the consult view if the user clicked on 'Cancel'
         if rq.get('buttonCancel.x', None):
             if isNew:
-                # Go back to the Plone site (no better solution at present).
-                urlBack = self.portal_url.getPortalObject().absolute_url()
+                if rq.get('nav', ''):
+                    # We can go back to the initiator page.
+                    splitted = rq['nav'].split('.')
+                    initiator = self.getTool().getObject(splitted[1])
+                    initiatorPage = splitted[2].split(':')[1]
+                    urlBack = initiator.getUrl(page=initiatorPage, nav='')
+                else:
+                    # Go back to the Plone site (no better solution at present).
+                    urlBack = self.portal_url.getPortalObject().absolute_url()
             else:
                 urlBack = self.getUrl()
             self.plone_utils.addPortalMessage(
@@ -956,22 +964,15 @@ class AbstractMixin:
         '''Every time an object is created or updated, this method updates
            the Reference fields accordingly.'''
         self._appy_manageRefsFromRequest()
-        # If the creation was initiated by another object, update the
-        # reference.
-        if created and hasattr(self.REQUEST, 'SESSION'):
-            # When used by the test system, no SESSION object is created.
-            session = self.REQUEST.SESSION
-            initiatorUid = session.get('initiator', None)
-            initiator = None
-            if initiatorUid:
-                initiatorRes = self.uid_catalog.searchResults(UID=initiatorUid)
-                if initiatorRes:
-                    initiator = initiatorRes[0].getObject()
-            if initiator:
-                fieldName = session.get('initiatorField')
-                initiator.appy().link(fieldName, self)
-                # Re-initialise the session
-                session['initiator'] = None
+        rq = self.REQUEST
+        # If the creation was initiated by another object, update the ref.
+        if created and rq.get('nav', None):
+            # Get the initiator
+            splitted = rq['nav'].split('.')
+            initiator = self.uid_catalog.searchResults(
+                                                UID=splitted[1])[0].getObject()
+            fieldName = splitted[2].split(':')[1]
+            initiator.appy().link(fieldName, self)
 
     def _appy_manageRefsFromRequest(self):
         '''Appy manages itself some Ref fields (with link=True). So here we must
@@ -1021,7 +1022,8 @@ class AbstractMixin:
              in the request for the corresponding key (if existing; else, the
              param will not be included in the URL at all).'''
         # Define base URL if ommitted
-        if not base: base = self.absolute_url()
+        if not base:
+            base = '%s/skyn/%s' % (self.absolute_url(), mode)
         # Manage default args
         if not kwargs: kwargs = self.getUrlDefaults
         if 'page' not in kwargs: kwargs['page'] = True
@@ -1039,8 +1041,7 @@ class AbstractMixin:
             else:                    params = '?' + params
         else:
             params = ''
-        # Return the full constructed URL
-        return '%s/skyn/%s%s' % (base, mode, params)
+        return '%s%s' % (base, params)
 
     def translate(self, label, mapping={}, domain=None, default=None):
         '''Translates a given p_label into p_domain with p_mapping.'''

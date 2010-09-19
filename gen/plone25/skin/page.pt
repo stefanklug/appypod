@@ -243,7 +243,6 @@
   // Function that allows to generate a document from a pod template.
   function generatePodDocument(contextUid, templateUid, fieldName, podFormat) {
     var theForm = document.getElementsByName("podTemplateForm")[0];
-    alert('The form =' + theForm);
     theForm.objectUid.value = contextUid;
     theForm.templateUid.value = templateUid;
     theForm.fieldName.value = fieldName;

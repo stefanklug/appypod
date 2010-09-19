@@ -52,7 +52,7 @@
             tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
         <input type="hidden" name="action" value="Update"/>
         <input type="hidden" name="page" tal:attributes="value page"/>
-        <input type="hidden" name="nav" tal:attributes="value python:request.get('nav', '')"/>
+        <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
         <input type="hidden" name="is_new" tal:attributes="value contextObj/checkCreationFlag"/>
         <metal:show use-macro="here/skyn/page/macros/show"/>
       </form>

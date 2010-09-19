@@ -63,9 +63,10 @@
       through a reference widget. Indeed, If field was declared as "addable", we must provide
       an icon for creating a new linked object (at least if multiplicities allow it).</tal:comment>
   <img style="cursor:pointer" tal:condition="showPlusIcon"
+       tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], 0, totalNumber);"
        tal:attributes="src string:$portal_url/skyn/plus.png;
                        title python: tool.translate('add_ref');
-                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&initiator=%s&field=%s&type_name=%s\'' % (folder.absolute_url(), contextObj.UID(), fieldName, linkedPortalType)"/>
+                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s&nav=%s\'' % (folder.absolute_url(), linkedPortalType, navInfo)"/>
 </metal:plusIcon>
 
 <tal:comment replace="nothing">
