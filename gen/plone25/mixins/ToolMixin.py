@@ -275,6 +275,14 @@ class ToolMixin(AbstractMixin):
             return value[:maxWidth] + '...'
         return value
 
+    def truncateText(self, text, width=15):
+        '''Truncates p_text to max p_width chars. If the text is longer than
+           p_width, the truncated part is put in a "acronym" html tag.'''
+        if len(text) <= width: return text
+        else:
+            return '<acronym title="%s">%s</acronym>' % \
+                   (text, text[:width] + '...')
+
     translationMapping = {'portal_path': ''}
     def translateWithMapping(self, label):
         '''Translates p_label in the application domain, with a default
@@ -336,15 +344,13 @@ class ToolMixin(AbstractMixin):
                     res[means.id] = means.__dict__
         return res
 
-    def userMayAdd(self, rootClass):
-        '''For deciding if a user may add a new instance of a class, beyond the
-           permission-based check, we can have a custom method that proposes an
-           additional condition. This method checks if there is such a custom
-           method (must be named "mayCreate") define on p_rootClass, and calls
-           it if yes. If no, it returns True.'''
+    def userMaySearch(self, rootClass):
+        '''This method checks if the currently logged user can trigger searches
+           on a given p_rootClass. This is done by calling method "maySearch"
+           on the class. If no such method exists, we return True.'''
         pythonClass = self.getAppyClass(rootClass)
-        if 'mayCreate' in pythonClass.__dict__:
-            return pythonClass.mayCreate(self.appy())
+        if 'maySearch' in pythonClass.__dict__:
+            return pythonClass.maySearch(self.appy())
         return True
 
     def onImportObjects(self):
@@ -368,6 +374,12 @@ class ToolMixin(AbstractMixin):
             return True
         else:
             return False
+
+    def isSortable(self, name, className, usage):
+        '''Is field p_name defined on p_metaType sortable for p_usage purposes
+           (p_usage can be "ref" or "search")?'''
+        appyType = self.getAppyType(name, className=className)
+        return appyType.isSortable(usage=usage)
 
     def _searchValueIsEmpty(self, key):
         '''Returns True if request value in key p_key can be considered as

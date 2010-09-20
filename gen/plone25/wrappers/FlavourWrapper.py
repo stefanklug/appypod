@@ -46,7 +46,7 @@ class FlavourWrapper(AbstractWrapper):
                p_attrName.
 
            "resultColumns"
-               Stores the list of columns that must be show when displaying
+               Stores the list of columns that must be shown when displaying
                instances of the a given root p_klass.
 
            "enableAdvancedSearch"

@@ -402,11 +402,12 @@ class Type:
             res = True
         return res
 
-    def isSortable(self, usage='search'):
+    def isSortable(self, usage):
         '''Can fields of this type be used for sorting purposes (when sorting
            search results (p_usage="search") or when sorting reference fields
            (p_usage="ref")?'''
-        if usage == 'search': return self.indexed
+        if usage == 'search':
+            return self.indexed and not self.isMultiValued()
         elif usage == 'ref':
             return self.type in ('Integer', 'Float', 'Boolean', 'Date') or \
                    ((self.type == 'String') and (self.format == 0))

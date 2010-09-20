@@ -451,7 +451,8 @@ class PloneInstaller:
                     n = appyType.name
                     indexName = 'get%s%s' % (n[0].upper(), n[1:])
                     indexType = 'FieldIndex'
-                    if (appyType.type == 'String') and appyType.isSelect:
+                    if (appyType.type == 'String') and appyType.isSelect and \
+                       appyType.isMultiValued():
                         indexType = 'ZCTextIndex'
                     indexInfo[indexName] = indexType
         if indexInfo:

@@ -12,11 +12,11 @@
         title allows to see all root objects in the database.</tal:comment>
     <table cellpadding="0" cellspacing="0" width="100%">
     <tr>
-      <td>
-        <a tal:condition="python: len(flavours)==1 and rootClasses"
+      <td tal:define="titleIsClickable python: member.has_role('Manager') and rootClasses">
+        <a tal:condition="titleIsClickable"
            tal:attributes="href python:'%s?type_name=%s&flavourNumber=1' % (queryUrl, ','.join(rootClasses))"
            tal:content="python: tool.translate(appName)"></a>
-        <span tal:condition="python: len(flavours)&gt;1 or not rootClasses"
+        <span tal:condition="not: titleIsClickable"
               tal:replace="python: tool.translate(appName)"/>
       </td>
     <td align="right">
@@ -35,15 +35,14 @@
   </dt>
   <dt class="portletAppyItem"><metal:phases use-macro="here/skyn/portlet/macros/phases"/></dt>
   </tal:publishedObject>
-
-  <tal:comment replace="nothing">TODO: implement a widget for selecting the needed flavour.</tal:comment>
   
   <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
   <tal:section repeat="rootClass rootClasses"
                define="flavourNumber python:1;
                        flavour python: tool.getFlavour('Dummy_%d' % flavourNumber)">
     <tal:comment replace="nothing">Section title, with action icons</tal:comment>
-    <dt tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
+    <dt tal:condition="python: tool.userMaySearch(rootClass)"
+        tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
       <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
         <tr>
           <td>
@@ -53,7 +52,7 @@
           </td>
           <td align="right"
               tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
-                          userMayAdd python: member.has_permission(addPermission, appFolder) and tool.userMayAdd(rootClass);
+                          userMayAdd python: member.has_permission(addPermission, appFolder);
                           createMeans python: tool.getCreateMeans(rootClass)">
             <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
             <img style="cursor:pointer"

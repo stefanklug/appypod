@@ -74,7 +74,7 @@
   ref field according to the field that corresponds to this column.
 </tal:comment>
 <metal:sortIcons define-macro="sortIcons"
-    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))" tal:condition="python: canWrite and objs[0].isRefSortable(shownField)">
+    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))" tal:condition="python: canWrite and tool.isSortable(shownField, objs[0].meta_type, 'ref')">
   <img style="cursor:pointer"
        tal:attributes="src string:$portal_url/skyn/sortAsc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>

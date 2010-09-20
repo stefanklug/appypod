@@ -54,18 +54,18 @@
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
       
       <th tal:define="fieldName python:'title'; sortable python:True; filterable python:True">
-        <span tal:content="python: tool.translate('ref_name')"/>
+        <span tal:replace="structure python: tool.truncateText(tool.translate('ref_name'))"/>
         <metal:sortAndFilter use-macro="here/skyn/navigate/macros/sortAndFilter"/>
       </th>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
       <tal:columnHeader repeat="fieldDescr fieldDescrs">
        <th tal:define="fieldName  fieldDescr/name|string:workflow_state;
-                       sortable   fieldDescr/indexed|nothing;
+                       sortable   python: tool.isSortable(fieldName, contentType, 'search');
                        filterable fieldDescr/filterable|nothing;">
         <tal:comment replace="nothing">Display header for a "standard" field</tal:comment>
         <tal:standardField condition="python: fieldName != 'workflow_state'">
-          <span tal:replace="python: tool.translate(fieldDescr['labelId'])"/>
+          <span tal:replace="structure python: tool.truncateText(tool.translate(fieldDescr['labelId']))"/>
         </tal:standardField>
         <tal:comment replace="nothing">Display header for the workflow state</tal:comment>
         <tal:workflowState condition="python: fieldName == 'workflow_state'">

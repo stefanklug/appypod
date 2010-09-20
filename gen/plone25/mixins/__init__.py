@@ -642,11 +642,6 @@ class AbstractMixin:
         reverse = rq.get('reverse') == 'True'
         self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
 
-    def isRefSortable(self, fieldName):
-        '''Can p_fieldName, which is a field defined on self, be used as a sort
-           key in a reference field?'''
-        return self.getAppyType(fieldName).isSortable(usage='ref')
-
     def getWorkflow(self, appy=True):
         '''Returns the Appy workflow instance that is relevant for this
            object. If p_appy is False, it returns the DC workflow.'''
@@ -969,6 +964,7 @@ class AbstractMixin:
         if created and rq.get('nav', None):
             # Get the initiator
             splitted = rq['nav'].split('.')
+            if splitted[0] == 'search': return # Not an initiator but a search.
             initiator = self.uid_catalog.searchResults(
                                                 UID=splitted[1])[0].getObject()
             fieldName = splitted[2].split(':')[1]
