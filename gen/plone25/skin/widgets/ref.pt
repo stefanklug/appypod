@@ -10,7 +10,7 @@
     from one object to the next/previous on skyn/view.</tal:comment>
   <a tal:define="includeShownInfo includeShownInfo | python:False;
                  navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);
-                 navInfo python: appyType['isBack'] and '' or navInfo;
+                 navInfo python: test(appyType['isBack'], '', navInfo);
                  pageName python: appyType['isBack'] and appyType['backd']['page'] or 'main';
                  fullUrl python: obj.getUrl(page=pageName, nav=navInfo)"
      tal:attributes="href fullUrl" tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a>
@@ -40,13 +40,13 @@
       </tal:moveRef>
     </td>
     <tal:comment replace="nothing">Edit the element</tal:comment>
-    <td class="noPadding">
+    <td class="noPadding" tal:condition="python: member.has_permission('Modify portal content', obj) and not appyType['noForm']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);"
-          tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
-        tal:condition="python: member.has_permission('Modify portal content', obj)">
+          tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
         <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
              tal:attributes="src string: $portal_url/skyn/edit.gif"/>
-    </a></td>
+       </a>
+    </td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
     <td class="noPadding">
       <img tal:condition="python: member.has_permission('Delete objects', obj)"
@@ -63,10 +63,14 @@
       through a reference widget. Indeed, If field was declared as "addable", we must provide
       an icon for creating a new linked object (at least if multiplicities allow it).</tal:comment>
   <img style="cursor:pointer" tal:condition="showPlusIcon"
-       tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], 0, totalNumber);"
+       tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], 0, totalNumber);
+                   formCall python:'window.location=\'%s/skyn/do?action=Create&type_name=%s&nav=%s\'' % (folder.absolute_url(), linkedPortalType, navInfo);
+                   formCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (formCall, addConfirmMsg), formCall);
+                   noFormCall python: navBaseCall.replace('**v**', '%d, \'CreateWithoutForm\'' % startNumber);
+                   noFormCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (noFormCall, addConfirmMsg), noFormCall)"
        tal:attributes="src string:$portal_url/skyn/plus.png;
                        title python: tool.translate('add_ref');
-                       onClick python: 'href: window.location=\'%s/skyn/do?action=Create&type_name=%s&nav=%s\'' % (folder.absolute_url(), linkedPortalType, navInfo)"/>
+                       onClick python: test(appyType['noForm'], noFormCall, formCall)"/>
 </metal:plusIcon>
 
 <tal:comment replace="nothing">
@@ -109,8 +113,7 @@
                  totalNumber refObjects/totalNumber;
                  batchSize refObjects/batchSize;
                  folder python: contextObj.isPrincipiaFolderish and contextObj or contextObj.getParentNode();
-                 flavour python:tool.getFlavour(contextObj);
-                 linkedPortalType python:flavour.getPortalType(appyType['klass']);
+                 linkedPortalType python: tool.getPortalType(appyType['klass']);
                  addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
                  canWrite python: not appyType['isBack'] and member.has_permission(appyType['writePermission'], contextObj);
                  multiplicity appyType/multiplicity;
@@ -118,6 +121,7 @@
                  showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: tool.translate(appyType['labelId']);
+                 addConfirmMsg python: tool.translate('%s_addConfirm' % appyType['labelId']);
                  description python: tool.translate(appyType['descrId']);
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
@@ -240,13 +244,11 @@
 
     </fieldset>
     <tal:comment replace="nothing">A carriage return needed in some cases.</tal:comment>
-    <br tal:define="widgetDescr widgetDescr|nothing"
-        tal:condition="python: not widgetDescr or (widgetDescr['widgetType'] != 'group')"/>
   </tal:anyNumberOfReferences>
 </div>
 
 <tal:comment replace="nothing">Edit macro for an Ref.</tal:comment>
-<div metal:define-macro="edit"
+<metal:editRef define-macro="edit"
      tal:condition="widget/link"
      tal:define="rname           python: 'appy_ref_%s' % name;
                  requestValue    python: request.get(rname, []);
@@ -255,18 +257,18 @@
                  refUids         python: [o.UID() for o in contextObj.getAppyRefs(name)['objects']];
                  isBeingCreated  python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())">
 
-  <select tal:attributes="name rname;
-                          multiple python: isMultiple and 'multiple' or ''">
-    <option tal:condition="not: isMultiple" i18n:translate="choose_a_value"></option>
-    <tal:ref repeat="refObj allObjects">
-      <option tal:define="uid python: contextObj.getReferenceUid(refObj)"
-              tal:content="python: contextObj.getReferenceLabel(name, refObj)"
-              tal:attributes="value uid;
-                              selected python:(inRequest and (uid in requestValue) or (not inRequest and ((uid in refUids)))) and True or False">
-      </option>
-    </tal:ref>
-  </select>
-</div>
+<select tal:attributes="name rname;
+                        multiple python: isMultiple and 'multiple' or ''">
+  <option tal:condition="not: isMultiple" i18n:translate="choose_a_value"></option>
+  <tal:ref repeat="refObj allObjects">
+    <option tal:define="uid python: contextObj.getReferenceUid(refObj)"
+            tal:content="python: contextObj.getReferenceLabel(name, refObj)"
+            tal:attributes="value uid;
+                            selected python:(inRequest and (uid in requestValue) or (not inRequest and ((uid in refUids)))) and True or False">
+    </option>
+  </tal:ref>
+</select>
+</metal:editRef>
 
 <tal:comment replace="nothing">Cell macro for a Ref.</tal:comment>
 <metal:cell define-macro="cell">

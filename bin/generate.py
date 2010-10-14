@@ -4,6 +4,7 @@
 import sys, os.path
 from optparse import OptionParser
 from appy.gen.generator import GeneratorError
+from appy.shared.utils import LinesCounter
 
 # ------------------------------------------------------------------------------
 ERROR_CODE = 1
@@ -104,6 +105,8 @@ class GeneratorScript:
             self.manageArgs(optParser, options, args)
             print 'Generating %s product in %s...' % (args[1], args[2])
             self.generateProduct(options, *args)
+            # Give the user some statistics about its code
+            LinesCounter(args[0]).run()
         except GeneratorError, ge:
             sys.stderr.write(str(ge))
             sys.stderr.write('\n')

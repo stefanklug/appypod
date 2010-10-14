@@ -1,22 +1,28 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, Cookie
+import re, os, os.path, time, Cookie, StringIO, types
+from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
+import appy.pod
+from appy.pod.renderer import Renderer
 import appy.gen
 from appy.gen import Type, Search, Selection
 from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
-from appy.gen.plone25.mixins import AbstractMixin
-from appy.gen.plone25.mixins.FlavourMixin import FlavourMixin
+from appy.gen.plone25.mixins import BaseMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
 from appy.gen.plone25.descriptors import ClassDescriptor
 
+# Errors -----------------------------------------------------------------------
+DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
+POD_ERROR = 'An error occurred while generating the document. Please ' \
+            'contact the system administrator.'
 jsMessages = ('no_elem_selected', 'delete_confirm')
 
 # ------------------------------------------------------------------------------
-class ToolMixin(AbstractMixin):
+class ToolMixin(BaseMixin):
     _appy_meta_type = 'Tool'
     def getPortalType(self, metaTypeOrAppyClass):
         '''Returns the name of the portal_type that is based on
-           p_metaTypeOrAppyType in this flavour.'''
+           p_metaTypeOrAppyType.'''
         appName = self.getProductConfig().PROJECTNAME
         if not isinstance(metaTypeOrAppyClass, basestring):
             res = getClassName(metaTypeOrAppyClass, appName)
@@ -25,51 +31,99 @@ class ToolMixin(AbstractMixin):
             res = '%s%s' % (elems[1], elems[4])
         return res
 
-    def getFlavour(self, contextObjOrPortalType, appy=False):
-        '''Gets the flavour that corresponds to p_contextObjOrPortalType.'''
-        if isinstance(contextObjOrPortalType, basestring):
-            portalTypeName = contextObjOrPortalType
-        else:
-            # It is the contextObj, not a portal type name
-            portalTypeName = contextObjOrPortalType.portal_type
-        res = None
+    def getPodInfo(self, ploneObj, fieldName):
+        '''Returns POD-related information about Pod field p_fieldName defined
+           on class whose p_ploneObj is an instance of.'''
+        res = {}
+        appyClass = self.getAppyClass(ploneObj.meta_type)
         appyTool = self.appy()
-        flavourNumber = None
-        nameElems = portalTypeName.split('_')
-        if len(nameElems) > 1:
-            try:
-                flavourNumber = int(nameElems[-1])
-            except ValueError:
-                pass
-        appName = self.getProductConfig().PROJECTNAME
-        if flavourNumber != None:
-            for flavour in appyTool.flavours:
-                if flavourNumber == flavour.number:
-                    res = flavour
-        elif portalTypeName == ('%sFlavour' % appName):
-            # Current object is the Flavour itself. In this cas we simply
-            # return the wrapped contextObj. Here we are sure that
-            # contextObjOrPortalType is an object, not a portal type.
-            res = contextObjOrPortalType.appy()
-        if not res and appyTool.flavours:
-            res = appyTool.flavours[0]
-        # If appy=False, return the Plone object and not the Appy wrapper
-        # (this way, we avoid Zope security/access-related problems while
-        # using this object in Zope Page Templates)
-        if res and not appy:
-            res = res.o
+        n = appyTool.getAttributeName('formats', appyClass, fieldName)
+        res['formats'] = getattr(appyTool, n)
+        n = appyTool.getAttributeName('podTemplate', appyClass, fieldName)
+        res['template'] = getattr(appyTool, n)
+        appyType = ploneObj.getAppyType(fieldName)
+        res['title'] = self.translate(appyType.labelId)
+        res['context'] = appyType.context
+        res['action'] = appyType.action
         return res
 
-    def getFlavoursInfo(self):
-        '''Returns information about flavours.'''
-        res = []
+    def generateDocument(self):
+        '''Generates the document from field-related info. UID of object that
+           is the template target is given in the request.'''
+        rq = self.REQUEST
         appyTool = self.appy()
-        for flavour in appyTool.flavours:
-            if isinstance(flavour.o, FlavourMixin):
-                # This is a bug: sometimes other objects are associated as
-                # flavours.
-                res.append({'title': flavour.title, 'number':flavour.number})
+        # Get the object
+        objectUid = rq.get('objectUid')
+        obj = self.uid_catalog(UID=objectUid)[0].getObject()
+        appyObj = obj.appy()
+        # Get information about the document to render.
+        specificPodContext = None
+        fieldName = rq.get('fieldName')
+        format = rq.get('podFormat')
+        podInfo = self.getPodInfo(obj, fieldName)
+        template = podInfo['template'].content
+        podTitle = podInfo['title']
+        if podInfo['context']:
+            if type(podInfo['context']) == types.FunctionType:
+                specificPodContext = podInfo['context'](appyObj)
+            else:
+                specificPodContext = podInfo['context']
+        doAction = rq.get('askAction') == 'True'
+        # Temporary file where to generate the result
+        tempFileName = '%s/%s_%f.%s' % (
+            getOsTempFolder(), obj.UID(), time.time(), format)
+        # Define parameters to pass to the appy.pod renderer
+        currentUser = self.portal_membership.getAuthenticatedMember()
+        podContext = {'tool': appyTool, 'user': currentUser, 'self': appyObj,
+                      'now': self.getProductConfig().DateTime(),
+                      'projectFolder': appyTool.getDiskFolder(),
+                      }
+        if specificPodContext:
+            podContext.update(specificPodContext)
+        rendererParams = {'template': StringIO.StringIO(template),
+                          'context': podContext, 'result': tempFileName}
+        if appyTool.unoEnabledPython:
+            rendererParams['pythonWithUnoPath'] = appyTool.unoEnabledPython
+        if appyTool.openOfficePort:
+            rendererParams['ooPort'] = appyTool.openOfficePort
+        # Launch the renderer
+        try:
+            renderer = Renderer(**rendererParams)
+            renderer.run()
+        except appy.pod.PodError, pe:
+            if not os.path.exists(tempFileName):
+                # In some (most?) cases, when OO returns an error, the result is
+                # nevertheless generated.
+                appyTool.log(str(pe), type='error')
+                appyTool.say(POD_ERROR)
+                return self.goto(rq.get('HTTP_REFERER'))
+        # Open the temp file on the filesystem
+        f = file(tempFileName, 'rb')
+        res = f.read()
+        # Identify the filename to return
+        fileName = u'%s-%s' % (obj.Title().decode('utf-8'), podTitle)
+        fileName = appyTool.normalize(fileName)
+        response = obj.REQUEST.RESPONSE
+        response.setHeader('Content-Type', mimeTypes[format])
+        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"'\
+            % (fileName, format))
+        f.close()
+        # Execute the related action if relevant
+        if doAction and podInfo['action']:
+            podInfo['action'](appyObj, podContext)
+        # Returns the doc and removes the temp file
+        try:
+            os.remove(tempFileName)
+        except OSError, oe:
+            appyTool.log(DELETE_TEMP_DOC_ERROR % str(oe), type='warning')
+        except IOError, ie:
+            appyTool.log(DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
         return res
+
+    def getAttr(self, name):
+        '''Gets attribute named p_attrName. Useful because we can't use getattr
+           directly in Zope Page Templates.'''
+        return getattr(self.appy(), name, None)
 
     def getAppName(self):
         '''Returns the name of this application.'''
@@ -85,6 +139,58 @@ class ToolMixin(AbstractMixin):
     def getRootClasses(self):
         '''Returns the list of root classes for this application.'''
         return self.getProductConfig().rootClasses
+
+    def _appy_getAllFields(self, contentType):
+        '''Returns the (translated) names of fields of p_contentType.'''
+        res = []
+        for appyType in self.getProductConfig().attributes[contentType]:
+            if appyType.name != 'title': # Will be included by default.
+                label = '%s_%s' % (contentType, appyType.name)
+                res.append((appyType.name, self.translate(label)))
+        # Add object state
+        res.append(('workflowState', self.translate('workflow_state')))
+        return res
+
+    def _appy_getSearchableFields(self, contentType):
+        '''Returns the (translated) names of fields that may be searched on
+           objects of type p_contentType (=indexed fields).'''
+        res = []
+        for appyType in self.getProductConfig().attributes[contentType]:
+            if appyType.indexed:
+                res.append((appyType.name, self.translate(appyType.labelId)))
+        return res
+
+    def getSearchableFields(self, contentType):
+        '''Returns, among the list of all searchable fields (see method above),
+           the list of fields that the user has configured as being effectively
+           used in the search screen.'''
+        res = []
+        fieldNames = getattr(self.appy(), 'searchFieldsFor%s' % contentType, ())
+        for name in fieldNames:
+            appyType = self.getAppyType(name, asDict=True,className=contentType)
+            res.append(appyType)
+        return res
+
+    def getImportElements(self, contentType):
+        '''Returns the list of elements that can be imported from p_path for
+           p_contentType.'''
+        appyClass = self.getAppyClass(contentType)
+        importParams = self.getCreateMeans(appyClass)['import']
+        onElement = importParams['onElement'].__get__('')
+        sortMethod = importParams['sort']
+        if sortMethod: sortMethod = sortMethod.__get__('')
+        elems = []
+        importPath = getattr(self, 'importPathFor%s' % contentType)
+        for elem in os.listdir(importPath):
+            elemFullPath = os.path.join(importPath, elem)
+            elemInfo = onElement(elemFullPath)
+            if elemInfo:
+                elemInfo.insert(0, elemFullPath) # To the result, I add the full
+                # path of the elem, which will not be shown.
+                elems.append(elemInfo)
+        if sortMethod:
+            elems = sortMethod(elems)
+        return [importParams['headers'], elems]
 
     def showPortlet(self, context):
         if self.portal_membership.isAnonymousUser(): return False
@@ -106,15 +212,13 @@ class ToolMixin(AbstractMixin):
                 res = res.appy()
         return res
 
-    def executeQuery(self, contentType, flavourNumber=1, searchName=None,
-                     startNumber=0, search=None, remember=False,
-                     brainsOnly=False, maxResults=None, noSecurity=False,
-                     sortBy=None, sortOrder='asc',
-                     filterKey=None, filterValue=None):
+    def executeQuery(self, contentType, searchName=None, startNumber=0,
+                     search=None, remember=False, brainsOnly=False,
+                     maxResults=None, noSecurity=False, sortBy=None,
+                     sortOrder='asc', filterKey=None, filterValue=None):
         '''Executes a query on a given p_contentType (or several, separated
-           with commas) in Plone's portal_catalog. Portal types are from the
-           flavour numbered p_flavourNumber. If p_searchName is specified, it
-           corresponds to:
+           with commas) in Plone's portal_catalog. If p_searchName is specified,
+           it corresponds to:
              1) a search defined on p_contentType: additional search criteria
                 will be added to the query, or;
              2) "_advanced": in this case, additional search criteria will also
@@ -150,11 +254,7 @@ class ToolMixin(AbstractMixin):
            p_filterValue.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
-            # Several content types are specified
             portalTypes = contentType.split(',')
-            if flavourNumber != 1:
-                portalTypes = ['%s_%d' % (pt, flavourNumber) \
-                               for pt in portalTypes]
         else:
             portalTypes = contentType
         params = {'portal_type': portalTypes}
@@ -164,8 +264,7 @@ class ToolMixin(AbstractMixin):
             # In this case, contentType must contain a single content type.
             appyClass = self.getAppyClass(contentType)
             if searchName != '_advanced':
-                search = ClassDescriptor.getSearch(
-                    appyClass, searchName)
+                search = ClassDescriptor.getSearch(appyClass, searchName)
             else:
                 fields = self.REQUEST.SESSION['searchCriteria']
                 search = Search('customSearch', **fields)
@@ -220,22 +319,17 @@ class ToolMixin(AbstractMixin):
             for obj in res.objects:
                 i += 1
                 uids[startNumber+i] = obj.UID()
-            s['search_%s_%s' % (flavourNumber, searchName)] = uids
+            s['search_%s' % searchName] = uids
         return res.__dict__
 
     def getResultColumnsNames(self, contentType):
         contentTypes = contentType.strip(',').split(',')
         resSet = None # Temporary set for computing intersections.
         res = [] # Final, sorted result.
-        flavour = None
         fieldNames = None
+        appyTool = self.appy()
         for cType in contentTypes:
-            # Get the flavour tied to those content types
-            if not flavour:
-                flavour = self.getFlavour(cType, appy=True)
-            if flavour.number != 1:
-                cType = cType.rsplit('_', 1)[0]
-            fieldNames = getattr(flavour, 'resultColumnsFor%s' % cType)
+            fieldNames = getattr(appyTool, 'resultColumnsFor%s' % cType)
             if not resSet:
                 resSet = set(fieldNames)
             else:
@@ -483,9 +577,9 @@ class ToolMixin(AbstractMixin):
                     attrValue = oper.join(attrValue)
                 criteria[attrName[2:]] = attrValue
         rq.SESSION['searchCriteria'] = criteria
-        # Goto the screen that displays search results
-        backUrl = '%s/query?type_name=%s&flavourNumber=%d&search=_advanced' % \
-            (os.path.dirname(rq['URL']), rq['type_name'], rq['flavourNumber'])
+        # Go to the screen that displays search results
+        backUrl = '%s/query?type_name=%s&&search=_advanced' % \
+                  (os.path.dirname(rq['URL']), rq['type_name'])
         return self.goto(backUrl)
 
     def getJavascriptMessages(self):
@@ -535,13 +629,12 @@ class ToolMixin(AbstractMixin):
         if cookieValue: return cookieValue.value
         return default
 
-    def getQueryUrl(self, contentType, flavourNumber, searchName,
-                    startNumber=None):
+    def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName
-           on p_contentType from flavour numbered p_flavourNumber.'''
+           on p_contentType.'''
         baseUrl = self.getAppFolder().absolute_url() + '/skyn'
-        baseParams= 'type_name=%s&flavourNumber=%s' %(contentType,flavourNumber)
+        baseParams = 'type_name=%s' % contentType
         # Manage start number
         rq = self.REQUEST
         if startNumber != None:
@@ -609,11 +702,10 @@ class ToolMixin(AbstractMixin):
         if (nextIndex < lastIndex): lastNeeded = True
         # Get the list of available UIDs surrounding the current object
         if t == 'ref': # Manage navigation from a reference
+            # In the case of a reference, we retrieve ALL surrounding objects.
             masterObj = self.getObject(d1)
             batchSize = masterObj.getAppyType(fieldName).maxPerPage
             uids = getattr(masterObj, '_appy_%s' % fieldName)
-            # In the case of a reference, we retrieve ALL surrounding objects.
-            
             # Display the reference widget at the page where the current object
             # lies.
             startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)
@@ -622,13 +714,12 @@ class ToolMixin(AbstractMixin):
             res['sourceUrl'] = masterObj.getUrl(**{startNumberKey:startNumber,
                                                    'page':pageName, 'nav':''})
         else: # Manage navigation from a search
-            contentType, flavourNumber = d1.split(':')
-            flavourNumber = int(flavourNumber)
+            contentType = d1
             searchName = keySuffix = d2
             batchSize = self.appy().numberOfResultsPerPage
             if not searchName: keySuffix = contentType
             s = self.REQUEST.SESSION
-            searchKey = 'search_%s_%s' % (flavourNumber, keySuffix)
+            searchKey = 'search_%s' % keySuffix
             if s.has_key(searchKey): uids = s[searchKey]
             else:                    uids = {}
             # In the case of a search, we retrieve only a part of all
@@ -640,9 +731,8 @@ class ToolMixin(AbstractMixin):
                 # this one.
                 newStartNumber = (res['currentNumber']-1) - (batchSize / 2)
                 if newStartNumber < 0: newStartNumber = 0
-                self.executeQuery(contentType, flavourNumber,
-                    searchName=searchName, startNumber=newStartNumber,
-                    remember=True)
+                self.executeQuery(contentType, searchName=searchName,
+                                  startNumber=newStartNumber, remember=True)
                 uids = s[searchKey]
             # For the moment, for first and last, we get them only if we have
             # them in session.
@@ -650,9 +740,9 @@ class ToolMixin(AbstractMixin):
             if not uids.has_key(lastIndex): lastNeeded = False
             # Compute URL of source object
             startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
-                res['totalNumber'], batchSize)
-            res['sourceUrl'] = self.getQueryUrl(contentType, flavourNumber,
-                searchName, startNumber=startNumber)
+                                                  res['totalNumber'], batchSize)
+            res['sourceUrl'] = self.getQueryUrl(contentType, searchName,
+                                                startNumber=startNumber)
         # Compute URLs
         for urlType in ('previous', 'next', 'first', 'last'):
             exec 'needIt = %sNeeded' % urlType

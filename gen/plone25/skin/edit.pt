@@ -4,7 +4,6 @@
                   layoutType  python:'edit';
                   layout      python: contextObj.getPageLayout(layoutType);
                   tool        contextObj/getTool;
-                  flavour     python: tool.getFlavour(contextObj);
                   appFolder   tool/getAppFolder;
                   appName     appFolder/getId;
                   page        request/page|python:'main';

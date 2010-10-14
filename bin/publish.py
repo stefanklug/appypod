@@ -1,8 +1,9 @@
 #!/usr/bin/python2.4.4
 # Imports ----------------------------------------------------------------------
 import os, os.path, shutil, re, zipfile, sys, ftplib, time
+import appy
 from appy.shared import appyPath
-from appy.shared.utils import FolderDeleter
+from appy.shared.utils import FolderDeleter, LinesCounter
 from appy.bin.clean import Cleaner
 from appy.gen.utils import produceNiceMessage
 
@@ -432,6 +433,8 @@ class Publisher:
 
     def run(self):
         Cleaner().run(verbose=False)
+        # Perform a small analysis on the Appy code
+        LinesCounter(appy).run()
         print 'Generating site in %s...' % self.genFolder
         self.prepareGenFolder()
         self.createDocToc()

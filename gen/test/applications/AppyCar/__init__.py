@@ -32,6 +32,3 @@ class StandardRadio(Radio):
 
 c = Config()
 c.languages = ('en', 'fr')
-
-class CarFlavour(Flavour):
-    explanation = String(group="userInterface")

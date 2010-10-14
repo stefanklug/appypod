@@ -5,7 +5,7 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.utils import sequenceTypes, PageDescr, GroupDescr, Keywords, \
-                           FileWrapper, getClassName
+                           FileWrapper, getClassName, SomeObjects
 from appy.shared.data import languages
 
 # Default Appy permissions -----------------------------------------------------
@@ -29,10 +29,10 @@ class Page:
 
 class Group:
     '''Used for describing a group of widgets within a page.'''
-    def __init__(self, name, columns=['100%'], wide=True, style='fieldset',
+    def __init__(self, name, columns=['100%'], wide=True, style='section2',
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
-                 valign='top'):
+                 valign='top', css_class='', master=None, masterValue=None):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -77,6 +77,26 @@ class Group:
             self.columns = self.columns[:1]
             # Header labels will be used as labels for the tabs.
             self.hasHeaders = True
+        self.css_class = css_class
+        self.master = None
+        self.masterValue = None
+        if self.master:
+            self._addMaster(self, master, masterValue)
+
+    def _addMaster(self, master, masterValue):
+        '''Specifies this group being a slave of another field: we will add css
+           classes allowing to show/hide, in Javascript, its widget according
+           to master value.'''
+        self.master = master
+        self.masterValue = masterValue
+        classes = 'slave_%s' % self.master.id
+        if type(self.masterValue) not in sequenceTypes:
+            masterValues = [self.masterValue]
+        else:
+            masterValues = self.masterValue
+        for masterValue in masterValues:
+            classes += ' slaveValue_%s_%s' % (self.master.id, masterValue)
+        self.css_class += ' ' + classes
 
     def _setColumns(self):
         '''Standardizes field "columns" as a list of Column instances. Indeed,
@@ -416,13 +436,12 @@ class Type:
         '''When displaying p_obj on a given p_layoutType, must we show this
            field?'''
         isEdit = layoutType == 'edit'
-        # Do not show field if it is optional and not selected in flavour
+        # Do not show field if it is optional and not selected in tool
         if self.optional:
-            tool = obj.getTool()
-            flavour = tool.getFlavour(obj, appy=True)
-            flavourAttrName = 'optionalFieldsFor%s' % obj.meta_type
-            flavourAttrValue = getattr(flavour, flavourAttrName, ())
-            if self.name not in flavourAttrValue:
+            tool = obj.getTool().appy()
+            fieldName = 'optionalFieldsFor%s' % obj.meta_type
+            fieldValue = getattr(tool, fieldName, ())
+            if self.name not in fieldValue:
                 return False
         # Check if the user has the permission to view or edit the field
         user = obj.portal_membership.getAuthenticatedMember()
@@ -568,11 +587,10 @@ class Type:
                     return self.default(obj.appy())
                 else:
                     return self.default
-            # If value is editable, get the default value from the flavour
+            # If value is editable, get the default value from the tool
             portalTypeName = obj._appy_getPortalType(obj.REQUEST)
-            tool = obj.getTool()
-            flavour = tool.getFlavour(portalTypeName, appy=True)
-            return getattr(flavour, 'defaultValueFor%s' % self.labelId)
+            tool = obj.getTool().appy()
+            return getattr(tool, 'defaultValueFor%s' % self.labelId)
         return value
 
     def getFormattedValue(self, obj, value):
@@ -1188,17 +1206,24 @@ class File(Type):
 class Ref(Type):
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), index=None, default=None, optional=False,
-                 editDefault=False, add=False, link=True, unlink=False,
-                 back=None, show=True, page='main', group=None, layouts=None,
-                 showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
-                 move=0, indexed=False, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, colspan=1, master=None,
-                 masterValue=None, focus=False, historized=False):
+                 editDefault=False, add=False, addConfirm=False, noForm=False,
+                 link=True, unlink=False, back=None, show=True, page='main',
+                 group=None, layouts=None, showHeaders=False, shownInfo=(),
+                 select=None, maxPerPage=30, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 historized=False):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
         self.add = add
+        # When the user adds a new object, must a confirmation popup be shown?
+        self.addConfirm = addConfirm
+        # If noForm is True, when clicking to create an object through this ref,
+        # the object will be created automatically, and no creation form will
+        # be presented to the user.
+        self.noForm = noForm
         # May the user link existing objects through this ref?
         self.link = link
         # May the user unlink existing objects?
@@ -1246,12 +1271,70 @@ class Ref(Type):
                 return obj.getBRefs(self.relationship)
         return res
 
-    def getValue(self, obj):
+    def getValue(self, obj, type='objects', noListIfSingleObj=False,
+                 startNumber=None, someObjects=False):
+        '''Returns the objects linked to p_obj through Ref field "self".
+           - If p_type is "objects",  it returns the Appy wrappers;
+           - If p_type is "zobjects", it returns the Zope objects;
+           - If p_type is "uids",     it returns UIDs of objects (= strings).
+
+
+           * If p_startNumber is None, it returns all referred objects.
+           * If p_startNumber is a number, it returns self.maxPerPage objects,
+             starting at p_startNumber.
+
+           If p_noListIfSingleObj is True, it returns the single reference as
+           an object and not as a list.
+
+           If p_someObjects is True, it returns an instance of SomeObjects
+           instead of returning a list of references.'''
         if self.isBack:
-            return obj._appy_getRefsBack(self.name, self.relationship,
-                                         noListIfSingleObj=True)
+            getRefs = obj.reference_catalog.getBackReferences
+            uids = [r.sourceUID for r in getRefs(obj, self.relationship)]
         else:
-            return obj._appy_getRefs(self.name, noListIfSingleObj=True).objects
+            uids = obj._appy_getSortedField(self.name)
+            batchNeeded = startNumber != None
+            exec 'refUids = obj.getRaw%s%s()' % (self.name[0].upper(),
+                                                 self.name[1:])
+            # There may be too much UIDs in sortedField because these fields
+            # are not updated when objects are deleted. So we do it now.
+            # TODO: do such cleaning on object deletion ?
+            toDelete = []
+            for uid in uids:
+                if uid not in refUids:
+                    toDelete.append(uid)
+            for uid in toDelete:
+                uids.remove(uid)
+        # Prepare the result: an instance of SomeObjects, that, in this case,
+        # represent a subset of all referred objects
+        res = SomeObjects()
+        res.totalNumber = res.batchSize = len(uids)
+        batchNeeded = startNumber != None
+        if batchNeeded:
+            res.batchSize = self.maxPerPage
+        if startNumber != None:
+            res.startNumber = startNumber
+        # Get the needed referred objects
+        i = res.startNumber
+        # Is it possible and more efficient to perform a single query in
+        # uid_catalog and get the result in the order of specified uids?
+        while i < (res.startNumber + res.batchSize):
+            if i >= res.totalNumber: break
+            # Retrieve every reference in the correct format according to p_type
+            if type == 'uids':
+                ref = uids[i]
+            else:
+                ref = obj.uid_catalog(UID=uids[i])[0].getObject()
+                if type == 'objects':
+                    ref = ref.appy()
+            res.objects.append(ref)
+            i += 1
+        # Manage parameter p_noListIfSingleObj
+        if res.objects and noListIfSingleObj:
+            if self.multiplicity[1] == 1:
+                res.objects = res.objects[0]
+        if someObjects: return res
+        return res.objects
 
     def getFormattedValue(self, obj, value):
         return value
@@ -1280,6 +1363,24 @@ class Ref(Type):
             return obj.translate('min_ref_violated')
         elif nbOfRefs > maxRef:
             return obj.translate('max_ref_violated')
+
+    def store(self, obj, value):
+        '''Stores on p_obj, the p_value, which can be None, an object UID or a
+           list of UIDs coming from the request. This method is only called for
+           Ref fields with link=True.'''
+        # Security check
+        if not self.isShowable(obj, 'edit'): return
+        # Standardize the way p_value is expressed
+        uids = value
+        if not value: uids = []
+        if isinstance(value, basestring): uids = [value]
+        # Update the field storing on p_obj the ordered list of UIDs
+        sortedRefs = obj._appy_getSortedField(self.name)
+        del sortedRefs[:]
+        for uid in uids: sortedRefs.append(uid)
+        # Update the refs
+        refs = [obj.uid_catalog(UID=uid)[0].getObject() for uid in uids]
+        exec 'obj.set%s%s(refs)' % (self.name[0].upper(), self.name[1:])
 
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -1645,10 +1746,6 @@ class Model: pass
 class Tool(Model):
     '''If you want so define a custom tool class, she must inherit from this
        class.'''
-class Flavour(Model):
-    '''A flavour represents a given group of configuration options. If you want
-       to define a custom flavour class, she must inherit from this class.'''
-    def __init__(self, name): self.name = name
 class User(Model):
     '''If you want to extend or modify the User class, subclass me.'''
 
@@ -1692,11 +1789,6 @@ class Config:
         # If you don't need the portlet that appy.gen has generated for your
         # application, set the following parameter to False.
         self.showPortlet = True
-        # Default number of flavours. It will be used for generating i18n labels
-        # for classes in every flavour. Indeed, every flavour can name its
-        # concepts differently. For example, class Thing in flavour 2 may have
-        # i18n label "MyProject_Thing_2".
-        self.numberOfFlavours = 2
 
 # ------------------------------------------------------------------------------
 # Special field "type" is mandatory for every class. If one class does not

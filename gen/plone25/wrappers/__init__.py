@@ -82,8 +82,6 @@ class AbstractWrapper:
         else:     return 1
     def get_tool(self): return self.o.getTool().appy()
     tool = property(get_tool)
-    def get_flavour(self): return self.o.getTool().getFlavour(self.o, appy=True)
-    flavour = property(get_flavour)
     def get_request(self): return self.o.REQUEST
     request = property(get_request)
     def get_session(self): return self.o.REQUEST.SESSION
@@ -204,9 +202,9 @@ class AbstractWrapper:
         ploneObj.reindexObject()
         return appyObj
 
-    def translate(self, label, mapping={}, domain=None):
+    def translate(self, label, mapping={}, domain=None, language=None):
         '''Check documentation of self.o.translate.'''
-        return self.o.translate(label, mapping, domain)
+        return self.o.translate(label, mapping, domain, language=language)
 
     def do(self, transition, comment='', doAction=False, doNotify=False,
            doHistory=True):
@@ -276,27 +274,25 @@ class AbstractWrapper:
            p_maxResults. If p_noSecurity is specified, you get all objects,
            even if the logged user does not have the permission to view it.'''
         # Find the content type corresponding to p_klass
-        flavour = self.flavour
-        contentType = flavour.o.getPortalType(klass)
+        contentType = self.tool.o.getPortalType(klass)
         # Create the Search object
         search = Search('customSearch', sortBy=sortBy, **fields)
         if not maxResults:
             maxResults = 'NO_LIMIT'
             # If I let maxResults=None, only a subset of the results will be
             # returned by method executeResult.
-        res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
-            maxResults=maxResults, noSecurity=noSecurity)
+        res = self.tool.o.executeQuery(contentType, search=search,
+                                   maxResults=maxResults, noSecurity=noSecurity)
         return [o.appy() for o in res['objects']]
 
     def count(self, klass, noSecurity=False, **fields):
         '''Identical to m_search above, but returns the number of objects that
            match the search instead of returning the objects themselves. Use
            this method instead of writing len(self.search(...)).'''
-        flavour = self.flavour
-        contentType = flavour.o.getPortalType(klass)
+        contentType = self.tool.o.getPortalType(klass)
         search = Search('customSearch', **fields)
-        res = self.tool.o.executeQuery(contentType,flavour.number,search=search,
-            brainsOnly=True, noSecurity=noSecurity)
+        res = self.tool.o.executeQuery(contentType, search=search,
+                                       brainsOnly=True, noSecurity=noSecurity)
         if res: return res._len # It is a LazyMap instance
         else: return 0
 
@@ -325,14 +321,12 @@ class AbstractWrapper:
            
                     "for obj in self.search(MyClass,...)"
            '''
-        flavour = self.flavour
-        contentType = flavour.o.getPortalType(klass)
+        contentType = self.tool.o.getPortalType(klass)
         search = Search('customSearch', sortBy=sortBy, **fields)
         # Initialize the context variable "ctx"
         ctx = context
-        for brain in self.tool.o.executeQuery(contentType, flavour.number, \
-            search=search, brainsOnly=True, maxResults=maxResults,
-            noSecurity=noSecurity):
+        for brain in self.tool.o.executeQuery(contentType, search=search, \
+                 brainsOnly=True, maxResults=maxResults, noSecurity=noSecurity):
             # Get the Appy object from the brain
             obj = brain.getObject().appy()
             exec expression
@@ -379,5 +373,5 @@ class AbstractWrapper:
 
            p_data must be a dictionary whose keys are field names (strings) and
            whose values are the previous field values.'''
-        self.o.addDataChange(data, labels=False)
+        self.o.addDataChange(data)
 # ------------------------------------------------------------------------------

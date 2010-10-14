@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, parser, symbol, token, types
-from appy.gen import Type, State, Config, Tool, Flavour, User
+from appy.gen import Type, State, Config, Tool, User
 from appy.gen.descriptors import *
 from appy.gen.utils import produceNiceMessage
 import appy.pod, appy.pod.renderer
@@ -133,8 +133,7 @@ class Generator:
         # Default descriptor classes
         self.descriptorClasses = {
             'class': ClassDescriptor, 'tool': ClassDescriptor,
-            'flavour': ClassDescriptor, 'user': ClassDescriptor,
-            'workflow': WorkflowDescriptor}
+            'user': ClassDescriptor,  'workflow': WorkflowDescriptor}
         # The following dict contains a series of replacements that need to be
         # applied to file templates to generate files.
         self.repls = {'applicationName': self.applicationName,
@@ -143,7 +142,6 @@ class Generator:
         # List of Appy classes and workflows found in the application
         self.classes = []
         self.tool = None
-        self.flavour = None
         self.user = None
         self.workflows = []
         self.initialize()
@@ -224,19 +222,13 @@ class Generator:
                     # of their definition).
                     attrs = astClasses[moduleElem.__name__].attributes
                     if appyType == 'class':
-                        # Determine the class type (standard, tool, flavour...)
+                        # Determine the class type (standard, tool, user...)
                         if issubclass(moduleElem, Tool):
                             if not self.tool:
                                 klass = self.descriptorClasses['tool']
                                 self.tool = klass(moduleElem, attrs, self)
                             else:
                                 self.tool.update(moduleElem, attrs)
-                        elif issubclass(moduleElem, Flavour):
-                            if not self.flavour:
-                                klass = self.descriptorClasses['flavour']
-                                self.flavour = klass(moduleElem, attrs, self)
-                            else:
-                                self.flavour.update(moduleElem, attrs)
                         elif issubclass(moduleElem, User):
                             if not self.user:
                                 klass = self.descriptorClasses['user']

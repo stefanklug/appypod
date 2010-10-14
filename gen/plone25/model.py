@@ -12,10 +12,10 @@ from appy.gen import *
 # ------------------------------------------------------------------------------
 class ModelClass:
     '''This class is the abstract class of all predefined application classes
-       used in the Appy model: Tool, Flavour, PodTemplate, etc. All methods and
-       attributes of those classes are part of the Appy machinery and are
-       prefixed with _appy_ in order to avoid name conflicts with user-defined
-       parts of the application model.'''
+       used in the Appy model: Tool, User, etc. All methods and attributes of
+       those classes are part of the Appy machinery and are prefixed with _appy_
+       in order to avoid name conflicts with user-defined parts of the
+       application model.'''
     _appy_attributes = [] # We need to keep track of attributes order.
     # When creating a new instance of a ModelClass, the following attributes
     # must not be given in the constructor (they are computed attributes).
@@ -70,7 +70,11 @@ class ModelClass:
             res += '    %s=%s\n' % (attrName, klass._appy_getTypeBody(appyType))
         return res
 
+# The User class ---------------------------------------------------------------
 class User(ModelClass):
+    # In a ModelClass we need to declare attributes in the following list.
+    _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
+                        'password2', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = String(show=False)
     gm = {'group': 'main', 'multiplicity': (1,1)}
@@ -86,47 +90,50 @@ class User(ModelClass):
     password2 = String(format=String.PASSWORD, show=showPassword, **gm)
     gm['multiplicity'] = (0, None)
     roles = String(validator=Selection('getGrantableRoles'), **gm)
-    _appy_attributes = ['title', 'name', 'firstName', 'login',
-                        'password1', 'password2', 'roles']
 
-class PodTemplate(ModelClass):
-    description = String(format=String.TEXT)
-    podTemplate = File(multiplicity=(1,1))
-    podFormat = String(validator=['odt', 'pdf', 'rtf', 'doc'],
-                       multiplicity=(1,1), default='odt')
-    podPhase = String(default='main')
-    _appy_attributes = ['description', 'podTemplate', 'podFormat', 'podPhase']
+# The Tool class ---------------------------------------------------------------
 
-defaultFlavourAttrs = ('number', 'enableNotifications')
-flavourAttributePrefixes = ('optionalFieldsFor', 'defaultValueFor',
-    'podTemplatesFor', 'podMaxShownTemplatesFor', 'resultColumnsFor',
-    'showWorkflowFor', 'showWorkflowCommentFieldFor', 'showAllStatesInPhaseFor')
-# Attribute prefixes of the fields generated on the Flavour for configuring
-# the application classes.
+# Here are the prefixes of the fields generated on the Tool.
+toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
+                     'enableAdvancedSearch', 'numberOfSearchColumns',
+                     'searchFields', 'optionalFields', 'showWorkflow',
+                     'showWorkflowCommentField', 'showAllStatesInPhase')
+defaultToolFields = ('users', 'enableNotifications', 'unoEnabledPython',
+                     'openOfficePort', 'numberOfResultsPerPage',
+                     'listBoxesMaximumWidth')
 
-class Flavour(ModelClass):
-    '''For every application, the Flavour may be different (it depends on the
-       fields declared as optional, etc). Instead of creating a new way to
-       generate the Archetypes Flavour class, we create a silly
-       FlavourStub instance and we will use the standard Archetypes
-       generator that generates classes from the application to generate the
-       flavour class.'''
-    number = Integer(default=1, show=False)
-    enableNotifications = Boolean(default=True, page='notifications')
+class Tool(ModelClass):
+    # The following dict allows us to remember the original classes related to
+    # the attributes we will add due to params in user attributes.
     _appy_classes = {} # ~{s_attributeName: s_className}~
-    # We need to remember the original classes related to the flavour attributes
-    _appy_attributes = list(defaultFlavourAttrs)
+    # In a ModelClass we need to declare attributes in the following list.
+    _appy_attributes = list(defaultToolFields)
+
+    # Tool attributes
+    # First arg of Ref field below is None because we don't know yet if it will
+    # link to the predefined User class or a custom class defined in the
+    # application.
+    users = Ref(None, multiplicity=(0,None), add=True, link=False,
+                back=Ref(attribute='toTool'), page='users',
+                shownInfo=('login', 'title', 'roles'), showHeaders=True)
+    enableNotifications = Boolean(default=True, page='notifications')
+    def validPythonWithUno(self, value): pass # Real method in the wrapper
+    unoEnabledPython = String(group="connectionToOpenOffice",
+                              validator=validPythonWithUno)
+    openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
+    numberOfResultsPerPage = Integer(default=30)
+    listBoxesMaximumWidth = Integer(default=100)
 
     @classmethod
     def _appy_clean(klass):
         toClean = []
         for k, v in klass.__dict__.iteritems():
             if not k.startswith('__') and (not k.startswith('_appy_')):
-                if k not in defaultFlavourAttrs:
+                if k not in defaultToolFields:
                     toClean.append(k)
         for k in toClean:
             exec 'del klass.%s' % k
-        klass._appy_attributes = list(defaultFlavourAttrs)
+        klass._appy_attributes = list(defaultToolFields)
         klass._appy_classes = {}
 
     @classmethod
@@ -134,20 +141,20 @@ class Flavour(ModelClass):
         '''From a given p_appyType, produce a type definition suitable for
            storing the default value for this field.'''
         res = copy.copy(appyType)
-        # A fiekd in the flavour can't have parameters that would lead to the
-        # creation of new fields in the flavour.
+        # A field added to the tool can't have parameters that would lead to the
+        # creation of new fields in the tool.
         res.editDefault = False
         res.optional = False
         res.show = True
         res.group = copy.copy(appyType.group)
         res.phase = 'main'
-        # Set default layouts for all Flavour fields
+        # Set default layouts for all Tool fields
         res.layouts = res.formatLayouts(None)
         res.specificReadPermission = False
         res.specificWritePermission = False
         res.multiplicity = (0, appyType.multiplicity[1])
         if type(res.validator) == types.FunctionType:
-            # We will not be able to call this function from the flavour.
+            # We will not be able to call this function from the tool.
             res.validator = None
         if isinstance(appyType, Ref):
             res.link = True
@@ -155,7 +162,7 @@ class Flavour(ModelClass):
             res.back = copy.copy(appyType.back)
             res.back.attribute += 'DefaultValue'
             res.back.show = False
-            res.select = None # Not callable from flavour
+            res.select = None # Not callable from tool.
         return res
 
     @classmethod
@@ -182,10 +189,7 @@ class Flavour(ModelClass):
 
     @classmethod
     def _appy_addPodRelatedFields(klass, fieldDescr):
-        '''Adds the fields needed in the Flavour for configuring a Pod field.
-           The following method, m_appy_addPodField, is the previous way to
-           manage gen-pod integration. For the moment, both approaches coexist.
-           In the future, only this one may subsist.'''
+        '''Adds the fields needed in the Tool for configuring a Pod field.'''
         className = fieldDescr.classDescr.name
         # On what page and group to display those fields ?
         pg = {'page': 'documentGeneration',
@@ -201,28 +205,8 @@ class Flavour(ModelClass):
         klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
 
     @classmethod
-    def _appy_addPodField(klass, classDescr):
-        '''Adds a POD field to the flavour and also an integer field that will
-           determine the maximum number of documents to show at once on consult
-           views. If this number is reached, a list is displayed.'''
-        # First, add the POD field that will hold PodTemplates.
-        fieldType = Ref(PodTemplate, multiplicity=(0,None), add=True,
-                        link=False, back = Ref(attribute='flavour'),
-                        page="documentGeneration",
-                        group=classDescr.klass.__name__)
-        fieldName = 'podTemplatesFor%s' % classDescr.name
-        klass._appy_addField(fieldName, fieldType, classDescr)
-        # Then, add the integer field
-        fieldType = Integer(default=1, page='userInterface',
-                            group=classDescr.klass.__name__)
-        fieldName = 'podMaxShownTemplatesFor%s' % classDescr.name
-        klass._appy_addField(fieldName, fieldType, classDescr)
-        classDescr.flavourFieldsToPropagate.append(
-            ('podMaxShownTemplatesFor%s', copy.copy(fieldType)) )
-
-    @classmethod
     def _appy_addQueryResultColumns(klass, classDescr):
-        '''Adds, for class p_classDescr, the attribute in the flavour that
+        '''Adds, for class p_classDescr, the attribute in the tool that
            allows to select what default columns will be shown on query
            results.'''
         className = classDescr.name
@@ -302,25 +286,4 @@ class Flavour(ModelClass):
         fieldType = Boolean(default=defaultValue, page='userInterface',
                             group=groupName)
         klass._appy_addField(fieldName, fieldType, classDescr)
-
-class Tool(ModelClass):
-    flavours = Ref(None, multiplicity=(1,None), add=True, link=False,
-                   back=Ref(attribute='tool'))
-                   # First arg is None because we don't know yet if it will link
-                   # to the predefined Flavour class or a custom class defined
-                   # in the application.
-    users = Ref(None, multiplicity=(0,None), add=True, link=False,
-                back=Ref(attribute='toTool'), page='users',
-                shownInfo=('login', 'title', 'roles'), showHeaders=True)
-    # First arg is None because we don't know yet if it will link to the
-    # predefined User class or a custom class defined in the application.
-    def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = String(group="connectionToOpenOffice",
-                              validator=validPythonWithUno)
-    openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
-    numberOfResultsPerPage = Integer(default=30)
-    listBoxesMaximumWidth = Integer(default=100)
-    _appy_attributes = ['flavours', 'users', 'unoEnabledPython',
-                        'openOfficePort', 'numberOfResultsPerPage',
-                        'listBoxesMaximumWidth']
 # ------------------------------------------------------------------------------

@@ -2,15 +2,15 @@
 from AccessControl import ClassSecurityInfo
 from Products.Archetypes.atapi import *
 import Products.<!applicationName!>.config
-from appy.gen.plone25.mixins.UserMixin import UserMixin
+from appy.gen.plone25.mixins import BaseMixin
 from Extensions.appyWrappers import <!wrapperClass!>
 
 schema = Schema((<!fields!>
 ),)
 fullSchema = BaseSchema.copy() + schema.copy()
 
-class <!applicationName!>User(BaseContent, UserMixin):
-    '''Configuration flavour class for <!applicationName!>.'''
+class <!applicationName!>User(BaseContent, BaseMixin):
+    '''User mixin.'''
     security = ClassSecurityInfo()
     __implements__ = (getattr(BaseContent,'__implements__',()),)
     archetype_name = '<!applicationName!>User'
@@ -27,7 +27,7 @@ class <!applicationName!>User(BaseContent, UserMixin):
     i18nDomain = '<!applicationName!>'
     schema = fullSchema
     wrapperClass = <!wrapperClass!>
-    for elem in dir(UserMixin):
+    for elem in dir(BaseMixin):
         if not elem.startswith('__'): security.declarePublic(elem)
 <!commonMethods!>
 <!methods!>

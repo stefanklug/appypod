@@ -4,7 +4,7 @@ from DateTime import DateTime
 from Products.Archetypes.atapi import *
 import Products.<!applicationName!>.config
 from Extensions.appyWrappers import <!genClassName!>_Wrapper
-from appy.gen.plone25.mixins.ClassMixin import ClassMixin
+from appy.gen.plone25.mixins import BaseMixin
 <!imports!>
 
 schema = Schema((<!fields!>
@@ -29,7 +29,7 @@ class <!genClassName!>(<!parents!>):
     i18nDomain = '<!applicationName!>'
     schema = fullSchema
     wrapperClass = <!genClassName!>_Wrapper
-    for elem in dir(ClassMixin):
+    for elem in dir(BaseMixin):
         if not elem.startswith('__'): security.declarePublic(elem)
 <!commonMethods!>
 <!methods!>

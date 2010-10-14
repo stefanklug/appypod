@@ -7,9 +7,9 @@
     <label tal:attributes="for chekboxId" class="discreet"
            tal:content="python: tool.translate(doLabel)"></label>
   </tal:askAction>
-  <img tal:repeat="podFormat python:flavour.getPodInfo(contextObj, name)['formats']"
+  <img tal:repeat="podFormat python: tool.getPodInfo(contextObj, name)['formats']"
        tal:attributes="src string: $portal_url/skyn/${podFormat}.png;
-                       onClick python: 'generatePodDocument(\'%s\',\'\',\'%s\',\'%s\')' % (contextObj.UID(), name, podFormat);
+                       onClick python: 'generatePodDocument(\'%s\',\'%s\',\'%s\')' % (contextObj.UID(), name, podFormat);
                        title podFormat/capitalize"
        style="cursor:pointer"/>
 </metal:view>

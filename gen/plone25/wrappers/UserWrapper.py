@@ -3,6 +3,18 @@ from appy.gen.plone25.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):
+
+    def _callCustom(self, methodName, *args, **kwargs):
+        '''This wrapper implements some methods like "validate" and "onEdit".
+           If the user has defined its own wrapper, its methods will not be
+           called. So this method allows, from the methods here, to call the
+           user versions.'''
+        if len(self.__class__.__bases__) > 1:
+            # There is a custom user class
+            customUser = self.__class__.__bases__[-1]
+            if customUser.__dict__.has_key(methodName):
+                customUser.__dict__[methodName](self, *args, **kwargs)
+
     def showLogin(self):
         '''When must we show the login field?'''
         if self.o.isTemporary(): return 'edit'
@@ -51,6 +63,7 @@ class UserWrapper(AbstractWrapper):
                 msg = self.translate(u'Passwords do not match.', domain='plone')
                 errors.password1 = msg
                 errors.password2 = msg
+        self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
         self.title = self.firstName + ' ' + self.name
@@ -86,11 +99,5 @@ class UserWrapper(AbstractWrapper):
                 # Remove the user if it was in the corresponding group
                 if groupName in userGroups:
                     group.removeMember(self.login)
-        # Call the custom user "onEdit" method if it exists
-        # XXX This code does not work.
-        if len(self.__class__.__bases__) > 1:
-            customUser = self.__class__.__bases__[-1]
-            # There is a custom user class
-            if customUser.__dict__.has_key('onEdit'):
-                customUser.__dict__['onEdit'](self, created)
+        self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------

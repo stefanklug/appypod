@@ -125,4 +125,153 @@ def normalizeString(s, usage='fileName'):
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
                'l': list, 'd': dict}
+
+# ------------------------------------------------------------------------------
+class CodeAnalysis:
+    '''This class holds information about some code analysis (line counts) that
+       spans some folder hierarchy.'''
+    def __init__(self, name):
+        self.name = name # Let's give a name for the analysis
+        self.numberOfFiles = 0 # The total number of analysed files
+        self.emptyLines = 0 # The number of empty lines within those files
+        self.commentLines = 0 # The number of comment lines
+        # A code line is defined as anything that is not an empty or comment
+        # line.
+        self.codeLines = 0
+
+    def numberOfLines(self):
+        '''Computes the total number of lines within analysed files.'''
+        return self.emptyLines + self.commentLines + self.codeLines
+
+    def analyseZptFile(self, theFile):
+        '''Analyses the ZPT file named p_fileName.'''
+        inDoc = False
+        for line in theFile:
+            stripped = line.strip()
+            # Manage a comment
+            if not inDoc and (line.find('<tal:comment ') != -1):
+                inDoc = True
+            if inDoc:
+                self.commentLines += 1
+                if line.find('</tal:comment>') != -1:
+                    inDoc = False
+                continue
+            # Manage an empty line
+            if not stripped:
+                self.emptyLines += 1
+            else:
+                self.codeLines += 1
+
+    docSeps = ('"""', "'''")
+    def isPythonDoc(self, line, start, isStart=False):
+        '''Returns True if we find, in p_line, the start of a docstring (if
+           p_start is True) or the end of a docstring (if p_start is False).
+           p_isStart indicates if p_line is the start of the docstring.'''
+        if start:
+            res = line.startswith(self.docSeps[0]) or \
+                  line.startswith(self.docSeps[1])
+        else:
+            sepOnly = (line == self.docSeps[0]) or (line == self.docSeps[1])
+            if sepOnly:
+                # If the line contains the separator only, is this the start or
+                # the end of the docstring?
+                if isStart: res = False
+                else: res = True
+            else:
+                res = line.endswith(self.docSeps[0]) or \
+                      line.endswith(self.docSeps[1])
+        return res
+
+    def analysePythonFile(self, theFile):
+        '''Analyses the Python file named p_fileName.'''
+        # Are we in a docstring ?
+        inDoc = False
+        for line in theFile:
+            stripped = line.strip()
+            # Manage a line that is within a docstring
+            inDocStart = False
+            if not inDoc and self.isPythonDoc(stripped, start=True):
+                inDoc = True
+                inDocStart = True
+            if inDoc:
+                self.commentLines += 1
+                if self.isPythonDoc(stripped, start=False, isStart=inDocStart):
+                    inDoc = False
+                continue
+            # Manage an empty line
+            if not stripped:
+                self.emptyLines += 1
+                continue
+            # Manage a comment line
+            if line.startswith('#'):
+                self.commentLines += 1
+                continue
+            # If we are here, we have a code line.
+            self.codeLines += 1
+
+    def analyseFile(self, fileName):
+        '''Analyses file named p_fileName.'''
+        self.numberOfFiles += 1
+        theFile = file(fileName)
+        if fileName.endswith('.py'):
+            self.analysePythonFile(theFile)
+        elif fileName.endswith('.pt'):
+            self.analyseZptFile(theFile)
+        theFile.close()
+
+    def printReport(self):
+        '''Returns the analysis report as a string, only if there is at least
+           one analysed line.'''
+        lines = self.numberOfLines()
+        if not lines: return
+        commentRate = (self.commentLines / float(lines)) * 100.0
+        blankRate = (self.emptyLines / float(lines)) * 100.0
+        print '%s: %d files, %d lines (%.0f%% comments, %.0f%% blank)' % \
+              (self.name, self.numberOfFiles, lines, commentRate, blankRate)
+
+class LinesCounter:
+    '''Counts and classifies the lines of code within a folder hierarchy.'''
+    def __init__(self, folderOrModule):
+        if isinstance(folderOrModule, basestring):
+            # It is the path of some folder
+            self.folder = folderOrModule
+        else:
+            # It is a Python module
+            self.folder = os.path.dirname(folderOrModule.__file__)
+        # These dicts will hold information about analysed files
+        self.python = {False: CodeAnalysis('Python'),
+                       True:  CodeAnalysis('Python (test)')}
+        self.zpt = {False: CodeAnalysis('ZPT'),
+                    True:  CodeAnalysis('ZPT (test)')}
+        # Are we currently analysing real or test code?
+        self.inTest = False
+
+    def printReport(self):
+        '''Displays on stdout a small analysis report about self.folder.'''
+        for zone in (False, True): self.python[zone].printReport()
+        for zone in (False, True): self.zpt[zone].printReport()
+
+    def run(self):
+        '''Let's start the analysis of self.folder.'''
+        # The test markers will allow us to know if we are analysing test code
+        # or real code within a given part of self.folder code hierarchy.
+        testMarker1 = '%stest%s' % (os.sep, os.sep)
+        testMarker2 = '%stest' % os.sep
+        j = os.path.join
+        for root, folders, files in os.walk(self.folder):
+            rootName = os.path.basename(root)
+            if rootName.startswith('.') or \
+               (rootName in ('tmp', 'temp')):
+                continue
+            # Are we in real code or in test code ?
+            self.inTest = False
+            if root.endswith(testMarker2) or (root.find(testMarker1) != -1):
+                self.inTest = True
+            # Scan the files in this folder
+            for fileName in files:
+                if fileName.endswith('.py'):
+                    self.python[self.inTest].analyseFile(j(root, fileName))
+                elif fileName.endswith('.pt'):
+                    self.zpt[self.inTest].analyseFile(j(root, fileName))
+        self.printReport()
 # ------------------------------------------------------------------------------

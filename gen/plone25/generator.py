@@ -8,11 +8,8 @@ from appy.gen import *
 from appy.gen.po import PoMessage, PoFile, PoParser
 from appy.gen.generator import Generator as AbstractGenerator
 from appy.gen.utils import getClassName
-from model import ModelClass, PodTemplate, User, Flavour, Tool
-from descriptors import FieldDescriptor, ClassDescriptor, \
-                        WorkflowDescriptor, ToolClassDescriptor, \
-                        FlavourClassDescriptor, PodTemplateClassDescriptor, \
-                        UserClassDescriptor
+from model import ModelClass, User, Tool
+from descriptors import *
 
 # Common methods that need to be defined on every Archetype class --------------
 COMMON_METHODS = '''
@@ -29,22 +26,18 @@ class Generator(AbstractGenerator):
     poExtensions = ('.po', '.pot')
 
     def __init__(self, *args, **kwargs):
-        Flavour._appy_clean()
+        Tool._appy_clean()
         AbstractGenerator.__init__(self, *args, **kwargs)
         # Set our own Descriptor classes
         self.descriptorClasses['class'] = ClassDescriptor
         self.descriptorClasses['workflow']  = WorkflowDescriptor
-        # Create our own Tool, Flavour and PodTemplate instances
+        # Create our own Tool and User instances
         self.tool = ToolClassDescriptor(Tool, self)
-        self.flavour = FlavourClassDescriptor(Flavour, self)
-        self.podTemplate = PodTemplateClassDescriptor(PodTemplate, self)
         self.user = UserClassDescriptor(User, self)
         # i18n labels to generate
         self.labels = [] # i18n labels
         self.toolName = '%sTool' % self.applicationName
-        self.flavourName = '%sFlavour' % self.applicationName
         self.toolInstanceName = 'portal_%s' % self.applicationName.lower()
-        self.podTemplateName = '%sPodTemplate' % self.applicationName
         self.userName = '%sUser' % self.applicationName
         self.portletName = '%s_portlet' % self.applicationName.lower()
         self.queryName = '%s_query' % self.applicationName.lower()
@@ -55,10 +48,9 @@ class Generator(AbstractGenerator):
         commonMethods = COMMON_METHODS % \
                         (self.toolInstanceName, self.applicationName)
         self.repls.update(
-            {'toolName': self.toolName, 'flavourName': self.flavourName,
-             'portletName': self.portletName, 'queryName': self.queryName,
+            {'toolName': self.toolName, 'portletName': self.portletName,
+             'queryName': self.queryName, 'userName': self.userName,
              'toolInstanceName': self.toolInstanceName,
-             'podTemplateName': self.podTemplateName, 'userName': self.userName,
              'commonMethods': commonMethods})
         self.referers = {}
 
@@ -145,7 +137,6 @@ class Generator(AbstractGenerator):
             msg('goto_last',            '', msg.GOTO_LAST),
             msg('goto_source',          '', msg.GOTO_SOURCE),
             msg('whatever',             '', msg.WHATEVER),
-            msg('confirm',              '', msg.CONFIRM),
             msg('yes',                  '', msg.YES),
             msg('no',                   '', msg.NO),
             msg('field_required',       '', msg.FIELD_REQUIRED),
@@ -321,15 +312,14 @@ class Generator(AbstractGenerator):
             appClasses.append('%s.%s' % (k.__module__, k.__name__))
         repls['appClasses'] = "[%s]" % ','.join(appClasses)
         # Compute lists of class names
-        allClassNames = '"%s",' % self.flavourName
-        allClassNames += '"%s",' % self.podTemplateName
+        allClassNames = '"%s",' % self.userName
         appClassNames = ','.join(['"%s"' % c.name for c in self.classes])
         allClassNames += appClassNames
         repls['allClassNames'] = allClassNames
         repls['appClassNames'] = appClassNames
         # Compute classes whose instances must not be catalogued.
         catalogMap = ''
-        blackClasses = [self.toolName, self.flavourName, self.podTemplateName]
+        blackClasses = [self.toolName]
         for blackClass in blackClasses:
             catalogMap += "catalogMap['%s'] = {}\n" % blackClass
             catalogMap += "catalogMap['%s']['black'] = " \
@@ -464,28 +454,30 @@ class Generator(AbstractGenerator):
         repls['workflows'] = workflows
         self.copyFile('workflows.py', repls, destFolder='Extensions')
 
-    def generateWrapperProperty(self, name):
+    def generateWrapperProperty(self, name, type):
         '''Generates the getter for attribute p_name.'''
         res = '    def get_%s(self):\n        ' % name
         if name == 'title':
             res += 'return self.o.Title()\n'
         else:
-            res += 'return self.o.getAppyType("%s").getValue(self.o)\n' % name
+            suffix = ''
+            if type == 'Ref': suffix = ', noListIfSingleObj=True'
+            res += 'return self.o.getAppyType("%s").getValue(self.o%s)\n' % \
+                   (name, suffix)
         res += '    %s = property(get_%s)\n\n' % (name, name)
         return res
 
     def getClasses(self, include=None):
         '''Returns the descriptors for all the classes in the generated
            gen-application. If p_include is "all", it includes the descriptors
-           for the config-related classes (tool, flavour, etc); if
-           p_include is "allButTool", it includes the same descriptors, the
-           tool excepted; if p_include is "custom", it includes descriptors
-           for the config-related classes for which the user has created a
-           sub-class.'''
+           for the config-related classes (tool, user, etc); if p_include is
+           "allButTool", it includes the same descriptors, the tool excepted;
+           if p_include is "custom", it includes descriptors for the
+           config-related classes for which the user has created a sub-class.'''
         if not include: return self.classes
         else:
             res = self.classes[:]
-            configClasses = [self.tool,self.flavour,self.podTemplate,self.user]
+            configClasses = [self.tool, self.user]
             if include == 'all':
                 res += configClasses
             elif include == 'allButTool':
@@ -547,24 +539,25 @@ class Generator(AbstractGenerator):
                 except AttributeError:
                     attrValue = getattr(c.modelClass, attrName)
                 if isinstance(attrValue, Type):
-                    wrapperDef += self.generateWrapperProperty(attrName)
+                    wrapperDef += self.generateWrapperProperty(attrName,
+                                                               attrValue.type)
             # Generate properties for back references
             if self.referers.has_key(c.name):
                 for refDescr, rel in self.referers[c.name]:
                     attrName = refDescr.appyType.back.attribute
-                    wrapperDef += self.generateWrapperProperty(attrName)
+                    wrapperDef += self.generateWrapperProperty(attrName, 'Ref')
             if not titleFound:
                 # Implicitly, the title will be added by Archetypes. So I need
                 # to define a property for it.
-                wrapperDef += self.generateWrapperProperty('title')
+                wrapperDef += self.generateWrapperProperty('title', 'String')
             if c.customized:
-                # For custom tool and flavour, add a call to a method that
-                # allows to customize elements from the base class.
+                # For custom tool, add a call to a method that allows to
+                # customize elements from the base class.
                 wrapperDef += "    if hasattr(%s, 'update'):\n        " \
                     "%s.update(%s)\n" % (parentClasses[1], parentClasses[1],
                                          parentClasses[0])
-                # For custom tool and flavour, add security declaration that
-                # will allow to call their methods from ZPTs.
+                # For custom tool, add security declaration that will allow to
+                # call their methods from ZPTs.
                 for parentClass in parentClasses:
                     wrapperDef += "    for elem in dir(%s):\n        " \
                         "if not elem.startswith('_'): security.declarePublic" \
@@ -576,8 +569,6 @@ class Generator(AbstractGenerator):
         repls['imports'] = '\n'.join(imports)
         repls['wrappers'] = '\n'.join(wrappers)
         repls['toolBody'] = Tool._appy_getBody()
-        repls['flavourBody'] = Flavour._appy_getBody()
-        repls['podTemplateBody'] = PodTemplate._appy_getBody()
         repls['userBody'] = User._appy_getBody()
         self.copyFile('appyWrappers.py', repls, destFolder='Extensions')
 
@@ -613,72 +604,49 @@ class Generator(AbstractGenerator):
 
     def generateTool(self):
         '''Generates the Plone tool that corresponds to this application.'''
-        # Generate the tool class in itself and related i18n messages
-        t = self.toolName
         Msg = PoMessage
-        repls = self.repls.copy()
-        # Manage predefined fields
-        Tool.flavours.klass = Flavour
-        if self.flavour.customized:
-            Tool.flavours.klass = self.flavour.klass
+        # Create Tool-related i18n-related messages
+        self.labels += [
+            Msg(self.toolName, '', Msg.CONFIG % self.applicationName),
+            Msg('%s_edit_descr' % self.toolName, '', ' ')]
+
+        # Tune the Ref field between Tool and User
         Tool.users.klass = User
         if self.user.customized:
             Tool.users.klass = self.user.klass
+
+        # Before generating the Tool class, finalize it with query result
+        # columns, with fields to propagate, workflow-related fields.
+        for classDescr in self.classes:
+            for fieldName, fieldType in classDescr.toolFieldsToPropagate:
+                for childDescr in classDescr.getChildren():
+                    childFieldName = fieldName % childDescr.name
+                    fieldType.group = childDescr.klass.__name__
+                    Tool._appy_addField(childFieldName, fieldType, childDescr)
+            if classDescr.isRoot():
+                # We must be able to configure query results from the tool.
+                Tool._appy_addQueryResultColumns(classDescr)
+                # Add the search-related fields.
+                Tool._appy_addSearchRelatedFields(classDescr)
+                importMean = classDescr.getCreateMean('Import')
+                if importMean:
+                    Tool._appy_addImportRelatedFields(classDescr)
+        Tool._appy_addWorkflowFields(self.user)
+        # Complete self.tool.orderedAttributes from the attributes that we
+        # just added to the Tool model class.
+        for fieldName in Tool._appy_attributes:
+            if fieldName not in self.tool.orderedAttributes:
+                self.tool.orderedAttributes.append(fieldName)
         self.tool.generateSchema()
+
+        # Generate the Tool class
+        repls = self.repls.copy()
+        repls['metaTypes'] = [c.name for c in self.classes]
         repls['fields'] = self.tool.schema
         repls['methods'] = self.tool.methods
         repls['wrapperClass'] = '%s_Wrapper' % self.tool.name
         self.copyFile('ToolTemplate.py', repls, destName='%s.py'% self.toolName)
-        repls = self.repls.copy()
-        # Create i18n-related messages
-        self.labels += [
-            Msg(self.toolName, '', Msg.CONFIG % self.applicationName),
-            Msg('%s_edit_descr' % self.toolName, '', ' ')]
-        # Before generating the Flavour class, finalize it with query result
-        # columns, with fields to propagate, workflow-related fields.
-        for classDescr in self.classes:
-            for fieldName, fieldType in classDescr.flavourFieldsToPropagate:
-                for childDescr in classDescr.getChildren():
-                    childFieldName = fieldName % childDescr.name
-                    fieldType.group = childDescr.klass.__name__
-                    Flavour._appy_addField(childFieldName,fieldType,childDescr)
-            if classDescr.isRoot():
-                # We must be able to configure query results from the flavour.
-                Flavour._appy_addQueryResultColumns(classDescr)
-                # Add the search-related fields.
-                Flavour._appy_addSearchRelatedFields(classDescr)
-                importMean = classDescr.getCreateMean('Import')
-                if importMean:
-                    Flavour._appy_addImportRelatedFields(classDescr)
-        Flavour._appy_addWorkflowFields(self.flavour)
-        Flavour._appy_addWorkflowFields(self.podTemplate)
-        Flavour._appy_addWorkflowFields(self.user)
-        # Complete self.flavour.orderedAttributes from the attributes that we
-        # just added to the Flavour model class.
-        for fieldName in Flavour._appy_attributes:
-            if fieldName not in self.flavour.orderedAttributes:
-                self.flavour.orderedAttributes.append(fieldName)
-        # Generate the flavour class and related i18n messages
-        self.flavour.generateSchema()
-        self.labels += [ Msg(self.flavourName, '', Msg.FLAVOUR),
-                         Msg('%s_edit_descr' % self.flavourName, '', ' ')]
-        repls = self.repls.copy()
-        repls['fields'] = self.flavour.schema
-        repls['methods'] = self.flavour.methods
-        repls['wrapperClass'] = '%s_Wrapper' % self.flavour.name
-        repls['metaTypes'] = [c.name for c in self.classes]
-        self.copyFile('FlavourTemplate.py', repls,
-                      destName='%s.py'% self.flavourName)
-        # Generate the PodTemplate class
-        self.podTemplate.generateSchema()
-        self.labels += [ Msg(self.podTemplateName, '', Msg.POD_TEMPLATE),
-                         Msg('%s_edit_descr' % self.podTemplateName, '', ' ')]
-        repls = self.repls.copy()
-        repls['fields'] = self.podTemplate.schema
-        repls['methods'] = self.podTemplate.methods
-        repls['wrapperClass'] = '%s_Wrapper' % self.podTemplate.name
-        self.copyFile('PodTemplate.py', repls,
-                        destName='%s.py' % self.podTemplateName)
+
         # Generate the User class
         self.user.generateSchema()
         self.labels += [ Msg(self.userName, '', Msg.USER),
@@ -687,32 +655,28 @@ class Generator(AbstractGenerator):
         repls['fields'] = self.user.schema
         repls['methods'] = self.user.methods
         repls['wrapperClass'] = '%s_Wrapper' % self.user.name
-        self.copyFile('UserTemplate.py', repls,
-                      destName='%s.py' % self.userName)
+        self.copyFile('UserTemplate.py', repls,destName='%s.py' % self.userName)
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for
            generating the corresponding Archetype class and schema.'''
         k = classDescr.klass
         print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
-        # Add, for this class, the needed configuration attributes on Flavour
-        if classDescr.isPod():
-            Flavour._appy_addPodField(classDescr)
         if not classDescr.isAbstract():
-            Flavour._appy_addWorkflowFields(classDescr)
+            Tool._appy_addWorkflowFields(classDescr)
         # Determine base archetypes schema and class
         baseClass = 'BaseContent'
         baseSchema = 'BaseSchema'
         if classDescr.isFolder():
             baseClass = 'OrderedBaseFolder'
             baseSchema = 'OrderedBaseFolderSchema'
-        parents = [baseClass, 'ClassMixin']
+        parents = [baseClass, 'BaseMixin']
         imports = []
         implements = [baseClass]
         for baseClass in classDescr.klass.__bases__:
             if self.determineAppyType(baseClass) == 'class':
                 bcName = getClassName(baseClass)
-                parents.remove('ClassMixin')
+                parents.remove('BaseMixin')
                 parents.append(bcName)
                 implements.append(bcName)
                 imports.append('from %s import %s' % (bcName, bcName))
@@ -750,19 +714,6 @@ class Generator(AbstractGenerator):
             classDescr.klass.__name__+'s')
         poMsgPl.produceNiceDefault()
         self.labels.append(poMsgPl)
-        # Create i18n labels for flavoured variants
-        for i in range(2, self.config.numberOfFlavours+1):
-            poMsg = PoMessage('%s_%d' % (classDescr.name, i), '',
-                              classDescr.klass.__name__)
-            poMsg.produceNiceDefault()
-            self.labels.append(poMsg)
-            poMsgDescr = PoMessage('%s_%d_edit_descr' % (classDescr.name, i),
-                                   '', ' ')
-            self.labels.append(poMsgDescr)
-            poMsgPl = PoMessage('%s_%d_plural' % (classDescr.name, i), '',
-                classDescr.klass.__name__+'s')
-            poMsgPl.produceNiceDefault()
-            self.labels.append(poMsgPl)
         # Create i18n labels for searches
         for search in classDescr.getSearches(classDescr.klass):
             searchLabel = '%s_search_%s' % (classDescr.name, search.name)

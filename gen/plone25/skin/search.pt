@@ -16,8 +16,7 @@
        tal:define="appFolder context/getParentNode;
                    contentType request/type_name;
                    tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   flavour python: tool.getFlavour('Dummy_%s' % request['flavourNumber']);
-                   searchableFields python: flavour.getSearchableFields(contentType)">
+                   searchableFields python: tool.getSearchableFields(contentType)">
 
   <tal:comment replace="nothing">Search title</tal:comment>  
   <h1><span tal:replace="python: tool.translate('%s_plural' % contentType)"/> —
@@ -27,10 +26,9 @@
   <form name="search" tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
     <input type="hidden" name="action" value="SearchObjects"/>
     <input type="hidden" name="type_name" tal:attributes="value contentType"/>
-    <input type="hidden" name="flavourNumber:int" tal:attributes="value request/flavourNumber"/>
 
     <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%"
-           tal:define="numberOfColumns python: flavour.getAttr('numberOfSearchColumnsFor%s' % contentType)">
+           tal:define="numberOfColumns python: tool.getAttr('numberOfSearchColumnsFor%s' % contentType)">
       <tr tal:repeat="searchRow python: tool.tabularize(searchableFields, numberOfColumns)" valign="top">
         <td tal:repeat="widget searchRow" tal:attributes="width python:'%d%%' % (100/numberOfColumns)">
           <tal:field condition="widget">

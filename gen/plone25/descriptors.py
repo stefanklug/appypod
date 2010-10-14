@@ -6,7 +6,7 @@
 
 # ------------------------------------------------------------------------------
 import types, copy
-from model import ModelClass, Flavour, flavourAttributePrefixes
+from model import ModelClass, Tool, toolFieldPrefixes
 from utils import stringify
 import appy.gen
 import appy.gen.descriptors
@@ -43,12 +43,13 @@ class FieldDescriptor:
     def __repr__(self):
         return '<Field %s, %s>' % (self.fieldName, self.classDescr)
 
-    def getFlavourAttributeMessage(self, fieldName):
-        '''Some attributes generated on the Flavour class need a specific
+    def getToolFieldMessage(self, fieldName):
+        '''Some attributes generated on the Tool class need a specific
            default message, returned by this method.'''
         res = fieldName
-        for prefix in flavourAttributePrefixes:
-            if fieldName.startswith(prefix):
+        for prefix in toolFieldPrefixes:
+            fullPrefix = prefix + 'For'
+            if fieldName.startswith(fullPrefix):
                 messageId = 'MSG_%s' % prefix
                 res = getattr(PoMessage, messageId)
                 if res.find('%s') != -1:
@@ -66,8 +67,8 @@ class FieldDescriptor:
             produceNice = True
             default = self.fieldName
             # Some attributes need a specific predefined message
-            if isinstance(self.classDescr, FlavourClassDescriptor):
-                default = self.getFlavourAttributeMessage(self.fieldName)
+            if isinstance(self.classDescr, ToolClassDescriptor):
+                default = self.getToolFieldMessage(self.fieldName)
                 if default != self.fieldName: produceNice = False
         msg = PoMessage(msgId, '', default)
         if produceNice:
@@ -88,9 +89,7 @@ class FieldDescriptor:
                 self.generator.labels.append(poMsg)
 
     def walkAction(self):
-        '''How to generate an action field ? We generate an Archetypes String
-           field.'''
-        # Add action-specific i18n messages
+        '''Generates the i18n-related labels.'''
         for suffix in ('ok', 'ko'):
             label = '%s_%s_action_%s' % (self.classDescr.name, self.fieldName,
                                          suffix)
@@ -98,6 +97,10 @@ class FieldDescriptor:
                             getattr(PoMessage, 'ACTION_%s' % suffix.upper()))
             self.generator.labels.append(msg)
             self.classDescr.labelsToPropagate.append(msg)
+        if self.appyType.confirm:
+            label = '%s_%s_confirm' % (self.classDescr.name, self.fieldName)
+            msg = PoMessage(label, '', PoMessage.CONFIRM)
+            self.generator.labels.append(msg)
 
     def walkRef(self):
         '''How to generate a Ref?'''
@@ -115,6 +118,11 @@ class FieldDescriptor:
         poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
         poMsg.produceNiceDefault()
         self.generator.labels.append(poMsg)
+        # Add the label for the confirm message if relevant
+        if self.appyType.addConfirm:
+            label = '%s_%s_addConfirm' % (self.classDescr.name, self.fieldName)
+            msg = PoMessage(label, '', PoMessage.CONFIRM)
+            self.generator.labels.append(msg)
 
     def walkPod(self):
         # Add i18n-specific messages
@@ -123,8 +131,8 @@ class FieldDescriptor:
             msg = PoMessage(label, '', PoMessage.POD_ASKACTION)
             self.generator.labels.append(msg)
             self.classDescr.labelsToPropagate.append(msg)
-        # Add the POD-related fields on the Flavour
-        Flavour._appy_addPodRelatedFields(self)
+        # Add the POD-related fields on the Tool
+        Tool._appy_addPodRelatedFields(self)
 
     notToValidateFields = ('Info', 'Computed', 'Action', 'Pod')
     def walkAppyType(self):
@@ -133,10 +141,10 @@ class FieldDescriptor:
         # Manage things common to all Appy types
         # - optional ?
         if self.appyType.optional:
-            Flavour._appy_addOptionalField(self)
+            Tool._appy_addOptionalField(self)
         # - edit default value ?
         if self.appyType.editDefault:
-            Flavour._appy_addDefaultField(self)
+            Tool._appy_addDefaultField(self)
         # - put an index on this field?
         if self.appyType.indexed and \
            (self.fieldName not in ('title', 'description')):
@@ -229,8 +237,8 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         # (because they contain the class name). But at this time we don't know
         # yet every sub-class. So we store those labels here; the Generator
         # will propagate them later.
-        self.flavourFieldsToPropagate = [] # For this class, some fields have
-        # been defined on the Flavour class. Those fields need to be defined
+        self.toolFieldsToPropagate = [] # For this class, some fields have
+        # been defined on the Tool class. Those fields need to be defined
         # for child classes of this class as well, but at this time we don't
         # know yet every sub-class. So we store field definitions here; the
         # Generator will propagate them later.
@@ -251,7 +259,7 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
     def generateSchema(self, configClass=False):
         '''Generates the corresponding Archetypes schema in self.schema. If we
            are generating a schema for a class that is in the configuration
-           (tool, flavour, etc) we must avoid having attributes that rely on
+           (tool, user, etc) we must avoid having attributes that rely on
            the configuration (ie attributes that are optional, with
            editDefault=True, etc).'''
         for attrName in self.orderedAttributes:
@@ -284,13 +292,6 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         res = False
         if self.klass.__dict__.has_key('root'):
             res = self.klass.__dict__['root']
-        return res
-
-    def isPod(self):
-        '''May this class be associated with POD templates?.'''
-        res = False
-        if self.klass.__dict__.has_key('pod') and self.klass.__dict__['pod']:
-            res = True
         return res
 
     def isFolder(self, klass=None):
@@ -375,6 +376,7 @@ class ToolClassDescriptor(ClassDescriptor):
     '''Represents the POD-specific fields that must be added to the tool.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.attributesByClass = klass._appy_classes
         self.modelClass = self.klass
         self.predefined = True
         self.customized = False
@@ -394,42 +396,6 @@ class ToolClassDescriptor(ClassDescriptor):
     def isRoot(self): return False
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
-
-class FlavourClassDescriptor(ClassDescriptor):
-    '''Represents an Archetypes-compliant class that corresponds to the Flavour
-       for the generated application.'''
-    def __init__(self, klass, generator):
-        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.attributesByClass = klass._appy_classes
-        self.modelClass = self.klass
-        self.predefined = True
-        self.customized = False
-    def getParents(self, allClasses=()):
-        res = ['Flavour']
-        if self.customized:
-            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
-        return res
-    def update(self, klass, attributes):
-        '''This method is called by the generator when he finds a custom flavour
-           definition. We must then add the custom flavour elements in this
-           default Flavour descriptor.'''
-        self.orderedAttributes += attributes
-        self.klass = klass
-        self.customized = True
-    def isFolder(self, klass=None): return True
-    def isRoot(self): return False
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
-
-class PodTemplateClassDescriptor(ClassDescriptor):
-    '''Represents a POD template.'''
-    def __init__(self, klass, generator):
-        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.modelClass = self.klass
-        self.predefined = True
-        self.customized = False
-    def getParents(self, allClasses=()): return ['PodTemplate']
-    def isRoot(self): return False
 
 class UserClassDescriptor(ClassDescriptor):
     '''Represents an Archetypes-compliant class that corresponds to the User

@@ -29,6 +29,7 @@ class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
     typeDescription = "<!toolName!>"
     typeDescMsgId = '<!toolName!>_edit_descr'
     i18nDomain = '<!applicationName!>'
+    allMetaTypes = <!metaTypes!>
     wrapperClass = <!wrapperClass!>
     schema = fullSchema
     schema["id"].widget.visible = False

@@ -26,20 +26,22 @@ fallbacks = {'en': 'en-us en-ca',
 class PoMessage:
     '''Represents a i18n message (po format).'''
     CONFIG = "Configuration panel for product '%s'"
-    FLAVOUR = "Configuration flavour"
-    # The following messages (starting with MSG_) correspond to flavour
+    # The following messages (starting with MSG_) correspond to tool
     # attributes added for every gen-class (warning: the message IDs correspond
-    # to MSG_<attributePrexix>).
-    MSG_optionalFieldsFor = 'Optional fields'
-    MSG_defaultValueFor = "Default value for field '%s'"
-    MSG_podTemplatesFor = "POD templates"
-    MSG_podMaxShownTemplatesFor = "Max shown POD templates"
-    MSG_resultColumnsFor = "Columns to display while showing query results"
-    MSG_showWorkflowFor = 'Show workflow-related information'
-    MSG_showWorkflowCommentFieldFor = 'Show field allowing to enter a ' \
-        'comment every time a transition is triggered'
-    MSG_showAllStatesInPhaseFor = 'Show all states in phase'
-    POD_TEMPLATE = 'POD template'
+    # to MSG_<attributePrefix>).
+    MSG_defaultValue = "Default value for field '%s'"
+    MSG_podTemplate = "POD template for field '%s'"
+    MSG_formats = "Output format(s) for field '%s'"
+    MSG_resultColumns = "Columns to display while showing query results"
+    MSG_enableAdvancedSearch = "Enable advanced search"
+    MSG_numberOfSearchColumns = "Number of search columns"
+    MSG_searchFields = "Search fields"
+    MSG_optionalFields = 'Optional fields'
+    MSG_showWorkflow = 'Show workflow-related information'
+    MSG_showWorkflowCommentField = 'Show field allowing to enter a ' \
+                                   'comment every time a transition is ' \
+                                   'triggered'
+    MSG_showAllStatesInPhase = 'Show all states in phase'
     USER = 'User'
     POD_ASKACTION = 'Trigger related action'
     DEFAULT_VALID_ERROR = 'Please fill or correct this.'

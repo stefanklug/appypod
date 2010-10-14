@@ -144,7 +144,6 @@ class PloneInstaller:
             appFolder = getattr(site, self.productName)
             for className in self.config.rootClasses:
                 permission = self.getAddPermission(className)
-                print 'Permission is', permission
                 appFolder.manage_permission(permission, (), acquire=0)
         else:
             appFolder = getattr(site, self.productName)
@@ -221,78 +220,33 @@ class PloneInstaller:
                         current_catalogs.remove(catalog)
             atTool.setCatalogsByType(meta_type, list(current_catalogs))
 
-    def findPodFile(self, klass, podTemplateName):
-        '''Finds the file that corresponds to p_podTemplateName for p_klass.'''
-        res = None
-        exec 'import %s' % klass.__module__
-        exec 'moduleFile = %s.__file__' % klass.__module__
-        folderName = os.path.dirname(moduleFile)
-        fileName = os.path.join(folderName, '%s.odt' % podTemplateName)
-        if os.path.isfile(fileName):
-            res = fileName
-        return res
-
     def updatePodTemplates(self):
-        '''Creates or updates the POD templates in flavours according to pod
+        '''Creates or updates the POD templates in the tool according to pod
            declarations in the application classes.'''
-        # Creates or updates the old-way class-related templates
-        i = -1
-        for klass in self.appClasses:
-            i += 1
-            if klass.__dict__.has_key('pod'):
-                pod = getattr(klass, 'pod')
-                if isinstance(pod, bool):
-                    podTemplates = [klass.__name__]
-                else:
-                    podTemplates = pod
-                for templateName in podTemplates:
-                    fileName = self.findPodFile(klass, templateName)
-                    if fileName:
-                        # Create the corresponding PodTemplate in all flavours
-                        for flavour in self.appyTool.flavours:
-                            podId='%s_%s' % (self.appClassNames[i],templateName)
-                            podAttr = 'podTemplatesFor%s'% self.appClassNames[i]
-                            allPodTemplates = getattr(flavour, podAttr)
-                            if allPodTemplates:
-                                if isinstance(allPodTemplates, list):
-                                    allIds = [p.id for p in allPodTemplates]
-                                else:
-                                    allIds = [allPodTemplates.id]
-                            else:
-                                allIds = []
-                            if podId not in allIds:
-                                # Create a PodTemplate instance
-                                f = file(fileName)
-                                flavour.create(podAttr, id=podId, podTemplate=f,
-                                    title=produceNiceMessage(templateName))
-                                f.close()
-        # Creates the new-way templates for Pod fields if they do not exist.
+        # Creates the templates for Pod fields if they do not exist.
         for contentType, appyTypes in self.attributes.iteritems():
             appyClass = self.tool.getAppyClass(contentType)
             if not appyClass: continue # May be an abstract class
             for appyType in appyTypes:
-                if appyType.type == 'Pod':
-                    # For every flavour, find the attribute that stores the
-                    # template, and store on it the default one specified in
-                    # the appyType if no template is stored yet.
-                    for flavour in self.appyTool.flavours:
-                        attrName = flavour.getAttributeName(
-                            'podTemplate', appyClass, appyType.name)
-                        fileObject = getattr(flavour, attrName)
-                        if not fileObject or (fileObject.size == 0):
-                            # There is no file. Put the one specified in the
-                            # appyType.
-                            fileName=os.path.join(self.appyTool.getDiskFolder(),
-                                                  appyType.template)
-                            if os.path.exists(fileName):
-                                setattr(flavour, attrName, fileName)
-                            else:
-                                self.appyTool.log(
-                                    'Template "%s" was not found!' % \
-                                    fileName, type='error')
+                if appyType.type != 'Pod': continue
+                # Find the attribute that stores the template, and store on
+                # it the default one specified in the appyType if no
+                # template is stored yet.
+                attrName = self.appyTool.getAttributeName(
+                                        'podTemplate', appyClass, appyType.name)
+                fileObject = getattr(self.appyTool, attrName)
+                if not fileObject or (fileObject.size == 0):
+                    # There is no file. Put the one specified in the appyType.
+                    fileName = os.path.join(self.appyTool.getDiskFolder(),
+                                            appyType.template)
+                    if os.path.exists(fileName):
+                        setattr(self.appyTool, attrName, fileName)
+                    else:
+                        self.appyTool.log('Template "%s" was not found!' % \
+                                          fileName, type='error')
 
     def installTool(self):
-        '''Configures the application tool and flavours.'''
+        '''Configures the application tool.'''
         # Register the tool in Plone
         try:
             self.ploneSite.manage_addProduct[
@@ -333,9 +287,6 @@ class PloneInstaller:
         else:
             self.tool.createOrUpdate(True, None)
 
-        if not self.appyTool.flavours:
-            # Create the default flavour
-            self.appyTool.create('flavours', title=self.productName, number=1)
         self.updatePodTemplates()
 
         # Uncatalog tool

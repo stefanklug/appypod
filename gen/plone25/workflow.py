@@ -155,9 +155,8 @@ def do(transitionName, stateChange, logger):
         if hasattr(ploneObj, '_v_appy_do') and \
            not ploneObj._v_appy_do['doNotify']:
             doNotify = False
-        elif not ploneObj.getTool().getFlavour(
-            ploneObj).getEnableNotifications():
-            # We do not notify if the "notify" flag in the flavour is disabled.
+        elif not getattr(ploneObj.getTool().appy(), 'enableNotifications'):
+            # We do not notify if the "notify" flag in the tool is disabled.
             doNotify = False
     if doAction or doNotify:
         obj = ploneObj.appy()

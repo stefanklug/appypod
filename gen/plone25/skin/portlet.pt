@@ -8,13 +8,13 @@
                contextObj         python: tool.getPublishedObject()">
   <tal:comment replace="nothing">Portlet title, with link to tool.</tal:comment>
   <dt class="portletHeader">
-    <tal:comment replace="nothing">If there is only one flavour, clicking on the portlet
+    <tal:comment replace="nothing">For the Manager, clicking on the portlet
         title allows to see all root objects in the database.</tal:comment>
     <table cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td tal:define="titleIsClickable python: member.has_role('Manager') and rootClasses">
         <a tal:condition="titleIsClickable"
-           tal:attributes="href python:'%s?type_name=%s&flavourNumber=1' % (queryUrl, ','.join(rootClasses))"
+           tal:attributes="href python:'%s?type_name=%s' % (queryUrl, ','.join(rootClasses))"
            tal:content="python: tool.translate(appName)"></a>
         <span tal:condition="not: titleIsClickable"
               tal:replace="python: tool.translate(appName)"/>
@@ -37,16 +37,14 @@
   </tal:publishedObject>
   
   <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
-  <tal:section repeat="rootClass rootClasses"
-               define="flavourNumber python:1;
-                       flavour python: tool.getFlavour('Dummy_%d' % flavourNumber)">
+  <tal:section repeat="rootClass rootClasses">
     <tal:comment replace="nothing">Section title, with action icons</tal:comment>
     <dt tal:condition="python: tool.userMaySearch(rootClass)"
         tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
       <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
         <tr>
           <td>
-            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s' % (queryUrl, rootClass, flavourNumber);
+            <a tal:attributes="href python: '%s?type_name=%s' % (queryUrl, rootClass);
                                class python:test(not currentSearch and (currentType==rootClass), 'portletCurrent', '')"
                tal:content="python: tool.translate(rootClass + '_plural')"></a>
           </td>
@@ -66,11 +64,11 @@
                  tal:attributes="onClick python: 'href: window.location=\'%s/skyn/import?type_name=%s\'' % (appFolder.absolute_url(), rootClass);
                                  src string: $portal_url/skyn/import.png;
                                  title python: tool.translate('query_import')"/>
-            <tal:comment replace="nothing">Search objects of this type (todo: update flavourNumber)</tal:comment>
+            <tal:comment replace="nothing">Search objects of this type</tal:comment>
             <img style="cursor:pointer"
-                 tal:define="showSearch python: flavour.getAttr('enableAdvancedSearchFor%s' % rootClass)"
+                 tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
                  tal:condition="showSearch"
-                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/search?type_name=%s&flavourNumber=1\'' % (appFolder.absolute_url(), rootClass);
+                 tal:attributes="onClick python: 'href: window.location=\'%s/skyn/search?type_name=%s\'' % (appFolder.absolute_url(), rootClass);
                                  src string: $portal_url/skyn/search.gif;
                                  title python: tool.translate('search_objects')"/>
           </td>
@@ -94,7 +92,7 @@
         <span tal:attributes="id group/labelId;
                               style python:test(expanded, 'display:block', 'display:none')">
           <dt class="portletAppyItem portletSearch portletGroupItem" tal:repeat="search group/searches">
-            <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
+            <a tal:attributes="href python: '%s?type_name=%s&search=%s' % (queryUrl, rootClass, search['name']);
                          title search/descr;
                          class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
                tal:content="structure search/label"></a>
@@ -105,23 +103,13 @@
       <dt tal:define="search searchOrGroup" tal:condition="not: searchOrGroup/isGroup"
           class="portletAppyItem portletSearch">
 
-        <a tal:attributes="href python: '%s?type_name=%s&flavourNumber=%s&search=%s' % (queryUrl, rootClass, flavourNumber, search['name']);
+        <a tal:attributes="href python: '%s?type_name=%s&search=%s' % (queryUrl, rootClass, search['name']);
                      title search/descr;
                      class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
            tal:content="structure search/label"></a>
       </dt>
     </tal:searchOrGroup>
   </tal:section>
-
-  <tal:comment replace="nothing">All objects in flavour</tal:comment>
-  <!--dt class="portletAppyItem" tal:define="flavourInfo python: flavours[0]">
-    <a tal:define="flavourNumber flavourInfo/number;
-                   rootTypes python: test(flavourNumber==1, rootClasses, ['%s_%s' % (rc, flavourNumber) for rc in rootClasses]);
-                   rootClassesQuery python:','.join(rootTypes)"
-       tal:content="flavourInfo/title"
-       tal:attributes="title python: tool.translate('query_consult_all');
-                       href python:'%s?type_name=%s&flavourNumber=%d' % (queryUrl, rootClassesQuery, flavourNumber)"></a>
-  </dt-->
 
   <tal:comment replace="nothing">
     Greyed transparent zone that is deployed on the
@@ -133,8 +121,9 @@
   <div id="confirmActionPopup" class="appyPopup">
   <form id="confirmActionForm" method="post">
     <div align="center">
-      <p tal:content="python: tool.translate('confirm')"></p>
-      <input type="hidden" name="actionFormId"/>
+      <p id="appyConfirmText"></p>
+      <input type="hidden" name="actionType"/>
+      <input type="hidden" name="action"/>
       <input type="button" onClick="doConfirm()"
              tal:attributes="value python:tool.translate('yes')"/>
       <input type="button" value="No" onClick="closePopup('confirmActionPopup')"

@@ -122,11 +122,11 @@
 
   /* The functions below wrap askAjaxChunk for getting specific content through
      an Ajax request. */
-  function askQueryResult(hookId, objectUrl, contentType, flavourNumber,
-              searchName, startNumber, sortKey, sortOrder, filterKey) {
+  function askQueryResult(hookId, objectUrl, contentType, searchName,
+                          startNumber, sortKey, sortOrder, filterKey) {
     // Sends an Ajax request for getting the result of a query.
-    var params = {'type_name': contentType, 'flavourNumber': flavourNumber,
-                  'search': searchName, 'startNumber': startNumber};
+    var params = {'type_name': contentType, 'search': searchName,
+                  'startNumber': startNumber};
     if (sortKey) params['sortKey'] = sortKey;
     if (sortOrder) params['sortOrder'] = sortOrder;
     if (filterKey) {
@@ -208,11 +208,9 @@
     theForm.submit();
   }
   function onDeleteObject(objectUid) {
-    if (confirm(delete_confirm)) {
-       f = document.getElementById('deleteForm');
-       f.objectUid.value = objectUid;
-       f.submit();
-    }
+    f = document.getElementById('deleteForm');
+    f.objectUid.value = objectUid;
+    askConfirm('form', 'deleteForm', delete_confirm);
   }
   function toggleCookie(cookieId) {
     // What is the state of this boolean (expanded/collapsed) cookie?
@@ -241,10 +239,9 @@
     createCookie(cookieId, newState);
   }
   // Function that allows to generate a document from a pod template.
-  function generatePodDocument(contextUid, templateUid, fieldName, podFormat) {
+  function generatePodDocument(contextUid, fieldName, podFormat) {
     var theForm = document.getElementsByName("podTemplateForm")[0];
     theForm.objectUid.value = contextUid;
-    theForm.templateUid.value = templateUid;
     theForm.fieldName.value = fieldName;
     theForm.podFormat.value = podFormat;
     theForm.askAction.value = "False";
@@ -255,7 +252,10 @@
     theForm.submit();
   }
   // Functions for opening and closing a popup
-  function openPopup(popupId) {
+  function openPopup(popupId, msg) {
+    // Put the message into the popup
+    var confirmElem = document.getElementById('appyConfirmText');
+    confirmElem.innerHTML = msg;
     // Open the popup
     var popup = document.getElementById(popupId);
     // Put it at the right place on the screen
@@ -276,19 +276,35 @@
     greyed.style.display = "none";
   }
   // Function triggered when an action needs to be confirmed by the user
-  function askConfirm(formId) {
-    // Store the ID of the form to send if the users confirms.
+  function askConfirm(actionType, action, msg) {
+    /* Store the actionType (send a form, call an URL or call a script) and the
+       related action, and shows the confirm popup. If the user confirms, we
+       will perform the action. */
     var confirmForm = document.getElementById('confirmActionForm');
-    confirmForm.actionFormId.value = formId;
-    openPopup("confirmActionPopup");
+    confirmForm.actionType.value = actionType;
+    confirmForm.action.value = action;
+    openPopup("confirmActionPopup", msg);
   }
   // Function triggered when an action confirmed by the user must be performed
   function doConfirm() {
-    // The user confirmed: retrieve the form to send and send it.
+    // The user confirmed: perform the required action.
+    closePopup('confirmActionPopup');
     var confirmForm = document.getElementById('confirmActionForm');
-    var actionFormId = confirmForm.actionFormId.value;
-    var actionForm = document.getElementById(actionFormId);
-    actionForm.submit();
+    var actionType = confirmForm.actionType.value;
+    var action = confirmForm.action.value;
+    if (actionType == 'form') {
+      // We must submit the form whose id is in "action"
+      document.getElementById(action).submit();
+    }
+    else if (actionType == 'url') {
+      // We must go to the URL defined in "action"
+      window.location = action;
+    }
+    else if (actionType == 'script') {
+      // We must execute Javascript code in "action"
+      eval(action);
+    }
+    
   }
   // Function that shows or hides a tab. p_action is 'show' or 'hide'.
   function manageTab(tabId, action) {
@@ -344,10 +360,8 @@
   </form>
   <tal:comment replace="nothing">Global form for generating a document from a pod template.</tal:comment>
   <form name="podTemplateForm" method="post"
-        tal:attributes="action python: flavour.absolute_url() + '/generateDocument'">
+        tal:attributes="action python: tool.absolute_url() + '/generateDocument'">
     <input type="hidden" name="objectUid"/>
-    <tal:comment replace="nothing">templateUid is given if class-wide pod, fieldName and podFormat are given if podField.</tal:comment>
-    <input type="hidden" name="templateUid"/>
     <input type="hidden" name="fieldName"/>
     <input type="hidden" name="podFormat"/>
     <input type="hidden" name="askAction"/>
@@ -383,31 +397,6 @@
     </td>
   </tr>
 </table>
-
-<tal:comment replace="nothing">
-  This macro lists the POD templates that are available. It is used by macro "header" below.
-</tal:comment>
-<div metal:define-macro="listPodTemplates" class="appyPod" tal:condition="podTemplates"
-     tal:define="podTemplates python: flavour.getAvailablePodTemplates(contextObj, phase);">
-  <tal:podTemplates define="maxShownTemplates python: flavour.getMaxShownTemplates(contextObj)">
-    <tal:comment replace="nothing">Display templates as links if a few number of templates must be shown</tal:comment>
-    <span class="discreet" tal:condition="python: len(podTemplates)&lt;=maxShownTemplates"
-          tal:repeat="podTemplate podTemplates">
-      <a style="cursor: pointer"
-         tal:define="podFormat podTemplate/getPodFormat"
-         tal:attributes="onclick python: 'generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" >
-        <img tal:attributes="src string: $portal_url/skyn/$podFormat.png"/>
-        <span tal:replace="podTemplate/Title"/>
-      </a>
-  &nbsp;</span>
-  <tal:comment replace="nothing">Display templates as a list if a lot of templates must be shown</tal:comment>
-  <select tal:condition="python: len(podTemplates)&gt;maxShownTemplates">
-    <option value="" tal:content="python: tool.translate('choose_a_doc')"></option>
-    <option tal:repeat="podTemplate podTemplates" tal:content="podTemplate/Title"
-            tal:attributes="onclick python: 'generatePodDocument(\'%s\',\'%s\', \'\', \'\')' % (contextObj.UID(), podTemplate.UID())" />
-  </select>
-  </tal:podTemplates>
-</div>
 
 <tal:comment replace="nothing">
   This macro displays an object's history. It is used by macro "header" below.
@@ -460,7 +449,7 @@
             <th align="left" width="70%" tal:content="python: tool.translate('previous_value')"></th>
           </tr>
           <tr tal:repeat="change event/changes/items" valign="top">
-            <td tal:content="python: tool.translate(change[1][1])"></td>
+            <td tal:content="structure python: tool.translate(change[1][1])"></td>
             <td tal:define="appyValue python: contextObj.getFormattedFieldValue(change[0], change[1][0]);
                             appyType python:contextObj.getAppyType(change[0], asDict=True);
                             severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
@@ -482,13 +471,13 @@
   This macro displays an object's state(s). It is used by macro "header" below.
 </tal:comment>
 <metal:states define-macro="states"
-              tal:define="showAllStatesInPhase python: flavour.getAttr('showAllStatesInPhaseFor' + contextObj.meta_type);
+              tal:define="showAllStatesInPhase python: tool.getAttr('showAllStatesInPhaseFor' + contextObj.meta_type);
                           states python: contextObj.getAppyStates(phase, currentOnly=not showAllStatesInPhase)"
               tal:condition="python: test(showAllStatesInPhase, len(states)&gt;1, True)">
   <table>
     <tr>
       <tal:state repeat="stateInfo states">
-        <td tal:attributes="class python: 'appyState step' + stateInfo['stateStatus']"
+        <td tal:attributes="class python: 'appyState step%sState' % stateInfo['stateStatus']"
             tal:content="python: tool.translate(contextObj.getWorkflowLabel(stateInfo['name']))">
         </td>
         <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
@@ -512,7 +501,7 @@
     <table>
       <tr>
         <tal:comment replace="nothing">Input field allowing to enter a comment before triggering a transition</tal:comment>
-        <td tal:define="showCommentsField python:flavour.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
+        <td tal:define="showCommentsField python:tool.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
             align="right" tal:condition="showCommentsField">
           <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
           <input type="text" id="comment" name="comment" size="35"/>
@@ -520,7 +509,7 @@
 
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
         <td align="right" tal:repeat="transition transitions">
-          <input type="button" class="context"
+          <input type="button" class="appyButton"
                  tal:attributes="value python: tool.translate(transition['name']);
                                  onClick python: 'triggerTransition(\'%s\')' % transition['id'];"/>
         </td>
@@ -556,7 +545,7 @@
         <td colspan="2" class="discreet" tal:content="descrLabel"/>
       </tr>
       <tr>
-        <td class="documentByLine">
+        <td class="documentByLine" colspan="2">
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
@@ -579,8 +568,6 @@
             <tal:comment replace="nothing">Show last modification date</tal:comment>
             <span i18n:translate="box_last_modified" i18n:domain="plone"></span>
             <span tal:replace="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
-        </td>
-        <td valign="top"><metal:pod use-macro="here/skyn/page/macros/listPodTemplates"/>
         </td>
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
@@ -631,7 +618,7 @@
             masterValue.push(idField);
           }
           else {
-            if (idField[0] == '(') {
+            if ((idField[0] == '(') || (idField[0] == '[')) {
               // There are multiple values, split it
               var subValues = idField.substring(1, idField.length-1).split(',');
               for (var k=0; k < subValues.length; k++){

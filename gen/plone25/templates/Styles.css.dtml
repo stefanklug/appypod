@@ -36,24 +36,22 @@ label         { font-weight: bold; font-style: italic; line-height: 1.4em;}
   border-width: thin;
   text-align: center;
   padding: 0.1em 1em 0.1em 1.3em;
+  background-position: -1px 4px;
 }
 
 .appyChanges th {
   font-style: italic;
   background-color: transparent;
-  border-bottom: 1px dashed #8CACBB;
-  border-top: 0 none transparent;
-  border-left: 0 none transparent;
-  border-right: 0 none transparent; 
+  border: 0 none transparent;
   padding: 0.1em 0.1em 0.1em 0.1em;
 }
 
 .appyChanges td {
-  padding: 0.1em 0.1em 0.1em 0.1em !important;
+  padding: 0.1em 0.2em 0.1em 0.2em !important;
+  border-top: 1px dashed #8CACBB !important;
   border-right: 0 none transparent !important; 
-  border-top: 0 none transparent;
-  border-left: 0 none transparent;
-  border-right: 0 none transparent;
+  border-left: 0 none transparent !important;
+  border-bottom: 0 none transparent !important; 
 }
 
 .appyHistory {
@@ -70,12 +68,24 @@ label         { font-weight: bold; font-style: italic; line-height: 1.4em;}
   background-repeat: no-repeat;
   background-position: -1px 7px;
 }
+.stepDoneState {
+  background-color: #cde2a7;
+  background-image: url(&dtml-portal_url;/skyn/done.png);
+  background-repeat: no-repeat;
+  background-position: -1px 4px;
+}
 
 .stepCurrent {
   background-color: #eef3f5;
   background-image: url(&dtml-portal_url;/skyn/current.png);
   background-repeat: no-repeat;
   background-position: -1px 7px;
+}
+.stepCurrentState {
+  background-color: #eef3f5;
+  background-image: url(&dtml-portal_url;/skyn/current.png);
+  background-repeat: no-repeat;
+  background-position: -1px 4px;
 }
 
 .stepFuture {

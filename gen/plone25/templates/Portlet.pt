@@ -3,15 +3,13 @@
       i18n:domain="<!applicationName!>">
   <body>
     <div metal:define-macro="portlet"
-         tal:define="tool python: context.<!toolInstanceName!>;
-                     flavour python: tool.getFlavour(tool);"
+         tal:define="tool python: context.<!toolInstanceName!>;"
          tal:condition="python: tool.showPortlet(context)">
       <metal:block metal:use-macro="here/global_defines/macros/defines" />
       <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
       <dl tal:define="rootClasses tool/getRootClasses;
                       appName string:<!applicationName!>;
-                      appFolder tool/getAppFolder;
-                      flavours tool/getFlavoursInfo" class="portlet">
+                      appFolder tool/getAppFolder" class="portlet">
         <metal:content use-macro="here/skyn/portlet/macros/portletContent"/>
       </dl>
     </div>

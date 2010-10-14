@@ -9,16 +9,6 @@ class ZopeComponentTool(Tool):
         self.someUsefulConfigurationOption = 'My app is configured now!'
     install = Action(action=onInstall)
 
-class ZopeComponentFlavour(Flavour):
-    anIntegerOption = Integer()
-    bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,
-                         link=False, back=Ref(attribute='backToTool'),
-                         shownInfo=('description',), page='data')
-    def onEdit(self, created):
-        if 'Escadron de la mort' not in [b.title for b in self.bunchesOfGeeks]:
-            self.create('bunchesOfGeeks', title='Escadron de la mort',
-                        description='I want those guys everywhere!')
-
 class ZopeComponentWorkflow:
     # Specific permissions
     wf = WritePermission('ZopeComponent.funeralDate')

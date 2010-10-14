@@ -1,7 +1,6 @@
 <metal:queryResults define-macro="queryResult"
    tal:define="tool          python: contextObj;
                contentType   request/type_name;
-               flavourNumber python: int(request['flavourNumber']);
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
@@ -12,13 +11,13 @@
                sortOrder     request/sortOrder| python:'asc';
                filterKey     request/filterKey| python:'';
                filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(contentType, flavourNumber, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue);
+               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
-               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, flavourNumber, searchName);
-               newSearchUrl  python: '%s/skyn/search?type_name=%s&flavourNumber=%d' % (tool.getAppFolder().absolute_url(), contentType, flavourNumber);">
+               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, searchName);
+               newSearchUrl  python: '%s/skyn/search?type_name=%s&' % (tool.getAppFolder().absolute_url(), contentType);">
 
   <tal:result condition="objs">
 
@@ -91,7 +90,7 @@
 
       <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
       <td id="field_title"><a
-        tal:define="navInfo python:'search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+        tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
         tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a></td>
 
       <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
@@ -125,7 +124,7 @@
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
             <td class="noPadding">
-              <a tal:define="navInfo python:'search.%s:%d.%s.%d.%d' % (contentType, flavourNumber, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+              <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
                  tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
                  tal:condition="python: member.has_permission('Modify portal content', obj)">
                 <img title="Edit" i18n:domain="plone" i18n:attributes="title"

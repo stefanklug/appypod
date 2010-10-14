@@ -42,7 +42,7 @@ ADD_CONTENT_PERMISSIONS = {
 <!addPermissions!>}
 setDefaultRoles(DEFAULT_ADD_CONTENT_PERMISSION, tuple(defaultAddRoles))
 
-# Applications classes, in various formats and flavours
+# Applications classes, in various formats
 rootClasses = [<!rootClasses!>]
 appClasses = <!appClasses!>
 appClassNames = [<!appClassNames!>]

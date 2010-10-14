@@ -16,8 +16,6 @@
                  appName appFolder/id;
                  tool python: portal.get('portal_%s' % appName.lower());
                  contentType python:context.REQUEST.get('type_name');
-                 flavour python: tool.getFlavour(contentType);
-                 flavourNumber python:int(context.REQUEST.get('flavourNumber', 1));
                  searchName python:context.REQUEST.get('search', '')">
 
   <div metal:use-macro="here/skyn/page/macros/prologue"/>
@@ -25,8 +23,8 @@
   <div id="queryResult"></div>
 
   <script language="javascript"
-    tal:define="ajaxUrl python: tool.getQueryUrl(contentType, flavourNumber, searchName)"
-    tal:content="python: 'askQueryResult(\'queryResult\', \'%s\',\'%s\',\'%s\',\'%s\',0)' % (tool.absolute_url(), contentType, flavourNumber, searchName)">
+    tal:define="ajaxUrl python: tool.getQueryUrl(contentType, searchName)"
+    tal:content="python: 'askQueryResult(\'queryResult\', \'%s\',\'%s\',\'%s\',0)' % (tool.absolute_url(), contentType, searchName)">
   </script>
 </div>
 </body>

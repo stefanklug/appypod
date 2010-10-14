@@ -90,7 +90,9 @@
     <metal:content use-macro="portal/skyn/widgets/show/macros/groupContent"/>
   </tal:asSection>
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
-  <table cellpadding="0" cellspacing="0" tal:attributes="width python: test(widget['wide'], '100%', '')">
+  <table cellpadding="0" cellspacing="0"
+         tal:attributes="width python: test(widget['wide'], '100%', '');
+                         class widget/css_class">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
       <table cellpadding="0" cellspacing="0" style="position:relative; bottom:-1px;">
@@ -137,7 +139,8 @@
 </tal:comment>
 <table metal:define-macro="groupContent"
        tal:attributes="width python: test(widget['wide'], '100%', '');
-                       align widget/align">
+                       align widget/align;
+                       class widget/css_class">
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);
