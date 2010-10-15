@@ -47,7 +47,7 @@ def cleanFolder(folder, exts=extsToClean, verbose=False):
                 if verbose: print 'Removing %s...' % fileToRemove
                 os.remove(fileToRemove)
 
-
+# ------------------------------------------------------------------------------
 def copyFolder(source, dest, cleanDest=False):
     '''Copies the content of folder p_source to folder p_dest. p_dest is
        created, with intermediary subfolders if required. If p_cleanDest is
@@ -69,6 +69,48 @@ def copyFolder(source, dest, cleanDest=False):
         elif os.path.isdir(sourceName):
             # Copy a subfolder (recursively)
             copyFolder(sourceName, destName)
+
+# ------------------------------------------------------------------------------
+def encodeData(data, encoding=None):
+    '''Applies some p_encoding to string p_data, but only if an p_encoding is
+       specified.'''
+    if not encoding: return data
+    return data.encode(encoding)
+
+# ------------------------------------------------------------------------------
+def copyData(data, target, targetMethod, type='string', encoding=None,
+             chunkSize=1024):
+    '''Copies p_data to a p_target, using p_targetMethod. For example, it copies
+       p_data which is a string containing the binary content of a file, to
+       p_target, which can be a HTTP connection or a file object.
+
+       p_targetMethod can be "write" (files) or "send" (HTTP connections) or ...
+       p_type can be "string", "file" or "zope". In the latter case it is an
+       instance of OFS.Image.File. If p_type is "file", one may, in p_chunkSize,
+       specify the amount of bytes transmitted at a time.
+
+       If an p_encoding is specified, it is applied on p_data before copying.
+
+       Note that if the p_target is a Python file, it must be opened in a way
+       that is compatible with the content of p_data, ie file('myFile.doc','wb')
+       if content is binary.'''
+    dump = getattr(target, targetMethod)
+    if type == 'string': dump(encodeData(data, encoding))
+    elif type == 'file':
+        while True:
+            chunk = data.read(chunkSize)
+            if not chunk: break
+            dump(encodeData(chunk, encoding))
+    elif type == 'zope':
+        # A OFS.Image.File instance can be split into several chunks
+        if isinstance(data.data, basestring): # One chunk
+            dump(encodeData(data.data, encoding))
+        else:
+            # Several chunks
+            data = data.data
+            while data is not None:
+                dump(encodeData(data.data, encoding))
+                data = data.next
 
 # ------------------------------------------------------------------------------
 class Traceback:
@@ -229,6 +271,7 @@ class CodeAnalysis:
         print '%s: %d files, %d lines (%.0f%% comments, %.0f%% blank)' % \
               (self.name, self.numberOfFiles, lines, commentRate, blankRate)
 
+# ------------------------------------------------------------------------------
 class LinesCounter:
     '''Counts and classifies the lines of code within a folder hierarchy.'''
     def __init__(self, folderOrModule):

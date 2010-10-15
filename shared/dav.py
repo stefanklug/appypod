@@ -1,11 +1,13 @@
 # ------------------------------------------------------------------------------
-import os, re, httplib, sys
+import os, re, httplib, sys, stat
 from StringIO import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
+from appy.shared.utils import copyData
 
 # ------------------------------------------------------------------------------
 urlRex = re.compile(r'http://([^:/]+)(:[0-9]+)?(/.+)?', re.I)
+binaryRex = re.compile(r'[\000-\006\177-\277]')
 
 # ------------------------------------------------------------------------------
 class Resource:
@@ -26,6 +28,11 @@ class Resource:
             self.uri = uri or '/'
         else: raise 'Wrong URL: %s' % str(url)
 
+    def __repr__(self):
+        port = ':' + str(self.port)
+        if self.port == 80: port = ''
+        return '<Dav resource at %s%s/%s>' % (self.url, port, self.uri)
+
     def updateHeaders(self, headers):
         # Add credentials if present
         if not (self.username and self.password): return
@@ -39,7 +46,7 @@ class Resource:
         headers['Accept'] = '*/*'
         return headers
 
-    def sendRequest(self, method, uri, body=None, headers={}):
+    def sendRequest(self, method, uri, body=None, headers={}, bodyType=None):
         '''Sends a HTTP request with p_method, for p_uri.'''
         conn = httplib.HTTP()
         conn.connect(self.host, self.port)
@@ -48,7 +55,7 @@ class Resource:
         self.updateHeaders(headers)
         for n, v in headers.items(): conn.putheader(n, v)
         conn.endheaders()
-        if body: conn.send(body)
+        if body: copyData(body, conn, 'send', type=bodyType)
         ver, code, msg = conn.getreply()
         data = conn.getfile().read()
         conn.close()
@@ -78,30 +85,24 @@ class Resource:
         '''
         if type == 'fileName':
             # p_content is the name of a file on disk
-            f = file(content, 'rb')
-            body = f.read()
-            f.close()
-            fileName = os.path.basename(content)
-            fileType, encoding = guess_type(fileName)
+            size = os.stat(content)[stat.ST_SIZE]
+            body = file(content, 'rb')
+            name = os.path.basename(content)
+            fileType, encoding = guess_type(content)
+            bodyType = 'file'
         elif type == 'zope':
             # p_content is a "Zope" file, ie a OFS.Image.File instance
-            fileName = name
+            # p_name is given
             fileType = content.content_type
             encoding = None
-            if isinstance(content.data, basestring):
-                # The file content is here, in one piece
-                body = content.data
-            else:
-                # There are several parts to this file.
-                body = ''
-                data = content.data
-                while data is not None:
-                    body += data.data
-                    data = data.next
-        fileUri = self.uri + '/' + fileName
-        headers = {}
+            size = content.size
+            body = content
+            bodyType = 'zope'
+        fileUri = self.uri + '/' + name
+        headers = {'Content-Length': str(size)}
         if fileType: headers['Content-Type'] = fileType
         if encoding: headers['Content-Encoding'] = encoding
-        headers['Content-Length'] = str(len(body))
-        return self.sendRequest('PUT', fileUri, body, headers)
+        res = self.sendRequest('PUT', fileUri, body, headers, bodyType=bodyType)
+        # Close the file when relevant
+        if type =='fileName': body.close()
 # ------------------------------------------------------------------------------
