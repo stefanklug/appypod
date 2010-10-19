@@ -15,17 +15,17 @@
   <tal:comment replace="nothing">Fill main slot of Plone main_template</tal:comment>
   <body>
     <metal:fill fill-slot="main"
-      tal:define="contextObj python:context.getParentNode();
-                  portal_type python:here.getPortalTypeName().lower().replace(' ', '_');
-                  errors python:request.get('errors', {});
-                  layoutType python:'view';
-                  layout python: contextObj.getPageLayout(layoutType);
-                  tool contextObj/getTool;
-                  appFolder tool/getAppFolder;
-                  appName appFolder/getId;
-                  page request/page|python:'main';
-                  phaseInfo python: contextObj.getAppyPhases(page=page);
-                  phase phaseInfo/name;
+      tal:define="contextObj   python:context.getParentNode();
+                  portal_type  python:here.getPortalTypeName().lower().replace(' ', '_');
+                  errors       python:request.get('errors', {});
+                  layoutType   python:'view';
+                  layout       python: contextObj.getPageLayout(layoutType);
+                  tool         contextObj/getTool;
+                  appFolder    tool/getAppFolder;
+                  appName      appFolder/getId;
+                  phaseInfo    python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
+                  page         request/page|python:'main';
+                  phase        phaseInfo/name;
                   showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type)">
       <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
       <metal:show     use-macro="here/skyn/page/macros/show"/>

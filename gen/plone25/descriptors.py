@@ -13,8 +13,7 @@ import appy.gen.descriptors
 from appy.gen.po import PoMessage
 from appy.gen import Date, String, State, Transition, Type, Search, \
                      Selection, Import, Role
-from appy.gen.utils import GroupDescr, PageDescr, produceNiceMessage, \
-     sequenceTypes, getClassName
+from appy.gen.utils import produceNiceMessage, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
 
 # ------------------------------------------------------------------------------
@@ -172,12 +171,14 @@ class FieldDescriptor:
             messages.append(self.produceMessage(helpId, isLabel=False))
         # Create i18n messages linked to pages and phases
         messages = self.generator.labels
-        pageMsgId = '%s_page_%s' % (self.classDescr.name, self.appyType.page)
-        phaseMsgId = '%s_phase_%s' % (self.classDescr.name, self.appyType.phase)
+        pageMsgId = '%s_page_%s' % (self.classDescr.name,
+                                    self.appyType.page.name)
+        phaseMsgId = '%s_phase_%s' % (self.classDescr.name,
+                                      self.appyType.page.phase)
         pagePoMsg = PoMessage(pageMsgId, '',
-                              produceNiceMessage(self.appyType.page))
+                              produceNiceMessage(self.appyType.page.name))
         phasePoMsg = PoMessage(phaseMsgId, '',
-                               produceNiceMessage(self.appyType.phase))
+                               produceNiceMessage(self.appyType.page.phase))
         for poMsg in (pagePoMsg, phasePoMsg):
             if poMsg not in messages:
                 messages.append(poMsg)

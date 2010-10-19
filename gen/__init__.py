@@ -4,8 +4,8 @@ from appy.shared.utils import Traceback
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
-from appy.gen.utils import sequenceTypes, PageDescr, GroupDescr, Keywords, \
-                           FileWrapper, getClassName, SomeObjects
+from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
+                           getClassName, SomeObjects
 from appy.shared.data import languages
 
 # Default Appy permissions -----------------------------------------------------
@@ -22,10 +22,67 @@ emptyTuple = ()
 # (pages, groups,...) ----------------------------------------------------------
 class Page:
     '''Used for describing a page, its related phase, show condition, etc.'''
-    def __init__(self, name, phase='main', show=True):
+    subElements = ('save', 'cancel', 'previous', 'next')
+    def __init__(self, name, phase='main', show=True, showSave=True,
+                 showCancel=True, showPrevious=True, showNext=True):
         self.name = name
         self.phase = phase
         self.show = show
+        # When editing the page, must I show the "save" button?
+        self.showSave = showSave
+        # When editing the page, must I show the "cancel" button?
+        self.showCancel = showCancel
+        # When editing the page, and when a previous page exists, must I show
+        # the "previous" button?
+        self.showPrevious = showPrevious
+        # When editing the page, and when a next page exists, must I show the
+        # "next" button?
+        self.showNext = showNext
+
+    @staticmethod
+    def get(pageData):
+        '''Produces a Page instance from p_pageData. User-defined p_pageData
+           can be:
+           (a) a string containing the name of the page;
+           (b) a string containing <pageName>_<phaseName>;
+           (c) a Page instance.
+           This method returns always a Page instance.'''
+        res = pageData
+        if res and isinstance(res, basestring):
+            # Page data is given as a string.
+            pageElems = pageData.rsplit('_', 1)
+            if len(pageElems) == 1: # We have case (a)
+                res = Page(pageData)
+            else: # We have case (b)
+                res = Page(pageData[0], phase=pageData[1])
+        return res
+
+    def isShowable(self, obj, layoutType, elem='page'):
+        '''Must this page be shown for p_obj? "Show value" can be True, False
+           or 'view' (page is available only in "view" mode).
+
+           If p_elem is not "page", this method returns the fact that a
+           sub-element is viewable or not (button "save", "cancel", etc).'''
+        # Define what attribute to test for "showability".
+        showAttr = 'show'
+        if elem != 'page':
+            showAttr = 'show%s' % elem.capitalize()
+        # Get the value of the show attribute as identified above.
+        show = getattr(self, showAttr)
+        if callable(show): show = show(obj.appy())
+        # Show value can be 'view', for example. Thanks to p_layoutType,
+        # convert show value to a real final boolean value.
+        res = show
+        if res == 'view': res = layoutType == 'view'
+        return res
+
+    def getInfo(self, obj, layoutType):
+        '''Gets information about this page, for p_obj, as a dict.'''
+        res = {}
+        for elem in Page.subElements:
+            res['show%s' % elem.capitalize()] = self.isShowable(obj, layoutType,
+                                                                elem=elem)
+        return res
 
 class Group:
     '''Used for describing a group of widgets within a page.'''
@@ -313,9 +370,9 @@ class Type:
         # Must the field be visible or not?
         self.show = show
         # When displaying/editing the whole object, on what page and phase must
-        # this field value appear? Default is ('main', 'main'). pageShow
-        # indicates if the page must be shown or not.
-        self.page, self.phase, self.pageShow = PageDescr.getPageInfo(page)
+        # this field value appear?
+        self.page = Page.get(page)
+        self.pageName = self.page.name
         # Within self.page, in what group of fields must this field value
         # appear?
         self.group = Group.get(group)
@@ -464,14 +521,6 @@ class Type:
             if isEdit: res = True
             else:      res = False
         return res
-
-    def showPage(self, obj):
-        '''Must the page where this field lies be shown ? "Show value" can be
-           True, False or 'view' (page is available only in "view" mode).'''
-        if callable(self.pageShow):
-            return self.pageShow(obj.appy())
-        else:
-            return self.pageShow
 
     def formatSync(self, sync):
         '''Creates a dictionary indicating, for every layout type, if the field

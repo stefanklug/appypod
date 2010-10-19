@@ -6,12 +6,12 @@
                   tool        contextObj/getTool;
                   appFolder   tool/getAppFolder;
                   appName     appFolder/getId;
+                  phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType='edit');
+                  phase       phaseInfo/name;
                   page        request/page|python:'main';
                   cssAndJs    python: contextObj.getCssAndJs(layoutType, page);
                   css         python: cssAndJs[0];
-                  js          python: cssAndJs[1];
-                  phaseInfo   python: contextObj.getAppyPhases(page=page);
-                  phase       phaseInfo/name">
+                  js          python: cssAndJs[1]">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
       xmlns:tal="http://xml.zope.org/namespaces/tal"

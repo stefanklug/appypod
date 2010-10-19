@@ -73,8 +73,8 @@ class ClassDescriptor(Descriptor):
         '''Gets the phases defined on fields of this class.'''
         res = []
         for fieldName, appyType, klass in self.getOrderedAppyAttributes():
-            if appyType.phase not in res:
-                res.append(appyType.phase)
+            if appyType.page.phase not in res:
+                res.append(appyType.page.phase)
         return res
 
 class WorkflowDescriptor(Descriptor):

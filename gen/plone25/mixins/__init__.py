@@ -149,7 +149,6 @@ class BaseMixin:
         errorMessage = self.translate(
             'Please correct the indicated errors.', domain='plone')
         isNew = rq.get('is_new') == 'True'
-
         # Go back to the consult view if the user clicked on 'Cancel'
         if rq.get('buttonCancel.x', None):
             if isNew:
@@ -204,31 +203,29 @@ class BaseMixin:
             # previous pages may have changed). Moreover, previous and next
             # pages may not be available in "edit" mode, so we return the edit
             # or view pages depending on page.show.
-            currentPage = rq.get('page')
-            phaseInfo = self.getAppyPhases(page=currentPage)
-            previousPage, show = self.getPreviousPage(phaseInfo, currentPage)
-            if previousPage:
+            phaseInfo = self.getAppyPhases(currentOnly=True, layoutType='edit')
+            pageName, pageInfo = self.getPreviousPage(phaseInfo, rq['page'])
+            if pageName:
                 # Return to the edit or view page?
-                if show != 'view':
-                    rq.set('page', previousPage)
+                if pageInfo['showOnEdit']:
+                    rq.set('page', pageName)
                     return obj.skyn.edit(obj)
                 else:
-                    return self.goto(obj.getUrl(page=previousPage))
+                    return self.goto(obj.getUrl(page=pageName))
             else:
                 obj.plone_utils.addPortalMessage(msg)
                 return self.goto(obj.getUrl())
         if rq.get('buttonNext.x', None):
             # Go to the next page for this object
-            currentPage = rq.get('page')
-            phaseInfo = self.getAppyPhases(page=currentPage)
-            nextPage, show = self.getNextPage(phaseInfo, currentPage)
-            if nextPage:
+            phaseInfo = self.getAppyPhases(currentOnly=True, layoutType='edit')
+            pageName, pageInfo = self.getNextPage(phaseInfo, rq['page'])
+            if pageName:
                 # Return to the edit or view page?
-                if show != 'view':
-                    rq.set('page', nextPage)
+                if pageInfo['showOnEdit']:
+                    rq.set('page', pageName)
                     return obj.skyn.edit(obj)
                 else:
-                    return self.goto(obj.getUrl(page=nextPage))
+                    return self.goto(obj.getUrl(page=pageName))
             else:
                 obj.plone_utils.addPortalMessage(msg)
                 return self.goto(obj.getUrl())
@@ -390,13 +387,13 @@ class BaseMixin:
         className = className or self.__class__.__name__
         return self.getProductConfig().attributes[className]
 
-    def getGroupedAppyTypes(self, layoutType, page):
+    def getGroupedAppyTypes(self, layoutType, pageName):
         '''Returns the fields sorted by group. For every field, the appyType
            (dict version) is given.'''
         res = []
         groups = {} # The already encountered groups
         for appyType in self.getAllAppyTypes():
-            if appyType.page != page: continue
+            if appyType.page.name != pageName: continue
             if not appyType.isShowable(self, layoutType): continue
             if not appyType.group:
                 res.append(appyType.__dict__)
@@ -408,12 +405,12 @@ class BaseMixin:
                 GroupDescr.addWidget(groupDescr, appyType.__dict__)
         return res
 
-    def getAppyTypes(self, layoutType, page):
+    def getAppyTypes(self, layoutType, pageName):
         '''Returns the list of appyTypes that belong to a given p_page, for a
            given p_layoutType.'''
         res = []
         for appyType in self.getAllAppyTypes():
-            if appyType.page != page: continue
+            if appyType.page.name != pageName: continue
             if not appyType.isShowable(self, layoutType): continue
             res.append(appyType)
         return res
@@ -478,23 +475,23 @@ class BaseMixin:
                     res.append(transition)
         return res
 
-    def getAppyPhases(self, currentOnly=False, page=None):
+    def getAppyPhases(self, currentOnly=False, layoutType='view'):
         '''Gets the list of phases that are defined for this content type. If
-           p_currentOnly is True, the search is limited to the current phase.
-           If p_page is not None, the search is limited to the phase
-           where p_page lies.'''
+           p_currentOnly is True, the search is limited to the phase where the
+           current page (as defined in the request) lies.'''
         # Get the list of phases
         res = [] # Ordered list of phases
         phases = {} # Dict of phases
         for appyType in self.getAllAppyTypes():
-            if appyType.phase not in phases:
-                states = self.getAppyStates(appyType.phase)
-                phase = PhaseDescr(appyType.phase, states, self)
+            typePhase = appyType.page.phase
+            if typePhase not in phases:
+                states = self.getAppyStates(typePhase)
+                phase = PhaseDescr(typePhase, states, self)
                 res.append(phase.__dict__)
-                phases[appyType.phase] = phase
+                phases[typePhase] = phase
             else:
-                phase = phases[appyType.phase]
-            phase.addPage(appyType, self)
+                phase = phases[typePhase]
+            phase.addPage(appyType, self, layoutType)
         # Remove phases that have no visible page
         for i in range(len(res)-1, -1, -1):
             if not res[i]['pages']:
@@ -504,15 +501,19 @@ class BaseMixin:
         for ph in phases.itervalues():
             ph.computeStatus(res)
             ph.totalNbOfPhases = len(res)
-        # Restrict the result if we must not produce the whole list of phases
+        # Restrict the result to the current phase if required
         if currentOnly:
-            for phaseInfo in res:
-                if phaseInfo['phaseStatus'] == 'Current':
-                    return phaseInfo
-        elif page:
+            rq = self.REQUEST
+            page = rq.get('page', 'main')
             for phaseInfo in res:
                 if page in phaseInfo['pages']:
                     return phaseInfo
+            # If I am here, it means that the page as defined in the request,
+            # or 'main' by default, is not existing nor visible in any phase.
+            # In this case I set the page as being the first visible page in
+            # the first visible phase.
+            rq.set('page', res[0]['pages'][0])
+            return res[0]
         else:
             return res
 
@@ -522,15 +523,15 @@ class BaseMixin:
         if pageIndex > 0:
             # We stay on the same phase, previous page
             res = phase['pages'][pageIndex-1]
-            show = phase['pageShows'][res]
-            return res, show
+            resInfo = phase['pagesInfo'][res]
+            return res, resInfo
         else:
             if phase['previousPhase']:
                 # We go to the last page of previous phase
                 previousPhase = phase['previousPhase']
                 res = previousPhase['pages'][-1]
-                show = previousPhase['pageShows'][res]
-                return res, show
+                resInfo = previousPhase['pagesInfo'][res]
+                return res, resInfo
             else:
                 return None, None
 
@@ -540,15 +541,15 @@ class BaseMixin:
         if pageIndex < len(phase['pages'])-1:
             # We stay on the same phase, next page
             res = phase['pages'][pageIndex+1]
-            show = phase['pageShows'][res]
-            return res, show
+            resInfo = phase['pagesInfo'][res]
+            return res, resInfo
         else:
             if phase['nextPhase']:
                 # We go to the first page of next phase
                 nextPhase = phase['nextPhase']
                 res = nextPhase['pages'][0]
-                show = nextPhase['pageShows'][res]
-                return res, show
+                resInfo = nextPhase['pagesInfo'][res]
+                return res, resInfo
             else:
                 return None, None
 

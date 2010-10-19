@@ -160,7 +160,7 @@
               <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
                    tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=pageName);
                                    src string: $portal_url/skyn/edit.gif"
-                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pageShows'][pageName] != 'view'"/>
+                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pagesInfo'][pageName]['showOnEdit']"/>
             </td>
           </tr>
         </table>
@@ -180,7 +180,7 @@
               <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
                    tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=aPage);
                                    src string: $portal_url/skyn/edit.gif"
-                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pageShows'][aPage] != 'view'"/>
+                   tal:condition="python: member.has_permission('Modify portal content', contextObj) and phase['pagesInfo'][aPage]['showOnEdit']"/>
             </td>
           </tr>
         </table>

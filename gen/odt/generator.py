@@ -37,7 +37,7 @@ class Generator(AbstractGenerator):
            if the page where the field must be displayed has a boolean attribute
            "show" having the boolean value False.'''
         if (type(field.show) == bool) and not field.show: return True
-        if (type(field.pageShow) == bool) and not field.pageShow: return True
+        if (type(field.page.show) == bool) and not field.page.show: return True
         return False
 
     undumpable = ('Ref', 'Action', 'File', 'Computed')

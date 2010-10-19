@@ -24,7 +24,7 @@ class GroupDescr(Descr):
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # The name of the page where the group lies
-        self.page = page
+        self.page = page.name
         # The widgets belonging to the group that the current user may see.
         # They will be stored by m_addWidget below as a list of lists because
         # they will be rendered as a table.
@@ -58,34 +58,18 @@ class GroupDescr(Descr):
             newRow = [newWidget]
             groupDict['widgets'].append(newRow)
 
-class PageDescr(Descr):
-    @staticmethod
-    def getPageInfo(pageOrName):
-        '''pageOrName can be:
-           - a string containing the name of the page
-           - a string containing <pageName>_<phaseName>
-           - a appy.gen.Page instance for a more detailed page description.
-           This method returns a normalized tuple containing page-related
-           information.'''
-        if isinstance(pageOrName, basestring):
-            res = pageOrName.rsplit('_', 1)
-            if len(res) == 1:
-                res.append('main')
-            res.append(True)
-        else:
-            res = [pageOrName.name, pageOrName.phase, pageOrName.show]
-        return res
-
 class PhaseDescr(Descr):
     def __init__(self, name, states, obj):
         self.name = name
         self.states = states
         self.obj = obj
         self.phaseStatus = None
-        self.pages = [] # The list of pages in this phase
-        # Below, a dict of "show" values (True, False or 'view') for every page
-        # in self.pages.
-        self.pageShows = {}
+        # The list of names of pages in this phase
+        self.pages = []
+        # The list of hidden pages in this phase
+        self.hiddenPages = []
+        # The dict below stores infor about every page listed in self.pages.
+        self.pagesInfo = {}
         self.totalNbOfPhases = None
         # The following attributes allows to browse, from a given page, to the
         # last page of the previous phase and to the first page of the following
@@ -93,13 +77,23 @@ class PhaseDescr(Descr):
         self.previousPhase = None
         self.nextPhase = None
 
-    def addPage(self, appyType, obj):
-        toAdd = appyType.page
-        if toAdd not in self.pages:
-            showValue = appyType.showPage(obj)
-            if showValue:
-                self.pages.append(toAdd)
-                self.pageShows[toAdd] = showValue
+    def addPage(self, appyType, obj, layoutType):
+        '''Adds page-related information in the phase.'''
+        # If the page is already there, we have nothing more to do.
+        if (appyType.page.name in self.pages) or \
+           (appyType.page.name in self.hiddenPages): return
+        # Add the page only if it must be shown.
+        if appyType.page.isShowable(obj, layoutType):
+            # The page must be added.
+            self.pages.append(appyType.page.name)
+            # Create the dict about page information and add it in self.pageInfo
+            pageInfo = {'page': appyType.page,
+                        'showOnView': appyType.page.isShowable(obj, 'view'),
+                        'showOnEdit': appyType.page.isShowable(obj, 'edit')}
+            pageInfo.update(appyType.page.getInfo(obj, layoutType))
+            self.pagesInfo[appyType.page.name] = pageInfo
+        else:
+            self.hiddenPages.append(appyType.page.name)
 
     def computeStatus(self, allPhases):
         '''Compute status of whole phase based on individual status of states

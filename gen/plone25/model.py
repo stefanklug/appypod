@@ -19,10 +19,10 @@ class ModelClass:
     _appy_attributes = [] # We need to keep track of attributes order.
     # When creating a new instance of a ModelClass, the following attributes
     # must not be given in the constructor (they are computed attributes).
-    _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'phase', 'pageShow',
-                     'isSelect', 'hasLabel', 'hasDescr', 'hasHelp',
-                     'master_css', 'layouts', 'required', 'filterable',
-                     'validable', 'backd', 'isBack', 'sync')
+    _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'isSelect',
+                     'hasLabel', 'hasDescr', 'hasHelp', 'master_css',
+                     'layouts', 'required', 'filterable', 'validable', 'backd',
+                     'isBack', 'sync', 'pageName')
 
     @classmethod
     def _appy_addField(klass, fieldName, fieldType, classDescr):
@@ -55,6 +55,8 @@ class ModelClass:
                 attrValue = 'Selection("%s")' % attrValue.methodName
             elif isinstance(attrValue, Group):
                 attrValue = 'Group("%s")' % attrValue.name
+            elif isinstance(attrValue, Page):
+                attrValue = 'Page("%s")' % attrValue.name
             elif type(attrValue) == types.FunctionType:
                 attrValue = '%sWrapper.%s'% (klass.__name__, attrValue.__name__)
             typeArgs += '%s=%s,' % (attrName, attrValue)

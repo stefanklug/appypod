@@ -9,9 +9,9 @@
     on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
     from one object to the next/previous on skyn/view.</tal:comment>
   <a tal:define="includeShownInfo includeShownInfo | python:False;
-                 navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);
+                 navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);
                  navInfo python: test(appyType['isBack'], '', navInfo);
-                 pageName python: appyType['isBack'] and appyType['backd']['page'] or 'main';
+                 pageName python: appyType['isBack'] and appyType['backd']['pageName'] or 'main';
                  fullUrl python: obj.getUrl(page=pageName, nav=navInfo)"
      tal:attributes="href fullUrl" tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a>
 </metal:objectTitle>
@@ -41,7 +41,7 @@
     </td>
     <tal:comment replace="nothing">Edit the element</tal:comment>
     <td class="noPadding" tal:condition="python: member.has_permission('Modify portal content', obj) and not appyType['noForm']">
-       <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], repeat['obj'].number()+startNumber, totalNumber);"
+       <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
           tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
         <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
              tal:attributes="src string: $portal_url/skyn/edit.gif"/>
@@ -63,7 +63,7 @@
       through a reference widget. Indeed, If field was declared as "addable", we must provide
       an icon for creating a new linked object (at least if multiplicities allow it).</tal:comment>
   <img style="cursor:pointer" tal:condition="showPlusIcon"
-       tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['page'], 0, totalNumber);
+       tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], 0, totalNumber);
                    formCall python:'window.location=\'%s/skyn/do?action=Create&type_name=%s&nav=%s\'' % (folder.absolute_url(), linkedPortalType, navInfo);
                    formCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (formCall, addConfirmMsg), formCall);
                    noFormCall python: navBaseCall.replace('**v**', '%d, \'CreateWithoutForm\'' % startNumber);
