@@ -95,7 +95,7 @@ def copyData(data, target, targetMethod, type='string', encoding=None,
        that is compatible with the content of p_data, ie file('myFile.doc','wb')
        if content is binary.'''
     dump = getattr(target, targetMethod)
-    if type == 'string': dump(encodeData(data, encoding))
+    if not type or (type == 'string'): dump(encodeData(data, encoding))
     elif type == 'file':
         while True:
             chunk = data.read(chunkSize)
