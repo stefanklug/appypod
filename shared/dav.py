@@ -68,7 +68,7 @@ binaryRex = re.compile(r'[\000-\006\177-\277]')
 
 class Resource:
     '''Every instance of this class represents some web resource accessible
-       through WebDAV.'''
+       through HTTP.'''
 
     def __init__(self, url, username=None, password=None, measure=False):
         self.username = username
@@ -94,9 +94,7 @@ class Resource:
         else: raise 'Wrong URL: %s' % str(url)
 
     def __repr__(self):
-        port = ':' + str(self.port)
-        if self.port == 80: port = ''
-        return '<Dav resource at %s%s/%s>' % (self.url, port, self.uri)
+        return '<Dav resource at %s>' % self.url
 
     def updateHeaders(self, headers):
         # Add credentials if present
@@ -203,12 +201,22 @@ class Resource:
         if not uri: uri = self.uri
         return self.sendRequest('GET', uri, headers=headers)
 
-    def post(self, data, uri=None, headers={}):
-        '''Perform a HTTP POST on the server.'''
+    def post(self, data=None, uri=None, headers={}, type='form'):
+        '''Perform a HTTP POST on the server. If p_type is:
+           - "form", p_data is a dict representing form data that will be
+             form-encoded;
+           - "soap", p_data is a XML request that will be wrapped in a SOAP
+             message.'''
         if not uri: uri = self.uri
-        # Format the form data and prepare headers
-        body = DataEncoder(data).encode()
-        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        # Prepare the data to send
+        if type == 'form':
+            # Format the form data and prepare headers
+            body = DataEncoder(data).encode()
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        elif type =='soap':
+            body = data
+            headers['SOAPAction'] = self.url
+            headers['Content-Type'] = 'text/xml'
         headers['Content-Length'] = str(len(body))
         return self.sendRequest('POST', uri, headers=headers, body=body)
 # ------------------------------------------------------------------------------

@@ -189,6 +189,7 @@
         </table>
 
         <tal:comment replace="nothing">Show forward reference(s)</tal:comment>
+
         <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
                                width python:test(innerRef, '100%', appyType['layouts']['view']['width']);"
                align="right" tal:condition="python: not appyType['isBack'] and objs" cellpadding="0" cellspacing="0">

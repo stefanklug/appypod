@@ -1,9 +1,9 @@
-'''This script allows to create a brand new read-to-use Plone/Zone instance.
+'''This script allows to create a brand new ready-to-use Plone/Zone instance.
    As prerequisite, you must have installed Plone through the Unifier installer
    available at http://plone.org.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, shutil
+import os, os.path, sys, shutil, re
 from optparse import OptionParser
 from appy.shared.utils import cleanFolder, copyFolder
 
@@ -22,12 +22,34 @@ MKZOPE_NOT_FOUND = 'Script mkzopeinstance.py not found in "%s and ' \
 WRONG_INSTANCE_PATH = '"%s" must be an existing folder for creating the ' \
     'instance in it.'
 
+zopeCtl = '''#!/bin/sh
+PYTHON="%s"
+INSTANCE_HOME="%s"
+CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
+PYTHONPATH="$INSTANCE_HOME/lib/python"
+ZDCTL="%s/Zope2/Startup/zopectl.py"
+export INSTANCE_HOME
+export PYTHON
+export PYTHONPATH
+exec "$PYTHON" "$ZDCTL" -C "$CONFIG_FILE" "$@"
+'''
+runZope = '''#! /bin/sh
+PYTHON="%s"
+INSTANCE_HOME="%s"
+CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
+PYTHONPATH="$INSTANCE_HOME/lib/python"
+ZOPE_RUN="%s/Zope2/Startup/run.py"
+export INSTANCE_HOME
+export PYTHON
+export PYTHONPATH
+exec "$PYTHON" "$ZOPE_RUN" -C "$CONFIG_FILE" "$@"
+'''
 # ------------------------------------------------------------------------------
 class NewScript:
     '''usage: %prog ploneVersion plonePath instancePath
 
-       "ploneVersion"  can be plone25, plone30, or plone3x
-                       (plone3x can be Plone 3.2.x, Plone 3.3.5...)
+       "ploneVersion"  can be plone25, plone30, plone3x or plone4
+                       (plone3x represents Plone 3.2.x, Plone 3.3.5...)
        
        "plonePath"     is the (absolute) path to you plone installation.
                        Plone 2.5 and 3.0 are typically installed in
@@ -35,48 +57,7 @@ class NewScript:
                        installed in in /usr/local/Plone.
        "instancePath"  is the (absolute) path where you want to create your
                        instance (should not already exist).'''
-    ploneVersions = ('plone25', 'plone30', 'plone3x')
-
-    def createInstance(self, linksForProducts):
-        '''Calls the Zope script that allows to create a Zope instance and copy
-           into it all the Plone packages and products.'''
-        # Find the Python interpreter running Zope
-        for elem in os.listdir(self.plonePath):
-            pythonPath = None
-            elemPath = os.path.join(self.plonePath, elem)
-            if elem.startswith('Python-') and os.path.isdir(elemPath):
-                pythonPath = elemPath + '/bin/python'
-                if not os.path.exists(pythonPath):
-                    raise NewError(PYTHON_EXE_NOT_FOUND % pythonPath)
-                break
-        if not pythonPath:
-            raise NewError(PYTHON_NOT_FOUND % self.plonePath)
-        # Find the Zope script mkzopeinstance.py
-        makeInstancePath = None
-        for dirname, dirs, files in os.walk(self.plonePath):
-            # Do not browse the buildout-cache
-            for fileName in files:
-                if (fileName == 'mkzopeinstance.py') and \
-                   ('/buildout-cache/' not in dirname):
-                    makeInstancePath = os.path.join(dirname, fileName)
-        if not makeInstancePath:
-            raise NewError(MKZOPE_NOT_FOUND % self.plonePath)
-        # Execute mkzopeinstance.py with the right Python interpreter
-        cmd = '%s %s -d %s' % (pythonPath, makeInstancePath, self.instancePath)
-        print cmd
-        os.system(cmd)
-        # Now, make the instance Plone-ready
-        action = 'Copying'
-        if linksForProducts:
-            action = 'Symlinking'
-        print '%s Plone stuff in the Zope instance...' % action
-        if self.ploneVersion in ('plone25', 'plone30'):
-            self.installPlone25or30Stuff(linksForProducts)
-        elif self.ploneVersion == 'plone3x':
-            self.installPlone3Stuff()
-        # Clean the copied folders
-        cleanFolder(os.path.join(self.instancePath, 'Products'))
-        cleanFolder(os.path.join(self.instancePath, 'lib/python'))
+    ploneVersions = ('plone25', 'plone30', 'plone3x', 'plone4')
 
     def installPlone25or30Stuff(self, linksForProducts):
         '''Here, we will copy all Plone2-related stuff in the Zope instance
@@ -105,56 +86,9 @@ class NewScript:
                         # Copy thre product into the instance
                         copyFolder(folderName, destFolder)
 
-    uglyChunks = ('pkg_resources', '.declare_namespace(')
-    def findPythonPackageInEgg(self, currentFolder):
-        '''Finds the Python package that is deeply hidden into the egg.'''
-        # Find the file __init__.py
-        isFinalPackage = False
-        for elem in os.listdir(currentFolder):
-            elemPath = os.path.join(currentFolder, elem)
-            if elem == '__init__.py':
-                f = file(elemPath)
-                content = f.read()
-                f.close()
-                # Is it a awful egg init ?
-                for chunk in self.uglyChunks:
-                    if content.find(chunk) == -1:
-                        isFinalPackage = True # It is not an ugly egg init.
-                        break
-        if not isFinalPackage:
-            # Maybe we are wrong: our way to identify egg-viciated __init__
-            # files is approximative. If we believe it is not the final package,
-            # but we find other Python files in the folder, we must admit that
-            # we've nevertheless found the final Python package.
-            otherPythonFiles = False
-            for elem in os.listdir(currentFolder):
-                if elem.endswith('.py') and (elem != '__init__.py'):
-                    otherPythonFiles = True
-                    break
-            if otherPythonFiles:
-                # Ok, this is the final Python package
-                return currentFolder
-            # Find the subfolder and find the Python package into it.
-            for elem in os.listdir(currentFolder):
-                elemPath = os.path.join(currentFolder, elem)
-                if os.path.isdir(elemPath):
-                    return self.findPythonPackageInEgg(elemPath)
-        else:
-            return currentFolder
-
-    def getSubFolder(self, folder):
-        '''In p_folder, we now that there is only one subfolder. This method
-           returns the subfolder's absolute path.'''
-        for elem in os.listdir(folder):
-            elemPath = os.path.join(folder, elem)
-            if (elem != 'EGG-INFO') and os.path.isdir(elemPath):
-                return elemPath
-        return None
-
-    viciatedFiles = {'meta.zcml':      'includePlugins',
-                     'configure.zcml': 'includePlugins',
-                     'overrides.zcml': 'includePluginsOverrides'}
-    def patchPlone(self, productsFolder, libFolder):
+    filesToPatch = ('meta.zcml', 'configure.zcml', 'overrides.zcml')
+    patchRex = re.compile('<includePlugins.*?/>', re.S)
+    def patchPlone3x(self):
         '''Auto-proclaimed ugly code in z3c forces us to patch some files
            in Products.CMFPlone because these guys make the assumption that
            "plone.xxx" packages are within eggs when they've implemented their
@@ -163,102 +97,156 @@ class NewScript:
            CMFPlone files. It does not seem to affect Plone behaviour. Indeed,
            these directives seem to be useful only when adding sad (ie, non
            Appy) Plone plug-ins.'''
-        ploneFolder = os.path.join(productsFolder, 'CMFPlone')
-        # Patch viciated files
-        for fileName, uglyDirective in self.viciatedFiles.iteritems():
+        j = os.path.join
+        ploneFolder = os.path.join(self.productsFolder, 'CMFPlone')
+        # Patch files
+        for fileName in self.filesToPatch:
             filePath = os.path.join(ploneFolder, fileName)
             f = file(filePath)
             fileContent = f.read()
             f.close()
-            if fileContent.find(uglyDirective) != -1:
-                toReplace = '<%s package="plone" file="%s" />' % \
-                            (uglyDirective, fileName)
-                fileContent = fileContent.replace(toReplace, '')
-                f = file(filePath, 'w')
-                f.write(fileContent)
-                f.close()
+            f = file(filePath, 'w')
+            f.write(self.patchRex.sub('<!--Del. includePlugins-->',fileContent))
+            f.close()
 
-    def installPlone3Stuff(self):
-        '''Here, we will copy all Plone3-related stuff in the Zope instance
-           we've created, to get a full Plone-ready Zope instance.'''
-        # All Plone 3 eggs are in buildout-cache/eggs. We will extract from
-        # those silly overstructured folder hierarchies the standard Python
-        # packages that lie in it, and copy them in the instance. Within these
-        # eggs, we need to distinguish:
-        # - standard Python packages that will be copied in
-        #   <zopeInstance>/lib/python (ie, like Appy applications)
-        # - Zope products that will be copied in
-        #   <zopeInstance>/Products (ie, like Appy generated Zope products)
+    filesToPatch2 = ('profiles/default/skins.xml')
+    def patchPlone4(self):
+        '''Patches Plone 4 that can't live without buildout as-is.'''
+        self.patchPlone3x() # We still need this for Plone 4 as well.
+        # bin/zopectl
+        content = zopeCtl % (self.pythonPath, self.instancePath, self.zopePath)
+        f = file('%s/bin/zopectl' % self.instancePath, 'w')
+        f.write(content)
+        f.close()
+        # bin/runzope
+        content = runZope % (self.pythonPath, self.instancePath, self.zopePath)
+        f = file('%s/bin/runzope' % self.instancePath, 'w')
+        f.write(content)
+        f.close()
+        j = os.path.join
+        themeFolder = '%s/plonetheme' % self.libFolder
+        for theme in os.listdir(themeFolder):
+            # Create a simlink to every theme in self.productsFolder
+            tFolder = j(themeFolder, theme)
+            if not os.path.isdir(tFolder): continue
+            os.system('ln -s %s %s/%s' % (tFolder, self.productsFolder, theme))
+            # Patch skins.xml
+            fileName = '%s/profiles/default/skins.xml' % tFolder
+            f = file(fileName)
+            content = f.read()
+            f.close()
+            f = file(fileName, 'w')
+            f.write(content.replace('plonetheme.%s:' % theme, '%s/' % theme))
+            f.close()
+        # As eggs have been deleted, Plone can't tell which version of Zope and
+        # Plone are there. So we patch the code that tries to get Plone and Zope
+        # versions.
+        codeFile = "%s/pkg_resources.py" % self.libFolder
+        f = file(codeFile)
+        content = f.read()
+        f.close()
+        content = content.replace("raise DistributionNotFound(req)",
+            "dist = Distribution(project_name=req.project_name, " \
+            "version='1.1.1', platform='linux2', location='%s')" % \
+            self.instancePath)
+        f = file(codeFile, 'w')
+        f.write(content)
+        f.close()
+
+    def copyEggs(self):
+        '''Copy content of eggs into the Zope instance.'''
         j = os.path.join
         eggsFolder = j(self.plonePath, 'buildout-cache/eggs')
-        productsFolder = j(self.instancePath, 'Products')
-        libFolder = j(self.instancePath, 'lib/python')
+        self.ploneThemes = []
         for name in os.listdir(eggsFolder):
-            eggMainFolder = j(eggsFolder, name)
-            if name.startswith('Products.'):
-                # A Zope product. Copy its content in Products.
-                innerFolder= self.getSubFolder(self.getSubFolder(eggMainFolder))
-                destFolder = j(productsFolder, os.path.basename(innerFolder))
-                copyFolder(innerFolder, destFolder)
-            else:
-                # A standard Python package. Copy its content in lib/python.
-                # Go into the subFolder that is not EGG-INFO.
-                eggFolder = self.getSubFolder(eggMainFolder)
-                if not eggFolder:
-                    # This egg is malformed and contains basic Python files.
-                    # Copy those files directly in libFolder.
-                    for fileName in os.listdir(eggMainFolder):
-                        if fileName.endswith('.py'):
-                            fullFileName= j(eggMainFolder, fileName)
-                            shutil.copy(fullFileName, libFolder)
-                    continue
-                eggFolderName = os.path.basename(eggFolder)
-                if eggFolderName == 'Products':
-                    # Goddamned. This should go in productsFolder and not in
-                    # libFolder.
-                    innerFolder = self.getSubFolder(eggFolder)
-                    destFolder = j(productsFolder,os.path.basename(innerFolder))
-                    copyFolder(innerFolder, destFolder)
+            if name == 'EGG-INFO': continue
+            absName = j(eggsFolder, name)
+            # Copy every file or sub-folder into self.libFolder or
+            # self.productsFolder.
+            for fileName in os.listdir(absName):
+                absFileName = j(absName, fileName)
+                if fileName == 'Products' and not name.startswith('Zope2-'):
+                    # Copy every sub-folder into self.productsFolder
+                    for folderName in os.listdir(absFileName):
+                        absFolder = j(absFileName, folderName)
+                        if not os.path.isdir(absFolder): continue
+                        copyFolder(absFolder, j(self.productsFolder,folderName))
+                elif os.path.isdir(absFileName):
+                    copyFolder(absFileName, j(self.libFolder, fileName))
                 else:
-                    packageFolder = self.findPythonPackageInEgg(eggFolder)
-                    # Create the destination folder(s) in the instance,
-                    # within libFolder
-                    destFolders = []
-                    if packageFolder != eggFolder:
-                        destFolders = [eggFolderName]
-                        remFolders = packageFolder[len(eggFolder):]
-                        remFolders = remFolders.strip(os.sep)
-                        if remFolders.find(os.sep) != -1:
-                            # There are more subfolders
-                            destFolders += remFolders.split(os.sep)[:-1]
-                    if destFolders:
-                        # We must create the subfolders (if not yet created)
-                        # before copying the Python package.
-                        baseFolder = libFolder
-                        for subFolder in destFolders:
-                            subFolderPath = j(baseFolder,subFolder)
-                            if not os.path.exists(subFolderPath):
-                                os.mkdir(subFolderPath)
-                                # Create an empty __init__.py in it.
-                                init = j(subFolderPath,'__init__.py')
-                                f = file(init, 'w')
-                                f.write('# Makes me a Python package.')
-                                f.close()
-                            baseFolder = subFolderPath
-                        destFolder = os.sep.join(destFolders)
-                        destFolder = j(libFolder, destFolder)
-                        if not os.path.exists(destFolder):
-                            os.makedirs(destFolder)
+                    shutil.copy(absFileName, self.libFolder)
+
+    def createInstance(self, linksForProducts):
+        '''Calls the Zope script that allows to create a Zope instance and copy
+           into it all the Plone packages and products.'''
+        j = os.path.join
+        # Find the Python interpreter running Zope
+        for elem in os.listdir(self.plonePath):
+            pythonPath = None
+            elemPath = j(self.plonePath, elem)
+            if elem.startswith('Python-') and os.path.isdir(elemPath):
+                pythonPath = elemPath + '/bin/python'
+                if not os.path.exists(pythonPath):
+                    raise NewError(PYTHON_EXE_NOT_FOUND % pythonPath)
+                break
+        if not pythonPath:
+            raise NewError(PYTHON_NOT_FOUND % self.plonePath)
+        self.pythonPath = pythonPath
+        # Find the Zope script mkzopeinstance.py and Zope itself
+        makeInstancePath = None
+        self.zopePath = None
+        for dirname, dirs, files in os.walk(self.plonePath):
+            # Find Zope
+            for folderName in dirs:
+                if folderName.startswith('Zope2-'):
+                    self.zopePath = j(dirname, folderName)
+            # Find mkzopeinstance
+            for fileName in files:
+                if fileName == 'mkzopeinstance.py':
+                    if self.ploneVersion == 'plone4':
+                        makeInstancePath = j(dirname, fileName)
                     else:
-                        destFolder = libFolder
-                    destFolder = j(destFolder, os.path.basename(packageFolder))
-                    copyFolder(packageFolder, destFolder)
-        self.patchPlone(productsFolder, libFolder)
+                        if ('/buildout-cache/' not in dirname):
+                            makeInstancePath = j(dirname, fileName)
+        if not makeInstancePath:
+            raise NewError(MKZOPE_NOT_FOUND % self.plonePath)
+        # Execute mkzopeinstance.py with the right Python interpreter.
+        # For Plone4, we will call it later.
+        cmd = '%s %s -d %s' % (pythonPath, makeInstancePath, self.instancePath)
+        if self.ploneVersion != 'plone4':
+            print cmd
+            os.system(cmd)
+        # Now, make the instance Plone-ready
+        action = 'Copying'
+        if linksForProducts:
+            action = 'Symlinking'
+        print '%s Plone stuff in the Zope instance...' % action
+        if self.ploneVersion in ('plone25', 'plone30'):
+            self.installPlone25or30Stuff(linksForProducts)
+        elif self.ploneVersion in ('plone3x', 'plone4'):
+            self.copyEggs()
+            if self.ploneVersion == 'plone3x':
+                self.patchPlone3x()
+            elif self.ploneVersion == 'plone4':
+                # Create the Zope instance
+                os.environ['PYTHONPATH'] = '%s:%s' % \
+                    (j(self.instancePath,'Products'),
+                     j(self.instancePath, 'lib/python'))
+                print cmd
+                os.system(cmd)
+                self.patchPlone4()
+        # Remove .bat files under Linux
+        if os.name == 'posix':
+            cleanFolder(j(self.instancePath, 'bin'), exts=('.bat',))
 
     def manageArgs(self, args):
         '''Ensures that the script was called with the right parameters.'''
         if len(args) != 3: raise NewError(WRONG_NB_OF_ARGS)
         self.ploneVersion, self.plonePath, self.instancePath = args
+        # Add some more folder definitions
+        j = os.path.join
+        self.productsFolder = j(self.instancePath, 'Products')
+        self.libFolder = j(self.instancePath, 'lib/python')
         # Check Plone version
         if self.ploneVersion not in self.ploneVersions:
             raise NewError(WRONG_PLONE_VERSION % str(self.ploneVersions))

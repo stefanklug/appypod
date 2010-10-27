@@ -100,8 +100,8 @@ class PodEnvironment(OdfEnvironment):
         # For the currently read expression, is there style-related information
         # associated with it?
         self.exprHasStyle = False
-        self.gotNamespaces = False # Namespace definitions were not already
-        # encountered
+        # Namespace definitions are not already encountered.
+        self.gotNamespaces = False
         # Store inserts
         self.inserts = inserts
         # Currently walked "if" actions
@@ -208,7 +208,8 @@ class PodParser(OdfParser):
             e.state = e.IGNORING
         elif elem == ('%s:annotation' % officeNs):
             e.state = e.READING_STATEMENT
-        elif elem == ('%s:change-start' % textNs):
+        elif (elem == ('%s:change-start' % textNs)) or \
+             (elem == ('%s:conditional-text' % textNs)):
             e.state = e.READING_EXPRESSION
             e.exprHasStyle = False
         else:
@@ -280,7 +281,8 @@ class PodParser(OdfParser):
                         e.currentStatement.append(statementLine)
                     e.currentContent = ''
             elif e.state == e.READING_EXPRESSION:
-                if elem == ('%s:change-end' % textNs):
+                if (elem == ('%s:change-end' % textNs)) or \
+                   (elem == ('%s:conditional-text' % textNs)):
                     expression = e.currentContent.strip()
                     e.currentContent = ''
                     # Manage expression

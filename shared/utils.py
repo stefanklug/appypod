@@ -51,7 +51,10 @@ def cleanFolder(folder, exts=extsToClean, verbose=False):
 def copyFolder(source, dest, cleanDest=False):
     '''Copies the content of folder p_source to folder p_dest. p_dest is
        created, with intermediary subfolders if required. If p_cleanDest is
-       True, it removes completely p_dest if it existed.'''
+       True, it removes completely p_dest if it existed. Else, content of
+       p_source will be added to possibly existing content in p_dest, excepted
+       if file names corresponds. In this case, file in p_source will overwrite
+       file in p_dest.'''
     dest = os.path.abspath(dest)
     # Delete the dest folder if required
     if os.path.exists(dest) and cleanDest:
