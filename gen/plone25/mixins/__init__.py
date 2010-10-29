@@ -17,6 +17,14 @@ class BaseMixin:
        a subclass of it.'''
     _appy_meta_type = 'Class'
 
+    def get_o(self):
+        '''In some cases, we wand the Zope object, we don't know if the current
+           object is a Zope or Appy object. By defining this property,
+           "someObject.o" produces always the Zope object, be someObject an Appy
+           or Zope object.'''
+        return self
+    o = property(get_o)
+
     def createOrUpdate(self, created, values):
         '''This method creates (if p_created is True) or updates an object.
            p_values are manipulated versions of those from the HTTP request.
@@ -283,8 +291,7 @@ class BaseMixin:
                ((prev == '') and (curr == None)):
                 del previousData[field]
             if (appyType.type == 'Ref') and (field in previousData):
-                titles = [r.title for r in previousData[field]]
-                previousData[field] = ','.join(titles)
+                previousData[field] = [r.title for r in previousData[field]]
         if previousData:
             self.addDataChange(previousData)
 
@@ -510,10 +517,15 @@ class BaseMixin:
                     return phaseInfo
             # If I am here, it means that the page as defined in the request,
             # or 'main' by default, is not existing nor visible in any phase.
-            # In this case I set the page as being the first visible page in
-            # the first visible phase.
-            rq.set('page', res[0]['pages'][0])
-            return res[0]
+            # In this case I find the first visible page among all phases.
+            viewAttr = 'showOn%s' % layoutType.capitalize()
+            for phase in res:
+                for page in phase['pages']:
+                    if phase['pagesInfo'][page][viewAttr]:
+                        rq.set('page', page)
+                        pageFound = True
+                        break
+            return phase
         else:
             return res
 

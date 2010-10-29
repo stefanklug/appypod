@@ -149,7 +149,7 @@ class Tool(ModelClass):
         res.optional = False
         res.show = True
         res.group = copy.copy(appyType.group)
-        res.phase = 'main'
+        res.page = copy.copy(appyType.page)
         # Set default layouts for all Tool fields
         res.layouts = res.formatLayouts(None)
         res.specificReadPermission = False
@@ -177,7 +177,7 @@ class Tool(ModelClass):
             fieldType.validator = []
             klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
         fieldType.validator.append(fieldDescr.fieldName)
-        fieldType.page = 'data'
+        fieldType.page.name = 'data'
         fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
 
     @classmethod
@@ -186,7 +186,7 @@ class Tool(ModelClass):
         fieldName = 'defaultValueFor%s_%s' % (className, fieldDescr.fieldName)
         fieldType = klass._appy_copyField(fieldDescr.appyType)
         klass._appy_addField(fieldName, fieldType, fieldDescr.classDescr)
-        fieldType.page = 'data'
+        fieldType.page.name = 'data'
         fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
 
     @classmethod

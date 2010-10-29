@@ -136,7 +136,7 @@ class Table(LayoutElement):
                 self.layoutString = Table.deriveLayout(other.layoutString,
                                                        derivedType)
             else:
-                self.layoutString = layoutString
+                self.layoutString = other.layoutString
             source = 'other.'
         else:
             source = ''

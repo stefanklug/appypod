@@ -137,8 +137,8 @@ class Group:
         self.css_class = css_class
         self.master = None
         self.masterValue = None
-        if self.master:
-            self._addMaster(self, master, masterValue)
+        if master:
+            self._addMaster(master, masterValue)
 
     def _addMaster(self, master, masterValue):
         '''Specifies this group being a slave of another field: we will add css
@@ -545,9 +545,12 @@ class Type:
                 # Get the global default layouts
                 layouts = copy.deepcopy(defaultFieldLayouts)
         else:
-            if isinstance(layouts, basestring) or isinstance(layouts, Table):
+            if isinstance(layouts, basestring):
                 # The user specified a single layoutString (the "edit" one)
                 layouts = {'edit': layouts}
+            elif isinstance(layouts, Table):
+                # Idem, but with a Table instance
+                layouts = {'edit': Table(other=layouts)}
             else:
                 layouts = copy.deepcopy(layouts)
                 # Here, we make a copy of the layouts, because every layout can
@@ -1260,7 +1263,7 @@ class Ref(Type):
                  group=None, layouts=None, showHeaders=False, shownInfo=(),
                  select=None, maxPerPage=30, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
+                 specificWritePermission=False, width=None, height=5,
                  colspan=1, master=None, masterValue=None, focus=False,
                  historized=False):
         self.klass = klass

@@ -258,7 +258,7 @@
                  refUids         python: [o.UID() for o in contextObj.getAppyRefs(name)['objects']];
                  isBeingCreated  python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())">
 
-<select tal:attributes="name rname;
+<select tal:attributes="name rname; size widget/height;
                         multiple python: isMultiple and 'multiple' or ''">
   <option tal:condition="not: isMultiple" i18n:translate="choose_a_value"></option>
   <tal:ref repeat="refObj allObjects">

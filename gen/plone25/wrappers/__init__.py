@@ -112,20 +112,26 @@ class AbstractWrapper:
 
     def link(self, fieldName, obj):
         '''This method links p_obj to this one through reference field
-           p_fieldName.'''
-        if isinstance(obj, AbstractWrapper):
-            obj = obj.o
+           p_fieldName. p_obj can also be a list or tuple of objects.'''
         postfix = 'et%s%s' % (fieldName[0].upper(), fieldName[1:])
         # Update the Archetypes reference field
         exec 'objs = self.o.g%s()' % postfix
         if not objs:
             objs = []
-        elif type(objs) not in (list, tuple):
+        elif type(objs) not in sequenceTypes:
             objs = [objs]
-        objs.append(obj)
+        # Add p_obj to the existing objects
+        if type(obj) in sequenceTypes:
+            for o in obj: objs.append(o.o)
+        else:
+            objs.append(obj.o)
         exec 'self.o.s%s(objs)' % postfix
         # Update the ordered list of references
-        self.o._appy_getSortedField(fieldName).append(obj.UID())
+        sorted = self.o._appy_getSortedField(fieldName)
+        if type(obj) in sequenceTypes:
+            for o in obj: sorted.append(o.o.UID())
+        else:
+            sorted.append(obj.o.UID())
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according

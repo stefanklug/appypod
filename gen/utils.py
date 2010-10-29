@@ -83,13 +83,15 @@ class PhaseDescr(Descr):
         if (appyType.page.name in self.pages) or \
            (appyType.page.name in self.hiddenPages): return
         # Add the page only if it must be shown.
-        if appyType.page.isShowable(obj, layoutType):
+        isShowableOnView = appyType.page.isShowable(obj, 'view')
+        isShowableOnEdit = appyType.page.isShowable(obj, 'edit')
+        if isShowableOnView or isShowableOnEdit:
             # The page must be added.
             self.pages.append(appyType.page.name)
             # Create the dict about page information and add it in self.pageInfo
             pageInfo = {'page': appyType.page,
-                        'showOnView': appyType.page.isShowable(obj, 'view'),
-                        'showOnEdit': appyType.page.isShowable(obj, 'edit')}
+                        'showOnView': isShowableOnView,
+                        'showOnEdit': isShowableOnEdit}
             pageInfo.update(appyType.page.getInfo(obj, layoutType))
             self.pagesInfo[appyType.page.name] = pageInfo
         else:
