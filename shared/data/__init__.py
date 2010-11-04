@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''This folder contains copies of external, "authentic" data, stored as text
    files, like ISO 639.2 country codes. In this package, corresponding Python
    classes are available for accessing the data in the text files.'''
