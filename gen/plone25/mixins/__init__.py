@@ -167,7 +167,7 @@ class BaseMixin:
                     initiatorPage = splitted[2].split(':')[1]
                     urlBack = initiator.getUrl(page=initiatorPage, nav='')
                 else:
-                    # Go back to the Plone site (no better solution at present).
+                    # Go back to the root of the site.
                     urlBack = self.portal_url.getPortalObject().absolute_url()
             else:
                 urlBack = self.getUrl()

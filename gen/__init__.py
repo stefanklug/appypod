@@ -187,6 +187,12 @@ class Group:
                 res = Group(groupElems[0], ['%.2f%%' % width] * nbOfColumns)
         return res
 
+    def getMasterData(self):
+        '''Gets the master of this group (and masterValue) or, recursively, of
+           containing groups when relevant.'''
+        if self.master: return (self.master, self.masterValue)
+        if self.group: return self.group.getMasterData()
+
     def generateLabels(self, messages, classDescr, walkedGroups):
         '''This method allows to generate all the needed i18n labels related to
            this group. p_messages is the list of i18n p_messages that we are
@@ -522,6 +528,26 @@ class Type:
             else:      res = False
         return res
 
+    def isClientVisible(self, obj):
+        '''This method returns True if this field is visible according to
+           master/slave relationships.'''
+        masterData = self.getMasterData()
+        if not masterData: return True
+        else:
+            master, masterValue = masterData
+            reqValue = master.getRequestValue(obj.REQUEST)
+            reqValue = master.getStorableValue(reqValue)
+            # Manage the fact that values can be lists or single values
+            multiMaster = type(masterValue) in sequenceTypes
+            multiReq = type(reqValue) in sequenceTypes
+            if not multiMaster and not multiReq: return reqValue == masterValue
+            elif multiMaster and not multiReq: return reqValue in masterValue
+            elif not multiMaster and multiReq: return masterValue in reqValue
+            else: # multiMaster and multiReq
+                for m in masterValue:
+                    for r in reqValue:
+                        if m == r: return True
+
     def formatSync(self, sync):
         '''Creates a dictionary indicating, for every layout type, if the field
            value must be retrieved synchronously or not.'''
@@ -653,7 +679,7 @@ class Type:
         return value
 
     def getRequestValue(self, request):
-        '''Gets the string or (or list of strings if multi-valued)
+        '''Gets the string (or list of strings if multi-valued)
            representation of this field as found in the p_request.'''
         return request.get(self.name, None)
 
@@ -665,6 +691,12 @@ class Type:
            in some other way) value as can be stored in the database.'''
         if value in nullValues: return None
         return value
+
+    def getMasterData(self):
+        '''Gets the master of this field (and masterValue) or, recursively, of
+           containing groups when relevant.'''
+        if self.master: return (self.master, self.masterValue)
+        if self.group: return self.group.getMasterData()
 
     def validateValue(self, obj, value):
         '''This method may be overridden by child classes and will be called at
@@ -680,8 +712,12 @@ class Type:
            error message is returned.'''
         # Check that a value is given if required.
         if value in nullValues:
-            if self.required: return obj.translate('field_required')
-            else:             return None
+            if self.required and self.isClientVisible(obj):
+                # If the field is required, but not visible according to
+                # master/slave relationships, we consider it not to be required.
+                return obj.translate('field_required')
+            else:
+                return None
         # Triggers the sub-class-specific validation for this value
         message = self.validateValue(obj, value)
         if message: return message
