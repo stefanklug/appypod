@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-from appy.shared import UnmarshalledObject
+from appy import Object
 
 # ------------------------------------------------------------------------------
 WRONG_LINE = 'Line number %d in file %s does not have the right number of ' \
@@ -61,9 +61,9 @@ class CsvParser:
         # list): string, integer, float, boolean.
         self.references = references
         self.klass = klass # If a klass is given here, instead of creating
-        # UnmarshalledObject instances we will create instances of this class.
+        # Object instances we will create instances of this class.
         # But be careful: we will not call the constructor of this class. We
-        # will simply create instances of UnmarshalledObject and dynamically
+        # will simply create instances of Object and dynamically
         # change the class of created instances to this class.
 
     def identifySeparator(self, line):
@@ -125,10 +125,10 @@ class CsvParser:
 
     def parse(self):
         '''Parses the CSV file named self.fileName and creates a list of
-           corresponding Python objects (UnmarshalledObject instances). Among
-           object fields, some may be references. If it is the case, you may
-           specify in p_references a dict of referred objects. The parser will
-           then replace string values of some fields (which are supposed to be
+           corresponding Python objects (Object instances). Among object fields,
+           some may be references. If it is the case, you may specify in
+           p_references a dict of referred objects. The parser will then
+           replace string values of some fields (which are supposed to be
            ids of referred objects) with corresponding objects in p_references.
 
            How does this work? p_references must be a dictionary:
@@ -154,7 +154,7 @@ class CsvParser:
                 firstLine = False
             else:
                 # Add an object corresponding to this line.
-                lineObject = UnmarshalledObject()
+                lineObject = Object()
                 if self.klass:
                     lineObject.__class__ = self.klass
                 i = -1

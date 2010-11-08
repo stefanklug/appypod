@@ -4,11 +4,13 @@ from urllib import quote
 from StringIO import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
+from appy import Object
 from appy.shared.utils import copyData
 from appy.gen.utils import sequenceTypes
+from appy.shared.xml_parser import XmlUnmarshaller, XmlMarshaller
 
 # ------------------------------------------------------------------------------
-class DataEncoder:
+class FormDataEncoder:
     '''Allows to encode form data for sending it through a HTTP request.'''
     def __init__(self, data):
         self.data = data # The data to encode, as a dict
@@ -35,6 +37,33 @@ class DataEncoder:
         return '&'.join(res)
 
 # ------------------------------------------------------------------------------
+class SoapDataEncoder:
+    '''Allows to encode SOAP data for sending it through a HTTP request.'''
+    namespaces = {'SOAP-ENV': 'http://schemas.xmlsoap.org/soap/envelope/',
+                  'xsd'     : 'http://www.w3.org/2001/XMLSchema',
+                  'xsi'     : 'http://www.w3.org/2001/XMLSchema-instance'}
+    namespacedTags = {'Envelope': 'SOAP-ENV', 'Body': 'SOAP-ENV', '*': 'py'}
+
+    def __init__(self, data, namespace='http://appyframework.org'):
+        self.data = data
+        # p_data can be:
+        # - a string already containing a complete SOAP message
+        # - a Python object, that we will convert to a SOAP message
+        # Define the namespaces for this request
+        self.ns = self.namespaces.copy()
+        self.ns['py'] = namespace
+
+    def encode(self):
+        # Do nothing if we have a SOAP message already
+        if isinstance(self.data, basestring): return self.data
+        # self.data is here a Python object. Wrap it a SOAP Body.
+        soap = Object(Body=self.data)
+        # Marshall it.
+        marshaller = XmlMarshaller(rootTag='Envelope', namespaces=self.ns,
+                                   namespacedTags=self.namespacedTags)
+        return marshaller.marshall(soap)
+
+# ------------------------------------------------------------------------------
 class HttpResponse:
     '''Stores information about a HTTP response.'''
     def __init__(self, code, text, headers, body, duration=None):
@@ -42,13 +71,13 @@ class HttpResponse:
         self.text = text # Textual description of the code
         self.headers = headers # A dict-like object containing the headers
         self.body = body # The body of the HTTP response
+        # p_duration, if given, is the time, in seconds, we have waited, before
+        # getting this response after having sent the request.
+        self.duration = duration
         # The following attribute may contain specific data extracted from
         # the previous fields. For example, when response if 302 (Redirect),
         # self.data contains the URI where we must redirect the user to.
         self.data = self.extractData()
-        # p_duration, if given, is the time, in seconds, we have waited, before
-        # getting this response after having sent the request.
-        self.duration = duration
 
     def __repr__(self):
         duration = ''
@@ -58,9 +87,15 @@ class HttpResponse:
     def extractData(self):
         '''This method extracts, from the various parts of the HTTP response,
            some useful information. For example, it will find the URI where to
-           redirect the user to if self.code is 302.'''
+           redirect the user to if self.code is 302, or will unmarshall XML
+           data into Python objects.'''
         if self.code == 302:
             return urlparse.urlparse(self.headers['location'])[2]
+        elif self.headers.has_key('content-type') and \
+             self.headers['content-type'].startswith('text/xml'):
+            # Return an unmarshalled version of the XML content, for easy use
+            # in Python.
+            return XmlUnmarshaller().parse(self.body)
 
 # ------------------------------------------------------------------------------
 urlRex = re.compile(r'http://([^:/]+)(:[0-9]+)?(/.+)?', re.I)
@@ -109,7 +144,7 @@ class Resource:
         headers['Accept'] = '*/*'
         return headers
 
-    def sendRequest(self, method, uri, body=None, headers={}, bodyType=None):
+    def send(self, method, uri, body=None, headers={}, bodyType=None):
         '''Sends a HTTP request with p_method, for p_uri.'''
         conn = httplib.HTTP()
         conn.connect(self.host, self.port)
@@ -143,13 +178,13 @@ class Resource:
         #body = '<d:propertyupdate xmlns:d="DAV:"><d:set><d:prop>' \
         #       '<d:displayname>%s</d:displayname></d:prop></d:set>' \
         #       '</d:propertyupdate>' % name
-        return self.sendRequest('MKCOL', folderUri)
+        return self.send('MKCOL', folderUri)
 
     def delete(self, name):
         '''Deletes a file or a folder (and all contained files if any) named
            p_name within this resource.'''
         toDeleteUri = self.uri + '/' + name
-        return self.sendRequest('DELETE', toDeleteUri)
+        return self.send('DELETE', toDeleteUri)
 
     def add(self, content, type='fileName', name=''):
         '''Adds a file in this resource. p_type can be:
@@ -178,45 +213,44 @@ class Resource:
         headers = {'Content-Length': str(size)}
         if fileType: headers['Content-Type'] = fileType
         if encoding: headers['Content-Encoding'] = encoding
-        res = self.sendRequest('PUT', fileUri, body, headers, bodyType=bodyType)
+        res = self.send('PUT', fileUri, body, headers, bodyType=bodyType)
         # Close the file when relevant
         if type =='fileName': body.close()
         return res
 
-    def _encodeFormData(self, data):
-        '''Returns the encoded form p_data.'''
-        res = []
-        for name, value in data.items():
-            n = name.rfind( '__')
-            if n > 0:
-                tag = name[n+2:]
-                key = name[:n]
-            else: tag = 'string'
-            func = varfuncs.get(tag, marshal_string)
-            res.append(func(name, value))
-        return '&'.join(res)
-
     def get(self, uri=None, headers={}):
         '''Perform a HTTP GET on the server.'''
         if not uri: uri = self.uri
-        return self.sendRequest('GET', uri, headers=headers)
+        return self.send('GET', uri, headers=headers)
 
-    def post(self, data=None, uri=None, headers={}, type='form'):
-        '''Perform a HTTP POST on the server. If p_type is:
-           - "form", p_data is a dict representing form data that will be
-             form-encoded;
-           - "soap", p_data is a XML request that will be wrapped in a SOAP
-             message.'''
+    def post(self, data=None, uri=None, headers={}, encode='form'):
+        '''Perform a HTTP POST on the server. If p_encode is "form", p_data is
+           considered to be a dict representing form data that will be
+           form-encoded. Else, p_data will be considered as the ready-to-send
+           body of the HTTP request.'''
         if not uri: uri = self.uri
         # Prepare the data to send
-        if type == 'form':
+        headers['Host'] = self.host
+        if encode == 'form':
             # Format the form data and prepare headers
-            body = DataEncoder(data).encode()
+            body = FormDataEncoder(data).encode()
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        elif type =='soap':
+        else:
             body = data
-            headers['SOAPAction'] = self.url
-            headers['Content-Type'] = 'text/xml'
         headers['Content-Length'] = str(len(body))
-        return self.sendRequest('POST', uri, headers=headers, body=body)
+        return self.send('POST', uri, headers=headers, body=body)
+
+    def soap(self, data, uri=None, headers={}, namespace=None):
+        '''Sends a SOAP message to this resource. p_namespace is the URL of the
+           server-specific namespace.'''
+        if not uri: uri = self.uri
+        # Prepare the data to send
+        data = SoapDataEncoder(data, namespace).encode()
+        headers['SOAPAction'] = self.url
+        headers['Content-Type'] = 'text/xml'
+        res = self.post(data, uri, headers=headers, encode=None)
+        # Unwrap content from the SOAP envelope
+        res.data = res.data.Body
+        return res
 # ------------------------------------------------------------------------------
+

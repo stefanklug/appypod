@@ -18,28 +18,9 @@ mimeTypesExts = {
              'image/jpeg'                             : 'jpg',
              'image/gif'                              : 'gif'
              }
-xmlPrologue = '<?xml version="1.0" encoding="utf-8"?>\n'
+xmlPrologue = '<?xml version="1.0" encoding="utf-8" ?>\n'
 
 # ------------------------------------------------------------------------------
-class UnmarshalledObject:
-    '''Used for producing objects from a marshalled Python object (in some files
-       like a CSV file or an XML file).'''
-    def __init__(self, **fields):
-        for k, v in fields.iteritems():
-            setattr(self, k, v)
-    def __repr__(self):
-        res = u'<PythonObject '
-        for attrName, attrValue in self.__dict__.iteritems():
-            v = attrValue
-            if hasattr(v, '__repr__'):
-                v = v.__repr__()
-            try:
-                res += u'%s = %s ' % (attrName, v)
-            except UnicodeDecodeError:
-                res += u'%s = <encoding problem> ' % attrName
-        res  = res.strip() + '>'
-        return res.encode('utf-8')
-
 class UnmarshalledFile:
     '''Used for producing file objects from a marshalled Python object.'''
     def __init__(self):
