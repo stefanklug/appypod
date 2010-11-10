@@ -100,7 +100,7 @@
     <tal:comment replace="nothing">The list of values</tal:comment>
     <select tal:attributes="name widgetName" multiple="multiple" size="5">
       <option tal:repeat="v python:tool.getPossibleValues(name, withTranslations=True, withBlankValue=False, className=contentType)"
-              tal:attributes="value python:v[0]" tal:content="python: v[1]">
+              tal:attributes="value python:v[0]" tal:content="python: tool.truncateValue(v[1], widget)">
       </option>
     </select>
   </tal:selectSearch><br/>

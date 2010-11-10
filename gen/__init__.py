@@ -675,7 +675,7 @@ class Type:
         '''p_value is a real p_obj(ect) value from a field from this type. This
            method returns a pretty, string-formatted version, for displaying
            purposes. Needs to be overridden by some child classes.'''
-        if value in nullValues: return ''
+        if self.isEmptyValue(value): return ''
         return value
 
     def getRequestValue(self, request):
@@ -689,7 +689,7 @@ class Type:
            representation of the field value coming from the request.
            This method computes the real (potentially converted or manipulated
            in some other way) value as can be stored in the database.'''
-        if value in nullValues: return None
+        if self.isEmptyValue(value): return None
         return value
 
     def getMasterData(self):
@@ -697,6 +697,10 @@ class Type:
            containing groups when relevant.'''
         if self.master: return (self.master, self.masterValue)
         if self.group: return self.group.getMasterData()
+
+    def isEmptyValue(self, value, obj=None):
+        '''Returns True if the p_value must be considered as an empty value.'''
+        return value in nullValues
 
     def validateValue(self, obj, value):
         '''This method may be overridden by child classes and will be called at
@@ -711,7 +715,7 @@ class Type:
            definition. If it is the case, None is returned. Else, a translated
            error message is returned.'''
         # Check that a value is given if required.
-        if value in nullValues:
+        if self.isEmptyValue(value, obj):
             if self.required and self.isClientVisible(obj):
                 # If the field is required, but not visible according to
                 # master/slave relationships, we consider it not to be required.
@@ -759,6 +763,28 @@ class Type:
            p_self type definition on p_obj.'''
         setattr(obj, self.name, value)
 
+    def clone(self, forTool=True):
+        '''Returns a clone of myself. If p_forTool is True, the clone will be
+           adapted to its life into the tool.'''
+        res = copy.copy(self)
+        res.group = copy.copy(self.group)
+        res.page = copy.copy(self.page)
+        if not forTool: return res
+        # A field added to the tool can't have parameters that would lead to the
+        # creation of new fields in the tool.
+        res.editDefault = False
+        res.optional = False
+        res.show = True
+        # Set default layouts for all Tool fields
+        res.layouts = res.formatLayouts(None)
+        res.specificReadPermission = False
+        res.specificWritePermission = False
+        res.multiplicity = (0, self.multiplicity[1])
+        if type(res.validator) == types.FunctionType:
+            # We will not be able to call this function from the tool.
+            res.validator = None
+        return res
+
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
@@ -781,7 +807,11 @@ class Integer(Type):
             return obj.translate('bad_%s' % self.pythonType.__name__)
 
     def getStorableValue(self, value):
-        if value not in nullValues: return self.pythonType(value)
+        if not self.isEmptyValue(value): return self.pythonType(value)
+
+    def getFormattedValue(self, obj, value):
+        if self.isEmptyValue(value): return ''
+        return str(value)
 
 class Float(Type):
     allowedDecimalSeps = (',', '.')
@@ -814,7 +844,7 @@ class Float(Type):
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
-        if value in nullValues: return ''
+        if self.isEmptyValue(value): return ''
         # Determine the field separator
         sep = self.sep[0]
         # Produce the rounded string representation
@@ -847,7 +877,7 @@ class Float(Type):
             return obj.translate('bad_%s' % self.pythonType.__name__)
 
     def getStorableValue(self, value):
-        if value not in nullValues:
+        if not self.isEmptyValue(value):
             for sep in self.sep: value = value.replace(sep, '.')
             return self.pythonType(value)
 
@@ -1021,7 +1051,7 @@ class String(Type):
         return value
 
     def getFormattedValue(self, obj, value):
-        if value in nullValues: return ''
+        if self.isEmptyValue(value): return ''
         res = value
         if self.isSelect:
             if isinstance(self.validator, Selection):
@@ -1148,7 +1178,7 @@ class Boolean(Type):
         return res
 
     def getStorableValue(self, value):
-        if value not in nullValues:
+        if not self.isEmptyValue(value):
             exec 'res = %s' % value
             return res
 
@@ -1187,7 +1217,7 @@ class Date(Type):
                     'jscalendar/calendar-en.js')
 
     def getFormattedValue(self, obj, value):
-        if value in nullValues: return ''
+        if self.isEmptyValue(value): return ''
         res = value.strftime('%d/%m/') + str(value.year())
         if self.format == Date.WITH_HOUR:
             res += ' %s' % value.strftime('%H:%M')
@@ -1212,7 +1242,7 @@ class Date(Type):
         return value
 
     def getStorableValue(self, value):
-        if value not in nullValues:
+        if not self.isEmptyValue(value):
             import DateTime
             return DateTime.DateTime(value)
 
@@ -1246,13 +1276,21 @@ class File(Type):
 
     def getDefaultLayouts(self): return {'view':'lf','edit':'lrv-f'}
 
+    def isEmptyValue(self, value, obj=None):
+        '''Must p_value be considered as empty?'''
+        if not obj: return Type.isEmptyValue(self, value)
+        if value is not None: return False
+        # If "nochange", the value must not be considered as empty
+        return obj.REQUEST.get('%s_delete' % self.name) != 'nochange'
+
     imageExts = ('.jpg', '.jpeg', '.png', '.gif')
     def validateValue(self, obj, value):
         form = obj.REQUEST.form
         action = '%s_delete' % self.name
-        if not value.filename and form.has_key(action) and not form[action]:
+        if (not value or not value.filename) and form.has_key(action) and \
+            not form[action]:
             # If this key is present but empty, it means that the user selected
-            # "replace the file with a new one". So in this cas he must provide
+            # "replace the file with a new one". So in this case he must provide
             # a new file to upload.
             return obj.translate('file_required')
         # Check that, if self.isImage, the uploaded file is really an image
@@ -1345,7 +1383,7 @@ class Ref(Type):
                       historized, sync)
         self.validable = self.link
 
-    def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
+    def getDefaultLayouts(self): return {'view': Table('l-f'), 'edit': 'lrv-f'}
 
     def isShowable(self, obj, layoutType):
         res = Type.isShowable(self, obj, layoutType)
@@ -1470,6 +1508,18 @@ class Ref(Type):
         refs = [obj.uid_catalog(UID=uid)[0].getObject() for uid in uids]
         exec 'obj.set%s%s(refs)' % (self.name[0].upper(), self.name[1:])
 
+    def clone(self, forTool=True):
+        '''Produces a clone of myself.'''
+        res = Type.clone(self, forTool)
+        res.back = copy.copy(self.back)
+        if not forTool: return res
+        res.link = True
+        res.add = False
+        res.back.attribute += 'DefaultValue'
+        res.back.show = False
+        res.select = None # Not callable from tool.
+        return res
+
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show='view',
@@ -1491,18 +1541,17 @@ class Computed(Type):
 
     def getValue(self, obj):
         '''Computes the value instead of getting it in the database.'''
-        if not self.method: return ''
+        if not self.method: return
         obj = obj.appy()
         try:
-            res = self.method(obj)
-            if not isinstance(res, basestring):
-                res = repr(res)
+            return self.method(obj)
         except Exception, e:
             obj.log(Traceback.get(), type='error')
-            res = str(e)
-        return res
+            return str(e)
 
-    def getFormattedValue(self, obj, value): return value
+    def getFormattedValue(self, obj, value):
+        if not isinstance(value, basestring): return str(value)
+        return value
 
 class Action(Type):
     '''An action is a workflow-independent Python method that can be triggered

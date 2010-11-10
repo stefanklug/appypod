@@ -52,7 +52,7 @@
         <input type="hidden" name="action" value="Update"/>
         <input type="hidden" name="page" tal:attributes="value page"/>
         <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
-        <input type="hidden" name="is_new" tal:attributes="value contextObj/checkCreationFlag"/>
+        <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
         <metal:show use-macro="here/skyn/page/macros/show"/>
       </form>
       <metal:footer use-macro="here/skyn/page/macros/footer"/>

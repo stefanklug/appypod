@@ -234,7 +234,6 @@ th {
   font-variant: small-caps;
   font-weight: bold;
   font-style: normal;
-  margin: 0.3em 0 0.3em 0;
 }
 .portletSep       {  border-top: 1px dashed #8cacbb; }
 .portletGroupItem { padding-left: 0.8em; font-style: italic; }

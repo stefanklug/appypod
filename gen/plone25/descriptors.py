@@ -6,13 +6,12 @@
 
 # ------------------------------------------------------------------------------
 import types, copy
-from model import ModelClass, Tool, toolFieldPrefixes
+from model import ModelClass, toolFieldPrefixes
 from utils import stringify
 import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
-from appy.gen import Date, String, State, Transition, Type, Search, \
-                     Selection, Import, Role
+from appy.gen import *
 from appy.gen.utils import produceNiceMessage, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
 
@@ -131,7 +130,7 @@ class FieldDescriptor:
             self.generator.labels.append(msg)
             self.classDescr.labelsToPropagate.append(msg)
         # Add the POD-related fields on the Tool
-        Tool._appy_addPodRelatedFields(self)
+        self.generator.tool.addPodRelatedFields(self)
 
     notToValidateFields = ('Info', 'Computed', 'Action', 'Pod')
     def walkAppyType(self):
@@ -140,10 +139,10 @@ class FieldDescriptor:
         # Manage things common to all Appy types
         # - optional ?
         if self.appyType.optional:
-            Tool._appy_addOptionalField(self)
+            self.generator.tool.addOptionalField(self)
         # - edit default value ?
         if self.appyType.editDefault:
-            Tool._appy_addDefaultField(self)
+            self.generator.tool.addDefaultField(self)
         # - put an index on this field?
         if self.appyType.indexed and \
            (self.fieldName not in ('title', 'description')):
@@ -381,11 +380,13 @@ class ToolClassDescriptor(ClassDescriptor):
         self.modelClass = self.klass
         self.predefined = True
         self.customized = False
+
     def getParents(self, allClasses=()):
         res = ['Tool']
         if self.customized:
             res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
         return res
+
     def update(self, klass, attributes):
         '''This method is called by the generator when he finds a custom tool
            definition. We must then add the custom tool elements in this default
@@ -393,10 +394,132 @@ class ToolClassDescriptor(ClassDescriptor):
         self.orderedAttributes += attributes
         self.klass = klass
         self.customized = True
+
     def isFolder(self, klass=None): return True
     def isRoot(self): return False
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
+
+    def addField(self, fieldName, fieldType, classDescr):
+        '''Adds a new field to the Tool.'''
+        exec "self.modelClass.%s = fieldType" % fieldName
+        self.modelClass._appy_attributes.append(fieldName)
+        self.orderedAttributes.append(fieldName)
+        self.modelClass._appy_classes[fieldName] = classDescr.name
+
+    def addOptionalField(self, fieldDescr):
+        className = fieldDescr.classDescr.name
+        fieldName = 'optionalFieldsFor%s' % className
+        fieldType = getattr(self.modelClass, fieldName, None)
+        if not fieldType:
+            fieldType = String(multiplicity=(0,None))
+            fieldType.validator = []
+            self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        fieldType.validator.append(fieldDescr.fieldName)
+        fieldType.page.name = 'data'
+        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
+
+    def addDefaultField(self, fieldDescr):
+        className = fieldDescr.classDescr.name
+        fieldName = 'defaultValueFor%s_%s' % (className, fieldDescr.fieldName)
+        fieldType = fieldDescr.appyType.clone()
+        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        fieldType.page.name = 'data'
+        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
+
+    def addPodRelatedFields(self, fieldDescr):
+        '''Adds the fields needed in the Tool for configuring a Pod field.'''
+        className = fieldDescr.classDescr.name
+        # On what page and group to display those fields ?
+        pg = {'page': 'documentGeneration',
+              'group': Group(fieldDescr.classDescr.klass.__name__, ['50%']*2)}
+        # Add the field that will store the pod template.
+        fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)
+        fieldType = File(**pg)
+        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        # Add the field that will store the output format(s)
+        fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
+        fieldType = String(validator=('odt', 'pdf', 'doc', 'rtf'),
+                           multiplicity=(1,None), default=('odt',), **pg)
+        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+
+    def addQueryResultColumns(self, classDescr):
+        '''Adds, for class p_classDescr, the attribute in the tool that allows
+           to select what default columns will be shown on query results.'''
+        className = classDescr.name
+        fieldName = 'resultColumnsFor%s' % className
+        fieldType = String(multiplicity=(0,None), validator=Selection(
+            '_appy_getAllFields*%s' % className), page='userInterface',
+            group=classDescr.klass.__name__)
+        self.addField(fieldName, fieldType, classDescr)
+
+    def addSearchRelatedFields(self, classDescr):
+        '''Adds, for class p_classDescr, attributes related to the search
+           functionality for class p_classDescr.'''
+        className = classDescr.name
+        # Field that defines if advanced search is enabled for class
+        # p_classDescr or not.
+        fieldName = 'enableAdvancedSearchFor%s' % className
+        fieldType = Boolean(default=True, page='userInterface',
+                            group=classDescr.klass.__name__)
+        self.addField(fieldName, fieldType, classDescr)
+        # Field that defines how many columns are shown on the custom search
+        # screen.
+        fieldName = 'numberOfSearchColumnsFor%s' % className
+        fieldType = Integer(default=3, page='userInterface',
+                            group=classDescr.klass.__name__)
+        self.addField(fieldName, fieldType, classDescr)
+        # Field that allows to select, among all indexed fields, what fields
+        # must really be used in the search screen.
+        fieldName = 'searchFieldsFor%s' % className
+        defaultValue = [a[0] for a in classDescr.getOrderedAppyAttributes(
+            condition='attrValue.indexed')]
+        fieldType = String(multiplicity=(0,None), validator=Selection(
+            '_appy_getSearchableFields*%s' % className), default=defaultValue,
+            page='userInterface', group=classDescr.klass.__name__)
+        self.addField(fieldName, fieldType, classDescr)
+
+    def addImportRelatedFields(self, classDescr):
+        '''Adds, for class p_classDescr, attributes related to the import
+           functionality for class p_classDescr.'''
+        className = classDescr.name
+        # Field that defines the path of the files to import.
+        fieldName = 'importPathFor%s' % className
+        defValue = classDescr.getCreateMean('Import').path
+        fieldType = String(page='data', multiplicity=(1,1), default=defValue,
+                           group=classDescr.klass.__name__)
+        self.addField(fieldName, fieldType, classDescr)
+
+    def addWorkflowFields(self, classDescr):
+        '''Adds, for a given p_classDescr, the workflow-related fields.'''
+        className = classDescr.name
+        groupName = classDescr.klass.__name__
+        # Adds a field allowing to show/hide completely any workflow-related
+        # information for a given class.
+        defaultValue = False
+        if classDescr.isRoot() or issubclass(classDescr.klass, ModelClass):
+            defaultValue = True
+        fieldName = 'showWorkflowFor%s' % className
+        fieldType = Boolean(default=defaultValue, page='userInterface',
+                            group=groupName)
+        self.addField(fieldName, fieldType, classDescr)
+        # Adds the boolean field for showing or not the field "enter comments".
+        fieldName = 'showWorkflowCommentFieldFor%s' % className
+        fieldType = Boolean(default=defaultValue, page='userInterface',
+                            group=groupName)
+        self.addField(fieldName, fieldType, classDescr)
+        # Adds the boolean field for showing all states in current state or not.
+        # If this boolean is True but the current phase counts only one state,
+        # we will not show the state at all: the fact of knowing in what phase
+        # we are is sufficient. If this boolean is False, we simply show the
+        # current state.
+        defaultValue = False
+        if len(classDescr.getPhases()) > 1:
+            defaultValue = True
+        fieldName = 'showAllStatesInPhaseFor%s' % className
+        fieldType = Boolean(default=defaultValue, page='userInterface',
+                            group=groupName)
+        self.addField(fieldName, fieldType, classDescr)
 
 class UserClassDescriptor(ClassDescriptor):
     '''Represents an Archetypes-compliant class that corresponds to the User

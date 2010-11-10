@@ -919,9 +919,14 @@ class BaseMixin:
         '''Translates a given p_label into p_domain with p_mapping.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
-        return self.Control_Panel.TranslationService.utranslate(
-            domain, label, mapping, self, default=default,
-            target_language=language)
+        try:
+            res = self.Control_Panel.TranslationService.utranslate(
+                domain, label, mapping, self, default=default,
+                target_language=language)
+        except AttributeError:
+            # When run in test mode, Zope does not create the TranslationService
+            res = label
+        return res
 
     def getPageLayout(self, layoutType):
         '''Returns the layout corresponding to p_layoutType for p_self.'''

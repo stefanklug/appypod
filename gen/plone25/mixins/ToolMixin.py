@@ -180,7 +180,8 @@ class ToolMixin(BaseMixin):
         sortMethod = importParams['sort']
         if sortMethod: sortMethod = sortMethod.__get__('')
         elems = []
-        importPath = getattr(self, 'importPathFor%s' % contentType)
+        importType = self.getAppyType('importPathFor%s' % contentType)
+        importPath = importType.getValue(self)
         for elem in os.listdir(importPath):
             elemFullPath = os.path.join(importPath, elem)
             elemInfo = onElement(elemFullPath)

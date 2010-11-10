@@ -8,8 +8,9 @@ from appy.gen import *
 from appy.gen.po import PoMessage, PoFile, PoParser
 from appy.gen.generator import Generator as AbstractGenerator
 from appy.gen.utils import getClassName
+from descriptors import ClassDescriptor, WorkflowDescriptor, \
+                        ToolClassDescriptor, UserClassDescriptor
 from model import ModelClass, User, Tool
-from descriptors import *
 
 # Common methods that need to be defined on every Archetype class --------------
 COMMON_METHODS = '''
@@ -352,8 +353,8 @@ class Generator(AbstractGenerator):
                 wfInit += 'wf._states.append("%s")\n' % stateName
             wfInit += 'workflowInstances[%s] = wf\n' % className
         repls['workflowInstancesInit'] = wfInit
-        # Compute the list of ordered attributes (foward and backward, inherited
-        # included) for every Appy class.
+        # Compute the list of ordered attributes (forward and backward,
+        # inherited included) for every Appy class.
         attributes = []
         attributesDict = []
         for classDescr in self.getClasses(include='all'):
@@ -622,21 +623,16 @@ class Generator(AbstractGenerator):
                 for childDescr in classDescr.getChildren():
                     childFieldName = fieldName % childDescr.name
                     fieldType.group = childDescr.klass.__name__
-                    Tool._appy_addField(childFieldName, fieldType, childDescr)
+                    self.tool.addField(childFieldName, fieldType, childDescr)
             if classDescr.isRoot():
                 # We must be able to configure query results from the tool.
-                Tool._appy_addQueryResultColumns(classDescr)
+                self.tool.addQueryResultColumns(classDescr)
                 # Add the search-related fields.
-                Tool._appy_addSearchRelatedFields(classDescr)
+                self.tool.addSearchRelatedFields(classDescr)
                 importMean = classDescr.getCreateMean('Import')
                 if importMean:
-                    Tool._appy_addImportRelatedFields(classDescr)
-        Tool._appy_addWorkflowFields(self.user)
-        # Complete self.tool.orderedAttributes from the attributes that we
-        # just added to the Tool model class.
-        for fieldName in Tool._appy_attributes:
-            if fieldName not in self.tool.orderedAttributes:
-                self.tool.orderedAttributes.append(fieldName)
+                    self.tool.addImportRelatedFields(classDescr)
+        self.tool.addWorkflowFields(self.user)
         self.tool.generateSchema()
 
         # Generate the Tool class
@@ -663,7 +659,7 @@ class Generator(AbstractGenerator):
         k = classDescr.klass
         print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
         if not classDescr.isAbstract():
-            Tool._appy_addWorkflowFields(classDescr)
+            self.tool.addWorkflowFields(classDescr)
         # Determine base archetypes schema and class
         baseClass = 'BaseContent'
         baseSchema = 'BaseSchema'

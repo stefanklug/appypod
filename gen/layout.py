@@ -40,7 +40,10 @@
 
 # ------------------------------------------------------------------------------
 rowDelimiters =  {'-':'middle', '=':'top', '_':'bottom'}
+rowDelms = ''.join(rowDelimiters.keys())
 cellDelimiters = {'|': 'center', ';': 'left', '!': 'right'}
+cellDelms = ''.join(cellDelimiters.keys())
+
 macroDict = {
   # Page-related elements
   's': ('page', 'header'), 'w': ('page', 'widgets'),
@@ -158,6 +161,10 @@ class Table(LayoutElement):
         res = layout
         for letter in Table.derivedRepls[derivedType]:
             res = res.replace(letter, '')
+        # Strip the derived layout
+        res = res.lstrip(rowDelms); res = res.lstrip(cellDelms)
+        if derivedType == 'cell':
+            res = res.rstrip(rowDelms); res = res.rstrip(cellDelms)
         return res
 
     def addCssClasses(self, css_class):
