@@ -3,7 +3,7 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, types, mimetypes
+import os, os.path, sys, types, mimetypes
 import appy.gen
 from appy.gen import Type, String, Selection, Role
 from appy.gen.utils import *
@@ -379,6 +379,24 @@ class BaseMixin:
         res = sortedObjectsUids.index(obj.UID())
         return res
 
+    def isDebug(self):
+        '''Are we in debug mode ?'''
+        for arg in sys.argv:
+            if arg == 'debug-mode=on': return True
+        return False
+
+    def getClass(self, reloaded=False):
+        '''Returns the Appy class that dictates self's behaviour.'''
+        if not reloaded:
+            return self.getTool().getAppyClass(self.__class__.__name__)
+        else:
+            klass = self.appy().klass
+            moduleName = klass.__module__
+            exec 'import %s' % moduleName
+            exec 'reload(%s)' % moduleName
+            exec 'res = %s.%s' % (moduleName, klass.__name__)
+            return res
+
     def getAppyType(self, name, asDict=False, className=None):
         '''Returns the Appy type named p_name. If no p_className is defined, the
            field is supposed to belong to self's class.'''
@@ -399,7 +417,13 @@ class BaseMixin:
            (dict version) is given.'''
         res = []
         groups = {} # The already encountered groups
+        # In debug mode, reload the module containing self's class.
+        debug = self.isDebug()
+        if debug:
+            klass = self.getClass(reloaded=True)
         for appyType in self.getAllAppyTypes():
+            if debug:
+                appyType = appyType.reload(klass, self)
             if appyType.page.name != pageName: continue
             if not appyType.isShowable(self, layoutType): continue
             if not appyType.group:

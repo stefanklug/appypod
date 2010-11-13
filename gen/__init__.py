@@ -477,6 +477,16 @@ class Type:
         if isinstance(self, Ref) and not self.isBack:
             self.back.relationship = '%s_%s_rel' % (prefix, name)
 
+    def reload(self, klass, obj):
+        '''In debug mode, we want to reload layouts without restarting Zope.
+           So this method will prepare a "new", reloaded version of p_self,
+           that corresponds to p_self after a "reload" of its containing Python
+           module has been performed.'''
+        res = getattr(klass, self.name, None)
+        if not res: return self
+        res.init(self.name, klass, obj.getProductConfig().PROJECTNAME)
+        return res
+
     def isMultiValued(self):
         '''Does this type definition allow to define multiple values?'''
         res = False
