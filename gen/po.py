@@ -44,7 +44,6 @@ class PoMessage:
     MSG_showAllStatesInPhase = 'Show all states in phase'
     USER = 'User'
     POD_ASKACTION = 'Trigger related action'
-    DEFAULT_VALID_ERROR = 'Please fill or correct this.'
     REF_NO = 'No object.'
     REF_ADD = 'Add a new one'
     REF_NAME = 'Name'
@@ -110,6 +109,7 @@ class PoMessage:
     NO = 'No'
     FIELD_REQUIRED = 'Please fill this field.'
     FILE_REQUIRED = 'Please select a file.'
+    FIELD_INVALID = 'Please fill or correct this.'
     IMAGE_REQUIRED = 'The uploaded file must be an image.'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],

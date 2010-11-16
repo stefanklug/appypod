@@ -132,7 +132,6 @@ class FieldDescriptor:
         # Add the POD-related fields on the Tool
         self.generator.tool.addPodRelatedFields(self)
 
-    notToValidateFields = ('Info', 'Computed', 'Action', 'Pod')
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
            i18n labels.'''
@@ -149,13 +148,6 @@ class FieldDescriptor:
             self.classDescr.addIndexMethod(self)
         # - searchable ? TODO
         #if self.appyType.searchable: self.fieldParams['searchable'] = True
-        # - need to generate a field validator?
-        # In all cases excepted for "immutable" fields, add an i18n message for
-        # the validation error for this field.
-        if self.appyType.type not in self.notToValidateFields:
-            label = '%s_%s_valid' % (self.classDescr.name, self.fieldName)
-            poMsg = PoMessage(label, '', PoMessage.DEFAULT_VALID_ERROR)
-            self.generator.labels.append(poMsg)
         # i18n labels
         i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
         # Create labels for generating them in i18n files.

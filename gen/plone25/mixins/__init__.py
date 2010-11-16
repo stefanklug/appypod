@@ -142,9 +142,7 @@ class BaseMixin:
         for key, value in errors.__dict__.iteritems():
             resValue = value
             if not isinstance(resValue, basestring):
-                appyType = self.getAppyType(key)
-                msgId = '%s_valid' % appyType.labelId
-                resValue = self.translate(msgId)
+                resValue = self.translate('field_invalid')
             setattr(errors, key, resValue)
 
     def onUpdate(self):
@@ -395,6 +393,14 @@ class BaseMixin:
             exec 'import %s' % moduleName
             exec 'reload(%s)' % moduleName
             exec 'res = %s.%s' % (moduleName, klass.__name__)
+            # More manipulations may have occurred in m_update
+            if hasattr(res, 'update'):
+                parentName = res.__bases__[-1].__name__
+                moduleName = 'Products.%s.Extensions.appyWrappers' % \
+                             self.getTool().getAppName()
+                exec 'import %s' % moduleName
+                exec 'parent = %s.%s' % (moduleName, parentName)
+                res.update(parent)
             return res
 
     def getAppyType(self, name, asDict=False, className=None):

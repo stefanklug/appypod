@@ -141,6 +141,7 @@ class Generator(AbstractGenerator):
             msg('yes',                  '', msg.YES),
             msg('no',                   '', msg.NO),
             msg('field_required',       '', msg.FIELD_REQUIRED),
+            msg('field_invalid',        '', msg.FIELD_INVALID),
             msg('file_required',        '', msg.FILE_REQUIRED),
             msg('image_required',       '', msg.IMAGE_REQUIRED),
         ]

@@ -749,11 +749,11 @@ class Type:
                         return validValue
                     else:
                         if not validValue:
-                            return obj.translate('%s_valid' % self.labelId)
+                            return obj.translate('field_invalid')
                 except Exception, e:
                     return str(e)
                 except:
-                    return obj.translate('%s_valid' % self.labelId)
+                    return obj.translate('field_invalid')
             else:
                 # It is a regular expression
                 if not self.validator.match(value):
@@ -766,7 +766,7 @@ class Type:
                     elif self.validator == String.ALPHANUMERIC:
                         return obj.translate('bad_alphanumeric')
                     else:
-                        return obj.translate('%s_valid' % self.labelId)
+                        return obj.translate('field_invalid')
 
     def store(self, obj, value):
         '''Stores the p_value (produced by m_getStorableValue) that complies to
