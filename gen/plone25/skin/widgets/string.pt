@@ -35,7 +35,8 @@
                           size     python: isMultiple and widget['height'] or 1">
     <option tal:repeat="possibleValue possibleValues"
             tal:attributes="value python: possibleValue[0];
-                            selected python:contextObj.fieldValueSelected(name, possibleValue[0], rawValue)"
+                            selected python:contextObj.fieldValueSelected(name, possibleValue[0], rawValue);
+                            title python: possibleValue[1]"
             tal:content="python:tool.truncateValue(possibleValue[1], widget)"></option>
   </select>
   </tal:choice>
@@ -100,7 +101,8 @@
     <tal:comment replace="nothing">The list of values</tal:comment>
     <select tal:attributes="name widgetName" multiple="multiple" size="5">
       <option tal:repeat="v python:tool.getPossibleValues(name, withTranslations=True, withBlankValue=False, className=contentType)"
-              tal:attributes="value python:v[0]" tal:content="python: tool.truncateValue(v[1], widget)">
+              tal:attributes="value python:v[0]; title python: v[1]"
+              tal:content="python: tool.truncateValue(v[1], widget)">
       </option>
     </select>
   </tal:selectSearch><br/>

@@ -576,10 +576,7 @@ class Type:
         if not layouts:
             # Get the default layouts as defined by the subclass
             areDefault = True
-            layouts = self.getDefaultLayouts()
-            if not layouts:
-                # Get the global default layouts
-                layouts = copy.deepcopy(defaultFieldLayouts)
+            layouts = self.computeDefaultLayouts()
         else:
             if isinstance(layouts, basestring):
                 # The user specified a single layoutString (the "edit" one)
@@ -588,19 +585,24 @@ class Type:
                 # Idem, but with a Table instance
                 layouts = {'edit': Table(other=layouts)}
             else:
-                layouts = copy.deepcopy(layouts)
                 # Here, we make a copy of the layouts, because every layout can
                 # be different, even if the user decides to reuse one from one
                 # field to another. This is because we modify every layout for
                 # adding master/slave-related info, focus-related info, etc,
                 # which can be different from one field to the other.
+                layouts = copy.deepcopy(layouts)
+                if 'edit' not in layouts:
+                    defEditLayout = self.computeDefaultLayouts()
+                    if type(defEditLayout) == dict:
+                        defEditLayout = defEditLayout['edit']
+                    layouts['edit'] = defEditLayout
         # We have now a dict of layouts in p_layouts. Ensure now that a Table
         # instance is created for every layout (=value from the dict). Indeed,
         # a layout could have been expressed as a simple layout string.
         for layoutType in layouts.iterkeys():
             if isinstance(layouts[layoutType], basestring):
                 layouts[layoutType] = Table(layouts[layoutType])
-        # Create the "view" layout from the "edit" layout if not specified
+        # Derive "view" and "cell" layouts from the "edit" layout when relevant
         if 'view' not in layouts:
             layouts['view'] = Table(other=layouts['edit'], derivedType='view')
         # Create the "cell" layout from the 'view' layout if not specified.
@@ -655,6 +657,15 @@ class Type:
         '''Any subclass can define this for getting a specific set of
            default layouts. If None is returned, a global set of default layouts
            will be used.'''
+
+    def computeDefaultLayouts(self):
+        '''This method gets the default layouts from an Appy type, or a copy
+           from the global default field layouts when they are not available.'''
+        res = self.getDefaultLayouts()
+        if not res:
+            # Get the global default layouts
+            res = copy.deepcopy(defaultFieldLayouts)
+        return res
 
     def getCss(self, layoutType):
         '''This method returns a list of CSS files that are required for

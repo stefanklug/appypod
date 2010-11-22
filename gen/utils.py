@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, time
-from appy.shared.utils import getOsTempFolder, normalizeString
+import appy.pod
+from appy.shared.utils import getOsTempFolder, normalizeString, executeCommand
 sequenceTypes = (list, tuple)
 
 # Classes used by edit/view templates for accessing information ----------------

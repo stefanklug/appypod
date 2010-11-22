@@ -123,7 +123,7 @@ class Table(LayoutElement):
     '''Represents a table where to dispose graphical elements.'''
     simpleParams = ('style', 'css_class', 'cellpadding', 'cellspacing', 'width',
                     'align')
-    derivedRepls = {'view': 'hrv', 'cell': 'ld'}
+    derivedRepls = {'view': 'hrvd', 'cell': 'ld'}
     def __init__(self, layoutString=None, style=None, css_class='',
                  cellpadding=0, cellspacing=0, width='100%', align='left',
                  other=None, derivedType=None):
