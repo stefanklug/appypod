@@ -90,6 +90,8 @@ class AbstractWrapper:
     typeName = property(get_typeName)
     def get_id(self): return self.o.id
     id = property(get_id)
+    def get_uid(self): return self.o.UID()
+    uid = property(get_uid)
     def get_state(self):
         return self.o.portal_workflow.getInfoFor(self.o, 'review_state')
     state = property(get_state)
@@ -238,7 +240,8 @@ class AbstractWrapper:
         # Set in a versatile attribute details about what to execute or not
         # (actions, notifications) after the transition has been executed by DC
         # workflow.
-        self.o._v_appy_do = {'doAction': doAction, 'doNotify': doNotify}
+        self.o._v_appy_do = {'doAction': doAction, 'doNotify': doNotify,
+                             'doSay': False}
         if not doHistory:
             comment = '_invisible_' # Will not be displayed.
             # At first sight, I wanted to remove the entry from

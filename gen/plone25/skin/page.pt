@@ -46,8 +46,13 @@
           if (xhrObjects[pos].onGet) {
             xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
           }
+          // Eval inner scripts if any.
+          var innerScripts = document.getElementsByName("appyHook");
+          for (var i=0; i<innerScripts.length; i++) {
+            eval(innerScripts[i].innerHTML);
+          }
+          xhrObjects[pos].freed = 1;
         }
-        xhrObjects[pos].freed = 1;
       }
     }
   }
@@ -304,7 +309,13 @@
       // We must execute Javascript code in "action"
       eval(action);
     }
-    
+  }
+  // Function that finally posts the edit form after the user has confirmed that
+  // she really wants to post it.
+  function postConfirmedEditForm() {
+    var theForm = document.getElementById('appyEditForm');
+    theForm.confirmed.value = "True";
+    theForm.submit();
   }
   // Function that shows or hides a tab. p_action is 'show' or 'hide'.
   function manageTab(tabId, action) {

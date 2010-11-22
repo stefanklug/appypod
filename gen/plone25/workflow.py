@@ -142,6 +142,7 @@ def do(transitionName, stateChange, logger):
     ploneObj = stateChange.object
     workflow = ploneObj.getWorkflow()
     transition = workflow._transitionsMapping[transitionName]
+    msg = ''
     # Must I execute transition-related actions and notifications?
     doAction = False
     if transition.action:
@@ -161,11 +162,25 @@ def do(transitionName, stateChange, logger):
     if doAction or doNotify:
         obj = ploneObj.appy()
         if doAction:
+            msg = ''
             if type(transition.action) in (tuple, list):
                 # We need to execute a list of actions
-                for act in transition.action: act(workflow, obj)
+                for act in transition.action:
+                    msgPart = act(workflow, obj)
+                    if msgPart: msg += msgPart
             else: # We execute a single action only.
-                transition.action(workflow, obj)
+                msgPart = transition.action(workflow, obj)
+                if msgPart: msg += msgPart
         if doNotify:
             notifier.sendMail(obj, transition, transitionName, workflow, logger)
+    # Produce a message to the user
+    if hasattr(ploneObj, '_v_appy_do') and not ploneObj._v_appy_do['doSay']:
+        # We do not produce any message if the transition was triggered
+        # programmatically.
+        return
+    # Produce a default message if no transition has given a custom one.
+    if not msg:
+        msg = ploneObj.translate(u'Your content\'s status has been modified.',
+                                 domain='plone')
+    ploneObj.plone_utils.addPortalMessage(msg)
 # ------------------------------------------------------------------------------

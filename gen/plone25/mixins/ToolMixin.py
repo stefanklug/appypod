@@ -47,6 +47,10 @@ class ToolMixin(BaseMixin):
         res['action'] = appyType.action
         return res
 
+    def getSiteUrl(self):
+        '''Returns the absolute URL of this site.'''
+        return self.portal_url.getPortalObject().absolute_url()
+
     def generateDocument(self):
         '''Generates the document from field-related info. UID of object that
            is the template target is given in the request.'''

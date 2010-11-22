@@ -89,11 +89,10 @@
 
 <tal:comment replace="nothing">View macro for a Ref.</tal:comment>
 <div metal:define-macro="view"
-     tal:define= "innerRef   innerRef|python:False;
+     tal:define= "innerRef innerRef|python:False;
                   ajaxHookId python: contextObj.UID() + name"
      tal:attributes = "id ajaxHookId">
-  <script language="javascript"
-          tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
+  <script name="appyHook" tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
   </script>
 </div>
 
@@ -148,9 +147,6 @@
       <tal:objectIsPresent condition="objs">
         <tal:obj repeat="obj objs">
           <td tal:define="includeShownInfo python:True"><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" /></td>
-          <td tal:condition="not: appyType/isBack">
-            <metal:showObjectActions use-macro="portal/skyn/widgets/ref/macros/objectActions" />
-          </td>
         </tal:obj>
       </tal:objectIsPresent>
     </tr></table>

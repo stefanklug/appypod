@@ -11,7 +11,8 @@
                   page        request/page|python:'main';
                   cssAndJs    python: contextObj.getCssAndJs(layoutType, page);
                   css         python: cssAndJs[0];
-                  js          python: cssAndJs[1]">
+                  js          python: cssAndJs[1];
+                  confirmMsg  request/confirmMsg | nothing;">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
       xmlns:tal="http://xml.zope.org/namespaces/tal"
@@ -46,15 +47,19 @@
   <body>
     <metal:fill fill-slot="main">
       <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
-      <form name="edit_form" method="post" enctype="multipart/form-data"
-            class="enableUnloadProtection atBaseEditForm"
-            tal:attributes="action python: contextObj.absolute_url()+'/skyn/do'">
+      <form id="appyEditForm" name="appyEditForm" method="post" enctype="multipart/form-data"
+            tal:attributes="action python: contextObj.absolute_url()+'/skyn/do';
+                            class python: test(confirmMsg, 'atBaseEditForm', 'enableUnloadProtection atBaseEditForm')">
         <input type="hidden" name="action" value="Update"/>
         <input type="hidden" name="page" tal:attributes="value page"/>
         <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
         <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
+        <input type="hidden" name="confirmed" value="False"/>
         <metal:show use-macro="here/skyn/page/macros/show"/>
       </form>
+      <script tal:condition="confirmMsg"
+              tal:content="python: 'askConfirm(\'script\', \'postConfirmedEditForm()\', \'%s\')' % confirmMsg">
+      </script>
       <metal:footer use-macro="here/skyn/page/macros/footer"/>
     </metal:fill>
   </body>

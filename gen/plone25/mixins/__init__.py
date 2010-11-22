@@ -18,7 +18,7 @@ class BaseMixin:
     _appy_meta_type = 'Class'
 
     def get_o(self):
-        '''In some cases, we wand the Zope object, we don't know if the current
+        '''In some cases, we want the Zope object, we don't know if the current
            object is a Zope or Appy object. By defining this property,
            "someObject.o" produces always the Zope object, be someObject an Appy
            or Zope object.'''
@@ -78,6 +78,18 @@ class BaseMixin:
     def delete(self):
         '''This methods is self's suicide.'''
         self.getParentNode().manage_delObjects([self.id])
+
+    def onDelete(self):
+        rq = self.REQUEST
+        self.delete()
+        if self.getUrl(rq['HTTP_REFERER'],mode='raw') ==self.getUrl(mode='raw'):
+            # We were consulting the object that has been deleted. Go back to
+            # the main page.
+            urlBack = self.getTool().getSiteUrl()
+        else:
+            urlBack = self.getUrl(rq['HTTP_REFERER'])
+        self.plone_utils.addPortalMessage(self.translate('delete_done'))
+        self.goto(urlBack)
 
     def onCreate(self):
         '''This method is called when a user wants to create a root object in
@@ -152,6 +164,7 @@ class BaseMixin:
            the "final" object in the database. If the object is not a temporary
            one, this method updates its fields in the database.'''
         rq = self.REQUEST
+        tool = self.getTool()
         errorMessage = self.translate(
             'Please correct the indicated errors.', domain='plone')
         isNew = rq.get('is_new') == 'True'
@@ -161,12 +174,12 @@ class BaseMixin:
                 if rq.get('nav', ''):
                     # We can go back to the initiator page.
                     splitted = rq['nav'].split('.')
-                    initiator = self.getTool().getObject(splitted[1])
+                    initiator = tool.getObject(splitted[1])
                     initiatorPage = splitted[2].split(':')[1]
                     urlBack = initiator.getUrl(page=initiatorPage, nav='')
                 else:
                     # Go back to the root of the site.
-                    urlBack = self.portal_url.getPortalObject().absolute_url()
+                    urlBack = tool.getSiteUrl()
             else:
                 urlBack = self.getUrl()
             self.plone_utils.addPortalMessage(
@@ -192,12 +205,21 @@ class BaseMixin:
             self.plone_utils.addPortalMessage(errorMessage)
             return self.skyn.edit(self)
 
+        # Before saving data, must we ask a confirmation by the user ?
+        appyObj = self.appy()
+        saveConfirmed = rq.get('confirmed') == 'True'
+        if hasattr(appyObj, 'confirm') and not saveConfirmed:
+            msg = appyObj.confirm(values)
+            if msg:
+                rq.set('confirmMsg', msg.replace("'", "\\'"))
+                return self.skyn.edit(self)
+
         # Create or update the object in the database
         obj = self.createOrUpdate(isNew, values)
 
         # Redirect the user to the appropriate page
         msg = obj.translate('Changes saved.', domain='plone')
-        if rq.get('buttonOk.x', None):
+        if rq.get('buttonOk.x', None) or saveConfirmed:
             # Go to the consult view for this object
             obj.plone_utils.addPortalMessage(msg)
             return self.goto(obj.getUrl())
@@ -236,13 +258,6 @@ class BaseMixin:
                 obj.plone_utils.addPortalMessage(msg)
                 return self.goto(obj.getUrl())
         return obj.skyn.edit(obj)
-
-    def onDelete(self):
-        rq = self.REQUEST
-        msg = self.translate('delete_done')
-        self.delete()
-        self.plone_utils.addPortalMessage(msg)
-        self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
@@ -754,17 +769,11 @@ class BaseMixin:
         rq = self.REQUEST
         self.portal_workflow.doActionFor(self, rq['workflow_action'],
             comment = rq.get('comment', ''))
-        # Where to redirect the user back ?
-        urlBack = rq['HTTP_REFERER']
-        if urlBack.find('?') != -1:
-            # Remove params; this way, the user may be redirected to correct
-            # phase when relevant.
-            urlBack = urlBack[:urlBack.find('?')]
-        msg = self.translate(u'Your content\'s status has been modified.',
-            domain='plone')
-        self.plone_utils.addPortalMessage(msg)
         self.reindexObject()
-        return self.goto(urlBack)
+        # Where to redirect the user back ?
+        # TODO (?): remove the "phase" param for redirecting the user to the
+        # next phase when relevant.
+        return self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def fieldValueSelected(self, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (ie a String with a validator being a
@@ -916,15 +925,28 @@ class BaseMixin:
         '''Returns a Appy URL.
            * If p_base is None, it will be the base URL for this object
              (ie, self.absolute_url()).
-           * p_mode can de "edit" or "view".
+           * p_mode can be "edit", "view" or "raw" (a non-param, base URL)
            * p_kwargs can store additional parameters to add to the URL.
              In this dict, every value that is a string will be added to the
              URL as-is. Every value that is True will be replaced by the value
              in the request for the corresponding key (if existing; else, the
              param will not be included in the URL at all).'''
-        # Define base URL if ommitted
+        # Define the URL suffix
+        suffix = ''
+        if mode != 'raw': suffix = '/skyn/%s' % mode
+        # Define base URL if omitted
         if not base:
-            base = '%s/skyn/%s' % (self.absolute_url(), mode)
+            base = self.absolute_url() + suffix
+        # If a raw URL is asked, remove any param and suffix.
+        if mode == 'raw':
+            if '?' in base: base = base[:base.index('?')]
+            base = base.strip('/')
+            for mode in ('view', 'edit'):
+                suffix = 'skyn/%s' % mode
+                if base.endswith(suffix):
+                    base = base[:-len(suffix)].strip('/')
+                    break
+            return base
         # Manage default args
         if not kwargs: kwargs = self.getUrlDefaults
         if 'page' not in kwargs: kwargs['page'] = True
