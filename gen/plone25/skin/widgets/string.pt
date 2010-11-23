@@ -43,12 +43,14 @@
   <tal:line condition="python: isOneLine and not isSelect">
     <input tal:attributes="id name; name name; size widget/width;
                            value python: test(inRequest, requestValue, value);
+                           style python: 'text-transform:%s' % widget['transform'];
                            type  python: (widget['format'] == 3) and 'password' or 'text'"/>
   </tal:line>
   <tal:textarea condition="python: fmt == 1">
     <textarea tal:attributes="id name; name name;
                               cols widget/width;
-                              rows widget/height;"
+                              rows widget/height;
+                              style python: 'text-transform:%s' % widget['transform'];"
               tal:content="python: test(inRequest, requestValue, value)">
     </textarea>
     <input type="hidden" value="text/plain" originalvalue="text/plain"

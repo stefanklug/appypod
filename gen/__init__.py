@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 import re, time, copy, sys, types, os, os.path
 from appy.shared.utils import Traceback
@@ -1169,6 +1170,35 @@ class String(Type):
                         break
             # Check that the value is among possible values
             if error: obj.translate('bad_select_value')
+
+    accents = {'é':'e','è':'e','ê':'e','ë':'e','à':'a','â':'a','ä':'a',
+               'ù':'u','û':'u','ü':'u','î':'i','ï':'i','ô':'o','ö':'o',
+               'ç':'c', 'Ç':'C',
+               'Ù':'U','Û':'U','Ü':'U','Î':'I','Ï':'I','Ô':'O','Ö':'O',
+               'É':'E','È':'E','Ê':'E','Ë':'E','À':'A','Â':'A','Ä':'A'}
+    def applyTransform(self, value):
+        '''Applies a transform as required by self.transform on single
+           value p_value.'''
+        if self.transform in ('uppercase', 'lowercase'):
+            # For those transforms, I will remove any accent, because
+            # (1) 'é'.upper() or 'Ê'.lower() has no effect;
+            # (2) most of the time, if the user wants to apply such effect, it
+            #     is for ease of data manipulation, so I guess without accent.
+            for c, n in self.accents.iteritems():
+                if c in value: value = value.replace(c, n)
+        # Apply the transform
+        if   self.transform == 'lowercase':  return value.lower()
+        elif self.transform == 'uppercase':  return value.upper()
+        elif self.transform == 'capitalize': return value.capitalize()
+        return value
+
+    def getStorableValue(self, value):
+        if not self.isEmptyValue(value) and (self.transform != 'none'):
+            if isinstance(value, basestring):
+                return self.applyTransform(value)
+            else:
+                return [self.applyTransform(v) for v in value]
+        return value
 
     def store(self, obj, value):
         if self.isMultiValued() and isinstance(value, basestring):
