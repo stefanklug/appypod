@@ -28,11 +28,8 @@
     </td>
   </dt>
 
-  <tal:publishedObject condition="python: contextObj">
-  <dt class="portletAppyItem portletCurrent">
-    <a tal:attributes="href python: contextObj.getUrl(page='main')"
-       tal:content="contextObj/Title"></a>
-  </dt>
+  <tal:publishedObject condition="python: contextObj and tool.userMayNavigate(contextObj.meta_type)">
+  <dt class="portletAppyItem portletCurrent"><b tal:content="contextObj/Title"></b></dt>
   <dt class="portletAppyItem"><metal:phases use-macro="here/skyn/portlet/macros/phases"/></dt>
   </tal:publishedObject>
   

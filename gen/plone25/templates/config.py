@@ -17,6 +17,7 @@ try:
 except ImportError:
     CustomizationPolicy = None
 from OFS.Image import File
+from ZPublisher.HTTPRequest import FileUpload
 from DateTime import DateTime
 from Products.CMFCore import utils as cmfutils
 from Products.CMFCore.utils import getToolByName

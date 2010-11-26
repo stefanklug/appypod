@@ -452,6 +452,16 @@ class ToolMixin(BaseMixin):
             return pythonClass.maySearch(self.appy())
         return True
 
+    def userMayNavigate(self, someClass):
+        '''This method checks if the currently logged user can display the
+           navigation panel within the portlet. This is done by calling method
+           "mayNavigate" on the class whose currently shown object is an
+           instance of. If no such method exists, we return True.'''
+        pythonClass = self.getAppyClass(someClass)
+        if 'mayNavigate' in pythonClass.__dict__:
+            return pythonClass.mayNavigate(self.appy())
+        return True
+
     def onImportObjects(self):
         '''This method is called when the user wants to create objects from
            external data.'''

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
-import re, time, copy, sys, types, os, os.path
+import re, time, copy, sys, types, os, os.path, mimetypes
 from appy.shared.utils import Traceback
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
@@ -1203,7 +1203,7 @@ class String(Type):
     def store(self, obj, value):
         if self.isMultiValued() and isinstance(value, basestring):
             value = [value]
-        setattr(obj, self.name, value)
+        exec 'obj.%s = value' % self.name
 
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -1352,31 +1352,80 @@ class File(Type):
 
     defaultMimeType = 'application/octet-stream'
     def store(self, obj, value):
-        '''Stores the p_value (produced by m_getStorableValue) that complies to
-           p_self type definition on p_obj.'''
+        '''Stores the p_value that represents some file. p_value can be:
+           * an instance of Zope class ZPublisher.HTTPRequest.FileUpload. In
+             this case, it is file content coming from a HTTP POST;
+           * an instance of Zope class OFS.Image.File;
+           * an instance of appy.gen.utils.FileWrapper, which wraps an instance
+             of OFS.Image.File and adds useful methods for manipulating it;
+           * a string. In this case, the string represents the path of a file
+             on disk;
+           * a 2-tuple (fileName, fileContent) where:
+             - fileName is the name of the file (ie "myFile.odt")
+             - fileContent is the binary or textual content of the file or an
+                           open file handler.
+           * a 3-tuple (fileName, fileContent, mimeType) where
+             - fileName and fileContent have the same meaning than above;
+             - mimeType is the MIME type of the file.
+        '''
         if value:
-            # Retrieve the existing value, or create one if None
-            existingValue = getattr(obj, self.name, None)
-            if not existingValue:
-                import OFS.Image
-                existingValue = OFS.Image.File(self.name, '', '')
-            # Set mimetype
-            if value.headers.has_key('content-type'):
-                mimeType = value.headers['content-type']
-            else:
-                mimeType = File.defaultMimeType
-            existingValue.content_type = mimeType
-            # Set filename
-            fileName = value.filename
-            filename = fileName[max(fileName.rfind('/'), fileName.rfind('\\'),
-                                    fileName.rfind(':'))+1:]
-            existingValue.filename = fileName
-            # Set content
-            existingValue.manage_upload(value)
-            setattr(obj, self.name, existingValue)
+            ZFileUpload = self.o.getProductConfig().FileUpload
+            OFSImageFile = self.o.getProductConfig().File
+            if isinstance(value, ZFileUpload):
+                # The file content comes from a HTTP POST.
+                # Retrieve the existing value, or create one if None
+                existingValue = getattr(obj, self.name, None)
+                if not existingValue:
+                    existingValue = OFSImageFile(self.name, '', '')
+                # Set mimetype
+                if value.headers.has_key('content-type'):
+                    mimeType = value.headers['content-type']
+                else:
+                    mimeType = File.defaultMimeType
+                existingValue.content_type = mimeType
+                # Set filename
+                fileName = value.filename
+                filename= fileName[max(fileName.rfind('/'),fileName.rfind('\\'),
+                                       fileName.rfind(':'))+1:]
+                existingValue.filename = fileName
+                # Set content
+                existingValue.manage_upload(value)
+                setattr(obj, self.name, existingValue)
+            elif isinstance(value, OFSImageFile):
+                setattr(obj, self.name, value)
+            elif isinstance(value, FileWrapper):
+                setattr(obj, self.name, value._atFile)
+            elif isinstance(value, basestring):
+                f = file(value)
+                fileName = os.path.basename(value)
+                fileId = 'file.%f' % time.time()
+                zopeFile = OFSImageFile(fileId, fileName, f)
+                zopeFile.filename = fileName
+                zopeFile.content_type = mimetypes.guess_type(fileName)[0]
+                setattr(obj, self.name, zopeFile)
+                f.close()
+            elif type(value) in sequenceTypes:
+                # It should be a 2-tuple or 3-tuple
+                fileName = None
+                mimeType = None
+                if len(value) == 2:
+                    fileName, fileContent = value
+                elif len(value) == 3:
+                    fileName, fileContent, mimeType = value
+                else:
+                    raise WRONG_FILE_TUPLE
+                if fileName:
+                    fileId = 'file.%f' % time.time()
+                    zopeFile = OFSImageFile(fileId, fileName, fileContent)
+                    zopeFile.filename = fileName
+                    if not mimeType:
+                        mimeType = mimetypes.guess_type(fileName)[0]
+                    zopeFile.content_type = mimeType
+                    setattr(obj, self.name, zopeFile)
         else:
-            # What must I do: delete the existing file or keep it ?
-            action = obj.REQUEST.get('%s_delete' % self.name)
+            # I store value "None", excepted if I find in the request the desire
+            # to keep the file unchanged.
+            action = obj.REQUEST.get('%s_delete' % self.name, None)
             if action == 'nochange': pass
             else: setattr(obj, self.name, None)
 
@@ -1542,21 +1591,30 @@ class Ref(Type):
             return obj.translate('max_ref_violated')
 
     def store(self, obj, value):
-        '''Stores on p_obj, the p_value, which can be None, an object UID or a
-           list of UIDs coming from the request. This method is only called for
-           Ref fields with link=True.'''
-        # Security check
-        if not self.isShowable(obj, 'edit'): return
+        '''Stores on p_obj, the p_value, which can be:
+           * None;
+           * an object UID (=string);
+           * a list of object UIDs (=list of strings). Generally, UIDs or lists
+             of UIDs come from Ref fields with link:True edited through the web;
+           * a Zope object;
+           * a Appy object;
+           * a list of Appy or Zope objects.
+        '''
         # Standardize the way p_value is expressed
-        uids = value
-        if not value: uids = []
-        if isinstance(value, basestring): uids = [value]
+        refs = value
+        if not refs: refs = []
+        if type(refs) not in sequenceTypes: refs = [refs]
+        for i in range(len(refs)):
+            if isinstance(refs[i], basestring):
+                # Get the Zope object from the UID
+                refs[i] = obj.uid_catalog(UID=refs[i])[0].getObject()
+            else:
+                refs[i] = refs[i].o # Now we are sure to have a Zope object.
         # Update the field storing on p_obj the ordered list of UIDs
         sortedRefs = obj._appy_getSortedField(self.name)
         del sortedRefs[:]
-        for uid in uids: sortedRefs.append(uid)
-        # Update the refs
-        refs = [obj.uid_catalog(UID=uid)[0].getObject() for uid in uids]
+        for ref in refs: sortedRefs.append(ref.UID())
+        # Update the Archetypes Ref field.
         exec 'obj.set%s%s(refs)' % (self.name[0].upper(), self.name[1:])
 
     def clone(self, forTool=True):
@@ -1618,11 +1676,14 @@ class Action(Type):
                  master=None, masterValue=None, focus=False, historized=False):
         # Can be a single method or a list/tuple of methods
         self.action = action
-        # For the following field, value 'computation' means that the action
-        # will simply compute things and redirect the user to the same page,
-        # with some status message about execution of the action. 'file' means
-        # that the result is the binary content of a file that the user will
-        # download.
+        # For the following field:
+        #  * value 'computation' means that the action will simply compute
+        #    things and redirect the user to the same page, with some status
+        #    message about execution of the action;
+        #  * 'file' means that the result is the binary content of a file that
+        #    the user will download.
+        #  * 'redirect' means that the action will lead to the user being
+        #    redirected to some other page.
         self.result = result
         # If following field "confirm" is True, a popup will ask the user if
         # she is really sure about triggering this action.

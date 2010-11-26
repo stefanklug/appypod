@@ -486,11 +486,18 @@ class MemoryBuffer(Buffer):
         else:
             res = self.getLength()
         return res
+
+    reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
+                              '(?P=f)>', re.S)
     def evaluate(self, subElements=True, removeMainElems=False):
-        #print 'Evaluating buffer', self.content.encode('utf-8'), self.elements
         result = self.getFileBuffer()
         if not subElements:
-            result.write(self.content)
+            # Dump the root tag in this buffer, but not its content.
+            res = self.reTagContent.match(self.content.strip())
+            if not res: result.write(self.content)
+            else:
+                g = res.group
+                result.write('<%s:%s%s></%s:%s>' % (g(1),g(2),g(3),g(1),g(2)))
         else:
             iter = BufferIterator(self)
             currentIndex = self.getStartIndex(removeMainElems)
@@ -505,8 +512,6 @@ class MemoryBuffer(Buffer):
                         PodError.dump(result, EVAL_EXPR_ERROR % (
                             evalEntry.expr, e), dumpTb=False)
                 else: # It is a subBuffer
-                    #print '******Subbuffer*************'
-                    # This is a bug.
                     if evalEntry.action:
                         evalEntry.action.execute()
                     else:

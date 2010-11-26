@@ -100,4 +100,13 @@ class UserWrapper(AbstractWrapper):
                 if groupName in userGroups:
                     group.removeMember(self.login)
         self._callCustom('onEdit', created)
+
+    def onDelete(self):
+        '''Before deleting myself, I must delete the corresponding Plone
+           user.'''
+        # Delete the corresponding Plone user
+        self.o.acl_users._doDelUser(self.login)
+        self.log('Plone user "%s" deleted.' % self.login)
+        # Call a custom "onDelete" if any.
+        self._callCustom('onDelete')
 # ------------------------------------------------------------------------------

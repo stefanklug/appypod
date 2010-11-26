@@ -6,7 +6,7 @@ from appy.shared.utils import FolderDeleter, cleanFolder
 # ------------------------------------------------------------------------------
 class Cleaner:
     def run(self, verbose=True):
-        cleanFolder(appyPath, verbose=True)
+        cleanFolder(appyPath, verbose=verbose)
         # Remove all files in temp folders
         for tempFolder in ('%s/temp' % appyPath,
                            '%s/pod/test/temp' % appyPath):

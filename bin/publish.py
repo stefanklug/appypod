@@ -395,7 +395,7 @@ class Publisher:
         f.close()
 
     privateScripts = ('publish.py', 'zip.py', 'runOpenOffice.sh')
-    def prepareGenFolder(self):
+    def prepareGenFolder(self, minimalist=False):
         '''Creates the basic structure of the temp folder where the appy
            website will be generated.'''
         # Reinitialise temp folder where the generated website will be dumped
@@ -413,6 +413,8 @@ class Publisher:
         # Remove some scripts from bin
         for script in self.privateScripts:
             os.remove('%s/bin/%s' % (genSrcFolder, script))
+        if minimalist:
+            FolderDeleter.delete('%s/pod/test' % genSrcFolder)
         # Write the appy version into the code itself (in appy/version.py)'''
         print 'Publishing version %s...' % self.versionShort
         # Dump version info in appy/version.py
@@ -436,7 +438,9 @@ class Publisher:
         # Perform a small analysis on the Appy code
         LinesCounter(appy).run()
         print 'Generating site in %s...' % self.genFolder
-        self.prepareGenFolder()
+        minimalist = askQuestion('Minimalist (shipped without tests)?',
+                                 default='no')
+        self.prepareGenFolder(minimalist)
         self.createDocToc()
         self.applyTemplate()
         self.createZipRelease()

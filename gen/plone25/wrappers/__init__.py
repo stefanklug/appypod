@@ -5,7 +5,7 @@
 import os, os.path, time, mimetypes, random
 import appy.pod
 from appy.gen import Search
-from appy.gen.utils import sequenceTypes, FileWrapper
+from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
 
@@ -18,97 +18,62 @@ WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
 class AbstractWrapper:
     '''Any real web framework object has a companion object that is an instance
        of this class.'''
-    def __init__(self, o):
-        self.__dict__['o'] = o
-    def _set_file_attribute(self, name, v):
-        '''Updates the value of a file attribute named p_name with value p_v.
-           p_v may be:
-           - a string value containing the path to a file on disk;
-           - a 2-tuple (fileName, fileContent) where
-             * fileName = the name of the file (ie "myFile.odt")
-             * fileContent = the binary or textual content of the file or an
-               open file handler.
-           - a 3-tuple (fileName, fileContent, mimeType) where mimeType is the
-              v MIME type of the file.'''
-        ploneFileClass = self.o.getProductConfig().File
-        if isinstance(v, ploneFileClass):
-            setattr(self.o, name, v)
-        elif isinstance(v, FileWrapper):
-            setattr(self.o, name, v._atFile)
-        elif isinstance(v, basestring):
-            f = file(v)
-            fileName = os.path.basename(v)
-            fileId = 'file.%f' % time.time()
-            ploneFile = ploneFileClass(fileId, fileName, f)
-            ploneFile.filename = fileName
-            ploneFile.content_type = mimetypes.guess_type(fileName)[0]
-            setattr(self.o, name, ploneFile)
-            f.close()
-        elif type(v) in sequenceTypes:
-            # It should be a 2-tuple or 3-tuple
-            fileName = None
-            mimeType = None
-            if len(v) == 2:
-                fileName, fileContent = v
-            elif len(v) == 3:
-                fileName, fileContent, mimeType = v
-            else:
-                raise WRONG_FILE_TUPLE
-            if fileName:
-                fileId = 'file.%f' % time.time()
-                ploneFile = ploneFileClass(fileId, fileName, fileContent)
-                ploneFile.filename = fileName
-                if not mimeType:
-                    mimeType = mimetypes.guess_type(fileName)[0]
-                ploneFile.content_type = mimeType
-                setattr(self.o, name, ploneFile)
-    def __setattr__(self, name, v):
-        if name == 'title':
-            self.o.setTitle(v)
-            return
+    def __init__(self, o): self.__dict__['o'] = o
+
+    def __setattr__(self, name, value):
         appyType = self.o.getAppyType(name)
         if not appyType:
             raise 'Attribute "%s" does not exist.' % name
-        if appyType.type == 'File':
-            self._set_file_attribute(name, v)
-        elif appyType.type == 'Ref':
-            raise "Use methods 'link' or 'create' to modify references."
-        else:
-            setattr(self.o, name, v)
+        appyType.store(self.o, value)
+
     def __repr__(self):
-        return '<%s wrapper at %s>' % (self.klass.__name__, id(self))
+        return '<%s appyobj at %s>' % (self.klass.__name__, id(self))
+
     def __cmp__(self, other):
         if other: return cmp(self.o, other.o)
-        else:     return 1
+        else: return 1
+
     def get_tool(self): return self.o.getTool().appy()
     tool = property(get_tool)
+
     def get_request(self): return self.o.REQUEST
     request = property(get_request)
+
     def get_session(self): return self.o.REQUEST.SESSION
     session = property(get_session)
+
     def get_typeName(self): return self.__class__.__bases__[-1].__name__
     typeName = property(get_typeName)
+
     def get_id(self): return self.o.id
     id = property(get_id)
+
     def get_uid(self): return self.o.UID()
     uid = property(get_uid)
+
     def get_state(self):
         return self.o.portal_workflow.getInfoFor(self.o, 'review_state')
     state = property(get_state)
+
     def get_stateLabel(self):
         appName = self.o.getProductConfig().PROJECTNAME
-        return self.o.utranslate(self.o.getWorkflowLabel(), domain=appName)
+        return self.o.translate(self.o.getWorkflowLabel(), domain=appName)
     stateLabel = property(get_stateLabel)
+
     def get_klass(self): return self.__class__.__bases__[-1]
     klass = property(get_klass)
+
     def get_url(self): return self.o.absolute_url()
     url = property(get_url)
+
     def get_history(self):
         key = self.o.workflow_history.keys()[0]
         return self.o.workflow_history[key]
     history = property(get_history)
+
     def get_user(self): return self.o.portal_membership.getAuthenticatedMember()
     user = property(get_user)
+
     def get_fields(self): return self.o.getAllAppyTypes()
     fields = property(get_fields)
 
@@ -209,6 +174,10 @@ class AbstractWrapper:
         if hasattr(appyObj, 'onEdit'): appyObj.onEdit(param)
         ploneObj.reindexObject()
         return appyObj
+
+    def delete(self):
+        '''Deletes myself.'''
+        self.o.delete()
 
     def translate(self, label, mapping={}, domain=None, language=None):
         '''Check documentation of self.o.translate.'''

@@ -77,6 +77,10 @@ class BaseMixin:
 
     def delete(self):
         '''This methods is self's suicide.'''
+        # Call a custom "onDelete" if it exists
+        appyObj = self.appy()
+        if hasattr(appyObj, 'onDelete'): appyObj.onDelete()
+        # Delete the object
         self.getParentNode().manage_delObjects([self.id])
 
     def onDelete(self):
@@ -245,8 +249,11 @@ class BaseMixin:
                 return self.goto(obj.getUrl())
         if rq.get('buttonNext.x', None):
             # Go to the next page for this object
+            # We remember page name, because the next method may set a new
+            # current page if the current one is not visible anymore.
+            pageName = rq['page']
             phaseInfo = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = self.getNextPage(phaseInfo, rq['page'])
+            pageName, pageInfo = self.getNextPage(phaseInfo, pageName)
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
@@ -576,7 +583,13 @@ class BaseMixin:
 
     def getPreviousPage(self, phase, page):
         '''Returns the page that precedes p_page which is in p_phase.'''
-        pageIndex = phase['pages'].index(page)
+        try:
+            pageIndex = phase['pages'].index(page)
+        except ValueError:
+            # The current page is probably not visible anymore. Return the
+            # first available page in current phase.
+            res = phase['pages'][0]
+            return res, phase['pagesInfo'][res]
         if pageIndex > 0:
             # We stay on the same phase, previous page
             res = phase['pages'][pageIndex-1]
@@ -594,7 +607,13 @@ class BaseMixin:
 
     def getNextPage(self, phase, page):
         '''Returns the page that follows p_page which is in p_phase.'''
-        pageIndex = phase['pages'].index(page)
+        try:
+            pageIndex = phase['pages'].index(page)
+        except ValueError:
+            # The current page is probably not visible anymore. Return the
+            # first available page in current phase.
+            res = phase['pages'][0]
+            return res, phase['pagesInfo'][res]
         if pageIndex < len(phase['pages'])-1:
             # We stay on the same phase, next page
             res = phase['pages'][pageIndex+1]
@@ -735,7 +754,9 @@ class BaseMixin:
         '''Executes action with p_fieldName on this object.'''
         appyType = self.getAppyType(actionName)
         actionRes = appyType(self.appy())
-        self.reindexObject()
+        if self.getParentNode().get(self.id):
+            # Else, it means that the action has led to self's removal.
+            self.reindexObject()
         return appyType.result, actionRes
 
     def onExecuteAppyAction(self):
@@ -755,13 +776,17 @@ class BaseMixin:
         if (resultType == 'computation') or not successfull:
             self.plone_utils.addPortalMessage(msg)
             return self.goto(self.getUrl(rq['HTTP_REFERER']))
-        else:
+        elif resultType == 'file':
             # msg does not contain a message, but a complete file to show as is.
             # (or, if your prefer, the message must be shown directly to the
             # user, not encapsulated in a Plone page).
             res = self.getProductConfig().File(msg.name, msg.name, msg,
                 content_type=mimetypes.guess_type(msg.name)[0])
             return res.index_html(rq, rq.RESPONSE)
+        elif resultType == 'redirect':
+            # msg does not contain a message, but the URL where to redirect
+            # the user.
+            return self.goto(msg)
 
     def onTriggerTransition(self):
         '''This method is called whenever a user wants to trigger a workflow
