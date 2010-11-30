@@ -9,7 +9,7 @@ schema = Schema((<!fields!>
 ),)
 fullSchema = BaseSchema.copy() + schema.copy()
 
-class <!applicationName!>User(BaseContent, BaseMixin):
+class <!applicationName!>User(BaseMixin, BaseContent):
     '''User mixin.'''
     security = ClassSecurityInfo()
     __implements__ = (getattr(BaseContent,'__implements__',()),)

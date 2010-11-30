@@ -667,14 +667,14 @@ class Generator(AbstractGenerator):
         if classDescr.isFolder():
             baseClass = 'OrderedBaseFolder'
             baseSchema = 'OrderedBaseFolderSchema'
-        parents = [baseClass, 'BaseMixin']
+        parents = ['BaseMixin', baseClass]
         imports = []
         implements = [baseClass]
         for baseClass in classDescr.klass.__bases__:
             if self.determineAppyType(baseClass) == 'class':
                 bcName = getClassName(baseClass)
                 parents.remove('BaseMixin')
-                parents.append(bcName)
+                parents.insert(0, bcName)
                 implements.append(bcName)
                 imports.append('from %s import %s' % (bcName, bcName))
                 baseSchema = '%s.schema' % bcName

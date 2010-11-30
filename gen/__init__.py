@@ -700,6 +700,28 @@ class Type:
         if self.isEmptyValue(value): return ''
         return value
 
+    def getIndexValue(self, obj, forSearch=False):
+        '''This method returns a version for this field value on p_obj that is
+           ready for indexing purposes. Needs to be overridden by some child
+           classes.
+
+           If p_forSearch is True, it will return a "string" version of the
+           index value suitable for a global search.'''
+        value = self.getValue(obj)
+        if forSearch and (value != None):
+            if isinstance(value, unicode):
+                res = value.encode('utf-8')
+            elif type(value) in sequenceTypes:
+                res = []
+                for v in value:
+                    if isinstance(v, unicode): res.append(v.encode('utf-8'))
+                    else: res.append(str(v))
+                res = ' '.join(res)
+            else:
+                res = str(value)
+            return res
+        return value
+
     def getRequestValue(self, request):
         '''Gets the string (or list of strings if multi-valued)
            representation of this field as found in the p_request.'''
@@ -1065,11 +1087,16 @@ class String(Type):
             else: return value
         if isinstance(value, basestring) and self.isMultiValued():
             value = [value]
+        # Some backward compatibilities with Archetypes.
         elif value.__class__.__name__ == 'BaseUnit':
             try:
                 value = unicode(value)
             except UnicodeDecodeError:
                 value = str(value)
+        elif isinstance(value, tuple):
+            # When Appy storage was based on Archetype, multivalued string
+            # fields stored values as tuples of unicode strings.
+            value = list(value)
         return value
 
     def getFormattedValue(self, obj, value):
@@ -1369,8 +1396,8 @@ class File(Type):
              - mimeType is the MIME type of the file.
         '''
         if value:
-            ZFileUpload = self.o.getProductConfig().FileUpload
-            OFSImageFile = self.o.getProductConfig().File
+            ZFileUpload = obj.o.getProductConfig().FileUpload
+            OFSImageFile = obj.o.getProductConfig().File
             if isinstance(value, ZFileUpload):
                 # The file content comes from a HTTP POST.
                 # Retrieve the existing value, or create one if None

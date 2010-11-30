@@ -793,7 +793,7 @@ class BaseMixin:
            transition on an object.'''
         rq = self.REQUEST
         self.portal_workflow.doActionFor(self, rq['workflow_action'],
-            comment = rq.get('comment', ''))
+                                         comment = rq.get('comment', ''))
         self.reindexObject()
         # Where to redirect the user back ?
         # TODO (?): remove the "phase" param for redirecting the user to the
@@ -1040,4 +1040,13 @@ class BaseMixin:
             response.setHeader('Cachecontrol', 'no-cache')
             response.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
             return theFile.index_html(self.REQUEST, self.REQUEST.RESPONSE)
+
+    def SearchableText(self):
+        '''This method concatenates the content of every field with
+           searchable=True for indexing purposes.'''
+        res = []
+        for field in self.getAllAppyTypes():
+            if not field.searchable: continue
+            res.append(field.getIndexValue(self, forSearch=True))
+        return res
 # ------------------------------------------------------------------------------

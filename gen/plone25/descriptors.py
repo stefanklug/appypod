@@ -361,7 +361,8 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         m += '\n' + ' '*spaces + 'def get%s%s(self):\n' % (n[0].upper(), n[1:])
         spaces += TABS
         m += ' '*spaces + "'''Gets indexable value of field \"%s\".'''\n" % n
-        m += ' '*spaces + 'return self.getAppyType("%s").getValue(self)\n' % n
+        m += ' '*spaces + 'return self.getAppyType("%s").getIndexValue(' \
+             'self)\n' % n
         self.methods = m
 
 class ToolClassDescriptor(ClassDescriptor):

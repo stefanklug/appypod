@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, zipfile, appy
 from appy.bin.clean import Cleaner
-from appy.shared.utils import FolderDeleter, copyFolder
+from appy.shared.utils import FolderDeleter, copyFolder, cleanFolder
 from optparse import OptionParser
 
 # ------------------------------------------------------------------------------
@@ -104,6 +104,8 @@ class EggifyScript:
     def eggify(self):
         '''Let's wrap a nice Python module into an ugly egg.'''
         j = os.path.join
+        # First, clean the Python module
+        cleanFolder(self.pythonModule, verbose=False)
         # Create the egg folder
         eggFullName = j(self.eggFolder, self.eggName)
         if os.path.exists(eggFullName):

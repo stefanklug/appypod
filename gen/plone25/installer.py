@@ -56,9 +56,17 @@ class PloneInstaller:
            {s_indexName:s_indexType}. Here are some examples of index types:
            "FieldIndex", "ZCTextIndex", "DateIndex".'''
         catalog = ploneSite.portal_catalog
-        indexNames = catalog.indexes()
+        zopeCatalog = catalog._catalog
         for indexName, indexType in indexInfo.iteritems():
-            if indexName not in indexNames:
+            # If this index already exists but with a different type, remove it.
+            if (indexName in zopeCatalog.indexes):
+                oldType = zopeCatalog.indexes[indexName].__class__.__name__
+                if oldType != indexType:
+                    catalog.delIndex(indexName)
+                    logger.info('Existing index "%s" of type "%s" was removed:'\
+                                ' we need to recreate it with type "%s".' % \
+                                (indexName, oldType, indexType))
+            if indexName not in zopeCatalog.indexes:
                 # We need to create this index
                 if indexType != 'ZCTextIndex':
                     catalog.addIndex(indexName, indexType)
@@ -68,8 +76,6 @@ class PloneInstaller:
                 catalog.reindexIndex(indexName, ploneSite.REQUEST)
                 logger.info('Created index "%s" of type "%s"...' % \
                             (indexName, indexType))
-        # TODO: if the index already exists but has not the same type, we
-        # re-create it with the same type and we reindex it.
 
     actionsToHide = {
         'portal_actions': ('sitemap', 'accessibility', 'change_state','sendto'),

@@ -11,7 +11,7 @@ schema = Schema((<!fields!>
 ),)
 fullSchema = OrderedBaseFolderSchema.copy() + schema.copy()
 
-class <!toolName!>(UniqueObject, OrderedBaseFolder, ToolMixin):
+class <!toolName!>(ToolMixin, UniqueObject, OrderedBaseFolder):
     '''Tool for <!applicationName!>.'''
     security = ClassSecurityInfo()
     __implements__ = (getattr(UniqueObject,'__implements__',()),) + (getattr(OrderedBaseFolder,'__implements__',()),)
