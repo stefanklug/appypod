@@ -15,8 +15,8 @@
      tal:define="appFolder context/getParentNode;
                  appName appFolder/id;
                  tool python: portal.get('portal_%s' % appName.lower());
-                 contentType python:context.REQUEST.get('type_name');
-                 searchName python:context.REQUEST.get('search', '')">
+                 contentType request/type_name;
+                 searchName request/search|python:'';">
 
   <div metal:use-macro="here/skyn/page/macros/prologue"/>
   <tal:comment replace="nothing">Query result</tal:comment>

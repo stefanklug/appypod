@@ -140,7 +140,9 @@
 <table metal:define-macro="groupContent"
        tal:attributes="width python: test(widget['wide'], '100%', '');
                        align widget/align;
-                       class widget/css_class">
+                       class widget/css_class;
+                       cellspacing widget/cellspacing;
+                       cellpadding widget/cellpadding">
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);

@@ -71,7 +71,7 @@ class User(ModelClass):
     _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
                         'password2', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
-    title = String(show=False)
+    title = String(show=False, indexed=True)
     gm = {'group': 'main', 'multiplicity': (1,1)}
     name = String(**gm)
     firstName = String(**gm)
@@ -109,8 +109,9 @@ class Tool(ModelClass):
     # link to the predefined User class or a custom class defined in the
     # application.
     users = Ref(None, multiplicity=(0,None), add=True, link=False,
-                back=Ref(attribute='toTool'), page='users',
-                shownInfo=('login', 'title', 'roles'), showHeaders=True)
+                back=Ref(attribute='toTool'), page='users', queryable=True,
+                queryFields=('login',), showHeaders=True,
+                shownInfo=('login', 'title', 'roles'))
     enableNotifications = Boolean(default=True, page='notifications')
     def validPythonWithUno(self, value): pass # Real method in the wrapper
     unoEnabledPython = String(group="connectionToOpenOffice",

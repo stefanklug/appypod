@@ -490,9 +490,25 @@ class BaseMixin:
                     if tjs not in js: js.append(tjs)
         return css, js
 
-    def getAppyTypesFromNames(self, fieldNames, asDict=True):
-        '''Gets the Appy types names p_fieldNames.'''
-        return [self.getAppyType(name, asDict) for name in fieldNames]
+    def getAppyTypesFromNames(self, fieldNames, asDict=True, addTitle=True):
+        '''Gets the Appy types named p_fieldNames. If 'title' is not among
+           p_fieldNames and p_addTitle is True, field 'title' is prepended to
+           the result.'''
+        res = []
+        for name in fieldNames:
+            appyType = self.getAppyType(name, asDict)
+            if appyType: res.append(appyType)
+            elif name == 'workflowState':
+                # We do not return a appyType if the attribute is not a *real*
+                # attribute, but the workfow state.
+                res.append({'name': name, 'labelId': 'workflow_state',
+                            'filterable': False})
+            else:
+                self.appy().log('Field "%s", used as shownInfo in a Ref, ' \
+                                'was not found.' % name, type='warning')
+        if addTitle and ('title' not in fieldNames):
+            res.insert(0, self.getAppyType('title', asDict))
+        return res
 
     def getAppyStates(self, phase, currentOnly=False):
         '''Returns information about the states that are related to p_phase.

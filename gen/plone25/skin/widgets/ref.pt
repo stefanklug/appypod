@@ -78,7 +78,7 @@
   ref field according to the field that corresponds to this column.
 </tal:comment>
 <metal:sortIcons define-macro="sortIcons"
-    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, shownField))" tal:condition="python: canWrite and tool.isSortable(shownField, objs[0].meta_type, 'ref')">
+    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, widget['name']))" tal:condition="python: canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
   <img style="cursor:pointer"
        tal:attributes="src string:$portal_url/skyn/sortAsc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
@@ -159,6 +159,10 @@
         <span tal:condition="not: innerRef" tal:content="label"/>
         (<span tal:replace="totalNumber"/>)
         <metal:plusIcon use-macro="portal/skyn/widgets/ref/macros/plusIcon"/>
+        <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
+        <a tal:condition="appyType/queryable"
+           tal:attributes="href python: '%s/skyn/search?type_name=%s&ref=%s:%s' % (tool.getAppFolder().absolute_url(), linkedPortalType, contextObj.meta_type, appyType['name'])">
+          <img src="search.gif" tal:attributes="title python: tool.translate('search_objects')"/></a>
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
@@ -185,44 +189,34 @@
         </table>
 
         <tal:comment replace="nothing">Show forward reference(s)</tal:comment>
-
         <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
                                width python:test(innerRef, '100%', appyType['layouts']['view']['width']);"
                align="right" tal:condition="python: not appyType['isBack'] and objs" cellpadding="0" cellspacing="0">
           <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
           <tr tal:condition="appyType/showHeaders">
-            <th tal:condition="python: 'title' not in appyType['shownInfo']"
-                tal:define="shownField python:'title'">
-              <span tal:content="python: tool.translate('ref_name')"></span>
-              <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
-            </th>
             <th tal:repeat="widget widgets">
-              <tal:header define="shownField widget/name">
-                <span tal:content="python: tool.translate(widget['labelId'])"></span>
-                <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
-              </tal:header>
+              <span tal:content="python: tool.translate(widget['labelId'])"></span>
+              <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
             </th>
             <th tal:content="python: tool.translate('ref_actions')"></th>
           </tr>
           <tal:row repeat="obj objs">
           <tr valign="top" tal:define="odd repeat/obj/odd"
               tal:attributes="class python:test(odd, 'even', 'odd')">
-            <tal:comment replace="nothing">Object title, shown here if not specified somewhere
-              else in appyType.shownInfo.</tal:comment>
-            <td tal:condition="python: 'title' not in appyType['shownInfo']"><metal:showObjectTitle
-                use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
-            </td>
-            <tal:comment replace="nothing">Additional fields that must be shown</tal:comment>
             <td tal:repeat="widget widgets">
-              <tal:showTitle condition="python: widget['name'] == 'title'">
+              <tal:title condition="python: widget['name'] == 'title'">
                 <metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
-              </tal:showTitle>
-              <tal:showOtherField define="contextObj python:obj;
-                                          layoutType python: 'cell';
-                                          innerRef python:True"
-                                  condition="python: widget['name'] != 'title'">
-                <metal:showField use-macro="portal/skyn/widgets/show/macros/field" />
-              </tal:showOtherField>
+              </tal:title>
+              <tal:state condition="python: widget['name'] == 'workflowState'"
+                         content="python: tool.translate(obj.getWorkflowLabel())">
+              </tal:state>
+              <tal:other condition="python: widget['name'] not in ('title', 'workflowState')">
+                <tal:field define="contextObj python:obj;
+                                   layoutType python: 'cell';
+                                   innerRef python:True">
+                  <metal:field use-macro="portal/skyn/widgets/show/macros/field" />
+                </tal:field>
+              </tal:other>
             </td>
             <tal:comment replace="nothing">Actions</tal:comment>
             <td align="right">
@@ -232,7 +226,6 @@
           </tal:row>
           </tal:widgets>
         </table>
-
         </td></tr>
       </table>
 

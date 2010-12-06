@@ -46,7 +46,6 @@ class PoMessage:
     POD_ASKACTION = 'Trigger related action'
     REF_NO = 'No object.'
     REF_ADD = 'Add a new one'
-    REF_NAME = 'Name'
     REF_ACTIONS = 'Actions'
     REF_MOVE_UP = 'Move up'
     REF_MOVE_DOWN = 'Move down'

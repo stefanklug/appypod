@@ -535,7 +535,6 @@ class UserClassDescriptor(ClassDescriptor):
         self.klass = klass
         self.customized = True
     def isFolder(self, klass=None): return True
-    def isRoot(self): return False
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
 

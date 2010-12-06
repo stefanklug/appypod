@@ -90,7 +90,8 @@ class Group:
     def __init__(self, name, columns=['100%'], wide=True, style='section2',
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
-                 valign='top', css_class='', master=None, masterValue=None):
+                 valign='top', css_class='', master=None, masterValue=None,
+                 cellpadding=1, cellspacing=1):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -127,6 +128,8 @@ class Group:
         self.colspan = colspan
         self.align = align
         self.valign = valign
+        self.cellpadding = cellpadding
+        self.cellspacing = cellspacing
         if style == 'tabs':
             # Group content will be rendered as tabs. In this case, some
             # param combinations have no sense.
@@ -289,8 +292,9 @@ class Search:
         self.group = group # Searches may be visually grouped in the portlet
         self.sortBy = sortBy
         self.limit = limit
-        self.fields = fields # This is a dict whose keys are indexed field
-        # names and whose values are search values.
+        # In the dict below, keys are indexed field names and values are
+        # search values.
+        self.fields = fields
     @staticmethod
     def getIndexName(fieldName, usage='search'):
         '''Gets the name of the technical index that corresponds to field named
@@ -1466,7 +1470,8 @@ class Ref(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False):
+                 historized=False, queryable=False, queryFields=None,
+                 queryNbCols=1):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1503,6 +1508,15 @@ class Ref(Type):
         self.maxPerPage = maxPerPage
         # Specifies sync
         sync = {'view': False, 'edit':True}
+        # If param p_queryable is True, the user will be able to perform queries
+        # from the UI within referenced objects.
+        self.queryable = queryable
+        # Here is the list of fields that will appear on the search screen.
+        # If None is specified, by default we take every indexed field
+        # defined on referenced objects' class.
+        self.queryFields = queryFields
+        # The search screen will have this number of columns
+        self.queryNbCols = queryNbCols
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,

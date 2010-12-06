@@ -95,7 +95,7 @@
    This macro displays up/down arrows in a table header column for sorting a given column.
    It requires variables "sortable", 'filterable' and 'fieldName'.
 </tal:comment>
-<metal:sortAndFilter define-macro="sortAndFilter">
+<metal:sortAndFilter define-macro="sortAndFilter" tal:define="fieldName widget/name">
   <tal:sort condition="sortable">
   <img tal:attributes="src string: $portal_url/skyn/sortDown.gif;
                        onClick python: navBaseCall.replace('**v**', '0,\'%s\',\'asc\',\'%s\'' % (fieldName, filterKey))"

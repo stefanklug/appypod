@@ -1,6 +1,9 @@
 <metal:queryResults define-macro="queryResult"
    tal:define="tool          python: contextObj;
                contentType   request/type_name;
+               refInfo       tool/getRefInfo;
+               refField      python: refInfo[1];
+               refInfo       python: refInfo[0];
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
@@ -11,13 +14,13 @@
                sortOrder     request/sortOrder| python:'asc';
                filterKey     request/filterKey| python:'';
                filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue);
+               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refField=refField);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
                navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, searchName);
-               newSearchUrl  python: '%s/skyn/search?type_name=%s&' % (tool.getAppFolder().absolute_url(), contentType);">
+               newSearchUrl  python: '%s/skyn/search?type_name=%s&ref=%s' % (tool.getAppFolder().absolute_url(), contentType, refInfo);">
 
   <tal:result condition="objs">
 
@@ -42,44 +45,23 @@
       </td>
     </tr></table>
 
-    <table tal:define="fieldDescrs python: tool.getResultColumns(objs[0], contentType)"
-         class="listing nosort" width="100%" cellpadding="0" cellspacing="0">
-    <tal:comment replace="nothing">Every item in fieldDescrs is an Appy type (dict version),
-      excepted for workflow state (which is not a field): in this case it is simply the
-      string "workflow_state".</tal:comment>
-
+    <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refField);
+                       widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
+           class="listing nosort" width="100%" cellpadding="0" cellspacing="0">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
-      <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      
-      <th tal:define="fieldName python:'title'; sortable python:True; filterable python:True">
-        <span tal:replace="structure python: tool.truncateText(tool.translate('ref_name'))"/>
-        <metal:sortAndFilter use-macro="here/skyn/navigate/macros/sortAndFilter"/>
-      </th>
-
-      <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
-      <tal:columnHeader repeat="fieldDescr fieldDescrs">
-       <th tal:define="fieldName  fieldDescr/name|string:workflow_state;
-                       sortable   python: tool.isSortable(fieldName, contentType, 'search');
-                       filterable fieldDescr/filterable|nothing;">
-        <tal:comment replace="nothing">Display header for a "standard" field</tal:comment>
-        <tal:standardField condition="python: fieldName != 'workflow_state'">
-          <span tal:replace="structure python: tool.truncateText(tool.translate(fieldDescr['labelId']))"/>
-        </tal:standardField>
-        <tal:comment replace="nothing">Display header for the workflow state</tal:comment>
-        <tal:workflowState condition="python: fieldName == 'workflow_state'">
-           <span tal:replace="python: tool.translate('workflow_state')"/>
-        </tal:workflowState>
-        <metal:sortAndFilter use-macro="here/skyn/navigate/macros/sortAndFilter"/>
+      <tal:header repeat="widget widgets">
+       <th tal:define="sortable   python: tool.isSortable(widget['name'], contentType, 'search');
+                       filterable widget/filterable|nothing;">
+        <span tal:replace="structure python: tool.truncateText(tool.translate(widget['labelId']))"/>
+        <metal:icons use-macro="here/skyn/navigate/macros/sortAndFilter"/>
        </th>
-      </tal:columnHeader>
-
-      <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
+      </tal:header>
+      <tal:comment replace="nothing">Object type, shown if instances of several types are shown</tal:comment>
       <th tal:condition="severalTypes">
-        <span tal:replace="python: tool.translate('root_type')"/>
+        <span tal:replace="python: tool.translate('root_type')"></span>
       </th>
-
-      <tal:comment replace="nothing">Column "Actions"</tal:comment>
+      <tal:comment replace="nothing">Actions</tal:comment>
       <th tal:content="python: tool.translate('ref_actions')"></th>
     </tr>
 
@@ -88,31 +70,31 @@
     <tr id="query_row" tal:define="odd repeat/obj/odd"
         tal:attributes="class python:test(odd, 'even', 'odd')">
 
-      <tal:comment replace="nothing">Mandatory column "Title"/"Name"</tal:comment>
-      <td id="field_title"><a
-        tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-        tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a></td>
+      <tal:fields repeat="widget widgets">
+      <tal:comment replace="nothing">Title</tal:comment>
+      <td id="field_title"
+          tal:condition="python: widget['name'] == 'title'">
+        <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+           tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a>
+      </td>
 
-      <tal:comment replace="nothing">Columns corresponding to other fields</tal:comment>
-      <tal:otherFields repeat="widget fieldDescrs">
-        <tal:standardField condition="python: widget != 'workflowState'">
-          <td tal:condition="python: '_wrong' not in widget"
-              tal:attributes="id python:'field_%s' % widget['name']">
-            <tal:field define="contextObj python:obj;
-                               layoutType  python:'cell';
-                               innerRef python:True"
-                       condition="python: contextObj.showField(widget['name'], 'view')">
-              <metal:field use-macro="here/skyn/widgets/show/macros/field"/>
-            </tal:field>
-          </td>
-          <td tal:condition="python: '_wrong' in widget" style="color:red">Field
-            <span tal:replace="widget/name"/> not found.
-          </td>
-        </tal:standardField>
-        <tal:workflowState condition="python: widget == 'workflowState'">
-          <td id="field_workflow_state" tal:content="python: tool.translate(obj.getWorkflowLabel())"></td>
-        </tal:workflowState>
-      </tal:otherFields>
+      <tal:comment replace="nothing">Workflow state</tal:comment>
+      <td id="field_workflow_state"
+          tal:condition="python: widget['name'] == 'workflowState'"
+          tal:content="python: tool.translate(obj.getWorkflowLabel())">
+      </td>
+
+      <tal:comment replace="nothing">Any other field</tal:comment>
+      <td tal:condition="python: widget['name'] not in ('title', 'workflowState')"
+          tal:attributes="id python:'field_%s' % widget['name']">
+        <tal:field define="contextObj python:obj;
+                           layoutType python:'cell';
+                           innerRef python:True"
+                   condition="python: contextObj.showField(widget['name'], 'view')">
+           <metal:field use-macro="here/skyn/widgets/show/macros/field"/>
+         </tal:field>
+      </td>
+      </tal:fields>
 
       <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
       <td tal:condition="severalTypes" id="field_root_type"

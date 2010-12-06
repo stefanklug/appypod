@@ -98,7 +98,6 @@ class Generator(AbstractGenerator):
             msg('max_ref_violated',     '', msg.MAX_REF_VIOLATED),
             msg('no_ref',               '', msg.REF_NO),
             msg('add_ref',              '', msg.REF_ADD),
-            msg('ref_name',             '', msg.REF_NAME),
             msg('ref_actions',          '', msg.REF_ACTIONS),
             msg('move_up',              '', msg.REF_MOVE_UP),
             msg('move_down',            '', msg.REF_MOVE_DOWN),
@@ -303,7 +302,7 @@ class Generator(AbstractGenerator):
         repls['addPermissions'] = addPermissions
         # Compute root classes
         rootClasses = ''
-        for classDescr in self.classes:
+        for classDescr in self.getClasses(include='allButTool'):
             if classDescr.isRoot():
                 rootClasses += "'%s'," % classDescr.name
         repls['rootClasses'] = rootClasses
@@ -617,9 +616,20 @@ class Generator(AbstractGenerator):
         if self.user.customized:
             Tool.users.klass = self.user.klass
 
+        # Generate the User class
+        self.user.generateSchema()
+        self.labels += [ Msg(self.userName, '', Msg.USER),
+                         Msg('%s_edit_descr' % self.userName, '', ' '),
+                         Msg('%s_plural' % self.userName, '',self.userName+'s')]
+        repls = self.repls.copy()
+        repls['fields'] = self.user.schema
+        repls['methods'] = self.user.methods
+        repls['wrapperClass'] = '%s_Wrapper' % self.user.name
+        self.copyFile('UserTemplate.py', repls,destName='%s.py' % self.userName)
+
         # Before generating the Tool class, finalize it with query result
         # columns, with fields to propagate, workflow-related fields.
-        for classDescr in self.classes:
+        for classDescr in self.getClasses(include='allButTool'):
             for fieldName, fieldType in classDescr.toolFieldsToPropagate:
                 for childDescr in classDescr.getChildren():
                     childFieldName = fieldName % childDescr.name
@@ -643,16 +653,6 @@ class Generator(AbstractGenerator):
         repls['methods'] = self.tool.methods
         repls['wrapperClass'] = '%s_Wrapper' % self.tool.name
         self.copyFile('ToolTemplate.py', repls, destName='%s.py'% self.toolName)
-
-        # Generate the User class
-        self.user.generateSchema()
-        self.labels += [ Msg(self.userName, '', Msg.USER),
-                         Msg('%s_edit_descr' % self.userName, '', ' ')]
-        repls = self.repls.copy()
-        repls['fields'] = self.user.schema
-        repls['methods'] = self.user.methods
-        repls['wrapperClass'] = '%s_Wrapper' % self.user.name
-        self.copyFile('UserTemplate.py', repls,destName='%s.py' % self.userName)
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for

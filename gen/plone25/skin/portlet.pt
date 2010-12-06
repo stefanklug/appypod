@@ -28,7 +28,7 @@
     </td>
   </dt>
 
-  <tal:publishedObject condition="python: contextObj and tool.userMayNavigate(contextObj.meta_type)">
+  <tal:publishedObject condition="python: contextObj and tool.userMayNavigate(contextObj)">
   <dt class="portletAppyItem portletCurrent"><b tal:content="contextObj/Title"></b></dt>
   <dt class="portletAppyItem"><metal:phases use-macro="here/skyn/portlet/macros/phases"/></dt>
   </tal:publishedObject>

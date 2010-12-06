@@ -164,16 +164,25 @@ class ToolMixin(BaseMixin):
                 res.append((appyType.name, self.translate(appyType.labelId)))
         return res
 
-    def getSearchableFields(self, contentType):
-        '''Returns, among the list of all searchable fields (see method above),
-           the list of fields that the user has configured as being effectively
-           used in the search screen.'''
-        res = []
-        fieldNames = getattr(self.appy(), 'searchFieldsFor%s' % contentType, ())
+    def getSearchInfo(self, contentType, refInfo=None):
+        '''Returns a tuple:
+           1) The list of searchable fields (ie fields among all indexed fields)
+           2) The number of columns for layouting those fields.'''
+        fields = []
+        if refInfo:
+            # The search is triggered from a Ref field.
+            refField = self.getRefInfo(refInfo)[1]
+            fieldNames = refField.queryFields or ()
+            nbOfColumns = refField.queryNbCols
+        else:
+            # The search is triggered from an app-wide search.
+            at = self.appy()
+            fieldNames = getattr(at, 'searchFieldsFor%s' % contentType,())
+            nbOfColumns = getattr(at, 'numberOfSearchColumnsFor%s' %contentType)
         for name in fieldNames:
             appyType = self.getAppyType(name, asDict=True,className=contentType)
-            res.append(appyType)
-        return res
+            fields.append(appyType)
+        return fields, nbOfColumns
 
     def getImportElements(self, contentType):
         '''Returns the list of elements that can be imported from p_path for
@@ -220,7 +229,8 @@ class ToolMixin(BaseMixin):
     def executeQuery(self, contentType, searchName=None, startNumber=0,
                      search=None, remember=False, brainsOnly=False,
                      maxResults=None, noSecurity=False, sortBy=None,
-                     sortOrder='asc', filterKey=None, filterValue=None):
+                     sortOrder='asc', filterKey=None, filterValue=None,
+                     refField=None):
         '''Executes a query on a given p_contentType (or several, separated
            with commas) in Plone's portal_catalog. If p_searchName is specified,
            it corresponds to:
@@ -256,7 +266,10 @@ class ToolMixin(BaseMixin):
 
            If p_filterKey is given, it represents an additional search parameter
            to take into account: the corresponding search value is in
-           p_filterValue.'''
+           p_filterValue.
+
+           If p_refField is given, the query is limited to the objects that are
+           referenced through it.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             portalTypes = contentType.split(',')
@@ -276,6 +289,9 @@ class ToolMixin(BaseMixin):
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
+                # Management of searches restricted to objects linked through a
+                # Ref field: not implemented yet.
+                if fieldName == '_ref': continue
                 # Make the correspondance between the name of the field and the
                 # name of the corresponding index.
                 attrName = Search.getIndexName(fieldName)
@@ -306,7 +322,9 @@ class ToolMixin(BaseMixin):
             # Return brains only.
             if not maxResults: return brains
             else: return brains[:maxResults]
-        if not maxResults: maxResults = self.appy().numberOfResultsPerPage
+        if not maxResults:
+            if refField: maxResults = refField.maxPerPage
+            else:        maxResults = self.appy().numberOfResultsPerPage
         elif maxResults == 'NO_LIMIT': maxResults = None
         res = SomeObjects(brains, maxResults, startNumber,noSecurity=noSecurity)
         res.brainsToObjects()
@@ -327,14 +345,17 @@ class ToolMixin(BaseMixin):
             s['search_%s' % searchName] = uids
         return res.__dict__
 
-    def getResultColumnsNames(self, contentType):
+    def getResultColumnsNames(self, contentType, refField):
         contentTypes = contentType.strip(',').split(',')
         resSet = None # Temporary set for computing intersections.
         res = [] # Final, sorted result.
         fieldNames = None
         appyTool = self.appy()
         for cType in contentTypes:
-            fieldNames = getattr(appyTool, 'resultColumnsFor%s' % cType)
+            if refField:
+                fieldNames = refField.shownInfo
+            else:
+                fieldNames = getattr(appyTool, 'resultColumnsFor%s' % cType)
             if not resSet:
                 resSet = set(fieldNames)
             else:
@@ -344,27 +365,6 @@ class ToolMixin(BaseMixin):
         for fieldName in fieldNames:
             if fieldName in resSet:
                 res.append(fieldName)
-        return res
-
-    def getResultColumns(self, anObject, contentType):
-        '''What columns must I show when displaying a list of root class
-           instances? Result is a list of tuples containing the name of the
-           column (=name of the field) and the corresponding appyType (dict
-           version).'''
-        res = []
-        for fieldName in self.getResultColumnsNames(contentType):
-            if fieldName == 'workflowState':
-                # We do not return a appyType if the attribute is not a *real*
-                # attribute, but the workfow state.
-                res.append(fieldName)
-            else:
-                appyType = anObject.getAppyType(fieldName, asDict=True)
-                if not appyType:
-                    res.append({'name': fieldName, '_wrong': True})
-                    # The field name is wrong.
-                    # We return it so we can show it in an error message.
-                else:
-                    res.append(appyType)
         return res
 
     def truncateValue(self, value, appyType):
@@ -452,14 +452,13 @@ class ToolMixin(BaseMixin):
             return pythonClass.maySearch(self.appy())
         return True
 
-    def userMayNavigate(self, someClass):
+    def userMayNavigate(self, obj):
         '''This method checks if the currently logged user can display the
            navigation panel within the portlet. This is done by calling method
-           "mayNavigate" on the class whose currently shown object is an
-           instance of. If no such method exists, we return True.'''
-        pythonClass = self.getAppyClass(someClass)
-        if 'mayNavigate' in pythonClass.__dict__:
-            return pythonClass.mayNavigate(self.appy())
+           "mayNavigate" on the currently shown object. If no such method
+           exists, we return True.'''
+        appyObj = obj.appy()
+        if hasattr(appyObj, 'mayNavigate'): return appyObj.mayNavigate()
         return True
 
     def onImportObjects(self):
@@ -485,8 +484,9 @@ class ToolMixin(BaseMixin):
             return False
 
     def isSortable(self, name, className, usage):
-        '''Is field p_name defined on p_metaType sortable for p_usage purposes
+        '''Is field p_name defined on p_className sortable for p_usage purposes
            (p_usage can be "ref" or "search")?'''
+        if (',' in className) or (name == 'workflowState'): return False
         appyType = self.getAppyType(name, className=className)
         return appyType.isSortable(usage=usage)
 
@@ -591,10 +591,14 @@ class ToolMixin(BaseMixin):
                     oper = ' %s ' % rq.form.get(operKey, 'or').upper()
                     attrValue = oper.join(attrValue)
                 criteria[attrName[2:]] = attrValue
+        # Complete criteria with Ref info if the search is restricted to
+        # referenced objects of a Ref field.
+        refInfo = rq.get('ref', None)
+        if refInfo: criteria['_ref'] = refInfo
         rq.SESSION['searchCriteria'] = criteria
         # Go to the screen that displays search results
         backUrl = '%s/query?type_name=%s&&search=_advanced' % \
-                  (os.path.dirname(rq['URL']), rq['type_name'])
+                  (os.path.dirname(rq['URL']),rq['type_name'])
         return self.goto(backUrl)
 
     def getJavascriptMessages(self):
@@ -604,6 +608,18 @@ class ToolMixin(BaseMixin):
         for msg in jsMessages:
             res += 'var %s = "%s";\n' % (msg, self.translate(msg))
         return res
+
+    def getRefInfo(self, refInfo=None):
+        '''When a search is restricted to objects referenced through a Ref
+           field, this method returns information about this reference: the
+           source content type and the Ref field (Appy type). If p_refInfo is
+           not given, we search it among search criteria in the session.'''
+        if not refInfo:
+            criteria = self.REQUEST.SESSION.get('searchCriteria', None)
+            if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
+        if not refInfo: return ('', None)
+        sourceContentType, refField = refInfo.split(':')
+        return refInfo, self.getAppyType(refField, className=sourceContentType)
 
     def getSearches(self, contentType):
         '''Returns the list of searches that are defined for p_contentType.
@@ -650,8 +666,9 @@ class ToolMixin(BaseMixin):
            on p_contentType.'''
         baseUrl = self.getAppFolder().absolute_url() + '/skyn'
         baseParams = 'type_name=%s' % contentType
-        # Manage start number
         rq = self.REQUEST
+        if rq.get('ref'): baseParams += '&ref=%s' % rq.get('ref')
+        # Manage start number
         if startNumber != None:
             baseParams += '&startNumber=%s' % startNumber
         elif rq.has_key('startNumber'):

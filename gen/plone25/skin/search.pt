@@ -15,8 +15,11 @@
 <metal:fill fill-slot="main"
        tal:define="appFolder context/getParentNode;
                    contentType request/type_name;
+                   refInfo request/ref|nothing;
                    tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   searchableFields python: tool.getSearchableFields(contentType)">
+                   searchInfo python: tool.getSearchInfo(contentType, refInfo);
+                   searchableFields python: searchInfo[0];
+                   numberOfColumns python: searchInfo[1]">
 
   <tal:comment replace="nothing">Search title</tal:comment>  
   <h1><span tal:replace="python: tool.translate('%s_plural' % contentType)"/> —
@@ -26,9 +29,9 @@
   <form name="search" tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
     <input type="hidden" name="action" value="SearchObjects"/>
     <input type="hidden" name="type_name" tal:attributes="value contentType"/>
+    <input tal:condition="refInfo" type="hidden" name="ref" tal:attributes="value refInfo"/>
 
-    <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%"
-           tal:define="numberOfColumns python: tool.getAttr('numberOfSearchColumnsFor%s' % contentType)">
+    <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%">
       <tr tal:repeat="searchRow python: tool.tabularize(searchableFields, numberOfColumns)" valign="top">
         <td tal:repeat="widget searchRow" tal:attributes="width python:'%d%%' % (100/numberOfColumns)">
           <tal:field condition="widget">
