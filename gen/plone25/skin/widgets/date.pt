@@ -78,55 +78,71 @@
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an Date.</tal:comment>
-<metal:search define-macro="search">
+<metal:search define-macro="search"
+              tal:define="years python:range(widget['startYear'], widget['endYear']+1)">
   <label tal:content="python: tool.translate(widget['labelId'])"></label>
   <table cellpadding="0" cellspacing="0">
     <tal:comment replace="nothing">From</tal:comment>
-    <tr tal:define="fromName python: '%s*date' % widgetName">
+    <tr tal:define="yearFromName  python: '%s*date' % widgetName;
+                    monthFromName python: '%s_from_month' % name;
+                    dayFromName   python: '%s_from_day' % name;
+                    dummyFromName python: '_d_ummy_from_%s' % name;">
       <td width="10px">&nbsp;</td>
       <td>
         <label tal:content="python: tool.translate('search_from')"></label>
       </td>
       <td>
-        <select tal:attributes="name fromName">
+        <input type="hidden" tal:attributes="id dummyFromName; name dummyFromName" originalvalue=""/>
+        <select tal:attributes="id dayFromName; name dayFromName">
           <option value="">--</option>
-          <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
                   tal:content="value" tal:attributes="value value"></option>
-        </select> /
-        <select tal:attributes="name python: '%s_from_month' % name">
+        </select> / 
+        <select tal:attributes="id monthFromName; name monthFromName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
                   tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
         </select> /
-        <select tal:attributes="name python: '%s_from_day' % name">
+        <select tal:attributes="id yearFromName; name yearFromName">
           <option value="">--</option>
-          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
+          <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
                   tal:content="value" tal:attributes="value value"></option>
         </select>
+       <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
+       <a tal:condition="widget/calendar"
+          tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthFromName, dummyFromName, yearFromName, monthFromName, dayFromName, years[0], years[-1])">
+          <img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
       </td>
     </tr>
     <tal:comment replace="nothing">To</tal:comment>
-    <tr>
+    <tr tal:define="dummyToName python: '_d_ummy_to_%s' % name;
+                    yearToName  python: '%s_to_year' % name;
+                    monthToName python: '%s_to_month' % name;
+                    dayToName   python: '%s_to_day' % name">
       <td></td>
       <td>
-        <label tal:content="python: tool.translate('search_to')"></label>
+        <label tal:content="python: tool.translate('search_to')"></label>&nbsp;&nbsp;&nbsp;&nbsp;
       </td>
-      <td>
-        <select tal:attributes="name python: '%s_to_year' % name">
+      <td height="20px;">
+        <input type="hidden" tal:attributes="id dummyToName; name dummyToName" originalvalue=""/>
+        <select tal:attributes="id dayToName; name dayToName">
           <option value="">--</option>
-          <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
-                 tal:content="value" tal:attributes="value value"></option>
+          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
+                  tal:content="value" tal:attributes="value value"></option>
         </select> /
-        <select tal:attributes="name python: '%s_to_month' % name">
+        <select tal:attributes="id monthToName; name monthToName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
                   tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
         </select> /
-        <select tal:attributes="name python: '%s_to_day' % name">
+        <select tal:attributes="id yearToName; name yearToName">
           <option value="">--</option>
-          <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
-                  tal:content="value" tal:attributes="value value"></option>
+          <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
+                 tal:content="value" tal:attributes="value value"></option>
         </select>
+       <a tal:condition="widget/calendar"
+          tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthToName, dummyToName, yearToName, monthToName, dayToName, years[0], years[-1])">
+          <img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
       </td>
     </tr>
   </table>

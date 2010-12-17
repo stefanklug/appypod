@@ -342,12 +342,6 @@ class XmlUnmarshaller(XmlParser):
     # Alias: "unmarshall" -> "parse"
     unmarshall = XmlParser.parse
 
-class CssParser(XmlUnmarshaller):
-    cssTags = {'rss': 'object', 'channel': 'object', 'item': 'object'}
-    def startDocument(self):
-        XmlUnmarshaller.startDocument(self)
-        self.tagTypes.update(self.cssTags)
-
 # ------------------------------------------------------------------------------
 class XmlMarshaller:
     '''This class allows to produce a XML version of a Python object, which

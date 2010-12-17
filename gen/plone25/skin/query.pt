@@ -16,7 +16,7 @@
                  appName appFolder/id;
                  tool python: portal.get('portal_%s' % appName.lower());
                  contentType request/type_name;
-                 searchName request/search|python:'';">
+                 searchName request/search|python:''">
 
   <div metal:use-macro="here/skyn/page/macros/prologue"/>
   <tal:comment replace="nothing">Query result</tal:comment>

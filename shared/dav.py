@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import os, re, httplib, sys, stat, urlparse, time
+import os, re, httplib, sys, stat, urlparse, time, socket
 from urllib import quote
 from StringIO import StringIO
 from mimetypes import guess_type
@@ -8,6 +8,9 @@ from appy import Object
 from appy.shared.utils import copyData
 from appy.gen.utils import sequenceTypes
 from appy.shared.xml_parser import XmlUnmarshaller, XmlMarshaller
+
+# ------------------------------------------------------------------------------
+class ResourceError(Exception): pass
 
 # ------------------------------------------------------------------------------
 class FormDataEncoder:
@@ -84,6 +87,7 @@ class HttpResponse:
         if self.duration: duration = ', got in %.4f seconds' % self.duration
         return '<HttpResponse %s (%s)%s>' % (self.code, self.text, duration)
 
+    xmlHeaders = ('text/xml', 'application/xml')
     def extractData(self):
         '''This method extracts, from the various parts of the HTTP response,
            some useful information. For example, it will find the URI where to
@@ -91,11 +95,13 @@ class HttpResponse:
            data into Python objects.'''
         if self.code == 302:
             return urlparse.urlparse(self.headers['location'])[2]
-        elif self.headers.has_key('content-type') and \
-             self.headers['content-type'].startswith('text/xml'):
-            # Return an unmarshalled version of the XML content, for easy use
-            # in Python.
-            return XmlUnmarshaller().parse(self.body)
+        elif self.headers.has_key('content-type'):
+            contentType = self.headers['content-type']
+            for xmlHeader in self.xmlHeaders:
+                if contentType.startswith(xmlHeader):
+                    # Return an unmarshalled version of the XML content, for
+                    # easy use in Python.
+                    return XmlUnmarshaller().parse(self.body)
 
 # ------------------------------------------------------------------------------
 urlRex = re.compile(r'http://([^:/]+)(:[0-9]+)?(/.+)?', re.I)
@@ -109,9 +115,6 @@ class Resource:
         self.username = username
         self.password = password
         self.url = url
-        # If some headers must be sent with any request sent through this
-        # resource (like a cookie), you can store them in the following dict.
-        self.headers = {}
         # If p_measure is True, we will measure, for every request sent, the
         # time we wait until we receive the response.
         self.measure = measure
@@ -127,6 +130,9 @@ class Resource:
             self.port = port and int(port[1:]) or 80
             self.uri = uri or '/'
         else: raise 'Wrong URL: %s' % str(url)
+        # If some headers must be sent with any request sent through this
+        # resource (like a cookie), you can store them in the following dict.
+        self.headers = {'Host': self.host}
 
     def __repr__(self):
         return '<Dav resource at %s>' % self.url
@@ -147,7 +153,12 @@ class Resource:
     def send(self, method, uri, body=None, headers={}, bodyType=None):
         '''Sends a HTTP request with p_method, for p_uri.'''
         conn = httplib.HTTP()
-        conn.connect(self.host, self.port)
+        try:
+            conn.connect(self.host, self.port)
+        except socket.gaierror, sge:
+            raise ResourceError('Check your Internet connection (%s)'% str(sge))
+        except socket.error, se:
+            raise ResourceError('Connection error (%s)'% str(sge))
         # Tell what kind of HTTP request it will be.
         conn.putrequest(method, uri)
         # Add HTTP headers
@@ -222,6 +233,7 @@ class Resource:
         '''Perform a HTTP GET on the server.'''
         if not uri: uri = self.uri
         return self.send('GET', uri, headers=headers)
+    rss = get
 
     def post(self, data=None, uri=None, headers={}, encode='form'):
         '''Perform a HTTP POST on the server. If p_encode is "form", p_data is
@@ -230,7 +242,6 @@ class Resource:
            body of the HTTP request.'''
         if not uri: uri = self.uri
         # Prepare the data to send
-        headers['Host'] = self.host
         if encode == 'form':
             # Format the form data and prepare headers
             body = FormDataEncoder(data).encode()

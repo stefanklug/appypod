@@ -688,7 +688,13 @@ class Type:
             if not self.editDefault:
                 # Return self.default, of self.default() if it is a method
                 if type(self.default) == types.FunctionType:
-                    return self.default(obj.appy())
+                    appyObj = obj.appy()
+                    try:
+                        return self.default(appyObj)
+                    except Exception, e:
+                        appyObj.log('Exception while getting default value ' \
+                                    'of field "%s": %s.' % (self.name, str(e)))
+                        return None
                 else:
                     return self.default
             # If value is editable, get the default value from the tool
@@ -703,6 +709,11 @@ class Type:
            purposes. Needs to be overridden by some child classes.'''
         if self.isEmptyValue(value): return ''
         return value
+
+    def getIndexType(self):
+        '''Returns the name of the technical, Zope-level index type for this
+           field.'''
+        return 'FieldIndex'
 
     def getIndexValue(self, obj, forSearch=False):
         '''This method returns a version for this field value on p_obj that is
@@ -1130,6 +1141,13 @@ class String(Type):
                 res = str(value)
         return res
 
+    def getIndexValue(self, obj, forSearch=False):
+        '''For indexing purposes, we return only strings, not unicodes.'''
+        res = Type.getIndexValue(self, obj, forSearch)
+        if isinstance(res, unicode):
+            res = res.encode('utf-8')
+        return res
+
     def getPossibleValues(self,obj,withTranslations=False,withBlankValue=False):
         '''Returns the list of possible values for this field if it is a
            selection field. If p_withTranslations is True,
@@ -1236,6 +1254,14 @@ class String(Type):
             value = [value]
         exec 'obj.%s = value' % self.name
 
+    def getIndexType(self):
+        '''Index type varies depending on String parameters.'''
+        # If String.isSelect, be it multivalued or not, we define a ZCTextIndex:
+        # this way we can use AND/OR operator.
+        if self.isSelect or (self.format in (String.TEXT, String.XHTML)):
+            return 'ZCTextIndex'
+        return Type.getIndexType(self)
+
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
@@ -1291,10 +1317,11 @@ class Date(Type):
                       masterValue, focus, historized, True)
 
     def getCss(self, layoutType):
-        if layoutType == 'edit': return ('jscalendar/calendar-system.css',)
+        if (layoutType == 'edit') and self.calendar:
+            return ('jscalendar/calendar-system.css',)
 
     def getJs(self, layoutType):
-        if layoutType == 'edit':
+        if (layoutType == 'edit') and self.calendar:
             return ('jscalendar/calendar_stripped.js',
                     'jscalendar/calendar-en.js')
 

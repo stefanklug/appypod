@@ -22,7 +22,7 @@
   <table class="no-style-table" cellpadding="0" cellspacing="0">
     <tr>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td class="noPadding" tal:condition="python: (len(objs)&gt;1) and member.has_permission('Modify portal content', contextObj)">
+    <td class="noPadding" tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and member.has_permission('Modify portal content', contextObj)">
       <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
                            ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
       <tal:comment replace="nothing">Move up</tal:comment>
@@ -49,7 +49,7 @@
     </td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
     <td class="noPadding">
-      <img tal:condition="python: member.has_permission('Delete objects', obj)"
+      <img tal:condition="python: not appyType['isBack'] and member.has_permission('Delete objects', obj) and obj.mayDelete()"
            title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
            tal:attributes="src string: $portal_url/skyn/delete.png;
                            onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
@@ -179,19 +179,10 @@
              tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">
         <tr valign="bottom"><td>
 
-        <tal:comment replace="nothing">Show backward reference(s)</tal:comment>
-        <table class="no-style-table" cellspacing="0" cellpadding="0"
-               tal:condition="python: appyType['isBack'] and objs">
-          <tr tal:repeat="obj objs">
-            <td><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" />
-            </td>
-          </tr>
-        </table>
-
-        <tal:comment replace="nothing">Show forward reference(s)</tal:comment>
+        <tal:comment replace="nothing">Show forward or backward reference(s)</tal:comment>
         <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
                                width python:test(innerRef, '100%', appyType['layouts']['view']['width']);"
-               align="right" tal:condition="python: not appyType['isBack'] and objs" cellpadding="0" cellspacing="0">
+               align="right" tal:condition="python: objs" cellpadding="0" cellspacing="0">
           <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
           <tr tal:condition="appyType/showHeaders">
             <th tal:repeat="widget widgets">

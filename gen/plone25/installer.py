@@ -247,6 +247,8 @@ class PloneInstaller:
                                             appyType.template)
                     if os.path.exists(fileName):
                         setattr(self.appyTool, attrName, fileName)
+                        self.appyTool.log('Imported "%s" in the tool in ' \
+                                          'attribute "%s"'% (fileName,attrName))
                     else:
                         self.appyTool.log('Template "%s" was not found!' % \
                                           fileName, type='error')
@@ -353,7 +355,7 @@ class PloneInstaller:
                 workflow = wfMethod(self, workflowName)
                 wfTool._setObject(workflowName, workflow)
             else:
-                self.log('%s already in workflows.' % workflowName)
+                self.appyTool.log('%s already in workflows.' % workflowName)
             # Link the workflow to the current content type
             wfTool.setChainForPortalTypes([contentType], workflowName)
         return wfTool
@@ -404,14 +406,10 @@ class PloneInstaller:
         indexInfo = {}
         for className, appyTypes in self.attributes.iteritems():
             for appyType in appyTypes:
-                if appyType.indexed:
-                    n = appyType.name
-                    indexName = 'get%s%s' % (n[0].upper(), n[1:])
-                    indexType = 'FieldIndex'
-                    if (appyType.type == 'String') and appyType.isSelect and \
-                       appyType.isMultiValued():
-                        indexType = 'ZCTextIndex'
-                    indexInfo[indexName] = indexType
+                if not appyType.indexed or (appyType.name == 'title'): continue
+                n = appyType.name
+                indexName = 'get%s%s' % (n[0].upper(), n[1:])
+                indexInfo[indexName] = appyType.getIndexType()
         if indexInfo:
             PloneInstaller.updateIndexes(self.ploneSite, indexInfo, self)
 
@@ -454,11 +452,9 @@ class PloneInstaller:
             frontPageName = self.productName + 'FrontPage'
             site.manage_changeProperties(default_page=frontPageName)
 
-    def log(self, msg): print msg
-    def info(self, msg): return self.log(msg)
+    def info(self, msg): return self.appyTool.log(msg)
 
     def install(self):
-        self.log("Installation of %s:" % self.productName)
         if self.minimalistPlone: self.customizePlone()
         self.installRootFolder()
         self.installTypes()
@@ -470,7 +466,7 @@ class PloneInstaller:
         self.manageIndexes()
         self.manageLanguages()
         self.finalizeInstallation()
-        self.log("Installation of %s done." % self.productName)
+        self.appyTool.log("Installation of %s done." % self.productName)
 
     def uninstallTool(self):
         site = self.ploneSite
@@ -496,10 +492,8 @@ class PloneInstaller:
                     nvProps.manage_changeProperties(**{'idsNotToList': current})
 
     def uninstall(self):
-        self.log("Uninstallation of %s:" % self.productName)
         self.uninstallTool()
-        self.log("Uninstallation of %s done." % self.productName)
-        return self.toLog.getvalue()
+        return 'Done.'
 
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}

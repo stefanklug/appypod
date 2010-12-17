@@ -114,7 +114,7 @@
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
             <td class="noPadding">
-              <img tal:condition="python: member.has_permission('Delete objects', obj)"
+              <img tal:condition="python: member.has_permission('Delete objects', obj) and obj.mayDelete()"
                    title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
                    tal:attributes="src string: $portal_url/skyn/delete.png;
                                    onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>

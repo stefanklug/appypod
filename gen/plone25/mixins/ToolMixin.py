@@ -165,10 +165,12 @@ class ToolMixin(BaseMixin):
         return res
 
     def getSearchInfo(self, contentType, refInfo=None):
-        '''Returns a tuple:
-           1) The list of searchable fields (ie fields among all indexed fields)
-           2) The number of columns for layouting those fields.'''
+        '''Returns, as a dict:
+           - the list of searchable fields (= some fields among all indexed
+             fields);
+           - the number of columns for layouting those fields.'''
         fields = []
+        fieldDicts = []
         if refInfo:
             # The search is triggered from a Ref field.
             refField = self.getRefInfo(refInfo)[1]
@@ -180,9 +182,12 @@ class ToolMixin(BaseMixin):
             fieldNames = getattr(at, 'searchFieldsFor%s' % contentType,())
             nbOfColumns = getattr(at, 'numberOfSearchColumnsFor%s' %contentType)
         for name in fieldNames:
-            appyType = self.getAppyType(name, asDict=True,className=contentType)
+            appyType = self.getAppyType(name,asDict=False,className=contentType)
+            appyDict = self.getAppyType(name, asDict=True,className=contentType)
             fields.append(appyType)
-        return fields, nbOfColumns
+            fieldDicts.append(appyDict)
+        return {'fields': fields, 'nbOfColumns': nbOfColumns,
+                'fieldDicts': fieldDicts}
 
     def getImportElements(self, contentType):
         '''Returns the list of elements that can be imported from p_path for
@@ -336,13 +341,12 @@ class ToolMixin(BaseMixin):
             if not searchName:
                 # It is the global search for all objects pf p_contentType
                 searchName = contentType
-            s = self.REQUEST.SESSION
             uids = {}
             i = -1
             for obj in res.objects:
                 i += 1
                 uids[startNumber+i] = obj.UID()
-            s['search_%s' % searchName] = uids
+            self.REQUEST.SESSION['search_%s' % searchName] = uids
         return res.__dict__
 
     def getResultColumnsNames(self, contentType, refField):
@@ -450,15 +454,6 @@ class ToolMixin(BaseMixin):
         pythonClass = self.getAppyClass(rootClass)
         if 'maySearch' in pythonClass.__dict__:
             return pythonClass.maySearch(self.appy())
-        return True
-
-    def userMayNavigate(self, obj):
-        '''This method checks if the currently logged user can display the
-           navigation panel within the portlet. This is done by calling method
-           "mayNavigate" on the currently shown object. If no such method
-           exists, we return True.'''
-        appyObj = obj.appy()
-        if hasattr(appyObj, 'mayNavigate'): return appyObj.mayNavigate()
         return True
 
     def onImportObjects(self):
@@ -614,7 +609,7 @@ class ToolMixin(BaseMixin):
            field, this method returns information about this reference: the
            source content type and the Ref field (Appy type). If p_refInfo is
            not given, we search it among search criteria in the session.'''
-        if not refInfo:
+        if not refInfo and (self.REQUEST.get('search', None) == '_advanced'):
             criteria = self.REQUEST.SESSION.get('searchCriteria', None)
             if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
         if not refInfo: return ('', None)
@@ -847,6 +842,8 @@ class ToolMixin(BaseMixin):
             session.invalidate()
         from Products.CMFPlone import transaction_note
         transaction_note('Logged out')
+        self.getProductConfig().logger.info('User "%s" has been logged out.' % \
+                                            userId)
         # Remove user from variable "loggedUsers"
         from appy.gen.plone25.installer import loggedUsers
         if loggedUsers.has_key(userId): del loggedUsers[userId]

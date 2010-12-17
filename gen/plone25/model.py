@@ -84,7 +84,7 @@ class User(ModelClass):
                        validator=validatePassword, **gm)
     password2 = String(format=String.PASSWORD, show=showPassword, **gm)
     gm['multiplicity'] = (0, None)
-    roles = String(validator=Selection('getGrantableRoles'), **gm)
+    roles = String(validator=Selection('getGrantableRoles'), indexed=True, **gm)
 
 # The Tool class ---------------------------------------------------------------
 

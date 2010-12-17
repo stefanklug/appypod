@@ -6,12 +6,10 @@
                   tool        contextObj/getTool;
                   appFolder   tool/getAppFolder;
                   appName     appFolder/getId;
-                  phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType='edit');
+                  phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);
                   phase       phaseInfo/name;
                   page        request/page|python:'main';
-                  cssAndJs    python: contextObj.getCssAndJs(layoutType, page);
-                  css         python: cssAndJs[0];
-                  js          python: cssAndJs[1];
+                  cssJs       python: contextObj.getCssAndJs(contextObj.getAppyTypes(layoutType, page), layoutType);
                   confirmMsg  request/confirmMsg | nothing;">
 
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
@@ -28,7 +26,7 @@
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
   <metal:js fill-slot="javascript_head_slot">
-    <tal:js condition="js" repeat="jsFile js">
+    <tal:js condition="cssJs/js" repeat="jsFile cssJs/js">
       <script type="text/javascript" charset="iso-8859-1"
               tal:condition="python:exists('portal/%s' % jsFile)"
               tal:attributes="src string:$portal_url/$jsFile">
@@ -36,7 +34,7 @@
     </tal:js>
   </metal:js>
   <metal:css fill-slot="css_slot">
-    <tal:css condition="css" repeat="cssFile css">
+    <tal:css condition="cssJs/css" repeat="cssFile cssJs/css">
       <style type="text/css" media="all"
              tal:condition="python:exists('portal/%s' % cssFile)"
              tal:content="structure string:<!-- @import url($portal_url/$cssFile); -->">

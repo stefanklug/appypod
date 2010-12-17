@@ -276,16 +276,22 @@ class BaseMixin:
                 res[appyType.name] = appyType.getValue(self)
         return res
 
-    def addDataChange(self, changes):
+    def addDataChange(self, changes, notForPreviouslyEmptyValues=False):
         '''This method allows to add "manually" a data change into the objet's
            history. Indeed, data changes are "automatically" recorded only when
            a HTTP form is uploaded, not if, in the code, a setter is called on
-           a field. The method is also called by the method historizeData below,
-           that performs "automatic" recording when a HTTP form is uploaded.'''
+           a field. The method is also called by m_historizeData below, that
+           performs "automatic" recording when a HTTP form is uploaded. Field
+           changes for which the previous value was empty are not recorded into
+           the history if p_notForPreviouslyEmptyValues is True.'''
         # Add to the p_changes dict the field labels
-        for fieldName in changes.iterkeys():
+        for fieldName in changes.keys():
             appyType = self.getAppyType(fieldName)
-            changes[fieldName] = (changes[fieldName], appyType.labelId)
+            if notForPreviouslyEmptyValues and \
+               appyType.isEmptyValue(changes[fieldName], self):
+                del changes[fieldName]
+            else:
+                changes[fieldName] = (changes[fieldName], appyType.labelId)
         # Create the event to record in the history
         DateTime = self.getProductConfig().DateTime
         state = self.portal_workflow.getInfoFor(self, 'review_state')
@@ -474,21 +480,23 @@ class BaseMixin:
             res.append(appyType)
         return res
 
-    def getCssAndJs(self, layoutType, page):
-        '''Returns the CSS and Javascript files that need to be loaded by the
-           p_page for the given p_layoutType.'''
+    def getCssAndJs(self, fields, layoutType):
+        '''Gets the list of Javascript and CSS files required by Appy types
+           p_fields when shown on p_layoutType.'''
+        # lists css and js below are not sets, because order of Javascript
+        # inclusion can be important, and this could be losed by using sets.
         css = []
         js = []
-        for appyType in self.getAppyTypes(layoutType, page):
-            typeCss = appyType.getCss(layoutType)
-            if typeCss:
-                for tcss in typeCss:
-                    if tcss not in css: css.append(tcss)
-            typeJs = appyType.getJs(layoutType)
-            if typeJs:
-                for tjs in typeJs:
-                    if tjs not in js: js.append(tjs)
-        return css, js
+        for field in fields:
+            fieldCss = field.getCss(layoutType)
+            if fieldCss:
+                for fcss in fieldCss:
+                    if fcss not in css: css.append(fcss)
+            fieldJs = field.getJs(layoutType)
+            if fieldJs:
+                for fjs in fieldJs:
+                    if fjs not in js: js.append(fjs)
+        return {'css':css, 'js':js}
 
     def getAppyTypesFromNames(self, fieldNames, asDict=True, addTitle=True):
         '''Gets the Appy types named p_fieldNames. If 'title' is not among
@@ -766,12 +774,27 @@ class BaseMixin:
                     res = True
         return res
 
+    def mayNavigate(self):
+        '''May the currently logged user see the navigation panel linked to
+           this object?'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'mayNavigate'): return appyObj.mayNavigate()
+        return True
+
+    def mayDelete(self):
+        '''May the currently logged user delete this object? This condition
+           comes as an addition/refinement to the corresponding workflow
+           permission.'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'mayDelete'): return appyObj.mayDelete()
+        return True
+
     def executeAppyAction(self, actionName, reindex=True):
         '''Executes action with p_fieldName on this object.'''
         appyType = self.getAppyType(actionName)
         actionRes = appyType(self.appy())
         if self.getParentNode().get(self.id):
-            # Else, it means that the action has led to self's removal.
+            # Else, it means that the action has led to self's deletion.
             self.reindexObject()
         return appyType.result, actionRes
 
@@ -869,7 +892,17 @@ class BaseMixin:
            blank value is prepended to the list. If no p_className is defined,
            the field is supposed to belong to self's class'''
         appyType = self.getAppyType(name, className=className)
-        return appyType.getPossibleValues(self,withTranslations,withBlankValue)
+        if className:
+            # We need an instance of className, but self can be an instance of
+            # another class. So here we will search such an instance.
+            brains = self.executeQuery(className, maxResults=1, brainsOnly=True)
+            if brains:
+                obj = brains[0].getObject()
+            else:
+                obj = self
+        else:
+            obj = self
+        return appyType.getPossibleValues(obj, withTranslations, withBlankValue)
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy
