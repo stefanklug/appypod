@@ -37,39 +37,6 @@ NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',) # Those elements
 # can't be rendered inside paragraphs.
 NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
-HTML_ENTITIES = {
-        'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
-        'brvbar': 'Š', 'sect': '§', 'uml': '¨', 'copy':'©', 'ordf':'ª',
-        'laquo':'«', 'not':'¬', 'shy':'­', 'reg':'®', 'macr':'¯', 'deg':'°',
-        'plusmn':'±', 'sup2':'²', 'sup3':'³', 'acute':'Ž',
-        'micro':'µ', 'para':'¶', 'middot':'·', 'cedil':'ž', 'sup1':'¹',
-        'ordm':'º', 'raquo':'»', 'frac14':'Œ', 'frac12':'œ', 'frac34':'Ÿ',
-        'iquest':'¿', 'Agrave':'À', 'Aacute':'Á', 'Acirc':'Â', 'Atilde':'Ã',
-        'Auml':'Ä', 'Aring':'Å', 'AElig':'Æ', 'Ccedil':'Ç', 'Egrave':'È',
-        'Eacute':'É', 'Ecirc':'Ê', 'Euml':'Ë', 'Igrave':'Ì', 'Iacute':'Í',
-        'Icirc':'Î', 'Iuml':'Ï', 'ETH':'Ð', 'Ntilde':'Ñ', 'Ograve':'Ò',
-        'Oacute':'Ó', 'Ocirc':'Ó', 'Otilde':'Õ', 'Ouml':'Ö', 'times':'×',
-        'Oslash':'Ø', 'Ugrave':'Ù', 'Uacute':'Ú', 'Ucirc':'Û', 'Uuml':'Ü',
-        'Yacute':'Ý', 'THORN':'Þ', 'szlig':'ß', 'agrave':'à', 'aacute':'á',
-        'acirc':'â', 'atilde':'ã', 'auml':'ä', 'aring':'å', 'aelig':'æ',
-        'ccedil':'ç', 'egrave':'è', 'eacute':'é', 'ecirc':'ê', 'euml':'ë',
-        'igrave':'ì', 'iacute':'í', 'icirc':'î', 'iuml':'ï', 'eth':'ð',
-        'ntilde':'ñ', 'ograve':'ò', 'oacute':'ó', 'ocirc':'ô', 'otilde':'õ',
-        'ouml':'ö', 'divide':'÷', 'oslash':'ø', 'ugrave':'ù', 'uacute':'ú',
-        'ucirc':'û', 'uuml':'ü', 'yacute':'ý', 'thorn':'þ', 'yuml':'ÿ',
-        'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
-        "rdquo":"'", 'ndash': ' ', 'oelig':'oe', 'quot': "'", 'mu': 'µ'}
-import htmlentitydefs
-for k, v in htmlentitydefs.entitydefs.iteritems():
-    if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
-        HTML_ENTITIES[k] = ''
-
-# ------------------------------------------------------------------------------
-class Entity:
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value.decode('utf-8')
-    def is_internal(self): return True
 
 # ------------------------------------------------------------------------------
 class HtmlElement:
@@ -397,21 +364,6 @@ class XhtmlEnvironment(XmlEnvironment):
 
 # ------------------------------------------------------------------------------
 class XhtmlParser(XmlParser):
-    # Initialize entities recognized by this parser
-    entities = {}
-    for name, value in HTML_ENTITIES.iteritems():
-        entities[name] = Entity(name, value)
-
-    def __init__(self, *args, **kwargs):
-        XmlParser.__init__(self, *args, **kwargs)
-        # We override self.parser: we will use a different low-level
-        # xml.sax parser because we need to be able to tackle HTML as well as
-        # XML entities.
-        self.parser = xml.sax.make_parser(["xml.sax.drivers2.drv_xmlproc"])
-        # This parser is maybe less performant than the standard expat parser
-        # coded in C, but I could not find a way to manage unknown entities
-        # with the expat parser.
-
     def lowerizeInput(self, elem, attrs=None):
         '''Because (X)HTML is case insensitive, we may receive input p_elem and
            p_attrs in lower-, upper- or mixed-case. So here we produce lowercase
@@ -426,15 +378,6 @@ class XhtmlParser(XmlParser):
             return resElem
         else:
             return resElem, resAttrs
-
-    def startDocument(self):
-        if hasattr(self.parser._parser, 'dtd'):
-            # If the parser is the standard expat, we can't deal with XHTML
-            # entities
-            dtd = self.parser._parser.dtd
-            # Add to the list of known entities the list of XHMLT entities.
-            # dtd.gen_ents only contains the 5 XML entities by default.
-            dtd.gen_ents.update(self.entities)
 
     def startElement(self, elem, attrs):
         elem, attrs = self.lowerizeInput(elem, attrs)

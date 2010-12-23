@@ -104,8 +104,8 @@ class Test:
             if os.path.exists(expectedFlavourSpecific):
                 expected = expectedFlavourSpecific
         # Perform the comparison
-        comparator = XmlComparator(expected, actual, areXml, xmlTagsToIgnore,
-            xmlAttrsToIgnore)
+        comparator = XmlComparator(actual, expected, areXml, xmlTagsToIgnore,
+                                   xmlAttrsToIgnore)
         return not comparator.filesAreIdentical(
             report=self.report, encoding=encoding)
     def run(self):

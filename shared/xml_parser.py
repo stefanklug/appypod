@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 # Appy is a framework for building applications in the Python language.
 # Copyright (C) 2007 Gaetan Delannay
@@ -18,16 +19,44 @@
 
 # ------------------------------------------------------------------------------
 import xml.sax, difflib, types
-from xml.sax.handler import ContentHandler, ErrorHandler
+from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges,\
+                            property_interning_dict
 from xml.sax.xmlreader import InputSource
 from appy.shared import UnicodeBuffer, xmlPrologue
 from appy.shared.errors import AppyError
 
-# Error-related constants ------------------------------------------------------
+# Constants --------------------------------------------------------------------
 CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
-    'unmarshaller.'
+                   'unmarshaller.'
 CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \
-    'error while converting value "%s". %s'
+                          'error while converting value "%s". %s'
+XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': "'", 'apos': "'"}
+HTML_ENTITIES = {
+        'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
+        'brvbar': 'Š', 'sect': '§', 'uml': '¨', 'copy':'©', 'ordf':'ª',
+        'laquo':'«', 'not':'¬', 'shy':'­', 'reg':'®', 'macr':'¯', 'deg':'°',
+        'plusmn':'±', 'sup2':'²', 'sup3':'³', 'acute':'Ž',
+        'micro':'µ', 'para':'¶', 'middot':'·', 'cedil':'ž', 'sup1':'¹',
+        'ordm':'º', 'raquo':'»', 'frac14':'Œ', 'frac12':'œ', 'frac34':'Ÿ',
+        'iquest':'¿', 'Agrave':'À', 'Aacute':'Á', 'Acirc':'Â', 'Atilde':'Ã',
+        'Auml':'Ä', 'Aring':'Å', 'AElig':'Æ', 'Ccedil':'Ç', 'Egrave':'È',
+        'Eacute':'É', 'Ecirc':'Ê', 'Euml':'Ë', 'Igrave':'Ì', 'Iacute':'Í',
+        'Icirc':'Î', 'Iuml':'Ï', 'ETH':'Ð', 'Ntilde':'Ñ', 'Ograve':'Ò',
+        'Oacute':'Ó', 'Ocirc':'Ó', 'Otilde':'Õ', 'Ouml':'Ö', 'times':'×',
+        'Oslash':'Ø', 'Ugrave':'Ù', 'Uacute':'Ú', 'Ucirc':'Û', 'Uuml':'Ü',
+        'Yacute':'Ý', 'THORN':'Þ', 'szlig':'ß', 'agrave':'à', 'aacute':'á',
+        'acirc':'â', 'atilde':'ã', 'auml':'ä', 'aring':'å', 'aelig':'æ',
+        'ccedil':'ç', 'egrave':'è', 'eacute':'é', 'ecirc':'ê', 'euml':'ë',
+        'igrave':'ì', 'iacute':'í', 'icirc':'î', 'iuml':'ï', 'eth':'ð',
+        'ntilde':'ñ', 'ograve':'ò', 'oacute':'ó', 'ocirc':'ô', 'otilde':'õ',
+        'ouml':'ö', 'divide':'÷', 'oslash':'ø', 'ugrave':'ù', 'uacute':'ú',
+        'ucirc':'û', 'uuml':'ü', 'yacute':'ý', 'thorn':'þ', 'yuml':'ÿ',
+        'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
+        "rdquo":"'", 'ndash': ' ', 'oelig':'oe', 'quot': "'", 'mu': 'µ'}
+import htmlentitydefs
+for k, v in htmlentitydefs.entitydefs.iteritems():
+    if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
+        HTML_ENTITIES[k] = ''
 
 # ------------------------------------------------------------------------------
 class XmlElement:
@@ -90,9 +119,10 @@ class XmlEnvironment:
         return self.namespaces[nsUri]
 
 class XmlParser(ContentHandler, ErrorHandler):
-    '''Basic XML content handler that does things like :
+    '''Basic expat-based XML parser that does things like :
       - remembering the currently parsed element;
-      - managing namespace declarations.'''
+      - managing namespace declarations.
+      This parser also knows about HTML entities.'''
     def __init__(self, env=None, caller=None):
         '''p_env should be an instance of a class that inherits from
            XmlEnvironment: it specifies the environment to use for this SAX
@@ -104,6 +134,10 @@ class XmlParser(ContentHandler, ErrorHandler):
         self.caller = caller # The class calling this parser
         self.parser = xml.sax.make_parser() # Fast, standard expat parser
         self.res = None # The result of parsing.
+
+    # ContentHandler methods ---------------------------------------------------
+    def startDocument(self):
+        self.parser._parser.UseForeignDTD(True)
     def setDocumentLocator(self, locator):
         self.locator = locator
         return self.env
@@ -123,14 +157,25 @@ class XmlParser(ContentHandler, ErrorHandler):
         return self.env
     def characters(self, content):
         return self.env
+
+    def skippedEntity(self, name):
+        '''This method is called every time expat does not recognize an entity.
+           We provide here support for HTML entities.'''
+        if HTML_ENTITIES.has_key(name):
+            self.characters(HTML_ENTITIES[name].decode('utf-8'))
+        else:
+            # Put a question mark instead of raising an exception.
+            self.characters('?')
+
     def parse(self, xmlContent, source='string'):
-        '''Parsers the XML file or string p_xmlContent.'''
+        '''Parses the XML file or string p_xmlContent.'''
         try:
             from cStringIO import StringIO
         except ImportError:
             from StringIO import StringIO
         self.parser.setContentHandler(self)
         self.parser.setErrorHandler(self)
+        self.parser.setFeature(feature_external_ges, False)
         inputSource = InputSource()
         if source == 'string':
             inputSource.setByteStream(StringIO(xmlContent))
