@@ -70,12 +70,22 @@ class ClassDescriptor(Descriptor):
         return res
 
     def getPhases(self):
-        '''Gets the phases defined on fields of this class.'''
-        res = []
-        for fieldName, appyType, klass in self.getOrderedAppyAttributes():
-            if appyType.page.phase not in res:
-                res.append(appyType.page.phase)
-        return res
+        '''Lazy-gets the phases defined on fields of this class.'''
+        if not hasattr(self, 'phases') or (self.phases == None):
+            self.phases = []
+            for fieldName, appyType, klass in self.getOrderedAppyAttributes():
+                if appyType.page.phase in self.phases: continue
+                self.phases.append(appyType.page.phase)
+        return self.phases
+
+    def getPages(self):
+        '''Lazy-gets the page names defined on fields of this class.'''
+        if not hasattr(self, 'pages') or (self.pages == None):
+            self.pages = []
+            for fieldName, appyType, klass in self.getOrderedAppyAttributes():
+                if appyType.page.name in self.pages: continue
+                self.pages.append(appyType.page.name)
+        return self.pages
 
 class WorkflowDescriptor(Descriptor):
     '''This class gives information about an Appy workflow.'''

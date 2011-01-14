@@ -197,6 +197,15 @@ class Languages:
         '''Is p_code a valid 2-digits language/country code?'''
         return code in self.languageCodes
 
+    def get(self, code):
+        '''Returns information about the language whose code is p_code.'''
+        try:
+            iCode = self.languageCodes.index(code)
+            return self.languageCodes[iCode], self.languageNames[iCode], \
+                   self.nativeNames[iCode]
+        except ValueError:
+            return None, None, None
+
     def __repr__(self):
         i = -1
         res = ''

@@ -146,8 +146,6 @@ class FieldDescriptor:
         if self.appyType.indexed and \
            (self.fieldName not in ('title', 'description')):
             self.classDescr.addIndexMethod(self)
-        # - searchable ? TODO
-        #if self.appyType.searchable: self.fieldParams['searchable'] = True
         # i18n labels
         i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
         # Create labels for generating them in i18n files.
@@ -160,17 +158,20 @@ class FieldDescriptor:
         if self.appyType.hasHelp:
             helpId = i18nPrefix + '_help'
             messages.append(self.produceMessage(helpId, isLabel=False))
-        # Create i18n messages linked to pages and phases
-        messages = self.generator.labels
-        pageMsgId = '%s_page_%s' % (self.classDescr.name,
-                                    self.appyType.page.name)
-        phaseMsgId = '%s_phase_%s' % (self.classDescr.name,
-                                      self.appyType.page.phase)
-        pagePoMsg = PoMessage(pageMsgId, '',
-                              produceNiceMessage(self.appyType.page.name))
-        phasePoMsg = PoMessage(phaseMsgId, '',
-                               produceNiceMessage(self.appyType.page.phase))
-        for poMsg in (pagePoMsg, phasePoMsg):
+        # Create i18n messages linked to pages and phases, only if there is more
+        # than one page/phase for the class.
+        ppMsgs = []
+        if len(self.classDescr.getPhases()) > 1:
+            # Create the message for the name of the phase
+            phaseName = self.appyType.page.phase
+            msgId = '%s_phase_%s' % (self.classDescr.name, phaseName)
+            ppMsgs.append(PoMessage(msgId, '', produceNiceMessage(phaseName)))
+        if len(self.classDescr.getPages()) > 1:
+            # Create the message for the name of the page
+            pageName = self.appyType.page.name
+            msgId = '%s_page_%s' % (self.classDescr.name, pageName)
+            ppMsgs.append(PoMessage(msgId, '', produceNiceMessage(pageName)))
+        for poMsg in ppMsgs:
             if poMsg not in messages:
                 messages.append(poMsg)
                 self.classDescr.labelsToPropagate.append(poMsg)
@@ -237,6 +238,9 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         self.name = getClassName(self.klass, generator.applicationName)
         self.predefined = False
         self.customized = False
+        # Phase and page names will be calculated later, when first required.
+        self.phases = None
+        self.pages = None
 
     def getParents(self, allClasses):
         parentWrapper = 'AbstractWrapper'
@@ -365,11 +369,16 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
              'self)\n' % n
         self.methods = m
 
+    def addField(self, fieldName, fieldType):
+        '''Adds a new field to the Tool.'''
+        exec "self.modelClass.%s = fieldType" % fieldName
+        self.modelClass._appy_attributes.append(fieldName)
+        self.orderedAttributes.append(fieldName)
+
 class ToolClassDescriptor(ClassDescriptor):
     '''Represents the POD-specific fields that must be added to the tool.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
-        self.attributesByClass = klass._appy_classes
         self.modelClass = self.klass
         self.predefined = True
         self.customized = False
@@ -393,13 +402,6 @@ class ToolClassDescriptor(ClassDescriptor):
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
 
-    def addField(self, fieldName, fieldType, classDescr):
-        '''Adds a new field to the Tool.'''
-        exec "self.modelClass.%s = fieldType" % fieldName
-        self.modelClass._appy_attributes.append(fieldName)
-        self.orderedAttributes.append(fieldName)
-        self.modelClass._appy_classes[fieldName] = classDescr.name
-
     def addOptionalField(self, fieldDescr):
         className = fieldDescr.classDescr.name
         fieldName = 'optionalFieldsFor%s' % className
@@ -407,7 +409,7 @@ class ToolClassDescriptor(ClassDescriptor):
         if not fieldType:
             fieldType = String(multiplicity=(0,None))
             fieldType.validator = []
-            self.addField(fieldName, fieldType, fieldDescr.classDescr)
+            self.addField(fieldName, fieldType)
         fieldType.validator.append(fieldDescr.fieldName)
         fieldType.page.name = 'data'
         fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
@@ -416,7 +418,7 @@ class ToolClassDescriptor(ClassDescriptor):
         className = fieldDescr.classDescr.name
         fieldName = 'defaultValueFor%s_%s' % (className, fieldDescr.fieldName)
         fieldType = fieldDescr.appyType.clone()
-        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        self.addField(fieldName, fieldType)
         fieldType.page.name = 'data'
         fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
 
@@ -429,12 +431,12 @@ class ToolClassDescriptor(ClassDescriptor):
         # Add the field that will store the pod template.
         fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)
         fieldType = File(**pg)
-        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        self.addField(fieldName, fieldType)
         # Add the field that will store the output format(s)
         fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
         fieldType = String(validator=('odt', 'pdf', 'doc', 'rtf'),
                            multiplicity=(1,None), default=('odt',), **pg)
-        self.addField(fieldName, fieldType, fieldDescr.classDescr)
+        self.addField(fieldName, fieldType)
 
     def addQueryResultColumns(self, classDescr):
         '''Adds, for class p_classDescr, the attribute in the tool that allows
@@ -444,7 +446,7 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldType = String(multiplicity=(0,None), validator=Selection(
             '_appy_getAllFields*%s' % className), page='userInterface',
             group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
 
     def addSearchRelatedFields(self, classDescr):
         '''Adds, for class p_classDescr, attributes related to the search
@@ -455,13 +457,13 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldName = 'enableAdvancedSearchFor%s' % className
         fieldType = Boolean(default=True, page='userInterface',
                             group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
         # Field that defines how many columns are shown on the custom search
         # screen.
         fieldName = 'numberOfSearchColumnsFor%s' % className
         fieldType = Integer(default=3, page='userInterface',
                             group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
         # Field that allows to select, among all indexed fields, what fields
         # must really be used in the search screen.
         fieldName = 'searchFieldsFor%s' % className
@@ -470,7 +472,7 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldType = String(multiplicity=(0,None), validator=Selection(
             '_appy_getSearchableFields*%s' % className), default=defaultValue,
             page='userInterface', group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
 
     def addImportRelatedFields(self, classDescr):
         '''Adds, for class p_classDescr, attributes related to the import
@@ -481,7 +483,7 @@ class ToolClassDescriptor(ClassDescriptor):
         defValue = classDescr.getCreateMean('Import').path
         fieldType = String(page='data', multiplicity=(1,1), default=defValue,
                            group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
 
     def addWorkflowFields(self, classDescr):
         '''Adds, for a given p_classDescr, the workflow-related fields.'''
@@ -495,12 +497,12 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldName = 'showWorkflowFor%s' % className
         fieldType = Boolean(default=defaultValue, page='userInterface',
                             group=groupName)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
         # Adds the boolean field for showing or not the field "enter comments".
         fieldName = 'showWorkflowCommentFieldFor%s' % className
         fieldType = Boolean(default=defaultValue, page='userInterface',
                             group=groupName)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
         # Adds the boolean field for showing all states in current state or not.
         # If this boolean is True but the current phase counts only one state,
         # we will not show the state at all: the fact of knowing in what phase
@@ -512,7 +514,7 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldName = 'showAllStatesInPhaseFor%s' % className
         fieldType = Boolean(default=defaultValue, page='userInterface',
                             group=groupName)
-        self.addField(fieldName, fieldType, classDescr)
+        self.addField(fieldName, fieldType)
 
 class UserClassDescriptor(ClassDescriptor):
     '''Represents an Archetypes-compliant class that corresponds to the User
@@ -534,9 +536,60 @@ class UserClassDescriptor(ClassDescriptor):
         self.orderedAttributes += attributes
         self.klass = klass
         self.customized = True
-    def isFolder(self, klass=None): return True
+    def isFolder(self, klass=None): return False
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
+
+class TranslationClassDescriptor(ClassDescriptor):
+    '''Represents the set of translation ids for a gen-application.'''
+
+    def __init__(self, klass, generator):
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+
+    def getParents(self, allClasses=()): return ('Translation',)
+
+    def generateSchema(self):
+        ClassDescriptor.generateSchema(self, configClass=True)
+
+    def addLabelField(self, messageId, page):
+        '''Adds a Computed field that will display, in the source language, the
+           content of the text to translate.'''
+        field = Computed(method=self.modelClass.computeLabel, plainText=False,
+                         page=page, show=self.modelClass.showField, layouts='f')
+        self.addField('%s_label' % messageId, field)
+
+    def addMessageField(self, messageId, page, i18nFiles):
+        '''Adds a message field corresponding to p_messageId to the Translation
+           class, on a given p_page. We need i18n files p_i18nFiles for
+           fine-tuning the String type to generate for this field (one-line?
+           several lines?...)'''
+        params = {'page':page, 'layouts':'f', 'show':self.modelClass.showField}
+        appName = self.generator.applicationName
+        # Scan all messages corresponding to p_messageId from all translation
+        # files. We will define field length from the longer found message
+        # content.
+        maxLine = 100 # We suppose a line is 100 characters long.
+        width = 0
+        height = 0
+        for fileName, poFile in i18nFiles.iteritems():
+            if not fileName.startswith('%s-' % appName): continue
+            msgContent = i18nFiles[fileName].messagesDict[messageId].msg
+            # Compute width
+            width = max(width, len(msgContent))
+            # Compute height (a "\n" counts for one line)
+            mHeight = int(len(msgContent)/maxLine) + msgContent.count('<br/>')
+            height = max(height, mHeight)
+        if height < 1:
+            # This is a one-line field.
+            params['width'] = width
+        else:
+            # This is a multi-line field, or a very-long-single-lined field
+            params['format'] = String.TEXT
+            params['height'] = height
+        self.addField(messageId, String(**params))
 
 class WorkflowDescriptor(appy.gen.descriptors.WorkflowDescriptor):
     '''Represents a workflow.'''

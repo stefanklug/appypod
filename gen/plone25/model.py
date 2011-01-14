@@ -21,23 +21,26 @@ class ModelClass:
     # must not be given in the constructor (they are computed attributes).
     _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'isSelect',
                      'hasLabel', 'hasDescr', 'hasHelp', 'master_css',
-                     'layouts', 'required', 'filterable', 'validable', 'backd',
-                     'isBack', 'sync', 'pageName')
+                     'required', 'filterable', 'validable', 'backd', 'isBack',
+                     'sync', 'pageName')
 
     @classmethod
     def _appy_getTypeBody(klass, appyType):
         '''This method returns the code declaration for p_appyType.'''
         typeArgs = ''
         for attrName, attrValue in appyType.__dict__.iteritems():
-            if attrName in ModelClass._appy_notinit:
-                continue
-            if isinstance(attrValue, basestring):
+            if attrName in ModelClass._appy_notinit: continue
+            if attrName == 'layouts':
+                if klass.__name__ == 'Tool': continue
+                # For Tool attributes we do not copy layout info. Indeed, most
+                # fields added to the Tool are config-related attributes whose
+                # layouts must be standard.
+                attrValue = appyType.getInputLayouts()
+            elif isinstance(attrValue, basestring):
                 attrValue = '"%s"' % attrValue
             elif isinstance(attrValue, Ref):
-                if attrValue.isBack:
-                    attrValue = klass._appy_getTypeBody(attrValue)
-                else:
-                    continue
+                if not attrValue.isBack: continue
+                attrValue = klass._appy_getTypeBody(attrValue)
             elif type(attrValue) == type(ModelClass):
                 moduleName = attrValue.__module__
                 if moduleName.startswith('appy.gen'):
@@ -49,8 +52,8 @@ class ModelClass:
             elif isinstance(attrValue, Group):
                 attrValue = 'Group("%s")' % attrValue.name
             elif isinstance(attrValue, Page):
-                attrValue = 'Page("%s")' % attrValue.name
-            elif type(attrValue) == types.FunctionType:
+                attrValue = 'pages["%s"]' % attrValue.name
+            elif callable(attrValue):
                 attrValue = '%sWrapper.%s'% (klass.__name__, attrValue.__name__)
             typeArgs += '%s=%s,' % (attrName, attrValue)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
@@ -59,7 +62,25 @@ class ModelClass:
     def _appy_getBody(klass):
         '''This method returns the code declaration of this class. We will dump
            this in appyWrappers.py in the resulting product.'''
-        res = ''
+        res = 'class %s(%sWrapper):\n' % (klass.__name__, klass.__name__)
+        if klass.__name__ == 'Tool':
+            res += '    folder=True\n'
+        # First, scan all attributes, determine all used pages and create a
+        # dict with it. It will prevent us from creating a new Page instance
+        # for every field.
+        pages = {}
+        for attrName in klass._appy_attributes:
+            exec 'appyType = klass.%s' % attrName
+            if appyType.page.name not in pages:
+                pages[appyType.page.name] = appyType.page
+        res += '    pages = {'
+        for page in pages.itervalues():
+            # Determine page show
+            pageShow = page.show
+            if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
+            res += '"%s":Page("%s", show=%s),'% (page.name, page.name, pageShow)
+        res += '}\n'
+        # Secondly, dump every attribute
         for attrName in klass._appy_attributes:
             exec 'appyType = klass.%s' % attrName
             res += '    %s=%s\n' % (attrName, klass._appy_getTypeBody(appyType))
@@ -86,25 +107,38 @@ class User(ModelClass):
     gm['multiplicity'] = (0, None)
     roles = String(validator=Selection('getGrantableRoles'), indexed=True, **gm)
 
-# The Tool class ---------------------------------------------------------------
+# The Translation class --------------------------------------------------------
+class Translation(ModelClass):
+    _appy_attributes = ['po', 'title']
+    # All methods defined below are fake. Real versions are in the wrapper.
+    def getPoFile(self): pass
+    po = Action(action=getPoFile, page=Page('actions', show='view'),
+                result='file')
+    title = String(show=False, indexed=True)
+    def computeLabel(self): pass
+    def showField(self, name): pass
 
+# The Tool class ---------------------------------------------------------------
 # Here are the prefixes of the fields generated on the Tool.
 toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showWorkflowCommentField', 'showAllStatesInPhase')
-defaultToolFields = ('users', 'enableNotifications', 'unoEnabledPython',
-                     'openOfficePort', 'numberOfResultsPerPage',
-                     'listBoxesMaximumWidth')
+defaultToolFields = ('users', 'translations', 'enableNotifications',
+                     'unoEnabledPython', 'openOfficePort',
+                     'numberOfResultsPerPage', 'listBoxesMaximumWidth')
 
 class Tool(ModelClass):
-    # The following dict allows us to remember the original classes related to
-    # the attributes we will add due to params in user attributes.
-    _appy_classes = {} # ~{s_attributeName: s_className}~
     # In a ModelClass we need to declare attributes in the following list.
     _appy_attributes = list(defaultToolFields)
 
     # Tool attributes
+    def validPythonWithUno(self, value): pass # Real method in the wrapper
+    unoEnabledPython = String(group="connectionToOpenOffice",
+                              validator=validPythonWithUno)
+    openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
+    numberOfResultsPerPage = Integer(default=30)
+    listBoxesMaximumWidth = Integer(default=100)
     # First arg of Ref field below is None because we don't know yet if it will
     # link to the predefined User class or a custom class defined in the
     # application.
@@ -112,13 +146,10 @@ class Tool(ModelClass):
                 back=Ref(attribute='toTool'), page='users', queryable=True,
                 queryFields=('login',), showHeaders=True,
                 shownInfo=('login', 'title', 'roles'))
+    translations = Ref(Translation, multiplicity=(0,None), add=False,link=False,
+                       back=Ref(attribute='trToTool', show=False), show='view',
+                       page=Page('translations', show='view'))
     enableNotifications = Boolean(default=True, page='notifications')
-    def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = String(group="connectionToOpenOffice",
-                              validator=validPythonWithUno)
-    openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
-    numberOfResultsPerPage = Integer(default=30)
-    listBoxesMaximumWidth = Integer(default=100)
 
     @classmethod
     def _appy_clean(klass):
@@ -130,5 +161,4 @@ class Tool(ModelClass):
         for k in toClean:
             exec 'del klass.%s' % k
         klass._appy_attributes = list(defaultToolFields)
-        klass._appy_classes = {}
 # ------------------------------------------------------------------------------

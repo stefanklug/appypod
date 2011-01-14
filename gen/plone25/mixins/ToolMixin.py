@@ -109,8 +109,8 @@ class ToolMixin(BaseMixin):
         fileName = appyTool.normalize(fileName)
         response = obj.REQUEST.RESPONSE
         response.setHeader('Content-Type', mimeTypes[format])
-        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"'\
-            % (fileName, format))
+        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"' % \
+                           (fileName, format))
         f.close()
         # Execute the related action if relevant
         if doAction and podInfo['action']:
@@ -710,8 +710,8 @@ class ToolMixin(BaseMixin):
             fieldName, pageName = d2.split(':')
             sourceObj = self.uid_catalog(UID=d1)[0].getObject()
             label = '%s_%s' % (sourceObj.meta_type, fieldName)
-            res['backText'] = u'%s : %s' % (sourceObj.Title().decode('utf-8'),
-                                            self.translate(label))
+            res['backText'] = '%s : %s' % (sourceObj.Title(),
+                                           self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
         # Among, first, previous, next and last, which one do I need?
         previousNeeded = False # Previous ?

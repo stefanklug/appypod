@@ -7,8 +7,10 @@ from StringIO import StringIO
 from sets import Set
 import appy
 from appy.gen import Type, Ref
+from appy.gen.po import PoParser
 from appy.gen.utils import produceNiceMessage
 from appy.gen.plone25.utils import updateRolesForPermission
+from appy.shared.data import languages
 
 class ZCTextIndexInfo:
     '''Silly class used for storing information about a ZCTextIndex.'''
@@ -313,6 +315,38 @@ class PloneInstaller:
             '%sID' % self.toolName, 'site_icon.gif', # Icon in control_panel
             self.productName, None)
 
+    def installTranslations(self):
+        '''Creates or updates the translation objects within the tool.'''
+        translations = [t.o.id for t in self.appyTool.translations]
+        # We browse the languages supported by this application and check
+        # whether we need to create the corresponding Translation objects.
+        for language in self.languages:
+            if language in translations: continue
+            # We will create, in the tool, the translation object for this
+            # language. Determine first its title.
+            langId, langEn, langNat = languages.get(language)
+            if langEn != langNat:
+                title = '%s (%s)' % (langEn, langNat)
+            else:
+                title = langEn
+            self.appyTool.create('translations', id=language, title=title)
+            self.appyTool.log('Translation object created for "%s".' % language)
+        # Now, we synchronise every Translation object with the corresponding
+        # "po" file on disk.
+        appFolder = self.config.diskFolder
+        appName = self.config.PROJECTNAME
+        dn = os.path.dirname
+        jn = os.path.join
+        i18nFolder = jn(jn(jn(dn(dn(dn(appFolder))),'Products'),appName),'i18n')
+        for translation in self.appyTool.translations:
+            # Get the "po" file
+            poName = '%s-%s.po' % (appName, translation.id)
+            poFile = PoParser(jn(i18nFolder, poName)).parse()
+            for message in poFile.messages:
+                setattr(translation, message.id, message.getMessage())
+            self.appyTool.log('Translation "%s" updated from "%s".' % \
+                              (translation.id, poName))
+
     def installRolesAndGroups(self):
         '''Registers roles used by workflows and classes defined in this
            application if they are not registered yet. Creates the corresponding
@@ -459,6 +493,7 @@ class PloneInstaller:
         self.installRootFolder()
         self.installTypes()
         self.installTool()
+        self.installTranslations()
         self.installRolesAndGroups()
         self.installWorkflows()
         self.installStyleSheet()

@@ -33,6 +33,17 @@ class AbstractWrapper:
         if other: return cmp(self.o, other.o)
         else: return 1
 
+    def _callCustom(self, methodName, *args, **kwargs):
+        '''This wrapper implements some methods like "validate" and "onEdit".
+           If the user has defined its own wrapper, its methods will not be
+           called. So this method allows, from the methods here, to call the
+           user versions.'''
+        if len(self.__class__.__bases__) > 1:
+            # There is a custom user class
+            customUser = self.__class__.__bases__[-1]
+            if customUser.__dict__.has_key(methodName):
+                customUser.__dict__[methodName](self, *args, **kwargs)
+
     def get_tool(self): return self.o.getTool().appy()
     tool = property(get_tool)
 

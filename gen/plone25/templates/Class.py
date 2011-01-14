@@ -3,8 +3,10 @@ from AccessControl import ClassSecurityInfo
 from DateTime import DateTime
 from Products.Archetypes.atapi import *
 import Products.<!applicationName!>.config
-from Extensions.appyWrappers import <!genClassName!>_Wrapper
+from Products.CMFCore.utils import UniqueObject
 from appy.gen.plone25.mixins import BaseMixin
+from appy.gen.plone25.mixins.ToolMixin import ToolMixin
+from Extensions.appyWrappers import <!genClassName!>_Wrapper
 <!imports!>
 
 schema = Schema((<!fields!>
@@ -18,19 +20,20 @@ class <!genClassName!>(<!parents!>):
     archetype_name = '<!genClassName!>'
     meta_type = '<!genClassName!>'
     portal_type = '<!genClassName!>'
-    allowed_content_types = []
+    allowed_content_types = ()
     filter_content_types = 0
-    global_allow = 1
+    global_allow = <!global_allow!>
     immediate_view = 'skyn/view'
     default_view = 'skyn/view'
     suppl_views = ()
     typeDescription = '<!genClassName!>'
     typeDescMsgId = '<!genClassName!>_edit_descr'
     i18nDomain = '<!applicationName!>'
-    schema = fullSchema
     wrapperClass = <!genClassName!>_Wrapper
-    for elem in dir(BaseMixin):
+    schema = fullSchema
+    for elem in dir(<!baseMixin!>):
         if not elem.startswith('__'): security.declarePublic(elem)
+    <!static!>
 <!commonMethods!>
 <!methods!>
 <!register!>

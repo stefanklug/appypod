@@ -70,7 +70,8 @@ class Page:
             showAttr = 'show%s' % elem.capitalize()
         # Get the value of the show attribute as identified above.
         show = getattr(self, showAttr)
-        if callable(show): show = show(obj.appy())
+        if callable(show):
+            show = show(obj.appy())
         # Show value can be 'view', for example. Thanks to p_layoutType,
         # convert show value to a real final boolean value.
         res = show
@@ -407,7 +408,7 @@ class Type:
         # permission (string) instead of assigning "True" to the following
         # arg(s). A named permission will be global to your whole Zope site, so
         # take care to the naming convention. Typically, a named permission is
-        # of the form: "<yourAppName>: Write|Read xxx". If, for example, I want
+        # of the form: "<yourAppName>: Write|Read ---". If, for example, I want
         # to define, for my application "MedicalFolder" a specific permission
         # for a bunch of fields that can only be modified by a doctor, I can
         # define a permission "MedicalFolder: Write medical information" and
@@ -531,7 +532,7 @@ class Type:
             return False
         # Evaluate self.show
         if callable(self.show):
-            res = self.show(obj.appy())
+            res = self.callMethod(obj, self.show)
         else:
             res = self.show
         # Take into account possible values 'view' and 'edit' for 'show' param.
@@ -663,6 +664,15 @@ class Type:
            default layouts. If None is returned, a global set of default layouts
            will be used.'''
 
+    def getInputLayouts(self):
+        '''Gets, as a string, the layouts as could have been specified as input
+           value for the Type constructor.'''
+        res = '{'
+        for k, v in self.layouts.iteritems():
+            res += '"%s":"%s",' % (k, v['layoutString'])
+        res += '}'
+        return res
+
     def computeDefaultLayouts(self):
         '''This method gets the default layouts from an Appy type, or a copy
            from the global default field layouts when they are not available.'''
@@ -687,13 +697,12 @@ class Type:
             # If there is no value, get the default value if any
             if not self.editDefault:
                 # Return self.default, of self.default() if it is a method
-                if type(self.default) == types.FunctionType:
-                    appyObj = obj.appy()
+                if callable(self.default):
                     try:
-                        return self.default(appyObj)
+                        return self.callMethod(obj, self.default,
+                                               raiseOnError=True)
                     except Exception, e:
-                        appyObj.log('Exception while getting default value ' \
-                                    'of field "%s": %s.' % (self.name, str(e)))
+                        # Already logged.
                         return None
                 else:
                     return self.default
@@ -839,10 +848,34 @@ class Type:
         res.specificReadPermission = False
         res.specificWritePermission = False
         res.multiplicity = (0, self.multiplicity[1])
-        if type(res.validator) == types.FunctionType:
+        if callable(res.validator):
             # We will not be able to call this function from the tool.
             res.validator = None
         return res
+
+    def callMethod(self, obj, method, raiseOnError=False):
+        '''This method is used to call a p_method on p_obj. p_method is part of
+           this type definition (ie a default method, the method of a Computed
+           field, a method used for showing or not a field...). Normally, those
+           methods are called without any arg. But one may need, within the
+           method, to access the related field. This method tries to call
+           p_method with no arg *or* with the field arg.'''
+        obj = obj.appy()
+        try:
+            return method(obj)
+        except TypeError, te:
+            # Try a version of the method that would accept self as an
+            # additional parameter.
+            try:
+                return method(obj, self)
+            except Exception, e:
+                obj.log(Traceback.get(), type='error')
+                if raiseOnError: raise e
+                else: return str(e)
+        except Exception, e:
+            obj.log(Traceback.get(), type='error')
+            if raiseOnError: raise e
+            else: return str(e)
 
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -1139,6 +1172,10 @@ class String(Type):
                 res = unicode(value)
             except UnicodeDecodeError:
                 res = str(value)
+        # If value starts with a carriage return, add a space; else, it will
+        # be ignored.
+        if isinstance(res, basestring) and \
+           (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
         return res
 
     def getIndexValue(self, obj, forSearch=False):
@@ -1719,12 +1756,7 @@ class Computed(Type):
     def getValue(self, obj):
         '''Computes the value instead of getting it in the database.'''
         if not self.method: return
-        obj = obj.appy()
-        try:
-            return self.method(obj)
-        except Exception, e:
-            obj.log(Traceback.get(), type='error')
-            return str(e)
+        return self.callMethod(obj, self.method, raiseOnError=False)
 
     def getFormattedValue(self, obj, value):
         if not isinstance(value, basestring): return str(value)
@@ -2106,6 +2138,11 @@ class Config:
         # If you don't need the portlet that appy.gen has generated for your
         # application, set the following parameter to False.
         self.showPortlet = True
+        # Number of translations for every page on a Translation object
+        self.translationsPerPage = 30
+        # Language that will be used as a basis for translating to other
+        # languages.
+        self.sourceLanguage = 'en'
 
 # ------------------------------------------------------------------------------
 # Special field "type" is mandatory for every class. If one class does not

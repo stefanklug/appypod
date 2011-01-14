@@ -45,7 +45,7 @@ setDefaultRoles(DEFAULT_ADD_CONTENT_PERMISSION, tuple(defaultAddRoles))
 
 # Applications classes, in various formats
 rootClasses = [<!rootClasses!>]
-appClasses = <!appClasses!>
+appClasses = [<!appClasses!>]
 appClassNames = [<!appClassNames!>]
 allClassNames = [<!allClassNames!>]
 # List of classes that must be hidden from the catalog
@@ -66,7 +66,7 @@ workflowInstances = {}
 # In the following dict, we store, for every Appy class, the ordered list of
 # appy types (included inherited ones).
 attributes = {<!attributes!>}
-# In the followinf dict, we store, for every Appy class, a dict of appy types
+# In the following dict, we store, for every Appy class, a dict of appy types
 # keyed by their names.
 attributesDict = {<!attributesDict!>}
 
@@ -81,4 +81,5 @@ languages = [<!languages!>]
 languageSelector = <!languageSelector!>
 minimalistPlone = <!minimalistPlone!>
 appFrontPage = <!appFrontPage!>
+sourceLanguage = '<!sourceLanguage!>'
 # ------------------------------------------------------------------------------

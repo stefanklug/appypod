@@ -105,4 +105,8 @@ class ToolWrapper(AbstractWrapper):
         res = '%sFor%s' % (attributeType, fullClassName)
         if attrName: res += '_%s' % attrName
         return res
+
+    def getAvailableLanguages(self):
+        '''Returns the list of available languages for this application.'''
+        return [(t.id, t.title) for t in self.translations]
 # ------------------------------------------------------------------------------

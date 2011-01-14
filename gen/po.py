@@ -42,7 +42,6 @@ class PoMessage:
                                    'comment every time a transition is ' \
                                    'triggered'
     MSG_showAllStatesInPhase = 'Show all states in phase'
-    USER = 'User'
     POD_ASKACTION = 'Trigger related action'
     REF_NO = 'No object.'
     REF_ADD = 'Add a new one'
@@ -194,6 +193,10 @@ class PoMessage:
             newId = '%s_%s' % (newPrefix, self.id.split('_', 1)[1])
         return PoMessage(newId, self.msg, self.default, comments=self.comments)
 
+    def getMessage(self):
+        '''Returns self.msg, but with some replacements.'''
+        return self.msg.replace('<br/>', '\n').replace('\\"', '"')
+
 class PoHeader:
     def __init__(self, name, value):
         self.name = name
@@ -236,8 +239,11 @@ class PoFile:
         self.generated = False # Is set to True during the generation process
         # when this file has been generated.
 
-    def addMessage(self, newMsg):
-        res = copy.copy(newMsg)
+    def addMessage(self, newMsg, needsCopy=True):
+        if needsCopy:
+            res = copy.copy(newMsg)
+        else:
+            res = newMsg
         self.messages.append(res)
         self.messagesDict[res.id] = res
         return res
@@ -261,7 +267,9 @@ class PoFile:
             i = len(self.messages)-1
             while i >= 0:
                 oldId = self.messages[i].id
-                if not oldId.startswith('custom_') and (oldId not in newIds):
+                if not oldId.startswith('custom_') and \
+                   not oldId.startswith('%sTranslation_page_'%self.domain) and \
+                   (oldId not in newIds):
                     del self.messages[i]
                     del self.messagesDict[oldId]
                     removedIds.append(oldId)
@@ -343,7 +351,7 @@ class PoParser:
 
     def parse(self):
         '''Parses all i18n messages in the file, stores it in
-           self.res.messages and returns it also.'''
+           self.res.messages and returns self.res.'''
         f = file(self.res.fileName)
         # Currently parsed values
         msgDefault = msgFuzzy = msgId = msgStr = None

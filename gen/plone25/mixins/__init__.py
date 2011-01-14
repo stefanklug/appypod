@@ -384,8 +384,11 @@ class BaseMixin:
             refType = refObject.o.getAppyType(fieldName)
             value = getattr(refObject, fieldName)
             value = refType.getFormattedValue(refObject.o, value)
-            if (refType.type == 'String') and (refType.format == 2):
-                value = self.xhtmlToText.sub(' ', value)
+            if refType.type == 'String':
+                if refType.format == 2:
+                    value = self.xhtmlToText.sub(' ', value)
+                elif type(value) in sequenceTypes:
+                    value = ', '.join(value)
             prefix = ''
             if res:
                 prefix = ' | '
@@ -816,12 +819,13 @@ class BaseMixin:
             self.plone_utils.addPortalMessage(msg)
             return self.goto(self.getUrl(rq['HTTP_REFERER']))
         elif resultType == 'file':
-            # msg does not contain a message, but a complete file to show as is.
-            # (or, if your prefer, the message must be shown directly to the
-            # user, not encapsulated in a Plone page).
-            res = self.getProductConfig().File(msg.name, msg.name, msg,
-                content_type=mimetypes.guess_type(msg.name)[0])
-            return res.index_html(rq, rq.RESPONSE)
+            # msg does not contain a message, but a file instance.
+            response = self.REQUEST.RESPONSE
+            response.setHeader('Content-Type',mimetypes.guess_type(msg.name)[0])
+            response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
+                               msg.name)
+            response.write(msg.read())
+            msg.close()
         elif resultType == 'redirect':
             # msg does not contain a message, but the URL where to redirect
             # the user.
@@ -1045,13 +1049,27 @@ class BaseMixin:
         '''Translates a given p_label into p_domain with p_mapping.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
-        try:
-            res = self.Control_Panel.TranslationService.utranslate(
-                domain, label, mapping, self, default=default,
-                target_language=language)
-        except AttributeError:
-            # When run in test mode, Zope does not create the TranslationService
-            res = label
+        if domain != cfg.PROJECTNAME:
+            # We need to translate something that is in a standard Zope catalog
+            try:
+                res = self.Control_Panel.TranslationService.utranslate(
+                    domain, label, mapping, self, default=default,
+                    target_language=language)
+            except AttributeError:
+                # When run in test mode, Zope does not create the
+                # TranslationService
+                res = label
+        else:
+            # We will get the translation from a Translation object.
+            # In what language must we get the translation?
+            if not language: language = self.REQUEST['LANGUAGE']
+            tool = self.getTool()
+            translation = getattr(self.getTool(), language).appy()
+            res = getattr(translation, label, '')
+            # Perform replacements if needed
+            for name, repl in mapping.iteritems():
+                res = res.replace('${%s}' % name, repl)
+            # At present, there is no fallback machanism.
         return res
 
     def getPageLayout(self, layoutType):

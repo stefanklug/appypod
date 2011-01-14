@@ -266,6 +266,13 @@ div.appyPopup {
   border: 1px solid gray;
 }
 
+.translationLabel {
+  background-color: #EAEAEA;
+  border-bottom: 1px dashed grey;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
 /* Uncomment this if you want to hide breadcrumbs */
 /*
 #portal-breadcrumbs {
