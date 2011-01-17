@@ -393,8 +393,7 @@ class ToolMixin(BaseMixin):
         if not self.translationMapping['portal_path']:
             self.translationMapping['portal_path'] = \
                 self.portal_url.getPortalPath()
-        appName = self.getProductConfig().PROJECTNAME
-        return self.utranslate(label, self.translationMapping, domain=appName)
+        return self.translate(label, mapping=self.translationMapping)
 
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among

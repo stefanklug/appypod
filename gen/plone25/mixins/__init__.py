@@ -1044,6 +1044,20 @@ class BaseMixin:
             params = ''
         return '%s%s' % (base, params)
 
+    def getLanguage(self):
+        '''Gets the language (code) of the current user.'''
+        # Try first the "LANGUAGE" key from the request
+        res = self.REQUEST.get('LANGUAGE', None)
+        if res: return res
+        # Try then the HTTP_ACCEPT_LANGUAGE key from the request, which stores
+        # language preferences as defined in the user's browser. Several
+        # languages can be listed, from most to less wanted.
+        res = self.REQUEST.get('HTTP_ACCEPT_LANGUAGE', None)
+        if not res: return 'en'
+        if ',' in res: res = res[:res.find(',')]
+        if '-' in res: res = res[:res.find('-')]
+        return res
+
     def translate(self, label, mapping={}, domain=None, default=None,
                   language=None):
         '''Translates a given p_label into p_domain with p_mapping.'''
@@ -1062,14 +1076,21 @@ class BaseMixin:
         else:
             # We will get the translation from a Translation object.
             # In what language must we get the translation?
-            if not language: language = self.REQUEST['LANGUAGE']
+            if not language: language = self.getLanguage()
             tool = self.getTool()
-            translation = getattr(self.getTool(), language).appy()
+            try:
+                translation = getattr(tool, language).appy()
+            except AttributeError:
+                # We have no translation for this language. Fallback to 'en'.
+                translation = getattr(tool, 'en').appy()
             res = getattr(translation, label, '')
+            if not res:
+                # Fallback to 'en'.
+                translation = getattr(tool, 'en').appy()
+                res = getattr(translation, label, '')
             # Perform replacements if needed
             for name, repl in mapping.iteritems():
                 res = res.replace('${%s}' % name, repl)
-            # At present, there is no fallback machanism.
         return res
 
     def getPageLayout(self, layoutType):

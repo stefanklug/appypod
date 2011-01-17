@@ -1178,11 +1178,16 @@ class String(Type):
            (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
         return res
 
+    emptyStringTuple = ('',)
     def getIndexValue(self, obj, forSearch=False):
         '''For indexing purposes, we return only strings, not unicodes.'''
         res = Type.getIndexValue(self, obj, forSearch)
         if isinstance(res, unicode):
             res = res.encode('utf-8')
+        # Ugly portal_catalog: if I give an empty tuple as index value,
+        # portal_catalog keeps the previous value! If I give him a tuple
+        # containing an empty string, it is ok.
+        if isinstance(res, tuple) and not res: res = self.emptyStringTuple
         return res
 
     def getPossibleValues(self,obj,withTranslations=False,withBlankValue=False):

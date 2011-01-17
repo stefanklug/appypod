@@ -501,7 +501,7 @@ class PloneInstaller:
         self.manageIndexes()
         self.manageLanguages()
         self.finalizeInstallation()
-        self.appyTool.log("Installation of %s done." % self.productName)
+        self.appyTool.log("Installation done.")
 
     def uninstallTool(self):
         site = self.ploneSite
