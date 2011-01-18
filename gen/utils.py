@@ -291,10 +291,7 @@ class FileWrapper:
         if format:
             if not tool: return
             # Convert the dumped file using OpenOffice
-            convScript = '%s/converter.py' % os.path.dirname(appy.pod.__file__)
-            cmd = '%s %s "%s" %s -p%d' % (tool.unoEnabledPython, convScript,
-                filePath, format, tool.openOfficePort)
-            errorMessage = executeCommand(cmd)
+            errorMessage = tool.convert(filePath, format)
             # Even if we have an "error" message, it could be a simple warning.
             # So we will continue here and, as a subsequent check for knowing if
             # an error occurred or not, we will test the existence of the

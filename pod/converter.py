@@ -37,6 +37,8 @@ FILE_TYPES = {'odt': 'writer8',
               'doc': 'MS Word 97',
               'xls': 'MS Excel 97',
               'ppt': 'MS PowerPoint 97',
+              'docx': 'MS Word 2007 XML',
+              'xlsx': 'Calc MS Excel 2007 XML',
 }
 # Conversion from odt to odt does not make any conversion, but updates indexes
 # and linked documents.
@@ -57,7 +59,7 @@ DEFAULT_PORT = 2002
 
 # ------------------------------------------------------------------------------
 class Converter:
-    '''Converts an document readable by OpenOffice into pdf, doc, txt or rtf.'''
+    '''Converts a document readable by OpenOffice into pdf, doc, txt, rtf...'''
     exeVariants = ('soffice.exe', 'soffice')
     pathReplacements = {'program files': 'progra~1',
                         'openoffice.org 1': 'openof~1',
@@ -194,11 +196,19 @@ class Converter:
         from com.sun.star.beans import PropertyValue
         try:
             # Loads the document to convert in a new hidden frame
-            prop = PropertyValue()
-            prop.Name = 'Hidden'
-            prop.Value = True
+            prop = PropertyValue(); prop.Name = 'Hidden'; prop.Value = True
+            if self.inputType == 'csv':
+                prop2 = PropertyValue()
+                prop2.Name = 'FilterFlags'
+                prop2.Value = '59,34,76,1'
+                #prop2.Name = 'FilterData'
+                #prop2.Value = 'Any'
+                props = (prop, prop2)
+            else:
+                props = (prop,)
+            # Give some additional params if we need to open a CSV file
             self.doc = self.oo.loadComponentFromURL(self.docUrl, "_blank", 0,
-                                                    (prop,))
+                                                    props)
             if self.inputType == 'odt':
                 # Perform additional tasks for odt documents
                 self.updateOdtDocument()

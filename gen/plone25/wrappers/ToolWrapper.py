@@ -1,4 +1,7 @@
 # ------------------------------------------------------------------------------
+import os.path
+import appy
+from appy.shared.utils import executeCommand
 from appy.gen.plone25.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
@@ -109,4 +112,14 @@ class ToolWrapper(AbstractWrapper):
     def getAvailableLanguages(self):
         '''Returns the list of available languages for this application.'''
         return [(t.id, t.title) for t in self.translations]
+
+    def convert(self, fileName, format):
+        '''Launches a UNO-enabled Python interpreter as defined in the self for
+           converting, using OpenOffice in server mode, a file named p_fileName
+           into an output p_format.'''
+        convScript = '%s/pod/converter.py' % os.path.dirname(appy.__file__)
+        cmd = '%s %s "%s" %s -p%d' % (self.unoEnabledPython, convScript,
+                                      fileName, format, self.openOfficePort)
+        self.log('Executing %s...' % cmd)
+        return executeCommand(cmd) # The result can contain an error message
 # ------------------------------------------------------------------------------

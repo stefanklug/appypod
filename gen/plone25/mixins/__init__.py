@@ -1088,9 +1088,13 @@ class BaseMixin:
                 # Fallback to 'en'.
                 translation = getattr(tool, 'en').appy()
                 res = getattr(translation, label, '')
-            # Perform replacements if needed
-            for name, repl in mapping.iteritems():
-                res = res.replace('${%s}' % name, repl)
+            # If still no result, put the label instead of a translated message
+            if not res: res = label
+            else:
+                # Perform replacements
+                res = res.replace('\r\n', '<br/>').replace('\n', '<br/>')
+                for name, repl in mapping.iteritems():
+                    res = res.replace('${%s}' % name, repl)
         return res
 
     def getPageLayout(self, layoutType):
