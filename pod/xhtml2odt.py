@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 # Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007 Gaetan Delannay
-
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
+# Copyright (C) 2007-2011 Gaetan Delannay
+#
+# Distributed under the GNU General Public License.
+#
+# Thanks to Fabio Marcuzzi and Gauthier Bastien for management of strike and
+# underline.
 
 # ------------------------------------------------------------------------------
 import xml.sax
@@ -23,18 +14,20 @@ from appy.shared.xml_parser import XmlEnvironment, XmlParser
 from appy.pod.odf_parser import OdfEnvironment
 from appy.pod import *
 
-# To which ODT tag does HTML tags correspond ?
+# To which ODT tags do HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
-    'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'em': 'span',
-    'sub': 'span', 'sup': 'span', 'br': 'line-break', 'div': 'span'}
+              'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'strike':'span',
+              'u':'span', 'em': 'span', 'sub': 'span', 'sup': 'span',
+              'br': 'line-break', 'div': 'span'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
+                      'u': 'podUnderline', 'strike': 'podStrike',
                       'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
                       'td': 'podCell', 'th': 'podHeaderCell'}
-INNER_TAGS = ('b', 'strong', 'i', 'em', 'sup', 'sub', 'span', 'div')
+INNER_TAGS = ('b', 'strong', 'i', 'u', 'em', 'sup', 'sub', 'span', 'div')
 TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
-NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',) # Those elements
-# can't be rendered inside paragraphs.
+# The following elements can't be rendered inside paragraphs
+NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',)
 NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
 

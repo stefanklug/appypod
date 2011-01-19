@@ -15,6 +15,14 @@
   <@style@:text-properties @fo@:font-weight="bold" @style@:font-weight-asian="bold"
                            @style@:font-weight-complex="bold"/>
 </@style@:style>
+<@style@:style @style@:name="podUnderline" @style@:family="text">
+  <@style@:text-properties @style@:text-underline-style="solid" @style@:text-underline-width="auto"
+                           @style@:text-underline-color="font-color"/>
+</@style@:style>
+<@style@:style @style@:name="podStrike" @style@:family="text">
+  <@style@:text-properties @style@:text-line-through-style="solid" @style@:text-line-through-width="auto"
+                           @style@:text-line-through-color="font-color"/>
+</@style@:style>
 <@style@:style @style@:name="podSup" @style@:family="text">
   <@style@:text-properties @style@:text-position="super 58%"/>
 </@style@:style>
