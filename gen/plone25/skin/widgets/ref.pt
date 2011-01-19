@@ -78,7 +78,8 @@
   ref field according to the field that corresponds to this column.
 </tal:comment>
 <metal:sortIcons define-macro="sortIcons"
-    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, widget['name']))" tal:condition="python: canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
+    tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, widget['name']))"
+    tal:condition="python: canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
   <img style="cursor:pointer"
        tal:attributes="src string:$portal_url/skyn/sortAsc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
@@ -198,10 +199,10 @@
               <tal:title condition="python: widget['name'] == 'title'">
                 <metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
               </tal:title>
-              <tal:state condition="python: widget['name'] == 'workflowState'"
+              <tal:state condition="python: widget['name'] == 'state'"
                          content="python: tool.translate(obj.getWorkflowLabel())">
               </tal:state>
-              <tal:other condition="python: widget['name'] not in ('title', 'workflowState')">
+              <tal:other condition="python: widget['name'] not in ('title', 'state')">
                 <tal:field define="contextObj python:obj;
                                    layoutType python: 'cell';
                                    innerRef python:True">

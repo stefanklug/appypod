@@ -482,7 +482,7 @@ class ToolMixin(BaseMixin):
            (p_usage can be "ref" or "search")?'''
         if (',' in className) or (name == 'workflowState'): return False
         appyType = self.getAppyType(name, className=className)
-        return appyType.isSortable(usage=usage)
+        if appyType: return appyType.isSortable(usage=usage)
 
     def _searchValueIsEmpty(self, key):
         '''Returns True if request value in key p_key can be considered as

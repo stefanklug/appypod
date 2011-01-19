@@ -509,7 +509,7 @@ class BaseMixin:
         for name in fieldNames:
             appyType = self.getAppyType(name, asDict)
             if appyType: res.append(appyType)
-            elif name == 'workflowState':
+            elif name == 'state':
                 # We do not return a appyType if the attribute is not a *real*
                 # attribute, but the workfow state.
                 res.append({'name': name, 'labelId': 'workflow_state',
@@ -1044,7 +1044,7 @@ class BaseMixin:
             params = ''
         return '%s%s' % (base, params)
 
-    def getLanguage(self):
+    def getUserLanguage(self):
         '''Gets the language (code) of the current user.'''
         # Try first the "LANGUAGE" key from the request
         res = self.REQUEST.get('LANGUAGE', None)
@@ -1076,7 +1076,7 @@ class BaseMixin:
         else:
             # We will get the translation from a Translation object.
             # In what language must we get the translation?
-            if not language: language = self.getLanguage()
+            if not language: language = self.getUserLanguage()
             tool = self.getTool()
             try:
                 translation = getattr(tool, language).appy()

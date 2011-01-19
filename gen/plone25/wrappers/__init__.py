@@ -89,8 +89,8 @@ class AbstractWrapper:
     fields = property(get_fields)
 
     def link(self, fieldName, obj):
-        '''This method links p_obj to this one through reference field
-           p_fieldName. p_obj can also be a list or tuple of objects.'''
+        '''This method links p_obj (which can be a list of objects) to this one
+           through reference field p_fieldName.'''
         postfix = 'et%s%s' % (fieldName[0].upper(), fieldName[1:])
         # Update the Archetypes reference field
         exec 'objs = self.o.g%s()' % postfix
@@ -110,6 +110,30 @@ class AbstractWrapper:
             for o in obj: sorted.append(o.o.UID())
         else:
             sorted.append(obj.o.UID())
+
+    def unlink(self, fieldName, obj):
+        '''This method unlinks p_obj (which can be a list of objects) from this
+           one through reference field p_fieldName.'''
+        postfix = 'et%s%s' % (fieldName[0].upper(), fieldName[1:])
+        # Update the Archetypes reference field.
+        exec 'objs = self.o.g%s()' % postfix
+        if not objs: return
+        # Remove p_obj from existing objects
+        if type(obj) in sequenceTypes:
+            for o in obj:
+                if o.o in objs: objs.remove(o.o)
+        else:
+            if obj.o in objs: objs.remove(obj.o)
+        exec 'self.o.s%s(objs)' % postfix
+        # Update the ordered list of references
+        sorted = self.o._appy_getSortedField(fieldName)
+        if type(obj) in sequenceTypes:
+            for o in obj:
+                if o.o.UID() in sorted:
+                    sorted.remove(o.o.UID())
+        else:
+            if obj.o.UID() in sorted:
+                sorted.remove(obj.o.UID())
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
