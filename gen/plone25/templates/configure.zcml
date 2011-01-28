@@ -4,8 +4,7 @@
            xmlns:genericsetup="http://namespaces.zope.org/genericsetup"
            i18n_domain="<!applicationName!>">
 
-<!--five:deprecatedManageAddDelete class=".Meeting.Meeting"/-->
-
+<!deprecated!>
 <genericsetup:registerProfile name="default"
     title="<!applicationName!>" description=""
     provides="Products.GenericSetup.interfaces.EXTENSION"

@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, traceback, unicodedata, shutil
+import os, os.path, re, sys, traceback, unicodedata, shutil
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:
@@ -151,21 +151,35 @@ def executeCommand(cmd):
 
 # ------------------------------------------------------------------------------
 unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
+alphaRex = re.compile('[a-zA-Z]')
+alphanumRex = re.compile('[a-zA-Z0-9]')
 def normalizeString(s, usage='fileName'):
-    '''Returns a version of string p_s whose special chars have been
-       replaced with normal chars.'''
+    '''Returns a version of string p_s whose special chars (like accents) have
+       been replaced with normal chars. Moreover, if p_usage is:
+       * fileName: it removes any char that can't be part of a file name;
+       * alphanum: it removes any non-alphanumeric char;
+       * alpha: it removes any non-letter char.
+    '''
     # We work in unicode. Convert p_s to unicode if not unicode.
     if isinstance(s, str):           s = s.decode('utf-8')
     elif not isinstance(s, unicode): s = unicode(s)
+    # Remove any special char like accents.
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
+    # Remove any other char, depending on p_usage.
     if usage == 'fileName':
         # Remove any char that can't be found within a file name under
         # Windows or that could lead to problems with OpenOffice.
         res = ''
         for char in s:
-            if char not in unwantedChars:
-                res += char
-        s = res
-    return unicodedata.normalize('NFKD', s).encode("ascii","ignore")
+            if char not in unwantedChars: res += char
+    elif usage.startswith('alpha'):
+        exec 'rex = %sRex' % usage
+        res = ''
+        for char in s:
+            if rex.match(char): res += char
+    else:
+        res = s
+    return res
 
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,

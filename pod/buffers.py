@@ -84,8 +84,10 @@ class BufferIterator:
         self.remainingElemIndexes = self.buffer.elements.keys()
         self.remainingSubBufferIndexes.sort()
         self.remainingElemIndexes.sort()
+
     def hasNext(self):
         return self.remainingSubBufferIndexes or self.remainingElemIndexes
+
     def next(self):
         nextSubBufferIndex = None
         if self.remainingSubBufferIndexes:
@@ -113,36 +115,45 @@ class BufferIterator:
 class Buffer:
     '''Abstract class representing any buffer used during rendering.'''
     elementRex = re.compile('([\w-]+:[\w-]+)\s*(.*?)>', re.S)
+
     def __init__(self, env, parent):
         self.parent = parent
         self.subBuffers = {} # ~{i_bufferIndex: Buffer}~
         self.env = env
+
     def addSubBuffer(self, subBuffer=None):
         if not subBuffer:
             subBuffer = MemoryBuffer(self.env, self)
         self.subBuffers[self.getLength()] = subBuffer
         subBuffer.parent = self
         return subBuffer
+
     def removeLastSubBuffer(self):
         subBufferIndexes = self.subBuffers.keys()
         subBufferIndexes.sort()
         lastIndex = subBufferIndexes.pop()
         del self.subBuffers[lastIndex]
+
     def write(self, something): pass # To be overridden
+
     def getLength(self): pass # To be overridden
+
     def dumpStartElement(self, elem, attrs={}):
         self.write('<%s' % elem)
         for name, value in attrs.items():
             self.write(' %s="%s"' % (name, value))
         self.write('>')
+
     def dumpEndElement(self, elem):
         self.write('</%s>' % elem)
+
     def dumpElement(self, elem, content=None, attrs={}):
         '''For dumping a whole element at once.'''
         self.dumpStartElement(elem, attrs)
         if content:
             self.dumpContent(content)
         self.dumpEndElement(elem)
+
     def dumpContent(self, content):
         '''Dumps string p_content into the buffer.'''
         for c in content:
@@ -150,6 +161,7 @@ class Buffer:
                 self.write(XML_SPECIAL_CHARS[c])
             else:
                 self.write(c)
+
     def dumpAttribute(self, name, value):
         self.write(''' %s="%s" ''' % (name, value))
 
@@ -160,17 +172,21 @@ class FileBuffer(Buffer):
         self.result = result
         self.content = file(result, 'w')
         self.content.write(xmlPrologue)
-    def getLength(self): return 0
+
     # getLength is used to manage insertions into sub-buffers. But in the case
     # of a FileBuffer, we will only have 1 sub-buffer at a time, and we don't
     # care about where it will be inserted into the FileBuffer.
+    def getLength(self): return 0
+
     def write(self, something):
         self.content.write(something.encode('utf-8'))
+
     def addExpression(self, expression):
         try:
             self.dumpContent(Expression(expression).evaluate(self.env.context))
         except Exception, e:
             PodError.dump(self, EVAL_EXPR_ERROR % (expression, e), dumpTb=False)
+
     def pushSubBuffer(self, subBuffer): pass
 
 # ------------------------------------------------------------------------------
@@ -179,24 +195,30 @@ class MemoryBuffer(Buffer):
                            '(?:\s+(for|if|else|with)\s*(.*))?')
     forRex = re.compile('\s*([\w\-_]+)\s+in\s+(.*)')
     varRex = re.compile('\s*([\w\-_]+)\s*=\s*(.*)')
+
     def __init__(self, env, parent):
         Buffer.__init__(self, env, parent)
         self.content = u''
         self.elements = {}
         self.action = None
+
     def addSubBuffer(self, subBuffer=None):
         sb = Buffer.addSubBuffer(self, subBuffer)
         self.content += ' ' # To avoid having several subbuffers referenced at
                             # the same place within this buffer.
         return sb
+
     def getFileBuffer(self):
         if isinstance(self.parent, FileBuffer):
             res = self.parent
         else:
             res = self.parent.getFileBuffer()
         return res
+
     def getLength(self): return len(self.content)
+
     def write(self, thing): self.content += thing
+
     def getIndex(self, podElemName):
         res = -1
         for index, podElem in self.elements.iteritems():
@@ -204,11 +226,13 @@ class MemoryBuffer(Buffer):
                 if index > res:
                     res = index
         return res
+
     def getMainElement(self):
         res = None
         if self.elements.has_key(0):
             res = self.elements[0]
         return res
+
     def isMainElement(self, elem):
         res = False
         mainElem = self.getMainElement()
@@ -221,6 +245,7 @@ class MemoryBuffer(Buffer):
                         res = False
                         break
         return res
+
     def unreferenceElement(self, elem):
         # Find last occurrence of this element
         elemIndex = -1
@@ -229,6 +254,7 @@ class MemoryBuffer(Buffer):
                 if (podElem.OD.elem == elem) and (index > elemIndex):
                     elemIndex = index
         del self.elements[elemIndex]
+
     def pushSubBuffer(self, subBuffer):
         '''Sets p_subBuffer at the very end of the buffer.'''
         subIndex = None
@@ -242,6 +268,7 @@ class MemoryBuffer(Buffer):
             del self.subBuffers[subIndex]
             self.subBuffers[self.getLength()] = subBuffer
             self.content += u' '
+
     def transferAllContent(self):
         '''Transfer all content to parent.'''
         if isinstance(self.parent, FileBuffer):
@@ -263,18 +290,21 @@ class MemoryBuffer(Buffer):
         MemoryBuffer.__init__(self, self.env, self.parent)
         # Change buffer position wrt parent
         self.parent.pushSubBuffer(self)
+
     def addElement(self, elem):
         newElem = PodElement.create(elem)
         self.elements[self.getLength()] = newElem
         if isinstance(newElem, Cell) or isinstance(newElem, Table):
             newElem.tableInfo = self.env.getTable()
+
     def addExpression(self, expression):
         # Create the POD expression
         expr = Expression(expression)
         expr.expr = expression
         self.elements[self.getLength()] = expr
-        self.content += u' ' # To be sure that an expr and an elem can't be found
+        self.content += u' '# To be sure that an expr and an elem can't be found
                             # at the same index in the buffer.
+
     def createAction(self, statementGroup):
         '''Tries to create an action based on p_statementGroup. If the statement
            is not correct, r_ is -1. Else, r_ is the index of the element within
@@ -363,6 +393,7 @@ class MemoryBuffer(Buffer):
         except ParsingError, ppe:
             PodError.dump(self, ppe, removeFirstLine=True)
         return res
+
     def cut(self, index, keepFirstPart):
         '''Cuts this buffer into 2 parts. Depending on p_keepFirstPart, the 1st
         (from 0 to index-1) or the second (from index to the end) part of the
@@ -418,6 +449,7 @@ class MemoryBuffer(Buffer):
             res.write(self.content[:index])
             self.content = self.content[index:]
         return res
+
     def getElementIndexes(self, expressions=True):
         res = []
         for index, elem in self.elements.iteritems():
@@ -427,6 +459,7 @@ class MemoryBuffer(Buffer):
             if condition:
                 res.append(index)
         return res
+
     def transferActionIndependentContent(self, actionElemIndex):
         # Manage content to transfer to parent buffer
         if actionElemIndex != 0:
@@ -451,6 +484,7 @@ class MemoryBuffer(Buffer):
         else:
             res = self
         return res
+
     def getStartIndex(self, removeMainElems):
         '''When I must dump the buffer, sometimes (if p_removeMainElems is
         True), I must dump only a subset of it. This method returns the start
@@ -476,6 +510,7 @@ class MemoryBuffer(Buffer):
         else:
             res = 0
         return res
+
     def getStopIndex(self, removeMainElems):
         '''This method returns the stop index of the buffer part I must dump.'''
         if removeMainElems:

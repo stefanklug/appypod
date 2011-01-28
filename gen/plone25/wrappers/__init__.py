@@ -16,8 +16,8 @@ WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
 
 # ------------------------------------------------------------------------------
 class AbstractWrapper:
-    '''Any real web framework object has a companion object that is an instance
-       of this class.'''
+    '''Any real Zope object has a companion object that is an instance of this
+       class.'''
     def __init__(self, o): self.__dict__['o'] = o
 
     def __setattr__(self, name, value):
@@ -118,6 +118,7 @@ class AbstractWrapper:
         # Update the Archetypes reference field.
         exec 'objs = self.o.g%s()' % postfix
         if not objs: return
+        if type(objs) not in sequenceTypes: objs = [objs]
         # Remove p_obj from existing objects
         if type(obj) in sequenceTypes:
             for o in obj:
@@ -190,15 +191,7 @@ class AbstractWrapper:
         appyObj = ploneObj.appy()
         # Set object attributes
         for attrName, attrValue in kwargs.iteritems():
-            if isinstance(attrValue, AbstractWrapper):
-                try:
-                    refAppyType = getattr(appyObj.__class__.__bases__[-1],
-                                          attrName)
-                    appyObj.link(attrName, attrValue.o)
-                except AttributeError, ae:
-                    pass
-            else:
-                setattr(appyObj, attrName, attrValue)
+            setattr(appyObj, attrName, attrValue)
         if isField:
             # Link the object to this one
             self.link(fieldName, ploneObj)
@@ -272,7 +265,6 @@ class AbstractWrapper:
         elif mType == 'error': mType = 'stop'
         self.o.plone_utils.addPortalMessage(message, type=mType)
 
-    unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
     def normalize(self, s, usage='fileName'):
         '''Returns a version of string p_s whose special chars have been
            replaced with normal chars.'''

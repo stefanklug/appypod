@@ -25,8 +25,7 @@
                   appName      appFolder/getId;
                   phaseInfo    python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
                   page         request/page|python:'main';
-                  phase        phaseInfo/name;
-                  showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type)">
+                  phase        phaseInfo/name;">
       <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
       <metal:show     use-macro="here/skyn/page/macros/show"/>
       <metal:footer   use-macro="here/skyn/page/macros/footer"/>

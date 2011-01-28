@@ -6,7 +6,7 @@
     layout             The layout object that will dictate how object content
                        will be rendered.
   Options:
-    contextMacro       The base on folder containing the macros to call for
+    contextMacro       The base folder containing the macros to call for
                        rendering the elements within the layout.
                        Defaults to portal.skyn
 </tal:comment>

@@ -141,7 +141,7 @@
         params['filterValue'] = filterWidget.value;
       }
     }
-    askAjaxChunk(hookId,'GET',objectUrl,'macros','queryResult',params);
+    askAjaxChunk(hookId,'GET',objectUrl, 'result', 'queryResult', params);
   }
 
   function askObjectHistory(hookId, objectUrl, startNumber) {
@@ -244,12 +244,13 @@
     createCookie(cookieId, newState);
   }
   // Function that allows to generate a document from a pod template.
-  function generatePodDocument(contextUid, fieldName, podFormat) {
+  function generatePodDocument(contextUid, fieldName, podFormat, queryData) {
     var theForm = document.getElementsByName("podTemplateForm")[0];
     theForm.objectUid.value = contextUid;
     theForm.fieldName.value = fieldName;
     theForm.podFormat.value = podFormat;
     theForm.askAction.value = "False";
+    theForm.queryData.value = queryData;
     var askActionWidget = document.getElementById(contextUid + '_' + fieldName);
     if (askActionWidget && askActionWidget.checked) {
         theForm.askAction.value = "True";
@@ -376,6 +377,7 @@
     <input type="hidden" name="fieldName"/>
     <input type="hidden" name="podFormat"/>
     <input type="hidden" name="askAction"/>
+    <input type="hidden" name="queryData"/>
   </form>
 </div>
 
@@ -536,6 +538,7 @@
 </tal:comment>
 <div metal:define-macro="header"
      tal:define="showCommonInfo python: layoutType == 'view';
+                 showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
                  hasHistory contextObj/hasHistory;
                  historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
                  creator contextObj/Creator"
@@ -717,7 +720,7 @@
 <metal:message define-macro="message" i18n:domain="plone" >
   <tal:comment replace="nothing">Single message from portal_status_message request key</tal:comment>
   <div tal:define="msg request/portal_status_message | nothing"
-       tal:condition="msg" class="portalMessage" tal:content="msg" i18n:translate=""></div>
+       tal:condition="msg" class="portalMessage" tal:content="structure msg" i18n:translate=""></div>
 
   <tal:comment replace="nothing">Messages added via plone_utils</tal:comment>
   <tal:messages define="messages putils/showPortalMessages" condition="messages">

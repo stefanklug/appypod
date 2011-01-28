@@ -30,6 +30,11 @@ class ToolWrapper(AbstractWrapper):
                 return NOT_UNO_ENABLED_PYTHON % value
         return None
 
+    podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
+    def getPodOutputFormats(self):
+        '''Gets the available output formats for POD documents.'''
+        return [(of, self.translate(of)) for of in self.podOutputFormats]
+
     def getInitiator(self):
         '''Retrieves the object that triggered the creation of the object
            being currently created (if any).'''

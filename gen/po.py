@@ -109,6 +109,10 @@ class PoMessage:
     FILE_REQUIRED = 'Please select a file.'
     FIELD_INVALID = 'Please fill or correct this.'
     IMAGE_REQUIRED = 'The uploaded file must be an image.'
+    FORMAT_ODT = 'ODT'
+    FORMAT_PDF = 'PDF'
+    FORMAT_DOC = 'DOC'
+    FORMAT_RTF = 'RTF'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):

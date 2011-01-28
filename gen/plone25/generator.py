@@ -18,8 +18,14 @@ COMMON_METHODS = '''
     def getTool(self): return self.%s
     def getProductConfig(self): return Products.%s.config
     def skynView(self):
-       """Redirects to skyn/view."""
-       return self.REQUEST.RESPONSE.redirect(self.getUrl())
+       """Redirects to skyn/view. Transfers the status message if any."""
+       rq = self.REQUEST
+       msg = rq.get('portal_status_message', '')
+       if msg:
+           url = self.getUrl(portal_status_message=msg)
+       else:
+           url = self.getUrl()
+       return rq.RESPONSE.redirect(url)
 '''
 # ------------------------------------------------------------------------------
 class Generator(AbstractGenerator):
@@ -140,6 +146,10 @@ class Generator(AbstractGenerator):
             msg('field_invalid',        '', msg.FIELD_INVALID),
             msg('file_required',        '', msg.FILE_REQUIRED),
             msg('image_required',       '', msg.IMAGE_REQUIRED),
+            msg('odt',                  '', msg.FORMAT_ODT),
+            msg('pdf',                  '', msg.FORMAT_PDF),
+            msg('doc',                  '', msg.FORMAT_DOC),
+            msg('rtf',                  '', msg.FORMAT_RTF),
         ]
         # Create a label for every role added by this application
         for role in self.getAllUsedRoles():
@@ -153,7 +163,7 @@ class Generator(AbstractGenerator):
         if self.config.frontPage:
             self.generateFrontPage()
         self.copyFile('Install.py', self.repls, destFolder='Extensions')
-        self.copyFile('configure.zcml', self.repls)
+        self.generateConfigureZcml()
         self.copyFile('import_steps.xml', self.repls,
                       destFolder='profiles/default')
         self.copyFile('ProfileInit.py', self.repls, destFolder='profiles',
@@ -303,6 +313,17 @@ class Generator(AbstractGenerator):
             res = '%s.%s.%s' % (klass.__module__, klass.__name__, name)
         if isBack: res += '.back'
         return res
+
+    def generateConfigureZcml(self):
+        '''Generates file configure.zcml.'''
+        repls = self.repls.copy()
+        # Note every class as "deprecated".
+        depr = ''
+        for klass in self.getClasses(include='all'):
+            depr += '<five:deprecatedManageAddDelete class=".%s.%s"/>\n' % \
+                    (klass.name, klass.name)
+        repls['deprecated'] = depr
+        self.copyFile('configure.zcml', repls)
 
     def generateConfig(self):
         repls = self.repls.copy()

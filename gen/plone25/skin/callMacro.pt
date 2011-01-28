@@ -1,0 +1,13 @@
+<tal:comment replace="nothing">
+  This page allows to call any macro from Python code, for example.
+</tal:comment>
+<tal:call tal:define="macroName  options/macroName;
+                      page       python: options['page'];
+                      contextObj python: options['contextObj'];
+                      tool       python: contextObj.getTool();
+                      layoutType python:'view';
+                      putils     python: contextObj.plone_utils;
+                      portal     python: contextObj.portal_url.getPortalObject();
+                      portal_url python: contextObj.portal_url();">
+  <metal:callMacro use-macro="python: page.macros[macroName]"/>
+</tal:call>

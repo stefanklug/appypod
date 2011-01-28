@@ -45,6 +45,7 @@ class ToolMixin(BaseMixin):
         res['title'] = self.translate(appyType.labelId)
         res['context'] = appyType.context
         res['action'] = appyType.action
+        res['stylesMapping'] = appyType.stylesMapping
         return res
 
     def getSiteUrl(self):
@@ -68,7 +69,7 @@ class ToolMixin(BaseMixin):
         template = podInfo['template'].content
         podTitle = podInfo['title']
         if podInfo['context']:
-            if type(podInfo['context']) == types.FunctionType:
+            if callable(podInfo['context']):
                 specificPodContext = podInfo['context'](appyObj)
             else:
                 specificPodContext = podInfo['context']
@@ -76,16 +77,38 @@ class ToolMixin(BaseMixin):
         # Temporary file where to generate the result
         tempFileName = '%s/%s_%f.%s' % (
             getOsTempFolder(), obj.UID(), time.time(), format)
-        # Define parameters to pass to the appy.pod renderer
+        # Define parameters to give to the appy.pod renderer
         currentUser = self.portal_membership.getAuthenticatedMember()
         podContext = {'tool': appyTool, 'user': currentUser, 'self': appyObj,
                       'now': self.getProductConfig().DateTime(),
                       'projectFolder': appyTool.getDiskFolder(),
                       }
+        # If the POD document is related to a query, get it from the request,
+        # execute it and put the result in the context.
+        if rq['queryData']:
+            # Retrieve query params from the request
+            cmd = ', '.join(self.queryParamNames)
+            cmd += " = rq['queryData'].split(';')"
+            exec cmd
+            # (re-)execute the query, but without any limit on the number of
+            # results; return Appy objects.
+            objs = self.executeQuery(type_name, searchName=search,
+                     sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
+                     filterValue=filterValue, maxResults='NO_LIMIT')
+            podContext['objects'] = [o.appy() for o in objs['objects']]
         if specificPodContext:
             podContext.update(specificPodContext)
+        # Define a potential global styles mapping
+        stylesMapping = None
+        if podInfo['stylesMapping']:
+            if callable(podInfo['stylesMapping']):
+                stylesMapping = podInfo['stylesMapping'](appyObj)
+            else:
+                stylesMapping = podInfo['stylesMapping']
         rendererParams = {'template': StringIO.StringIO(template),
                           'context': podContext, 'result': tempFileName}
+        if stylesMapping:
+            rendererParams['stylesMapping'] = stylesMapping
         if appyTool.unoEnabledPython:
             rendererParams['pythonWithUnoPath'] = appyTool.unoEnabledPython
         if appyTool.openOfficePort:
@@ -105,7 +128,13 @@ class ToolMixin(BaseMixin):
         f = file(tempFileName, 'rb')
         res = f.read()
         # Identify the filename to return
-        fileName = u'%s-%s' % (obj.Title().decode('utf-8'), podTitle)
+        if rq['queryData']:
+            # This is a POD for a bunch of objects
+            fileName = podTitle
+        else:
+            # This is a POD for a single object: personalize the file name with
+            # the object title.
+            fileName = '%s-%s' % (obj.Title(), podTitle)
         fileName = appyTool.normalize(fileName)
         response = obj.REQUEST.RESPONSE
         response.setHeader('Content-Type', mimeTypes[format])
@@ -188,6 +217,19 @@ class ToolMixin(BaseMixin):
             fieldDicts.append(appyDict)
         return {'fields': fields, 'nbOfColumns': nbOfColumns,
                 'fieldDicts': fieldDicts}
+
+    queryParamNames = ('type_name', 'search', 'sortKey', 'sortOrder',
+                       'filterKey', 'filterValue')
+    def getQueryInfo(self):
+        '''If we are showing search results, this method encodes in a string all
+           the params in the request that are required for re-triggering the
+           search.'''
+        rq = self.REQUEST
+        res = ''
+        if rq.has_key('search'):
+            res = ';'.join([rq.get(key,'').replace(';','') \
+                            for key in self.queryParamNames])
+        return res
 
     def getImportElements(self, contentType):
         '''Returns the list of elements that can be imported from p_path for
@@ -863,4 +905,10 @@ class ToolMixin(BaseMixin):
             os.remove(fileName)
             return content
         return 'File does not exist'
+
+    def getResultPodFields(self, contentType):
+        '''Finds, among fields defined on p_contentType, which ones are Pod
+           fields that need to be shown on a page displaying query results.'''
+        return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
+                if (f.type == 'Pod') and (f.show == 'result')]
 # ------------------------------------------------------------------------------

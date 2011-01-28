@@ -506,7 +506,8 @@ class Type:
            search results (p_usage="search") or when sorting reference fields
            (p_usage="ref")?'''
         if usage == 'search':
-            return self.indexed and not self.isMultiValued()
+            return self.indexed and not self.isMultiValued() and not \
+                   ((self.type == 'String') and self.isSelection())
         elif usage == 'ref':
             return self.type in ('Integer', 'Float', 'Boolean', 'Date') or \
                    ((self.type == 'String') and (self.format == 0))
@@ -514,7 +515,6 @@ class Type:
     def isShowable(self, obj, layoutType):
         '''When displaying p_obj on a given p_layoutType, must we show this
            field?'''
-        isEdit = layoutType == 'edit'
         # Do not show field if it is optional and not selected in tool
         if self.optional:
             tool = obj.getTool().appy()
@@ -524,7 +524,7 @@ class Type:
                 return False
         # Check if the user has the permission to view or edit the field
         user = obj.portal_membership.getAuthenticatedMember()
-        if isEdit:
+        if layoutType == 'edit':
             perm = self.writePermission
         else:
             perm = self.readPermission
@@ -535,14 +535,9 @@ class Type:
             res = self.callMethod(obj, self.show)
         else:
             res = self.show
-        # Take into account possible values 'view' and 'edit' for 'show' param.
-        if res == 'view':
-            if isEdit: res = False
-            else:      res = True
-        elif res == 'edit':
-            if isEdit: res = True
-            else:      res = False
-        return res
+        # Take into account possible values 'view', 'edit', 'search'...
+        if res in ('view', 'edit', 'result'): return res == layoutType
+        return bool(res)
 
     def isClientVisible(self, obj):
         '''This method returns True if this field is visible according to
@@ -1641,6 +1636,16 @@ class Ref(Type):
                     toDelete.append(uid)
             for uid in toDelete:
                 uids.remove(uid)
+        if not uids:
+            # Maybe is there a default value?
+            defValue = Type.getValue(self, obj)
+            if defValue:
+                # I must prefix call to function "type" with "__builtins__"
+                # because this name was overridden by a method parameter.
+                if __builtins__['type'](defValue) in sequenceTypes:
+                    uids = [o.o.UID() for o in defValue]
+                else:
+                    uids = [defValue.o.UID()]
         # Prepare the result: an instance of SomeObjects, that, in this case,
         # represent a subset of all referred objects
         res = SomeObjects()
@@ -1751,6 +1756,10 @@ class Computed(Type):
         self.method = method
         # Does field computation produce plain text or XHTML?
         self.plainText = plainText
+        if isinstance(method, basestring):
+            # When field computation is done with a macro, we know the result
+            # will be HTML.
+            self.plainText = False
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
@@ -1758,10 +1767,30 @@ class Computed(Type):
                       sync)
         self.validable = False
 
+    def callMacro(self, obj, macroPath):
+        '''Returns the macro corresponding to p_macroPath. The base folder
+           where we search is "skyn".'''
+        # Get the special page in Appy that allows to call a macro
+        macroPage = obj.skyn.callMacro
+        # Get, from p_macroPath, the page where the macro lies, and the macro
+        # name.
+        names = self.method.split('/')
+        # Get the page where the macro lies
+        page = obj.skyn
+        for name in names[:-1]:
+            page = getattr(page, name)
+        macroName = names[-1]
+        return macroPage(obj, contextObj=obj, page=page, macroName=macroName)
+
     def getValue(self, obj):
         '''Computes the value instead of getting it in the database.'''
         if not self.method: return
-        return self.callMethod(obj, self.method, raiseOnError=False)
+        if isinstance(self.method, basestring):
+            # self.method is a path to a macro that will produce the field value
+            return self.callMacro(obj, self.method)
+        else:
+            # self.method is a method that will return the field value
+            return self.callMethod(obj, self.method, raiseOnError=False)
 
     def getFormattedValue(self, obj, value):
         if not isinstance(value, basestring): return str(value)
@@ -1864,7 +1893,7 @@ class Pod(Type):
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
                  historized=False, template=None, context=None, action=None,
-                 askAction=False):
+                 askAction=False, stylesMapping=None):
         # The following param stores the path to a POD template
         self.template = template
         # The context is a dict containing a specific pod context, or a method
@@ -1876,6 +1905,8 @@ class Pod(Type):
         # If askAction is True, the action will be triggered only if the user
         # checks a checkbox, which, by default, will be unchecked.
         self.askAction = askAction
+        # A global styles mapping that would apply to the whole template
+        self.stylesMapping = stylesMapping
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,

@@ -3,7 +3,7 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, types, mimetypes
+import os, os.path, sys, types, mimetypes, urllib
 import appy.gen
 from appy.gen import Type, String, Selection, Role
 from appy.gen.utils import *
@@ -67,13 +67,15 @@ class BaseMixin:
             initiator.appy().link(fieldName, obj)
 
         # Call the custom "onEdit" if available
+        msg = None # The message to display to the user. It can be set by onEdit
         if obj.wrapperClass:
             appyObject = obj.appy()
-            if hasattr(appyObject, 'onEdit'): appyObject.onEdit(created)
+            if hasattr(appyObject, 'onEdit'):
+                msg = appyObject.onEdit(created)
         # Manage "add" permissions and reindex the object
         obj._appy_managePermissions()
         obj.reindexObject()
-        return obj
+        return obj, msg
 
     def delete(self):
         '''This methods is self's suicide.'''
@@ -219,10 +221,21 @@ class BaseMixin:
                 return self.skyn.edit(self)
 
         # Create or update the object in the database
-        obj = self.createOrUpdate(isNew, values)
+        obj, msg = self.createOrUpdate(isNew, values)
 
         # Redirect the user to the appropriate page
-        msg = obj.translate('Changes saved.', domain='plone')
+        if not msg: msg = obj.translate('Changes saved.', domain='plone')
+        # If the object has already been deleted (ie, it is a kind of transient
+        # object like a one-shot form and has already been deleted in method
+        # onEdit), redirect to the main site page.
+        if not getattr(obj.getParentNode(), obj.id, None):
+            obj.unindexObject()
+            return self.goto(tool.getSiteUrl(), msg)
+        # If the user can't access the object anymore, redirect him to the
+        # main site page.
+        user = self.portal_membership.getAuthenticatedMember()
+        if not user.has_permission('View', obj):
+            return self.goto(tool.getSiteUrl(), msg)
         if rq.get('buttonOk.x', None) or saveConfirmed:
             # Go to the consult view for this object
             obj.plone_utils.addPortalMessage(msg)
@@ -321,8 +334,10 @@ class BaseMixin:
         if previousData:
             self.addDataChange(previousData)
 
-    def goto(self, url, addParams=False):
+    def goto(self, url, msg=None):
         '''Brings the user to some p_url after an action has been executed.'''
+        if msg:
+            url += '?' + urllib.urlencode([('portal_status_message',msg)])
         return self.REQUEST.RESPONSE.redirect(url)
 
     def showField(self, name, layoutType='view'):

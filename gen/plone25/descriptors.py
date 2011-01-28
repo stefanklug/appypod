@@ -434,7 +434,7 @@ class ToolClassDescriptor(ClassDescriptor):
         self.addField(fieldName, fieldType)
         # Add the field that will store the output format(s)
         fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = String(validator=('odt', 'pdf', 'doc', 'rtf'),
+        fieldType = String(validator=Selection('getPodOutputFormats'),
                            multiplicity=(1,None), default=('odt',), **pg)
         self.addField(fieldName, fieldType)
 
