@@ -8,6 +8,8 @@
                       layoutType python:'view';
                       putils     python: contextObj.plone_utils;
                       portal     python: contextObj.portal_url.getPortalObject();
-                      portal_url python: contextObj.portal_url();">
+                      portal_url python: contextObj.portal_url();
+                      phaseInfo  python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
+                      phase      phaseInfo/name;">
   <metal:callMacro use-macro="python: page.macros[macroName]"/>
 </tal:call>

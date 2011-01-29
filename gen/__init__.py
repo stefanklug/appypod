@@ -1317,6 +1317,13 @@ class Boolean(Type):
     def getDefaultLayouts(self):
         return {'view': 'l;f!_', 'edit': Table('f;lrv;=', width=None)}
 
+    def getValue(self, obj):
+        '''Never returns "None". Returns always "True" or "False", even if
+           "None" is stored in the DB.'''
+        value = Type.getValue(self, obj)
+        if value == None: return False
+        return value
+
     def getFormattedValue(self, obj, value):
         if value: res = obj.translate('yes', domain='plone')
         else:     res = obj.translate('no', domain='plone')
@@ -1751,7 +1758,8 @@ class Computed(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, method=None, plainText=True, master=None,
-                 masterValue=None, focus=False, historized=False, sync=True):
+                 masterValue=None, focus=False, historized=False, sync=True,
+                 context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -1760,6 +1768,10 @@ class Computed(Type):
             # When field computation is done with a macro, we know the result
             # will be HTML.
             self.plainText = False
+        # The context is a dict (or method returning a dict) that will be given
+        # to the macro specified in self.method. If the dict contains key
+        # "someKey", it will be available to the macro as "options/someKey".
+        self.context = context
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
@@ -1780,7 +1792,13 @@ class Computed(Type):
         for name in names[:-1]:
             page = getattr(page, name)
         macroName = names[-1]
-        return macroPage(obj, contextObj=obj, page=page, macroName=macroName)
+        # Compute the macro context.
+        ctx = {'contextObj':obj, 'page':page, 'macroName':macroName}
+        if callable(self.context):
+            ctx.update(self.context(obj.appy()))
+        else:
+            ctx.update(self.context)
+        return macroPage(obj, **ctx)
 
     def getValue(self, obj):
         '''Computes the value instead of getting it in the database.'''
@@ -2007,7 +2025,7 @@ class State:
 
 class Transition:
     def __init__(self, states, condition=True, action=None, notify=None,
-                 show=True):
+                 show=True, confirm=False):
         self.states = states # In its simpler form, it is a tuple with 2
         # states: (fromState, toState). But it can also be a tuple of several
         # (fromState, toState) sub-tuples. This way, you may define only 1
@@ -2022,6 +2040,7 @@ class Transition:
         # notified by email after the transition has been executed.
         self.show = show # If False, the end user will not be able to trigger
         # the transition. It will only be possible by code.
+        self.confirm = confirm # If True, a confirm popup will show up.
 
     def getUsedRoles(self):
         '''self.condition can specify a role.'''

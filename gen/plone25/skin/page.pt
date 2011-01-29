@@ -144,9 +144,9 @@
     askAjaxChunk(hookId,'GET',objectUrl, 'result', 'queryResult', params);
   }
 
-  function askObjectHistory(hookId, objectUrl, startNumber) {
+  function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
     // Sends an Ajax request for getting the history of an object
-    var params = {'startNumber': startNumber};
+    var params = {'maxPerPage': maxPerPage, 'startNumber': startNumber};
     askAjaxChunk(hookId, 'GET', objectUrl, 'page', 'objectHistory', params);
   }
 
@@ -207,10 +207,15 @@
     }
   }
   // Function used for triggering a workflow transition
-  function triggerTransition(transitionId) {
+  function triggerTransition(transitionId, msg) {
     var theForm = document.getElementById('triggerTransitionForm');
     theForm.workflow_action.value = transitionId;
-    theForm.submit();
+    if (!msg) {
+      theForm.submit();
+    }
+    else { // Ask the user to confirm.
+      askConfirm('form', 'triggerTransitionForm', msg);
+    }
   }
   function onDeleteObject(objectUid) {
     f = document.getElementById('deleteForm');
@@ -418,12 +423,12 @@
 <metal:history define-macro="objectHistory"
       tal:define="startNumber request/startNumber|python:0;
                   startNumber python: int(startNumber);
-                  historyInfo python: contextObj.getHistory(startNumber);
+                  batchSize   python: int(request.get('maxPerPage'));
+                  historyInfo python: contextObj.getHistory(startNumber, batchSize=batchSize);
                   objs        historyInfo/events;
-                  batchSize   historyInfo/batchSize;
                   totalNumber historyInfo/totalNumber;
                   ajaxHookId  python:'appyHistory';
-                  navBaseCall python: 'askObjectHistory(\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url());
+                  navBaseCall python: 'askObjectHistory(\'%s\',\'%s\',%d,**v**)' % (ajaxHookId, contextObj.absolute_url(),batchSize);
                   tool        contextObj/getTool">
 
   <tal:comment replace="nothing">Table containing the history</tal:comment>
@@ -525,7 +530,7 @@
         <td align="right" tal:repeat="transition transitions">
           <input type="button" class="appyButton"
                  tal:attributes="value python: tool.translate(transition['name']);
-                                 onClick python: 'triggerTransition(\'%s\')' % transition['id'];"/>
+                                 onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['id'],transition['confirm']);"/>
         </td>
     </tr>
     </table>
@@ -540,6 +545,7 @@
      tal:define="showCommonInfo python: layoutType == 'view';
                  showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
                  hasHistory contextObj/hasHistory;
+                 historyMaxPerPage options/maxPerPage|python: 5;
                  historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
                  creator contextObj/Creator"
      tal:condition="not: contextObj/isTemporary">
@@ -592,7 +598,7 @@
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
           <div tal:define="ajaxHookId python: contextObj.UID() + '_history';"
                tal:attributes="id ajaxHookId">
-             <script language="javascript" tal:content="python: 'askObjectHistory(\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url())">
+             <script language="javascript" tal:content="python: 'askObjectHistory(\'%s\',\'%s\',%d,0)' % (ajaxHookId, contextObj.absolute_url(),historyMaxPerPage)">
              </script>
           </div>
           </span>

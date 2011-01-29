@@ -809,14 +809,22 @@ class Generator(AbstractGenerator):
             poMsg.produceNiceDefault()
             self.labels.append(poMsg)
         for transition in wfDescr.getTransitions():
+            # Get the Appy transition name
+            tName = wfDescr.getNameOf(transition)
+            # Get the names of the corresponding DC transition(s)
+            tNames = wfDescr.getTransitionNamesOf(tName, transition)
+            if transition.confirm:
+                # We need to generate a label for the message that will be shown
+                # in the confirm popup.
+                for tn in tNames:
+                    label = '%s_%s_confirm' % (wfName, tn)
+                    poMsg = PoMessage(label, '', PoMessage.CONFIRM)
+                    self.labels.append(poMsg)
             if transition.notify:
                 # Appy will send a mail when this transition is triggered.
                 # So we need 2 i18n labels for every DC transition corresponding
                 # to this Appy transition: one for the mail subject and one for
                 # the mail body.
-                tName = wfDescr.getNameOf(transition) # Appy name
-                tNames = wfDescr.getTransitionNamesOf(tName, transition) # DC
-                # name(s)
                 for tn in tNames:
                     subjectLabel = '%s_%s_mail_subject' % (wfName, tn)
                     poMsg = PoMessage(subjectLabel, '', PoMessage.EMAIL_SUBJECT)

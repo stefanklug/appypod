@@ -573,6 +573,10 @@ class BaseMixin:
                 # Get the corresponding Appy transition
                 appyTr = workflow._transitionsMapping[transition['id']]
                 if self._appy_showTransition(workflow, appyTr.show):
+                    transition['confirm'] = ''
+                    if appyTr.confirm:
+                        label = '%s_confirm' % transition['name']
+                        transition['confirm']=self.translate(label, format='js')
                     res.append(transition)
         return res
 
@@ -747,17 +751,17 @@ class BaseMixin:
                     return True
         return False
 
-    def getHistory(self, startNumber=0, reverse=True, includeInvisible=False):
+    def getHistory(self, startNumber=0, reverse=True, includeInvisible=False,
+                   batchSize=5):
         '''Returns the history for this object, sorted in reverse order (most
            recent change first) if p_reverse is True.'''
-        batchSize = 5
         key = self.workflow_history.keys()[0]
         history = list(self.workflow_history[key][1:])
         if not includeInvisible:
             history = [e for e in history if e['comments'] != '_invisible_']
         if reverse: history.reverse()
         return {'events': history[startNumber:startNumber+batchSize],
-                'totalNumber': len(history), 'batchSize':batchSize}
+                'totalNumber': len(history)}
 
     def may(self, transitionName):
         '''May the user execute transition named p_transitionName?'''
@@ -1074,7 +1078,7 @@ class BaseMixin:
         return res
 
     def translate(self, label, mapping={}, domain=None, default=None,
-                  language=None):
+                  language=None, format='html'):
         '''Translates a given p_label into p_domain with p_mapping.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
@@ -1106,8 +1110,13 @@ class BaseMixin:
             # If still no result, put the label instead of a translated message
             if not res: res = label
             else:
-                # Perform replacements
-                res = res.replace('\r\n', '<br/>').replace('\n', '<br/>')
+                # Perform replacements, according to p_format.
+                if format == 'html':
+                    res = res.replace('\r\n', '<br/>').replace('\n', '<br/>')
+                elif format == 'js':
+                    res = res.replace('\r\n', '').replace('\n', '')
+                    res = res.replace("'", "\\'")
+                # Perform variable replacements
                 for name, repl in mapping.iteritems():
                     res = res.replace('${%s}' % name, repl)
         return res
