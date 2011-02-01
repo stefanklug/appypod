@@ -34,10 +34,9 @@
   </tal:publishedObject>
   
   <tal:comment replace="nothing">Create a section for every root class.</tal:comment>
-  <tal:section repeat="rootClass rootClasses">
+  <tal:section repeat="rootClass python: [rc for rc in rootClasses if tool.userMaySearch(rc)]">
     <tal:comment replace="nothing">Section title, with action icons</tal:comment>
-    <dt tal:condition="python: tool.userMaySearch(rootClass)"
-        tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
+    <dt tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, 'portletAppyItem', 'portletAppyItem portletSep')">
       <table width="100%" cellspacing="0" cellpadding="0" class="no-style-table">
         <tr>
           <td>

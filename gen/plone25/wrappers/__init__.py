@@ -222,11 +222,11 @@ class AbstractWrapper:
            will be no trace from this transition triggering in the workflow
            history.'''
         wfTool = self.o.portal_workflow
-        availableTransitions = [t['id'] for t in \
-                                wfTool.getTransitionsFor(self.o)]
+        availableTransitions = [t['id'] for t in self.o.getAppyTransitions(\
+                                includeFake=False, includeNotShowable=True)]
         transitionName = transition
         if not transitionName in availableTransitions:
-            # Maybe is is a compound Appy transition. Try to find the
+            # Maybe is it a compound Appy transition. Try to find the
             # corresponding DC transition.
             state = self.state
             transitionPrefix = transition + state[0].upper() + state[1:] + 'To'

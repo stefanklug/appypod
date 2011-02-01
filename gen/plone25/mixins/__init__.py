@@ -5,11 +5,11 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes, urllib
 import appy.gen
-from appy.gen import Type, String, Selection, Role
+from appy.gen import Type, String, Selection, Role, No
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.plone25.descriptors import ClassDescriptor
-from appy.gen.plone25.utils import updateRolesForPermission
+from appy.gen.plone25.utils import updateRolesForPermission,checkTransitionGuard
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -342,6 +342,7 @@ class BaseMixin:
 
     def showField(self, name, layoutType='view'):
         '''Must I show field named p_name on this p_layoutType ?'''
+        if name == 'state': return False
         return self.getAppyType(name).isShowable(self, layoutType)
 
     def getMethod(self, methodName):
@@ -560,24 +561,66 @@ class BaseMixin:
                     res.append(StateDescr(stateName, stateStatus).get())
         return res
 
-    def getAppyTransitions(self):
-        '''Returns the transitions that the user can trigger on p_self.'''
-        transitions = self.portal_workflow.getTransitionsFor(self)
+    def getAppyTransitions(self, includeFake=True, includeNotShowable=False):
+        '''This method is similar to portal_workflow.getTransitionsFor, but:
+           * is able (or not, depending on boolean p_includeFake) to retrieve
+             transitions that the user can't trigger, but for which he needs to
+             know for what reason he can't trigger it;
+           * is able (or not, depending on p_includeNotShowable) to include
+             transitions for which show=False at the Appy level. Indeed, because
+             "showability" is only a GUI concern, and not a security concern,
+             in some cases it has sense to set includeNotShowable=True, because
+             those transitions are triggerable from a security point of view;
+           * the transition-info is richer: it contains fake-related info (as
+             described above) and confirm-related info (ie, when clicking on
+             the button, do we ask the user to confirm via a popup?)'''
         res = []
-        if transitions:
-            # Retrieve the corresponding Appy transition, to check if the user
-            # may view it.
-            workflow = self.getWorkflow(appy=True)
-            if not workflow: return transitions
-            for transition in transitions:
-                # Get the corresponding Appy transition
-                appyTr = workflow._transitionsMapping[transition['id']]
-                if self._appy_showTransition(workflow, appyTr.show):
-                    transition['confirm'] = ''
-                    if appyTr.confirm:
-                        label = '%s_confirm' % transition['name']
-                        transition['confirm']=self.translate(label, format='js')
-                    res.append(transition)
+        # Get some Plone stuff from the Plone-level config.py
+        TRIGGER_USER_ACTION = self.getProductConfig().TRIGGER_USER_ACTION
+        sm = self.getProductConfig().getSecurityManager
+        # Get the workflow definition for p_obj.
+        workflow = self.getWorkflow(appy=False)
+        if not workflow: return res
+        appyWorkflow = self.getWorkflow(appy=True)
+        # What is the current state for this object?
+        currentState = workflow._getWorkflowStateOf(self)
+        if not currentState: return res
+        # Analyse all the transitions that start from this state.
+        for transitionId in currentState.transitions:
+            transition = workflow.transitions.get(transitionId, None)
+            appyTr = appyWorkflow._transitionsMapping[transitionId]
+            if not transition or (transition.trigger_type!=TRIGGER_USER_ACTION)\
+               or not transition.actbox_name: continue
+            # We have a possible candidate for a user-triggerable transition
+            if transition.guard is None:
+                mayTrigger = True
+            else:
+                mayTrigger = checkTransitionGuard(transition.guard, sm(),
+                                                  workflow, self)
+            # Compute the condition that will lead to including or not this
+            # transition
+            if not includeFake:
+                includeIt = mayTrigger
+            else:
+                includeIt = mayTrigger or isinstance(mayTrigger, No)
+            if not includeNotShowable:
+                includeIt = includeIt and appyTr.isShowable(appyWorkflow, self)
+            if not includeIt: continue
+            # Add transition-info to the result.
+            tInfo = {'id': transition.id, 'title': transition.title,
+                     'title_or_id': transition.title_or_id(),
+                     'description': transition.description, 'confirm': '',
+                     'name': transition.actbox_name, 'may_trigger': True,
+                     'url': transition.actbox_url %
+                        {'content_url': self.absolute_url(),
+                         'portal_url' : '', 'folder_url' : ''}}
+            if appyTr.confirm:
+                label = '%s_confirm' % tInfo['name']
+                tInfo['confirm'] = self.translate(label, format='js')
+            if not mayTrigger:
+                tInfo['may_trigger'] = False
+                tInfo['reason'] = mayTrigger.msg
+            res.append(tInfo)
         return res
 
     def getAppyPhases(self, currentOnly=False, layoutType='view'):
@@ -946,12 +989,6 @@ class BaseMixin:
         if callable(stateShow):
             return stateShow(workflow, self.appy())
         else: return stateShow
-
-    def _appy_showTransition(self, workflow, transitionShow):
-        '''Must I show a transition whose "show value" is p_transitionShow?'''
-        if callable(transitionShow):
-            return transitionShow(workflow, self.appy())
-        else: return transitionShow
 
     def _appy_managePermissions(self):
         '''When an object is created or updated, we must update "add"

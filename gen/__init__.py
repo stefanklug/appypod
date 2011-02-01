@@ -2054,6 +2054,13 @@ class Transition:
            Else, returns False.'''
         return isinstance(self.states[0], State)
 
+    def isShowable(self, workflow, obj):
+        '''Is this transition showable?'''
+        if callable(self.show):
+            return self.show(workflow, obj.appy())
+        else:
+            return self.show
+
     def getStates(self, fromStates=True):
         '''Returns the fromState(s) if p_fromStates is True, the toState(s)
            else. If you want to get the states grouped in tuples
@@ -2204,4 +2211,6 @@ class Config:
 # define it, we will add a copy of the instance defined below.
 title = String(multiplicity=(1,1), show='edit')
 title.init('title', None, 'appy')
+state = String()
+state.init('state', None, 'appy')
 # ------------------------------------------------------------------------------

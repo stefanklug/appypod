@@ -91,12 +91,12 @@
 
       <tal:comment replace="nothing">Workflow state</tal:comment>
       <td id="field_workflow_state"
-          tal:condition="python: widget['name'] == 'workflowState'"
+          tal:condition="python: widget['name'] == 'state'"
           tal:content="python: tool.translate(obj.getWorkflowLabel())">
       </td>
 
       <tal:comment replace="nothing">Any other field</tal:comment>
-      <td tal:condition="python: widget['name'] not in ('title', 'workflowState')"
+      <td tal:condition="python: widget['name'] not in ('title', 'state')"
           tal:attributes="id python:'field_%s' % widget['name']">
         <tal:field define="contextObj python:obj;
                            layoutType python:'cell';

@@ -528,9 +528,15 @@
 
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
         <td align="right" tal:repeat="transition transitions">
-          <input type="button" class="appyButton"
+          <tal:comment replace="nothing">Real button</tal:comment>
+          <input type="button" class="appyButton" tal:condition="transition/may_trigger"
                  tal:attributes="value python: tool.translate(transition['name']);
                                  onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['id'],transition['confirm']);"/>
+          <tal:comment replace="nothing">Fake button, explaining why the transition can't be triggered</tal:comment>
+          <div class="appyButton fakeButton" tal:condition="not: transition/may_trigger">
+            <acronym tal:content="python: tool.translate(transition['name'])"
+                     tal:attributes="title transition/reason"></acronym>
+          </div>
         </td>
     </tr>
     </table>

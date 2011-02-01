@@ -180,6 +180,11 @@ th {
   /* overflow: visible; IE produces ugly results with this */
 }
 
+.fakeButton {
+  background: #ffd5c0 url(&dtml-portal_url;/skyn/fakeTransition.gif) 5px 1px no-repeat;
+  padding: 3px 4px 3px 12px;
+}
+
 .listing { margin: 0em 0em; }
 .listing td, .stx table td {
   padding : 0.1em 0.3em 0.1em 0.3em;

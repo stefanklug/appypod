@@ -18,6 +18,7 @@ except ImportError:
     CustomizationPolicy = None
 from OFS.Image import File
 from ZPublisher.HTTPRequest import FileUpload
+from AccessControl import getSecurityManager
 from DateTime import DateTime
 from Products.CMFCore import utils as cmfutils
 from Products.CMFCore.utils import getToolByName
@@ -25,6 +26,7 @@ from Products.CMFPlone.PloneBatch import Batch
 from Products.CMFPlone.utils import ToolInit
 from Products.CMFCore import DirectoryView
 from Products.CMFCore.DirectoryView import manage_addDirectoryView
+from Products.DCWorkflow.Transitions import TRIGGER_USER_ACTION
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 from Products.Archetypes.Extensions.utils import installTypes
 from Products.Archetypes.Extensions.utils import install_subskin

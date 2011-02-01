@@ -24,6 +24,7 @@ class ToolMixin(BaseMixin):
         '''Returns the name of the portal_type that is based on
            p_metaTypeOrAppyType.'''
         appName = self.getProductConfig().PROJECTNAME
+        res = metaTypeOrAppyClass
         if not isinstance(metaTypeOrAppyClass, basestring):
             res = getClassName(metaTypeOrAppyClass, appName)
         if res.find('Extensions_appyWrappers') != -1:
