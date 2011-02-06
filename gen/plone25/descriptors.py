@@ -372,6 +372,10 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
     def addField(self, fieldName, fieldType):
         '''Adds a new field to the Tool.'''
         exec "self.modelClass.%s = fieldType" % fieldName
+        if fieldName in self.modelClass._appy_attributes:
+            print 'Warning, field "%s" is already existing on class "%s"' % \
+                  (fieldName, self.modelClass.__name__)
+            return
         self.modelClass._appy_attributes.append(fieldName)
         self.orderedAttributes.append(fieldName)
 

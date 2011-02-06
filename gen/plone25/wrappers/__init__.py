@@ -42,7 +42,7 @@ class AbstractWrapper:
             # There is a custom user class
             customUser = self.__class__.__bases__[-1]
             if customUser.__dict__.has_key(methodName):
-                customUser.__dict__[methodName](self, *args, **kwargs)
+                return customUser.__dict__[methodName](self, *args, **kwargs)
 
     def get_tool(self): return self.o.getTool().appy()
     tool = property(get_tool)

@@ -152,7 +152,7 @@ class BaseMixin:
            inter-field validation errors.'''
         obj = self.appy()
         if not hasattr(obj, 'validate'): return
-        obj.validate(values, errors)
+        msg = obj.validate(values, errors)
         # Those custom validation methods may have added fields in the given
         # p_errors object. Within this object, for every error message that is
         # not a string, we replace it with the standard validation error for the
@@ -162,6 +162,7 @@ class BaseMixin:
             if not isinstance(resValue, basestring):
                 resValue = self.translate('field_invalid')
             setattr(errors, key, resValue)
+        return msg
 
     def onUpdate(self):
         '''This method is executed when a user wants to update an object.
@@ -205,10 +206,11 @@ class BaseMixin:
             return self.skyn.edit(self)
 
         # Trigger inter-field validation
-        self.interFieldValidation(errors, values)
+        msg = self.interFieldValidation(errors, values)
+        if not msg: msg = errorMessage
         if errors.__dict__:
             rq.set('errors', errors.__dict__)
-            self.plone_utils.addPortalMessage(errorMessage)
+            self.plone_utils.addPortalMessage(msg)
             return self.skyn.edit(self)
 
         # Before saving data, must we ask a confirmation by the user ?

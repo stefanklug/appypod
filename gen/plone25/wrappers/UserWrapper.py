@@ -52,7 +52,7 @@ class UserWrapper(AbstractWrapper):
                 msg = self.translate(u'Passwords do not match.', domain='plone')
                 errors.password1 = msg
                 errors.password2 = msg
-        self._callCustom('validate', new, errors)
+        return self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
         self.title = self.firstName + ' ' + self.name
@@ -88,7 +88,7 @@ class UserWrapper(AbstractWrapper):
                 # Remove the user if it was in the corresponding group
                 if groupName in userGroups:
                     group.removeMember(self.login)
-        self._callCustom('onEdit', created)
+        return self._callCustom('onEdit', created)
 
     def onDelete(self):
         '''Before deleting myself, I must delete the corresponding Plone
@@ -97,5 +97,5 @@ class UserWrapper(AbstractWrapper):
         self.o.acl_users._doDelUser(self.login)
         self.log('Plone user "%s" deleted.' % self.login)
         # Call a custom "onDelete" if any.
-        self._callCustom('onDelete')
+        return self._callCustom('onDelete')
 # ------------------------------------------------------------------------------

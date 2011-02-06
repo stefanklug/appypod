@@ -64,13 +64,13 @@ class TranslationWrapper(AbstractWrapper):
 
     def validate(self, new, errors):
         # Call a custom "validate" if any.
-        self._callCustom('validate', new, errors)
+        return self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
         # Call a custom "onEdit" if any.
-        self._callCustom('onEdit', created)
+        return self._callCustom('onEdit', created)
 
     def onDelete(self):
         # Call a custom "onDelete" if any.
-        self._callCustom('onDelete')
+        return self._callCustom('onDelete')
 # ------------------------------------------------------------------------------
