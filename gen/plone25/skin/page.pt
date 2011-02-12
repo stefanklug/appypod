@@ -729,10 +729,10 @@
 <tal:comment replace="nothing">
   This macro displays the global message on the page.
 </tal:comment>
-<metal:message define-macro="message" i18n:domain="plone" >
+<metal:message define-macro="message">
   <tal:comment replace="nothing">Single message from portal_status_message request key</tal:comment>
   <div tal:define="msg request/portal_status_message | nothing"
-       tal:condition="msg" class="portalMessage" tal:content="structure msg" i18n:translate=""></div>
+       tal:condition="msg" class="portalMessage" tal:content="structure msg"></div>
 
   <tal:comment replace="nothing">Messages added via plone_utils</tal:comment>
   <tal:messages define="messages putils/showPortalMessages" condition="messages">
@@ -741,7 +741,7 @@
               repeat="msg messages">
       <div tal:define="mtype msg/type | nothing;"
            tal:attributes="class python:mtype and type_css_map[mtype] or 'info';"
-           tal:content="structure msg/message | nothing" i18n:translate=""></div>
+           tal:content="structure msg/message | nothing"></div>
     </tal:msgs>
   </tal:messages>
 </metal:message>

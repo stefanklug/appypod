@@ -509,7 +509,7 @@ class ToolMixin(BaseMixin):
             if not importPath: continue
             objectId = os.path.basename(importPath)
             self.appy().create(appyClass, id=objectId, _data=importPath)
-        self.plone_utils.addPortalMessage(self.translate('import_done'))
+        self.say(self.translate('import_done'))
         return self.goto(rq['HTTP_REFERER'])
 
     def isAlreadyImported(self, contentType, importPath):
@@ -584,13 +584,14 @@ class ToolMixin(BaseMixin):
                 # given field.
                 attrValue = rq.form[attrName]
                 if attrName.find('*') != -1:
+                    attrValue = attrValue.strip()
                     # The type of the value is encoded after char "*".
                     attrName, attrType = attrName.split('*')
                     if attrType == 'bool':
                         exec 'attrValue = %s' % attrValue
                     elif attrType in ('int', 'float'):
                         # Get the "from" value
-                        if not attrValue.strip(): attrValue = None
+                        if not attrValue: attrValue = None
                         else:
                             exec 'attrValue = %s(attrValue)' % attrType
                         # Get the "to" value

@@ -182,5 +182,5 @@ def do(transitionName, stateChange, logger):
     if not msg:
         msg = ploneObj.translate(u'Your content\'s status has been modified.',
                                  domain='plone')
-    ploneObj.plone_utils.addPortalMessage(msg)
+    ploneObj.say(msg)
 # ------------------------------------------------------------------------------

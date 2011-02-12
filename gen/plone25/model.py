@@ -113,7 +113,7 @@ class Translation(ModelClass):
     # All methods defined below are fake. Real versions are in the wrapper.
     def getPoFile(self): pass
     po = Action(action=getPoFile, page=Page('actions', show='view'),
-                result='file')
+                result='filetmp')
     title = String(show=False, indexed=True)
     def computeLabel(self): pass
     def showField(self, name): pass

@@ -126,6 +126,7 @@ class Generator(AbstractGenerator):
             msg('ref_invalid_index',    '', msg.REF_INVALID_INDEX),
             msg('bad_long',             '', msg.BAD_LONG),
             msg('bad_float',            '', msg.BAD_FLOAT),
+            msg('bad_date',             '', msg.BAD_DATE),
             msg('bad_email',            '', msg.BAD_EMAIL),
             msg('bad_url',              '', msg.BAD_URL),
             msg('bad_alphanumeric',     '', msg.BAD_ALPHANUMERIC),

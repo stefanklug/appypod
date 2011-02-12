@@ -18,6 +18,7 @@
 
 # ------------------------------------------------------------------------------
 from appy import Object
+from appy.gen.utils import sequenceTypes
 
 # ------------------------------------------------------------------------------
 WRONG_LINE = 'Line number %d in file %s does not have the right number of ' \
@@ -198,4 +199,97 @@ class CsvParser:
                         newValue = self.resolveReference(attrName, attrValue)
                     setattr(obj, attrName, newValue)
         return self.res
+
+# ------------------------------------------------------------------------------
+class CsvMarshaller:
+    '''This class is responsible for producing a string, CSV-ready, line of data
+       from a Appy object.'''
+    undumpable = ('File', 'Action', 'Info', 'Pod')
+    def __init__(self, at=None, sep=';', subSep=',', wrap='"',
+                 includeHeaders=True, include=None, exclude=None):
+        # If specified, p_at is an opened file handler to the CSV file to fill
+        self.at = at
+        # The CSV field separator
+        self.sep = sep
+        # The sub-separator for multi-valued fields
+        self.subSep = subSep
+        # The "wrap" char will wrap any value that contains self.sep.
+        self.wrap = wrap
+        # Must we put field names as first line in the CSV?
+        self.includeHeaders = includeHeaders
+        # If p_include is given, it lists names of fields that will be included
+        self.include = include
+        # If p_exclude is given, it lists names of fields that will be excluded
+        self.exclude = exclude
+
+    def marshallString(self, value):
+        '''Produces a version of p_value that can be put in the CSV file.'''
+        return value.replace('\r\n', ' ').replace('\n', ' ')
+
+    def marshallValue(self, field, value):
+        '''Produces a version of p_value that can be dumped in a CSV file.'''
+        if isinstance(value, basestring):
+            # Format the string as a one-line CSV-ready value
+            res = self.marshallString(value)
+        elif type(value) in sequenceTypes:
+            # Create a list of values, separated by a sub-separator.
+            res = []
+            for v in value:
+                res.append(self.marshallValue(field, v))
+            res = self.subSep.join(res)
+        elif hasattr(value, 'klass') and hasattr(value, 'title'):
+            # This is a reference to another object. Dump only its title.
+            res = value.title
+        elif value == None:
+            # Empty string is more beautiful than 'None'
+            res = ''
+        else:
+            res = str(value)
+        # If self.sep is found among this value, we must wrap it with self.wrap
+        if self.sep in res:
+            # Double any wrapper char if present
+            res = res.replace(self.wrap, '%s%s' % (self.wrap, self.wrap))
+            # Wrap the value
+            res = '%s%s%s' % (self.wrap, res, self.wrap)
+        return res
+
+    def includeField(self, field):
+        '''Must p_field be included in the result ?'''
+        # Check self.include and self.exclude
+        if self.include and field.name not in self.include: return False
+        if self.exclude and field.name in self.exclude: return False
+        # Check field type
+        if field.type in self.undumpable: return False
+        # Don't dump password fields
+        if (field.type == 'String') and (field.format == 3): return False
+        if (field.type == 'Ref') and field.isBack: return False
+        if (field.type == 'Computed') and not field.plainText: return False
+        return True
+
+    def marshall(self, obj):
+        '''Creates the CSV line representing p_obj and dumps it in self.at if
+           specified, or return it else.'''
+        obj = obj.appy()
+        res = []
+        # Dump the header line if required, and if there is still no line
+        # dumped in self.at.
+        headers = []
+        if self.includeHeaders and self.at and (self.at.tell() == 0):
+            for field in obj.fields:
+                if not self.includeField(field): continue
+                headers.append(field.name)
+            self.at.write(self.sep.join(headers))
+            self.at.write('\n')
+        # Dump the data line.
+        for field in obj.fields:
+            if not self.includeField(field): continue
+            # Get the field value
+            value = field.getValue(obj.o)
+            value = self.marshallValue(field, value)
+            res.append(value)
+        res = self.sep.join(res)
+        if self.at:
+            self.at.write(res)
+            self.at.write('\n')
+        else: return res
 # ------------------------------------------------------------------------------

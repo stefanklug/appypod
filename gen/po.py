@@ -82,6 +82,7 @@ class PoMessage:
     BAD_LONG = 'An integer value is expected; do not enter any space.'
     BAD_FLOAT = 'A floating-point number is expected; use the dot as decimal ' \
                 'separator, not a comma; do not enter any space.'
+    BAD_DATE = 'Please specify a valid date.'
     BAD_EMAIL = 'Please enter a valid email.'
     BAD_URL = 'Please enter a valid URL.'
     BAD_ALPHANUMERIC = 'Please enter a valid alphanumeric value.'
@@ -142,6 +143,7 @@ class PoMessage:
             oldDefault = self.default
             if self.default != newMsg.default:
                 # The default value has changed in the pot file
+                oldDefault = self.default
                 self.default = newMsg.default
                 if self.msg.strip():
                     self.fuzzy = True
@@ -149,6 +151,12 @@ class PoMessage:
                     # because the default value has changed) only if the user
                     # has already entered a message. Else, this has no sense to
                     # rewrite the empty message.
+                    if not oldDefault.strip():
+                        # This is a strange case: the old default value did not
+                        # exist. Maybe was this PO file generated from some
+                        # tool, but simply without any default value. So in
+                        # this case, we do not consider the label as fuzzy.
+                        self.fuzzy = False
                 else:
                     self.fuzzy = False
             if (language == 'en'):

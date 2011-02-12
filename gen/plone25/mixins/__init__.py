@@ -94,7 +94,7 @@ class BaseMixin:
             urlBack = self.getTool().getSiteUrl()
         else:
             urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.plone_utils.addPortalMessage(self.translate('delete_done'))
+        self.say(self.translate('delete_done'))
         self.goto(urlBack)
 
     def onCreate(self):
@@ -189,8 +189,7 @@ class BaseMixin:
                     urlBack = tool.getSiteUrl()
             else:
                 urlBack = self.getUrl()
-            self.plone_utils.addPortalMessage(
-                self.translate('Changes canceled.', domain='plone'))
+            self.say(self.translate('Changes canceled.', domain='plone'))
             return self.goto(urlBack)
 
         # Object for storing validation errors
@@ -202,7 +201,7 @@ class BaseMixin:
         self.intraFieldValidation(errors, values)
         if errors.__dict__:
             rq.set('errors', errors.__dict__)
-            self.plone_utils.addPortalMessage(errorMessage)
+            self.say(errorMessage)
             return self.skyn.edit(self)
 
         # Trigger inter-field validation
@@ -210,7 +209,7 @@ class BaseMixin:
         if not msg: msg = errorMessage
         if errors.__dict__:
             rq.set('errors', errors.__dict__)
-            self.plone_utils.addPortalMessage(msg)
+            self.say(msg)
             return self.skyn.edit(self)
 
         # Before saving data, must we ask a confirmation by the user ?
@@ -240,7 +239,7 @@ class BaseMixin:
             return self.goto(tool.getSiteUrl(), msg)
         if rq.get('buttonOk.x', None) or saveConfirmed:
             # Go to the consult view for this object
-            obj.plone_utils.addPortalMessage(msg)
+            obj.say(msg)
             return self.goto(obj.getUrl())
         if rq.get('buttonPrevious.x', None):
             # Go to the previous page for this object.
@@ -260,7 +259,7 @@ class BaseMixin:
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
-                obj.plone_utils.addPortalMessage(msg)
+                obj.say(msg)
                 return self.goto(obj.getUrl())
         if rq.get('buttonNext.x', None):
             # Go to the next page for this object
@@ -277,9 +276,29 @@ class BaseMixin:
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
-                obj.plone_utils.addPortalMessage(msg)
+                obj.say(msg)
                 return self.goto(obj.getUrl())
         return obj.skyn.edit(obj)
+
+    def say(self, msg, type='info'):
+        '''Prints a p_msg in the user interface. p_logLevel may be "info",
+           "warning" or "error".'''
+        mType = type
+        if mType == 'warning': mType = 'warn'
+        elif mType == 'error': mType = 'stop'
+        try:
+            self.plone_utils.addPortalMessage(msg, type=mType)
+        except UnicodeDecodeError:
+            self.plone_utils.addPortalMessage(msg.decode('utf-8'), type=mType)
+
+    def log(self, msg, type='info'):
+        '''Logs a p_msg in the log file. p_logLevel may be "info", "warning"
+           or "error".'''
+        logger = self.getProductConfig().logger
+        if type == 'warning': logMethod = logger.warn
+        elif type == 'error': logMethod = logger.error
+        else: logMethod = logger.info
+        logMethod(msg)
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
@@ -880,16 +899,27 @@ class BaseMixin:
             label = '%s_action_%s' % (appyType.labelId, suffix)
             msg = self.translate(label)
         if (resultType == 'computation') or not successfull:
-            self.plone_utils.addPortalMessage(msg)
+            self.say(msg)
             return self.goto(self.getUrl(rq['HTTP_REFERER']))
-        elif resultType == 'file':
+        elif resultType.startswith('file'):
             # msg does not contain a message, but a file instance.
             response = self.REQUEST.RESPONSE
             response.setHeader('Content-Type',mimetypes.guess_type(msg.name)[0])
             response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
-                               msg.name)
+                               os.path.basename(msg.name))
             response.write(msg.read())
             msg.close()
+            if resultType == 'filetmp':
+                # p_msg is a temp file. We need to delete it.
+                try:
+                    os.remove(msg.name)
+                    self.log('Temp file "%s" was deleted.' % msg.name)
+                except IOError, err:
+                    self.log('Could not remove temp "%s" (%s).' % \
+                             (msg.name, str(err)), type='warning')
+                except OSError, err:
+                    self.log('Could not remove temp "%s" (%s).' % \
+                             (msg.name, str(err)), type='warning')
         elif resultType == 'redirect':
             # msg does not contain a message, but the URL where to redirect
             # the user.

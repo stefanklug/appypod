@@ -8,6 +8,7 @@ from appy.gen import Search
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
+from appy.shared.csv_parser import CsvMarshaller
 
 # Some error messages ----------------------------------------------------------
 WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
@@ -19,6 +20,7 @@ class AbstractWrapper:
     '''Any real Zope object has a companion object that is an instance of this
        class.'''
     def __init__(self, o): self.__dict__['o'] = o
+    def appy(self): return self
 
     def __setattr__(self, name, value):
         appyType = self.o.getAppyType(name)
@@ -248,22 +250,8 @@ class AbstractWrapper:
         wfTool.doActionFor(self.o, transitionName, comment=comment)
         del self.o._v_appy_do
 
-    def log(self, message, type='info'):
-        '''Logs a message in the log file. p_logLevel may be "info", "warning"
-           or "error".'''
-        logger = self.o.getProductConfig().logger
-        if type == 'warning': logMethod = logger.warn
-        elif type == 'error': logMethod = logger.error
-        else: logMethod = logger.info
-        logMethod(message)
-
-    def say(self, message, type='info'):
-        '''Prints a message in the user interface. p_logLevel may be "info",
-           "warning" or "error".'''
-        mType = type
-        if mType == 'warning': mType = 'warn'
-        elif mType == 'error': mType = 'stop'
-        self.o.plone_utils.addPortalMessage(message, type=mType)
+    def log(self, message, type='info'): return self.o.log(message, type)
+    def say(self, message, type='info'): return self.o.say(message, type)
 
     def normalize(self, s, usage='fileName'):
         '''Returns a version of string p_s whose special chars have been
@@ -346,29 +334,46 @@ class AbstractWrapper:
            method in those cases.'''
         self.o.reindexObject()
 
-    def export(self, at='string'):
-        '''Creates an "exportable", XML version of this object. If p_at is
-           "string", this method returns the XML version, without the XML
-           prologue. Else, (a) if not p_at, the XML will be exported on disk,
-           in the OS temp folder, with an ugly name; (b) else, it will be
-           exported at path p_at.'''
-        # Determine where to put the result
-        toDisk = (at != 'string')
-        if toDisk and not at:
-            at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
-        # Create the XML version of the object
-        marshaller = XmlMarshaller(cdata=True, dumpUnicode=True,
-                                   dumpXmlPrologue=toDisk,
-                                   rootTag=self.klass.__name__)
-        xml = marshaller.marshall(self.o, objectType='appy')
-        # Produce the desired result
-        if toDisk:
-            f = file(at, 'w')
-            f.write(xml.encode('utf-8'))
-            f.close()
-            return at
-        else:
-            return xml
+    def export(self, at='string', format='xml', include=None, exclude=None):
+        '''Creates an "exportable" version of this object. p_format is XML by
+           default, but can also be "csv". If p_format is:
+           * "xml", if p_at is "string", this method returns the XML version,
+                    without the XML prologue. Else, (a) if not p_at, the XML
+                    will be exported on disk, in the OS temp folder, with an
+                    ugly name; (b) else, it will be exported at path p_at.
+           * "csv", if p_at is "string", this method returns the CSV data as a
+                    string. If p_at is an opened file handler, the CSV line will
+                    be appended in it.
+           If p_include is given, only fields whose names are in it will be
+           included. p_exclude, if given, contains names of fields that will
+           not be included in the result.
+        '''
+        if format == 'xml':
+            # Todo: take p_include and p_exclude into account.
+            # Determine where to put the result
+            toDisk = (at != 'string')
+            if toDisk and not at:
+                at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
+            # Create the XML version of the object
+            marshaller = XmlMarshaller(cdata=True, dumpUnicode=True,
+                                       dumpXmlPrologue=toDisk,
+                                       rootTag=self.klass.__name__)
+            xml = marshaller.marshall(self.o, objectType='appy')
+            # Produce the desired result
+            if toDisk:
+                f = file(at, 'w')
+                f.write(xml.encode('utf-8'))
+                f.close()
+                return at
+            else:
+                return xml
+        elif format == 'csv':
+            if isinstance(at, basestring):
+                marshaller = CsvMarshaller(include=include, exclude=exclude)
+                return marshaller.marshall(self)
+            else:
+                marshaller = CsvMarshaller(at, include=include, exclude=exclude)
+                marshaller.marshall(self)
 
     def historize(self, data):
         '''This method allows to add "manually" a "data-change" event into the

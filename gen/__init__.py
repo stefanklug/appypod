@@ -1244,18 +1244,18 @@ class String(Type):
         return res
 
     def validateValue(self, obj, value):
-        if self.isSelect:
-            possibleValues = self.getPossibleValues(obj)
-            if isinstance(value, basestring):
-                error = value not in possibleValues
-            else:
-                error = False
-                for v in value:
-                    if v not in possibleValues:
-                        error = True
-                        break
-            # Check that the value is among possible values
-            if error: obj.translate('bad_select_value')
+        if not self.isSelect: return
+        # Check that the value is among possible values
+        possibleValues = self.getPossibleValues(obj)
+        if isinstance(value, basestring):
+            error = value not in possibleValues
+        else:
+            error = False
+            for v in value:
+                if v not in possibleValues:
+                    error = True
+                    break
+        if error: return obj.translate('bad_select_value')
 
     accents = {'é':'e','è':'e','ê':'e','ë':'e','à':'a','â':'a','ä':'a',
                'ù':'u','û':'u','ü':'u','î':'i','ï':'i','ô':'o','ö':'o',
@@ -1368,6 +1368,13 @@ class Date(Type):
         if (layoutType == 'edit') and self.calendar:
             return ('jscalendar/calendar_stripped.js',
                     'jscalendar/calendar-en.js')
+
+    def validateValue(self, obj, value):
+        DateTime = obj.getProductConfig().DateTime
+        try:
+            value = DateTime(value)
+        except DateTime.DateError, ValueError:
+            return obj.translate('bad_date')
 
     def getFormattedValue(self, obj, value):
         if self.isEmptyValue(value): return ''
@@ -1828,12 +1835,14 @@ class Action(Type):
                  master=None, masterValue=None, focus=False, historized=False):
         # Can be a single method or a list/tuple of methods
         self.action = action
-        # For the following field:
+        # For the 'result' param:
         #  * value 'computation' means that the action will simply compute
         #    things and redirect the user to the same page, with some status
         #    message about execution of the action;
         #  * 'file' means that the result is the binary content of a file that
         #    the user will download.
+        #  * 'filetmp' is similar to file, but the file is a temp file and Appy
+        #    will delete it as soon as it will be served to the browser.
         #  * 'redirect' means that the action will lead to the user being
         #    redirected to some other page.
         self.result = result
@@ -1858,7 +1867,7 @@ class Action(Type):
                     actRes = act(obj)
                     if type(actRes) in sequenceTypes:
                         res[0] = res[0] and actRes[0]
-                        if self.result == 'file':
+                        if self.result.startswith('file'):
                             res[1] = res[1] + actRes[1]
                         else:
                             res[1] = res[1] + '\n' + actRes[1]
