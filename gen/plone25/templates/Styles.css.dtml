@@ -109,6 +109,22 @@ label         { font-weight: bold; font-style: italic; line-height: 1.4em;}
 /* With fields layout in columns, standard error frame is too large */
 .odd {  background-color: white; }
 
+/* Tooltip */
+a.tooltip span {
+  display:none;
+  padding:2px 3px;
+  margin-top: 25px;
+}
+a.rtip span { margin-left:3px; }
+a.ltip span { margin-left:-150px }
+a.tooltip:hover span {
+  display: inline;
+  position: absolute;
+  border: 1px solid grey;
+  background-color: white;
+  color: #dd;
+}
+
 /* Table styles */
 .no-style-table {
   border: 0 !important;

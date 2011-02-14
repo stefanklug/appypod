@@ -18,7 +18,7 @@ from appy.pod import *
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
               'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'strike':'span',
               'u':'span', 'em': 'span', 'sub': 'span', 'sup': 'span',
-              'br': 'line-break', 'div': 'span'}
+              'br': 'line-break', 'div': 'span', 'podxhtml':'p'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
                       'u': 'podUnderline', 'strike': 'podStrike',
                       'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
@@ -28,6 +28,7 @@ TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
 # The following elements can't be rendered inside paragraphs
 NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',)
+NOT_INSIDE_P_OR_P = NOT_INSIDE_P + ('p',)
 NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
 
@@ -36,8 +37,8 @@ class HtmlElement:
     '''Every time an HTML element is encountered during the SAX parsing,
        an instance of this class is pushed on the stack of currently parsed
        elements.'''
-    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list'}
-    odfElems = {'p':'p', 'li':'list-item', 'ol': 'list', 'ul': 'list'}
+    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list',
+                 'podxhtml': 'para'}
     def __init__(self, elem, attrs):
         self.elem = elem
         # Keep "class" attribute (useful for finding the corresponding ODT
@@ -58,10 +59,40 @@ class HtmlElement:
         self.elemType = self.elem
         if self.elemTypes.has_key(self.elem):
             self.elemType = self.elemTypes[self.elem]
+        # If a conflict occurs on this element, we will note it.
+        self.isConflictual = False
+
+    def setConflictual(self):
+        '''Note p_self as conflictual.'''
+        self.isConflictual = True
+        return self
 
     def getOdfTag(self, env):
-        '''Gets the ODF tag that corresponds to me.'''
-        return '%s:%s' % (env.textNs, self.odfElems[self.elem])
+        '''Gets the raw ODF tag that corresponds to me.'''
+        res = ''
+        if HTML_2_ODT.has_key(self.elem):
+            res += '%s:%s' % (env.textNs, HTML_2_ODT[self.elem])
+        elif self.elem == 'a':
+            res += '%s:a' % env.textNs
+        elif self.elem in XHTML_LISTS:
+            res += '%s:list' % env.textNs
+        elif self.elem == 'li':
+            res += '%s:list-item' % env.textNs
+        elif self.elem == 'table':
+            res += '%s:table' % env.tableNs
+        elif self.elem == 'thead':
+            res += '%s:table-header-rows' % env.tableNs
+        elif self.elem == 'tr':
+            res += '%s:table-row' % env.tableNs
+        elif self.elem in TABLE_CELL_TAGS:
+            res += '%s:table-cell' % env.tableNs
+        return res
+
+    def getOdfTags(self, env):
+        '''Gets the start and end tags corresponding to p_self.'''
+        tag = self.getOdfTag(env)
+        if not tag: return (None, None)
+        return ('<%s>' % tag, '</%s>' % tag)
 
     def getConflictualElements(self, env):
         '''self was just parsed. In some cases, this element can't be dumped
@@ -72,15 +103,37 @@ class HtmlElement:
         if env.currentElements:
             parentElem = env.currentElements[-1]
             # Check elements that can't be found within a paragraph
-            if (parentElem.elemType=='para') and (self.elem in NOT_INSIDE_P):
-                return (parentElem,)
-            if (parentElem.elem in OUTER_TAGS) and parentElem.tagsToClose and \
-                (parentElem.tagsToClose[-1].elem == 'p') and \
+            if (parentElem.elemType == 'para') and \
+               (self.elem in NOT_INSIDE_P_OR_P):
+                # Oups, li->p wrongly considered as a conflict.
+                if (parentElem.elem == 'li') and (self.elem == 'p'): return ()
+                return (parentElem.setConflictual(),)
+            # Check inner paragraphs
+            if (parentElem.elem in INNER_TAGS) and (self.elemType == 'para'):
+                res = [parentElem.setConflictual()]
+                if len(env.currentElements) > 1:
+                    i = 2
+                    visitParents = True
+                    while visitParents:
+                        try:
+                            nextParent = env.currentElements[-i]
+                            res.insert(0, nextParent.setConflictual())
+                            if nextParent.elemType == 'para':
+                                visitParents = False
+                        except IndexError:
+                            visitParents = False
+                return res
+            if parentElem.tagsToClose and \
+                (parentElem.tagsToClose[-1].elemType == 'para') and \
                 (self.elem in NOT_INSIDE_P):
-                return (parentElem.tagsToClose[-1],)
+                return (parentElem.tagsToClose[-1].setConflictual(),)
+            #if (parentElem.elem in OUTER_TAGS) and parentElem.tagsToClose and \
+            #    (parentElem.tagsToClose[-1].elem == 'p') and \
+            #    (self.elem in NOT_INSIDE_P):
+            #    return (parentElem.tagsToClose[-1].setConflictual(),)
             # Check elements that can't be found within a list
             if (parentElem.elemType=='list') and (self.elem in NOT_INSIDE_LIST):
-                return (parentElem,)
+                return (parentElem.setConflictual(),)
         return ()
 
     def addInnerParagraph(self, env):
@@ -102,7 +155,7 @@ class HtmlElement:
             self.tagsToClose.append(HtmlElement('p',{}))
 
     def dump(self, start, env):
-        '''Dumps the start or stop (depending onp_start) tag of this HTML
+        '''Dumps the start or stop (depending on p_start) tag of this HTML
            element. We must take care of potential innerTags.'''
         # Compute the tag in itself
         tag = ''
@@ -204,27 +257,6 @@ class XhtmlEnvironment(XmlEnvironment):
             res = True
         return res
 
-    def dumpRootParagraph(self, currentElem=None):
-        '''Dumps content that is outside any tag (directly within the root
-           "podXhtml" tag.'''
-        mustStartParagraph = True
-        mustEndParagraph = True
-        if self.creatingRootParagraph:
-            mustStartParagraph = False
-        if currentElem and (currentElem not in NOT_INSIDE_P+('p',)):
-            mustEndParagraph = False
-        if mustStartParagraph and mustEndParagraph and \
-           not self.currentContent.strip():
-            # In this case I would dump an empty paragraph. So I do nothing.
-            return
-        if mustStartParagraph:
-            self.dumpStyledElement('p', {})
-            self.creatingRootParagraph = True
-        self.dumpCurrentContent()
-        if mustEndParagraph:
-            self.dumpString('</%s:p>' % self.textNs)
-            self.creatingRootParagraph = False
-
     def dumpCurrentContent(self):
         '''Dumps content that was temporarily stored in self.currentContent
            into the result.'''
@@ -243,10 +275,10 @@ class XhtmlEnvironment(XmlEnvironment):
                     self.dumpString(c)
             self.currentContent = u''
 
-    def dumpStyledElement(self, elem, attrs):
+    def dumpStyledElement(self, elem, odfTag, attrs):
         '''Dumps an element that potentially has associated style
            information.'''
-        self.dumpString('<%s:%s' % (self.textNs, HTML_2_ODT[elem]))
+        self.dumpString('<' + odfTag)
         odtStyle = self.parser.caller.findStyle(elem, attrs)
         styleName = None
         if odtStyle:
@@ -260,15 +292,27 @@ class XhtmlEnvironment(XmlEnvironment):
                     self.textNs, odtStyle.outlineLevel))
         self.dumpString('>')
 
-    def dumpTags(self, elems, start=True):
-        '''Dumps a series of start or end tags (depending on p_start) of
-           HtmlElement instances in p_elems.'''
-        tags = ''
+    def getTags(self, elems, start=True):
+        '''This method returns a series of start or end tags (depending on
+           p_start) that correspond to HtmlElement instances in p_elems.'''
+        res = ''
         for elem in elems:
             tag = elem.dump(start, self)
-            if start: tags += tag
-            else: tags = tag + tags
-        self.dumpString(tags)
+            if start: res += tag
+            else: res = tag + res
+        return res
+
+    def closeConflictualElements(self, conflictElems):
+        '''This method dumps end tags for p_conflictElems, excepted if those
+           tags would be empty. In this latter case, tags are purely removed
+           from the result.'''
+        startTags = self.getTags(conflictElems, start=True)
+        if self.res.endswith(startTags):
+            # In this case I would dump an empty (series of) tag(s). Instead, I
+            # will remove those tags.
+            self.res = self.res[:-len(startTags)]
+        else:
+            self.dumpString(self.getTags(conflictElems, start=False))
 
     def dumpString(self, s):
         '''Dumps arbitrary content p_s.
@@ -294,17 +338,14 @@ class XhtmlEnvironment(XmlEnvironment):
 
     def onElementStart(self, elem, attrs):
         previousElem = self.getCurrentElement()
-        if previousElem and (previousElem.elem == 'podxhtml'):
-            self.dumpRootParagraph(elem)
-        else:
-            self.dumpCurrentContent()
+        self.dumpCurrentContent()
         currentElem = HtmlElement(elem, attrs)
         # Manage conflictual elements
         conflictElems = currentElem.getConflictualElements(self)
         if conflictElems:
             # We must close the conflictual elements, and once the currentElem
             # will be dumped, we will re-open the conflictual elements.
-            self.dumpTags(conflictElems, start=False)
+            self.closeConflictualElements(conflictElems)
             currentElem.tagsToReopen = self.getTagsToReopen(conflictElems)
         # Manage missing elements
         if self.anElementIsMissing(previousElem, currentElem):
@@ -325,13 +366,11 @@ class XhtmlEnvironment(XmlEnvironment):
                 if attrs.has_key('colspan'):
                     nbOfCols = int(attrs['colspan'])
                 currentTable.nbOfColumns += nbOfCols
+        return currentElem
 
     def onElementEnd(self, elem):
         res = None
-        if elem == 'podxhtml':
-            self.dumpRootParagraph()
-        else:
-            self.dumpCurrentContent()
+        self.dumpCurrentContent()
         currentElem = self.currentElements.pop()
         if elem in XHTML_LISTS:
             self.currentLists.pop()
@@ -350,10 +389,10 @@ class XhtmlEnvironment(XmlEnvironment):
                 lastTable.res += lastTable.tempRes
                 lastTable.tempRes = u''
         if currentElem.tagsToClose:
-            self.dumpTags(currentElem.tagsToClose, start=False)
+            self.closeConflictualElements(currentElem.tagsToClose)
         if currentElem.tagsToReopen:
             res = currentElem.tagsToReopen
-        return res
+        return currentElem, res
 
 # ------------------------------------------------------------------------------
 class XhtmlParser(XmlParser):
@@ -375,11 +414,13 @@ class XhtmlParser(XmlParser):
     def startElement(self, elem, attrs):
         elem, attrs = self.lowerizeInput(elem, attrs)
         e = XmlParser.startElement(self, elem, attrs)
-        e.onElementStart(elem, attrs)
+        currentElem = e.onElementStart(elem, attrs)
+        odfTag = currentElem.getOdfTag(e)
+
         if HTML_2_ODT.has_key(elem):
-            e.dumpStyledElement(elem, attrs)
+            e.dumpStyledElement(elem, odfTag, attrs)
         elif elem == 'a':
-            e.dumpString('<%s:a %s:type="simple"' % (e.textNs, e.linkNs))
+            e.dumpString('<%s %s:type="simple"' % (odfTag, e.linkNs))
             if attrs.has_key('href'):
                 e.dumpString(' %s:href="%s"' % (e.linkNs, attrs['href']))
             e.dumpString('>')
@@ -389,24 +430,19 @@ class XhtmlParser(XmlParser):
                 # It is a list into another list. In this case the inner list
                 # must be surrounded by a list-item element.
                 prologue = '<%s:list-item>' % e.textNs
-            e.dumpString('%s<%s:list %s:style-name="%s">' % (
-                prologue, e.textNs, e.textNs, e.listStyles[elem]))
-        elif elem == 'li':
-            e.dumpString('<%s:list-item>' % e.textNs)
+            e.dumpString('%s<%s %s:style-name="%s">' % (
+                prologue, odfTag, e.textNs, e.listStyles[elem]))
+        elif elem in ('li', 'thead', 'tr'):
+            e.dumpString('<%s>' % odfTag)
         elif elem == 'table':
             # Here we must call "dumpString" only once
-            e.dumpString('<%s:table %s:style-name="podTable">' % (e.tableNs,
-                                                                  e.tableNs))
-        elif elem == 'thead':
-            e.dumpString('<%s:table-header-rows>' % e.tableNs)
-        elif elem == 'tr':
-            e.dumpString('<%s:table-row>' % e.tableNs)
+            e.dumpString('<%s %s:style-name="podTable">' % (odfTag, e.tableNs))
         elif elem in TABLE_CELL_TAGS:
-            e.dumpString('<%s:table-cell %s:style-name="%s"' % \
-                (e.tableNs, e.tableNs, DEFAULT_ODT_STYLES[elem]))
+            e.dumpString('<%s %s:style-name="%s"' % \
+                (odfTag, e.tableNs, DEFAULT_ODT_STYLES[elem]))
             if attrs.has_key('colspan'):
                 e.dumpString(' %s:number-columns-spanned="%s"' % \
-                    (e.tableNs, attrs['colspan']))
+                             (e.tableNs, attrs['colspan']))
             e.dumpString('>')
         elif elem in IGNORABLE_TAGS:
             e.ignore = True
@@ -414,35 +450,28 @@ class XhtmlParser(XmlParser):
     def endElement(self, elem):
         elem = self.lowerizeInput(elem)
         e = XmlParser.endElement(self, elem)
-        elemsToReopen = e.onElementEnd(elem)
-        if HTML_2_ODT.has_key(elem):
-            # For "div" elements, we put append a carriage return.
+        currentElem, elemsToReopen = e.onElementEnd(elem)
+        # Determine the tag to dump
+        startTag, endTag = currentElem.getOdfTags(e)
+        if currentElem.isConflictual and e.res.endswith(startTag):
+            # We will not dump it, it would constitute a silly empty tag.
+            e.res = e.res[:-len(startTag)]
+        else:
+            # Dump the end tag. But dump some additional stuff if required.
             if elem == 'div':
-                e.dumpString('<%s:line-break/>' % e.textNs)
-            e.dumpString('</%s:%s>' % (e.textNs, HTML_2_ODT[elem]))
-        elif elem == 'a':
-            e.dumpString('</%s:a>' % e.textNs)
-        elif elem in XHTML_LISTS:
-            epilogue = ''
-            if len(e.currentLists) >= 1:
-                # We were in an inner list. So we must close the list-item tag
-                # that surrounds it.
-                epilogue = '</%s:list-item>' % e.textNs
-            e.dumpString('</%s:list>%s' % (e.textNs, epilogue))
-        elif elem == 'li':
-            e.dumpString('</%s:list-item>' % e.textNs)
-        elif elem == 'table':
-            e.dumpString('</%s:table>' % e.tableNs)
-        elif elem == 'thead':
-            e.dumpString('</%s:table-header-rows>' % e.tableNs)
-        elif elem == 'tr':
-            e.dumpString('</%s:table-row>' % e.tableNs)
-        elif elem in TABLE_CELL_TAGS:
-            e.dumpString('</%s:table-cell>' % e.tableNs)
-        elif elem in IGNORABLE_TAGS:
+                # For "div" elements, we append a carriage return.
+                endTag = '<%s:line-break/>%s' % (e.textNs, endTag)
+            elif elem in XHTML_LISTS:
+                if len(e.currentLists) >= 1:
+                    # We were in an inner list. So we must close the list-item
+                    # tag that surrounds it.
+                    endTag = '%s</%s:list-item>' % (endTag, e.textNs)
+            if endTag:
+                e.dumpString(endTag)
+        if elem in IGNORABLE_TAGS:
             e.ignore = False
         if elemsToReopen:
-            e.dumpTags(elemsToReopen)
+            e.dumpString(e.getTags(elemsToReopen, start=True))
 
     def characters(self, content):
         e = XmlParser.characters(self, content)
