@@ -228,8 +228,8 @@ class Renderer:
         stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
         ns = self.currentParser.env.namespaces
         # xhtmlString is only a chunk of XHTML. So we must surround it a tag in
-        # order to get a XML-compliant file (we need a root tag)
-        xhtmlContent = '<podXhtml>%s</podXhtml>' % xhtmlString
+        # order to get a XML-compliant file (we need a root tag).
+        xhtmlContent = '<p>%s</p>' % xhtmlString
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
                                   stylesMapping, ns).run()
 

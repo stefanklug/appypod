@@ -18,7 +18,7 @@ from appy.pod import *
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
               'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'strike':'span',
               'u':'span', 'em': 'span', 'sub': 'span', 'sup': 'span',
-              'br': 'line-break', 'div': 'span', 'podxhtml':'p'}
+              'br': 'line-break', 'div': 'span'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
                       'u': 'podUnderline', 'strike': 'podStrike',
                       'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
@@ -37,8 +37,7 @@ class HtmlElement:
     '''Every time an HTML element is encountered during the SAX parsing,
        an instance of this class is pushed on the stack of currently parsed
        elements.'''
-    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list',
-                 'podxhtml': 'para'}
+    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list'}
     def __init__(self, elem, attrs):
         self.elem = elem
         # Keep "class" attribute (useful for finding the corresponding ODT

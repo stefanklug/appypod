@@ -151,9 +151,9 @@ class StylesParser(OdfParser):
             # Record this style in the environment
             e.styles[style.name] = style
             e.currentStyle = style
-            outlineLevelKey = '%s:default-outline-level' % e.ns(e.NS_STYLE)
-            if attrs.has_key(outlineLevelKey):
-                style.outlineLevel = int(attrs[outlineLevelKey])
+            levelKey = '%s:default-outline-level' % e.ns(e.NS_STYLE)
+            if attrs.has_key(levelKey) and attrs[levelKey].strip():
+                style.outlineLevel = int(attrs[levelKey])
         else:
             if e.state == PARSING_STYLE:
                 # I am parsing tags within the style.
