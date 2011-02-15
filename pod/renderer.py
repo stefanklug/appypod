@@ -95,7 +95,7 @@ STYLES_POD_FONTS = '<@style@:font-face @style@:name="PodStarSymbol" ' \
 class Renderer:
     def __init__(self, template, context, result, pythonWithUnoPath=None,
                  ooPort=2002, stylesMapping={}, forceOoCall=False,
-                 finalizeFunction=None):
+                 finalizeFunction=None, overwriteExisting=False):
         '''This Python Open Document Renderer (PodRenderer) loads a document
         template (p_template) which is an ODT file with some elements
         written in Python. Based on this template and some Python objects
@@ -125,7 +125,11 @@ class Renderer:
            you can still perform some actions on the content of the ODT file
            before it is zipped and potentially converted. This function must
            accept one arg: the absolute path to the temporary folder containing
-           the un-zipped content of the ODT result.'''
+           the un-zipped content of the ODT result.
+
+         - If you set p_overwriteExisting to True, the renderer will overwrite
+           the result file. Else, an exception will be thrown if the result file
+           already exists.'''
         self.template = template
         self.templateZip = zipfile.ZipFile(template)
         self.result = result
@@ -139,6 +143,7 @@ class Renderer:
         self.ooPort = ooPort
         self.forceOoCall = forceOoCall
         self.finalizeFunction = finalizeFunction
+        self.overwriteExisting = overwriteExisting
         # Retain potential files or images that will be included through
         # "do ... from document" statements: we will need to declare them in
         # META-INF/manifest.xml.
@@ -287,7 +292,7 @@ class Renderer:
 
     def prepareFolders(self):
         # Check if I can write the result
-        if os.path.exists(self.result):
+        if not self.overwriteExisting and os.path.exists(self.result):
             raise PodError(RESULT_FILE_EXISTS % self.result)
         try:
             f = open(self.result, 'w')
