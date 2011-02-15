@@ -202,7 +202,7 @@ class BaseMixin:
         if errors.__dict__:
             rq.set('errors', errors.__dict__)
             self.say(errorMessage)
-            return self.skyn.edit(self)
+            return self.gotoEdit()
 
         # Trigger inter-field validation
         msg = self.interFieldValidation(errors, values)
@@ -210,7 +210,7 @@ class BaseMixin:
         if errors.__dict__:
             rq.set('errors', errors.__dict__)
             self.say(msg)
-            return self.skyn.edit(self)
+            return self.gotoEdit()
 
         # Before saving data, must we ask a confirmation by the user ?
         appyObj = self.appy()
@@ -219,7 +219,7 @@ class BaseMixin:
             msg = appyObj.confirm(values)
             if msg:
                 rq.set('confirmMsg', msg.replace("'", "\\'"))
-                return self.skyn.edit(self)
+                return self.gotoEdit()
 
         # Create or update the object in the database
         obj, msg = self.createOrUpdate(isNew, values)
@@ -255,7 +255,7 @@ class BaseMixin:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
                     rq.set('page', pageName)
-                    return obj.skyn.edit(obj)
+                    return obj.gotoEdit()
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
@@ -272,13 +272,13 @@ class BaseMixin:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
                     rq.set('page', pageName)
-                    return obj.skyn.edit(obj)
+                    return obj.gotoEdit()
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
                 obj.say(msg)
                 return self.goto(obj.getUrl())
-        return obj.skyn.edit(obj)
+        return obj.gotoEdit()
 
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
@@ -365,6 +365,17 @@ class BaseMixin:
             else: op = '?'
             url += op + urllib.urlencode([('portal_status_message',msg)])
         return self.REQUEST.RESPONSE.redirect(url)
+
+    def gotoEdit(self):
+        '''Brings the user to the edit page for this object. This method takes
+           care of not carrying any password value. Unlike m_goto above, there
+           is no HTTP redirect here: we execute directly macro "edit" and we
+           return the result.'''
+        page = self.REQUEST.get('page', 'main')
+        for field in self.getAppyTypes('edit', page):
+            if (field.type == 'String') and (field.format == 3):
+                self.REQUEST.set(field.name, '')
+        return self.skyn.edit(self)
 
     def showField(self, name, layoutType='view'):
         '''Must I show field named p_name on this p_layoutType ?'''
