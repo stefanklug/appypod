@@ -558,12 +558,15 @@ class ToolMixin(BaseMixin):
             if setMin: day = 1
             else:      day = 31
         DateTime = self.getProductConfig().DateTime
+        # Set the hour
+        if setMin: hour = '00:00'
+        else: hour = '23:59'
         # We loop until we find a valid date. For example, we could loop from
         # 2009/02/31 to 2009/02/28.
         dateIsWrong = True
         while dateIsWrong:
             try:
-                res = DateTime('%s/%s/%s' % (year, month, day))
+                res = DateTime('%s/%s/%s %s' % (year, month, day, hour))
                 dateIsWrong = False
             except:
                 day = int(day)-1
