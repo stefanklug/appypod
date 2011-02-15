@@ -868,7 +868,33 @@ class ToolMixin(BaseMixin):
         '''Gets the translated month name of month numbered p_monthNumber.'''
         return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
 
-    def logout(self):
+    def performLogin(self):
+        '''Logs the user in.'''
+        rq = self.REQUEST
+        jsEnabled = rq.get('js_enabled', False) in ('1', 1)
+        cookiesEnabled = rq.get('cookies_enabled', False) in ('1', 1)
+        urlBack = rq['HTTP_REFERER']
+
+        if jsEnabled and not cookiesEnabled:
+            msg = self.translate(u'You must enable cookies before you can ' \
+                                  'log in.', domain='plone')
+            return self.goto(urlBack, msg.encode('utf-8'))
+
+        # Perform the Zope-level authentication
+        self.acl_users.credentials_cookie_auth.login()
+        login = rq['login_name']
+        if self.portal_membership.isAnonymousUser():
+            rq.RESPONSE.expireCookie('__ac', path='/')
+            msg = self.translate(u'Login failed', domain='plone')
+            logMsg = 'Authentication failed (tried with login "%s")' % login
+        else:
+            msg = self.translate(u'Welcome! You are now logged in.',
+                                 domain='plone')
+            logMsg = 'User "%s" has been logged in.' % login
+        self.log(logMsg)
+        return self.goto(rq['HTTP_REFERER'], msg.encode('utf-8'))
+
+    def performLogout(self):
         '''Logs out the current user when he clicks on "disconnect".'''
         rq = self.REQUEST
         userId = self.portal_membership.getAuthenticatedMember().getId()

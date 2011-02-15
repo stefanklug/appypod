@@ -72,5 +72,6 @@ class TranslationWrapper(AbstractWrapper):
 
     def onDelete(self):
         # Call a custom "onDelete" if any.
+        self.log('Translation "%s" deleted by "%s".' % (self.id, self.user.id))
         return self._callCustom('onDelete')
 # ------------------------------------------------------------------------------

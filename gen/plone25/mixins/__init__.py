@@ -358,7 +358,12 @@ class BaseMixin:
     def goto(self, url, msg=None):
         '''Brings the user to some p_url after an action has been executed.'''
         if msg:
-            url += '?' + urllib.urlencode([('portal_status_message',msg)])
+            # Remove previous message if any
+            if 'portal_status_message=' in url:
+                url = url[:url.find('portal_status_message=')-1]
+            if '?' in url: op = '&'
+            else: op = '?'
+            url += op + urllib.urlencode([('portal_status_message',msg)])
         return self.REQUEST.RESPONSE.redirect(url)
 
     def showField(self, name, layoutType='view'):
