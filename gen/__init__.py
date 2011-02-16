@@ -1996,9 +1996,7 @@ class Pod(Type):
            retrieved by calling pod to compute the result.'''
         rq = getattr(obj, 'REQUEST', None)
         res = getattr(obj, self.name, None)
-        if res and res.size:
-            print 'RETURNING FROZEN DOC'
-            return FileWrapper(res) # Return the frozen file.
+        if res and res.size: return FileWrapper(res) # Return the frozen file.
         # If we are here, it means that we must call pod to compute the file.
         # A Pod field differs from other field types because there can be
         # several ways to produce the field value (ie: output file format can be
