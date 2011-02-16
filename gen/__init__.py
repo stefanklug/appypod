@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
-import re, time, copy, sys, types, os, os.path, mimetypes
-from appy.shared.utils import Traceback
+import re, time, copy, sys, types, os, os.path, mimetypes, StringIO
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
                            getClassName, SomeObjects
+import appy.pod
+from appy.pod.renderer import Renderer
 from appy.shared.data import languages
+from appy.shared.utils import Traceback, getOsTempFolder
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -1421,6 +1423,28 @@ class File(Type):
                       width, height, colspan, master, masterValue, focus,
                       historized, True)
 
+    @staticmethod
+    def getFileObject(filePath, fileName=None, zope=False):
+        '''Returns a File instance as can be stored in the database or
+           manipulated in code, filled with content from a file on disk,
+           located at p_filePath. If you want to give it a name that is more
+           sexy than the actual basename of filePath, specify it in
+           p_fileName.
+
+           If p_zope is True, it will be the raw Zope object = an instance of
+           OFS.Image.File. Else, it will be a FileWrapper instance from Appy.'''
+        f = file(filePath, 'rb')
+        if not fileName:
+            fileName = os.path.basename(filePath)
+        fileId = 'file.%f' % time.time()
+        import OFS.Image
+        res = OFS.Image.File(fileId, fileName, f)
+        res.filename = fileName
+        res.content_type = mimetypes.guess_type(fileName)[0]
+        f.close()
+        if not zope: res = FileWrapper(res)
+        return res
+
     def getValue(self, obj):
         value = Type.getValue(self, obj)
         if value: value = FileWrapper(value)
@@ -1505,14 +1529,7 @@ class File(Type):
             elif isinstance(value, FileWrapper):
                 setattr(obj, self.name, value._atFile)
             elif isinstance(value, basestring):
-                f = file(value)
-                fileName = os.path.basename(value)
-                fileId = 'file.%f' % time.time()
-                zopeFile = OFSImageFile(fileId, fileName, f)
-                zopeFile.filename = fileName
-                zopeFile.content_type = mimetypes.guess_type(fileName)[0]
-                setattr(obj, self.name, zopeFile)
-                f.close()
+                setattr(obj, self.name, File.getFileObject(value, zope=True))
             elif type(value) in sequenceTypes:
                 # It should be a 2-tuple or 3-tuple
                 fileName = None
@@ -1913,6 +1930,9 @@ class Pod(Type):
     '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
        from data contained in Appy class and linked objects or anything you
        want to put in it. It uses appy.pod.'''
+    POD_ERROR = 'An error occurred while generating the document. Please ' \
+                'contact the system administrator.'
+    DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
     def __init__(self, validator=None, index=None, default=None,
                  optional=False, editDefault=False, show='view',
                  page='main', group=None, layouts=None, move=0, indexed=False,
@@ -1920,7 +1940,7 @@ class Pod(Type):
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
                  historized=False, template=None, context=None, action=None,
-                 askAction=False, stylesMapping=None):
+                 askAction=False, stylesMapping={}, freezeFormat='pdf'):
         # The following param stores the path to a POD template
         self.template = template
         # The context is a dict containing a specific pod context, or a method
@@ -1934,12 +1954,143 @@ class Pod(Type):
         self.askAction = askAction
         # A global styles mapping that would apply to the whole template
         self.stylesMapping = stylesMapping
+        # Freeze format is by PDF by default
+        self.freezeFormat = freezeFormat
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
                       masterValue, focus, historized, False)
         self.validable = False
+
+    def isFrozen(self, obj):
+        '''Is there a frozen document for p_self on p_obj?'''
+        value = getattr(obj.o, self.name, None)
+        return isinstance(value, obj.o.getProductConfig().File)
+
+    def getToolInfo(self, obj):
+        '''Gets information related to this field (p_self) that is available in
+           the tool: the POD template and the available output formats. If this
+           field is frozen, available output formats are not available anymore:
+           only the format of the frozen doc is returned.'''
+        tool = obj.tool
+        appyClass = tool.o.getAppyClass(obj.o.meta_type)
+        # Get the output format(s)
+        if self.isFrozen(obj):
+            # The only available format is the one from the frozen document
+            fileName = getattr(obj.o, self.name).filename
+            formats = (os.path.splitext(fileName)[1][1:],)
+        else:
+            # Available formats are those which are selected in the tool.
+            name = tool.getAttributeName('formats', appyClass, self.name)
+            formats = getattr(tool, name)
+        # Get the POD template
+        name = tool.getAttributeName('podTemplate', appyClass, self.name)
+        template = getattr(tool, name)
+        return (template, formats)
+
+    def getValue(self, obj):
+        '''Gets, on_obj, the value conforming to self's type definition. For a
+           Pod field, if a file is stored in the field, it means that the
+           field has been frozen. Else, it means that the value must be
+           retrieved by calling pod to compute the result.'''
+        rq = getattr(obj, 'REQUEST', None)
+        res = getattr(obj, self.name, None)
+        if res and res.size:
+            print 'RETURNING FROZEN DOC'
+            return FileWrapper(res) # Return the frozen file.
+        # If we are here, it means that we must call pod to compute the file.
+        # A Pod field differs from other field types because there can be
+        # several ways to produce the field value (ie: output file format can be
+        # odt, pdf,...; self.action can be executed or not...). We get those
+        # precisions about the way to produce the file from the request object
+        # and from the tool. If we don't find the request object (or if it does
+        # not exist, ie, when Zope runs in test mode), we use default values.
+        obj = obj.appy()
+        tool = obj.tool
+        # Get POD template and available formats from the tool.
+        template, availFormats = self.getToolInfo(obj)
+        # Get the output format
+        defaultFormat = 'pdf'
+        if defaultFormat not in availFormats: defaultFormat = availFormats[0]
+        outputFormat = getattr(rq, 'podFormat', defaultFormat)
+        # Get or compute the specific POD context
+        specificContext = None
+        if callable(self.context):
+            specificContext = self.callMethod(obj, self.context)
+        else:
+            specificContext = self.context
+        # Temporary file where to generate the result
+        tempFileName = '%s/%s_%f.%s' % (
+            getOsTempFolder(), obj.uid, time.time(), outputFormat)
+        # Define parameters to give to the appy.pod renderer
+        podContext = {'tool': tool, 'user': obj.user, 'self': obj,
+                      'now': obj.o.getProductConfig().DateTime(),
+                      'projectFolder': tool.getDiskFolder()}
+        # If the POD document is related to a query, get it from the request,
+        # execute it and put the result in the context.
+        isQueryRelated = rq.get('queryData', None)
+        if isQueryRelated:
+            # Retrieve query params from the request
+            cmd = ', '.join(tool.o.queryParamNames)
+            cmd += " = rq['queryData'].split(';')"
+            exec cmd
+            # (re-)execute the query, but without any limit on the number of
+            # results; return Appy objects.
+            objs = tool.o.executeQuery(type_name, searchName=search,
+                     sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
+                     filterValue=filterValue, maxResults='NO_LIMIT')
+            podContext['objects'] = [o.appy() for o in objs['objects']]
+        if specificContext:
+            podContext.update(specificContext)
+        # Define a potential global styles mapping
+        if callable(self.stylesMapping):
+            stylesMapping = self.callMethod(obj, self.stylesMapping)
+        else:
+            stylesMapping = self.stylesMapping
+        rendererParams = {'template': StringIO.StringIO(template.content),
+                          'context': podContext, 'result': tempFileName,
+                          'stylesMapping': stylesMapping}
+        if tool.unoEnabledPython:
+            rendererParams['pythonWithUnoPath'] = tool.unoEnabledPython
+        if tool.openOfficePort:
+            rendererParams['ooPort'] = tool.openOfficePort
+        # Launch the renderer
+        try:
+            renderer = Renderer(**rendererParams)
+            renderer.run()
+        except appy.pod.PodError, pe:
+            if not os.path.exists(tempFileName):
+                # In some (most?) cases, when OO returns an error, the result is
+                # nevertheless generated.
+                obj.log(str(pe), type='error')
+                return Pod.POD_ERROR
+        # Give a friendly name for this file
+        fileName = obj.translate(self.labelId)
+        if not isQueryRelated:
+            # This is a POD for a single object: personalize the file name with
+            # the object title.
+            fileName = '%s-%s' % (obj.title, fileName)
+        fileName = tool.normalize(fileName) + '.' + outputFormat
+        # Get a FileWrapper instance from the temp file on the filesystem
+        res = File.getFileObject(tempFileName, fileName)
+        # Execute the related action if relevant
+        doAction = getattr(rq, 'askAction', False) in ('True', True)
+        if doAction and self.action: self.action(obj, podContext)
+        # Returns the doc and removes the temp file
+        try:
+            os.remove(tempFileName)
+        except OSError, oe:
+            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(oe), type='warning')
+        except IOError, ie:
+            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
+        return res
+
+    def store(self, obj, value):
+        '''Stores (=freezes) a document (in p_value) in the field.'''
+        if isinstance(value, FileWrapper):
+            value = value._atFile
+        setattr(obj, self.name, value)
 
 # Workflow-specific types ------------------------------------------------------
 class Role:

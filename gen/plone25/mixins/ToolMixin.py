@@ -1,9 +1,7 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, time, Cookie, StringIO, types
+import re, os, os.path, time, Cookie, types
 from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
-import appy.pod
-from appy.pod.renderer import Renderer
 import appy.gen
 from appy.gen import Type, Search, Selection
 from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
@@ -12,9 +10,6 @@ from appy.gen.plone25.wrappers import AbstractWrapper
 from appy.gen.plone25.descriptors import ClassDescriptor
 
 # Errors -----------------------------------------------------------------------
-DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
-POD_ERROR = 'An error occurred while generating the document. Please ' \
-            'contact the system administrator.'
 jsMessages = ('no_elem_selected', 'delete_confirm')
 
 # ------------------------------------------------------------------------------
@@ -32,127 +27,34 @@ class ToolMixin(BaseMixin):
             res = '%s%s' % (elems[1], elems[4])
         return res
 
-    def getPodInfo(self, ploneObj, fieldName):
-        '''Returns POD-related information about Pod field p_fieldName defined
-           on class whose p_ploneObj is an instance of.'''
-        res = {}
-        appyClass = self.getAppyClass(ploneObj.meta_type)
-        appyTool = self.appy()
-        n = appyTool.getAttributeName('formats', appyClass, fieldName)
-        res['formats'] = getattr(appyTool, n)
-        n = appyTool.getAttributeName('podTemplate', appyClass, fieldName)
-        res['template'] = getattr(appyTool, n)
-        appyType = ploneObj.getAppyType(fieldName)
-        res['title'] = self.translate(appyType.labelId)
-        res['context'] = appyType.context
-        res['action'] = appyType.action
-        res['stylesMapping'] = appyType.stylesMapping
-        return res
-
     def getSiteUrl(self):
         '''Returns the absolute URL of this site.'''
         return self.portal_url.getPortalObject().absolute_url()
+
+    def getPodInfo(self, obj, name):
+        '''Gets the available POD formats for Pod field named p_name on
+           p_obj.'''
+        podField = self.getAppyType(name, className=obj.meta_type)
+        return podField.getToolInfo(obj.appy())
 
     def generateDocument(self):
         '''Generates the document from field-related info. UID of object that
            is the template target is given in the request.'''
         rq = self.REQUEST
-        appyTool = self.appy()
-        # Get the object
-        objectUid = rq.get('objectUid')
-        obj = self.uid_catalog(UID=objectUid)[0].getObject()
-        appyObj = obj.appy()
-        # Get information about the document to render.
-        specificPodContext = None
+        # Get the object on which a document must be generated.
+        obj = self.getObject(rq.get('objectUid'), appy=True)
         fieldName = rq.get('fieldName')
-        format = rq.get('podFormat')
-        podInfo = self.getPodInfo(obj, fieldName)
-        template = podInfo['template'].content
-        podTitle = podInfo['title']
-        if podInfo['context']:
-            if callable(podInfo['context']):
-                specificPodContext = podInfo['context'](appyObj)
-            else:
-                specificPodContext = podInfo['context']
-        doAction = rq.get('askAction') == 'True'
-        # Temporary file where to generate the result
-        tempFileName = '%s/%s_%f.%s' % (
-            getOsTempFolder(), obj.UID(), time.time(), format)
-        # Define parameters to give to the appy.pod renderer
-        currentUser = self.portal_membership.getAuthenticatedMember()
-        podContext = {'tool': appyTool, 'user': currentUser, 'self': appyObj,
-                      'now': self.getProductConfig().DateTime(),
-                      'projectFolder': appyTool.getDiskFolder(),
-                      }
-        # If the POD document is related to a query, get it from the request,
-        # execute it and put the result in the context.
-        if rq['queryData']:
-            # Retrieve query params from the request
-            cmd = ', '.join(self.queryParamNames)
-            cmd += " = rq['queryData'].split(';')"
-            exec cmd
-            # (re-)execute the query, but without any limit on the number of
-            # results; return Appy objects.
-            objs = self.executeQuery(type_name, searchName=search,
-                     sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
-                     filterValue=filterValue, maxResults='NO_LIMIT')
-            podContext['objects'] = [o.appy() for o in objs['objects']]
-        if specificPodContext:
-            podContext.update(specificPodContext)
-        # Define a potential global styles mapping
-        stylesMapping = None
-        if podInfo['stylesMapping']:
-            if callable(podInfo['stylesMapping']):
-                stylesMapping = podInfo['stylesMapping'](appyObj)
-            else:
-                stylesMapping = podInfo['stylesMapping']
-        rendererParams = {'template': StringIO.StringIO(template),
-                          'context': podContext, 'result': tempFileName}
-        if stylesMapping:
-            rendererParams['stylesMapping'] = stylesMapping
-        if appyTool.unoEnabledPython:
-            rendererParams['pythonWithUnoPath'] = appyTool.unoEnabledPython
-        if appyTool.openOfficePort:
-            rendererParams['ooPort'] = appyTool.openOfficePort
-        # Launch the renderer
-        try:
-            renderer = Renderer(**rendererParams)
-            renderer.run()
-        except appy.pod.PodError, pe:
-            if not os.path.exists(tempFileName):
-                # In some (most?) cases, when OO returns an error, the result is
-                # nevertheless generated.
-                appyTool.log(str(pe), type='error')
-                appyTool.say(POD_ERROR)
-                return self.goto(rq.get('HTTP_REFERER'))
-        # Open the temp file on the filesystem
-        f = file(tempFileName, 'rb')
-        res = f.read()
-        # Identify the filename to return
-        if rq['queryData']:
-            # This is a POD for a bunch of objects
-            fileName = podTitle
-        else:
-            # This is a POD for a single object: personalize the file name with
-            # the object title.
-            fileName = '%s-%s' % (obj.Title(), podTitle)
-        fileName = appyTool.normalize(fileName)
-        response = obj.REQUEST.RESPONSE
-        response.setHeader('Content-Type', mimeTypes[format])
-        response.setHeader('Content-Disposition', 'inline;filename="%s.%s"' % \
-                           (fileName, format))
-        f.close()
-        # Execute the related action if relevant
-        if doAction and podInfo['action']:
-            podInfo['action'](appyObj, podContext)
-        # Returns the doc and removes the temp file
-        try:
-            os.remove(tempFileName)
-        except OSError, oe:
-            appyTool.log(DELETE_TEMP_DOC_ERROR % str(oe), type='warning')
-        except IOError, ie:
-            appyTool.log(DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
-        return res
+        res = getattr(obj, fieldName)
+        if isinstance(res, basestring):
+            # An error has occurred, and p_res contains the error message
+            obj.say(res)
+            return self.goto(rq.get('HTTP_REFERER'))
+        # res contains a FileWrapper instance.
+        response = rq.RESPONSE
+        response.setHeader('Content-Type', res.mimeType)
+        response.setHeader('Content-Disposition',
+                           'inline;filename="%s"' % res.name)
+        return res.content
 
     def getAttr(self, name):
         '''Gets attribute named p_attrName. Useful because we can't use getattr
