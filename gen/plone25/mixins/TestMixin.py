@@ -5,7 +5,7 @@ import os, os.path, sys
 class TestMixin:
     '''This class is mixed in with any PloneTestCase.'''
     def createUser(self, userId, roles):
-        '''Creates a user p_name p_with some p_roles.'''
+        '''Creates a user with id p_userId with some p_roles.'''
         pms = self.portal.portal_membership
         pms.addMember(userId, 'password', [], [])
         self.setRoles(roles, name=userId)
@@ -16,7 +16,7 @@ class TestMixin:
         self.login(userId)
 
     def getNonEmptySubModules(self, moduleName):
-        '''Returns the list fo sub-modules of p_app that are non-empty.'''
+        '''Returns the list of sub-modules of p_app that are non-empty.'''
         res = []
         try:
             exec 'import %s' % moduleName

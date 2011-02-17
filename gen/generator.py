@@ -182,7 +182,8 @@ class Generator:
             for name, elem in moduleOrClass.__dict__.iteritems():
                 if type(elem) in (staticmethod, classmethod):
                     elem = elem.__get__(name)
-                if hasattr(elem, '__doc__') and elem.__doc__ and \
+                if callable(elem) and (type(elem) != types.ClassType) and \
+                   hasattr(elem, '__doc__') and elem.__doc__ and \
                    (elem.__doc__.find('>>>') != -1):
                     res = True
                     self.totalNumberOfTests += 1

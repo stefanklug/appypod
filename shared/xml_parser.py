@@ -167,8 +167,15 @@ class XmlParser(ContentHandler, ErrorHandler):
             # Put a question mark instead of raising an exception.
             self.characters('?')
 
-    def parse(self, xmlContent, source='string'):
-        '''Parses the XML file or string p_xmlContent.'''
+    def parse(self, xml, source='string'):
+        '''Parses a XML stream.
+           * If p_source is "string", p_xml must be a string containing
+             valid XML content.
+           * If p_source is "file": p_xml can be:
+             - a string containing the path to the XML file on disk;
+             - a file instance opened for reading. Note that in this case, this
+               method will close it.
+        '''
         try:
             from cStringIO import StringIO
         except ImportError:
@@ -178,10 +185,13 @@ class XmlParser(ContentHandler, ErrorHandler):
         self.parser.setFeature(feature_external_ges, False)
         inputSource = InputSource()
         if source == 'string':
-            inputSource.setByteStream(StringIO(xmlContent))
+            inputSource.setByteStream(StringIO(xml))
         else:
-            inputSource.setByteStream(xmlContent)
+            if not isinstance(xml, file):
+                xml = file(xml)
+            inputSource.setByteStream(xml)
         self.parser.parse(inputSource)
+        if isinstance(xml, file): xml.close()
         return self.res
 
 # ------------------------------------------------------------------------------

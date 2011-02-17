@@ -94,6 +94,8 @@ class AbstractWrapper:
     def get_fields(self): return self.o.getAllAppyTypes()
     fields = property(get_fields)
 
+    def getField(self, name): return self.o.getAppyType(name)
+
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one
            through reference field p_fieldName.'''

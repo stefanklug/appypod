@@ -9,7 +9,9 @@ from appy.gen.plone25.mixins.TestMixin import TestMixin, beforeTest, afterTest
 
 # Initialize Zope & Plone test systems -----------------------------------------
 ZopeTestCase.installProduct('<!applicationName!>')
-PloneTestCase.setupPloneSite(products=['<!applicationName!>'])
+ZopeTestCase.installProduct('PloneLanguageTool')
+PloneTestCase.setupPloneSite(products=['<!applicationName!>',
+                                       'PloneLanguageTool'])
 
 class Test(PloneTestCase.PloneTestCase, TestMixin):
     '''Base test class for <!applicationName!> test cases.'''
