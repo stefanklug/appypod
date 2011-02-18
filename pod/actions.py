@@ -147,7 +147,7 @@ class ForAction(BufferAction):
         if isinstance(self.elem, Cell):
             isCell = True
             nbOfColumns = self.elem.tableInfo.nbOfColumns
-            initialColIndex = self.elem.tableInfo.curColIndex
+            initialColIndex = self.elem.colIndex
             currentColIndex = initialColIndex
             rowAttributes = self.elem.tableInfo.curRowAttrs
             # If self.exprResult is empty, dump an empty cell to avoid

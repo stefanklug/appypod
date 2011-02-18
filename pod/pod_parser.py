@@ -154,7 +154,11 @@ class PodEnvironment(OdfEnvironment):
             self.getTable().curColIndex = -1
             self.getTable().curRowAttrs = self.currentElem.attrs
         elif elem == Cell.OD.elem:
-            self.getTable().curColIndex += 1
+            colspan = 1
+            attrSpan = '%s:number-columns-spanned' % tableNs
+            if self.currentElem.attrs.has_key(attrSpan):
+                colspan = int(self.currentElem.attrs[attrSpan])
+            self.getTable().curColIndex += colspan
         elif elem == ('%s:table-column' % tableNs):
             attrs = self.currentElem.attrs
             if attrs.has_key('%s:number-columns-repeated' % tableNs):
@@ -263,13 +267,15 @@ class PodParser(OdfParser):
                         if isMainElement:
                             parent = e.currentBuffer.parent
                             if not e.currentBuffer.action:
-                                # Delete this buffer and transfer content to parent
+                                # Delete this buffer and transfer content to
+                                # parent.
                                 e.currentBuffer.transferAllContent()
                                 parent.removeLastSubBuffer()
                                 e.currentBuffer = parent
                             else:
                                 if isinstance(parent, FileBuffer):
-                                    # Execute buffer action and delete the buffer
+                                    # Execute buffer action and delete the
+                                    # buffer.
                                     e.currentBuffer.action.execute()
                                     parent.removeLastSubBuffer()
                                 e.currentBuffer = parent

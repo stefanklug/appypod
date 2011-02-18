@@ -55,6 +55,7 @@ class Cell(PodElement):
     subTags = [Text.OD]
     def __init__(self):
         self.tableInfo = None # ~OdTable~
+        self.colIndex = None # The column index for this cell, within its table.
 
 class Row(PodElement):
     OD = XmlElement('table-row', nsUri=ns.NS_TABLE)

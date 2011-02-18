@@ -296,6 +296,9 @@ class MemoryBuffer(Buffer):
         self.elements[self.getLength()] = newElem
         if isinstance(newElem, Cell) or isinstance(newElem, Table):
             newElem.tableInfo = self.env.getTable()
+            if isinstance(newElem, Cell):
+                # Remember where this cell is in the table
+                newElem.colIndex = newElem.tableInfo.curColIndex
 
     def addExpression(self, expression):
         # Create the POD expression
