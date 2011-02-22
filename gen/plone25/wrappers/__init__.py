@@ -362,7 +362,9 @@ class AbstractWrapper:
         for brain in self.tool.o.executeQuery(contentType, search=search, \
                  brainsOnly=True, maxResults=maxResults, noSecurity=noSecurity):
             # Get the Appy object from the brain
-            obj = brain.getObject().appy()
+            if noSecurity: method = '_unrestrictedGetObject'
+            else: method = 'getObject'
+            exec 'obj = brain.%s().appy()' % method
             exec expression
         return ctx
 

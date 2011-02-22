@@ -1176,6 +1176,7 @@ class String(Type):
         return res
 
     emptyStringTuple = ('',)
+    emptyValuesCatalogIgnored = (None, '')
     def getIndexValue(self, obj, forSearch=False):
         '''For indexing purposes, we return only strings, not unicodes.'''
         res = Type.getIndexValue(self, obj, forSearch)
@@ -1185,6 +1186,9 @@ class String(Type):
         # portal_catalog keeps the previous value! If I give him a tuple
         # containing an empty string, it is ok.
         if isinstance(res, tuple) and not res: res = self.emptyStringTuple
+        # Ugly portal_catalog: if value is an empty string or None, it keeps
+        # the previous index value!
+        if res in self.emptyValuesCatalogIgnored: res = ' '
         return res
 
     def getPossibleValues(self,obj,withTranslations=False,withBlankValue=False):
