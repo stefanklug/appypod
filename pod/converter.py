@@ -80,12 +80,12 @@ class Converter:
         '''Returns the absolute path of the input file. In fact, it returns a
            tuple with some URL version of the path for OO as the first element
            and the absolute path as the second element.''' 
-        import uno
+        import unohelper
         if not os.path.exists(docPath) and not os.path.isfile(docPath):
             raise ConverterError(DOC_NOT_FOUND % docPath)
         docAbsPath = os.path.abspath(docPath)
         # Return one path for OO, one path for me.
-        return uno.systemPathToFileUrl(docAbsPath), docAbsPath
+        return unohelper.systemPathToFileUrl(docAbsPath), docAbsPath
 
     def getResultFilter(self):
         '''Based on the result type, identifies which OO filter to use for the
@@ -110,7 +110,7 @@ class Converter:
            different extension:
                            <inputFileName>.<resultType>
         '''
-        import uno
+        import unohelper
         baseName = os.path.splitext(self.docPath)[0]
         if self.resultType != self.inputType:
             res = '%s.%s' % (baseName, self.resultType)
@@ -121,7 +121,7 @@ class Converter:
             f.write('Hello')
             f.close()
             os.remove(res)
-            return uno.systemPathToFileUrl(res)
+            return unohelper.systemPathToFileUrl(res)
         except (OSError, IOError), ioe:
             raise ConverterError(CANNOT_WRITE_RESULT % (res, ioe))
 

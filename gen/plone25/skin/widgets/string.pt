@@ -13,7 +13,7 @@
   </span>
   <tal:formattedString condition="python: fmt not in (0, 3)">
     <span tal:condition="python: value and (fmt == 1)"
-          tal:replace="structure python: value.replace('\n', '&lt;br&gt;')"/>
+          tal:replace="structure python: contextObj.formatText(value, format='html')"/>
     <span tal:condition="python: value and (fmt == 2)" tal:replace="structure value"/>
   </tal:formattedString>
 </metal:view>

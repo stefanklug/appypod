@@ -378,7 +378,7 @@ class AbstractWrapper:
         self.o.reindexObject()
 
     def export(self, at='string', format='xml', include=None, exclude=None):
-        '''Creates an "exportable" version of this object. p_format is XML by
+        '''Creates an "exportable" version of this object. p_format is "xml" by
            default, but can also be "csv". If p_format is:
            * "xml", if p_at is "string", this method returns the XML version,
                     without the XML prologue. Else, (a) if not p_at, the XML
@@ -427,4 +427,9 @@ class AbstractWrapper:
            p_data must be a dictionary whose keys are field names (strings) and
            whose values are the previous field values.'''
         self.o.addDataChange(data)
+
+    def formatText(self, text, format='html'):
+        '''Produces a representation of p_text into the desired p_format, which
+           is 'html' by default.'''
+        return self.o.formatText(text, format)
 # ------------------------------------------------------------------------------

@@ -1162,6 +1162,18 @@ class BaseMixin:
         if '-' in res: res = res[:res.find('-')]
         return res
 
+    def formatText(self, text, format='html'):
+        '''Produces a representation of p_text into the desired p_format, which
+           is 'html' by default.'''
+        if format in ('html', 'xhtml'):
+            res = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
+        elif format == 'js':
+            res = text.replace('\r\n', '').replace('\n', '')
+            res = res.replace("'", "\\'")
+        else:
+            res = text
+        return res
+
     def translate(self, label, mapping={}, domain=None, default=None,
                   language=None, format='html'):
         '''Translates a given p_label into p_domain with p_mapping.'''
@@ -1196,11 +1208,7 @@ class BaseMixin:
             if not res: res = label
             else:
                 # Perform replacements, according to p_format.
-                if format == 'html':
-                    res = res.replace('\r\n', '<br/>').replace('\n', '<br/>')
-                elif format == 'js':
-                    res = res.replace('\r\n', '').replace('\n', '')
-                    res = res.replace("'", "\\'")
+                res = self.formatText(res, format)
                 # Perform variable replacements
                 for name, repl in mapping.iteritems():
                     res = res.replace('${%s}' % name, repl)
