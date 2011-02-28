@@ -579,7 +579,11 @@ class TranslationClassDescriptor(ClassDescriptor):
         width = 0
         height = 0
         for fileName, poFile in i18nFiles.iteritems():
-            if not fileName.startswith('%s-' % appName): continue
+            if not fileName.startswith('%s-' % appName) or \
+               not i18nFiles[fileName].messagesDict.has_key(messageId):
+                # In this case this is not one of our Appy-managed translation
+                # files.
+                continue
             msgContent = i18nFiles[fileName].messagesDict[messageId].msg
             # Compute width
             width = max(width, len(msgContent))

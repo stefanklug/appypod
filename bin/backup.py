@@ -157,8 +157,7 @@ class ZodbBackuper:
            remove the temp files that could not be removed by Zope.'''
         w = self.log
         w('Removing temp files in "%s"...' % self.tempFolder)
-        pdfCount = 0
-        docCount = 0
+        pdfCount = docCount = rtfCount = odtCount = 0
         for fileName in os.listdir(self.tempFolder):
             ext = os.path.splitext(fileName)[1]
             if ext in self.toRemoveExts:
@@ -169,8 +168,8 @@ class ZodbBackuper:
                     os.remove(fullFileName)
                 except OSError, oe:
                     w('Could not remove "%s" (%s).' % (fullFileName, str(oe)))
-        w('%d PDF document(s) removed.' % pdfCount)
-        w('%d Word document(s) removed.' % docCount)
+        w('%d .pdf, %d .doc, %d .rtf and %d .odt file(s) removed.' % \
+          (pdfCount, docCount, rtfCount, odtCount))
 
     def run(self):
         w = self.log

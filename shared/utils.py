@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, re, sys, traceback, unicodedata, shutil
+import os, os.path, re, time, sys, traceback, unicodedata, shutil
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:
@@ -139,6 +139,19 @@ def getOsTempFolder():
         res = os.environ['TEMP']
     else:
         raise "Sorry, I can't find a temp folder on your machine."
+    return res
+
+def getTempFileName(prefix='', extension=''):
+    '''Returns the absolute path to a unique file name in the OS temp folder.
+       The caller will then be able to create a file with this name.
+
+       A p_prefix to this file can be provided. If an p_extension is provided,
+       it will be appended to the name. Both dotted and not dotted versions
+       of p_extension are allowed (ie, ".pdf" or "pdf").'''
+    res = '%s/%s_%f' % (getOsTempFolder(), prefix, time.time())
+    if extension:
+        if extension.startswith('.'): res += extension
+        else: res += '.' + extension
     return res
 
 # ------------------------------------------------------------------------------
