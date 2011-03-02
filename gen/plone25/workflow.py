@@ -147,14 +147,14 @@ def do(transitionName, stateChange, logger):
     doAction = False
     if transition.action:
         doAction = True
-        if hasattr(ploneObj, '_v_appy_do') and \
-           not ploneObj._v_appy_do['doAction']:
+        if hasattr(ploneObj, '_appy_do') and \
+           not ploneObj._appy_do['doAction']:
             doAction = False
     doNotify = False
     if transition.notify:
         doNotify = True
-        if hasattr(ploneObj, '_v_appy_do') and \
-           not ploneObj._v_appy_do['doNotify']:
+        if hasattr(ploneObj, '_appy_do') and \
+           not ploneObj._appy_do['doNotify']:
             doNotify = False
         elif not getattr(ploneObj.getTool().appy(), 'enableNotifications'):
             # We do not notify if the "notify" flag in the tool is disabled.
@@ -174,7 +174,7 @@ def do(transitionName, stateChange, logger):
         if doNotify:
             notifier.sendMail(obj, transition, transitionName, workflow, logger)
     # Produce a message to the user
-    if hasattr(ploneObj, '_v_appy_do') and not ploneObj._v_appy_do['doSay']:
+    if hasattr(ploneObj, '_appy_do') and not ploneObj._appy_do['doSay']:
         # We do not produce any message if the transition was triggered
         # programmatically.
         return

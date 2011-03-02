@@ -280,7 +280,7 @@ class AbstractWrapper:
         # Set in a versatile attribute details about what to execute or not
         # (actions, notifications) after the transition has been executed by DC
         # workflow.
-        self.o._v_appy_do = {'doAction': doAction, 'doNotify': doNotify,
+        self.o._appy_do = {'doAction': doAction, 'doNotify': doNotify,
                              'doSay': False}
         if not doHistory:
             comment = '_invisible_' # Will not be displayed.
@@ -289,7 +289,7 @@ class AbstractWrapper:
             # object by consulting the target state of the last transition in
             # this workflow_history.
         wfTool.doActionFor(self.o, transitionName, comment=comment)
-        del self.o._v_appy_do
+        del self.o._appy_do
 
     def log(self, message, type='info'): return self.o.log(message, type)
     def say(self, message, type='info'): return self.o.say(message, type)
