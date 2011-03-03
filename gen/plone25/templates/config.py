@@ -24,6 +24,7 @@ from Products.CMFCore import utils as cmfutils
 from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.PloneBatch import Batch
 from Products.CMFPlone.utils import ToolInit
+from Products.CMFPlone.interfaces import IPloneSiteRoot
 from Products.CMFCore import DirectoryView
 from Products.CMFCore.DirectoryView import manage_addDirectoryView
 from Products.DCWorkflow.Transitions import TRIGGER_USER_ACTION
@@ -32,6 +33,7 @@ from Products.Archetypes.Extensions.utils import installTypes
 from Products.Archetypes.Extensions.utils import install_subskin
 from Products.Archetypes.config import TOOL_NAME as ARCHETYPETOOLNAME
 from Products.Archetypes import listTypes, process_types
+from Products.GenericSetup import EXTENSION, profile_registry
 import appy.gen
 import logging
 logger = logging.getLogger('<!applicationName!>')

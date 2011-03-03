@@ -621,9 +621,14 @@ class ZopeInstaller:
 
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
+        cfg = self.config
         # Apply customization policy if any
-        cp = self.config.CustomizationPolicy
+        cp = cfg.CustomizationPolicy
         if cp and hasattr(cp, 'register'): cp.register(context)
+        # Install the default profile
+        cfg.profile_registry.registerProfile(self.productName, self.productName,
+            'Installation of %s' % self.productName, 'profiles/default',
+            self.productName, cfg.EXTENSION, for_=cfg.IPloneSiteRoot)
 
     def install(self):
         self.logger.info('is being installed...')
