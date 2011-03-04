@@ -1175,8 +1175,15 @@ class BaseMixin:
         return res
 
     def translate(self, label, mapping={}, domain=None, default=None,
-                  language=None, format='html'):
-        '''Translates a given p_label into p_domain with p_mapping.'''
+                  language=None, format='html', field=None, className=None):
+        '''Translates a given p_label into p_domain with p_mapping.
+
+           If p_field is given, p_label does not correspond to a full label
+           name, but to a label type linked to p_field: "label", "descr"
+           or "help". Indeed, in this case, a specific i18n mapping may be
+           available on the field, so we must merge this mapping into
+           p_mapping. If p_className is not given, we consider p_self being an
+           instance of the class where p_field is defined.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
         if domain != cfg.PROJECTNAME:
@@ -1190,6 +1197,19 @@ class BaseMixin:
                 # TranslationService
                 res = label
         else:
+            # Get the label name, and the field-specific mapping if any.
+            if field:
+                # Maybe we do not have the field itself, but only its name
+                if isinstance(field, basestring):
+                    field = self.getAppyType(field, className=className)
+                # Include field-specific mapping if any.
+                fieldMapping = field.mapping[label]
+                if fieldMapping:
+                    if callable(fieldMapping):
+                        fieldMapping = field.callMethod(self, fieldMapping)
+                    mapping.update(fieldMapping)
+                # Get the label
+                label = getattr(field, label+'Id')
             # We will get the translation from a Translation object.
             # In what language must we get the translation?
             if not language: language = self.getUserLanguage()

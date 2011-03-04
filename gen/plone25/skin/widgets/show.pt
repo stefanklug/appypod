@@ -186,17 +186,17 @@
 <tal:label metal:define-macro="label" condition="widget/hasLabel">
   <label tal:attributes="for widget/name"
          tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))"
-         tal:content="structure python: contextObj.translate(widget['labelId'])"></label>
+         tal:content="structure python: contextObj.translate('label', field=widget['name'])"></label>
 </tal:label>
 
 <tal:comment replace="nothing">Displays a field description.</tal:comment>
 <tal:description metal:define-macro="description" condition="widget/hasDescr">
-  <span class="discreet" tal:content="structure python: contextObj.translate(widget['descrId'])"></span>
+  <span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget['name'])"></span>
 </tal:description>
 
 <tal:comment replace="nothing">Displays a field help.</tal:comment>
 <tal:help metal:define-macro="help">
-  <acronym tal:attributes="title python: contextObj.translate(widget['helpId'])">
+  <acronym tal:attributes="title python: contextObj.translate('help', field=widget['name'])">
     <img tal:attributes="src string: $portal_url/skyn/help.png"/>
   </acronym>
 </tal:help>

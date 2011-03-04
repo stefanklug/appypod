@@ -20,6 +20,7 @@ nullValues = (None, '', ' ')
 validatorTypes = (types.FunctionType, types.UnboundMethodType,
                   type(re.compile('')))
 emptyTuple = ()
+labelTypes = ('label', 'descr', 'help')
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -356,7 +357,7 @@ class Type:
                  editDefault, show, page, group, layouts, move, indexed,
                  searchable, specificReadPermission, specificWritePermission,
                  width, height, colspan, master, masterValue, focus,
-                 historized, sync):
+                 historized, sync, mapping):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -443,6 +444,9 @@ class Type:
         # self.sync below determines if the field representations will be
         # retrieved in a synchronous way by the browser or not (Ajax).
         self.sync = self.formatSync(sync)
+        # Mapping is a dict of contexts that, if specified, are given when
+        # translating the label, descr or help related to this field.
+        self.mapping = self.formatMapping(mapping)
         self.id = id(self)
         self.type = self.__class__.__name__
         self.pythonType = None # The True corresponding Python type
@@ -571,6 +575,26 @@ class Type:
                 sync[layoutType] = False
         return sync
 
+    def formatMapping(self, mapping):
+        '''Creates a dict of mappings, one entry by label type (label, descr,
+           help).'''
+        if isinstance(mapping, dict):
+            # Is it a dict like {'label':..., 'descr':...}, or is it directly a
+            # dict with a mapping?
+            for k, v in mapping.iteritems():
+                if (k not in labelTypes) or isinstance(v, basestring):
+                    # It is already a mapping
+                    return {'label':mapping, 'descr':mapping, 'help':mapping}
+            # If we are here, we have {'label':..., 'descr':...}. Complete
+            # it if necessary.
+            for labelType in labelTypes:
+                if labelType not in mapping:
+                    mapping[labelType] = None # No mapping for this value.
+            return mapping
+        else:
+            # Mapping is a method that must be applied to any i18n message.
+            return {'label':mapping, 'descr':mapping, 'help':mapping}
+
     def formatLayouts(self, layouts):
         '''Standardizes the given p_layouts. .'''
         # First, get the layouts as a dictionary, if p_layouts is None or
@@ -696,10 +720,12 @@ class Type:
                 # Return self.default, of self.default() if it is a method
                 if callable(self.default):
                     try:
-                        return self.callMethod(obj, self.default,
-                                               raiseOnError=True)
+                        return self.callMethod(obj, self.default)
                     except Exception, e:
-                        # Already logged.
+                        # Already logged. Here I do not raise the exception,
+                        # because it can be raised as the result of reindexing
+                        # the object in situations that are not foreseen by
+                        # method in self.default.
                         return None
                 else:
                     return self.default
@@ -850,7 +876,7 @@ class Type:
             res.validator = None
         return res
 
-    def callMethod(self, obj, method, raiseOnError=False):
+    def callMethod(self, obj, method, raiseOnError=True):
         '''This method is used to call a p_method on p_obj. p_method is part of
            this type definition (ie a default method, the method of a Computed
            field, a method used for showing or not a field...). Normally, those
@@ -881,12 +907,12 @@ class Integer(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False):
+                 historized=False, mapping=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True)
+                      masterValue, focus, historized, True, mapping)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -910,7 +936,8 @@ class Float(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, precision=None, sep=(',', '.')):
+                 historized=False, mapping=None, precision=None,
+                 sep=(',', '.')):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -929,7 +956,7 @@ class Float(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized, True)
+                      historized, True, mapping)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -1078,7 +1105,7 @@ class String(Type):
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, transform='none'):
+                 historized=False, mapping=None, transform='none'):
         self.format = format
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
@@ -1090,7 +1117,7 @@ class String(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True)
+                      masterValue, focus, historized, True, mapping)
         self.isSelect = self.isSelection()
         # Default width and height vary according to String format
         if width == None:
@@ -1312,12 +1339,12 @@ class Boolean(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False):
+                 historized=False, mapping=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True)
+                      masterValue, focus, historized, True, mapping)
         self.pythonType = bool
 
     def getDefaultLayouts(self):
@@ -1355,7 +1382,7 @@ class Date(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False):
+                 historized=False, mapping=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1364,7 +1391,7 @@ class Date(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True)
+                      masterValue, focus, historized, True, mapping)
 
     def getCss(self, layoutType):
         if (layoutType == 'edit') and self.calendar:
@@ -1419,13 +1446,13 @@ class File(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, isImage=False):
+                 historized=False, mapping=None, isImage=False):
         self.isImage = isImage
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized, True)
+                      historized, True, mapping)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):
@@ -1569,8 +1596,8 @@ class Ref(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, queryable=False, queryFields=None,
-                 queryNbCols=1):
+                 historized=False, mapping=None, queryable=False,
+                 queryFields=None, queryNbCols=1):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1620,7 +1647,7 @@ class Ref(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, colspan, master, masterValue, focus,
-                      historized, sync)
+                      historized, sync, mapping)
         self.validable = self.link
 
     def getDefaultLayouts(self): return {'view': Table('l-f'), 'edit': 'lrv-f'}
@@ -1787,7 +1814,7 @@ class Computed(Type):
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, method=None, plainText=True, master=None,
                  masterValue=None, focus=False, historized=False, sync=True,
-                 context={}):
+                 mapping=None, context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -1804,7 +1831,7 @@ class Computed(Type):
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, colspan, master, masterValue, focus, historized,
-                      sync)
+                      sync, mapping)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -1853,7 +1880,8 @@ class Action(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, action=None, result='computation', confirm=False,
-                 master=None, masterValue=None, focus=False, historized=False):
+                 master=None, masterValue=None, focus=False, historized=False,
+                 mapping=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -1874,7 +1902,7 @@ class Action(Type):
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, colspan, master, masterValue, focus, historized,
-                      False)
+                      False, mapping)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -1922,12 +1950,12 @@ class Info(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False):
+                 historized=False, mapping=None):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, colspan, master, masterValue, focus, historized,
-                      False)
+                      False, mapping)
         self.validable = False
 
 class Pod(Type):
@@ -1943,8 +1971,9 @@ class Pod(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, template=None, context=None, action=None,
-                 askAction=False, stylesMapping={}, freezeFormat='pdf'):
+                 historized=False, mapping=None, template=None, context=None,
+                 action=None, askAction=False, stylesMapping={},
+                 freezeFormat='pdf'):
         # The following param stores the path to a POD template
         self.template = template
         # The context is a dict containing a specific pod context, or a method
@@ -1964,7 +1993,7 @@ class Pod(Type):
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, False)
+                      masterValue, focus, historized, False, mapping)
         self.validable = False
 
     def isFrozen(self, obj):

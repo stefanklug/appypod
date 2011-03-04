@@ -120,9 +120,9 @@
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
                  showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
-                 label python: tool.translate(appyType['labelId']);
+                 label python: contextObj.translate('label', field=appyType['name']);
                  addConfirmMsg python: tool.translate('%s_addConfirm' % appyType['labelId']);
-                 description python: tool.translate(appyType['descrId']);
+                 description python: contextObj.translate('descr', field=appyType['name']);
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
