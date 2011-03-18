@@ -213,6 +213,7 @@ class Renderer:
            p_odtFile (content.xml or styles.xml). p_context is given by the pod
            user, while p_inserts depends on the ODT file we must parse.'''
         evalContext = {'xhtml': self.renderXhtml,
+                       'text':  self.renderText,
                        'test': self.evalIfExpression,
                        'document': self.importDocument} # Default context
         if hasattr(context, '__dict__'):
@@ -232,11 +233,17 @@ class Renderer:
            of ODT content.'''
         stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
         ns = self.currentParser.env.namespaces
-        # xhtmlString is only a chunk of XHTML. So we must surround it a tag in
-        # order to get a XML-compliant file (we need a root tag).
+        # xhtmlString can only be a chunk of XHTML. So we must surround it a
+        # tag in order to get a XML-compliant file (we need a root tag).
         xhtmlContent = '<p>%s</p>' % xhtmlString
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
                                   stylesMapping, ns).run()
+
+    def renderText(self, text, encoding='utf-8'):
+        '''Method that can be used (under the name 'text') into a pod template
+           for inserting a text containing carriage returns.'''
+        text = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
+        return self.renderXhtml(text, encoding)
 
     def evalIfExpression(self, condition, ifTrue, ifFalse):
         '''This method implements the method 'test' which is proposed in the

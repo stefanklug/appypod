@@ -33,7 +33,7 @@ class FolderDeleter:
     delete = staticmethod(delete)
 
 # ------------------------------------------------------------------------------
-extsToClean = ('.pyc', '.pyo')
+extsToClean = ('.pyc', '.pyo', '.fsz', '.deltafsz', '.dat', '.log')
 def cleanFolder(folder, exts=extsToClean, verbose=False):
     '''This function allows to remove, in p_folder and subfolders, any file
        whose extension is in p_exts.'''

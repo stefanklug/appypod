@@ -126,10 +126,6 @@ class HtmlElement:
                 (parentElem.tagsToClose[-1].elemType == 'para') and \
                 (self.elem in NOT_INSIDE_P):
                 return (parentElem.tagsToClose[-1].setConflictual(),)
-            #if (parentElem.elem in OUTER_TAGS) and parentElem.tagsToClose and \
-            #    (parentElem.tagsToClose[-1].elem == 'p') and \
-            #    (self.elem in NOT_INSIDE_P):
-            #    return (parentElem.tagsToClose[-1].setConflictual(),)
             # Check elements that can't be found within a list
             if (parentElem.elemType=='list') and (self.elem in NOT_INSIDE_LIST):
                 return (parentElem.setConflictual(),)
@@ -154,7 +150,7 @@ class HtmlElement:
             self.tagsToClose.append(HtmlElement('p',{}))
 
     def dump(self, start, env):
-        '''Dumps the start or stop (depending on p_start) tag of this HTML
+        '''Dumps the start or end (depending on p_start) tag of this HTML
            element. We must take care of potential innerTags.'''
         # Compute the tag in itself
         tag = ''
@@ -171,6 +167,8 @@ class HtmlElement:
                     # I have interrupted a numbered list. I need to continue
                     # the numbering.
                     attrs += ' %s:continue-numbering="true"' % env.textNs
+            else:
+                attrs = env.getOdtAttributes(self)
         tag = prefix + self.getOdfTag(env) + attrs + '>'
         # Close/open subTags if any
         for subElem in self.tagsToClose:
@@ -274,21 +272,29 @@ class XhtmlEnvironment(XmlEnvironment):
                     self.dumpString(c)
             self.currentContent = u''
 
-    def dumpStyledElement(self, elem, odfTag, attrs):
-        '''Dumps an element that potentially has associated style
-           information.'''
-        self.dumpString('<' + odfTag)
-        odtStyle = self.parser.caller.findStyle(elem, attrs)
+    def getOdtAttributes(self, htmlElem, htmlAttrs={}):
+        '''Gets the ODT attributes to dump for p_currentElem. p_htmlAttrs are
+           the parsed attributes from the XHTML p_currentElem.'''
+        odtStyle = self.parser.caller.findStyle(htmlElem.elem, htmlAttrs)
         styleName = None
         if odtStyle:
             styleName = odtStyle.name
-        elif DEFAULT_ODT_STYLES.has_key(elem):
-            styleName = DEFAULT_ODT_STYLES[elem]
+        elif DEFAULT_ODT_STYLES.has_key(htmlElem.elem):
+            styleName = DEFAULT_ODT_STYLES[htmlElem.elem]
+        res = ''
         if styleName:
-            self.dumpString(' %s:style-name="%s"' % (self.textNs, styleName))
-            if (elem in XHTML_HEADINGS) and (odtStyle.outlineLevel != None):
-                self.dumpString(' %s:outline-level="%d"' % (
-                    self.textNs, odtStyle.outlineLevel))
+            res += ' %s:style-name="%s"' % (self.textNs, styleName)
+            if (htmlElem.elem in XHTML_HEADINGS) and \
+               (odtStyle.outlineLevel != None):
+                res += ' %s:outline-level="%d"' % (self.textNs, \
+                                                   odtStyle.outlineLevel)
+        return res
+
+    def dumpStyledElement(self, htmlElem, odfTag, attrs):
+        '''Dumps an element that potentially has associated style
+           information.'''
+        self.dumpString('<' + odfTag)
+        self.dumpString(self.getOdtAttributes(htmlElem, attrs))
         self.dumpString('>')
 
     def getTags(self, elems, start=True):
@@ -417,7 +423,7 @@ class XhtmlParser(XmlParser):
         odfTag = currentElem.getOdfTag(e)
 
         if HTML_2_ODT.has_key(elem):
-            e.dumpStyledElement(elem, odfTag, attrs)
+            e.dumpStyledElement(currentElem, odfTag, attrs)
         elif elem == 'a':
             e.dumpString('<%s %s:type="simple"' % (odfTag, e.linkNs))
             if attrs.has_key('href'):

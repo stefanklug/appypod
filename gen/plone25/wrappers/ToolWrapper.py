@@ -28,7 +28,7 @@ class ToolWrapper(AbstractWrapper):
                 return NO_PYTHON % value
             if os.system('%s -c "import uno"' % value):
                 return NOT_UNO_ENABLED_PYTHON % value
-        return None
+        return True
 
     podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
     def getPodOutputFormats(self):
