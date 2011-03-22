@@ -347,9 +347,14 @@ class BaseMixin:
             prev = previousData[field]
             appyType = self.getAppyType(field)
             curr = appyType.getValue(self)
-            if (prev == curr) or ((prev == None) and (curr == '')) or \
-               ((prev == '') and (curr == None)):
-                del previousData[field]
+            try:
+                if (prev == curr) or ((prev == None) and (curr == '')) or \
+                   ((prev == '') and (curr == None)):
+                    del previousData[field]
+            except UnicodeDecodeError, ude:
+                # The string comparisons above may imply silent encoding-related
+                # conversions that may produce this exception.
+                pass
             if (appyType.type == 'Ref') and (field in previousData):
                 previousData[field] = [r.title for r in previousData[field]]
         if previousData:
