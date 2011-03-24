@@ -93,7 +93,7 @@ class User(ModelClass):
                         'password2', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = String(show=False, indexed=True)
-    gm = {'group': 'main', 'multiplicity': (1,1)}
+    gm = {'group': 'main', 'multiplicity': (1,1), 'width': 25}
     name = String(**gm)
     firstName = String(**gm)
     def showLogin(self): pass

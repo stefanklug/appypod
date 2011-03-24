@@ -28,16 +28,7 @@
    <tr tal:repeat="row layout/rows" tal:attributes="valign row/valign">
      <td tal:repeat="cell row/cells"
          tal:attributes="align cell/align; colspan cell/colspan;
-                         style python: test(repeat['cell'].end, '', 'padding-right: 0.4em')">
-       <tal:content repeat="elem cell/content">
-         <tal:field condition="python: elem == '?'">
-           <metal:call use-macro="python: contextMacro.get(widget['type'].lower()).macros.get(layoutType)"/>
-         </tal:field>
-         <tal:other condition="python: elem != '?'">
-           <metal:call use-macro="python: contextMacro.get(elem[0]).macros.get(elem[1])"/>
-         </tal:other>
-         <img tal:condition="not: repeat/elem/end" tal:attributes="src string: $portal_url/skyn/space.gif"/>
-       </tal:content>
+                         style python: test(repeat['cell'].end, '', 'padding-right: 0.4em')"><tal:content repeat="elem cell/content"><tal:field condition="python: elem == '?'"><metal:call use-macro="python: contextMacro.get(widget['type'].lower()).macros.get(layoutType)"/></tal:field><tal:other condition="python: elem != '?'"><metal:call use-macro="python: contextMacro.get(elem[0]).macros.get(elem[1])"/></tal:other><img tal:condition="not: repeat/elem/end" tal:attributes="src string: $portal_url/skyn/space.gif"/></tal:content>
      </td>
    </tr>
  </table>
@@ -138,6 +129,7 @@
   It is exclusively called by macro "group" above.
 </tal:comment>
 <table metal:define-macro="groupContent"
+       tal:define="cellgap widget/cellgap"
        tal:attributes="width python: test(widget['wide'], '100%', '');
                        align widget/align;
                        class widget/css_class;
@@ -169,7 +161,7 @@
   <tr tal:attributes="valign widget/valign" tal:repeat="widgetRow widget/widgets">
     <td tal:repeat="widget widgetRow"
         tal:attributes="colspan widget/colspan|python:1;
-                        style python: test(repeat['widget'].number() != len(widgetRow), 'padding-right: 0.6em', '')">
+                        style python: test(repeat['widget'].number() != len(widgetRow), 'padding-right: %s'%cellgap, '')">
       <tal:showWidget condition="widget">
         <tal:group condition="python: widget['type'] == 'group'">
           <metal:call use-macro="portal/skyn/widgets/show/macros/group"/>
@@ -183,31 +175,17 @@
 </table>
 
 <tal:comment replace="nothing">Displays a field label.</tal:comment>
-<tal:label metal:define-macro="label" condition="widget/hasLabel">
-  <label tal:attributes="for widget/name"
-         tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))"
-         tal:content="structure python: contextObj.translate('label', field=widget['name'])"></label>
-</tal:label>
+<tal:label metal:define-macro="label" condition="widget/hasLabel"><label tal:attributes="for widget/name" tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))" tal:content="structure python: contextObj.translate('label', field=widget['name'])"></label></tal:label>
 
 <tal:comment replace="nothing">Displays a field description.</tal:comment>
-<tal:description metal:define-macro="description" condition="widget/hasDescr">
-  <span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget['name'])"></span>
+<tal:description metal:define-macro="description" condition="widget/hasDescr"><span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget['name'])"></span>
 </tal:description>
 
 <tal:comment replace="nothing">Displays a field help.</tal:comment>
-<tal:help metal:define-macro="help">
-  <acronym tal:attributes="title python: contextObj.translate('help', field=widget['name'])">
-    <img tal:attributes="src string: $portal_url/skyn/help.png"/>
-  </acronym>
-</tal:help>
+<tal:help metal:define-macro="help"><acronym tal:attributes="title python: contextObj.translate('help', field=widget['name'])"><img tal:attributes="src string: $portal_url/skyn/help.png"/></acronym></tal:help>
 
 <tal:comment replace="nothing">Displays validation-error-related info about a field.</tal:comment>
-<tal:validation metal:define-macro="validation">
-  <acronym tal:condition="inError" tal:attributes="title python: errors[name]">
-    <img tal:attributes="src string: $portal_url/skyn/warning.png"/>
-  </acronym>
-  <img tal:condition="not: inError" tal:attributes="src string: $portal_url/skyn/warning_no.png"/>
-</tal:validation>
+<tal:validation metal:define-macro="validation"><acronym tal:condition="inError" tal:attributes="title python: errors[name]"><img tal:attributes="src string: $portal_url/skyn/warning.png"/></acronym><img tal:condition="not: inError" tal:attributes="src string: $portal_url/skyn/warning_no.gif"/></tal:validation>
 
 <tal:comment replace="nothing">Displays the fact that a field is required.</tal:comment>
-<tal:required metal:define-macro="required"><img tal:attributes="src string: $portal_url/skyn/required.png"/></tal:required>
+<tal:required metal:define-macro="required"><img tal:attributes="src string: $portal_url/skyn/required.gif"/></tal:required>

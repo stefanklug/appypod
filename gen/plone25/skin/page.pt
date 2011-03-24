@@ -518,12 +518,12 @@
     <input type="hidden" name="action" value="TriggerTransition"/>
     <input type="hidden" name="workflow_action"/>
     <table>
-      <tr>
+      <tr valign="middle">
         <tal:comment replace="nothing">Input field allowing to enter a comment before triggering a transition</tal:comment>
         <td tal:define="showCommentsField python:tool.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
             align="right" tal:condition="showCommentsField">
           <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
-          <input type="text" id="comment" name="comment" size="35"/>
+          <input type="text" id="comment" name="comment" size="30"/>
         </td>
 
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
@@ -558,7 +558,7 @@
 
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
     <table width="100%" tal:condition="showCommonInfo" class="appyCommonInfo">
-      <tr valign="bottom">
+      <tr valign="bottom" align="left">
         <tal:comment replace="nothing">Title and state</tal:comment>
         <td width="80%">
           <b class="appyTitle" tal:content="contextObj/title_or_id"></b>
@@ -567,11 +567,11 @@
         </td>
       </tr>
       <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
-          tal:condition="descrLabel/strip" >
+          tal:condition="descrLabel/strip" align="left">
         <tal:comment replace="nothing">Content type description</tal:comment>
         <td colspan="2" class="discreet" tal:content="descrLabel"/>
       </tr>
-      <tr>
+      <tr align="left">
         <td class="documentByLine" colspan="2">
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
@@ -598,7 +598,7 @@
         </td>
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
-      <tr tal:condition="hasHistory">
+      <tr tal:condition="hasHistory" align="left">
         <td colspan="2">
           <span id="appyHistory"
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
@@ -611,7 +611,7 @@
         </td>
       </tr>
       <tal:comment replace="nothing">Workflow-related information and actions</tal:comment>
-      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()">
+      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()" align="left">
         <td colspan="2" class="appyWorkflow">
           <table width="100%">
             <tr>

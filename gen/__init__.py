@@ -95,7 +95,7 @@ class Group:
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
                  valign='top', css_class='', master=None, masterValue=None,
-                 cellpadding=1, cellspacing=1):
+                 cellpadding=1, cellspacing=1, cellgap='0.6em'):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -134,6 +134,10 @@ class Group:
         self.valign = valign
         self.cellpadding = cellpadding
         self.cellspacing = cellspacing
+        # Beyond standard cellpadding and cellspacing, cellgap can define an
+        # additional horizontal gap between cells in a row. So this value does
+        # not add space before the first cell or after the last one.
+        self.cellgap = cellgap
         if style == 'tabs':
             # Group content will be rendered as tabs. In this case, some
             # param combinations have no sense.
