@@ -1002,6 +1002,10 @@ class BaseMixin:
         # Compare the value
         return compValue == dateValue
 
+    def getSelectableYears(self, name):
+        '''Gets the list of selectable years for Date field named p_name.'''
+        return self.getAppyType(name).getSelectableYears()
+
     def getPossibleValues(self, name, withTranslations, withBlankValue,
                           className=None):
         '''Gets the possible values for field named p_name. This field must be a

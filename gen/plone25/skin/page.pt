@@ -649,7 +649,7 @@
               // There are multiple values, split it
               var subValues = idField.substring(1, idField.length-1).split(',');
               for (var k=0; k < subValues.length; k++){
-                var subValue = subValues[k].strip();
+                var subValue = subValues[k].replace(' ','');
                 masterValue.push(subValue.substring(1, subValue.length-1));
               }
             }

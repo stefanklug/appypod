@@ -467,6 +467,10 @@ class Type:
            attributes that are based on the name of the Appy p_klass, and the
            application name (p_appName).'''
         self.name = name
+        # Recompute the ID (and derived attributes) that may have changed if
+        # we are in debug mode (because we recreate new Type instances).
+        self.id = id(self)
+        if self.slaves: self.master_css = 'appyMaster master_%s' % self.id
         # Determine ids of i18n labels for this field
         if not klass: prefix = appName
         else: prefix = getClassName(klass, appName)
@@ -1381,9 +1385,9 @@ class Date(Type):
                  default=None, optional=False, editDefault=False,
                  format=WITH_HOUR, calendar=True,
                  startYear=time.localtime()[0]-10,
-                 endYear=time.localtime()[0]+10, show=True, page='main',
-                 group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+                 endYear=time.localtime()[0]+10, reverseYears=False,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
                  historized=False, mapping=None):
@@ -1391,6 +1395,9 @@ class Date(Type):
         self.calendar = calendar
         self.startYear = startYear
         self.endYear = endYear
+        # If reverseYears is True, in the selection box, available years, from
+        # self.startYear to self.endYear will be listed in reverse order.
+        self.reverseYears = reverseYears
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
@@ -1405,6 +1412,12 @@ class Date(Type):
         if (layoutType == 'edit') and self.calendar:
             return ('jscalendar/calendar_stripped.js',
                     'jscalendar/calendar-en.js')
+
+    def getSelectableYears(self):
+        '''Gets the list of years one may select for this field.'''
+        res = range(self.startYear, self.endYear + 1)
+        if self.reverseYears: res.reverse()
+        return res
 
     def validateValue(self, obj, value):
         DateTime = obj.getProductConfig().DateTime

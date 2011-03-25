@@ -3,7 +3,7 @@
 
 <tal:comment replace="nothing">Edit macro for an Date.</tal:comment>
 <metal:edit define-macro="edit"
-            tal:define="years python:range(widget['startYear'], widget['endYear']+1);
+            tal:define="years python: contextObj.getSelectableYears(widget['name']);
                         dummyName python: '_d_ummy_%s' % name">
   <tal:comment replace="nothing">This field is not used but required by the Javascript popup.</tal:comment>
   <input type="hidden" tal:attributes="name dummyName; id dummyName"/>

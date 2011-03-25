@@ -1,17 +1,9 @@
 /* Appy-specific IE-fixes */
-.portletSearch {
-  font-size: 85%;
-  border-left: 1px solid #8cacbb;
-  border-right: 1px solid #8cacbb;
-}
+.portletSearch { font-size: 85%;  border-left: 1px solid #8cacbb;  border-right: 1px solid #8cacbb; }
 
 /* Stylesheet with Internet Explorer-specific workarounds. */
-* html #portal-columns {
-  width: 100%;
-}
-* html*#portal-columns {
-    width: auto;
-}
+* html #portal-columns { width: 100%; }
+* html*#portal-columns { width: auto; }
 
 /* <dtml-with base_properties> */
 #topIcons { right: 238px; }
@@ -25,7 +17,6 @@
 #portlet-hp-news .portletHeader { margin-top: 1px; }
 .section-ncp-home .portletHeader { font-size:110%; }
 input { margin-bottom: 1px; }
-
 table.listing td.top { position: relative; left: -1px; top: -1px; }
 div#portal-columns div.portlet { text-align: left; }
 div#portal-columns div#portal-column-one,
@@ -33,7 +24,6 @@ div#portal-columns div#portal-column-two { overflow: hidden; }
 textarea { width: 97%; }
 .visualOverflow { width: 88%; }
 .visualGhosted { filter:alpha(opacity=20); }
-
 #portal-logo {
   height /**/: <dtml-var "_[logoName].height">px;
   overflow: hidden;
@@ -41,37 +31,26 @@ textarea { width: 97%; }
 
 #clear-space-before-wrapper-table { display: none };
 /* Fix bottom margin on tabs in IE */
-#portal-globalnav li.selected a {
-position: relative;
-}
-
-#portal-colophon .colophonIcon {
-    height: 0px !important;
-    height /**/: 15px;
-}
-
+#portal-globalnav li.selected a { position: relative; }
+#portal-colophon .colophonIcon { height: 0px !important; height /**/: 15px; }
 .actionMenu .actionMenuHeader a { display: inline; }
 .actionMenu .actionMenuContent { top: 1.4em; }
 
 /* Calendar fixes */
-.ploneCalendar { 
-    border-collapse:collapse;
-    width:auto; 
-    height:1%;
-}
+.ploneCalendar { border-collapse:collapse; width:auto; height:1%; }
 .ploneCalendar td { width:1%; }
 .ploneCalendar .todaynoevent,
 .ploneCalendar .todayevent { position: relative; }
 .hiddenStructure { position: absolute; }
 
 body { /* These work in IE only, changes the look of the scrollbar + textareas */
-    scrollbar-base-color: &dtml-globalBackgroundColor;;
-    scrollbar-highlight-color: &dtml-globalBackgroundColor;;
-    scrollbar-track-color: &dtml-evenRowBackgroundColor;;
-    scrollbar-darkshadow-color: &dtml-evenRowBackgroundColor;;
-    scrollbar-3dlight-color: &dtml-globalBorderColor;;
-    scrollbar-shadow-color: &dtml-globalBorderColor;;
-    scrollbar-arrow-color: &dtml-globalFontColor;;
+  scrollbar-base-color: &dtml-globalBackgroundColor;;
+  scrollbar-highlight-color: &dtml-globalBackgroundColor;;
+  scrollbar-track-color: &dtml-evenRowBackgroundColor;;
+  scrollbar-darkshadow-color: &dtml-evenRowBackgroundColor;;
+  scrollbar-3dlight-color: &dtml-globalBorderColor;;
+  scrollbar-shadow-color: &dtml-globalBorderColor;;
+  scrollbar-arrow-color: &dtml-globalFontColor;;
 }
 
 #floatholder, #float { height: 1%; }
@@ -98,7 +77,6 @@ body { /* These work in IE only, changes the look of the scrollbar + textareas *
 * html p { position: relative; }
 * html h1.documentFirstHeading { height: auto; }
 * html #objectMenu.actionMenu .actionMenuContent li { height: auto; }
-
 #portal-searchbox { overflow: hidden; }
 
 /* </dtml-with> */
