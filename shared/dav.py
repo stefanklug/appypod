@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import os, re, httplib, sys, stat, urlparse, time, socket
+import os, re, httplib, sys, stat, urlparse, time, socket, xml.sax
 from urllib import quote
 from StringIO import StringIO
 from mimetypes import guess_type
@@ -87,7 +87,14 @@ class HttpResponse:
         if self.duration: duration = ', got in %.4f seconds' % self.duration
         return '<HttpResponse %s (%s)%s>' % (self.code, self.text, duration)
 
-    xmlHeaders = ('text/xml', 'application/xml')
+    def extractContentType(self, contentType):
+        '''Extract the content type from the HTTP header, potentially removing
+           encoding-related data.'''
+        i = contentType.find(';')
+        if i != -1: return contentType[:i]
+        return contentType
+
+    xmlHeaders = ('text/xml', 'application/xml', 'application/soap+xml')
     def extractData(self):
         '''This method extracts, from the various parts of the HTTP response,
            some useful information. For example, it will find the URI where to
@@ -96,12 +103,15 @@ class HttpResponse:
         if self.code == 302:
             return urlparse.urlparse(self.headers['location'])[2]
         elif self.headers.has_key('content-type'):
-            contentType = self.headers['content-type']
+            contentType = self.extractContentType(self.headers['content-type'])
             for xmlHeader in self.xmlHeaders:
                 if contentType.startswith(xmlHeader):
                     # Return an unmarshalled version of the XML content, for
                     # easy use in Python.
-                    return XmlUnmarshaller().parse(self.body)
+                    try:
+                        return XmlUnmarshaller().parse(self.body)
+                    except xml.sax.SAXParseException, se:
+                        raise ResourceError('Invalid XML response (%s)'%str(se))
 
 # ------------------------------------------------------------------------------
 urlRex = re.compile(r'http://([^:/]+)(:[0-9]+)?(/.+)?', re.I)

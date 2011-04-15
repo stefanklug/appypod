@@ -1210,15 +1210,20 @@ class BaseMixin:
             if field:
                 # Maybe we do not have the field itself, but only its name
                 if isinstance(field, basestring):
-                    field = self.getAppyType(field, className=className)
-                # Include field-specific mapping if any.
-                fieldMapping = field.mapping[label]
-                if fieldMapping:
-                    if callable(fieldMapping):
-                        fieldMapping = field.callMethod(self, fieldMapping)
-                    mapping.update(fieldMapping)
-                # Get the label
-                label = getattr(field, label+'Id')
+                    appyField = self.getAppyType(field, className=className)
+                else:
+                    appyField = field
+                if appyField:
+                    fieldMapping = appyField.mapping[label]
+                    if fieldMapping:
+                        if callable(fieldMapping):
+                            fieldMapping=appyField.callMethod(self,fieldMapping)
+                        mapping.update(fieldMapping)
+                    # Get the label
+                    label = getattr(appyField, label+'Id')
+                else:
+                    # It must be a group.
+                    label = '%s_group_%s_%s' % (self.meta_type, field, label)
             # We will get the translation from a Translation object.
             # In what language must we get the translation?
             if not language: language = self.getUserLanguage()

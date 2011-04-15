@@ -239,11 +239,11 @@ class Renderer:
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
                                   stylesMapping, ns).run()
 
-    def renderText(self, text, encoding='utf-8'):
+    def renderText(self, text, encoding='utf-8', stylesMapping={}):
         '''Method that can be used (under the name 'text') into a pod template
            for inserting a text containing carriage returns.'''
         text = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
-        return self.renderXhtml(text, encoding)
+        return self.renderXhtml(text, encoding, stylesMapping)
 
     def evalIfExpression(self, condition, ifTrue, ifFalse):
         '''This method implements the method 'test' which is proposed in the
