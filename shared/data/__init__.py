@@ -162,9 +162,10 @@ nativeNames = {
 }
 # ------------------------------------------------------------------------------
 class Languages:
-    '''This class gives access to the language codes as standardized by
-       ISO-639. The file has been downloaded in July 2009 from
+    '''This class gives access to the language codes and names as standardized
+       by ISO-639. The file has been downloaded in July 2009 from
        http://www.loc.gov/standards/iso639-2/ascii_8bits.html (UTF-8 version)'''
+
     def __init__(self):
         self.fileName = os.path.dirname(__file__) + '/LanguageCodesIso639.2.txt'
         self.languageCodes = []
@@ -194,7 +195,7 @@ class Languages:
         f.close()
 
     def exists(self, code):
-        '''Is p_code a valid 2-digits language/country code?'''
+        '''Is p_code a valid 2-digits language code?'''
         return code in self.languageCodes
 
     def get(self, code):
@@ -214,7 +215,39 @@ class Languages:
             res += 'Language: ' + languageCode + ' - ' + self.languageNames[i]
             res += '\n'
         return res
-languages = Languages() # As this is international, I instantiate it.
+# We instantiate here Languages because it is used by the appy.gen languages
+# management.
+languages = Languages()
+
+# Country codes ISO 3166-1. ----------------------------------------------------
+class Countries:
+    '''This class gives access to the country codes and names as standardized by
+       ISO 3166-1. The file has been downloaded in March 2011 from
+       http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm
+       (first line has been removed).'''
+
+    def __init__(self):
+        self.fileName = os.path.dirname(__file__) + '/CountryCodesIso3166.1.txt'
+        self.countryCodes = []
+        # Names of countries in English
+        self.countryNames = []
+        self.parseFile()
+
+    def parseFile(self):
+        f = file(self.fileName)
+        for line in f:
+            if line.strip():
+                name, code = line.split(';')
+                self.countryCodes.append(code.strip())
+                self.countryNames.append(name.strip())
+        f.close()
+
+    def exists(self, code):
+        '''Is p_code a valid 2-digits country code?'''
+        return code in self.countryCodes
+# We instantiate here Countries because it is used by appy.gen for some field
+# validations.
+countries = Countries()
 
 # ------------------------------------------------------------------------------
 class BelgianCities:
@@ -224,18 +257,20 @@ class BelgianCities:
        https://www.post.be/site/fr/sse/advertising/addressed/biblio.html,
        converted to CSV (field separator being ";" field content is surrrounded
        by double quotes).'''
+
     def __init__(self):
         self.fileName = os.path.dirname(__file__) + '/BelgianCommunes.txt'
         self.data = {}
         self.parseFile()
+
     def parseFile(self):
         f = file(self.fileName)
         for line in f:
             if line.strip():
                 lineElems = line.split(';')
                 self.data[int(lineElems[0].strip('"'))]= lineElems[1].strip('"')
+
     def exists(self, postalCode):
         '''Is postalCode a valid Belgian postal code?'''
         return self.data.has_key(postalCode)
-# As this is not international, Appy user will instantiate it if needed.
 # ------------------------------------------------------------------------------

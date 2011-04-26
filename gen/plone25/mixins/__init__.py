@@ -1245,6 +1245,7 @@ class BaseMixin:
                 res = self.formatText(res, format)
                 # Perform variable replacements
                 for name, repl in mapping.iteritems():
+                    if not isinstance(repl, basestring): repl = str(repl)
                     res = res.replace('${%s}' % name, repl)
         return res
 

@@ -8,7 +8,7 @@ from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
                            getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
-from appy.shared.data import languages
+from appy.shared.data import countries
 from appy.shared.utils import Traceback, getOsTempFolder
 
 # Default Appy permissions -----------------------------------------------------
@@ -1066,7 +1066,7 @@ class String(Type):
         # Maximum size is 34 chars
         if (len(v) < 8) or (len(v) > 34): return False
         # 2 first chars must be a valid country code
-        if not languages.exists(v[:2].lower()): return False
+        if not countries.exists(v[:2].upper()): return False
         # 2 next chars are a control code whose value must be between 0 and 96.
         try:
             code = int(v[2:4])
@@ -1095,7 +1095,7 @@ class String(Type):
         for c in value[:4]:
             if not letter.match(c): return False
         # 2 next chars must be a valid country code
-        if not languages.exists(value[4:6].lower()): return False
+        if not countries.exists(value[4:6].upper()): return False
         # Last chars represent some location within a country (a city, a
         # province...). They can only be letters or figures.
         for c in value[6:]:

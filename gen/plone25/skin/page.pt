@@ -563,8 +563,6 @@
         <td width="80%">
           <b class="appyTitle" tal:content="contextObj/title_or_id"></b>
         </td>
-        <td><metal:actions use-macro="here/document_actions/macros/document_actions"/>
-        </td>
       </tr>
       <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
           tal:condition="descrLabel/strip" align="left">
