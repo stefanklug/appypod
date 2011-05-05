@@ -360,7 +360,7 @@ class Type:
     def __init__(self, validator, multiplicity, index, default, optional,
                  editDefault, show, page, group, layouts, move, indexed,
                  searchable, specificReadPermission, specificWritePermission,
-                 width, height, colspan, master, masterValue, focus,
+                 width, height, maxChars, colspan, master, masterValue, focus,
                  historized, sync, mapping):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
@@ -425,6 +425,11 @@ class Type:
         # Widget width and height
         self.width = width
         self.height = height
+        # While width and height refer to widget dimensions, maxChars hereafter
+        # represents the maximum number of chars that a given input field may
+        # accept (corresponds to HTML "maxlength" property). "None" means
+        # "unlimited".
+        self.maxChars = maxChars
         # If the widget is in a group with multiple columns, the following
         # attribute specifies on how many columns to span the widget.
         self.colspan = colspan
@@ -807,6 +812,16 @@ class Type:
            type-specific validation. p_value is never empty.'''
         return None
 
+    def securityCheck(self, obj, value):
+        '''This method performs some security checks on the p_value that
+           represents user input.'''
+        if not isinstance(value, basestring): return
+        # Search Javascript code in the value (prevent XSS attacks).
+        if '<script' in value:
+            obj.log('Detected Javascript in user input.', type='error')
+            raise 'Your behaviour is considered a security attack. System ' \
+                  'administrator has been warned.'
+
     def validate(self, obj, value):
         '''This method checks that p_value, coming from the request (p_obj is
            being created or edited) and formatted through a call to
@@ -821,6 +836,8 @@ class Type:
                 return obj.translate('field_required')
             else:
                 return None
+        # Perform security checks on p_value
+        self.securityCheck(obj, value)
         # Triggers the sub-class-specific validation for this value
         message = self.validateValue(obj, value)
         if message: return message
@@ -914,13 +931,13 @@ class Integer(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None):
+                 maxChars=13, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
-                      specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True, mapping)
+                      specificWritePermission, width, height, maxChars, colspan,
+                      master, masterValue, focus, historized, True, mapping)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -943,8 +960,8 @@ class Float(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, precision=None,
+                 maxChars=13, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, precision=None,
                  sep=(',', '.')):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
@@ -963,8 +980,8 @@ class Float(Type):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
-                      width, height, colspan, master, masterValue, focus,
-                      historized, True, mapping)
+                      width, height, maxChars, colspan, master, masterValue,
+                      focus, historized, True, mapping)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -1112,8 +1129,8 @@ class String(Type):
                  show=True, page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, transform='none'):
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, transform='none'):
         self.format = format
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
@@ -1124,10 +1141,10 @@ class String(Type):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
-                      specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True, mapping)
+                      specificWritePermission, width, height, maxChars, colspan,
+                      master, masterValue, focus, historized, True, mapping)
         self.isSelect = self.isSelection()
-        # Default width and height vary according to String format
+        # Default width, height and maxChars vary according to String format
         if width == None:
             if format == String.TEXT: self.width  = 60
             else:                     self.width  = 30
@@ -1135,6 +1152,12 @@ class String(Type):
             if format == String.TEXT: self.height = 5
             elif self.isSelect:       self.height = 4
             else:                     self.height = 1
+        if maxChars == None:
+            if self.isSelect: pass
+            elif format == String.LINE: self.maxChars = 256
+            elif format == String.TEXT: self.maxChars = 9999
+            elif format == String.XHTML: self.maxChars = 9999
+            elif format == String.PASSWORD: self.maxChars = 20
         self.filterable = self.indexed and (self.format == String.LINE) and \
                           not self.isSelect
 
@@ -1330,6 +1353,10 @@ class String(Type):
     def store(self, obj, value):
         if self.isMultiValued() and isinstance(value, basestring):
             value = [value]
+        # Truncate the result if longer than self.maxChars
+        if self.maxChars and isinstance(value, basestring) and \
+           (len(value) > self.maxChars):
+            value = value[:self.maxChars]
         exec 'obj.%s = value' % self.name
 
     def getIndexType(self):
@@ -1346,13 +1373,13 @@ class Boolean(Type):
                  page='main', group=None, layouts = None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None):
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
-                      specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True, mapping)
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, True, mapping)
         self.pythonType = bool
 
     def getDefaultLayouts(self):
@@ -1389,8 +1416,8 @@ class Date(Type):
                  show=True, page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None):
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1401,8 +1428,8 @@ class Date(Type):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
-                      specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, True, mapping)
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, True, mapping)
 
     def getCss(self, layoutType):
         if (layoutType == 'edit') and self.calendar:
@@ -1462,13 +1489,13 @@ class File(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, isImage=False):
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, isImage=False):
         self.isImage = isImage
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
-                      width, height, colspan, master, masterValue, focus,
+                      width, height, None, colspan, master, masterValue, focus,
                       historized, True, mapping)
 
     @staticmethod
@@ -1612,8 +1639,8 @@ class Ref(Type):
                  select=None, maxPerPage=30, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, queryable=False,
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, queryable=False,
                  queryFields=None, queryNbCols=1):
         self.klass = klass
         self.attribute = attribute
@@ -1663,7 +1690,7 @@ class Ref(Type):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
-                      width, height, colspan, master, masterValue, focus,
+                      width, height, None, colspan, master, masterValue, focus,
                       historized, sync, mapping)
         self.validable = self.link
 
@@ -1829,9 +1856,9 @@ class Computed(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, method=None, plainText=True, master=None,
-                 masterValue=None, focus=False, historized=False, sync=True,
-                 mapping=None, context={}):
+                 maxChars=None, colspan=1, method=None, plainText=True,
+                 master=None, masterValue=None, focus=False, historized=False,
+                 sync=True, mapping=None, context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -1847,8 +1874,8 @@ class Computed(Type):
         Type.__init__(self, None, multiplicity, index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized,
-                      sync, mapping)
+                      height, None, colspan, master, masterValue, focus,
+                      historized, sync, mapping)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -1896,9 +1923,9 @@ class Action(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, action=None, result='computation', confirm=False,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 mapping=None):
+                 maxChars=None, colspan=1, action=None, result='computation',
+                 confirm=False, master=None, masterValue=None, focus=False,
+                 historized=False, mapping=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -1918,8 +1945,8 @@ class Action(Type):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized,
-                      False, mapping)
+                      height, None, colspan, master, masterValue, focus,
+                      historized, False, mapping)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -1966,13 +1993,13 @@ class Info(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None):
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
-                      height, colspan, master, masterValue, focus, historized,
-                      False, mapping)
+                      height, None, colspan, master, masterValue, focus,
+                      historized, False, mapping)
         self.validable = False
 
 class Pod(Type):
@@ -1987,9 +2014,9 @@ class Pod(Type):
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 colspan=1, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, template=None, context=None,
-                 action=None, askAction=False, stylesMapping={},
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, template=None,
+                 context=None, action=None, askAction=False, stylesMapping={},
                  freezeFormat='pdf'):
         # The following param stores the path to a POD template
         self.template = template
@@ -2009,8 +2036,8 @@ class Pod(Type):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
-                      specificWritePermission, width, height, colspan, master,
-                      masterValue, focus, historized, False, mapping)
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, False, mapping)
         self.validable = False
 
     def isFrozen(self, obj):

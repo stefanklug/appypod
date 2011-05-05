@@ -6,7 +6,8 @@
 
 <tal:comment replace="nothing">Edit macro for an Float.</tal:comment>
 <metal:edit define-macro="edit">
-  <input tal:attributes="id name; name name; size widget/width;
+  <input tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')"
+         tal:attributes="id name; name name; size widget/width; maxlength maxChars;
                          value python: test(inRequest, requestValue, value)" type="text"/>
 </metal:edit>
 
@@ -16,14 +17,15 @@
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an Float.</tal:comment>
-<metal:search define-macro="search">
+<metal:search define-macro="search"
+              tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')">
   <label tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
   <tal:from define="fromName python: '%s*float' % widgetName">
     <label tal:attributes="for fromName" tal:content="python: tool.translate('search_from')"></label>
-    <input type="text" tal:attributes="name fromName" size="4"/>
+    <input type="text" tal:attributes="name fromName; maxlength maxChars" size="4"/>
   </tal:from>
   <tal:to define="toName python: '%s_to' % name">
     <label tal:attributes="for toName" tal:content="python: tool.translate('search_to')"></label>
-    <input type="text" tal:attributes="name toName" size="4"/>
+    <input type="text" tal:attributes="name toName; maxlength maxChars" size="4"/>
   </tal:to><br/>
 </metal:search>
