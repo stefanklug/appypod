@@ -96,39 +96,40 @@ class HtmlElement:
     def getConflictualElements(self, env):
         '''self was just parsed. In some cases, this element can't be dumped
            in the result because there are conflictual elements among previously
-           parsed opening elements (p_currentElements). For example, if we just
-           dumped a "p", we can't dump a table within the "p". Such constraints
-           do not hold in XHTML code but hold in ODF code.'''
-        if env.currentElements:
-            parentElem = env.currentElements[-1]
-            # Check elements that can't be found within a paragraph
-            if (parentElem.elemType == 'para') and \
-               (self.elem in NOT_INSIDE_P_OR_P):
-                # Oups, li->p wrongly considered as a conflict.
-                if (parentElem.elem == 'li') and (self.elem == 'p'): return ()
-                return (parentElem.setConflictual(),)
-            # Check inner paragraphs
-            if (parentElem.elem in INNER_TAGS) and (self.elemType == 'para'):
-                res = [parentElem.setConflictual()]
-                if len(env.currentElements) > 1:
-                    i = 2
-                    visitParents = True
-                    while visitParents:
-                        try:
-                            nextParent = env.currentElements[-i]
-                            res.insert(0, nextParent.setConflictual())
-                            if nextParent.elemType == 'para':
-                                visitParents = False
-                        except IndexError:
+           parsed opening elements (p_env.currentElements). For example, if we
+           just dumped a "p", we can't dump a table within the "p". Such
+           constraints do not hold in XHTML code but hold in ODF code.'''
+        if not env.currentElements: return ()
+        parentElem = env.currentElements[-1]
+        # Check elements that can't be found within a paragraph
+        if (parentElem.elemType == 'para') and \
+           (self.elem in NOT_INSIDE_P_OR_P):
+            # Oups, li->p wrongly considered as a conflict.
+            if (parentElem.elem == 'li') and (self.elem == 'p'): return ()
+            return (parentElem.setConflictual(),)
+        # Check inner paragraphs
+        if (parentElem.elem in INNER_TAGS) and (self.elemType == 'para'):
+            res = [parentElem.setConflictual()]
+            if len(env.currentElements) > 1:
+                i = 2
+                visitParents = True
+                while visitParents:
+                    try:
+                        nextParent = env.currentElements[-i]
+                        i += 1
+                        res.insert(0, nextParent.setConflictual())
+                        if nextParent.elemType == 'para':
                             visitParents = False
-                return res
-            if parentElem.tagsToClose and \
-                (parentElem.tagsToClose[-1].elemType == 'para') and \
-                (self.elem in NOT_INSIDE_P):
-                return (parentElem.tagsToClose[-1].setConflictual(),)
-            # Check elements that can't be found within a list
-            if (parentElem.elemType=='list') and (self.elem in NOT_INSIDE_LIST):
-                return (parentElem.setConflictual(),)
+                    except IndexError:
+                        visitParents = False
+            return res
+        if parentElem.tagsToClose and \
+            (parentElem.tagsToClose[-1].elemType == 'para') and \
+            (self.elem in NOT_INSIDE_P):
+            return (parentElem.tagsToClose[-1].setConflictual(),)
+        # Check elements that can't be found within a list
+        if (parentElem.elemType=='list') and (self.elem in NOT_INSIDE_LIST):
+            return (parentElem.setConflictual(),)
         return ()
 
     def addInnerParagraph(self, env):
@@ -435,8 +436,11 @@ class XhtmlParser(XmlParser):
                 # It is a list into another list. In this case the inner list
                 # must be surrounded by a list-item element.
                 prologue = '<%s:list-item>' % e.textNs
-            e.dumpString('%s<%s %s:style-name="%s">' % (
-                prologue, odfTag, e.textNs, e.listStyles[elem]))
+            numbering = ''
+            if elem == 'ol':
+                numbering = ' %s:continue-numbering="false"' % e.textNs
+            e.dumpString('%s<%s %s:style-name="%s"%s>' % (
+                prologue, odfTag, e.textNs, e.listStyles[elem], numbering))
         elif elem in ('li', 'thead', 'tr'):
             e.dumpString('<%s>' % odfTag)
         elif elem == 'table':
