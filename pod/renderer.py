@@ -21,7 +21,7 @@ import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
 
 from UserDict import UserDict
 
-import appy.pod
+import appy.pod, time
 from appy.pod import PodError
 from appy.shared import mimeTypesExts
 from appy.shared.xml_parser import XmlElement
@@ -37,8 +37,6 @@ from appy.pod.styles_manager import StylesManager
 BAD_CONTEXT = 'Context must be either a dict, a UserDict or an instance.'
 RESULT_FILE_EXISTS = 'Result file "%s" exists.'
 CANT_WRITE_RESULT = 'I cannot write result file "%s". %s'
-TEMP_FOLDER_EXISTS = 'I need to use a temp folder "%s" but this folder ' \
-                     'already exists.'
 CANT_WRITE_TEMP_FOLDER = 'I cannot create temp folder "%s". %s'
 NO_PY_PATH = 'Extension of result file is "%s". In order to perform ' \
              'conversion from ODT to this format we need to call OpenOffice. ' \
@@ -311,10 +309,9 @@ class Renderer:
             raise PodError(CANT_WRITE_RESULT % (self.result, ie))
         self.result = os.path.abspath(self.result)
         os.remove(self.result)
-        # Check that temp folder does not exist
-        self.tempFolder = os.path.abspath(self.result) + '.temp'
-        if os.path.exists(self.tempFolder):
-            raise PodError(TEMP_FOLDER_EXISTS % self.tempFolder)
+        # Create a temp folder for storing temporary files
+        absResult = os.path.abspath(self.result)
+        self.tempFolder = '%s.%f' % (absResult, time.time())
         try:
             os.mkdir(self.tempFolder)
         except OSError, oe:
