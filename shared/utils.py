@@ -197,7 +197,7 @@ def normalizeString(s, usage='fileName'):
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
                'l': list, 'd': dict}
-
+exts = {'py': ('.py', '.vpy', '.cpy'), 'pt': ('.pt', '.cpt')}
 # ------------------------------------------------------------------------------
 class CodeAnalysis:
     '''This class holds information about some code analysis (line counts) that
@@ -285,10 +285,9 @@ class CodeAnalysis:
         '''Analyses file named p_fileName.'''
         self.numberOfFiles += 1
         theFile = file(fileName)
-        if fileName.endswith('.py'):
-            self.analysePythonFile(theFile)
-        elif fileName.endswith('.pt'):
-            self.analyseZptFile(theFile)
+        ext = os.path.splitext(fileName)[1]
+        if ext in exts['py']:   self.analysePythonFile(theFile)
+        elif ext in exts['pt']: self.analyseZptFile(theFile)
         theFile.close()
 
     def printReport(self):
@@ -330,6 +329,8 @@ class LinesCounter:
         # or real code within a given part of self.folder code hierarchy.
         testMarker1 = '%stest%s' % (os.sep, os.sep)
         testMarker2 = '%stest' % os.sep
+        testMarker3 = '%stests%s' % (os.sep, os.sep)
+        testMarker4 = '%stests' % os.sep
         j = os.path.join
         for root, folders, files in os.walk(self.folder):
             rootName = os.path.basename(root)
@@ -338,13 +339,15 @@ class LinesCounter:
                 continue
             # Are we in real code or in test code ?
             self.inTest = False
-            if root.endswith(testMarker2) or (root.find(testMarker1) != -1):
+            if root.endswith(testMarker2) or (root.find(testMarker1) != -1) or \
+               root.endswith(testMarker4) or (root.find(testMarker3) != -1):
                 self.inTest = True
             # Scan the files in this folder
             for fileName in files:
-                if fileName.endswith('.py'):
+                ext = os.path.splitext(fileName)[1]
+                if ext in exts['py']:
                     self.python[self.inTest].analyseFile(j(root, fileName))
-                elif fileName.endswith('.pt'):
+                elif ext in exts['pt']:
                     self.zpt[self.inTest].analyseFile(j(root, fileName))
         self.printReport()
 # ------------------------------------------------------------------------------

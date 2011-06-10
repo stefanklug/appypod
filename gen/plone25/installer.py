@@ -543,8 +543,23 @@ def traverseWrapper(self, path, response=None, validated_hook=None):
     if os.path.splitext(path)[-1].lower() not in doNotTrack:
         # Do nothing when the user gets non-pages
         userId = self['AUTHENTICATED_USER'].getId()
-        if userId: loggedUsers[userId] = t
+        if userId:
+            loggedUsers[userId] = t
+            # "Touch" the SESSION object. Else, expiration won't occur.
+            session = self.SESSION
     return res
+
+def onDelSession(sessionObject, container):
+    '''This function is called when a session expires.'''
+    rq = container.REQUEST
+    if rq.cookies.has_key('__ac') and rq.cookies.has_key('_ZopeId') and \
+       (rq['_ZopeId'] == sessionObject.token):
+        # The request comes from a guy whose session has expired.
+        resp = rq.RESPONSE
+        resp.expireCookie('__ac', path='/')
+        # If the request is a (secundary) Ajax request, we return an empty page.
+        resp.write('<center>For security reasons, your session has ' \
+                   'expired.</center>')
 
 # ------------------------------------------------------------------------------
 class ZopeInstaller:
@@ -629,6 +644,10 @@ class ZopeInstaller:
         cfg.profile_registry.registerProfile(self.productName, self.productName,
             'Installation of %s' % self.productName, 'profiles/default',
             self.productName, cfg.EXTENSION, for_=cfg.IPloneSiteRoot)
+        # Register a function warning us when a session object is deleted.
+        app = self.zopeContext._ProductContext__app
+        if hasattr(app, 'temp_folder'): # This is not the case in test mode
+            app.temp_folder.session_data.setDelNotificationTarget(onDelSession)
 
     def install(self):
         self.logger.info('is being installed...')

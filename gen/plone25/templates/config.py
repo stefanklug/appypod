@@ -34,6 +34,7 @@ from Products.Archetypes.Extensions.utils import install_subskin
 from Products.Archetypes.config import TOOL_NAME as ARCHETYPETOOLNAME
 from Products.Archetypes import listTypes, process_types
 from Products.GenericSetup import EXTENSION, profile_registry
+from Products.Transience.Transience import TransientObjectContainer
 import appy.gen
 import logging
 logger = logging.getLogger('<!applicationName!>')
