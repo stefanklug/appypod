@@ -557,7 +557,6 @@ def onDelSession(sessionObject, container):
         # The request comes from a guy whose session has expired.
         resp = rq.RESPONSE
         resp.expireCookie('__ac', path='/')
-        # If the request is a (secundary) Ajax request, we return an empty page.
         resp.write('<center>For security reasons, your session has ' \
                    'expired.</center>')
 

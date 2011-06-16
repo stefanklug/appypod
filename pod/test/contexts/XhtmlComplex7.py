@@ -1,5 +1,5 @@
 xhtmlInput = '''
-<p class="document">
+<div class="document">
 <p>Some <strong>bold</strong> and some <em>italic</em> text.</p>
 <p>A new paragraph.</p>
 <p>A list with three items:</p>
@@ -9,5 +9,5 @@ xhtmlInput = '''
 <li>the last item</li> 
 </ul> 
 <p>A last paragraph.</p>
-</p>
+</div>
 '''

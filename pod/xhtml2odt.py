@@ -16,19 +16,19 @@ from appy.pod import *
 
 # To which ODT tags do HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
-              'p':'p', 'b':'span', 'i':'span', 'strong':'span', 'strike':'span',
-              'u':'span', 'em': 'span', 'sub': 'span', 'sup': 'span',
-              'br': 'line-break', 'div': 'span'}
+              'p':'p', 'div': 'p', 'b':'span', 'i':'span', 'strong':'span',
+              'strike':'span', 'u':'span', 'em': 'span', 'sub': 'span',
+              'sup': 'span', 'br': 'line-break'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
                       'u': 'podUnderline', 'strike': 'podStrike',
                       'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
                       'td': 'podCell', 'th': 'podHeaderCell'}
-INNER_TAGS = ('b', 'strong', 'i', 'u', 'em', 'sup', 'sub', 'span', 'div')
+INNER_TAGS = ('b', 'strong', 'i', 'u', 'em', 'sup', 'sub', 'span')
 TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
 # The following elements can't be rendered inside paragraphs
 NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',)
-NOT_INSIDE_P_OR_P = NOT_INSIDE_P + ('p',)
+NOT_INSIDE_P_OR_P = NOT_INSIDE_P + ('p', 'div')
 NOT_INSIDE_LIST = ('table',)
 IGNORABLE_TAGS = ('meta', 'title', 'style')
 
@@ -37,7 +37,8 @@ class HtmlElement:
     '''Every time an HTML element is encountered during the SAX parsing,
        an instance of this class is pushed on the stack of currently parsed
        elements.'''
-    elemTypes = {'p':'para', 'li':'para','ol':'list','ul':'list'}
+    elemTypes = {'p':'para', 'div':'para', 'li':'para', 'ol':'list',
+                 'ul':'list'}
     def __init__(self, elem, attrs):
         self.elem = elem
         # Keep "class" attribute (useful for finding the corresponding ODT
@@ -219,16 +220,6 @@ class XhtmlEnvironment(XmlEnvironment):
         self.currentElements = [] # Stack of currently walked elements
         self.currentLists = [] # Stack of currently walked lists (ul or ol)
         self.currentTables = [] # Stack of currently walked tables
-        self.creatingRootParagraph = False
-        # Within the XHTML chunk given to this parser, there may be some
-        # content that is not enclosed within any tag (at "root" level). When I
-        # encounter such content, I will include it into a root paragraph with
-        # default style. This content may include sub-tags of course (span,
-        # div, img, a...) or may already be dumped entirely if I encounter
-        # "paragraph-style" sub-tags (h1, h2, p...). self.creatingRootParagraph
-        # tells me if I am still in a root paragraph. So when I encounter a
-        # "root" content I know if I must reopen a new paragraph or not, for
-        # example.
         self.textNs = ns[OdfEnvironment.NS_TEXT]
         self.linkNs = ns[OdfEnvironment.NS_XLINK]
         self.tableNs = ns[OdfEnvironment.NS_TABLE]
@@ -467,10 +458,7 @@ class XhtmlParser(XmlParser):
             e.res = e.res[:-len(startTag)]
         else:
             # Dump the end tag. But dump some additional stuff if required.
-            if elem == 'div':
-                # For "div" elements, we append a carriage return.
-                endTag = '<%s:line-break/>%s' % (e.textNs, endTag)
-            elif elem in XHTML_LISTS:
+            if elem in XHTML_LISTS:
                 if len(e.currentLists) >= 1:
                     # We were in an inner list. So we must close the list-item
                     # tag that surrounds it.
