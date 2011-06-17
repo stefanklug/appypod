@@ -19,6 +19,7 @@
 # ------------------------------------------------------------------------------
 import re
 
+from xml.sax.saxutils import quoteattr
 from appy.pod import PodError, XML_SPECIAL_CHARS
 from appy.pod.elements import *
 from appy.pod.actions import IfAction, ElseAction, ForAction, VariableAction, \
@@ -141,7 +142,7 @@ class Buffer:
     def dumpStartElement(self, elem, attrs={}):
         self.write('<%s' % elem)
         for name, value in attrs.items():
-            self.write(' %s="%s"' % (name, value))
+            self.write(' %s=%s' % (name, quoteattr(value)))
         self.write('>')
 
     def dumpEndElement(self, elem):
@@ -161,9 +162,6 @@ class Buffer:
                 self.write(XML_SPECIAL_CHARS[c])
             else:
                 self.write(c)
-
-    def dumpAttribute(self, name, value):
-        self.write(''' %s="%s" ''' % (name, value))
 
 # ------------------------------------------------------------------------------
 class FileBuffer(Buffer):
