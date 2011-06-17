@@ -21,7 +21,7 @@ import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
 
 from UserDict import UserDict
 
-import appy.pod, time
+import appy.pod, time, cgi
 from appy.pod import PodError
 from appy.shared import mimeTypesExts
 from appy.shared.xml_parser import XmlElement
@@ -240,7 +240,7 @@ class Renderer:
     def renderText(self, text, encoding='utf-8', stylesMapping={}):
         '''Method that can be used (under the name 'text') into a pod template
            for inserting a text containing carriage returns.'''
-        text = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
+        text = cgi.escape(text).replace('\r\n', '<br/>').replace('\n', '<br/>')
         return self.renderXhtml(text, encoding, stylesMapping)
 
     def evalIfExpression(self, condition, ifTrue, ifFalse):
