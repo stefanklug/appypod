@@ -250,9 +250,11 @@ class AbstractWrapper:
         '''Deletes myself.'''
         self.o.delete()
 
-    def translate(self, label, mapping={}, domain=None, language=None):
+    def translate(self, label, mapping={}, domain=None, language=None,
+                  format='html'):
         '''Check documentation of self.o.translate.'''
-        return self.o.translate(label, mapping, domain, language=language)
+        return self.o.translate(label, mapping, domain, language=language,
+                                format=format)
 
     def do(self, transition, comment='', doAction=False, doNotify=False,
            doHistory=True):

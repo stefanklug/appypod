@@ -18,7 +18,12 @@
                       Zope object if previous param starts with "path=".
 
      <args> (optional) are the arguments to give to this method (only strings
-            are supported). Several arguments must be separated by '*'.'''
+            are supported). Several arguments must be separated by '*'.
+
+    Note that you can also specify several commands, separated with
+    semicolons (";"). This scripts performes a single commit after all commands
+    have been executed.
+'''
 
 # ------------------------------------------------------------------------------
 import sys, transaction
@@ -28,12 +33,16 @@ if len(sys.argv) != 2:
     print 'job.py was called with wrong args.'
     print __doc__
 else:
-    command = sys.argv[1]
-    parts = command.split(':')
-    if len(parts) not in (4,5):
-        print 'job.py was called with wrong args.'
-        print __doc__
-    else:
+    commands = sys.argv[1].split(';')
+    # Check that every command has the right number of sub-elelements.
+    for command in commands:
+        parts = command.split(':')
+        if len(parts) not in (4,5):
+            print 'job.py was called with wrong args.'
+            print __doc__
+
+    for command in commands:
+        parts = command.split(':')
         # Unwrap parameters
         if len(parts) == 4:
             zopeUser, plonePath, appName, toolMethod = parts
@@ -66,5 +75,5 @@ else:
         # Execute the method on the target object
         if args: args = args.split('*')
         exec 'targetObject.%s(*args)' % toolMethod
-        transaction.commit()
+    transaction.commit()
 # ------------------------------------------------------------------------------

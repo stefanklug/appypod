@@ -3,7 +3,7 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, types, mimetypes, urllib
+import os, os.path, sys, types, mimetypes, urllib, cgi
 import appy.gen
 from appy.gen import Type, String, Selection, Role, No
 from appy.gen.utils import *
@@ -1173,8 +1173,9 @@ class BaseMixin:
 
     def formatText(self, text, format='html'):
         '''Produces a representation of p_text into the desired p_format, which
-           is 'html' by default.'''
-        if format in ('html', 'xhtml'):
+           is "html" by default.'''
+        if 'html' in format:
+            if format == 'html_from_text': text = cgi.escape(text)
             res = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
         elif format == 'js':
             res = text.replace('\r\n', '').replace('\n', '')

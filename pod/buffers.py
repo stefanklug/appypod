@@ -177,7 +177,10 @@ class FileBuffer(Buffer):
     def getLength(self): return 0
 
     def write(self, something):
-        self.content.write(something.encode('utf-8'))
+        try:
+            self.content.write(something.encode('utf-8'))
+        except UnicodeDecodeError:
+            self.content.write(something)
 
     def addExpression(self, expression):
         try:
