@@ -142,10 +142,14 @@ class Renderer:
         self.forceOoCall = forceOoCall
         self.finalizeFunction = finalizeFunction
         self.overwriteExisting = overwriteExisting
-        # Retain potential files or images that will be included through
+        # Remember potential files or images that will be included through
         # "do ... from document" statements: we will need to declare them in
-        # META-INF/manifest.xml.
-        self.fileNames = []
+        # META-INF/manifest.xml. Keys are file names as they appear within the
+        # ODT file (to dump in manifest.xml); values are original paths of
+        # included images (used for avoiding to create multiple copies of a file
+        # which is imported several times).
+        # imported file).
+        self.fileNames = {}
         self.prepareFolders()
         # Unzip template
         self.unzipFolder = os.path.join(self.tempFolder, 'unzip')
@@ -255,12 +259,12 @@ class Renderer:
     imageFormats = ('png', 'jpeg', 'jpg', 'gif')
     ooFormats = ('odt',)
     def importDocument(self, content=None, at=None, format=None,
-                       anchor='as-char'):
+                       anchor='as-char', wrapInPara=True):
         '''If p_at is not None, it represents a path or url allowing to find
            the document. If p_at is None, the content of the document is
            supposed to be in binary format in p_content. The document
-           p_format may be: odt or any format in imageFormats. p_anchor is only
-           relevant for images.'''
+           p_format may be: odt or any format in imageFormats. p_anchor and
+           p_wrapInPara are only relevant for images.'''
         ns = self.currentParser.env.namespaces
         importer = None
         # Is there someting to import?
@@ -287,12 +291,11 @@ class Renderer:
             importer = PdfImporter
         else:
             raise PodError(DOC_WRONG_FORMAT % format)
-        imp = importer(content, at, format, self.tempFolder, ns)
+        imp = importer(content, at, format, self.tempFolder, ns, self.fileNames)
         if isImage:
             imp.setAnchor(anchor)
+            imp.wrapInPara = wrapInPara
         res = imp.run()
-        if imp.fileNames:
-            self.fileNames += imp.fileNames
         return res
 
     def prepareFolders(self):
@@ -323,7 +326,7 @@ class Renderer:
         if self.fileNames:
             j = os.path.join
             toInsert = ''
-            for fileName in self.fileNames:
+            for fileName in self.fileNames.iterkeys():
                 mimeType = mimetypes.guess_type(fileName)[0]
                 toInsert += ' <manifest:file-entry manifest:media-type="%s" ' \
                             'manifest:full-path="%s"/>\n' % (mimeType, fileName)
