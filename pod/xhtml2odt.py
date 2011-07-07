@@ -106,7 +106,8 @@ class HtmlElement:
         if (parentElem.elemType == 'para') and \
            (self.elem in NOT_INSIDE_P_OR_P):
             # Oups, li->p wrongly considered as a conflict.
-            if (parentElem.elem == 'li') and (self.elem == 'p'): return ()
+            if (parentElem.elem == 'li') and (self.elem in ('p', 'div')):
+                return ()
             return (parentElem.setConflictual(),)
         # Check inner paragraphs
         if (parentElem.elem in INNER_TAGS) and (self.elemType == 'para'):

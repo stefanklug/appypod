@@ -2101,7 +2101,7 @@ class Pod(Type):
         # Define parameters to give to the appy.pod renderer
         podContext = {'tool': tool, 'user': obj.user, 'self': obj,
                       'now': obj.o.getProductConfig().DateTime(),
-                      'projectFolder': tool.getDiskFolder()}
+                      '_': obj.translate, 'projectFolder': tool.getDiskFolder()}
         # If the POD document is related to a query, get it from the request,
         # execute it and put the result in the context.
         isQueryRelated = rq.get('queryData', None)
