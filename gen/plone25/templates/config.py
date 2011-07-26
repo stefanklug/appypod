@@ -27,7 +27,6 @@ from Products.CMFPlone.utils import ToolInit
 from Products.CMFPlone.interfaces import IPloneSiteRoot
 from Products.CMFCore import DirectoryView
 from Products.CMFCore.DirectoryView import manage_addDirectoryView
-from Products.DCWorkflow.Transitions import TRIGGER_USER_ACTION
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 from Products.Archetypes.Extensions.utils import installTypes
 from Products.Archetypes.Extensions.utils import install_subskin
@@ -56,17 +55,6 @@ allClassNames = [<!allClassNames!>]
 # List of classes that must be hidden from the catalog
 catalogMap = {}
 <!catalogMap!>
-
-# Dict whose keys are class names and whose values are workflow names (=the
-# workflow used by the content type)
-workflows = {<!workflows!>}
-# In the following dict, we keep one instance for every Appy workflow defined
-# in the application. Those prototypical instances will be used for executing
-# user-defined actions and transitions. For each instance, we add a special
-# attribute "_transitionsMapping" that allows to get Appy transitions from the
-# names of DC transitions.
-workflowInstances = {}
-<!workflowInstancesInit!>
 
 # In the following dict, we store, for every Appy class, the ordered list of
 # appy types (included inherited ones).

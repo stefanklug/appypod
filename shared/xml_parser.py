@@ -330,7 +330,7 @@ class XmlUnmarshaller(XmlParser):
             if isinstance(currentContainer, list):
                 currentContainer.append(value)
             elif isinstance(currentContainer, UnmarshalledFile):
-                currentContainer.content += value
+                currentContainer.content += value or ''
             else:
                 # Current container is an object
                 if hasattr(currentContainer, name) and \

@@ -34,10 +34,10 @@ SENDMAIL_ERROR = 'Error while sending mail: %s.'
 ENCODING_ERROR = 'Encoding error while sending mail: %s.'
 
 from appy.gen.utils import sequenceTypes
-from appy.gen.plone25.descriptors import WorkflowDescriptor
+from appy.gen.descriptors import WorkflowDescriptor
 import socket
 
-def sendMail(obj, transition, transitionName, workflow, logger):
+def sendMail(obj, transition, transitionName, workflow):
     '''Sends mail about p_transition that has been triggered on p_obj that is
        controlled by p_workflow.'''
     wfName = WorkflowDescriptor.getWorkflowName(workflow.__class__)
@@ -94,12 +94,12 @@ def sendMail(obj, transition, transitionName, workflow, logger):
                 recipient.encode(enc), fromAddress.encode(enc),
                 mailSubject.encode(enc), mcc=cc, charset='utf-8')
         except socket.error, sg:
-            logger.warn(SENDMAIL_ERROR % str(sg))
+            obj.log(SENDMAIL_ERROR % str(sg), type='warning')
             break
         except UnicodeDecodeError, ue:
-            logger.warn(ENCODING_ERROR % str(ue))
+            obj.log(ENCODING_ERROR % str(ue), type='warning')
             break
         except Exception, e:
-            logger.warn(SENDMAIL_ERROR % str(e))
+            obj.log(SENDMAIL_ERROR % str(e), type='warning')
             break
 # ------------------------------------------------------------------------------

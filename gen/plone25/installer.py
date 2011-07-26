@@ -34,7 +34,6 @@ class PloneInstaller:
         self.catalogMap = cfg.catalogMap
         self.applicationRoles = cfg.applicationRoles # Roles defined in the app
         self.defaultAddRoles = cfg.defaultAddRoles
-        self.workflows = cfg.workflows
         self.appFrontPage = cfg.appFrontPage
         self.showPortlet = cfg.showPortlet
         self.languages = cfg.languages
@@ -378,22 +377,6 @@ class PloneInstaller:
             site.portal_groups.setRolesForGroup(group, [role])
         site.__ac_roles__ = tuple(data)
 
-    def installWorkflows(self):
-        '''Creates or updates the workflows defined in the application.'''
-        wfTool = self.ploneSite.portal_workflow
-        for contentType, workflowName in self.workflows.iteritems():
-            # Register the workflow if needed
-            if workflowName not in wfTool.listWorkflows():
-                wfMethod = self.config.ExternalMethod('temp', 'temp',
-                    self.productName + '.workflows', 'create_%s' % workflowName)
-                workflow = wfMethod(self, workflowName)
-                wfTool._setObject(workflowName, workflow)
-            else:
-                self.appyTool.log('%s already in workflows.' % workflowName)
-            # Link the workflow to the current content type
-            wfTool.setChainForPortalTypes([contentType], workflowName)
-        return wfTool
-
     def installStyleSheet(self):
         '''Registers In Plone the stylesheet linked to this application.'''
         cssName = self.productName + '.css'
@@ -495,7 +478,6 @@ class PloneInstaller:
         self.installTool()
         self.installTranslations()
         self.installRolesAndGroups()
-        self.installWorkflows()
         self.installStyleSheet()
         self.managePortlets()
         self.manageIndexes()

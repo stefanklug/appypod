@@ -37,7 +37,7 @@ class AbstractWrapper:
 
     def __cmp__(self, other):
         if other: return cmp(self.o, other.o)
-        else: return 1
+        return 1
 
     def _callCustom(self, methodName, *args, **kwargs):
         '''This wrapper implements some methods like "validate" and "onEdit".
@@ -68,20 +68,19 @@ class AbstractWrapper:
     def get_uid(self): return self.o.UID()
     uid = property(get_uid)
 
-    def get_state(self):
-        return self.o.portal_workflow.getInfoFor(self.o, 'review_state')
+    def get_klass(self): return self.__class__.__bases__[-1]
+    klass = property(get_klass)
+
+    def get_url(self): return self.o.absolute_url()
+    url = property(get_url)
+
+    def get_state(self): return self.o.getState()
     state = property(get_state)
 
     def get_stateLabel(self):
         appName = self.o.getProductConfig().PROJECTNAME
         return self.o.translate(self.o.getWorkflowLabel(), domain=appName)
     stateLabel = property(get_stateLabel)
-
-    def get_klass(self): return self.__class__.__bases__[-1]
-    klass = property(get_klass)
-
-    def get_url(self): return self.o.absolute_url()
-    url = property(get_url)
 
     def get_history(self):
         key = self.o.workflow_history.keys()[0]
@@ -256,42 +255,12 @@ class AbstractWrapper:
         return self.o.translate(label, mapping, domain, language=language,
                                 format=format)
 
-    def do(self, transition, comment='', doAction=False, doNotify=False,
+    def do(self, transition, comment='', doAction=True, doNotify=True,
            doHistory=True):
         '''This method allows to trigger on p_self a workflow p_transition
-           programmatically. If p_doAction is False, the action that must
-           normally be executed after the transition has been triggered will
-           not be executed. If p_doNotify is False, the notifications
-           (email,...) that must normally be launched after the transition has
-           been triggered will not be launched. If p_doHistory is False, there
-           will be no trace from this transition triggering in the workflow
-           history.'''
-        wfTool = self.o.portal_workflow
-        availableTransitions = [t['id'] for t in self.o.getAppyTransitions(\
-                                includeFake=False, includeNotShowable=True)]
-        transitionName = transition
-        if not transitionName in availableTransitions:
-            # Maybe is it a compound Appy transition. Try to find the
-            # corresponding DC transition.
-            state = self.state
-            transitionPrefix = transition + state[0].upper() + state[1:] + 'To'
-            for at in availableTransitions:
-                if at.startswith(transitionPrefix):
-                    transitionName = at
-                    break
-        # Set in a versatile attribute details about what to execute or not
-        # (actions, notifications) after the transition has been executed by DC
-        # workflow.
-        self.o._appy_do = {'doAction': doAction, 'doNotify': doNotify,
-                             'doSay': False}
-        if not doHistory:
-            comment = '_invisible_' # Will not be displayed.
-            # At first sight, I wanted to remove the entry from
-            # self.o.workflow_history. But Plone determines the state of an
-            # object by consulting the target state of the last transition in
-            # this workflow_history.
-        wfTool.doActionFor(self.o, transitionName, comment=comment)
-        del self.o._appy_do
+           programmatically. See doc in self.o.do.'''
+        return self.o.do(transition, comment, doAction=doAction,
+                         doNotify=doNotify, doHistory=doHistory, doSay=False)
 
     def log(self, message, type='info'): return self.o.log(message, type)
     def say(self, message, type='info'): return self.o.say(message, type)

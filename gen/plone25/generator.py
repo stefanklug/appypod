@@ -8,9 +8,9 @@ from appy.gen import *
 from appy.gen.po import PoMessage, PoFile, PoParser
 from appy.gen.generator import Generator as AbstractGenerator
 from appy.gen.utils import getClassName
-from descriptors import ClassDescriptor, WorkflowDescriptor, \
-                        ToolClassDescriptor, UserClassDescriptor, \
-                        TranslationClassDescriptor
+from appy.gen.descriptors import WorkflowDescriptor
+from descriptors import ClassDescriptor, ToolClassDescriptor, \
+                        UserClassDescriptor, TranslationClassDescriptor
 from model import ModelClass, User, Tool, Translation
 
 # Common methods that need to be defined on every Archetype class --------------
@@ -38,7 +38,6 @@ class Generator(AbstractGenerator):
         AbstractGenerator.__init__(self, *args, **kwargs)
         # Set our own Descriptor classes
         self.descriptorClasses['class'] = ClassDescriptor
-        self.descriptorClasses['workflow']  = WorkflowDescriptor
         # Create our own Tool, User and Translation instances
         self.tool = ToolClassDescriptor(Tool, self)
         self.user = UserClassDescriptor(User, self)
@@ -159,7 +158,6 @@ class Generator(AbstractGenerator):
         # Create basic files (config.py, Install.py, etc)
         self.generateTool()
         self.generateInit()
-        self.generateWorkflows()
         self.generateTests()
         if self.config.frontPage:
             self.generateFrontPage()
@@ -368,33 +366,6 @@ class Generator(AbstractGenerator):
             catalogMap += "catalogMap['%s']['black'] = " \
                           "['portal_catalog']\n" % blackClass
         repls['catalogMap'] = catalogMap
-        # Compute workflows
-        workflows = ''
-        for classDescr in classesAll:
-            if hasattr(classDescr.klass, 'workflow'):
-                wfName = WorkflowDescriptor.getWorkflowName(
-                    classDescr.klass.workflow)
-                workflows += '\n    "%s":"%s",' % (classDescr.name, wfName)
-        repls['workflows'] = workflows
-        # Compute workflow instances initialisation
-        wfInit = ''
-        for workflowDescr in self.workflows:
-            k = workflowDescr.klass
-            className = '%s.%s' % (k.__module__, k.__name__)
-            wfInit += 'wf = %s()\n' % className
-            wfInit += 'wf._transitionsMapping = {}\n'
-            for transition in workflowDescr.getTransitions():
-                tName = workflowDescr.getNameOf(transition)
-                tNames = workflowDescr.getTransitionNamesOf(tName, transition)
-                for trName in tNames:
-                    wfInit += 'wf._transitionsMapping["%s"] = wf.%s\n' % \
-                              (trName, tName)
-            # We need a new attribute that stores states in order
-            wfInit += 'wf._states = []\n'
-            for stateName in workflowDescr.getStateNames(ordered=True):
-                wfInit += 'wf._states.append("%s")\n' % stateName
-            wfInit += 'workflowInstances[%s] = wf\n' % className
-        repls['workflowInstancesInit'] = wfInit
         # Compute the list of ordered attributes (forward and backward,
         # inherited included) for every Appy class.
         attributes = []
@@ -463,40 +434,6 @@ class Generator(AbstractGenerator):
         repls['totalNumberOfTests'] = self.totalNumberOfTests
         self.copyFile('__init__.py', repls)
 
-    def generateWorkflows(self):
-        '''Generates the file that contains one function by workflow.
-           Those functions are called by Plone for registering the workflows.'''
-        workflows = ''
-        for wfDescr in self.workflows:
-            # Compute state names & info, transition names & infos, managed
-            # permissions
-            stateNames=','.join(['"%s"' % sn for sn in wfDescr.getStateNames()])
-            stateInfos = wfDescr.getStatesInfo(asDumpableCode=True)
-            transitionNames = ','.join(['"%s"' % tn for tn in \
-                                        wfDescr.getTransitionNames()])
-            transitionInfos = wfDescr.getTransitionsInfo(asDumpableCode=True)
-            managedPermissions = ','.join(['"%s"' % tn for tn in \
-                                          wfDescr.getManagedPermissions()])
-            wfName = WorkflowDescriptor.getWorkflowName(wfDescr.klass)
-            workflows += '%s\ndef create_%s(self, id):\n    ' \
-                'stateNames = [%s]\n    ' \
-                'stateInfos = %s\n    ' \
-                'transitionNames = [%s]\n    ' \
-                'transitionInfos = %s\n    ' \
-                'managedPermissions = [%s]\n    ' \
-                'return WorkflowCreator("%s", DCWorkflowDefinition, ' \
-                'stateNames, "%s", stateInfos, transitionNames, ' \
-                'transitionInfos, managedPermissions, PROJECTNAME, ' \
-                'ExternalMethod).run()\n' \
-                'addWorkflowFactory(create_%s,\n    id="%s",\n    ' \
-                'title="%s")\n\n' % (wfDescr.getScripts(), wfName, stateNames,
-                stateInfos, transitionNames, transitionInfos,
-                managedPermissions, wfName, wfDescr.getInitialStateName(),
-                wfName, wfName, wfName)
-        repls = self.repls.copy()
-        repls['workflows'] = workflows
-        self.copyFile('workflows.py', repls, destFolder='Extensions')
-
     def generateWrapperProperty(self, name, type):
         '''Generates the getter for attribute p_name.'''
         res = '    def get_%s(self):\n        ' % name
@@ -519,18 +456,17 @@ class Generator(AbstractGenerator):
            * "custom"     it includes descriptors for the config-related classes
                           for which the user has created a sub-class.'''
         if not include: return self.classes
-        else:
-            res = self.classes[:]
-            configClasses = [self.tool, self.user, self.translation]
-            if include == 'all':
-                res += configClasses
-            elif include == 'allButTool':
-                res += configClasses[1:]
-            elif include == 'custom':
-                res += [c for c in configClasses if c.customized]
-            elif include == 'predefined':
-                res = configClasses
-            return res
+        res = self.classes[:]
+        configClasses = [self.tool, self.user, self.translation]
+        if include == 'all':
+            res += configClasses
+        elif include == 'allButTool':
+            res += configClasses[1:]
+        elif include == 'custom':
+            res += [c for c in configClasses if c.customized]
+        elif include == 'predefined':
+            res = configClasses
+        return res
 
     def getClassesInOrder(self, allClasses):
         '''When generating wrappers, classes mut be dumped in order (else, it
@@ -793,44 +729,39 @@ class Generator(AbstractGenerator):
         self.copyFile('Class.py', repls, destName=fileName)
 
     def generateWorkflow(self, wfDescr):
-        '''This method does not generate the workflow definition, which is done
-           in self.generateWorkflows. This method just creates the i18n labels
-           related to the workflow described by p_wfDescr.'''
+        '''This method creates the i18n labels related to the workflow described
+           by p_wfDescr.'''
         k = wfDescr.klass
         print 'Generating %s.%s (gen-workflow)...' % (k.__module__, k.__name__)
-        # Identify Plone workflow name
+        # Identify workflow name
         wfName = WorkflowDescriptor.getWorkflowName(wfDescr.klass)
-        # Add i18n messages for states and transitions
-        for sName in wfDescr.getStateNames():
-            poMsg = PoMessage('%s_%s' % (wfName, sName), '', sName)
+        # Add i18n messages for states
+        for name in dir(wfDescr.klass):
+            if not isinstance(getattr(wfDescr.klass, name), State): continue
+            poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
             poMsg.produceNiceDefault()
             self.labels.append(poMsg)
-        for tName, tLabel in wfDescr.getTransitionNames(withLabels=True):
-            poMsg = PoMessage('%s_%s' % (wfName, tName), '', tLabel)
+        # Add i18n messages for transitions
+        for name in dir(wfDescr.klass):
+            transition = getattr(wfDescr.klass, name)
+            if not isinstance(transition, Transition): continue
+            poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
             poMsg.produceNiceDefault()
             self.labels.append(poMsg)
-        for transition in wfDescr.getTransitions():
-            # Get the Appy transition name
-            tName = wfDescr.getNameOf(transition)
-            # Get the names of the corresponding DC transition(s)
-            tNames = wfDescr.getTransitionNamesOf(tName, transition)
             if transition.confirm:
                 # We need to generate a label for the message that will be shown
                 # in the confirm popup.
-                for tn in tNames:
-                    label = '%s_%s_confirm' % (wfName, tn)
-                    poMsg = PoMessage(label, '', PoMessage.CONFIRM)
-                    self.labels.append(poMsg)
+                label = '%s_%s_confirm' % (wfName, name)
+                poMsg = PoMessage(label, '', PoMessage.CONFIRM)
+                self.labels.append(poMsg)
             if transition.notify:
                 # Appy will send a mail when this transition is triggered.
-                # So we need 2 i18n labels for every DC transition corresponding
-                # to this Appy transition: one for the mail subject and one for
+                # So we need 2 i18n labels: one for the mail subject and one for
                 # the mail body.
-                for tn in tNames:
-                    subjectLabel = '%s_%s_mail_subject' % (wfName, tn)
-                    poMsg = PoMessage(subjectLabel, '', PoMessage.EMAIL_SUBJECT)
-                    self.labels.append(poMsg)
-                    bodyLabel = '%s_%s_mail_body' % (wfName, tn)
-                    poMsg = PoMessage(bodyLabel, '', PoMessage.EMAIL_BODY)
-                    self.labels.append(poMsg)
+                subjectLabel = '%s_%s_mail_subject' % (wfName, name)
+                poMsg = PoMessage(subjectLabel, '', PoMessage.EMAIL_SUBJECT)
+                self.labels.append(poMsg)
+                bodyLabel = '%s_%s_mail_body' % (wfName, name)
+                poMsg = PoMessage(bodyLabel, '', PoMessage.EMAIL_BODY)
+                self.labels.append(poMsg)
 # ------------------------------------------------------------------------------

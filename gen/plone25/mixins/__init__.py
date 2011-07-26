@@ -5,9 +5,11 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes, urllib, cgi
 import appy.gen
-from appy.gen import Type, String, Selection, Role, No
+from appy.gen import Type, String, Selection, Role, No, WorkflowAnonymous, \
+                     Transition
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
+from appy.gen.descriptors import WorkflowDescriptor
 from appy.gen.plone25.descriptors import ClassDescriptor
 from appy.gen.plone25.utils import updateRolesForPermission,checkTransitionGuard
 
@@ -300,6 +302,27 @@ class BaseMixin:
         else: logMethod = logger.info
         logMethod(msg)
 
+    def getState(self, name=True):
+        '''Returns state information about this object. If p_name is True, the
+           returned info is the state name. Else, it is the State instance.'''
+        if hasattr(self.aq_base, 'workflow_history'):
+            key = self.workflow_history.keys()[0]
+            stateName = self.workflow_history[key][-1]['review_state']
+            if name: return stateName
+            else: return getattr(self.getWorkflow(), stateName)
+        else:
+            # No workflow information is available (yet) on this object. So
+            # return the workflow initial state.
+            wf = self.getWorkflow()
+            initStateName = 'active'
+            for elem in dir(wf):
+                attr = getattr(wf, elem)
+                if (attr.__class__.__name__ == 'State') and attr.initial:
+                    initStateName = elem
+                    break
+            if name: return initStateName
+            else: return getattr(wf, initStateName)
+
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
            every historized field, the previous value. Result is a dict
@@ -327,11 +350,10 @@ class BaseMixin:
             else:
                 changes[fieldName] = (changes[fieldName], appyType.labelId)
         # Create the event to record in the history
-        DateTime = self.getProductConfig().DateTime
-        state = self.portal_workflow.getInfoFor(self, 'review_state')
+        from DateTime import DateTime
         user = self.portal_membership.getAuthenticatedMember()
         event = {'action': '_datachange_', 'changes': changes,
-                 'review_state': state, 'actor': user.id,
+                 'review_state': self.getState(), 'actor': user.id,
                  'time': DateTime(), 'comments': ''}
         # Add the event to the history
         histKey = self.workflow_history.keys()[0]
@@ -583,62 +605,48 @@ class BaseMixin:
         '''Returns information about the states that are related to p_phase.
            If p_currentOnly is True, we return the current state, even if not
            related to p_phase.'''
-        res = []
-        dcWorkflow = self.getWorkflow(appy=False)
-        if not dcWorkflow: return res
-        currentState = self.portal_workflow.getInfoFor(self, 'review_state')
+        currentState = self.getState()
         if currentOnly:
-            return [StateDescr(currentState,'current').get()]
-        workflow = self.getWorkflow(appy=True)
-        if workflow:
-            stateStatus = 'done'
-            for stateName in workflow._states:
-                if stateName == currentState:
-                    stateStatus = 'current'
-                elif stateStatus != 'done':
-                    stateStatus = 'future'
-                state = getattr(workflow, stateName)
-                if (state.phase == phase) and \
-                   (self._appy_showState(workflow, state.show)):
-                    res.append(StateDescr(stateName, stateStatus).get())
+            return [StateDescr(currentState, 'current').get()]
+        res = []
+        workflow = self.getWorkflow()
+        stateStatus = 'done'
+        for stateName in dir(workflow):
+            if getattr(workflow, stateName).__class__.__name__ != 'State':
+                continue
+            if stateName == currentState:
+                stateStatus = 'current'
+            elif stateStatus != 'done':
+                stateStatus = 'future'
+            state = getattr(workflow, stateName)
+            if (state.phase == phase) and \
+               (self._appy_showState(workflow, state.show)):
+                res.append(StateDescr(stateName, stateStatus).get())
         return res
 
     def getAppyTransitions(self, includeFake=True, includeNotShowable=False):
-        '''This method is similar to portal_workflow.getTransitionsFor, but:
-           * is able (or not, depending on boolean p_includeFake) to retrieve
-             transitions that the user can't trigger, but for which he needs to
-             know for what reason he can't trigger it;
-           * is able (or not, depending on p_includeNotShowable) to include
-             transitions for which show=False at the Appy level. Indeed, because
-             "showability" is only a GUI concern, and not a security concern,
-             in some cases it has sense to set includeNotShowable=True, because
-             those transitions are triggerable from a security point of view;
-           * the transition-info is richer: it contains fake-related info (as
-             described above) and confirm-related info (ie, when clicking on
-             the button, do we ask the user to confirm via a popup?)'''
+        '''This method returns info about transitions that one can trigger from
+           the user interface.
+           * if p_includeFake is True, it retrieves transitions that the user
+             can't trigger, but for which he needs to know for what reason he
+             can't trigger it;
+           * if p_includeNotShowable is True, it includes transitions for which
+             show=False. Indeed, because "showability" is only a GUI concern,
+             and not a security concern, in some cases it has sense to set
+             includeNotShowable=True, because those transitions are triggerable
+             from a security point of view.
+        '''
         res = []
-        # Get some Plone stuff from the Plone-level config.py
-        TRIGGER_USER_ACTION = self.getProductConfig().TRIGGER_USER_ACTION
-        sm = self.getProductConfig().getSecurityManager
-        # Get the workflow definition for p_obj.
-        workflow = self.getWorkflow(appy=False)
-        if not workflow: return res
-        appyWorkflow = self.getWorkflow(appy=True)
-        # What is the current state for this object?
-        currentState = workflow._getWorkflowStateOf(self)
-        if not currentState: return res
-        # Analyse all the transitions that start from this state.
-        for transitionId in currentState.transitions:
-            transition = workflow.transitions.get(transitionId, None)
-            appyTr = appyWorkflow._transitionsMapping[transitionId]
-            if not transition or (transition.trigger_type!=TRIGGER_USER_ACTION)\
-               or not transition.actbox_name: continue
-            # We have a possible candidate for a user-triggerable transition
-            if transition.guard is None:
-                mayTrigger = True
-            else:
-                mayTrigger = checkTransitionGuard(transition.guard, sm(),
-                                                  workflow, self)
+        wf = self.getWorkflow()
+        currentState = self.getState(name=False)
+        # Loop on every transition
+        for name in dir(wf):
+            transition = getattr(wf, name)
+            if (transition.__class__.__name__ != 'Transition'): continue
+            # Filter transitions that do not have currentState as start state
+            if not transition.hasState(currentState, True): continue
+            # Check if the transition can be triggered
+            mayTrigger = transition.isTriggerable(self, wf)
             # Compute the condition that will lead to including or not this
             # transition
             if not includeFake:
@@ -646,19 +654,15 @@ class BaseMixin:
             else:
                 includeIt = mayTrigger or isinstance(mayTrigger, No)
             if not includeNotShowable:
-                includeIt = includeIt and appyTr.isShowable(appyWorkflow, self)
+                includeIt = includeIt and transition.isShowable(wf, self)
             if not includeIt: continue
             # Add transition-info to the result.
-            tInfo = {'id': transition.id, 'title': transition.title,
-                     'title_or_id': transition.title_or_id(),
-                     'description': transition.description, 'confirm': '',
-                     'name': transition.actbox_name, 'may_trigger': True,
-                     'url': transition.actbox_url %
-                        {'content_url': self.absolute_url(),
-                         'portal_url' : '', 'folder_url' : ''}}
-            if appyTr.confirm:
-                label = '%s_confirm' % tInfo['name']
-                tInfo['confirm'] = self.translate(label, format='js')
+            label = self.getWorkflowLabel(name)
+            tInfo = {'name': name, 'title': self.translate(label),
+                     'confirm': '', 'may_trigger': True}
+            if transition.confirm:
+                cLabel = '%s_confirm' % label
+                tInfo['confirm'] = self.translate(cLabel, format='js')
             if not mayTrigger:
                 tInfo['may_trigger'] = False
                 tInfo['reason'] = mayTrigger.msg
@@ -793,39 +797,32 @@ class BaseMixin:
         reverse = rq.get('reverse') == 'True'
         self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
 
-    def getWorkflow(self, appy=True):
-        '''Returns the Appy workflow instance that is relevant for this
-           object. If p_appy is False, it returns the DC workflow.'''
-        res = None
-        if appy:
-            # Get the workflow class first
-            workflowClass = None
-            if self.wrapperClass:
-                appyClass = self.wrapperClass.__bases__[-1]
-                if hasattr(appyClass, 'workflow'):
-                    workflowClass = appyClass.workflow
-            if workflowClass:
-                # Get the corresponding prototypical workflow instance
-                res = self.getProductConfig().workflowInstances[workflowClass]
-        else:
-            dcWorkflows = self.portal_workflow.getWorkflowsFor(self)
-            if dcWorkflows:
-                res = dcWorkflows[0]
-        return res
+    def notifyWorkflowCreated(self):
+        '''This method is called by Zope/CMF every time an object is created,
+           be it temp or not. The objective here is to initialise workflow-
+           related data on the object.'''
+        wf = self.getWorkflow()
+        # Get the initial workflow state
+        initialState = self.getState(name=False)
+        # Create a Transition instance representing the initial transition.
+        initialTransition = Transition((initialState, initialState))
+        initialTransition.trigger('_init_', self, wf, '')
+
+    def getWorkflow(self, name=False):
+        '''Returns the workflow applicable for p_self (or its name, if p_name
+           is True).'''
+        appyClass = self.wrapperClass.__bases__[-1]
+        if hasattr(appyClass, 'workflow'): wf = appyClass.workflow
+        else: wf = WorkflowAnonymous
+        if not name: return wf
+        return WorkflowDescriptor.getWorkflowName(wf)
 
     def getWorkflowLabel(self, stateName=None):
-        '''Gets the i18n label for the workflow current state. If no p_stateName
-           is given, workflow label is given for the current state.'''
-        res = ''
-        wf = self.getWorkflow(appy=False)
-        if wf:
-            res = stateName
-            if not res:
-                res = self.portal_workflow.getInfoFor(self, 'review_state')
-            appyWf = self.getWorkflow(appy=True)
-            if appyWf:
-                res = '%s_%s' % (wf.id, res)
-        return res
+        '''Gets the i18n label for p_stateName, or for the current object state
+           if p_stateName is not given. Note that if p_stateName is given, it
+           can also represent the name of a transition.'''
+        stateName = stateName or self.getState()
+        return '%s_%s' % (self.getWorkflow(name=True), stateName)
 
     def hasHistory(self):
         '''Has this object an history?'''
@@ -847,39 +844,6 @@ class BaseMixin:
         if reverse: history.reverse()
         return {'events': history[startNumber:startNumber+batchSize],
                 'totalNumber': len(history)}
-
-    def may(self, transitionName):
-        '''May the user execute transition named p_transitionName?'''
-        # Get the Appy workflow instance
-        workflow = self.getWorkflow()
-        res = False
-        if workflow:
-            # Get the corresponding Appy transition
-            transition = workflow._transitionsMapping[transitionName]
-            user = self.portal_membership.getAuthenticatedMember()
-            if isinstance(transition.condition, Role):
-                # It is a role. Transition may be triggered if the user has this
-                # role.
-                res = user.has_role(transition.condition.name, self)
-            elif type(transition.condition) == types.FunctionType:
-                res = transition.condition(workflow, self.appy())
-            elif type(transition.condition) in (tuple, list):
-                # It is a list of roles and or functions. Transition may be
-                # triggered if user has at least one of those roles and if all
-                # functions return True.
-                hasRole = None
-                for roleOrFunction in transition.condition:
-                    if isinstance(roleOrFunction, basestring):
-                        if hasRole == None:
-                            hasRole = False
-                        if user.has_role(roleOrFunction, self):
-                            hasRole = True
-                    elif type(roleOrFunction) == types.FunctionType:
-                        if not roleOrFunction(workflow, self.appy()):
-                            return False
-                if hasRole != False:
-                    res = True
-        return res
 
     def mayNavigate(self):
         '''May the currently logged user see the navigation panel linked to
@@ -946,16 +910,28 @@ class BaseMixin:
             # the user.
             return self.goto(msg)
 
-    def onTriggerTransition(self):
+    def do(self, transitionName, comment='', doAction=True, doNotify=True,
+           doHistory=True, doSay=True):
+        '''Triggers transition named p_transitionName.'''
+        # Check that this transition exists.
+        wf = self.getWorkflow()
+        if not hasattr(wf, transitionName) or \
+           getattr(wf, transitionName).__class__.__name__ != 'Transition':
+            raise 'Transition "%s" was not found.' % transitionName
+        # Is this transition triggerable?
+        transition = getattr(wf, transitionName)
+        if not transition.isTriggerable(self, wf):
+            raise 'Transition "%s" can\'t be triggered' % transitionName
+        # Trigger the transition
+        transition.trigger(transitionName, self, wf, comment, doAction=doAction,
+                           doNotify=doNotify, doHistory=doHistory, doSay=doSay)
+
+    def onDo(self):
         '''This method is called whenever a user wants to trigger a workflow
            transition on an object.'''
         rq = self.REQUEST
-        self.portal_workflow.doActionFor(self, rq['workflow_action'],
-                                         comment = rq.get('comment', ''))
+        self.do(rq['workflow_action'], comment=rq.get('comment', ''))
         self.reindexObject()
-        # Where to redirect the user back ?
-        # TODO (?): remove the "phase" param for redirecting the user to the
-        # next phase when relevant.
         return self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def fieldValueSelected(self, fieldName, vocabValue, dbValue):

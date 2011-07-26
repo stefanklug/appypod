@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
-import re, time, copy, sys, types, os, os.path, mimetypes, StringIO
+import re, time, copy, sys, types, os, os.path, mimetypes, string, StringIO
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
@@ -2167,7 +2167,13 @@ class Pod(Type):
             value = value._atFile
         setattr(obj, self.name, value)
 
-# Workflow-specific types ------------------------------------------------------
+# Workflow-specific types and default workflows --------------------------------
+appyToZopePermissions = {
+  'read': ('View', 'Access contents information'),
+  'write': 'Modify portal content',
+  'delete': 'Delete objects',
+}
+
 class Role:
     '''Represents a role.'''
     ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer', 'Anonymous',
@@ -2201,6 +2207,12 @@ class State:
         # Standardize the way roles are expressed within self.permissions
         self.standardizeRoles()
 
+    def getName(self, wf):
+        '''Returns the name for this state in workflow p_wf.'''
+        for name in dir(wf):
+            value = getattr(wf, name)
+            if (value == self): return name
+
     def getRole(self, role):
         '''p_role can be the name of a role or a Role instance. If it is the
            name of a role, this method returns self.usedRoles[role] if it
@@ -2233,16 +2245,6 @@ class State:
 
     def getUsedRoles(self): return self.usedRoles.values()
 
-    def getTransitions(self, transitions, selfIsFromState=True):
-        '''Among p_transitions, returns those whose fromState is p_self (if
-           p_selfIsFromState is True) or those whose toState is p_self (if
-           p_selfIsFromState is False).'''
-        res = []
-        for t in transitions:
-            if self in t.getStates(selfIsFromState):
-                res.append(t)
-        return res
-
     def getPermissions(self):
         '''If you get the permissions mapping through self.permissions, dict
            values may be of different types (a list of roles, a single role or
@@ -2257,6 +2259,38 @@ class State:
             else:
                 res[permission] = roleValue
         return res
+
+    def updatePermission(self, obj, zopePermission, roleNames):
+        '''Updates, on p_obj, list of p_roleNames which are granted a given
+           p_zopePermission.'''
+        attr = Permission.getZopeAttrName(zopePermission)
+        if not hasattr(obj.aq_base, attr) or \
+           (getattr(obj.aq_base, attr) != roleNames):
+            setattr(obj, attr, roleNames)
+
+    def updatePermissions(self, wf, obj):
+        '''Zope requires permission-to-roles mappings to be stored as attributes
+           on the object itself. This method does this job, duplicating the info
+           from this state on p_obj.'''
+        for permission, roles in self.getPermissions().iteritems():
+            roleNames = tuple([role.name for role in roles])
+            # Compute Zope permission(s) related to this permission.
+            if appyToZopePermissions.has_key(permission):
+                # It is a standard permission (r, w, d)
+                zopePerm = appyToZopePermissions[permission]
+            elif isinstance(permission, basestring):
+                # It is a user-defined permission
+                zopePerm = permission
+            else:
+                # It is a Permission instance
+                appName = obj.getProductConfig().PROJECTNAME
+                zopePerm = permission.getName(wf, appName)
+            # zopePerm contains a single permission or a tuple of permissions
+            if isinstance(zopePerm, basestring):
+                self.updatePermission(obj, zopePerm, roleNames)
+            else:
+                for zPerm in zopePerm:
+                    self.updatePermission(obj, zPerm, roleNames)
 
 class Transition:
     def __init__(self, states, condition=True, action=None, notify=None,
@@ -2277,6 +2311,12 @@ class Transition:
         # the transition. It will only be possible by code.
         self.confirm = confirm # If True, a confirm popup will show up.
 
+    def getName(self, wf):
+        '''Returns the name for this state in workflow p_wf.'''
+        for name in dir(wf):
+            value = getattr(wf, name)
+            if (value == self): return name
+
     def getUsedRoles(self):
         '''self.condition can specify a role.'''
         res = []
@@ -2296,23 +2336,6 @@ class Transition:
         else:
             return self.show
 
-    def getStates(self, fromStates=True):
-        '''Returns the fromState(s) if p_fromStates is True, the toState(s)
-           else. If you want to get the states grouped in tuples
-           (fromState, toState), simply use self.states.'''
-        res = []
-        stateIndex = 1
-        if fromStates:
-            stateIndex = 0
-        if self.isSingle():
-            res.append(self.states[stateIndex])
-        else:
-            for states in self.states:
-                theState = states[stateIndex]
-                if theState not in res:
-                    res.append(theState)
-        return res
-
     def hasState(self, state, isFrom):
         '''If p_isFrom is True, this method returns True if p_state is a
            starting state for p_self. If p_isFrom is False, this method returns
@@ -2330,6 +2353,117 @@ class Transition:
                     break
         return res
 
+    def isTriggerable(self, obj, wf):
+        '''Can this transition be triggered on p_obj?'''
+        # Checks that the current state of the object is a start state for this
+        # transition.
+        objState = obj.getState(name=False)
+        if self.isSingle():
+            if objState != self.states[0]: return False
+        else:
+            startFound = False
+            for startState, stopState in self.states:
+                if startState == objState:
+                    startFound = True
+                    break
+            if not startFound: return False
+        # Check that the condition is met
+        user = obj.portal_membership.getAuthenticatedMember()
+        if isinstance(self.condition, Role):
+            # Condition is a role. Transition may be triggered if the user has
+            # this role.
+            return user.has_role(self.condition.name, obj)
+        elif type(self.condition) == types.FunctionType:
+            return self.condition(wf, obj.appy())
+        elif type(self.condition) in (tuple, list):
+            # It is a list of roles and/or functions. Transition may be
+            # triggered if user has at least one of those roles and if all
+            # functions return True.
+            hasRole = None
+            for roleOrFunction in self.condition:
+                if isinstance(roleOrFunction, basestring):
+                    if hasRole == None:
+                        hasRole = False
+                    if user.has_role(roleOrFunction, obj):
+                        hasRole = True
+                elif type(roleOrFunction) == types.FunctionType:
+                    if not roleOrFunction(wf, obj.appy()):
+                        return False
+            if hasRole != False:
+                return True
+
+    def executeAction(self, obj, wf):
+        '''Executes the action related to this transition.'''
+        msg = ''
+        if type(self.action) in (tuple, list):
+            # We need to execute a list of actions
+            for act in self.action:
+                msgPart = act(wf, obj.appy())
+                if msgPart: msg += msgPart
+        else: # We execute a single action only.
+            msgPart = self.action(wf, obj.appy())
+            if msgPart: msg += msgPart
+        return msg
+
+    def trigger(self, transitionName, obj, wf, comment, doAction=True,
+                doNotify=True, doHistory=True, doSay=True):
+        '''This method triggers this transition on p_obj. The transition is
+           supposed to be triggerable (call to self.isTriggerable must have been
+           performed before calling this method). If p_doAction is False, the
+           action that must normally be executed after the transition has been
+           triggered will not be executed. If p_doNotify is False, the
+           notifications (email,...) that must normally be launched after the
+           transition has been triggered will not be launched. If p_doHistory is
+           False, there will be no trace from this transition triggering in the
+           workflow history. If p_doSay is False, we consider the transition is
+           trigger programmatically, and no message is returned to the user.'''
+        # Create the workflow_history dict if it does not exist.
+        if not hasattr(obj.aq_base, 'workflow_history'):
+            from persistent.mapping import PersistentMapping
+            obj.workflow_history = PersistentMapping()
+        # Create the event list if it does not exist in the dict
+        if not obj.workflow_history: obj.workflow_history['appy'] = ()
+        # Get the key where object history is stored (this overstructure is
+        # only there for backward compatibility reasons)
+        key = obj.workflow_history.keys()[0]
+        # Identify the target state for this transition
+        if self.isSingle():
+            targetState = self.states[1]
+            targetStateName = targetState.getName(wf)
+        else:
+            startState = obj.getState(name=False)
+            for sState, tState in self.states:
+                if startState == sState:
+                    targetState = tState
+                    targetStateName = targetState.getName(wf)
+                    break
+        # Create the event and put it in workflow_history
+        from DateTime import DateTime
+        action = transitionName
+        if transitionName == '_init_': action = None
+        userId = obj.portal_membership.getAuthenticatedMember().getId()
+        if not doHistory: comment = '_invisible_'
+        obj.workflow_history[key] += (
+            {'action':action, 'review_state': targetStateName,
+             'comments': comment, 'actor': userId, 'time': DateTime()},)
+        # Update permissions-to-roles attributes
+        targetState.updatePermissions(wf, obj)
+        # Refresh catalog-related security if required
+        if not obj.isTemporary():
+            obj.reindexObject(idxs=('allowedRolesAndUsers','review_state'))
+        # Execute the related action if needed
+        msg = ''
+        if doAction and self.action: msg = self.executeAction(obj, wf)
+        # Send notifications if needed
+        if doNotify and self.notify and obj.getTool(True).enableNotifications:
+            notifier.sendMail(obj.appy(), self, transitionName, wf)
+        # Return a message to the user if needed
+        if not doSay or (transitionName == '_init_'): return
+        if not msg:
+            msg = obj.translate(u'Your content\'s status has been modified.',
+                                domain='plone')
+        obj.say(msg)
+
 class Permission:
     '''If you need to define a specific read or write permission of a given
        attribute of an Appy type, you use the specific boolean parameters
@@ -2346,8 +2480,36 @@ class Permission:
        and "specificWritePermission" as booleans. When defining named
        (string) permissions, for referring to it you simply use those strings,
        you do not create instances of ReadPermission or WritePermission.'''
+
+    allowedChars = string.digits + string.letters + '_'
+
     def __init__(self, fieldDescriptor):
         self.fieldDescriptor = fieldDescriptor
+
+    def getName(self, wf, appName):
+        '''Returns the name of the Zope permission that corresponds to this
+           permission.'''
+        className, fieldName = self.fieldDescriptor.rsplit('.', 1)
+        if className.find('.') == -1:
+            # The related class resides in the same module as the workflow
+            fullClassName= '%s_%s' % (wf.__module__.replace('.', '_'),className)
+        else:
+            # className contains the full package name of the class
+            fullClassName = className.replace('.', '_')
+        # Read or Write ?
+        if self.__class__.__name__ == 'ReadPermission': access = 'Read'
+        else: access = 'Write'
+        return '%s: %s %s %s' % (appName, access, fullClassName, fieldName)
+
+    @staticmethod
+    def getZopeAttrName(zopePermission):
+        '''Gets the name of the attribute where Zope stores, on every object,
+           the tuple of roles who are granted a given p_zopePermission.'''
+        res = ''
+        for c in zopePermission:
+            if c in Permission.allowedChars: res += c
+            else: res += '_'
+        return '_%s_Permission' % res
 
 class ReadPermission(Permission): pass
 class WritePermission(Permission): pass
@@ -2362,6 +2524,17 @@ class No:
         self.msg = msg
     def __nonzero__(self):
         return False
+
+class WorkflowAnonymous:
+    '''One-state workflow allowing anyone to consult and Manager to edit.'''
+    mgr = 'Manager'
+    active = State({r:[mgr, 'Anonymous'], w:mgr, d:mgr}, initial=True)
+
+class WorkflowAuthenticated:
+    '''One-state workflow allowing authenticated users to consult and Manager
+       to edit.'''
+    mgr = 'Manager'
+    active = State({r:[mgr, 'Authenticated'], w:mgr, d:mgr}, initial=True)
 
 # ------------------------------------------------------------------------------
 class Selection:

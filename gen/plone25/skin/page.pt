@@ -515,7 +515,7 @@
                    tal:condition="transitions">
   <form id="triggerTransitionForm" method="post"
         tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
-    <input type="hidden" name="action" value="TriggerTransition"/>
+    <input type="hidden" name="action" value="Do"/>
     <input type="hidden" name="workflow_action"/>
     <table>
       <tr valign="middle">
@@ -530,11 +530,11 @@
         <td align="right" tal:repeat="transition transitions">
           <tal:comment replace="nothing">Real button</tal:comment>
           <input type="button" class="appyButton" tal:condition="transition/may_trigger"
-                 tal:attributes="value python: tool.translate(transition['name']);
-                                 onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['id'],transition['confirm']);"/>
+                 tal:attributes="value transition/title;
+                                 onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['name'],transition['confirm']);"/>
           <tal:comment replace="nothing">Fake button, explaining why the transition can't be triggered</tal:comment>
           <div class="appyButton fakeButton" tal:condition="not: transition/may_trigger">
-            <acronym tal:content="python: tool.translate(transition['name'])"
+            <acronym tal:content="transition/title"
                      tal:attributes="title transition/reason"></acronym>
           </div>
         </td>
