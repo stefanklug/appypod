@@ -1,0 +1,5 @@
+<tal:main define="tool python: context.<!toolInstanceName!>">
+<html metal:use-macro="context/skyn/template/macros/main">
+  <div metal:fill-slot="content"><!pageContent!></div>
+</html>
+</tal:main>

@@ -2605,6 +2605,8 @@ class Config:
         # frontPage = True will replace the Plone front page with a page
         # whose content will come fron i18n label "front_page_text".
         self.frontPage = False
+        # You can choose the Plone or Appy main template
+        self.frontPageTemplate = 'plone' # or "appy"
         # If you don't need the portlet that appy.gen has generated for your
         # application, set the following parameter to False.
         self.showPortlet = True

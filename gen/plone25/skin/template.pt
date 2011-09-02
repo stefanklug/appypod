@@ -1,0 +1,78 @@
+<html metal:define-macro="main"
+      tal:define="user context/portal_membership/getAuthenticatedMember;
+                  isAnon python: user.getUserName() == 'Anonymous User';
+                  app python: tool.getParentNode();
+                  appUrl app/absolute_url;
+                  _ python: tool.translate;
+                  req python: request;
+                  resp req/RESPONSE;
+                  x python: resp.setHeader('Content-Type', 'text/html;;charset=utf-8');
+                  x python: resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
+                  x python: resp.setHeader('Content-Language', request.get('language', 'en'))">
+
+<head>
+  <title tal:content="tool/getAppName"></title>
+  <link rel="stylesheet" tal:attributes="href string:$appUrl/skyn/appy.css" type="text/css">
+</head>
+
+<body>
+<table class="main" align="center">
+ <tal:comment replace="nothing">Top banner</tal:comment>
+ <tr class="top" metal:define-slot="top">
+  <td>
+   <table width="100%">
+    <tr valign="top">
+     <tal:comment replace="nothing">Logo</tal:comment>
+     <td><img src="skyn/logo.jpg"/></td>
+     <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
+     <td align="right"
+         tal:define="appLangs app/portal_languages/listSupportedLanguages;
+                     defLang python: app.portal_languages.getLanguageBindings()[0];
+                     suffix python: req.get('ACTUAL_URL').split('/')[-1];
+                     asLinks python: len(appLangs) &lt;= 5"
+         tal:condition="python: len(appLangs) &gt;= 2 and (suffix not in ('edit', 'query', 'search'))">
+      <table tal:condition="asLinks">
+       <tr>
+        <td tal:repeat="lang appLangs">
+          <a class="lang"
+             tal:attributes="href python: req.get('ACTUAL_URL')+'/switchLanguage?set_language=%s' % lang[0];
+                             title python: app.portal_languages.getNameForLanguageCode(lang[1])"
+             tal:content="python: lang[0]"></a>
+         </td>
+        </tr>
+      </table>
+      <select tal:condition="not: asLinks"
+              tal:attributes="onchange string:window.location='${context/absolute_url}/switchLanguage?set_language=' + this.options[this.selectedIndex].value">
+       <option tal:repeat="lang appLangs"
+               tal:content="python:app.portal_languages.getNameForLanguageCode(lang[0]) or lang[1]"
+               tal:attributes="selected python:defLanguage == lang[0];
+                               value python:lang[0]">
+       </option>
+      </select>
+     </td>
+    </tr>
+   </table>
+  </td>
+ </tr>
+ <tal:comment replace="nothing">The login strip</tal:comment>
+ <tr class="auth">
+  <td>
+   <table witdh="100%">
+    <tr>
+     <td>a  </td>
+    </tr>
+   </table>
+  </td>
+ </tr>
+ <tr>
+   <td><span metal:define-slot="content"><span tal:content="isAnon"></span></span></td>
+ </tr>
+</table>
+
+<br/>
+<h1>Appy</h1>
+<h2>Sub appy</h2>
+<h3>Sub sub appy</h3>
+<p>Hello</p>
+</body>
+</html>

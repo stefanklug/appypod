@@ -159,8 +159,7 @@ class Generator(AbstractGenerator):
         self.generateTool()
         self.generateInit()
         self.generateTests()
-        if self.config.frontPage:
-            self.generateFrontPage()
+        if self.config.frontPage: self.generateFrontPage()
         self.copyFile('Install.py', self.repls, destFolder='Extensions')
         self.generateConfigureZcml()
         self.copyFile('import_steps.xml', self.repls,
@@ -566,6 +565,8 @@ class Generator(AbstractGenerator):
     def generateFrontPage(self):
         fp = self.config.frontPage
         repls = self.repls.copy()
+        template = 'frontPage.pt'
+        if self.config.frontPageTemplate== 'appy': template = 'frontPageAppy.pt'
         if fp == True:
             # We need a front page, but no specific one has been given.
             # So we will create a basic one that will simply display
@@ -582,7 +583,7 @@ class Generator(AbstractGenerator):
             page, macro = fp.split('/')
             repls['pageContent'] = '<metal:call use-macro=' \
                                    '"context/%s/macros/%s"/>' % (page, macro)
-        self.copyFile('frontPage.pt', repls, destFolder=self.skinsFolder,
+        self.copyFile(template, repls, destFolder=self.skinsFolder,
                       destName='%sFrontPage.pt' % self.applicationName)
 
     def generateTool(self):

@@ -1,0 +1,21 @@
+body {
+  font: 75% Lucida,Helvetica,Arial,sans-serif;
+  background-color: #EAEAEA;
+}
+
+a {text-decoration: none; color: #747171;}
+a:visited {color: #840107;}
+table { font-size: 100%; border-spacing: 0px; }
+
+.main {
+  width: 900px;
+  background-color: white;
+  border-style: solid;
+  border-width: 1px;
+  border-color: grey;
+  box-shadow: 3px 3px 3px #A9A9A9;
+}
+
+.top { height: 80px; margin-left: 3em; vertical-align: top;}
+.lang { margin-right: 3px; }
+.auth { background-color: grey;}

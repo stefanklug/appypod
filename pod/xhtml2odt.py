@@ -454,6 +454,9 @@ class XhtmlParser(XmlParser):
         currentElem, elemsToReopen = e.onElementEnd(elem)
         # Determine the tag to dump
         startTag, endTag = currentElem.getOdfTags(e)
+        if currentElem.isConflictual:
+            # Compute the start tag, with potential styles applied
+            startTag = e.getTags((currentElem,), start=True)
         if currentElem.isConflictual and e.res.endswith(startTag):
             # We will not dump it, it would constitute a silly empty tag.
             e.res = e.res[:-len(startTag)]

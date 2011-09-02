@@ -214,23 +214,6 @@ class Keywords:
         return ''
 
 # ------------------------------------------------------------------------------
-class FakeBrain:
-    '''This class behaves like a brain retrieved from a query to a ZCatalog. It
-       is used for representing a fake brain that was generated from a search in
-       a distant portal_catalog.'''
-    Creator = None
-    created = None
-    modified = None
-    review_state = None
-    def has_key(self, key): return hasattr(self, key)
-    def getPath(self): return self.path
-    def getURL(self, relative=0): return self.url
-    def _unrestrictedGetObject(self): return self
-    def pretty_title_or_id(self): return self.Title
-    def getObject(self, REQUEST=None): return self
-    def getRID(self): return self.url
-
-# ------------------------------------------------------------------------------
 CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
 class FileWrapper:
     '''When you get, from an appy object, the value of a File attribute, you
