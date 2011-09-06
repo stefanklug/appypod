@@ -356,17 +356,10 @@ class PloneInstaller:
             if not role in data:
                 data.append(role)
                 # Add to portal_role_manager
-                # First, try to fetch it. If it's not there, we probaly have no
-                # PAS or another way to deal with roles was configured.
+                prm = site.acl_users.portal_role_manager
                 try:
-                    prm = site.acl_users.get('portal_role_manager', None)
-                    if prm is not None:
-                        try:
-                            prm.addRole(role, role,
-                                "Added by product '%s'" % self.productName)
-                        except KeyError: # Role already exists
-                            pass
-                except AttributeError:
+                    prm.addRole(role, role, 'Added by "%s"' % self.productName)
+                except KeyError: # Role already exists
                     pass
             # If it is a global role, create a specific group and grant him
             # this role

@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, time, mimetypes, random
 import appy.pod
-from appy.gen import Search
+from appy.gen import Type, Search, Ref
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
@@ -20,7 +20,7 @@ FREEZE_FATAL_ERROR = 'A server error occurred. Please contact the system ' \
     'administrator.'
 
 # ------------------------------------------------------------------------------
-class AbstractWrapper:
+class AbstractWrapper(object):
     '''Any real Zope object has a companion object that is an instance of this
        class.'''
     def __init__(self, o): self.__dict__['o'] = o
@@ -31,6 +31,48 @@ class AbstractWrapper:
         if not appyType:
             raise 'Attribute "%s" does not exist.' % name
         appyType.store(self.o, value)
+
+    def __getattribute__(self, name):
+        '''Gets the attribute named p_name. Lot of cheating here.'''
+        if name == 'o': return object.__getattribute__(self, name)
+        elif name == 'tool': return self.o.getTool().appy()
+        elif name == 'request': return self.o.REQUEST
+        elif name == 'session': return self.o.REQUEST.SESSION
+        elif name == 'typeName': return self.__class__.__bases__[-1].__name__
+        elif name == 'id': return self.o.id
+        elif name == 'uid': return self.o.UID()
+        elif name == 'title': return self.o.Title()
+        elif name == 'klass': return self.__class__.__bases__[-1]
+        elif name == 'url': return self.o.absolute_url()
+        elif name == 'state': return self.o.getState()
+        elif name == 'stateLabel':
+            o = self.o
+            appName = o.getProductConfig().PROJECTNAME
+            return o.translate(o.getWorkflowLabel(), domain=appName)
+        elif name == 'history':
+            o = self.o
+            key = o.workflow_history.keys()[0]
+            return o.workflow_history[key]
+        elif name == 'user':
+            return self.o.portal_membership.getAuthenticatedMember()
+        elif name == 'fields': return self.o.getAllAppyTypes()
+        # Now, let's try to return a real attribute.
+        try:
+            res = object.__getattribute__(self, name)
+        except AttributeError, ae:
+            # Maybe a back reference?
+            res = self.o.getAppyType(name)
+            if not res:
+                print "Attribute error", ae
+                raise ae
+        # If we got an Appy type, return the value of this type for this object
+        if isinstance(res, Type):
+            o = self.o
+            if isinstance(res, Ref):
+                return res.getValue(o, noListIfSingleObj=True)
+            else:
+                return res.getValue(o)
+        return res
 
     def __repr__(self):
         return '<%s appyobj at %s>' % (self.klass.__name__, id(self))
@@ -49,49 +91,6 @@ class AbstractWrapper:
             customUser = self.__class__.__bases__[-1]
             if customUser.__dict__.has_key(methodName):
                 return customUser.__dict__[methodName](self, *args, **kwargs)
-
-    def get_tool(self): return self.o.getTool().appy()
-    tool = property(get_tool)
-
-    def get_request(self): return self.o.REQUEST
-    request = property(get_request)
-
-    def get_session(self): return self.o.REQUEST.SESSION
-    session = property(get_session)
-
-    def get_typeName(self): return self.__class__.__bases__[-1].__name__
-    typeName = property(get_typeName)
-
-    def get_id(self): return self.o.id
-    id = property(get_id)
-
-    def get_uid(self): return self.o.UID()
-    uid = property(get_uid)
-
-    def get_klass(self): return self.__class__.__bases__[-1]
-    klass = property(get_klass)
-
-    def get_url(self): return self.o.absolute_url()
-    url = property(get_url)
-
-    def get_state(self): return self.o.getState()
-    state = property(get_state)
-
-    def get_stateLabel(self):
-        appName = self.o.getProductConfig().PROJECTNAME
-        return self.o.translate(self.o.getWorkflowLabel(), domain=appName)
-    stateLabel = property(get_stateLabel)
-
-    def get_history(self):
-        key = self.o.workflow_history.keys()[0]
-        return self.o.workflow_history[key]
-    history = property(get_history)
-
-    def get_user(self): return self.o.portal_membership.getAuthenticatedMember()
-    user = property(get_user)
-
-    def get_fields(self): return self.o.getAllAppyTypes()
-    fields = property(get_fields)
 
     def getField(self, name): return self.o.getAppyType(name)
 

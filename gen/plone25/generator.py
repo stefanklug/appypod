@@ -433,19 +433,6 @@ class Generator(AbstractGenerator):
         repls['totalNumberOfTests'] = self.totalNumberOfTests
         self.copyFile('__init__.py', repls)
 
-    def generateWrapperProperty(self, name, type):
-        '''Generates the getter for attribute p_name.'''
-        res = '    def get_%s(self):\n        ' % name
-        if name == 'title':
-            res += 'return self.o.Title()\n'
-        else:
-            suffix = ''
-            if type == 'Ref': suffix = ', noListIfSingleObj=True'
-            res += 'return self.o.getAppyType("%s").getValue(self.o%s)\n' % \
-                   (name, suffix)
-        res += '    %s = property(get_%s)\n\n' % (name, name)
-        return res
-
     def getClasses(self, include=None):
         '''Returns the descriptors for all the classes in the generated
            gen-application. If p_include is:
@@ -511,26 +498,6 @@ class Generator(AbstractGenerator):
             wrapperDef = 'class %s_Wrapper(%s):\n' % \
                          (c.name, ','.join(parentClasses))
             wrapperDef += '    security = ClassSecurityInfo()\n'
-            titleFound = False
-            for attrName in c.orderedAttributes:
-                if attrName == 'title':
-                    titleFound = True
-                try:
-                    attrValue = getattr(c.klass, attrName)
-                except AttributeError:
-                    attrValue = getattr(c.modelClass, attrName)
-                if isinstance(attrValue, Type):
-                    wrapperDef += self.generateWrapperProperty(attrName,
-                                                               attrValue.type)
-            # Generate properties for back references
-            if self.referers.has_key(c.name):
-                for refDescr, rel in self.referers[c.name]:
-                    attrName = refDescr.appyType.back.attribute
-                    wrapperDef += self.generateWrapperProperty(attrName, 'Ref')
-            if not titleFound:
-                # Implicitly, the title will be added by Archetypes. So I need
-                # to define a property for it.
-                wrapperDef += self.generateWrapperProperty('title', 'String')
             if c.customized:
                 # For custom tool, add a call to a method that allows to
                 # customize elements from the base class.
