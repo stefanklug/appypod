@@ -590,9 +590,8 @@ class Generator(AbstractGenerator):
         '''Generates the Plone tool that corresponds to this application.'''
         Msg = PoMessage
         # Create Tool-related i18n-related messages
-        self.labels += [
-            Msg(self.tool.name, '', Msg.CONFIG % self.applicationName),
-            Msg('%s_edit_descr' % self.tool.name, '', ' ')]
+        msg = Msg(self.tool.name, '', Msg.CONFIG % self.applicationName)
+        self.labels.append(msg)
 
         # Tune the Ref field between Tool and User
         Tool.users.klass = User
@@ -604,7 +603,6 @@ class Generator(AbstractGenerator):
             klassType = klass.name[len(self.applicationName):]
             klass.generateSchema()
             self.labels += [ Msg(klass.name, '', klassType),
-                             Msg('%s_edit_descr' % klass.name, '', ' '),
                              Msg('%s_plural' % klass.name,'', klass.name+'s')]
             repls = self.repls.copy()
             repls.update({'fields': klass.schema, 'methods': klass.methods,
@@ -702,12 +700,10 @@ class Generator(AbstractGenerator):
           'implements': implements, 'baseSchema': baseSchema, 'static': '',
           'register': register, 'toolInstanceName': self.toolInstanceName})
         fileName = '%s.py' % classDescr.name
-        # Create i18n labels (class name, description and plural form)
+        # Create i18n labels (class name and plural form)
         poMsg = PoMessage(classDescr.name, '', classDescr.klass.__name__)
         poMsg.produceNiceDefault()
         self.labels.append(poMsg)
-        poMsgDescr = PoMessage('%s_edit_descr' % classDescr.name, '', ' ')
-        self.labels.append(poMsgDescr)
         poMsgPl = PoMessage('%s_plural' % classDescr.name, '',
             classDescr.klass.__name__+'s')
         poMsgPl.produceNiceDefault()

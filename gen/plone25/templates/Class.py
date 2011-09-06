@@ -27,7 +27,7 @@ class <!genClassName!>(<!parents!>):
     default_view = 'skyn/view'
     suppl_views = ()
     typeDescription = '<!genClassName!>'
-    typeDescMsgId = '<!genClassName!>_edit_descr'
+    typeDescMsgId = '<!genClassName!>'
     i18nDomain = '<!applicationName!>'
     wrapperClass = <!genClassName!>_Wrapper
     schema = fullSchema

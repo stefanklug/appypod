@@ -147,17 +147,18 @@ class FieldDescriptor:
            (self.fieldName not in ('title', 'description')):
             self.classDescr.addIndexMethod(self)
         # i18n labels
-        i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
-        # Create labels for generating them in i18n files.
         messages = self.generator.labels
-        if self.appyType.hasLabel:
-            messages.append(self.produceMessage(i18nPrefix))
-        if self.appyType.hasDescr:
-            descrId = i18nPrefix + '_descr'
-            messages.append(self.produceMessage(descrId,isLabel=False))
-        if self.appyType.hasHelp:
-            helpId = i18nPrefix + '_help'
-            messages.append(self.produceMessage(helpId, isLabel=False))
+        if not self.appyType.label:
+            # Create labels for generating them in i18n files, only if required.
+            i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
+            if self.appyType.hasLabel:
+                messages.append(self.produceMessage(i18nPrefix))
+            if self.appyType.hasDescr:
+                descrId = i18nPrefix + '_descr'
+                messages.append(self.produceMessage(descrId,isLabel=False))
+            if self.appyType.hasHelp:
+                helpId = i18nPrefix + '_help'
+                messages.append(self.produceMessage(helpId, isLabel=False))
         # Create i18n messages linked to pages and phases, only if there is more
         # than one page/phase for the class.
         ppMsgs = []
@@ -561,8 +562,8 @@ class TranslationClassDescriptor(ClassDescriptor):
     def addLabelField(self, messageId, page):
         '''Adds a Computed field that will display, in the source language, the
            content of the text to translate.'''
-        field = Computed(method=self.modelClass.computeLabel, plainText=False,
-                         page=page, show=self.modelClass.showField, layouts='f')
+        field = Computed(method=self.modelClass.label, plainText=False,
+                         page=page, show=self.modelClass.show, layouts='f')
         self.addField('%s_label' % messageId, field)
 
     def addMessageField(self, messageId, page, i18nFiles):
@@ -570,7 +571,7 @@ class TranslationClassDescriptor(ClassDescriptor):
            class, on a given p_page. We need i18n files p_i18nFiles for
            fine-tuning the String type to generate for this field (one-line?
            several lines?...)'''
-        params = {'page':page, 'layouts':'f', 'show':self.modelClass.showField}
+        params = {'page':page, 'layouts':'f', 'show': self.modelClass.show}
         appName = self.generator.applicationName
         # Scan all messages corresponding to p_messageId from all translation
         # files. We will define field length from the longer found message

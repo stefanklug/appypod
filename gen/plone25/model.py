@@ -9,6 +9,33 @@
 import types
 from appy.gen import *
 
+# Prototypical instances of every type -----------------------------------------
+class Protos:
+    protos = {}
+    # List of attributes that can't be given to a Type constructor
+    notInit = ('id', 'type', 'pythonType', 'slaves', 'isSelect', 'hasLabel',
+               'hasDescr', 'hasHelp', 'master_css', 'required', 'filterable',
+               'validable', 'backd', 'isBack', 'sync', 'pageName')
+    @classmethod
+    def get(self, appyType):
+        '''Returns a prototype instance for p_appyType.'''
+        className = appyType.__class__.__name__
+        isString = (className == 'String')
+        if isString:
+            # For Strings, we create one prototype per format, because default
+            # values may change according to format.
+            className += str(appyType.format)
+        if className in self.protos: return self.protos[className]
+        # The prototype does not exist yet: create it
+        if isString:
+            proto = appyType.__class__(format=appyType.format)
+            # Now, we fake to be able to detect default values
+            proto.format = 0
+        else:
+            proto = appyType.__class__()
+        self.protos[className] = proto
+        return proto
+
 # ------------------------------------------------------------------------------
 class ModelClass:
     '''This class is the abstract class of all predefined application classes
@@ -17,60 +44,73 @@ class ModelClass:
        in order to avoid name conflicts with user-defined parts of the
        application model.'''
     _appy_attributes = [] # We need to keep track of attributes order.
-    # When creating a new instance of a ModelClass, the following attributes
-    # must not be given in the constructor (they are computed attributes).
-    _appy_notinit = ('id', 'type', 'pythonType', 'slaves', 'isSelect',
-                     'hasLabel', 'hasDescr', 'hasHelp', 'master_css',
-                     'required', 'filterable', 'validable', 'backd', 'isBack',
-                     'sync', 'pageName')
 
     @classmethod
-    def _appy_getTypeBody(klass, appyType):
+    def _appy_getTypeBody(klass, appyType, wrapperName):
         '''This method returns the code declaration for p_appyType.'''
         typeArgs = ''
-        for attrName, attrValue in appyType.__dict__.iteritems():
-            if attrName in ModelClass._appy_notinit: continue
-            if attrName == 'layouts':
-                if klass.__name__ == 'Tool': continue
+        proto = Protos.get(appyType)
+        for name, value in appyType.__dict__.iteritems():
+            # Some attrs can't be given to the constructor
+            if name in Protos.notInit: continue
+            # If the given value corresponds to the default value, don't give it
+            if value == getattr(proto, name): continue
+            if name == 'layouts':
                 # For Tool attributes we do not copy layout info. Indeed, most
                 # fields added to the Tool are config-related attributes whose
                 # layouts must be standard.
-                attrValue = appyType.getInputLayouts()
-            elif isinstance(attrValue, basestring):
-                attrValue = '"%s"' % attrValue
-            elif isinstance(attrValue, Ref):
-                if not attrValue.isBack: continue
-                attrValue = klass._appy_getTypeBody(attrValue)
-            elif type(attrValue) == type(ModelClass):
-                moduleName = attrValue.__module__
-                if moduleName.startswith('appy.gen'):
-                    attrValue = attrValue.__name__
+                if klass.__name__ == 'Tool': continue
+                layouts = appyType.getInputLayouts()
+                # For the Translation class that has potentially thousands of
+                # attributes, the most used layout is cached in a global var in
+                # named "tfw" in appyWrappers.py.
+                if (klass.__name__ == 'Translation') and \
+                   (layouts == '{"edit":"f","cell":"f","view":"f",}'):
+                    value = 'tfw'
                 else:
-                    attrValue = '%s.%s' % (moduleName, attrValue.__name__)
-            elif isinstance(attrValue, Selection):
-                attrValue = 'Selection("%s")' % attrValue.methodName
-            elif isinstance(attrValue, Group):
-                attrValue = 'Group("%s")' % attrValue.name
-            elif isinstance(attrValue, Page):
-                attrValue = 'pages["%s"]' % attrValue.name
-            elif callable(attrValue):
-                attrValue = '%sWrapper.%s'% (klass.__name__, attrValue.__name__)
-            typeArgs += '%s=%s,' % (attrName, attrValue)
+                    value = appyType.getInputLayouts()
+            elif isinstance(value, basestring):
+                value = '"%s"' % value
+            elif isinstance(value, Ref):
+                if not value.isBack: continue
+                value = klass._appy_getTypeBody(value, wrapperName)
+            elif type(value) == type(ModelClass):
+                moduleName = value.__module__
+                if moduleName.startswith('appy.gen'):
+                    value = value.__name__
+                else:
+                    value = '%s.%s' % (moduleName, value.__name__)
+            elif isinstance(value, Selection):
+                value = 'Selection("%s")' % value.methodName
+            elif isinstance(value, Group):
+                value = 'Group("%s")' % value.name
+            elif isinstance(value, Page):
+                value = 'pages["%s"]' % value.name
+            elif callable(value):
+                value = '%s.%s' % (wrapperName, value.__name__)
+            typeArgs += '%s=%s,' % (name, value)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
 
     @classmethod
     def _appy_getBody(klass):
         '''This method returns the code declaration of this class. We will dump
            this in appyWrappers.py in the resulting product.'''
-        res = 'class %s(%sWrapper):\n' % (klass.__name__, klass.__name__)
-        if klass.__name__ == 'Tool':
-            res += '    folder=True\n'
+        className = klass.__name__
+        # Determine the name of the class and its wrapper. Because so much
+        # attributes can be generated on a TranslationWrapper, shortcutting it
+        # to 'TW' may reduce the generated file from several kilobytes.
+        if className == 'Translation': wrapperName = 'WT'
+        else: wrapperName = 'W%s' % className
+        res = 'class %s(%s):\n' % (className, wrapperName)
+        # Tool must be folderish
+        if className == 'Tool': res += '    folder=True\n'
         # First, scan all attributes, determine all used pages and create a
         # dict with it. It will prevent us from creating a new Page instance
         # for every field.
         pages = {}
-        for attrName in klass._appy_attributes:
-            exec 'appyType = klass.%s' % attrName
+        layouts = []
+        for name in klass._appy_attributes:
+            exec 'appyType = klass.%s' % name
             if appyType.page.name not in pages:
                 pages[appyType.page.name] = appyType.page
         res += '    pages = {'
@@ -81,9 +121,10 @@ class ModelClass:
             res += '"%s":Page("%s", show=%s),'% (page.name, page.name, pageShow)
         res += '}\n'
         # Secondly, dump every attribute
-        for attrName in klass._appy_attributes:
-            exec 'appyType = klass.%s' % attrName
-            res += '    %s=%s\n' % (attrName, klass._appy_getTypeBody(appyType))
+        for name in klass._appy_attributes:
+            exec 'appyType = klass.%s' % name
+            typeBody = klass._appy_getTypeBody(appyType, wrapperName)
+            res += '    %s=%s\n' % (name, typeBody)
         return res
 
 # The User class ---------------------------------------------------------------
@@ -115,8 +156,8 @@ class Translation(ModelClass):
     po = Action(action=getPoFile, page=Page('actions', show='view'),
                 result='filetmp')
     title = String(show=False, indexed=True)
-    def computeLabel(self): pass
-    def showField(self, name): pass
+    def label(self): pass
+    def show(self, name): pass
 
 # The Tool class ---------------------------------------------------------------
 # Here are the prefixes of the fields generated on the Tool.

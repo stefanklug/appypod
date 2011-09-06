@@ -361,7 +361,7 @@ class Type:
                  editDefault, show, page, group, layouts, move, indexed,
                  searchable, specificReadPermission, specificWritePermission,
                  width, height, maxChars, colspan, master, masterValue, focus,
-                 historized, sync, mapping):
+                 historized, sync, mapping, label):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -465,10 +465,18 @@ class Type:
         self.filterable = False
         # Can this field have values that can be edited and validated?
         self.validable = True
+        # The base label for translations is normally generated automatically.
+        # It is made of 2 parts: the prefix, based on class name, and the name,
+        # which is the field name by default. You can change this by specifying
+        # a value for param "label". If this value is a string, it will be
+        # understood as a new prefix. If it is a tuple, it will represent the
+        # prefix and another name. If you want to specify a new name only, and
+        # not a prefix, write (None, newName).
+        self.label = label
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
-           called for storing the names of the Appy field (p_name) and other
+           called for storing the name of the Appy field (p_name) and other
            attributes that are based on the name of the Appy p_klass, and the
            application name (p_appName).'''
         self.name = name
@@ -477,9 +485,18 @@ class Type:
         self.id = id(self)
         if self.slaves: self.master_css = 'appyMaster master_%s' % self.id
         # Determine ids of i18n labels for this field
-        if not klass: prefix = appName
-        else: prefix = getClassName(klass, appName)
-        self.labelId = '%s_%s' % (prefix, name)
+        labelName = name
+        prefix = None
+        if self.label:
+            if isinstance(self.label, basestring): prefix = self.label
+            else: # It is a tuple (prefix, name)
+                if self.label[1]: labelName = self.label[1]
+                if self.label[0]: prefix = self.label[0]
+        if not prefix:
+            if not klass: prefix = appName
+            else:         prefix = getClassName(klass, appName)
+        # Determine name to use for i18n
+        self.labelId = '%s_%s' % (prefix, labelName)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # Determine read and write permissions for this field
@@ -932,12 +949,13 @@ class Integer(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None):
+                 focus=False, historized=False, mapping=None, label=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
-                      master, masterValue, focus, historized, True, mapping)
+                      master, masterValue, focus, historized, True, mapping,
+                      label)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -961,8 +979,8 @@ class Float(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, precision=None,
-                 sep=(',', '.')):
+                 focus=False, historized=False, mapping=None, label=None,
+                 precision=None, sep=(',', '.')):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -981,7 +999,7 @@ class Float(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, maxChars, colspan, master, masterValue,
-                      focus, historized, True, mapping)
+                      focus, historized, True, mapping, label)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -1130,7 +1148,8 @@ class String(Type):
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, transform='none'):
+                 focus=False, historized=False, mapping=None, label=None,
+                 transform='none'):
         self.format = format
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
@@ -1142,7 +1161,8 @@ class String(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
-                      master, masterValue, focus, historized, True, mapping)
+                      master, masterValue, focus, historized, True, mapping,
+                      label)
         self.isSelect = self.isSelection()
         # Default width, height and maxChars vary according to String format
         if width == None:
@@ -1374,12 +1394,13 @@ class Boolean(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None):
+                 focus=False, historized=False, mapping=None, label=None):
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, historized, True, mapping)
+                      master, masterValue, focus, historized, True, mapping,
+                      label)
         self.pythonType = bool
 
     def getDefaultLayouts(self):
@@ -1417,7 +1438,7 @@ class Date(Type):
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None):
+                 focus=False, historized=False, mapping=None, label=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1429,7 +1450,8 @@ class Date(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, historized, True, mapping)
+                      master, masterValue, focus, historized, True, mapping,
+                      label)
 
     def getCss(self, layoutType):
         if (layoutType == 'edit') and self.calendar:
@@ -1490,13 +1512,14 @@ class File(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, isImage=False):
+                 focus=False, historized=False, mapping=None, label=None,
+                 isImage=False):
         self.isImage = isImage
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, None, colspan, master, masterValue, focus,
-                      historized, True, mapping)
+                      historized, True, mapping, label)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):
@@ -1640,8 +1663,8 @@ class Ref(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, queryable=False,
-                 queryFields=None, queryNbCols=1):
+                 focus=False, historized=False, mapping=None, label=None,
+                 queryable=False, queryFields=None, queryNbCols=1):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1656,6 +1679,7 @@ class Ref(Type):
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
+        self.back = None
         if back:
             # It is a forward reference
             self.isBack = False
@@ -1691,7 +1715,7 @@ class Ref(Type):
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
                       width, height, None, colspan, master, masterValue, focus,
-                      historized, sync, mapping)
+                      historized, sync, mapping, label)
         self.validable = self.link
 
     def getDefaultLayouts(self): return {'view': Table('l-f'), 'edit': 'lrv-f'}
@@ -1858,7 +1882,7 @@ class Computed(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, method=None, plainText=True,
                  master=None, masterValue=None, focus=False, historized=False,
-                 sync=True, mapping=None, context={}):
+                 sync=True, mapping=None, label=None, context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -1875,7 +1899,7 @@ class Computed(Type):
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, None, colspan, master, masterValue, focus,
-                      historized, sync, mapping)
+                      historized, sync, mapping, label)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -1925,7 +1949,7 @@ class Action(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, action=None, result='computation',
                  confirm=False, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None):
+                 historized=False, mapping=None, label=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -1946,7 +1970,7 @@ class Action(Type):
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, None, colspan, master, masterValue, focus,
-                      historized, False, mapping)
+                      historized, False, mapping, label)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -1994,12 +2018,12 @@ class Info(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None):
+                 focus=False, historized=False, mapping=None, label=None):
         Type.__init__(self, None, (0,1), index, default, optional,
                       False, show, page, group, layouts, move, indexed, False,
                       specificReadPermission, specificWritePermission, width,
                       height, None, colspan, master, masterValue, focus,
-                      historized, False, mapping)
+                      historized, False, mapping, label)
         self.validable = False
 
 class Pod(Type):
@@ -2015,9 +2039,9 @@ class Pod(Type):
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, template=None,
-                 context=None, action=None, askAction=False, stylesMapping={},
-                 freezeFormat='pdf'):
+                 focus=False, historized=False, mapping=None, label=None,
+                 template=None, context=None, action=None, askAction=False,
+                 stylesMapping={}, freezeFormat='pdf'):
         # The following param stores the path to a POD template
         self.template = template
         # The context is a dict containing a specific pod context, or a method
@@ -2037,7 +2061,8 @@ class Pod(Type):
                       False, show, page, group, layouts, move, indexed,
                       searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, historized, False, mapping)
+                      master, masterValue, focus, historized, False, mapping,
+                      label)
         self.validable = False
 
     def isFrozen(self, obj):

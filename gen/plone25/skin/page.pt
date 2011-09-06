@@ -564,11 +564,6 @@
           <b class="appyTitle" tal:content="contextObj/title_or_id"></b>
         </td>
       </tr>
-      <tr tal:define="descrLabel python: contextObj.translate('%s_edit_descr' % contextObj.portal_type)"
-          tal:condition="descrLabel/strip" align="left">
-        <tal:comment replace="nothing">Content type description</tal:comment>
-        <td colspan="2" class="discreet" tal:content="descrLabel"/>
-      </tr>
       <tr align="left">
         <td class="documentByLine" colspan="2">
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>

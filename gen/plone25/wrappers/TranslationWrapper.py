@@ -6,7 +6,7 @@ from appy.shared.utils import getOsTempFolder
 
 # ------------------------------------------------------------------------------
 class TranslationWrapper(AbstractWrapper):
-    def computeLabel(self, field):
+    def label(self, field):
         '''The label for a text to translate displays the text of the
            corresponding message in the source translation.'''
         tool = self.tool
@@ -32,7 +32,7 @@ class TranslationWrapper(AbstractWrapper):
                '<img src="help.png"/></acronym>%s</div>' % \
                (fieldName, sourceMsg)
 
-    def showField(self, field):
+    def show(self, field):
         '''We show a field (or its label) only if the corresponding source
            message is not empty.'''
         tool = self.tool
