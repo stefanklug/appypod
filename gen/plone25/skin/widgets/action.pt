@@ -2,15 +2,17 @@
 <metal:view define-macro="view">
   <form name="executeAppyAction"
         tal:define="formId python: '%s_%s' % (contextObj.UID(), name);
-                    label  python: contextObj.translate(widget['labelId']);
-                    labelConfirm python: contextObj.translate(widget['labelId'] + '_confirm')"
+                    label  python: contextObj.translate(widget['labelId'])"
         tal:attributes="id formId; action python: contextObj.absolute_url()+'/skyn/do'">
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value name"/>
-    <input type="button" tal:condition="widget/confirm"
+    <tal:confirm condition="widget/confirm">
+    <input type="button"
+           tal:define="labelConfirm python: contextObj.translate(widget['labelId'] + '_confirm')"
            tal:attributes="value label;
                            onClick python: 'askConfirm(\'form\', \'%s\', &quot;%s&quot;)' % (formId, labelConfirm)"/>
+    </tal:confirm>
     <input type="submit" name="do" tal:condition="not: widget/confirm"
            tal:attributes="value label" onClick="javascript:;"/>
     <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone

@@ -62,9 +62,7 @@ class AbstractWrapper(object):
         except AttributeError, ae:
             # Maybe a back reference?
             res = self.o.getAppyType(name)
-            if not res:
-                print "Attribute error", ae
-                raise ae
+            if not res: raise ae
         # If we got an Appy type, return the value of this type for this object
         if isinstance(res, Type):
             o = self.o

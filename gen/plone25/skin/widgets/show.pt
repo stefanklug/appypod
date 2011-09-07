@@ -154,7 +154,7 @@
     <th tal:repeat="colNb python:range(len(widget['columnsWidths']))"
         tal:attributes="width python:widget['columnsWidths'][colNb];
                         align python:widget['columnsAligns'][colNb]"
-        tal:content="structure python: test(widget['hasHeaders'], contextObj.translate('%s_col%d' % (widget['labelId'], colNb+1)), '')">
+        tal:content="structure python: widget['hasHeaders'] and contextObj.translate('%s_col%d' % (widget['labelId'], colNb+1)) or ''">
     </th>
   </tr>
   <tal:comment replace="nothing">The rows of widgets</tal:comment>

@@ -121,8 +121,7 @@
                  showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: contextObj.translate('label', field=appyType['name']);
-                 addConfirmMsg python: tool.translate('%s_addConfirm' % appyType['labelId']);
-                 description python: contextObj.translate('descr', field=appyType['name']);
+                 addConfirmMsg python: appyType['addConfirm'] and tool.translate('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
@@ -167,8 +166,8 @@
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
-      <!--p tal:condition="python: not innerRef and description.strip()"
-         tal:content="description" class="discreet" ></p-->
+      <p class="discreet"  tal:condition="python: not innerRef and appyType['hasDescr']"
+         tal:content="python: contextObj.translate('descr', field=appyType['name'])"></p>
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>

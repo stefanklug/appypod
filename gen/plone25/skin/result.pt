@@ -7,8 +7,9 @@
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
-               searchLabel   python: test(searchName=='_advanced', 'search_results', '%s_search_%s' % (contentType, searchName));
-               searchDescr   python: '%s_descr' % searchLabel;
+               labelId       python: searchName and ('%s_search_%s' % (contentType, searchName)) or '';
+               labelId       python: (searchName == '_advanced') and 'search_results' or labelId;
+               searchLabel   python: labelId and tool.translate(labelId) or '';
                severalTypes  python: contentType and (contentType.find(',') != -1);
                sortKey       request/sortKey| python:'';
                sortOrder     request/sortOrder| python:'asc';
@@ -26,7 +27,7 @@
 
   <fieldset>
     <legend>
-      <span tal:replace="structure python: test(searchName, tool.translate(searchLabel), test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
+      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
       (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
         &nbsp;&nbsp;—&nbsp;&nbsp;<i><a tal:attributes="href newSearchUrl"
@@ -45,16 +46,20 @@
       </td></tr>
     </table>
 
-    <table cellpadding="0" cellspacing="0" width="100%"><tr>
-      <td tal:define="descr python: tool.translate(searchDescr)"
-          tal:condition="python: searchName and descr.strip()">
-        <span class="discreet" tal:content="descr"></span><br/><br/>
+    <table cellpadding="0" cellspacing="0" width="100%">
+     <tr>
+      <tal:descr condition="searchName">
+      <td tal:define="descr python: tool.translate('%s_descr' % labelId)"
+          tal:condition="descr/strip">
+       <span class="discreet" tal:content="descr"></span><br/><br/>
       </td>
+      </tal:descr>
       <td align="right" width="25%">
-        <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-        <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
+       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
       </td>
-    </tr></table>
+     </tr>
+    </table>
 
     <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refField);
                        widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
