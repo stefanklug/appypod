@@ -559,13 +559,9 @@ class Type:
             if self.name not in fieldValue:
                 return False
         # Check if the user has the permission to view or edit the field
-        user = obj.portal_membership.getAuthenticatedMember()
-        if layoutType == 'edit':
-            perm = self.writePermission
-        else:
-            perm = self.readPermission
-        if not user.has_permission(perm, obj):
-            return False
+        if layoutType == 'edit': perm = self.writePermission
+        else:                    perm = self.readPermission
+        if not obj.allows(perm): return False
         # Evaluate self.show
         if callable(self.show):
             res = self.callMethod(obj, self.show)
@@ -2287,16 +2283,21 @@ class State:
 
     def updatePermission(self, obj, zopePermission, roleNames):
         '''Updates, on p_obj, list of p_roleNames which are granted a given
-           p_zopePermission.'''
+           p_zopePermission. This method returns True if the list has been
+           effectively updated.'''
         attr = Permission.getZopeAttrName(zopePermission)
         if not hasattr(obj.aq_base, attr) or \
            (getattr(obj.aq_base, attr) != roleNames):
             setattr(obj, attr, roleNames)
+            return True
+        return False
 
     def updatePermissions(self, wf, obj):
         '''Zope requires permission-to-roles mappings to be stored as attributes
            on the object itself. This method does this job, duplicating the info
-           from this state on p_obj.'''
+           from this state definition on p_obj. p_res is True if at least one
+           change has been effectively performed.'''
+        res = False
         for permission, roles in self.getPermissions().iteritems():
             roleNames = tuple([role.name for role in roles])
             # Compute Zope permission(s) related to this permission.
@@ -2312,10 +2313,13 @@ class State:
                 zopePerm = permission.getName(wf, appName)
             # zopePerm contains a single permission or a tuple of permissions
             if isinstance(zopePerm, basestring):
-                self.updatePermission(obj, zopePerm, roleNames)
+                changed = self.updatePermission(obj, zopePerm, roleNames)
+                res = res or changed
             else:
                 for zPerm in zopePerm:
-                    self.updatePermission(obj, zPerm, roleNames)
+                    changed = self.updatePermission(obj, zPerm, roleNames)
+                    res = res or changed
+        return res
 
 class Transition:
     def __init__(self, states, condition=True, action=None, notify=None,
@@ -2462,15 +2466,12 @@ class Transition:
                     targetState = tState
                     targetStateName = targetState.getName(wf)
                     break
-        # Create the event and put it in workflow_history
-        from DateTime import DateTime
+        # Create the event and add it in the object history
         action = transitionName
         if transitionName == '_init_': action = None
-        userId = obj.portal_membership.getAuthenticatedMember().getId()
         if not doHistory: comment = '_invisible_'
-        obj.workflow_history[key] += (
-            {'action':action, 'review_state': targetStateName,
-             'comments': comment, 'actor': userId, 'time': DateTime()},)
+        obj.addHistoryEvent(action, review_state=targetStateName,
+                            comments=comment)
         # Update permissions-to-roles attributes
         targetState.updatePermissions(wf, obj)
         # Refresh catalog-related security if required
@@ -2553,13 +2554,13 @@ class No:
 class WorkflowAnonymous:
     '''One-state workflow allowing anyone to consult and Manager to edit.'''
     mgr = 'Manager'
-    active = State({r:[mgr, 'Anonymous'], w:mgr, d:mgr}, initial=True)
+    active = State({r:(mgr, 'Anonymous'), w:mgr, d:mgr}, initial=True)
 
 class WorkflowAuthenticated:
     '''One-state workflow allowing authenticated users to consult and Manager
        to edit.'''
     mgr = 'Manager'
-    active = State({r:[mgr, 'Authenticated'], w:mgr, d:mgr}, initial=True)
+    active = State({r:(mgr, 'Authenticated'), w:mgr, d:mgr}, initial=True)
 
 # ------------------------------------------------------------------------------
 class Selection:

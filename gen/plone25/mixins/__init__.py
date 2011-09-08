@@ -6,7 +6,7 @@
 import os, os.path, sys, types, mimetypes, urllib, cgi
 import appy.gen
 from appy.gen import Type, String, Selection, Role, No, WorkflowAnonymous, \
-                     Transition
+                     Transition, Permission
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor
@@ -236,8 +236,7 @@ class BaseMixin:
             return self.goto(tool.getSiteUrl(), msg)
         # If the user can't access the object anymore, redirect him to the
         # main site page.
-        user = self.portal_membership.getAuthenticatedMember()
-        if not user.has_permission('View', obj):
+        if not obj.allows('View'):
             return self.goto(tool.getSiteUrl(), msg)
         if rq.get('buttonOk.x', None) or saveConfirmed:
             # Go to the consult view for this object
@@ -302,26 +301,29 @@ class BaseMixin:
         else: logMethod = logger.info
         logMethod(msg)
 
-    def getState(self, name=True):
-        '''Returns state information about this object. If p_name is True, the
-           returned info is the state name. Else, it is the State instance.'''
-        if hasattr(self.aq_base, 'workflow_history'):
-            key = self.workflow_history.keys()[0]
-            stateName = self.workflow_history[key][-1]['review_state']
-            if name: return stateName
-            else: return getattr(self.getWorkflow(), stateName)
-        else:
-            # No workflow information is available (yet) on this object. So
-            # return the workflow initial state.
-            wf = self.getWorkflow()
-            initStateName = 'active'
+    def getState(self, name=True, initial=False):
+        '''Returns information about the current object state. If p_name is
+           True, the returned info is the state name. Else, it is the State
+           instance. If p_initial is True, instead of returning info about the
+           current state, it returns info about the workflow initial state.'''
+        wf = self.getWorkflow()
+        if initial or not hasattr(self.aq_base, 'workflow_history'):
+            # No workflow information is available (yet) on this object, or
+            # initial state is asked. In both cases, return info about this
+            # initial state.
+            res = 'active'
             for elem in dir(wf):
                 attr = getattr(wf, elem)
                 if (attr.__class__.__name__ == 'State') and attr.initial:
-                    initStateName = elem
+                    res = elem
                     break
-            if name: return initStateName
-            else: return getattr(wf, initStateName)
+        else:
+            # Return info about the current object state
+            key = self.workflow_history.keys()[0]
+            res = self.workflow_history[key][-1]['review_state']
+        # Return state name or state definition?
+        if name: return res
+        else: return getattr(wf, res)
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for
@@ -332,6 +334,18 @@ class BaseMixin:
             if appyType.historized:
                 res[appyType.name] = appyType.getValue(self)
         return res
+
+    def addHistoryEvent(self, action, **kw):
+        '''Adds an event in the object history.'''
+        userId = self.portal_membership.getAuthenticatedMember().getId()
+        from DateTime import DateTime
+        event = {'action': action, 'actor': userId, 'time': DateTime(),
+                 'comments': ''}
+        event.update(kw)
+        if 'review_state' not in event: event['review_state']=self.getState()
+        # Add the event to the history
+        histKey = self.workflow_history.keys()[0]
+        self.workflow_history[histKey] += (event,)
 
     def addDataChange(self, changes, notForPreviouslyEmptyValues=False):
         '''This method allows to add "manually" a data change into the objet's
@@ -349,15 +363,8 @@ class BaseMixin:
                 del changes[fieldName]
             else:
                 changes[fieldName] = (changes[fieldName], appyType.labelId)
-        # Create the event to record in the history
-        from DateTime import DateTime
-        user = self.portal_membership.getAuthenticatedMember()
-        event = {'action': '_datachange_', 'changes': changes,
-                 'review_state': self.getState(), 'actor': user.id,
-                 'time': DateTime(), 'comments': ''}
-        # Add the event to the history
-        histKey = self.workflow_history.keys()[0]
-        self.workflow_history[histKey] += (event,)
+        # Add an event in the history
+        self.addHistoryEvent('_datachange_', changes=changes)
 
     def historizeData(self, previousData):
         '''Records in the object history potential changes on historized fields.
@@ -808,10 +815,13 @@ class BaseMixin:
         initialTransition = Transition((initialState, initialState))
         initialTransition.trigger('_init_', self, wf, '')
 
-    def getWorkflow(self, name=False):
-        '''Returns the workflow applicable for p_self (or its name, if p_name
-           is True).'''
-        appyClass = self.wrapperClass.__bases__[-1]
+    def getWorkflow(self, name=False, className=None):
+        '''Returns the workflow applicable for p_self (or for any instance of
+           p_className if given), or its name, if p_name is True.'''
+        if not className:
+            appyClass = self.wrapperClass.__bases__[-1]
+        else:
+            appyClass = self.getTool().getAppyClass(className)
         if hasattr(appyClass, 'workflow'): wf = appyClass.workflow
         else: wf = WorkflowAnonymous
         if not name: return wf
@@ -823,6 +833,26 @@ class BaseMixin:
            can also represent the name of a transition.'''
         stateName = stateName or self.getState()
         return '%s_%s' % (self.getWorkflow(name=True), stateName)
+
+    def refreshSecurity(self):
+        '''Refresh security info on this object. Returns True if the info has
+           effectively been updated.'''
+        wf = self.getWorkflow()
+        try:
+            # Get the state definition of the object's current state.
+            state = getattr(wf, self.getState())
+        except AttributeError:
+            # The workflow information for this object does not correspond to
+            # its current workflow attribution. Add a new fake event
+            # representing passage of this object to the initial state of his
+            # currently attributed workflow.
+            stateName = self.getState(name=True, initial=True)
+            self.addHistoryEvent(None, review_state=stateName)
+            state = self.getState(name=False, initial=True)
+            self.log('Wrong workflow info for a "%s"; is not in state "%s".' % \
+                     (self.meta_type, stateName))
+        # Update permission attributes on the object if required
+        return state.updatePermissions(wf, self)
 
     def hasHistory(self):
         '''Has this object an history?'''
@@ -1270,4 +1300,21 @@ class BaseMixin:
             if not field.searchable: continue
             res.append(field.getIndexValue(self, forSearch=True))
         return res
+
+    def allows(self, permission):
+        '''Has the logged user p_permission on p_self ?'''
+        # Get first the roles that have this permission on p_self.
+        zopeAttr = Permission.getZopeAttrName(permission)
+        if not hasattr(self.aq_base, zopeAttr): return
+        allowedRoles = getattr(self.aq_base, zopeAttr)
+        # Has the user one of those roles?
+        user = self.portal_membership.getAuthenticatedMember()
+        ids = [user.getId()] + user.getGroups()
+        userGlobalRoles = user.getRoles()
+        for role in allowedRoles:
+            # Has the user this role ? Check in the local roles first.
+            for id, roles in self.__ac_local_roles__.iteritems():
+                if (role in roles) and (id in ids): return True
+            # Check then in the global roles.
+            if role in userGlobalRoles: return True
 # ------------------------------------------------------------------------------

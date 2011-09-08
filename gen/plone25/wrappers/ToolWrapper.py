@@ -127,4 +127,15 @@ class ToolWrapper(AbstractWrapper):
                                       fileName, format, self.openOfficePort)
         self.log('Executing %s...' % cmd)
         return executeCommand(cmd) # The result can contain an error message
+
+    def refreshSecurity(self):
+        '''Refreshes, on every object in the database, security-related,
+           workflow-managed information.'''
+        context = {'nb': 0}
+        for className in self.o.getProductConfig().allClassNames:
+            self.compute(className, context=context, noSecurity=True,
+                         expression="ctx['nb'] += int(obj.o.refreshSecurity())")
+        msg = 'Security refresh: %d object(s) updated.' % context['nb']
+        self.log(msg)
+        self.say(msg)
 # ------------------------------------------------------------------------------
