@@ -588,7 +588,6 @@ class ZopeInstaller:
             permission = self.defaultAddContentPermission,
             extra_constructors = constructors, fti = ftis).initialize(
                 self.zopeContext)
-
         # Define content-specific "add" permissions
         for i in range(0, len(contentTypes)):
             className = contentTypes[i].__name__
@@ -596,6 +595,11 @@ class ZopeInstaller:
             self.zopeContext.registerClass(meta_type = ftis[i]['meta_type'],
                 constructors = (constructors[i],),
                 permission = self.addContentPermissions[className])
+        # Create workflow prototypical instances in __instance__ attributes
+        for contentType in contentTypes:
+            wf = getattr(contentType.wrapperClass, 'workflow', None)
+            if wf and not hasattr(wf, '__instance__'):
+                wf.__instance__ = wf()
 
     def enableUserTracking(self):
         '''Enables the machinery allowing to know who is currently logged in.

@@ -951,7 +951,7 @@ class BaseMixin:
         # Is this transition triggerable?
         transition = getattr(wf, transitionName)
         if not transition.isTriggerable(self, wf):
-            raise 'Transition "%s" can\'t be triggered' % transitionName
+            raise 'Transition "%s" can\'t be triggered.' % transitionName
         # Trigger the transition
         transition.trigger(transitionName, self, wf, comment, doAction=doAction,
                            doNotify=doNotify, doHistory=doHistory, doSay=doSay)

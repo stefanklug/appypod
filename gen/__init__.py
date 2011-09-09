@@ -2384,6 +2384,7 @@ class Transition:
 
     def isTriggerable(self, obj, wf):
         '''Can this transition be triggered on p_obj?'''
+        wf = wf.__instance__ # We need the prototypical instance here.
         # Checks that the current state of the object is a start state for this
         # transition.
         objState = obj.getState(name=False)
@@ -2424,13 +2425,15 @@ class Transition:
     def executeAction(self, obj, wf):
         '''Executes the action related to this transition.'''
         msg = ''
+        obj = obj.appy()
+        wf = wf.__instance__ # We need the prototypical instance here.
         if type(self.action) in (tuple, list):
             # We need to execute a list of actions
             for act in self.action:
-                msgPart = act(wf, obj.appy())
+                msgPart = act(wf, obj)
                 if msgPart: msg += msgPart
         else: # We execute a single action only.
-            msgPart = self.action(wf, obj.appy())
+            msgPart = self.action(wf, obj)
             if msgPart: msg += msgPart
         return msg
 
@@ -2555,12 +2558,14 @@ class WorkflowAnonymous:
     '''One-state workflow allowing anyone to consult and Manager to edit.'''
     mgr = 'Manager'
     active = State({r:(mgr, 'Anonymous'), w:mgr, d:mgr}, initial=True)
+WorkflowAnonymous.__instance__ = WorkflowAnonymous()
 
 class WorkflowAuthenticated:
     '''One-state workflow allowing authenticated users to consult and Manager
        to edit.'''
     mgr = 'Manager'
     active = State({r:(mgr, 'Authenticated'), w:mgr, d:mgr}, initial=True)
+WorkflowAuthenticated.__instance__ = WorkflowAuthenticated()
 
 # ------------------------------------------------------------------------------
 class Selection:
