@@ -101,6 +101,8 @@ class Generator(AbstractGenerator):
             msg('no_ref',               '', msg.REF_NO),
             msg('add_ref',              '', msg.REF_ADD),
             msg('ref_actions',          '', msg.REF_ACTIONS),
+            msg('action_ok',            '', msg.ACTION_OK),
+            msg('action_ko',            '', msg.ACTION_KO),
             msg('move_up',              '', msg.REF_MOVE_UP),
             msg('move_down',            '', msg.REF_MOVE_DOWN),
             msg('query_create',         '', msg.QUERY_CREATE),

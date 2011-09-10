@@ -908,11 +908,8 @@ class BaseMixin:
         if not msg:
             # Use the default i18n messages
             suffix = 'ko'
-            if successfull:
-                suffix = 'ok'
-            appyType = self.getAppyType(rq['fieldName'])
-            label = '%s_action_%s' % (appyType.labelId, suffix)
-            msg = self.translate(label)
+            if successfull: suffix = 'ok'
+            msg = self.translate('action_%s' % suffix)
         if (resultType == 'computation') or not successfull:
             self.say(msg)
             return self.goto(self.getUrl(rq['HTTP_REFERER']))
@@ -1191,15 +1188,14 @@ class BaseMixin:
         return res
 
     def translate(self, label, mapping={}, domain=None, default=None,
-                  language=None, format='html', field=None, className=None):
+                  language=None, format='html', field=None):
         '''Translates a given p_label into p_domain with p_mapping.
 
            If p_field is given, p_label does not correspond to a full label
            name, but to a label type linked to p_field: "label", "descr"
            or "help". Indeed, in this case, a specific i18n mapping may be
            available on the field, so we must merge this mapping into
-           p_mapping. If p_className is not given, we consider p_self being an
-           instance of the class where p_field is defined.'''
+           p_mapping.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
         if domain != cfg.PROJECTNAME:
@@ -1215,22 +1211,15 @@ class BaseMixin:
         else:
             # Get the label name, and the field-specific mapping if any.
             if field:
-                # Maybe we do not have the field itself, but only its name
-                if isinstance(field, basestring):
-                    appyField = self.getAppyType(field, className=className)
-                else:
-                    appyField = field
-                if appyField:
-                    fieldMapping = appyField.mapping[label]
+                # p_field is the dict version of a appy type or group
+                if field['type'] != 'group':
+                    fieldMapping = field['mapping'][label]
                     if fieldMapping:
                         if callable(fieldMapping):
+                            appyField = self.getAppyType(field['name'])
                             fieldMapping=appyField.callMethod(self,fieldMapping)
                         mapping.update(fieldMapping)
-                    # Get the label
-                    label = getattr(appyField, label+'Id')
-                else:
-                    # It must be a group.
-                    label = '%s_group_%s_%s' % (self.meta_type, field, label)
+                label = field['%sId' % label]
             # We will get the translation from a Translation object.
             # In what language must we get the translation?
             if not language: language = self.getUserLanguage()

@@ -21,7 +21,14 @@ class GroupDescr(Descr):
         self.columnsWidths = [col.width for col in group.columns]
         self.columnsAligns = [col.align for col in group.columns]
         # Names of i18n labels
-        self.labelId = '%s_group_%s' % (metaType, self.name)
+        labelName = self.name
+        prefix = metaType
+        if group.label:
+            if isinstance(group.label, basestring): prefix = group.label
+            else: # It is a tuple (metaType, name)
+                if group.label[1]: labelName = group.label[1]
+                if group.label[0]: prefix = group.label[0]
+        self.labelId = '%s_group_%s' % (prefix, labelName)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # The name of the page where the group lies

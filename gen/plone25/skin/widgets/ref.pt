@@ -120,7 +120,7 @@
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
                  showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
-                 label python: contextObj.translate('label', field=appyType['name']);
+                 label python: contextObj.translate('label', field=appyType);
                  addConfirmMsg python: appyType['addConfirm'] and tool.translate('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
@@ -167,7 +167,7 @@
 
       <tal:comment replace="nothing">Object description</tal:comment>
       <p class="discreet"  tal:condition="python: not innerRef and appyType['hasDescr']"
-         tal:content="python: contextObj.translate('descr', field=appyType['name'])"></p>
+         tal:content="python: contextObj.translate('descr', field=appyType)"></p>
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>

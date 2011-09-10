@@ -87,14 +87,7 @@ class FieldDescriptor:
                 self.generator.labels.append(poMsg)
 
     def walkAction(self):
-        '''Generates the i18n-related labels.'''
-        for suffix in ('ok', 'ko'):
-            label = '%s_%s_action_%s' % (self.classDescr.name, self.fieldName,
-                                         suffix)
-            msg = PoMessage(label, '',
-                            getattr(PoMessage, 'ACTION_%s' % suffix.upper()))
-            self.generator.labels.append(msg)
-            self.classDescr.labelsToPropagate.append(msg)
+        '''Generates the i18n-related label.'''
         if self.appyType.confirm:
             label = '%s_%s_confirm' % (self.classDescr.name, self.fieldName)
             msg = PoMessage(label, '', PoMessage.CONFIRM)
@@ -178,7 +171,7 @@ class FieldDescriptor:
                 self.classDescr.labelsToPropagate.append(poMsg)
         # Create i18n messages linked to groups
         group = self.appyType.group
-        if group:
+        if group and not group.label:
             group.generateLabels(messages, self.classDescr, set())
         # Manage things which are specific to String types
         if self.appyType.type == 'String': self.walkString()

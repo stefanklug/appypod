@@ -95,7 +95,7 @@ class Group:
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
                  valign='top', css_class='', master=None, masterValue=None,
-                 cellpadding=1, cellspacing=1, cellgap='0.6em'):
+                 cellpadding=1, cellspacing=1, cellgap='0.6em', label=None):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -105,8 +105,14 @@ class Group:
         self.columns = columns
         self._setColumns()
         # If field "wide" below is True, the HTML table corresponding to this
-        # group will have width 100%.
-        self.wide = wide
+        # group will have width 100%. You can also specify some string value,
+        # which will be used for HTML param "width".
+        if wide == True:
+            self.wide = '100%'
+        elif isinstance(wide, basestring):
+            self.wide = wide
+        else:
+            self.wide = ''
         # If style = 'fieldset', all widgets within the group will be rendered
         # within an HTML fieldset. If style is 'section1' or 'section2', widgets
         # will be rendered after the group title.
@@ -151,6 +157,7 @@ class Group:
         self.masterValue = None
         if master:
             self._addMaster(master, masterValue)
+        self.label = label # See similar attr of Type class.
 
     def _addMaster(self, master, masterValue):
         '''Specifies this group being a slave of another field: we will add css
@@ -236,7 +243,8 @@ class Group:
                     messages.append(poMsg)
                     classDescr.labelsToPropagate.append(poMsg)
         walkedGroups.add(self)
-        if self.group and (self.group not in walkedGroups):
+        if self.group and (self.group not in walkedGroups) and \
+           not self.group.label:
             # We remember walked groups for avoiding infinite recursion.
             self.group.generateLabels(messages, classDescr, walkedGroups)
 

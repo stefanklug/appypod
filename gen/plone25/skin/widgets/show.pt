@@ -82,7 +82,7 @@
   </tal:asSection>
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
   <table cellpadding="0" cellspacing="0"
-         tal:attributes="width python: test(widget['wide'], '100%', '');
+         tal:attributes="width widget/wide;
                          class widget/css_class">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
@@ -130,7 +130,7 @@
 </tal:comment>
 <table metal:define-macro="groupContent"
        tal:define="cellgap widget/cellgap"
-       tal:attributes="width python: test(widget['wide'], '100%', '');
+       tal:attributes="width widget/wide;
                        align widget/align;
                        class widget/css_class;
                        cellspacing widget/cellspacing;
@@ -175,14 +175,14 @@
 </table>
 
 <tal:comment replace="nothing">Displays a field label.</tal:comment>
-<tal:label metal:define-macro="label" condition="widget/hasLabel"><label tal:attributes="for widget/name" tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))" tal:content="structure python: contextObj.translate('label', field=widget['name'])"></label></tal:label>
+<tal:label metal:define-macro="label" condition="widget/hasLabel"><label tal:attributes="for widget/name" tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))" tal:content="structure python: contextObj.translate('label', field=widget)"></label></tal:label>
 
 <tal:comment replace="nothing">Displays a field description.</tal:comment>
-<tal:description metal:define-macro="description" condition="widget/hasDescr"><span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget['name'])"></span>
+<tal:description metal:define-macro="description" condition="widget/hasDescr"><span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget)"></span>
 </tal:description>
 
 <tal:comment replace="nothing">Displays a field help.</tal:comment>
-<tal:help metal:define-macro="help"><acronym tal:attributes="title python: contextObj.translate('help', field=widget['name'])"><img tal:attributes="src string: $portal_url/skyn/help.png"/></acronym></tal:help>
+<tal:help metal:define-macro="help"><acronym tal:attributes="title python: contextObj.translate('help', field=widget)"><img tal:attributes="src string: $portal_url/skyn/help.png"/></acronym></tal:help>
 
 <tal:comment replace="nothing">Displays validation-error-related info about a field.</tal:comment>
 <tal:validation metal:define-macro="validation"><acronym tal:condition="inError" tal:attributes="title python: errors[name]"><img tal:attributes="src string: $portal_url/skyn/warning.png"/></acronym><img tal:condition="not: inError" tal:attributes="src string: $portal_url/skyn/warning_no.gif"/></tal:validation>
