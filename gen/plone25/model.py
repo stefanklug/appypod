@@ -183,10 +183,8 @@ class Tool(ModelClass):
     listBoxesMaximumWidth = Integer(default=100)
     def refreshSecurity(self): pass # Real method in the wrapper
     refreshSecurity = Action(action=refreshSecurity, confirm=True)
-    # First arg of Ref field below is None because we don't know yet if it will
-    # link to the predefined User class or a custom class defined in the
-    # application.
-    users = Ref(None, multiplicity=(0,None), add=True, link=False,
+    # Ref(User) will maybe be transformed into Ref(CustomUserClass).
+    users = Ref(User, multiplicity=(0,None), add=True, link=False,
                 back=Ref(attribute='toTool'), page='users', queryable=True,
                 queryFields=('login',), showHeaders=True,
                 shownInfo=('login', 'title', 'roles'))

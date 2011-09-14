@@ -59,9 +59,6 @@ catalogMap = {}
 # In the following dict, we store, for every Appy class, the ordered list of
 # appy types (included inherited ones).
 attributes = {<!attributes!>}
-# In the following dict, we store, for every Appy class, a dict of appy types
-# keyed by their names.
-attributesDict = {<!attributesDict!>}
 
 # Application roles
 applicationRoles = [<!roles!>]

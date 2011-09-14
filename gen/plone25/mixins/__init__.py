@@ -51,10 +51,7 @@ class BaseMixin:
             for appyType in self.getAppyTypes('edit', rq.get('page')):
                 value = getattr(values, appyType.name, None)
                 appyType.store(obj, value)
-            if created:
-                # Now we have a title for the object, so we derive a nice id
-                obj.unmarkCreationFlag()
-                obj._renameAfterCreation(check_auto_id=True)
+            if created: obj.unmarkCreationFlag()
         if previousData:
             # Keep in history potential changes on historized fields
             self.historizeData(previousData)
@@ -499,7 +496,6 @@ class BaseMixin:
         '''Are we in debug mode ?'''
         for arg in sys.argv:
             if arg == 'debug-mode=on': return True
-        return False
 
     def getClass(self, reloaded=False):
         '''Returns the Appy class that dictates self's behaviour.'''
@@ -524,30 +520,34 @@ class BaseMixin:
     def getAppyType(self, name, asDict=False, className=None):
         '''Returns the Appy type named p_name. If no p_className is defined, the
            field is supposed to belong to self's class.'''
-        className = className or self.__class__.__name__
-        attrs = self.getProductConfig().attributesDict[className]
-        appyType = attrs.get(name, None)
-        if appyType and asDict: return appyType.__dict__
-        return appyType
+        if not className:
+            klass = self.__class__.wrapperClass
+        else:
+            klass = self.getTool().getAppyClass(className, wrapper=True)
+        res = getattr(klass, name, None)
+        if res and asDict: return res.__dict__
+        return res
 
     def getAllAppyTypes(self, className=None):
         '''Returns the ordered list of all Appy types for self's class if
            p_className is not specified, or for p_className else.'''
-        className = className or self.__class__.__name__
-        return self.getProductConfig().attributes[className]
+        if not className:
+            klass = self.__class__.wrapperClass
+        else:
+            klass = self.getTool().getAppyClass(className, wrapper=True)
+        return klass.__fields__
 
     def getGroupedAppyTypes(self, layoutType, pageName):
         '''Returns the fields sorted by group. For every field, the appyType
            (dict version) is given.'''
         res = []
         groups = {} # The already encountered groups
-        # In debug mode, reload the module containing self's class.
-        debug = self.isDebug()
-        if debug:
+        # If param "refresh" is there, we must reload the Python class
+        refresh = ('refresh' in self.REQUEST)
+        if refresh:
             klass = self.getClass(reloaded=True)
         for appyType in self.getAllAppyTypes():
-            if debug:
-                appyType = appyType.reload(klass, self)
+            if refresh: appyType = appyType.reload(klass, self)
             if appyType.page.name != pageName: continue
             if not appyType.isShowable(self, layoutType): continue
             if not appyType.group:
@@ -594,16 +594,17 @@ class BaseMixin:
            the result.'''
         res = []
         for name in fieldNames:
-            appyType = self.getAppyType(name, asDict)
-            if appyType: res.append(appyType)
-            elif name == 'state':
+            if name == 'state':
                 # We do not return a appyType if the attribute is not a *real*
                 # attribute, but the workfow state.
                 res.append({'name': name, 'labelId': 'workflow_state',
                             'filterable': False})
             else:
-                self.appy().log('Field "%s", used as shownInfo in a Ref, ' \
-                                'was not found.' % name, type='warning')
+                appyType = self.getAppyType(name, asDict)
+                if appyType: res.append(appyType)
+                else:
+                    self.appy().log('Field "%s", used as shownInfo in a Ref, ' \
+                                    'was not found.' % name, type='warning')
         if addTitle and ('title' not in fieldNames):
             res.insert(0, self.getAppyType('title', asDict))
         return res

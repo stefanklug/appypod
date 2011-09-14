@@ -326,7 +326,6 @@ class Search:
         elif fieldName == 'description':
             if usage == 'search':  return 'Description'
             else:                  return None
-        elif fieldName == 'state': return 'review_state'
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
     @staticmethod
@@ -487,24 +486,27 @@ class Type:
            called for storing the name of the Appy field (p_name) and other
            attributes that are based on the name of the Appy p_klass, and the
            application name (p_appName).'''
+        if hasattr(self, 'name'): return # Already initialized
         self.name = name
+        # Determine prefix for this class
+        if not klass: prefix = appName
+        else:         prefix = getClassName(klass, appName)
         # Recompute the ID (and derived attributes) that may have changed if
         # we are in debug mode (because we recreate new Type instances).
         self.id = id(self)
         if self.slaves: self.master_css = 'appyMaster master_%s' % self.id
         # Determine ids of i18n labels for this field
         labelName = name
-        prefix = None
+        trPrefix = None
         if self.label:
-            if isinstance(self.label, basestring): prefix = self.label
-            else: # It is a tuple (prefix, name)
+            if isinstance(self.label, basestring): trPrefix = self.label
+            else: # It is a tuple (trPrefix, name)
                 if self.label[1]: labelName = self.label[1]
-                if self.label[0]: prefix = self.label[0]
-        if not prefix:
-            if not klass: prefix = appName
-            else:         prefix = getClassName(klass, appName)
+                if self.label[0]: trPrefix = self.label[0]
+        if not trPrefix:
+            trPrefix = prefix
         # Determine name to use for i18n
-        self.labelId = '%s_%s' % (prefix, labelName)
+        self.labelId = '%s_%s' % (trPrefix, labelName)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # Determine read and write permissions for this field
@@ -522,9 +524,10 @@ class Type:
             self.writePermission = wp
         else:
             self.writePermission = 'Modify portal content'
-        if isinstance(self, Ref):
-            self.backd = self.back.__dict__
         if isinstance(self, Ref) and not self.isBack:
+            # We must initialise the corresponding back reference
+            self.back.klass = klass
+            self.back.init(self.back.attribute, self.klass, appName)
             self.back.relationship = '%s_%s_rel' % (prefix, name)
 
     def reload(self, klass, obj):
@@ -534,6 +537,7 @@ class Type:
            module has been performed.'''
         res = getattr(klass, self.name, None)
         if not res: return self
+        if isinstance(self, Ref) and self.isBack: return self
         res.init(self.name, klass, obj.getProductConfig().PROJECTNAME)
         return res
 
@@ -1693,6 +1697,7 @@ class Ref(Type):
             back.isBack = True
             back.back = self
             back.backd = self.__dict__
+            setattr(klass, back.attribute, back)
         # When displaying a tabular list of referenced objects, must we show
         # the table headers?
         self.showHeaders = showHeaders
@@ -2487,7 +2492,7 @@ class Transition:
         targetState.updatePermissions(wf, obj)
         # Refresh catalog-related security if required
         if not obj.isTemporary():
-            obj.reindexObject(idxs=('allowedRolesAndUsers','review_state'))
+            obj.reindexObject(idxs=('allowedRolesAndUsers', 'getState'))
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
@@ -2654,12 +2659,4 @@ class Config:
         # Language that will be used as a basis for translating to other
         # languages.
         self.sourceLanguage = 'en'
-
-# ------------------------------------------------------------------------------
-# Special field "type" is mandatory for every class. If one class does not
-# define it, we will add a copy of the instance defined below.
-title = String(multiplicity=(1,1), show='edit')
-title.init('title', None, 'appy')
-state = String()
-state.init('state', None, 'appy')
 # ------------------------------------------------------------------------------

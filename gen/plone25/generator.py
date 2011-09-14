@@ -370,40 +370,21 @@ class Generator(AbstractGenerator):
         # Compute the list of ordered attributes (forward and backward,
         # inherited included) for every Appy class.
         attributes = []
-        attributesDict = []
         for classDescr in classesAll:
             titleFound = False
-            attrs = []
-            attrNames = []
+            names = []
             for name, appyType, klass in classDescr.getOrderedAppyAttributes():
-                attrs.append(self.getAppyTypePath(name, appyType, klass))
-                attrNames.append(name)
+                names.append(name)
                 if name == 'title': titleFound = True
             # Add the "title" mandatory field if not found
-            if not titleFound:
-                attrs.insert(0, 'copy.deepcopy(appy.gen.title)')
-                attrNames.insert(0, 'title')
+            if not titleFound: names.insert(0, 'title')
             # Any backward attributes to append?
             if classDescr.name in self.referers:
                 for field, rel in self.referers[classDescr.name]:
-                    try:
-                        getattr(field.classDescr.klass, field.fieldName)
-                        klass = field.classDescr.klass
-                    except AttributeError:
-                        klass = field.classDescr.modelClass
-                    attrs.append(self.getAppyTypePath(field.fieldName,
-                        field.appyType, klass, isBack=True))
-                    attrNames.append(field.appyType.back.attribute)
-            attributes.append('"%s":[%s]' % (classDescr.name,','.join(attrs)))
-            aDict = ''
-            i = -1
-            for attr in attrs:
-                i += 1
-                aDict += '"%s":attributes["%s"][%d],' % \
-                         (attrNames[i], classDescr.name, i)
-            attributesDict.append('"%s":{%s}' % (classDescr.name, aDict))
+                    names.append(field.appyType.back.attribute)
+            qNames = ['"%s"' % name for name in names]
+            attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
         repls['attributes'] = ',\n    '.join(attributes)
-        repls['attributesDict'] = ',\n    '.join(attributesDict)
         # Compute list of used roles for registering them if needed
         specificRoles = self.getAllUsedRoles(plone=False)
         repls['roles'] = ','.join(['"%s"' % r.name for r in specificRoles])

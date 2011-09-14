@@ -79,10 +79,9 @@ class ToolMixin(BaseMixin):
     def _appy_getAllFields(self, contentType):
         '''Returns the (translated) names of fields of p_contentType.'''
         res = []
-        for appyType in self.getProductConfig().attributes[contentType]:
-            if appyType.name != 'title': # Will be included by default.
-                label = '%s_%s' % (contentType, appyType.name)
-                res.append((appyType.name, self.translate(label)))
+        for appyType in self.getAllAppyTypes(className=contentType):
+            if appyType.name == 'title': continue # Will be included by default.
+            res.append((appyType.name, self.translate(appyType.labelId)))
         # Add object state
         res.append(('workflowState', self.translate('workflow_state')))
         return res
@@ -91,7 +90,7 @@ class ToolMixin(BaseMixin):
         '''Returns the (translated) names of fields that may be searched on
            objects of type p_contentType (=indexed fields).'''
         res = []
-        for appyType in self.getProductConfig().attributes[contentType]:
+        for appyType in self.getAllAppyTypes(className=contentType):
             if appyType.indexed:
                 res.append((appyType.name, self.translate(appyType.labelId)))
         return res
@@ -343,26 +342,23 @@ class ToolMixin(BaseMixin):
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among
            application classes.'''
-        rq = self.REQUEST
-        obj = rq['PUBLISHED']
+        obj = self.REQUEST['PUBLISHED']
         parent = obj.getParentNode()
-        if parent.id == 'skyn':
-            obj = parent.getParentNode()
-        if obj.meta_type in self.getProductConfig().attributes:
-            return obj
-        return None
+        if parent.id == 'skyn': obj = parent.getParentNode()
+        if obj.meta_type in self.getProductConfig().attributes: return obj
 
-    def getAppyClass(self, contentType):
+    def getAppyClass(self, contentType, wrapper=False):
         '''Gets the Appy Python class that is related to p_contentType.'''
         # Retrieve first the Archetypes class corresponding to p_ContentType
         portalType = self.portal_types.get(contentType)
-        if not portalType: return None
+        if not portalType: return
         atClassName = portalType.getProperty('content_meta_type')
         appName = self.getProductConfig().PROJECTNAME
         exec 'from Products.%s.%s import %s as atClass' % \
             (appName, atClassName, atClassName)
         # Get then the Appy Python class
-        return atClass.wrapperClass.__bases__[-1]
+        if wrapper: return atClass.wrapperClass
+        else: return atClass.wrapperClass.__bases__[-1]
 
     def getCreateMeans(self, contentTypeOrAppyClass):
         '''Gets the different ways objects of p_contentTypeOrAppyClass (which
@@ -395,6 +391,8 @@ class ToolMixin(BaseMixin):
         '''This method checks if the currently logged user can trigger searches
            on a given p_rootClass. This is done by calling method "maySearch"
            on the class. If no such method exists, we return True.'''
+        # When editign a form, one should avoid annoying the user with this.
+        if self.REQUEST['ACTUAL_URL'].endswith('/edit'): return
         pythonClass = self.getAppyClass(rootClass)
         if 'maySearch' in pythonClass.__dict__:
             return pythonClass.maySearch(self.appy())

@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, time, mimetypes, random
 import appy.pod
-from appy.gen import Type, Search, Ref
+from appy.gen import Type, Search, Ref, String
 from appy.gen.utils import sequenceTypes
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
@@ -41,7 +41,6 @@ class AbstractWrapper(object):
         elif name == 'typeName': return self.__class__.__bases__[-1].__name__
         elif name == 'id': return self.o.id
         elif name == 'uid': return self.o.UID()
-        elif name == 'title': return self.o.Title()
         elif name == 'klass': return self.__class__.__bases__[-1]
         elif name == 'url': return self.o.absolute_url()
         elif name == 'state': return self.o.getState()
@@ -57,12 +56,7 @@ class AbstractWrapper(object):
             return self.o.portal_membership.getAuthenticatedMember()
         elif name == 'fields': return self.o.getAllAppyTypes()
         # Now, let's try to return a real attribute.
-        try:
-            res = object.__getattribute__(self, name)
-        except AttributeError, ae:
-            # Maybe a back reference?
-            res = self.o.getAppyType(name)
-            if not res: raise ae
+        res = object.__getattribute__(self, name)
         # If we got an Appy type, return the value of this type for this object
         if isinstance(res, Type):
             o = self.o

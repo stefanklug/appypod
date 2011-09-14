@@ -6,7 +6,7 @@ import os, os.path, time
 from StringIO import StringIO
 from sets import Set
 import appy
-from appy.gen import Type, Ref
+from appy.gen import Type, Ref, String
 from appy.gen.po import PoParser
 from appy.gen.utils import produceNiceMessage
 from appy.gen.plone25.utils import updateRolesForPermission
@@ -231,10 +231,11 @@ class PloneInstaller:
         '''Creates or updates the POD templates in the tool according to pod
            declarations in the application classes.'''
         # Creates the templates for Pod fields if they do not exist.
-        for contentType, appyTypes in self.attributes.iteritems():
+        for contentType in self.attributes.iterkeys():
             appyClass = self.tool.getAppyClass(contentType)
             if not appyClass: continue # May be an abstract class
-            for appyType in appyTypes:
+            wrapperClass = self.tool.getAppyClass(contentType, wrapper=True)
+            for appyType in wrapperClass.__fields__:
                 if appyType.type != 'Pod': continue
                 # Find the attribute that stores the template, and store on
                 # it the default one specified in the appyType if no
@@ -290,6 +291,7 @@ class PloneInstaller:
                     nvProps.manage_changeProperties(**{'idsNotToList': current})
 
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
+        self.tool.refreshSecurity()
         self.appyTool = self.tool.appy()
         if self.reinstall:
             self.tool.createOrUpdate(False, None)
@@ -413,9 +415,12 @@ class PloneInstaller:
     def manageIndexes(self):
         '''For every indexed field, this method installs and updates the
            corresponding index if it does not exist yet.'''
-        indexInfo = {}
-        for className, appyTypes in self.attributes.iteritems():
-            for appyType in appyTypes:
+        # Create a special index for object state, that does not correspond to
+        # a field.
+        indexInfo = {'getState': 'FieldIndex'}
+        for className in self.attributes.iterkeys():
+            wrapperClass = self.tool.getAppyClass(className, wrapper=True)
+            for appyType in wrapperClass.__fields__:
                 if not appyType.indexed or (appyType.name == 'title'): continue
                 n = appyType.name
                 indexName = 'get%s%s' % (n[0].upper(), n[1:])
@@ -553,17 +558,25 @@ class ZopeInstaller:
     def completeAppyTypes(self):
         '''We complete here the initialisation process of every Appy type of
            every gen-class of the application.'''
+        appName = self.productName
         for klass in self.classes:
+            # Store on wrapper class the ordered list of Appy types
+            wrapperClass = klass.wrapperClass
+            if not hasattr(wrapperClass, 'title'):
+                # Special field "type" is mandatory for every class.
+                title = String(multiplicity=(1,1), show='edit', indexed=True)
+                title.init('title', None, 'appy')
+                setattr(wrapperClass, 'title', title)
+            names = self.config.attributes[wrapperClass.__name__[:-8]]
+            wrapperClass.__fields__ = [getattr(wrapperClass, n) for n in names]
+            # Post-initialise every Appy type
             for baseClass in klass.wrapperClass.__bases__:
+                if baseClass.__name__ == 'AbstractWrapper': continue
                 for name, appyType in baseClass.__dict__.iteritems():
-                    if isinstance(appyType, Type):
-                        appyType.init(name, baseClass, self.productName)
-                    # Do not forget back references
-                    if isinstance(appyType, Ref):
-                        bAppyType = appyType.back
-                        bAppyType.init(bAppyType.attribute, appyType.klass,
-                                       self.productName)
-                        bAppyType.klass = baseClass
+                    if not isinstance(appyType, Type) or \
+                           (isinstance(appyType, Ref) and appyType.isBack):
+                        continue # Back refs are initialised within fw refs
+                    appyType.init(name, baseClass, appName)
 
     def installApplication(self):
         '''Performs some application-wide installation steps.'''

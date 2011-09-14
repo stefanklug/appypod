@@ -670,7 +670,7 @@
                  isEdit         python: layoutType == 'edit';
                  pageInfo       python: phaseInfo['pagesInfo'][page]">
   <br/>
-  <tal:previousButton condition="python: previousPage and pageInfo['showPrevious']">
+  <tal:previous condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonPrevious"
              title="label_previous" i18n:attributes="title" i18n:domain="plone"
@@ -683,28 +683,34 @@
              title="label_previous" i18n:attributes="title" i18n:domain="plone"/>
       </a>
     </tal:link>
-  </tal:previousButton>
+  </tal:previous>
 
-  <tal:saveButton condition="python: isEdit and pageInfo['showSave']">
+  <tal:save condition="python: isEdit and pageInfo['showSave']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonOk"
            title="label_save" i18n:attributes="title" i18n:domain="plone"
            tal:attributes="src string:$portal_url/skyn/save.png"/>
-  </tal:saveButton>
+  </tal:save>
 
-  <tal:cancelButton condition="python: isEdit and pageInfo['showCancel']">
+  <tal:cancel condition="python: isEdit and pageInfo['showCancel']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonCancel"
            title="label_cancel" i18n:attributes="title" i18n:domain="plone"
            tal:attributes="src string:$portal_url/skyn/cancel.png"/>
-  </tal:cancelButton>
+  </tal:cancel>
 
-  <tal:editLink condition="python: not isEdit and pageInfo['showOnEdit']">
+  <tal:edit condition="python: not isEdit and pageInfo['showOnEdit']">
     <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
                          src string: $portal_url/skyn/editBig.png"
          tal:condition="python: member.has_permission('Modify portal content', contextObj)"/>
-  </tal:editLink>
+  </tal:edit>
 
-  <tal:nextButton condition="python: nextPage and pageInfo['showNext']">
+  <tal:refresh condition="contextObj/isDebug">
+    <img title="Refresh" style="cursor:pointer"
+         tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode=layoutType, page=page, refresh='yes');
+                         src string: $portal_url/skyn/refresh.png"/>
+  </tal:refresh>
+
+  <tal:next condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonNext"
              title="label_next" i18n:attributes="title" i18n:domain="plone"
@@ -717,7 +723,7 @@
              title="label_next" i18n:attributes="title" i18n:domain="plone"/>
       </a>
     </tal:link>
-  </tal:nextButton>
+  </tal:next>
 </div>
 
 <tal:comment replace="nothing">
