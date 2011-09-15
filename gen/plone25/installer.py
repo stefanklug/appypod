@@ -430,19 +430,14 @@ class PloneInstaller:
 
     def manageLanguages(self):
         '''Manages the languages supported by the application.'''
-        if self.languageSelector:
-            # We must install the PloneLanguageTool if not done yet
-            qi = self.ploneSite.portal_quickinstaller
-            if not qi.isProductInstalled('PloneLanguageTool'):
-                qi.installProduct('PloneLanguageTool')
-            languageTool = self.ploneSite.portal_languages
-            defLanguage = self.languages[0]
-            languageTool.manage_setLanguageSettings(defaultLanguage=defLanguage,
-                supportedLanguages=self.languages, setContentN=None,
-                setCookieN=True, setRequestN=True, setPathN=True,
-                setForcelanguageUrls=True, setAllowContentLanguageFallback=None,
-                setUseCombinedLanguageCodes=None, displayFlags=False,
-                startNeutral=False)
+        languageTool = self.ploneSite.portal_languages
+        defLanguage = self.languages[0]
+        languageTool.manage_setLanguageSettings(defaultLanguage=defLanguage,
+            supportedLanguages=self.languages, setContentN=None,
+            setCookieN=True, setRequestN=True, setPathN=True,
+            setForcelanguageUrls=True, setAllowContentLanguageFallback=None,
+            setUseCombinedLanguageCodes=None, displayFlags=False,
+            startNeutral=False)
 
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''

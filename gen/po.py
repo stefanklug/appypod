@@ -89,7 +89,7 @@ class PoMessage:
     BAD_SELECT_VALUE = 'The value is not among possible values for this field.'
     ACTION_OK = 'The action has been successfully executed.'
     ACTION_KO = 'A problem occurred while executing the action.'
-    FRONT_PAGE_TEXT = 'Welcome to this Appy-powered Plone site.'
+    FRONT_PAGE_TEXT = 'Welcome to this Appy-powered site.'
     EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
                     'performed on element entitled \\"${objectTitle}\\".'
     EMAIL_BODY = 'You can consult this element at ${objectUrl}.'

@@ -12,7 +12,8 @@
 
 <head>
   <title tal:content="tool/getAppName"></title>
-  <link rel="stylesheet" tal:attributes="href string:$appUrl/skyn/appy.css" type="text/css">
+  <link rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/skyn/appy.css"/>
+  <script type="text/javascript" tal:attributes="src string:$appUrl/skyn/appy.js"></script>
 </head>
 
 <body>
@@ -23,7 +24,7 @@
    <table width="100%">
     <tr valign="top">
      <tal:comment replace="nothing">Logo</tal:comment>
-     <td><img src="skyn/logo.jpg"/></td>
+     <td><a tal:attributes="href appUrl"><img src="skyn/logo.jpg"/></a></td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
      <td align="right"
          tal:define="appLangs app/portal_languages/listSupportedLanguages;
@@ -54,25 +55,72 @@
    </table>
   </td>
  </tr>
- <tal:comment replace="nothing">The login strip</tal:comment>
- <tr class="auth">
+ <tal:comment replace="nothing">The user data strip</tal:comment>
+ <tr>
   <td>
-   <table witdh="100%">
+   <table class="userStrip" width="100%">
     <tr>
-     <td>a  </td>
+     <td>
+      <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
+       <table align="center" tal:condition="isAnon" class="login"
+              tal:define="auth nocall:app/acl_users/credentials_cookie_auth">
+       <tr><td>
+        <form name="loginform" method="post"
+              tal:attributes="action python: tool.absolute_url() + '/performLogin'">
+
+         <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
+         <input type="hidden" name="cookies_enabled" id="cookies_enabled" value=""/>
+         <input type="hidden" name="login_name" id="login_name" value=""/>
+         <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
+
+         <span>Login</span>&nbsp;
+         <input type="text" size="15" name="__ac_name" id="__ac_name" value=""/>&nbsp;
+         <span>Password</span>&nbsp;
+         <input type="password" size="15" name="__ac_password" id="__ac_password"/>
+         <input type="submit" name="submit" onclick="setLoginVars()"
+                tal:define="label python: _('Login');" tal:attributes="value label; alt label;"/>
+        </form>
+       </td></tr>
+      </table>
+      <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
+      <table tal:condition="not: isAnon" class="buttons">
+       <tr>
+        <td>
+         <!-- Go home -->
+         <a tal:attributes="href appUrl; title python: _('home')">
+          <img src="skyn/home.gif"/>
+         </a>
+         <!-- Logout -->
+         <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
+                            title python: _('logout')">
+          <img src="skyn/logout.gif"/>
+         </a>
+        </td>
+       </tr>
+      </table>
+     </td>
     </tr>
    </table>
   </td>
  </tr>
+ <tal:comment replace="nothing">The message strip</tal:comment>
+ <tr tal:define="msg request/portal_status_message | nothing">
+  <td>
+   <div style="position: relative" align="right">
+    <div tal:condition="msg" class="message" tal:content="structure msg"></div>
+   </div>
+  </td>
+ </tr>
  <tr>
-   <td><span metal:define-slot="content"><span tal:content="isAnon"></span></span></td>
+  <td>
+    <table class="content" width="100%">
+     <tr>
+      <td><span metal:define-slot="content"></span>
+      </td>
+     </tr> 
+    </table>
+   </td> 
  </tr>
 </table>
-
-<br/>
-<h1>Appy</h1>
-<h2>Sub appy</h2>
-<h3>Sub sub appy</h3>
-<p>Hello</p>
 </body>
 </html>

@@ -791,8 +791,16 @@ class ToolMixin(BaseMixin):
             msg = self.translate(u'Welcome! You are now logged in.',
                                  domain='plone')
             logMsg = 'User "%s" has been logged in.' % login
+        msg = msg.encode('utf-8')
         self.log(logMsg)
-        return self.goto(rq['HTTP_REFERER'], msg.encode('utf-8'))
+        # Bring Managers to the config, leave others on the main page.
+        user = self.portal_membership.getAuthenticatedMember()
+        if user.has_role('Manager'):
+            # Bring the user to the configuration
+            url = self.goto(self.absolute_url(), msg)
+        else:
+            url = self.goto(rq['HTTP_REFERER'], msg)
+        return url
 
     def performLogout(self):
         '''Logs out the current user when he clicks on "disconnect".'''
@@ -814,8 +822,7 @@ class ToolMixin(BaseMixin):
             session.invalidate()
         from Products.CMFPlone import transaction_note
         transaction_note('Logged out')
-        self.getProductConfig().logger.info('User "%s" has been logged out.' % \
-                                            userId)
+        self.log('User "%s" has been logged out.' % userId)
         # Remove user from variable "loggedUsers"
         from appy.gen.plone25.installer import loggedUsers
         if loggedUsers.has_key(userId): del loggedUsers[userId]

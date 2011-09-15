@@ -5,7 +5,14 @@ body {
 
 a {text-decoration: none; color: #747171;}
 a:visited {color: #840107;}
-table { font-size: 100%; border-spacing: 0px; }
+table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
+input {border: 1px solid #a79e9e;}
+form {margin: 0; padding: 0;}
+p {margin: 0;}
+
+h1 {font-size: 11pt; margin:0;}
+h2 {font-size: 10pt; margin:0; font-style: italic; font-weight: normal;}
+h3 {font-size: 9pt; margin:0; font-weight: bold;}
 
 .main {
   width: 900px;
@@ -16,6 +23,15 @@ table { font-size: 100%; border-spacing: 0px; }
   box-shadow: 3px 3px 3px #A9A9A9;
 }
 
-.top { height: 80px; margin-left: 3em; vertical-align: top;}
+.top { height: 75px; margin-left: 3em; vertical-align: top;}
 .lang { margin-right: 3px; }
-.auth { background-color: grey;}
+.userStrip {
+  background-color: #a2a2a2;
+  border-top: 3px solid #525252;
+  border-bottom: 2px solid #9b0000;
+  height: 30px;
+}
+.login { margin-top: 2px; margin-bottom: 2px; color: white;}
+.buttons { margin-left: 4px; }
+.content {margin: 7px 0 9px 4px;}
+.message {color: #9b0000; font-style: italic; position: absolute; top: -50px; right: 5px}
