@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 xhtmlInput = '''
 <ol><li>
 <div style="text-align: justify;">Le Gouvernement adopte le projet d’arrêté modifiant l'arrêté du 9 février 1998 portant délégations de compétence et de signature aux fonctionnaires généraux et à certains autres agents des services du Gouvernement de la Communauté française - Ministère de la Communauté française.</div>
