@@ -27,7 +27,6 @@ class PloneInstaller:
         self.config = cfg = config
         # Unwrap some useful variables from config
         self.productName = cfg.PROJECTNAME
-        self.minimalistPlone = cfg.minimalistPlone
         self.appClasses = cfg.appClasses
         self.appClassNames = cfg.appClassNames
         self.allClassNames = cfg.allClassNames
@@ -35,7 +34,6 @@ class PloneInstaller:
         self.applicationRoles = cfg.applicationRoles # Roles defined in the app
         self.defaultAddRoles = cfg.defaultAddRoles
         self.appFrontPage = cfg.appFrontPage
-        self.showPortlet = cfg.showPortlet
         self.languages = cfg.languages
         self.languageSelector = cfg.languageSelector
         self.attributes = cfg.attributes
@@ -77,19 +75,6 @@ class PloneInstaller:
                 catalog.reindexIndex(indexName, ploneSite.REQUEST)
                 logger.info('Created index "%s" of type "%s"...' % \
                             (indexName, indexType))
-
-    actionsToHide = {
-        'portal_actions': ('sitemap', 'accessibility', 'change_state','sendto'),
-        'portal_membership': ('mystuff', 'preferences'),
-        'portal_undo': ('undo',)
-    }
-    def customizePlone(self):
-        '''Hides some UI elements that appear by default in Plone.'''
-        for portalName, toHide in self.actionsToHide.iteritems():
-            portal = getattr(self.ploneSite, portalName)
-            portalActions = portal.listActions()
-            for action in portalActions:
-                if action.id in toHide: action.visible = False
 
     appyFolderType = 'AppyFolder'
     def registerAppyFolderType(self):
@@ -265,30 +250,6 @@ class PloneInstaller:
             # If an instance with the same name already exists, this error will
             # be unelegantly raised by Zope.
             pass
-        except:
-            e = sys.exc_info()
-            if e[0] != 'Bad Request': raise
-        
-        # Hide the tool from the search form
-        portalProperties = self.ploneSite.portal_properties
-        if portalProperties is not None:
-            siteProperties = getattr(portalProperties, 'site_properties', None)
-            if siteProperties is not None and \
-               siteProperties.hasProperty('types_not_searched'):
-                current = list(siteProperties.getProperty('types_not_searched'))
-                if self.toolName not in current:
-                    current.append(self.toolName)
-                    siteProperties.manage_changeProperties(
-                        **{'types_not_searched' : current})
-
-        # Hide the tool in the navigation
-        if portalProperties is not None:
-            nvProps = getattr(portalProperties, 'navtree_properties', None)
-            if nvProps is not None and nvProps.hasProperty('idsNotToList'):
-                current = list(nvProps.getProperty('idsNotToList'))
-                if self.toolInstanceName not in current:
-                    current.append(self.toolInstanceName)
-                    nvProps.manage_changeProperties(**{'idsNotToList': current})
 
         self.tool = getattr(self.ploneSite, self.toolInstanceName)
         self.tool.refreshSecurity()
@@ -297,24 +258,8 @@ class PloneInstaller:
             self.tool.createOrUpdate(False, None)
         else:
             self.tool.createOrUpdate(True, None)
-
         self.updatePodTemplates()
-
-        # Uncatalog tool
         self.tool.unindexObject()
-
-        # Register tool as configlet
-        portalControlPanel = self.ploneSite.portal_controlpanel
-        portalControlPanel.unregisterConfiglet(self.toolName)
-        portalControlPanel.registerConfiglet(
-            self.toolName, self.productName,
-            'string:${portal_url}/%s' % self.toolInstanceName, 'python:True',
-            'Manage portal', # Access permission
-            'Products', # Section to which the configlet should be added:
-                        # (Plone, Products (default) or Member)
-            1, # Visibility
-            '%sID' % self.toolName, 'site_icon.gif', # Icon in control_panel
-            self.productName, None)
 
     def installTranslations(self):
         '''Creates or updates the translation objects within the tool.'''
@@ -386,32 +331,6 @@ class PloneInstaller:
         defaults.update(cssInfo)
         portalCss.registerStylesheet(**defaults)
 
-    def managePortlets(self):
-        '''Shows or hides the application-specific portlet and configures other
-           Plone portlets if relevant.'''
-        portletName= 'here/%s_portlet/macros/portlet' % self.productName.lower()
-        site = self.ploneSite
-        leftPortlets = site.getProperty('left_slots')
-        if not leftPortlets: leftPortlets = []
-        else: leftPortlets = list(leftPortlets)
-        
-        if self.showPortlet and (portletName not in leftPortlets):
-            leftPortlets.insert(0, portletName)
-        if not self.showPortlet and (portletName in leftPortlets):
-            leftPortlets.remove(portletName)
-        # Remove some basic Plone portlets that make less sense when building
-        # web applications.
-        portletsToRemove = ["here/portlet_navigation/macros/portlet",
-                            "here/portlet_recent/macros/portlet",
-                            "here/portlet_related/macros/portlet"]
-        if not self.minimalistPlone: portletsToRemove = []
-        for p in portletsToRemove:
-            if p in leftPortlets:
-                leftPortlets.remove(p)
-        site.manage_changeProperties(left_slots=tuple(leftPortlets))
-        if self.minimalistPlone:
-            site.manage_changeProperties(right_slots=())
-
     def manageIndexes(self):
         '''For every indexed field, this method installs and updates the
            corresponding index if it does not exist yet.'''
@@ -442,21 +361,11 @@ class PloneInstaller:
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         site = self.ploneSite
-        # Do not generate an action (tab) for each root folder
-        if self.minimalistPlone:
-            site.portal_properties.site_properties.manage_changeProperties(
-                disable_folder_sections=True)
         # Do not allow an anonymous user to register himself as new user
         site.manage_permission('Add portal member', ('Manager',), acquire=0)
         # Call custom installer if any
         if hasattr(self.appyTool, 'install'):
             self.tool.executeAppyAction('install', reindex=False)
-        # Patch the "logout" action with a custom Appy one that updates the
-        # list of currently logged users.
-        for action in site.portal_membership._actions:
-            if action.id == 'logout':
-                action.setActionExpression(
-                    'string:${portal_url}/%s/logout' % self.toolInstanceName)
         # Replace Plone front-page with an application-specific page if needed
         if self.appFrontPage:
             frontPageName = self.productName + 'FrontPage'
@@ -465,14 +374,12 @@ class PloneInstaller:
     def info(self, msg): return self.appyTool.log(msg)
 
     def install(self):
-        if self.minimalistPlone: self.customizePlone()
         self.installRootFolder()
         self.installTypes()
         self.installTool()
         self.installTranslations()
         self.installRolesAndGroups()
         self.installStyleSheet()
-        self.managePortlets()
         self.manageIndexes()
         self.manageLanguages()
         self.finalizeInstallation()

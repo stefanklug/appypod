@@ -1,32 +1,17 @@
-/* <dtml-var "enableHTTPCompression(request=REQUEST, debug=1, css=1)"> (this is for http compression) */
-/* <dtml-with base_properties> (do not remove this :) */
-/* <dtml-call "REQUEST.set('portal_url', portal_url())"> (not this either :) */
-
 textarea { width: 99%; }
 
-#portal-breadcrumbs { display: none; }
 #importedElem { color: grey; font-style: italic; }
 label         { font-weight: bold; font-style: italic; line-height: 1.4em; font-size: 92%;}
-.discreet     { font-size: 94%; }
 .appyList     { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
 .appyBullet   { margin: 0; }
 .appyPod      { float:right; }
-.appyNav      { padding: 0.4em 0 0.4em 0; }
 .appyFocus    { color: #900101; }
-.appyTitle    { padding-top: 0.5em; font-size: 110%; }
-.appyWorkflow { text-align: center; background-color: &dtml-globalBackgroundColor;;}
 
 .appyPlusImg {
   vertical-align: top;
   position: relative;
   left: -1.4em;
   top: -0.55em;
-}
-
-.appyPhase {
-  border-style: dashed;
-  border-width: thin;
-  padding: 0 0.6em 0 1em;
 }
 
 .appyState {
@@ -61,54 +46,6 @@ label         { font-weight: bold; font-style: italic; line-height: 1.4em; font-
   font-size: 105%;
 }
 
-/* Following classes are used for displaying status of a phase or state. */
-.stepDone {
-  background-color: #cde2a7;
-  background-image: url(&dtml-portal_url;/skyn/done.png);
-  background-repeat: no-repeat;
-  background-position: -1px 7px;
-}
-.stepDoneState {
-  background-color: #cde2a7;
-  background-image: url(&dtml-portal_url;/skyn/done.png);
-  background-repeat: no-repeat;
-  background-position: -1px 4px;
-}
-
-.stepCurrent {
-  background-color: #eef3f5;
-  background-image: url(&dtml-portal_url;/skyn/current.png);
-  background-repeat: no-repeat;
-  background-position: -1px 7px;
-}
-.stepCurrentState {
-  background-color: #eef3f5;
-  background-image: url(&dtml-portal_url;/skyn/current.png);
-  background-repeat: no-repeat;
-  background-position: -1px 4px;
-}
-
-.stepFuture {
-  background-color: #ffffff;
-  color: #C8C8C8;
-  border-style: dashed;
-}
-
-.stepUnselected {
-  background-color: #ffffff;
-}
-
-.appyCommonInfo {
-  border-color: #ffa500;
-  background-color: &dtml-evenRowBackgroundColor;;
-  border-style: solid;
-  border-width: 2px;
-  margin-bottom: 0.5em;
-}
-
-/* With fields layout in columns, standard error frame is too large */
-.odd {  background-color: white; }
-
 /* Tooltip */
 a.tooltip span {
   display:none;
@@ -126,58 +63,11 @@ a.tooltip:hover span {
 }
 
 /* Table styles */
-.no-style-table {
-  border: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.no-style-table td {
-  border: 0 !important;
-  padding-left: 0 !important;
-  margin: 0 !important;
-}
-
 fieldset {
   line-height: 1em;
   border: 2px solid #8CACBB;
   margin: 0.5em 0em 0.5em 0em;
   padding: 0 0.7em 0.5em;
-}
-
-th {
-  font-style: italic;
-  font-weight: normal;
-}
-
-.section1 {
-  font-size: 120%;
-  margin: 0.45em 0em 0.1em 0;
-  padding: 0.3em 0em 0.2em 0.1em;
-  background-color: #eef3f5;
-  border-top: 1px solid #8CACBB;
-  border-bottom: 1px solid #8CACBB;
-}
-
-.section2 {
-  font-size: 110%;
-  font-style: italic;
-  margin: 0.45em 0em 0.1em 0;
-  border-bottom: 2px solid #8CACBB;
-}
-
-.section3 {
-  font-size: 100%;
-  font-style: italic;
-  margin: 0.45em 0em 0.1em 0;
-  background-color: #efeae8;
-  text-align: center;
-  color: grey;
-}
-
-.imageInput {
-  border-width: 0px;
-  background: none;
 }
 
 .noPadding {
@@ -238,14 +128,6 @@ th {
   text-transform: none;
   padding: 1px 0.5em;
 }
-.portletAppyItem {
-  margin: 0;
-  padding: 1px 0.5em;
-  border-left: 1px solid #8cacbb;
-  border-right: 1px solid #8cacbb;
-  font-weight: normal;
-  text-transform: none;
-}
 .portletSearch {
   padding: 0 0 0 0.6em;
   font-style: normal;
@@ -256,52 +138,9 @@ th {
   font-weight: bold;
   font-style: normal;
 }
-.portletSep       {  border-top: 1px dashed #8cacbb; }
+
 .portletGroupItem { padding-left: 0.8em; font-style: italic; }
-.portletPageItem  { font-style: italic; }
-.portletCurrent   { font-weight: bold; }
 .portletMenu      { margin-bottom: 0.4em; }
-
-div.appyGrey {
-  display: none;
-  position: absolute;
-  left: 0px;
-  top: 0px;
-  width:100%;
-  height:100%;
-  background:gray;
-  filter:alpha(Opacity=50);
-  opacity:0.5;
-  -moz-opacity:0.5;
-  -khtml-opacity:0.5
-}
-div.appyPopup {
-  display: none;
-  position: absolute;
-  top: 30%;
-  left: 35%;
-  width: 350px;
-  z-index : 100;
-  background: white;
-  padding: 8px;
-  border: 1px solid gray;
-}
-
-.translationLabel {
-  background-color: #EAEAEA;
-  border-bottom: 1px dashed grey;
-  margin-top: 1em;
-  margin-bottom: 0.5em;
-}
-
-/* Uncomment this if you want to hide breadcrumbs */
-/*
-#portal-breadcrumbs {
-  display: none;
-}
-*/
-
-/* </dtml-with> */
 
 /* image-right, but without border */
 .image-right {
@@ -310,48 +149,5 @@ div.appyPopup {
   float:right;
   margin:0.5em;
 }
-
-/* DOCUMENTATION ON PRE-DEFINED PROPERTIES FROM PLONE */
-
- /* You can insert colors and other variables from Plone's 
-    base_properties by doing:
-    & dtml-variableName ; (without the spaces, excluded here to not make it render)
-
-    Example:
-    myLink {
-        color: & dtml-fontColor ;   (again, without the spaces)
-    }
-   This means you can generate your own elements that use Plone's defaults,
-   and respect any customizations people have done. See base_properties for
-   the default values.
-
-   These are the available properties:
-   logoName - the file name of the portal logo. 
-   fontFamily - the font family used for all text that is not headers
-   fontBaseSize - the base font size that everything is calculated from
-   fontColor - the main font color
-   backgroundColor - the background color 
-   linkColor - the color used on normal links
-   linkActiveColor - color used on active links
-   linkVisitedColor - color used on visited links
-   borderWidth - the width of most borders in Plone
-   borderStyle - the style of the border lines, normally solid
-   borderStyleAnnotations - style of border lines on comments etc
-   globalBorderColor - the border color used on the main tabs, the portlets etc
-   globalBackgroundColor - background color for the selected tabs, portlet headings etc
-   globalFontColor - the color of the font in the tabs and in portlet headings
-   headingFontFamily - font family for h1/h2/h3/h4/h5/h6 headlines.
-   headingFontBaseSize - the base size used when calculating the different headline sizes
-   contentViewBorderColor - the content view tabs border color
-   contentViewBackgroundColor - the content view tabs background color
-   contentViewFontColor - the font color used in the content view tabs
-   textTransform - whether to lowercase text in portlets, tabs etc.
-   evenRowBackgroundColor - the background color of even rows in listings
-   oddRowBackgroundColor - the background color of even rows in listings
-   notifyBorderColor - border color of notification elements like the status message, the calendar focus
-   notifyBackgroundColor - background color of notification elements like the status message, the calendar focus
-   discreetColor:string=#999999
-   helpBackgroundColor:string=#ffffe1
- */
 
 

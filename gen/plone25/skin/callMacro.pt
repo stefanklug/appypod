@@ -4,11 +4,8 @@
 <tal:call tal:define="macroName  options/macroName;
                       page       python: options['page'];
                       contextObj python: options['contextObj'];
-                      tool       python: contextObj.getTool();
+                      tool       contextObj/getTool;
                       layoutType python:'view';
-                      putils     python: contextObj.plone_utils;
-                      portal     python: contextObj.portal_url.getPortalObject();
-                      portal_url python: contextObj.portal_url();
                       phaseInfo  python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
                       phase      phaseInfo/name;">
   <metal:callMacro use-macro="python: page.macros[macroName]"/>

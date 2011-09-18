@@ -44,7 +44,7 @@
   </select>
   <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
   <a tal:condition="widget/calendar"
-     tal:attributes="onclick python: 'return showJsCalendar(\'%s_month\', \'%s\', \'%s_year\', \'%s_month\', \'%s_day\', null, null, %d, %d)' % (name, dummyName, name, name, name, years[0], years[-1])"><img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
+     tal:attributes="onclick python: 'return showJsCalendar(\'%s_month\', \'%s\', \'%s_year\', \'%s_month\', \'%s_day\', null, null, %d, %d)' % (name, dummyName, name, name, name, years[0], years[-1])"><img tal:attributes="src string: $appUrl/calendar.gif"/></a>
 
   <tal:hour condition="python: widget['format'] == 0">
     <select tal:define="hours python:range(0,24);"
@@ -111,7 +111,7 @@
        <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
        <a tal:condition="widget/calendar"
           tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthFromName, dummyFromName, yearFromName, monthFromName, dayFromName, years[0], years[-1])">
-          <img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
+          <img tal:attributes="src string: $appUrl/calendar.gif"/></a>
       </td>
     </tr>
     <tal:comment replace="nothing">To</tal:comment>
@@ -142,7 +142,7 @@
         </select>
        <a tal:condition="widget/calendar"
           tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthToName, dummyToName, yearToName, monthToName, dayToName, years[0], years[-1])">
-          <img tal:attributes="src string: $portal_url/popup_calendar.gif"/></a>
+          <img tal:attributes="src string: $appUrl/calendar.gif"/></a>
       </td>
     </tr>
   </table>

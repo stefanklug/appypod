@@ -1,43 +1,16 @@
-<tal:search metal:define-macro="master"
-     define="appFolder context/getParentNode;
-             contentType request/type_name;
-             refInfo request/ref|nothing;
-             tool python: here.portal_url.getPortalObject().get('portal_%s' % appFolder.id.lower());
-             searchInfo python: tool.getSearchInfo(contentType, refInfo);
-             cssJs python: tool.getCssAndJs(searchInfo['fields'], 'edit')">
-
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
-      lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal"
-      xmlns:metal="http://xml.zope.org/namespaces/metal"
-      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
-      metal:use-macro="here/main_template/macros/master">
-
-  <tal:comment replace="nothing">Disable standard Plone green tabs</tal:comment>
-  <div metal:fill-slot="top_slot">
-    <metal:block metal:use-macro="here/global_defines/macros/defines" />
-    <div tal:define="dummy python:request.set('disable_border', 1)" />
-  </div>
+<tal:main define="tool context/getParentNode">
+<html metal:use-macro="context/skyn/template/macros/main">
+ <metal:fill fill-slot="content"
+   tal:define="contentType request/type_name;
+               refInfo request/ref|nothing;
+               searchInfo python: tool.getSearchInfo(contentType, refInfo);
+               cssJs python: tool.getCssAndJs(searchInfo['fields'], 'edit')">
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
-  <metal:js fill-slot="javascript_head_slot">
-    <tal:js condition="cssJs/js" repeat="jsFile cssJs/js">
-      <script type="text/javascript" charset="iso-8859-1"
-              tal:condition="python:exists('portal/%s' % jsFile)"
-              tal:attributes="src string:$portal_url/$jsFile">
-      </script>
-    </tal:js>
-  </metal:js>
-  <metal:css fill-slot="css_slot">
-    <tal:css condition="cssJs/css" repeat="cssFile cssJs/css">
-      <style type="text/css" media="all"
-             tal:condition="python:exists('portal/%s' % cssFile)"
-             tal:content="structure string:<!-- @import url($portal_url/$cssFile); -->">
-      </style>
-    </tal:css>
-  </metal:css>
-
-  <body>
-  <metal:fill fill-slot="main">
+  <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"
+        tal:attributes="href string:$appUrl/skyn/$cssFile"/>
+  <script tal:repeat="jsFile cssJs/js" type="text/javascript"
+          tal:attributes="src string:$appUrl/skyn/$jsFile"></script>
 
   <tal:comment replace="nothing">Search title</tal:comment>  
   <h1><span tal:replace="python: tool.translate('%s_plural' % contentType)"/> —
@@ -49,7 +22,7 @@
     <input type="hidden" name="type_name" tal:attributes="value contentType"/>
     <input tal:condition="refInfo" type="hidden" name="ref" tal:attributes="value refInfo"/>
 
-    <table class="no-style-table" cellpadding="0" cellspacing="0" width="100%">
+    <table width="100%">
       <tr tal:repeat="searchRow python: tool.tabularize(searchInfo['fieldDicts'], searchInfo['nbOfColumns'])"
           valign="top">
         <td tal:repeat="widget searchRow" tal:attributes="width python:'%d%%' % (100/searchInfo['nbOfColumns'])">
@@ -69,7 +42,6 @@
     <input type="submit" tal:attributes="value python:tool.translate('search_button')"/>
   </p>
   </form>
-</metal:fill>
-</body>
+ </metal:fill>
 </html>
-</tal:search>
+</tal:main>

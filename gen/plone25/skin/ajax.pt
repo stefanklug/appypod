@@ -4,23 +4,26 @@
   It can also have a parameter "action", that refers to a method that will be triggered on
   contextObj before returning the result of the macro to the browser.
 </tal:comment>
-<tal:ajax define="page       request/page;
-                  macro      request/macro;
-                  contextObj context/getParentNode;
-                  action     request/action|nothing;
-                  response   request/RESPONSE;
-                  member     context/portal_membership/getAuthenticatedMember;
-                  portal     context/portal_url/getPortalObject;
-                  portal_url python: context.portal_url();
-                  template   python: contextObj.getPageTemplate(portal.skyn, page);
-                  dummy      python: response.setHeader('Content-Type','text/html;;charset=utf-8');
-                  dummy2     python: response.setHeader('Expires', 'Mon, 11 Dec 1975 12:05:05 GMT');
-                  dummy3     python: response.setHeader('CacheControl', 'no-cache')">
+<tal:ajax define="contextObj context/getParentNode;
+                  tool contextObj/getTool;
+                  req python: request;
+                  resp req/RESPONSE;
+                  page req/page;
+                  macro req/macro;
+                  action req/action|nothing;
+                  user contextObj/portal_membership/getAuthenticatedMember;
+                  app tool/getApp;
+                  appUrl app/absolute_url;
+                  template python: contextObj.getPageTemplate(app.skyn, page);
+                  x python: resp.setHeader('Content-Type','text/html;;charset=utf-8');
+                  x python: resp.setHeader('Expires', 'Mon, 11 Dec 1975 12:05:05 GMT');
+                  x python: resp.setHeader('Content-Language', req.get('language', 'en'));
+                  x python: resp.setHeader('CacheControl', 'no-cache')">
   <tal:comment replace="nothing">Keys "Expires" and "CacheControl" are used for preventing IE to cache
     this page. Indeed, this page is retrieved through an asynchronous XMLHttpRequest by the browser, and
     IE caches this by default.</tal:comment>
   <tal:executeAction condition="action">
-    <tal:do define="dummy python: contextObj.getMethod('on'+action)()" omit-tag=""/>
+    <tal:do define="x python: contextObj.getMethod('on'+action)()" omit-tag=""/>
   </tal:executeAction>
   <metal:callMacro use-macro="python: template.macros.get(macro)"/>
 </tal:ajax>

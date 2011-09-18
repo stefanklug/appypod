@@ -66,10 +66,8 @@ applicationGlobalRoles = [<!gRoles!>]
 grantableRoles = [<!grRoles!>]
 
 # Configuration options
-showPortlet = <!showPortlet!>
 languages = [<!languages!>]
 languageSelector = <!languageSelector!>
-minimalistPlone = <!minimalistPlone!>
 appFrontPage = <!appFrontPage!>
 sourceLanguage = '<!sourceLanguage!>'
 # ------------------------------------------------------------------------------

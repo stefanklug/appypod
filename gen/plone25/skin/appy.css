@@ -1,37 +1,64 @@
-body {
-  font: 75% Lucida,Helvetica,Arial,sans-serif;
-  background-color: #EAEAEA;
-}
-
-a {text-decoration: none; color: #747171;}
-a:visited {color: #840107;}
+body { font: 70% Lucida,Helvetica,Arial,sans-serif; background-color: #EAEAEA; }
+h1 { font-size: 11pt; margin:0;}
+h2 { font-size: 10pt; margin:0; font-style: italic; font-weight: normal;}
+h3 { font-size: 9pt; margin:0; font-weight: bold;}
+a { text-decoration: none; color: #503737;}
+a:visited { color: #503737;}
 table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
-input {border: 1px solid #a79e9e;}
-form {margin: 0; padding: 0;}
-p {margin: 0;}
+form { margin: 0; padding: 0;}
+p { margin: 0;}
+acronym {cursor: help;}
+input { border: 1px solid #a79e9e;
+        font-family: Lucida,Helvetica,Arial,sans-serif; }
+input[type=image] { border-width: 0px; background: none; }
+textarea { width: 99%; font: 100% Lucida,Helvetica,Arial,sans-serif;
+           border: 1px solid #a79e9e;}
+label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 
-h1 {font-size: 11pt; margin:0;}
-h2 {font-size: 10pt; margin:0; font-style: italic; font-weight: normal;}
-h3 {font-size: 9pt; margin:0; font-weight: bold;}
-
-.main {
-  width: 900px;
-  background-color: white;
-  border-style: solid;
-  border-width: 1px;
-  border-color: grey;
-  box-shadow: 3px 3px 3px #A9A9A9;
-}
-
+.main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
+        border-style: solid; border-width: 1px; border-color: grey; }
 .top { height: 75px; margin-left: 3em; vertical-align: top;}
 .lang { margin-right: 3px; }
-.userStrip {
-  background-color: #a2a2a2;
-  border-top: 3px solid #525252;
-  border-bottom: 2px solid #9b0000;
-  height: 30px;
-}
+.userStrip { background-color: #a2a2a2; height: 30px;
+             border-top: 3px solid #525252; border-bottom: 2px solid #9b0000; }
 .login { margin-top: 2px; margin-bottom: 2px; color: white;}
 .buttons { margin-left: 4px; }
-.content {margin: 7px 0 9px 4px;}
-.message {color: #9b0000; font-style: italic; position: absolute; top: -50px; right: 5px}
+.message { color: #9b0000; font-style: italic;
+           position: absolute; top: -15px; right: 5px}
+.discreet { font-size: 90%; }
+.portlet { width: 150px; padding: 3px 7px 0px 7px;
+           border-right: 1px solid #9b0000;}
+.portletCurrent { font-weight: bold; }
+.portletSep { border-top: 1px solid grey; margin-top: 5px; padding-top: 5px}
+.portletPage { font-style: italic; }
+.phase { border-style: dashed; border-width: thin; padding: 0 0.6em 0 1em; }
+.content { padding: 3px 3px 7px 15px;}
+.grey { display: none; position: absolute; left: 0px; top: 0px;
+        width:100%; height:100%; background:grey; opacity:0.5;
+        -moz-opacity:0.5; -khtml-opacity:0.5; filter:alpha(Opacity=50);}
+.popup { display: none; position: absolute; top: 30%; left: 35%;
+         width: 350px; z-index : 100; background: white; padding: 8px;
+         border: 1px solid grey; }
+.list { border: 1px solid grey; margin-bottom: 3px;}
+.list td, .list th { border: 1px solid grey;
+                     padding-left: 3px; padding-right: 3px;}
+.list th { background-color: #cbcbcb; font-style: italic; font-weight: normal;}
+.noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important; }
+.noStyle td { border:0 !important; padding:0 !important; margin:0 !important; }
+.translationLabel { background-color: #EAEAEA; border-bottom: 1px dashed grey;
+                    margin-top: 0.5em; margin-bottom: 0.5em; }
+.section1 { font-size: 120%; margin: 0.45em 0em 0.1em 0;
+            padding: 0.3em 0em 0.2em 0.1em; background-color: #eef3f5;
+            border-top: 1px solid #8CACBB;border-bottom: 1px solid #8CACBB; }
+.section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.1em 0;
+            border-bottom: 2px solid grey; }
+.section3 { font-size: 100%; font-style: italic; margin: 0.45em 0em 0.1em 0;
+            background-color: #efeae8; text-align: center; color: grey; }
+.odd { background-color: white; }
+.even { background-color: #ededed; }
+.summary {margin-bottom: 5px;}
+.objectTitle { font-size: 11pt; border-bottom: 3px solid grey;
+               font-weight: bold;}
+.by { background-color: #ededed; font-style: italic; padding-top: 3px;}
+.workflow { background-color: #ededed; text-align: center;}
+.objectNavigate { margin-top: 3px;}

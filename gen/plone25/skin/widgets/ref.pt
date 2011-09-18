@@ -19,39 +19,39 @@
 <metal:objectActions define-macro="objectActions">
   <tal:comment replace="nothing">Displays icons for triggering actions on a given
     referenced object (edit, delete, etc).</tal:comment>
-  <table class="no-style-table" cellpadding="0" cellspacing="0">
+  <table class="noStyle">
     <tr>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td class="noPadding" tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and member.has_permission('Modify portal content', contextObj)">
+    <td tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and context.allows('Modify portal content')">
       <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
                            ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
       <tal:comment replace="nothing">Move up</tal:comment>
       <img tal:condition="python: objectIndex &gt; 0"
-        tal:attributes="src string: $portal_url/skyn/arrowUp.png;
+        tal:attributes="src string: $appUrl/skyn/arrowUp.png;
                         title python: tool.translate('move_up');
                         onClick python: ajaxBaseCall.replace('**v**', 'up')"
         style="cursor:pointer"/>
       <tal:comment replace="nothing">Move down</tal:comment>
       <img tal:condition="python: objectIndex &lt; (totalNumber-1)"
-        tal:attributes="src string: $portal_url/skyn/arrowDown.png;
+        tal:attributes="src string: $appUrl/skyn/arrowDown.png;
                         title python: tool.translate('move_down');
                         onClick python: ajaxBaseCall.replace('**v**', 'down')"
         style="cursor:pointer"/>
       </tal:moveRef>
     </td>
     <tal:comment replace="nothing">Edit the element</tal:comment>
-    <td class="noPadding" tal:condition="python: member.has_permission('Modify portal content', obj) and not appyType['noForm']">
+    <td tal:condition="python: obj.allows('Modify portal content') and not appyType['noForm']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
           tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
         <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
-             tal:attributes="src string: $portal_url/skyn/edit.gif"/>
+             tal:attributes="src string: $appUrl/skyn/edit.gif"/>
        </a>
     </td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
-    <td class="noPadding">
-      <img tal:condition="python: not appyType['isBack'] and member.has_permission('Delete objects', obj) and obj.mayDelete()"
+    <td>
+      <img tal:condition="python: not appyType['isBack'] and obj.allows('Delete objects') and obj.mayDelete()"
            title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-           tal:attributes="src string: $portal_url/skyn/delete.png;
+           tal:attributes="src string: $appUrl/skyn/delete.png;
                            onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
     </td>
     </tr>
@@ -68,7 +68,7 @@
                    formCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (formCall, addConfirmMsg), formCall);
                    noFormCall python: navBaseCall.replace('**v**', '%d, \'CreateWithoutForm\'' % startNumber);
                    noFormCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (noFormCall, addConfirmMsg), noFormCall)"
-       tal:attributes="src string:$portal_url/skyn/plus.png;
+       tal:attributes="src string:$appUrl/skyn/plus.png;
                        title python: tool.translate('add_ref');
                        onClick python: test(appyType['noForm'], noFormCall, formCall)"/>
 </metal:plusIcon>
@@ -81,10 +81,10 @@
     tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, widget['name']))"
     tal:condition="python: canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
   <img style="cursor:pointer"
-       tal:attributes="src string:$portal_url/skyn/sortAsc.png;
+       tal:attributes="src string:$appUrl/skyn/sortAsc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
   <img style="cursor:pointer"
-       tal:attributes="src string:$portal_url/skyn/sortDesc.png;
+       tal:attributes="src string:$appUrl/skyn/sortDesc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'True')"/>
 </metal:sortIcons>
 
@@ -115,16 +115,16 @@
                  folder python: contextObj.isPrincipiaFolderish and contextObj or contextObj.getParentNode();
                  linkedPortalType python: tool.getPortalType(appyType['klass']);
                  addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
-                 canWrite python: not appyType['isBack'] and member.has_permission(appyType['writePermission'], contextObj);
+                 canWrite python: not appyType['isBack'] and contextObj.allows(appyType['writePermission']);
                  multiplicity appyType/multiplicity;
                  maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
-                 showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and member.has_permission(addPermission, folder) and canWrite;
+                 showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and user.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: contextObj.translate('label', field=appyType);
                  addConfirmMsg python: appyType['addConfirm'] and tool.translate('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
-  <tal:comment replace="nothing">This macro displays the Reference widget on a "consult" page.
+  <tal:comment replace="nothing">This macro displays the Reference widget on a "view" page.
 
   The definition of "atMostOneRef" above may sound strange: we shouldn't check the actual number
   of referenced objects. But for back references people often forget to specify multiplicities.
@@ -133,20 +133,20 @@
   <tal:atMostOneReference condition="atMostOneRef">
     <tal:comment replace="nothing">Display a simplified widget if maximum number of
       referenced objects is 1.</tal:comment>
-    <table class="no-style-table" cellpadding="0" cellspacing="0"><tr valign="top">
+    <table><tr valign="top">
       <td><span class="appyLabel" tal:condition="python: not innerRef and not appyType['link']"
                 tal:content="structure label"></span></td>
 
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
         <td tal:content="python: tool.translate('no_ref')"></td>
-        <td><metal:plusIcon use-macro="portal/skyn/widgets/ref/macros/plusIcon"/></td>
+        <td><metal:plusIcon use-macro="app/skyn/widgets/ref/macros/plusIcon"/></td>
       </tal:noObject>
 
       <tal:comment replace="nothing">If there is an object...</tal:comment>
       <tal:objectIsPresent condition="objs">
         <tal:obj repeat="obj objs">
-          <td tal:define="includeShownInfo python:True"><metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle" /></td>
+          <td tal:define="includeShownInfo python:True"><metal:showObjectTitle use-macro="app/skyn/widgets/ref/macros/objectTitle" /></td>
         </tal:obj>
       </tal:objectIsPresent>
     </tr></table>
@@ -158,7 +158,7 @@
       <legend tal:condition="python: not innerRef or showPlusIcon">
         <span tal:condition="not: innerRef" tal:content="label"/>
         (<span tal:replace="totalNumber"/>)
-        <metal:plusIcon use-macro="portal/skyn/widgets/ref/macros/plusIcon"/>
+        <metal:plusIcon use-macro="app/skyn/widgets/ref/macros/plusIcon"/>
         <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
         <a tal:condition="appyType/queryable"
            tal:attributes="href python: '%s/skyn/search?type_name=%s&ref=%s:%s' % (tool.getAppFolder().absolute_url(), linkedPortalType, contextObj.meta_type, appyType['name'])">
@@ -175,28 +175,27 @@
       <tal:comment replace="nothing">No object is present</tal:comment>
       <p tal:condition="not:objs" tal:content="python: tool.translate('no_ref')"></p>
 
-      <table width="100%" cellspacing="0" cellpadding="0" tal:condition="objs"
+      <table width="100%" tal:condition="python: objs"
              tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">
         <tr valign="bottom"><td>
 
         <tal:comment replace="nothing">Show forward or backward reference(s)</tal:comment>
-        <table tal:attributes="class python:test(innerRef, '', 'listing nosort');
-                               width python:test(innerRef, '100%', appyType['layouts']['view']['width']);"
-               align="right" tal:condition="python: objs" cellpadding="0" cellspacing="0">
+        <table tal:attributes="class python:test(innerRef, '', 'list');
+                               width python:test(innerRef, '100%', appyType['layouts']['view']['width']);">
           <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
           <tr tal:condition="appyType/showHeaders">
             <th tal:repeat="widget widgets">
               <span tal:content="python: tool.translate(widget['labelId'])"></span>
-              <metal:sortIcons use-macro="portal/skyn/widgets/ref/macros/sortIcons" />
+              <metal:sortIcons use-macro="app/skyn/widgets/ref/macros/sortIcons" />
             </th>
             <th tal:content="python: tool.translate('ref_actions')"></th>
           </tr>
           <tal:row repeat="obj objs">
-          <tr valign="top" tal:define="odd repeat/obj/odd"
+          <tr valign="middle" tal:define="odd repeat/obj/odd"
               tal:attributes="class python:test(odd, 'even', 'odd')">
             <td tal:repeat="widget widgets">
               <tal:title condition="python: widget['name'] == 'title'">
-                <metal:showObjectTitle use-macro="portal/skyn/widgets/ref/macros/objectTitle"/>
+                <metal:showObjectTitle use-macro="app/skyn/widgets/ref/macros/objectTitle"/>
               </tal:title>
               <tal:state condition="python: widget['name'] == 'state'"
                          content="python: tool.translate(obj.getWorkflowLabel())">
@@ -205,13 +204,13 @@
                 <tal:field define="contextObj python:obj;
                                    layoutType python: 'cell';
                                    innerRef python:True">
-                  <metal:field use-macro="portal/skyn/widgets/show/macros/field" />
+                  <metal:field use-macro="app/skyn/widgets/show/macros/field" />
                 </tal:field>
               </tal:other>
             </td>
             <tal:comment replace="nothing">Actions</tal:comment>
             <td align="right">
-              <metal:showObjectActions use-macro="portal/skyn/widgets/ref/macros/objectActions" />
+              <metal:showObjectActions use-macro="app/skyn/widgets/ref/macros/objectActions" />
             </td>
           </tr>
           </tal:row>
@@ -254,7 +253,7 @@
 
 <tal:comment replace="nothing">Cell macro for a Ref.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/ref/macros/view"/>
+  <metal:call use-macro="app/skyn/widgets/ref/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for a Ref.</tal:comment>

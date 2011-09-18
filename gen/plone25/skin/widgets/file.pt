@@ -4,7 +4,7 @@
                         imageSrc string:${contextObj/absolute_url}/download?name=$name">
   <tal:file condition="python: not empty and not widget['isImage']">
     <img tal:define="icon value/getBestIcon"
-         tal:condition="icon" tal:attributes="src string: $portal_url/$icon"/>
+         tal:condition="icon" tal:attributes="src string: $appUrl/$icon"/>
     <a tal:attributes="href imageSrc"
        tal:content="value/filename">
     </a>&nbsp;&nbsp;-

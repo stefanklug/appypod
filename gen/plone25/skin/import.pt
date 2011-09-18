@@ -83,14 +83,14 @@
     <tr>
       <th tal:repeat="columnHeader python: importElems[0]">
         <img tal:condition="python: repeat['columnHeader'].number() == 1"
-             tal:attributes="src string:$portal_url/skyn/eye.png;
+             tal:attributes="src string:$appUrl/skyn/eye.png;
                              title python: tool.translate('import_show_hide')"
              style="cursor:pointer" onClick="toggleViewableElements()" align="left" />
         <span tal:replace="columnHeader"/>
       </th>
       <th tal:content="python: tool.translate('ref_actions')"></th>
       <th width="20px"><img
-        tal:attributes="src string: $portal_url/skyn/select_elems.png;
+        tal:attributes="src string: $appUrl/skyn/select_elems.png;
                         title python: tool.translate('select_delesect')"
         onClick="toggleCheckboxes()" style="cursor:pointer"/>
     </tr>

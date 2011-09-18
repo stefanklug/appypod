@@ -45,7 +45,6 @@ class Generator(AbstractGenerator):
         # i18n labels to generate
         self.labels = [] # i18n labels
         self.toolInstanceName = 'portal_%s' % self.applicationName.lower()
-        self.portletName = '%s_portlet' % self.applicationName.lower()
         self.skinsFolder = 'skins/%s' % self.applicationName
         # The following dict, pre-filled in the abstract generator, contains a
         # series of replacements that need to be applied to file templates to
@@ -168,15 +167,9 @@ class Generator(AbstractGenerator):
                       destFolder='profiles/default')
         self.copyFile('ProfileInit.py', self.repls, destFolder='profiles',
                       destName='__init__.py')
-        self.copyFile('Portlet.pt', self.repls,
-            destName='%s.pt' % self.portletName, destFolder=self.skinsFolder)
         self.copyFile('tool.gif', {})
         self.copyFile('Styles.css.dtml',self.repls, destFolder=self.skinsFolder,
                       destName = '%s.css.dtml' % self.applicationName)
-        self.copyFile('IEFixes.css.dtml',self.repls,destFolder=self.skinsFolder)
-        if self.config.minimalistPlone:
-            self.copyFile('colophon.pt', self.repls,destFolder=self.skinsFolder)
-            self.copyFile('footer.pt', self.repls, destFolder=self.skinsFolder)
         # Create version.txt
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
@@ -393,10 +386,8 @@ class Generator(AbstractGenerator):
         grantableRoles = self.getAllUsedRoles(local=False, grantable=True)
         repls['grRoles'] = ','.join(['"%s"' % r.name for r in grantableRoles])
         # Generate configuration options
-        repls['showPortlet'] = self.config.showPortlet
         repls['languages'] = ','.join('"%s"' % l for l in self.config.languages)
         repls['languageSelector'] = self.config.languageSelector
-        repls['minimalistPlone'] = self.config.minimalistPlone
         repls['appFrontPage'] = bool(self.config.frontPage)
         repls['sourceLanguage'] = self.config.sourceLanguage
         self.copyFile('config.py', repls)
@@ -595,9 +586,7 @@ class Generator(AbstractGenerator):
                         "(getattr(OrderedBaseFolder,'__implements__',()),)",
           'register': "registerType(%s, '%s')" % (self.tool.name,
                                                   self.applicationName),
-          'static': "left_slots = ['here/portlet_prefs/macros/portlet']\n    " \
-                    "right_slots = []\n    " \
-                    "def __init__(self, id=None):\n    " \
+          'static': "def __init__(self, id=None):\n    " \
                     "    OrderedBaseFolder.__init__(self, '%s')\n    " \
                     "    self.setTitle('%s')\n" % (self.toolInstanceName,
                                                    self.applicationName)})

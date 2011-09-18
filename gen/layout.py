@@ -14,9 +14,6 @@
 #  w - The widgets of the current page/class
 #  n - The navigation panel (inter-objects navigation)
 #  b - The range of buttons (intra-object navigation, save, edit, delete...)
-#  m - The global status message sometimes shown. If you specify this in a
-#      layout, ensure that you have hidden the global_statusmessage zone as
-#      proposed by Plone. Else, the message will appear twice.
 
 # Layout elements for a field --------------------------------------------------
 #  l -  "label"        The field label
@@ -48,7 +45,6 @@ macroDict = {
   # Page-related elements
   's': ('page', 'header'), 'w': ('page', 'widgets'),
   'n': ('navigate', 'objectNavigate'), 'b': ('page', 'buttons'),
-  'm': ('page', 'message'),
   # Field-related elements
   'l': ('show', 'label'), 'd': ('show', 'description'),
   'h': ('show', 'help'),  'v': ('show', 'validation'),
@@ -220,6 +216,6 @@ class Table(LayoutElement):
 
 # ------------------------------------------------------------------------------
 defaultPageLayouts  = {
-    'view': Table('m;-s|-n!-w|-b|'), 'edit': Table('m;-w|-b|')}
+    'view': Table('s|-n!-w|-b|'), 'edit': Table('w|-b|')}
 defaultFieldLayouts = {'edit': 'lrv;f!'}
 # ------------------------------------------------------------------------------

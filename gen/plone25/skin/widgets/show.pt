@@ -8,10 +8,10 @@
   Options:
     contextMacro       The base folder containing the macros to call for
                        rendering the elements within the layout.
-                       Defaults to portal.skyn
+                       Defaults to app.skyn
 </tal:comment>
 <metal:show define-macro="layout"
-            tal:define="contextMacro contextMacro| python: portal.skyn">
+            tal:define="contextMacro contextMacro| python: app.skyn">
  <table tal:attributes="cellpadding  layout/cellpadding;
                         cellspacing  layout/cellspacing;
                         width        layout/width;
@@ -28,7 +28,7 @@
    <tr tal:repeat="row layout/rows" tal:attributes="valign row/valign">
      <td tal:repeat="cell row/cells"
          tal:attributes="align cell/align; colspan cell/colspan;
-                         style python: test(repeat['cell'].end, '', 'padding-right: 0.4em')"><tal:content repeat="elem cell/content"><tal:field condition="python: elem == '?'"><metal:call use-macro="python: contextMacro.get(widget['type'].lower()).macros.get(layoutType)"/></tal:field><tal:other condition="python: elem != '?'"><metal:call use-macro="python: contextMacro.get(elem[0]).macros.get(elem[1])"/></tal:other><img tal:condition="not: repeat/elem/end" tal:attributes="src string: $portal_url/skyn/space.gif"/></tal:content>
+                         style python: test(repeat['cell'].end, '', 'padding-right: 0.4em')"><tal:content repeat="elem cell/content"><tal:field condition="python: elem == '?'"><metal:call use-macro="python: contextMacro.get(widget['type'].lower()).macros.get(layoutType)"/></tal:field><tal:other condition="python: elem != '?'"><metal:call use-macro="python: contextMacro.get(elem[0]).macros.get(elem[1])"/></tal:other><img tal:condition="not: repeat/elem/end" tal:attributes="src string: $appUrl/skyn/space.gif"/></tal:content>
      </td>
    </tr>
  </table>
@@ -42,7 +42,7 @@
     widget             The widget to render
 </tal:comment>
 <metal:field define-macro="field"
-       tal:define="contextMacro    python: portal.skyn.widgets;
+       tal:define="contextMacro    python: app.skyn.widgets;
                    layout          python: widget['layouts'][layoutType];
                    name            widget/name;
                    sync            python: widget['sync'][layoutType];
@@ -70,15 +70,15 @@
     <legend tal:condition="widget/hasLabel">
       <i tal:content="structure python: contextObj.translate(widget['labelId'])"></i>
       <tal:help condition="widget/hasHelp">
-        <metal:call use-macro="portal/skyn/widgets/show/macros/help"/>
+        <metal:call use-macro="app/skyn/widgets/show/macros/help"/>
       </tal:help>
     </legend>
     <div tal:condition="widget/hasDescr" class="discreet" 
          tal:content="structure python: contextObj.translate(widget['descrId'])"></div>
-    <metal:content use-macro="portal/skyn/widgets/show/macros/groupContent"/>
+    <metal:content use-macro="app/skyn/widgets/show/macros/groupContent"/>
   </fieldset>
   <tal:asSection condition="python: widget['style'] not in ('fieldset', 'tabs')">
-    <metal:content use-macro="portal/skyn/widgets/show/macros/groupContent"/>
+    <metal:content use-macro="app/skyn/widgets/show/macros/groupContent"/>
   </tal:asSection>
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
   <table cellpadding="0" cellspacing="0"
@@ -90,15 +90,15 @@
         <tr valign="middle">
           <tal:tab repeat="widgetRow widget/widgets">
           <tal:id define="tabId python:'tab_%s_%d_%d' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))">
-          <td><img tal:attributes="src string: $portal_url/skyn/tabLeft.png;
+          <td><img tal:attributes="src string: $appUrl/skyn/tabLeft.png;
                                    id python: '%s_left' % tabId"/><td>
-          <td tal:attributes="style python:'background-image: url(%s/skyn/tabBg.png)' % portal_url;
+          <td tal:attributes="style python:'background-image: url(%s/skyn/tabBg.png)' % appUrl;
                               id tabId">
             <a style="cursor:pointer"
                tal:content="python: tool.translate('%s_col%d' % (widget['labelId'], repeat['widgetRow'].number()))"
                tal:attributes="onClick python: 'showTab(\'%s_%d_%d\')' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))"></a>
           </td>
-          <td><img tal:attributes="src string: $portal_url/skyn/tabRight.png;
+          <td><img tal:attributes="src string: $appUrl/skyn/tabRight.png;
                                    id python: '%s_right' % tabId"/><td>
           </tal:id>
           </tal:tab>
@@ -111,10 +111,10 @@
                         style python: test(repeat['widgetRow'].number()==1, 'display:table-row', 'display:none')">
       <td tal:define="widget python: widgetRow[0]">
         <tal:group condition="python: widget['type'] == 'group'">
-          <metal:call use-macro="portal/skyn/widgets/show/macros/group"/>
+          <metal:call use-macro="app/skyn/widgets/show/macros/group"/>
         </tal:group>
         <tal:field condition="python: widget['type'] != 'group'">
-          <metal:call use-macro="portal/skyn/widgets/show/macros/field"/>
+          <metal:call use-macro="app/skyn/widgets/show/macros/field"/>
         </tal:field>
       </td>
     </tr>
@@ -141,7 +141,7 @@
                         class widget/style" align="left">
       <span tal:replace="structure python: contextObj.translate(widget['labelId'])"/>
       <tal:help condition="widget/hasHelp">
-        <metal:call use-macro="portal/skyn/widgets/show/macros/help"/>
+        <metal:call use-macro="app/skyn/widgets/show/macros/help"/>
       </tal:help>
     </td>
   </tr>
@@ -164,10 +164,10 @@
                         style python: test(repeat['widget'].number() != len(widgetRow), 'padding-right: %s'%cellgap, '')">
       <tal:showWidget condition="widget">
         <tal:group condition="python: widget['type'] == 'group'">
-          <metal:call use-macro="portal/skyn/widgets/show/macros/group"/>
+          <metal:call use-macro="app/skyn/widgets/show/macros/group"/>
         </tal:group>
         <tal:field condition="python: widget['type'] != 'group'">
-          <metal:call use-macro="portal/skyn/widgets/show/macros/field"/>
+          <metal:call use-macro="app/skyn/widgets/show/macros/field"/>
         </tal:field>
       </tal:showWidget>
     </td>
@@ -182,10 +182,10 @@
 </tal:description>
 
 <tal:comment replace="nothing">Displays a field help.</tal:comment>
-<tal:help metal:define-macro="help"><acronym tal:attributes="title python: contextObj.translate('help', field=widget)"><img tal:attributes="src string: $portal_url/skyn/help.png"/></acronym></tal:help>
+<tal:help metal:define-macro="help"><acronym tal:attributes="title python: contextObj.translate('help', field=widget)"><img tal:attributes="src string: $appUrl/skyn/help.png"/></acronym></tal:help>
 
 <tal:comment replace="nothing">Displays validation-error-related info about a field.</tal:comment>
-<tal:validation metal:define-macro="validation"><acronym tal:condition="inError" tal:attributes="title python: errors[name]"><img tal:attributes="src string: $portal_url/skyn/warning.png"/></acronym><img tal:condition="not: inError" tal:attributes="src string: $portal_url/skyn/warning_no.gif"/></tal:validation>
+<tal:validation metal:define-macro="validation"><acronym tal:condition="inError" tal:attributes="title python: errors[name]"><img tal:attributes="src string: $appUrl/skyn/warning.png"/></acronym><img tal:condition="not: inError" tal:attributes="src string: $appUrl/skyn/warning_no.gif"/></tal:validation>
 
 <tal:comment replace="nothing">Displays the fact that a field is required.</tal:comment>
-<tal:required metal:define-macro="required"><img tal:attributes="src string: $portal_url/skyn/required.gif"/></tal:required>
+<tal:required metal:define-macro="required"><img tal:attributes="src string: $appUrl/skyn/required.gif"/></tal:required>

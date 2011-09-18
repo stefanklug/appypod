@@ -1,6 +1,5 @@
 <metal:queryResults define-macro="queryResult"
-   tal:define="tool          python: contextObj;
-               contentType   request/type_name;
+   tal:define="contentType   request/type_name;
                refInfo       tool/getRefInfo;
                refField      python: refInfo[1];
                refInfo       python: refInfo[0];
@@ -21,7 +20,7 @@
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
                navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, searchName);
-               newSearchUrl  python: '%s/skyn/search?type_name=%s&ref=%s' % (tool.getAppFolder().absolute_url(), contentType, refInfo);">
+               newSearchUrl  python: '%s/skyn/search?type_name=%s&ref=%s' % (tool.absolute_url(), contentType, refInfo);">
 
   <tal:result condition="objs">
 
@@ -36,7 +35,7 @@
     </legend>
 
     <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
-    <table align="right" cellpadding="0" cellspacing="0"
+    <table align="right"
            tal:define="widgets python: tool.getResultPodFields(contentType);
                        layoutType python:'view'"
            tal:condition="python: objs and widgets">
@@ -46,7 +45,7 @@
       </td></tr>
     </table>
 
-    <table cellpadding="0" cellspacing="0" width="100%">
+    <table width="100%">
      <tr>
       <tal:descr condition="searchName">
       <td tal:define="descr python: tool.translate('%s_descr' % labelId)"
@@ -63,7 +62,7 @@
 
     <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refField);
                        widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
-           class="listing nosort" width="100%" cellpadding="0" cellspacing="0">
+           class="list" width="100%">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
       <tal:header repeat="widget widgets">
@@ -118,21 +117,21 @@
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
       <td align="right">
-        <table class="no-style-table" cellpadding="0" cellspacing="0">
+        <table class="noStyle">
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
-            <td class="noPadding">
+            <td>
               <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
                  tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
-                 tal:condition="python: member.has_permission('Modify portal content', obj)">
+                 tal:condition="python: obj.allows('Modify portal content')">
                 <img title="Edit" i18n:domain="plone" i18n:attributes="title"
-                     tal:attributes="src string: $portal_url/skyn/edit.gif"/>
+                     tal:attributes="src string: $appUrl/skyn/edit.gif"/>
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
-            <td class="noPadding">
-              <img tal:condition="python: member.has_permission('Delete objects', obj) and obj.mayDelete()"
+            <td>
+              <img tal:condition="python: obj.allows('Delete objects') and obj.mayDelete()"
                    title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-                   tal:attributes="src string: $portal_url/skyn/delete.png;
+                   tal:attributes="src string: $appUrl/skyn/delete.png;
                                    onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
             </td>
           </tr>

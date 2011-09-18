@@ -1,65 +1,37 @@
-<tal:edit metal:define-macro="master"
-          define="contextObj  python:context.getParentNode();
-                  errors      request/errors | python:{};
-                  layoutType  python:'edit';
-                  layout      python: contextObj.getPageLayout(layoutType);
-                  tool        contextObj/getTool;
-                  appFolder   tool/getAppFolder;
-                  appName     appFolder/getId;
-                  phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);
-                  phase       phaseInfo/name;
-                  page        request/page|python:'main';
-                  cssJs       python: contextObj.getCssAndJs(contextObj.getAppyTypes(layoutType, page), layoutType);
-                  confirmMsg  request/confirmMsg | nothing;">
-
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"
-      xmlns:tal="http://xml.zope.org/namespaces/tal"
-      xmlns:metal="http://xml.zope.org/namespaces/metal"
-      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
-      metal:use-macro="here/main_template/macros/master">
-
-  <tal:comment replace="nothing">Disable the Standard Plone green tab</tal:comment>
-  <div metal:fill-slot="top_slot">
-    <metal:block metal:use-macro="here/global_defines/macros/defines" />
-    <div tal:define="dummy python:request.set('disable_border', 1)" />
-  </div>
+<tal:main define="tool context/getTool">
+<html metal:use-macro="context/skyn/template/macros/main">
+ <metal:fill fill-slot="content"
+    tal:define="contextObj  python:context.getParentNode();
+                errors      request/errors | python:{};
+                layoutType  python:'edit';
+                layout      python: contextObj.getPageLayout(layoutType);
+                phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);
+                phase       phaseInfo/name;
+                page        request/page|python:'main';
+                cssJs       python: contextObj.getCssAndJs(contextObj.getAppyTypes(layoutType, page), layoutType);
+                confirmMsg  request/confirmMsg | nothing;">
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
-  <metal:js fill-slot="javascript_head_slot">
-    <tal:js condition="cssJs/js" repeat="jsFile cssJs/js">
-      <script type="text/javascript" charset="iso-8859-1"
-              tal:condition="python:exists('portal/%s' % jsFile)"
-              tal:attributes="src string:$portal_url/$jsFile">
-      </script>
-    </tal:js>
-  </metal:js>
-  <metal:css fill-slot="css_slot">
-    <tal:css condition="cssJs/css" repeat="cssFile cssJs/css">
-      <style type="text/css" media="all"
-             tal:condition="python:exists('portal/%s' % cssFile)"
-             tal:content="structure string:<!-- @import url($portal_url/$cssFile); -->">
-      </style>
-    </tal:css>
-  </metal:css>
+  <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"
+        tal:attributes="href string:$appUrl/skyn/$cssFile"/>
+  <script tal:repeat="jsFile cssJs/js" type="text/javascript"
+          tal:attributes="src string:$appUrl/skyn/$jsFile"></script>
 
-  <body>
-    <metal:fill fill-slot="main">
-      <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
-      <form id="appyEditForm" name="appyEditForm" method="post" enctype="multipart/form-data"
-            tal:attributes="action python: contextObj.absolute_url()+'/skyn/do';
-                            class python: test(confirmMsg, 'atBaseEditForm', 'enableUnloadProtection atBaseEditForm')">
-        <input type="hidden" name="action" value="Update"/>
-        <input type="hidden" name="page" tal:attributes="value page"/>
-        <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
-        <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
-        <input type="hidden" name="confirmed" value="False"/>
-        <metal:show use-macro="here/skyn/page/macros/show"/>
-      </form>
-      <script tal:condition="confirmMsg"
-              tal:content="python: 'askConfirm(\'script\', \'postConfirmedEditForm()\', \'%s\')' % confirmMsg">
-      </script>
-      <metal:footer use-macro="here/skyn/page/macros/footer"/>
-    </metal:fill>
-  </body>
+  <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
+  <form id="appyEditForm" name="appyEditForm" method="post" enctype="multipart/form-data"
+        tal:attributes="action python: contextObj.absolute_url()+'/skyn/do';
+                        class python: test(confirmMsg, 'atBaseEditForm', 'enableUnloadProtection atBaseEditForm')">
+    <input type="hidden" name="action" value="Update"/>
+    <input type="hidden" name="page" tal:attributes="value page"/>
+    <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
+    <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
+    <input type="hidden" name="confirmed" value="False"/>
+    <metal:show use-macro="here/skyn/page/macros/show"/>
+  </form>
+  <script tal:condition="confirmMsg"
+          tal:content="python: 'askConfirm(\'script\', \'postConfirmedEditForm()\', \'%s\')' % confirmMsg">
+  </script>
+  <metal:footer use-macro="here/skyn/page/macros/footer"/>
+</metal:fill>
 </html>
-</tal:edit>
+</tal:main>

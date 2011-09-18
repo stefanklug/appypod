@@ -27,6 +27,10 @@ class ToolMixin(BaseMixin):
             res = '%s%s' % (elems[1], elems[4])
         return res
 
+    def getApp(self):
+        '''Returns the root application object.'''
+        return self.portal_url.getPortalObject()
+
     def getSiteUrl(self):
         '''Returns the absolute URL of this site.'''
         return self.portal_url.getPortalObject().absolute_url()
@@ -342,6 +346,11 @@ class ToolMixin(BaseMixin):
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among
            application classes.'''
+        req = self.REQUEST
+        # If we are querying object, there is no published object (the truth is:
+        # the tool is the currently published object but we don't want to
+        # consider it this way).
+        if not req['ACTUAL_URL'].endswith('/skyn/view'): return
         obj = self.REQUEST['PUBLISHED']
         parent = obj.getParentNode()
         if parent.id == 'skyn': obj = parent.getParentNode()
@@ -538,8 +547,8 @@ class ToolMixin(BaseMixin):
         if refInfo: criteria['_ref'] = refInfo
         rq.SESSION['searchCriteria'] = criteria
         # Go to the screen that displays search results
-        backUrl = '%s/query?type_name=%s&&search=_advanced' % \
-                  (os.path.dirname(rq['URL']),rq['type_name'])
+        backUrl = '%s/skyn/query?type_name=%s&&search=_advanced' % \
+                  (self.absolute_url(), rq['type_name'])
         return self.goto(backUrl)
 
     def getJavascriptMessages(self):
@@ -605,7 +614,7 @@ class ToolMixin(BaseMixin):
         '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName
            on p_contentType.'''
-        baseUrl = self.getAppFolder().absolute_url() + '/skyn'
+        baseUrl = self.absolute_url() + '/skyn'
         baseParams = 'type_name=%s' % contentType
         rq = self.REQUEST
         if rq.get('ref'): baseParams += '&ref=%s' % rq.get('ref')

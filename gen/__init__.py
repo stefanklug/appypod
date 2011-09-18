@@ -674,7 +674,7 @@ class Type:
         if 'cell' not in layouts:
             layouts['cell'] = Table(other=layouts['view'], derivedType='cell')
         # Put the required CSS classes in the layouts
-        layouts['cell'].addCssClasses('no-style-table')
+        layouts['cell'].addCssClasses('noStyle')
         if self.master:
             # This type has a master (so is a slave): we add css classes
             # allowing to show/hide, in Javascript, its widget according to
@@ -1462,13 +1462,10 @@ class Date(Type):
                       label)
 
     def getCss(self, layoutType):
-        if (layoutType == 'edit') and self.calendar:
-            return ('jscalendar/calendar-system.css',)
+        if (layoutType == 'edit') and self.calendar: return ('calendar.css',)
 
     def getJs(self, layoutType):
-        if (layoutType == 'edit') and self.calendar:
-            return ('jscalendar/calendar_stripped.js',
-                    'jscalendar/calendar-en.js')
+        if (layoutType == 'edit') and self.calendar: return ('calendar.js',)
 
     def getSelectableYears(self):
         '''Gets the list of years one may select for this field.'''
@@ -1727,7 +1724,8 @@ class Ref(Type):
                       historized, sync, mapping, label)
         self.validable = self.link
 
-    def getDefaultLayouts(self): return {'view': Table('l-f'), 'edit': 'lrv-f'}
+    def getDefaultLayouts(self):
+        return {'view': Table('l-f', width='100%'), 'edit': 'lrv-f'}
 
     def isShowable(self, obj, layoutType):
         res = Type.isShowable(self, obj, layoutType)
@@ -2639,11 +2637,6 @@ class Config:
         # People having one of these roles will be able to create instances
         # of classes defined in your application.
         self.defaultCreators = ['Manager', 'Owner']
-        # If True, the following flag will produce a minimalist Plone, where
-        # some actions, portlets or other stuff less relevant for building
-        # web applications, are removed or hidden. Using this produces
-        # effects on your whole Plone site!
-        self.minimalistPlone = False
         # If you want to replace the Plone front page with a page coming from
         # your application, use the following parameter. Setting
         # frontPage = True will replace the Plone front page with a page
@@ -2651,9 +2644,6 @@ class Config:
         self.frontPage = False
         # You can choose the Plone or Appy main template
         self.frontPageTemplate = 'plone' # or "appy"
-        # If you don't need the portlet that appy.gen has generated for your
-        # application, set the following parameter to False.
-        self.showPortlet = True
         # Number of translations for every page on a Translation object
         self.translationsPerPage = 30
         # Language that will be used as a basis for translating to other

@@ -1,14 +1,16 @@
 <html metal:define-macro="main"
       tal:define="user context/portal_membership/getAuthenticatedMember;
                   isAnon python: user.getUserName() == 'Anonymous User';
-                  app python: tool.getParentNode();
+                  app tool/getApp;
                   appUrl app/absolute_url;
+                  appFolder tool/getAppFolder;
+                  appName appFolder/getId;
                   _ python: tool.translate;
                   req python: request;
                   resp req/RESPONSE;
                   x python: resp.setHeader('Content-Type', 'text/html;;charset=utf-8');
                   x python: resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
-                  x python: resp.setHeader('Content-Language', request.get('language', 'en'))">
+                  x python: resp.setHeader('Content-Language', req.get('language', 'en'))">
 
 <head>
   <title tal:content="tool/getAppName"></title>
@@ -17,14 +19,14 @@
 </head>
 
 <body>
-<table class="main" align="center">
+<table class="main" align="center" cellpadding="0">
  <tal:comment replace="nothing">Top banner</tal:comment>
  <tr class="top" metal:define-slot="top">
   <td>
    <table width="100%">
     <tr valign="top">
      <tal:comment replace="nothing">Logo</tal:comment>
-     <td><a tal:attributes="href appUrl"><img src="skyn/logo.jpg"/></a></td>
+     <td><a tal:attributes="href appUrl"><img tal:attributes="src string: $appUrl/skyn/logo.jpg"/></a></td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
      <td align="right"
          tal:define="appLangs app/portal_languages/listSupportedLanguages;
@@ -53,6 +55,31 @@
      </td>
     </tr>
    </table>
+  </td>
+ </tr>
+ <tal:comment replace="nothing">The message strip</tal:comment>
+ <tr>
+  <td>
+   <div style="position: relative" align="right">
+    <metal:msg use-macro="app/skyn/page/macros/message"/>
+   </div>
+   <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
+   <div id="grey" class="grey"></div>
+
+   <tal:comment replace="nothing">Popup for confirming an action</tal:comment>
+    <div id="confirmActionPopup" class="popup">
+    <form id="confirmActionForm" method="post">
+     <div align="center">
+      <p id="appyConfirmText"></p>
+      <input type="hidden" name="actionType"/>
+      <input type="hidden" name="action"/>
+      <input type="button" onClick="doConfirm()"
+             tal:attributes="value python:_('yes')"/>
+      <input type="button" value="No" onClick="closePopup('confirmActionPopup')"
+             tal:attributes="value python:_('no')"/>
+     </div>
+    </form>
+  </div>
   </td>
  </tr>
  <tal:comment replace="nothing">The user data strip</tal:comment>
@@ -88,12 +115,17 @@
         <td>
          <!-- Go home -->
          <a tal:attributes="href appUrl; title python: _('home')">
-          <img src="skyn/home.gif"/>
+          <img tal:attributes="src string: $appUrl/skyn/home.gif"/>
          </a>
+         <!-- Config -->
+         <img style="cursor:pointer" tal:condition="python: user.has_role('Manager')"
+           tal:attributes="onClick python: 'href: window.location=\'%s\'' % tool.getUrl(page='main', nav='');
+                           title python: _('%sTool' % appName);
+                           src string:$appUrl/skyn/appyConfig.gif"/>
          <!-- Logout -->
          <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
                             title python: _('logout')">
-          <img src="skyn/logout.gif"/>
+          <img tal:attributes="src string: $appUrl/skyn/logout.gif"/>
          </a>
         </td>
        </tr>
@@ -103,20 +135,16 @@
    </table>
   </td>
  </tr>
- <tal:comment replace="nothing">The message strip</tal:comment>
- <tr tal:define="msg request/portal_status_message | nothing">
-  <td>
-   <div style="position: relative" align="right">
-    <div tal:condition="msg" class="message" tal:content="structure msg"></div>
-   </div>
-  </td>
- </tr>
  <tr>
   <td>
-    <table class="content" width="100%">
-     <tr>
-      <td><span metal:define-slot="content"></span>
+    <table width="99%">
+     <tr valign="top">
+      <tal:comment replace="nothing">Portlet</tal:comment>
+      <td tal:condition="python: tool.showPortlet(context)" class="portlet">
+        <metal:portlet use-macro="app/skyn/portlet/macros/portlet"/>
       </td>
+      <tal:comment replace="nothing">Page content</tal:comment>
+      <td class="content"><span metal:define-slot="content"></span></td>
      </tr> 
     </table>
    </td> 
