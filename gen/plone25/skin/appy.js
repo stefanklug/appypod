@@ -232,6 +232,42 @@ function updateSlaves(masterValues, appyTypeId) {
   }
 }
 
+function initSlaves() {
+  // When the current page is loaded, we must set the correct state for all
+  // slave fields.
+  var masters = cssQuery('.appyMaster');
+  for (var i=0; i < masters.length; i++) {
+    var cssClasses = masters[i].className.split(' ');
+    for (var j=0; j < cssClasses.length; j++) {
+      if (cssClasses[j].indexOf('master_') == 0) {
+        var appyId = cssClasses[j].split('_')[1];
+        var masterValue = [];
+        if (masters[i].nodeName == 'SPAN'){
+          var idField = masters[i].id;
+          if (idField == '') {
+            masterValue.push(idField);
+          }
+          else {
+            if ((idField[0] == '(') || (idField[0] == '[')) {
+              // There are multiple values, split it
+              var subValues = idField.substring(1, idField.length-1).split(',');
+              for (var k=0; k < subValues.length; k++){
+                var subValue = subValues[k].replace(' ','');
+                masterValue.push(subValue.substring(1, subValue.length-1));
+              }
+            }
+            else { masterValue.push(masters[i].id);
+            }
+          }
+        }
+        else { masterValue = getMasterValue(masters[i]);
+        }
+        updateSlaves(masterValue, appyId);
+      }
+    }
+  }
+}
+
 // Function used for triggering a workflow transition
 function triggerTransition(transitionId, msg) {
   var theForm = document.getElementById('triggerTransitionForm');

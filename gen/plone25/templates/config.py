@@ -52,9 +52,6 @@ rootClasses = [<!rootClasses!>]
 appClasses = [<!appClasses!>]
 appClassNames = [<!appClassNames!>]
 allClassNames = [<!allClassNames!>]
-# List of classes that must be hidden from the catalog
-catalogMap = {}
-<!catalogMap!>
 
 # In the following dict, we store, for every Appy class, the ordered list of
 # appy types (included inherited ones).

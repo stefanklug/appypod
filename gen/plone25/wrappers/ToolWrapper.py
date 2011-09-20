@@ -42,7 +42,7 @@ class ToolWrapper(AbstractWrapper):
         rq = self.o.REQUEST
         if rq.get('nav', ''):
             initiatorUid = rq['nav'].split('.')[1]
-            res = self.o.uid_catalog(UID=initiatorUid)[0].getObject().appy()
+            res = self.o.portal_catalog(UID=initiatorUid)[0].getObject().appy()
         return res
 
     def getObject(self, uid):

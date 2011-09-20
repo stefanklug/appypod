@@ -139,7 +139,7 @@ class AbstractWrapper(object):
            to a given p_sortKey which must be an attribute set on referred
            objects ("title", by default).'''
         sortedUids = getattr(self.o, '_appy_%s' % fieldName)
-        c = self.o.uid_catalog
+        c = self.o.portal_catalog
         sortedUids.sort(lambda x,y: \
            cmp(getattr(c(UID=x)[0].getObject().appy(), sortKey),
                getattr(c(UID=y)[0].getObject().appy(), sortKey)))

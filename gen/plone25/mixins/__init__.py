@@ -37,8 +37,8 @@ class BaseMixin:
         rq = self.REQUEST
         obj = self
         if created:
-            obj = self.portal_factory.doCreate(self, self.id) # portal_factory
-            # creates the final object from the temp object.
+            # portal_factory creates the final object from the temp object.
+            obj = self.portal_factory.doCreate(self, self.id)
         previousData = None
         if not created: previousData = self.rememberPreviousData()
         # Perform the change on the object, unless self is a tool being created.
@@ -61,7 +61,7 @@ class BaseMixin:
             # Get the initiator
             splitted = rq['nav'].split('.')
             if splitted[0] == 'search': return # Not an initiator but a search.
-            initiator = self.uid_catalog(UID=splitted[1])[0].getObject()
+            initiator = self.getTool().getObject(splitted[1])
             fieldName = splitted[2].split(':')[0]
             initiator.appy().link(fieldName, obj)
 
@@ -174,20 +174,24 @@ class BaseMixin:
         errorMessage = self.translate(
             'Please correct the indicated errors.', domain='plone')
         isNew = rq.get('is_new') == 'True'
-        # Go back to the consult view if the user clicked on 'Cancel'
+        # If this object is created from an initiator, get info about him.
+        initiator = None
+        initiatorPage = None
+        if rq.get('nav', '').startswith('ref.'):
+            splitted = rq['nav'].split('.')
+            initiator = tool.getObject(splitted[1])
+            initiatorPage = splitted[2].split(':')[1]
+        # If the user clicked on 'Cancel', go back to the previous page.
         if rq.get('buttonCancel.x', None):
-            if isNew:
-                if rq.get('nav', ''):
-                    # We can go back to the initiator page.
-                    splitted = rq['nav'].split('.')
-                    initiator = tool.getObject(splitted[1])
-                    initiatorPage = splitted[2].split(':')[1]
-                    urlBack = initiator.getUrl(page=initiatorPage, nav='')
-                else:
-                    # Go back to the root of the site.
-                    urlBack = tool.getSiteUrl()
+            if initiator:
+                # Go back to the initiator page.
+                urlBack = initiator.getUrl(page=initiatorPage, nav='')
             else:
-                urlBack = self.getUrl()
+                if isNew:
+                   # Go back to the root of the site.
+                   urlBack = tool.getSiteUrl()
+                else:
+                   urlBack = self.getUrl()
             self.say(self.translate('Changes canceled.', domain='plone'))
             return self.goto(urlBack)
 
@@ -236,9 +240,11 @@ class BaseMixin:
         if not obj.allows('View'):
             return self.goto(tool.getSiteUrl(), msg)
         if rq.get('buttonOk.x', None) or saveConfirmed:
-            # Go to the consult view for this object
             obj.say(msg)
-            return self.goto(obj.getUrl())
+            if isNew and initiator:
+                return self.goto(initiator.getUrl(page=initiatorPage, nav=''))
+            else:
+                return self.goto(obj.getUrl())
         if rq.get('buttonPrevious.x', None):
             # Go to the previous page for this object.
             # We recompute the list of phases and pages because things

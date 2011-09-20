@@ -5,7 +5,7 @@ rq = context.REQUEST
 
 # Get the object impacted by the action.
 if rq.get('objectUid', None):
-    obj = context.uid_catalog(UID=rq['objectUid'])[0].getObject()
+    obj = context.portal_catalog(UID=rq['objectUid'])[0].getObject()
 else:
     obj = context.getParentNode() # An appy obj or in some cases the app folder.
     if obj.portal_type == 'AppyFolder':

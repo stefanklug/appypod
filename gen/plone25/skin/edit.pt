@@ -1,7 +1,7 @@
 <tal:main define="tool context/getTool">
 <html metal:use-macro="context/skyn/template/macros/main">
  <metal:fill fill-slot="content"
-    tal:define="contextObj  python:context.getParentNode();
+    tal:define="contextObj  context/getParentNode;
                 errors      request/errors | python:{};
                 layoutType  python:'edit';
                 layout      python: contextObj.getPageLayout(layoutType);

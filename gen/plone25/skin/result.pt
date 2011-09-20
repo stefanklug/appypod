@@ -1,8 +1,9 @@
 <metal:queryResults define-macro="queryResult"
    tal:define="contentType   request/type_name;
                refInfo       tool/getRefInfo;
+               refObject     python: refInfo[0];
                refField      python: refInfo[1];
-               refInfo       python: refInfo[0];
+               refUrlPart    python: refObject and ('&ref=%s:%s' % (refObject.UID(), refField))  or '';
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
@@ -14,13 +15,13 @@
                sortOrder     request/sortOrder| python:'asc';
                filterKey     request/filterKey| python:'';
                filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refField=refField);
+               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
                navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, searchName);
-               newSearchUrl  python: '%s/skyn/search?type_name=%s&ref=%s' % (tool.absolute_url(), contentType, refInfo);">
+               newSearchUrl  python: '%s/skyn/search?type_name=%s%s' % (tool.absolute_url(), contentType, refUrlPart)">
 
   <tal:result condition="objs">
 
@@ -29,7 +30,7 @@
       <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
       (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
-        &nbsp;&nbsp;—&nbsp;&nbsp;<i><a tal:attributes="href newSearchUrl"
+        &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
         tal:content="python: tool.translate('search_new')"></a></i>
       </tal:newSearch>
     </legend>
@@ -60,7 +61,7 @@
      </tr>
     </table>
 
-    <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refField);
+    <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refInfo);
                        widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
            class="list" width="100%">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>

@@ -8,12 +8,17 @@ table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
 form { margin: 0; padding: 0;}
 p { margin: 0;}
 acronym {cursor: help;}
-input { border: 1px solid #a79e9e;
-        font-family: Lucida,Helvetica,Arial,sans-serif; }
+input { border: 1px solid #a79e9e; background-color: #f8f8f8;
+        font-family: Lucida,Helvetica,Arial,sans-serif; margin-bottom: 1px}
 input[type=image] { border-width: 0px; background: none; }
 textarea { width: 99%; font: 100% Lucida,Helvetica,Arial,sans-serif;
-           border: 1px solid #a79e9e;}
+           border: 1px solid #a79e9e; background-color: #f8f8f8;}
 label { font-weight: 600; font-style: italic; line-height: 1.4em;}
+legend { padding-bottom: 2px; padding-right: 3px;}
+ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
+     list-style: none outside none;}
+li { margin: 0; background-image: url("skyn/li.gif"); padding-left: 10px;
+     background-repeat: no-repeat; background-position: 0 0.5em;}
 
 .main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
         border-style: solid; border-width: 1px; border-color: grey; }
@@ -22,7 +27,7 @@ label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 .userStrip { background-color: #a2a2a2; height: 30px;
              border-top: 3px solid #525252; border-bottom: 2px solid #9b0000; }
 .login { margin-top: 2px; margin-bottom: 2px; color: white;}
-.buttons { margin-left: 4px; }
+.buttons { margin-left: 4px;}
 .message { color: #9b0000; font-style: italic;
            position: absolute; top: -15px; right: 5px}
 .discreet { font-size: 90%; }
@@ -41,7 +46,7 @@ label { font-weight: 600; font-style: italic; line-height: 1.4em;}
          border: 1px solid grey; }
 .list { border: 1px solid grey; margin-bottom: 3px;}
 .list td, .list th { border: 1px solid grey;
-                     padding-left: 3px; padding-right: 3px;}
+                     padding-left: 5px; padding-right: 5px; padding-top: 3px;}
 .list th { background-color: #cbcbcb; font-style: italic; font-weight: normal;}
 .noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important; }
 .noStyle td { border:0 !important; padding:0 !important; margin:0 !important; }
@@ -62,3 +67,4 @@ label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 .by { background-color: #ededed; font-style: italic; padding-top: 3px;}
 .workflow { background-color: #ededed; text-align: center;}
 .objectNavigate { margin-top: 3px;}
+.underline {border-bottom: 1px dotted grey;}

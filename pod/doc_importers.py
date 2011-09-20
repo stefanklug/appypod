@@ -64,7 +64,7 @@ class DocImporter:
                 fileContent = self.content.read()
             else:
                 fileContent = self.content
-            f = file(self.importPath, 'w')
+            f = file(self.importPath, 'wb')
             f.write(fileContent)
             f.close()
 
@@ -181,7 +181,9 @@ class ImageImporter(DocImporter):
        externally.'''
     anchorTypes = ('page', 'paragraph', 'char', 'as-char')
     WRONG_ANCHOR = 'Wrong anchor. Valid values for anchors are: %s.'
-    def getImportFolder(self): return '%s/unzip/Pictures' % self.tempFolder
+    pictFolder = '%sPictures%s' % (os.sep, os.sep)
+    def getImportFolder(self):
+        return os.path.join(self.tempFolder, 'unzip', 'Pictures')
 
     def moveFile(self, at, importPath):
         '''Copies file at p_at into the ODT file at p_importPath.'''
@@ -189,7 +191,7 @@ class ImageImporter(DocImporter):
         for imagePath, imageAt in self.fileNames.iteritems():
             if imageAt == at:
                 # Yes!
-                i = importPath.rfind('/Pictures/') + 1
+                i = importPath.rfind(self.pictFolder) + 1
                 return importPath[:i] + imagePath
         # If I am here, the image has not already been imported: copy it.
         shutil.copy(at, importPath)
@@ -208,8 +210,8 @@ class ImageImporter(DocImporter):
         s = self.svgNs
         imageName = 'Image%f' % time.time()
         # Compute path to image
-        i = self.importPath.rfind('/Pictures/')
-        imagePath = self.importPath[i+1:]
+        i = self.importPath.rfind(self.pictFolder)
+        imagePath = self.importPath[i+1:].replace('\\', '/')
         self.fileNames[imagePath] = self.at
         # Compute image size
         width, height = getSize(self.importPath, self.format)

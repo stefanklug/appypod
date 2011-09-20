@@ -30,7 +30,6 @@ class PloneInstaller:
         self.appClasses = cfg.appClasses
         self.appClassNames = cfg.appClassNames
         self.allClassNames = cfg.allClassNames
-        self.catalogMap = cfg.catalogMap
         self.applicationRoles = cfg.applicationRoles # Roles defined in the app
         self.defaultAddRoles = cfg.defaultAddRoles
         self.appFrontPage = cfg.appFrontPage
@@ -197,20 +196,9 @@ class PloneInstaller:
         factoryTypes = self.allClassNames + factoryTool.getFactoryTypes().keys()
         factoryTool.manage_setPortalFactoryTypes(listOfTypeIds=factoryTypes)
 
-        # Configure CatalogMultiplex: tell what types will be catalogued or not.
+        # Whitelist tool in Archetypes, because now UID is in portal_catalog
         atTool = getattr(site, self.config.ARCHETYPETOOLNAME)
-        for meta_type in self.catalogMap:
-            submap = self.catalogMap[meta_type]
-            current_catalogs = Set(
-                [c.id for c in atTool.getCatalogsByType(meta_type)])
-            if 'white' in submap:
-                for catalog in submap['white']:
-                    current_catalogs.update([catalog])
-            if 'black' in submap:
-                for catalog in submap['black']:
-                    if catalog in current_catalogs:
-                        current_catalogs.remove(catalog)
-            atTool.setCatalogsByType(meta_type, list(current_catalogs))
+        atTool.setCatalogsByType(self.toolName, ['portal_catalog'])
 
     def updatePodTemplates(self):
         '''Creates or updates the POD templates in the tool according to pod
@@ -259,7 +247,6 @@ class PloneInstaller:
         else:
             self.tool.createOrUpdate(True, None)
         self.updatePodTemplates()
-        self.tool.unindexObject()
 
     def installTranslations(self):
         '''Creates or updates the translation objects within the tool.'''
@@ -336,7 +323,7 @@ class PloneInstaller:
            corresponding index if it does not exist yet.'''
         # Create a special index for object state, that does not correspond to
         # a field.
-        indexInfo = {'getState': 'FieldIndex'}
+        indexInfo = {'getState': 'FieldIndex', 'UID': 'FieldIndex'}
         for className in self.attributes.iterkeys():
             wrapperClass = self.tool.getAppyClass(className, wrapper=True)
             for appyType in wrapperClass.__fields__:

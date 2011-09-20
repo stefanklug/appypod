@@ -1412,7 +1412,7 @@ class Boolean(Type):
         self.pythonType = bool
 
     def getDefaultLayouts(self):
-        return {'view': 'l;f!_', 'edit': Table('f;lrv;=', width=None)}
+        return {'view': 'l;f!-', 'edit': Table('f;lrv;=', width=None)}
 
     def getValue(self, obj):
         '''Never returns "None". Returns always "True" or "False", even if
@@ -1566,7 +1566,7 @@ class File(Type):
     def isEmptyValue(self, value, obj=None):
         '''Must p_value be considered as empty?'''
         if not obj: return Type.isEmptyValue(self, value)
-        if value is not None: return False
+        if value: return False
         # If "nochange", the value must not be considered as empty
         return obj.REQUEST.get('%s_delete' % self.name) != 'nochange'
 
@@ -1795,14 +1795,14 @@ class Ref(Type):
         # Get the needed referred objects
         i = res.startNumber
         # Is it possible and more efficient to perform a single query in
-        # uid_catalog and get the result in the order of specified uids?
+        # portal_catalog and get the result in the order of specified uids?
         while i < (res.startNumber + res.batchSize):
             if i >= res.totalNumber: break
             # Retrieve every reference in the correct format according to p_type
             if type == 'uids':
                 ref = uids[i]
             else:
-                ref = obj.uid_catalog(UID=uids[i])[0].getObject()
+                ref = obj.portal_catalog(UID=uids[i])[0].getObject()
                 if type == 'objects':
                     ref = ref.appy()
             res.objects.append(ref)
@@ -1859,7 +1859,7 @@ class Ref(Type):
         for i in range(len(refs)):
             if isinstance(refs[i], basestring):
                 # Get the Zope object from the UID
-                refs[i] = obj.uid_catalog(UID=refs[i])[0].getObject()
+                refs[i] = obj.portal_catalog(UID=refs[i])[0].getObject()
             else:
                 refs[i] = refs[i].o # Now we are sure to have a Zope object.
         # Update the field storing on p_obj the ordered list of UIDs

@@ -1,18 +1,6 @@
-textarea { width: 99%; }
-
 #importedElem { color: grey; font-style: italic; }
-label         { font-weight: bold; font-style: italic; line-height: 1.4em; font-size: 92%;}
-.appyList     { line-height: 1.1em; margin: 0 0 0.5em 1.2em;  padding: 0; }
-.appyBullet   { margin: 0; }
 .appyPod      { float:right; }
 .appyFocus    { color: #900101; }
-
-.appyPlusImg {
-  vertical-align: top;
-  position: relative;
-  left: -1.4em;
-  top: -0.55em;
-}
 
 .appyState {
   font-size: 85%;
@@ -91,38 +79,6 @@ fieldset {
   padding: 3px 4px 3px 12px;
 }
 
-.listing { margin: 0em 0em; }
-.listing td, .stx table td {
-  padding : 0.1em 0.3em 0.1em 0.3em;
-  border-top : 1px solid #8CACBB;
-}
-.listing th, .stx table th { padding: 0.25em 0.3em; }
-.vertical td { padding-left: 0.3em; }
-
-.innerAppyTable {
-  border-width: 0px;
-}
-
-.innerAppyTable td {
-  border-top: 0px;
-  border-bottom: 1px solid #8CACBB;
-  border-right: 0px;
-  padding: 0.4em 0em 0em 0em;
-  border-collapse: separate;
-}
-
-.innerAppyTable th {
-  border-right: 0px;
-}
-
-.innerAppyFieldset {
-  margin: 0em 1em;
-  line-height: 1.0em;
-}
-
-.field {
-  margin: 0 0.2em 0.2em 0;
-}
 /* Portlet elements */
 .portletHeader {
   text-transform: none;
@@ -149,5 +105,3 @@ fieldset {
   float:right;
   margin:0.5em;
 }
-
-

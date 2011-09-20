@@ -87,7 +87,7 @@ class ToolMixin(BaseMixin):
             if appyType.name == 'title': continue # Will be included by default.
             res.append((appyType.name, self.translate(appyType.labelId)))
         # Add object state
-        res.append(('workflowState', self.translate('workflow_state')))
+        res.append(('state', self.translate('workflow_state')))
         return res
 
     def _appy_getSearchableFields(self, contentType):
@@ -108,7 +108,8 @@ class ToolMixin(BaseMixin):
         fieldDicts = []
         if refInfo:
             # The search is triggered from a Ref field.
-            refField = self.getRefInfo(refInfo)[1]
+            refObject, fieldName = self.getRefInfo(refInfo)
+            refField = refObject.getAppyType(fieldName)
             fieldNames = refField.queryFields or ()
             nbOfColumns = refField.queryNbCols
         else:
@@ -172,7 +173,7 @@ class ToolMixin(BaseMixin):
 
     def getObject(self, uid, appy=False):
         '''Allows to retrieve an object from its p_uid.'''
-        res = self.uid_catalog(UID=uid)
+        res = self.portal_catalog(UID=uid)
         if res:
             res = res[0].getObject()
             if appy:
@@ -183,10 +184,10 @@ class ToolMixin(BaseMixin):
                      search=None, remember=False, brainsOnly=False,
                      maxResults=None, noSecurity=False, sortBy=None,
                      sortOrder='asc', filterKey=None, filterValue=None,
-                     refField=None):
+                     refObject=None, refField=None):
         '''Executes a query on a given p_contentType (or several, separated
-           with commas) in Plone's portal_catalog. If p_searchName is specified,
-           it corresponds to:
+           with commas) in portal_catalog. If p_searchName is specified, it
+           corresponds to:
              1) a search defined on p_contentType: additional search criteria
                 will be added to the query, or;
              2) "_advanced": in this case, additional search criteria will also
@@ -221,8 +222,8 @@ class ToolMixin(BaseMixin):
            to take into account: the corresponding search value is in
            p_filterValue.
 
-           If p_refField is given, the query is limited to the objects that are
-           referenced through it.'''
+           If p_refObject and p_refField are given, the query is limited to the
+           objects that are referenced from p_refObject through p_refField.'''
         # Is there one or several content types ?
         if contentType.find(',') != -1:
             portalTypes = contentType.split(',')
@@ -267,6 +268,9 @@ class ToolMixin(BaseMixin):
             # TODO This value needs to be merged with an existing one if already
             # in params, or, in a first step, we should avoid to display the
             # corresponding filter widget on the screen.
+        if refObject:
+            refField = refObject.getAppyType(refField)
+            params['UID'] = refObject._appy_getSortedField(refField.name).data
         # Determine what method to call on the portal catalog
         if noSecurity: catalogMethod = 'unrestrictedSearchResults'
         else:          catalogMethod = 'searchResults'
@@ -297,12 +301,14 @@ class ToolMixin(BaseMixin):
             self.REQUEST.SESSION['search_%s' % searchName] = uids
         return res.__dict__
 
-    def getResultColumnsNames(self, contentType, refField):
+    def getResultColumnsNames(self, contentType, refInfo):
         contentTypes = contentType.strip(',').split(',')
         resSet = None # Temporary set for computing intersections.
         res = [] # Final, sorted result.
         fieldNames = None
         appyTool = self.appy()
+        refField = None
+        if refInfo[0]: refField = refInfo[0].getAppyType(refInfo[1])
         for cType in contentTypes:
             if refField:
                 fieldNames = refField.shownInfo
@@ -432,7 +438,7 @@ class ToolMixin(BaseMixin):
     def isSortable(self, name, className, usage):
         '''Is field p_name defined on p_className sortable for p_usage purposes
            (p_usage can be "ref" or "search")?'''
-        if (',' in className) or (name == 'workflowState'): return False
+        if (',' in className) or (name == 'state'): return False
         appyType = self.getAppyType(name, className=className)
         if appyType: return appyType.isSortable(usage=usage)
 
@@ -567,9 +573,10 @@ class ToolMixin(BaseMixin):
         if not refInfo and (self.REQUEST.get('search', None) == '_advanced'):
             criteria = self.REQUEST.SESSION.get('searchCriteria', None)
             if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
-        if not refInfo: return ('', None)
-        sourceContentType, refField = refInfo.split(':')
-        return refInfo, self.getAppyType(refField, className=sourceContentType)
+        if not refInfo: return (None, None)
+        objectUid, fieldName = refInfo.split(':')
+        obj = self.getObject(objectUid)
+        return obj, fieldName
 
     def getSearches(self, contentType):
         '''Returns the list of searches that are defined for p_contentType.
@@ -663,7 +670,7 @@ class ToolMixin(BaseMixin):
             res['backText'] = self.translate(label)
         else:
             fieldName, pageName = d2.split(':')
-            sourceObj = self.uid_catalog(UID=d1)[0].getObject()
+            sourceObj = self.portal_catalog(UID=d1)[0].getObject()
             label = '%s_%s' % (sourceObj.meta_type, fieldName)
             res['backText'] = '%s : %s' % (sourceObj.Title(),
                                            self.translate(label))
@@ -739,7 +746,7 @@ class ToolMixin(BaseMixin):
                 except KeyError: pass
                 except IndexError: pass
                 if uid:
-                    brain = self.uid_catalog(UID=uid)
+                    brain = self.portal_catalog(UID=uid)
                     if brain:
                         sibling = brain[0].getObject()
                         res[urlKey] = sibling.getUrl(nav=newNav % (index + 1),
@@ -860,4 +867,15 @@ class ToolMixin(BaseMixin):
         if ',' in contentType: return ()
         return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
+
+    def getUserLine(self, user):
+        '''Returns a one-line user info as shown on every page.'''
+        res = [user.getId()]
+        name = user.getProperty('fullname')
+        if name: res.insert(0, name)
+        rolesToShow = [r for r in user.getRoles() \
+                       if r not in ('Authenticated', 'Member')]
+        if rolesToShow:
+            res.append(', '.join([self.translate(r) for r in rolesToShow]))
+        return ' | '.join(res)
 # ------------------------------------------------------------------------------

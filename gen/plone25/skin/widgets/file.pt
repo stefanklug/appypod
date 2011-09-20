@@ -19,7 +19,7 @@
 <tal:comment replace="nothing">Edit macro for an File.</tal:comment>
 <metal:edit define-macro="edit">
 <tal:showFile condition="python: value and value.size">
-  <metal:call use-macro="portal/skyn/widgets/file/macros/view"/><br/>
+  <metal:call use-macro="app/skyn/widgets/file/macros/view"/><br/>
 </tal:showFile>
 <tal:editButtons condition="python: value and value.size">
   <tal:comment replace="nothing">Keep the file untouched.</tal:comment>
@@ -29,8 +29,7 @@
                          id string:${name}_nochange;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
   <label tal:attributes="for string:${name}_nochange"
-         i18n:translate="nochange_file" i18n:domain="plone">
-  </label>
+         i18n:translate="nochange_file" i18n:domain="plone">Keep the file unchanged</label>
   <br/>
   <tal:comment replace="nothing">Delete the file.</tal:comment>
   <tal:delete condition="not: widget/required">
@@ -39,8 +38,7 @@
                          id string:${name}_delete;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
   <label tal:attributes="for string:${name}_delete"
-         i18n:translate="delete_file" i18n:domain="plone">
-  </label>
+         i18n:translate="delete_file" i18n:domain="plone">Delete the file</label>
   <br/>
   </tal:delete>
   <tal:comment replace="nothing">Replace with a new file.</tal:comment>
@@ -50,8 +48,7 @@
                          id string:${name}_upload;
                          onclick string:document.getElementById('${name}_file').disabled=false"/>
   <label tal:attributes="for string:${name}_upload;"
-         i18n:translate="upload_file" i18n:domain="plone">
-  </label>
+         i18n:translate="upload_file" i18n:domain="plone">Replace it with a new file</label>
   <br/>
 </tal:editButtons>
 <tal:comment replace="nothing">The upload field.</tal:comment>
@@ -66,7 +63,7 @@
 
 <tal:comment replace="nothing">Cell macro for an File.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/file/macros/view"/>
+  <metal:call use-macro="app/skyn/widgets/file/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an File.</tal:comment>

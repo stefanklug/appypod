@@ -110,7 +110,7 @@
        </td></tr>
       </table>
       <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
-      <table tal:condition="not: isAnon" class="buttons">
+      <table tal:condition="not: isAnon" class="buttons" width="99%">
        <tr>
         <td>
          <!-- Go home -->
@@ -128,6 +128,7 @@
           <img tal:attributes="src string: $appUrl/skyn/logout.gif"/>
          </a>
         </td>
+        <td align="right" tal:content="python: tool.getUserLine(user)"></td>
        </tr>
       </table>
      </td>

@@ -168,8 +168,6 @@ class Generator(AbstractGenerator):
         self.copyFile('ProfileInit.py', self.repls, destFolder='profiles',
                       destName='__init__.py')
         self.copyFile('tool.gif', {})
-        self.copyFile('Styles.css.dtml',self.repls, destFolder=self.skinsFolder,
-                      destName = '%s.css.dtml' % self.applicationName)
         # Create version.txt
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
@@ -352,14 +350,6 @@ class Generator(AbstractGenerator):
                                            for c in classes])
         repls['allClassNames'] = ','.join(['"%s"' % c.name \
                                            for c in classesButTool])
-        # Compute classes whose instances must not be catalogued.
-        catalogMap = ''
-        blackClasses = [self.tool.name]
-        for blackClass in blackClasses:
-            catalogMap += "catalogMap['%s'] = {}\n" % blackClass
-            catalogMap += "catalogMap['%s']['black'] = " \
-                          "['portal_catalog']\n" % blackClass
-        repls['catalogMap'] = catalogMap
         # Compute the list of ordered attributes (forward and backward,
         # inherited included) for every Appy class.
         attributes = []
