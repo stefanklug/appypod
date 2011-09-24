@@ -138,8 +138,17 @@ class ZodbBackuper:
               subject, self.logMem.getvalue())
         try:
             w('> Sending mail notifications to %s...' % self.emails)
-            server, port = self.options.smtpServer.split(':')
+            smtpInfo = self.options.smtpServer.split(':', 3)
+            login = password = None
+            if len(smtpInfo) == 2:
+                # We simply have server and port
+                server, port = smtpInfo
+            else:
+                # We also have login and password
+                server, port, login, password = smtpInfo
             smtpServer = smtplib.SMTP(server, port=int(port))
+            if login:
+                smtpServer.login(login, password)
             res = smtpServer.sendmail(self.options.fromAddress,
                                       self.emails.split(','), msg)
             if res:
@@ -292,8 +301,12 @@ class ZodbBackupScript:
                              default='', metavar="FROMADDRESS", type='string')
         optParser.add_option("-s", "--smtp-server", dest="smtpServer",
                              help="SMTP server and port (ie: localhost:25) " \
-                                  "for sending mails", default='localhost:25',
-                             metavar="SMTPSERVER", type='string')
+                                  "for sending mails. You can also embed " \
+                                  "username and password if the SMTP server " \
+                                  "requires authentication, ie " \
+                                  "localhost:25:myLogin:myPassword",
+                             default='localhost:25', metavar="SMTPSERVER",
+                             type='string')
         optParser.add_option("-t", "--tempFolder", dest="tempFolder",
                              help="Folder used by OO for producing temp " \
                                   "files. Defaults to /tmp.",

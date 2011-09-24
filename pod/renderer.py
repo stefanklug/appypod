@@ -259,12 +259,20 @@ class Renderer:
     imageFormats = ('png', 'jpeg', 'jpg', 'gif')
     ooFormats = ('odt',)
     def importDocument(self, content=None, at=None, format=None,
-                       anchor='as-char', wrapInPara=True):
+                       anchor='as-char', wrapInPara=True, size=None):
         '''If p_at is not None, it represents a path or url allowing to find
            the document. If p_at is None, the content of the document is
            supposed to be in binary format in p_content. The document
-           p_format may be: odt or any format in imageFormats. p_anchor and
-           p_wrapInPara are only relevant for images.'''
+           p_format may be: odt or any format in imageFormats.
+
+           p_anchor, p_wrapInPara and p_size are only relevant for images:
+           * p_anchor defines the way the image is anchored into the document;
+                      Valid values are 'page','paragraph', 'char' and 'as-char';
+           * p_wrapInPara, if true, wraps the resulting 'image' tag into a 'p'
+                           tag;
+           * p_size, if specified, is a tuple of float or integers
+                     (width, height) expressing size in centimeters. If not
+                     specified, size will be computed from image info.'''
         ns = self.currentParser.env.namespaces
         importer = None
         # Is there someting to import?
@@ -292,9 +300,8 @@ class Renderer:
         else:
             raise PodError(DOC_WRONG_FORMAT % format)
         imp = importer(content, at, format, self.tempFolder, ns, self.fileNames)
-        if isImage:
-            imp.setAnchor(anchor)
-            imp.wrapInPara = wrapInPara
+        # Initialise image-specific parameters
+        if isImage: imp.setImageInfo(anchor, wrapInPara, size)
         res = imp.run()
         return res
 

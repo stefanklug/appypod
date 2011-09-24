@@ -67,6 +67,8 @@ class DocImporter:
             f = file(self.importPath, 'wb')
             f.write(fileContent)
             f.close()
+        # ImageImporter adds additional, image-specific attrs, through
+        # ImageImporter.setImageInfo.
 
     def getImportFolder(self):
         '''This method must be overridden and gives the path where to dump the
@@ -197,10 +199,13 @@ class ImageImporter(DocImporter):
         shutil.copy(at, importPath)
         return importPath
 
-    def setAnchor(self, anchor):
+    def setImageInfo(self, anchor, wrapInPara, size):
+        # Initialise anchor
         if anchor not in self.anchorTypes:
             raise PodError(self.WRONG_ANCHOR % str(self.anchorTypes))
         self.anchor = anchor
+        self.wrapInPara = wrapInPara
+        self.size = size
 
     def run(self):
         # Some shorcuts for the used xml namespaces
@@ -213,8 +218,11 @@ class ImageImporter(DocImporter):
         i = self.importPath.rfind(self.pictFolder)
         imagePath = self.importPath[i+1:].replace('\\', '/')
         self.fileNames[imagePath] = self.at
-        # Compute image size
-        width, height = getSize(self.importPath, self.format)
+        # Compute image size, or retrieve it from self.size if given
+        if self.size:
+            width, height = self.size
+        else:
+            width, height = getSize(self.importPath, self.format)
         if width != None:
             size = ' %s:width="%fcm" %s:height="%fcm"' % (s, width, s, height)
         else:
