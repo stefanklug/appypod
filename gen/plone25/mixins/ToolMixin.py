@@ -270,7 +270,7 @@ class ToolMixin(BaseMixin):
             # corresponding filter widget on the screen.
         if refObject:
             refField = refObject.getAppyType(refField)
-            params['UID'] = refObject._appy_getSortedField(refField.name).data
+            params['UID'] = getattr(refObject, refField.name).data
         # Determine what method to call on the portal catalog
         if noSecurity: catalogMethod = 'unrestrictedSearchResults'
         else:          catalogMethod = 'searchResults'
@@ -694,7 +694,7 @@ class ToolMixin(BaseMixin):
             # In the case of a reference, we retrieve ALL surrounding objects.
             masterObj = self.getObject(d1)
             batchSize = masterObj.getAppyType(fieldName).maxPerPage
-            uids = getattr(masterObj, '_appy_%s' % fieldName)
+            uids = getattr(masterObj, fieldName)
             # Display the reference widget at the page where the current object
             # lies.
             startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)

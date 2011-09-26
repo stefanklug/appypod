@@ -7,7 +7,6 @@
 # ------------------------------------------------------------------------------
 import types, copy
 from model import ModelClass, toolFieldPrefixes
-from utils import stringify
 import appy.gen
 import appy.gen.descriptors
 from appy.gen.po import PoMessage
@@ -95,14 +94,8 @@ class FieldDescriptor:
 
     def walkRef(self):
         '''How to generate a Ref?'''
-        relationship = '%s_%s_rel' % (self.classDescr.name, self.fieldName)
-        self.fieldType = 'ReferenceField'
-        self.widgetType = 'ReferenceWidget'
-        self.fieldParams['relationship'] = relationship
-        if self.appyType.isMultiValued():
-            self.fieldParams['multiValued'] = True
         # Update the list of referers
-        self.generator.addReferer(self, relationship)
+        self.generator.addReferer(self)
         # Add the widget label for the back reference
         refClassName = getClassName(self.appyType.klass, self.applicationName)
         backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
@@ -185,35 +178,12 @@ class FieldDescriptor:
     def generate(self):
         '''Generates the i18n labels for this type.'''
         self.walkAppyType()
-        if self.appyType.type != 'Ref': return
-        res = ''
-        s = stringify
-        spaces = TABS
-        # Generate field name
-        res += ' '*spaces + self.fieldType + '(\n'
-        # Generate field parameters
-        spaces += TABS
-        for fParamName, fParamValue in self.fieldParams.iteritems():
-            res += ' '*spaces + fParamName + '=' + s(fParamValue) + ',\n'
-        # Generate widget
-        res += ' '*spaces + 'widget=%s(\n' % self.widgetType
-        spaces += TABS
-        for wParamName, wParamValue in self.widgetParams.iteritems():
-            res += ' '*spaces + wParamName + '=' + s(wParamValue) + ',\n'
-        # End of widget definition
-        spaces -= TABS
-        res += ' '*spaces + ')\n'
-        # End of field definition
-        spaces -= TABS
-        res += ' '*spaces + '),\n'
-        return res
 
 class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
     '''Represents an Archetypes-compliant class.'''
     def __init__(self, klass, orderedAttributes, generator):
         appy.gen.descriptors.ClassDescriptor.__init__(self, klass,
             orderedAttributes, generator)
-        self.schema = '' # The archetypes schema will be generated here
         self.methods = '' # Needed method definitions will be generated here
         # We remember here encountered pages and groups defined in the Appy
         # type. Indeed, after having parsed all application classes, we will
@@ -247,11 +217,10 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
         return (parentWrapper, parentClass)
 
     def generateSchema(self, configClass=False):
-        '''Generates the corresponding Archetypes schema in self.schema. If we
-           are generating a schema for a class that is in the configuration
-           (tool, user, etc) we must avoid having attributes that rely on
-           the configuration (ie attributes that are optional, with
-           editDefault=True, etc).'''
+        '''Generates i18n and other related stuff for this class. If this class
+           is in the configuration (tool, user, etc) we must avoid having
+           attributes that rely on the configuration (ie attributes that are
+           optional, with editDefault=True, etc).'''
         for attrName in self.orderedAttributes:
             try:
                 attrValue = getattr(self.klass, attrName)
@@ -262,11 +231,7 @@ class ClassDescriptor(appy.gen.descriptors.ClassDescriptor):
                     attrValue = copy.copy(attrValue)
                     attrValue.optional = False
                     attrValue.editDefault = False
-                field = FieldDescriptor(attrName, attrValue, self)
-                fieldDef = field.generate()
-                if fieldDef:
-                    # Currently, we generate Archetypes fields for Refs only.
-                    self.schema += '\n' + fieldDef
+                FieldDescriptor(attrName, attrValue, self).generate()
 
     def isAbstract(self):
         '''Is self.klass abstract?'''

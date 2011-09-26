@@ -168,7 +168,7 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
 defaultToolFields = ('users', 'translations', 'enableNotifications',
                      'unoEnabledPython', 'openOfficePort',
                      'numberOfResultsPerPage', 'listBoxesMaximumWidth',
-                     'refreshSecurity')
+                     'appyVersion', 'refreshSecurity')
 
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
@@ -181,6 +181,7 @@ class Tool(ModelClass):
     openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
     numberOfResultsPerPage = Integer(default=30)
     listBoxesMaximumWidth = Integer(default=100)
+    appyVersion = String(show=False, layouts='f')
     def refreshSecurity(self): pass # Real method in the wrapper
     refreshSecurity = Action(action=refreshSecurity, confirm=True)
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).

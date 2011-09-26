@@ -6,12 +6,14 @@ import os, os.path, time
 from StringIO import StringIO
 from sets import Set
 import appy
+import appy.version
 from appy.gen import Type, Ref, String
 from appy.gen.po import PoParser
-from appy.gen.utils import produceNiceMessage
-from appy.gen.plone25.utils import updateRolesForPermission
+from appy.gen.utils import produceNiceMessage, updateRolesForPermission
 from appy.shared.data import languages
+from migrator import Migrator
 
+# ------------------------------------------------------------------------------
 class ZCTextIndexInfo:
     '''Silly class used for storing information about a ZCTextIndex.'''
     lexicon_id = "plone_lexicon"
@@ -246,7 +248,6 @@ class PloneInstaller:
             self.tool.createOrUpdate(False, None)
         else:
             self.tool.createOrUpdate(True, None)
-        self.updatePodTemplates()
 
     def installTranslations(self):
         '''Creates or updates the translation objects within the tool.'''
@@ -304,20 +305,6 @@ class PloneInstaller:
             site.portal_groups.setRolesForGroup(group, [role])
         site.__ac_roles__ = tuple(data)
 
-    def installStyleSheet(self):
-        '''Registers In Plone the stylesheet linked to this application.'''
-        cssName = self.productName + '.css'
-        cssTitle = self.productName + ' CSS styles'
-        cssInfo = {'id': cssName, 'title': cssTitle}
-        portalCss = self.ploneSite.portal_css
-        try:
-            portalCss.unregisterResource(cssInfo['id'])
-        except:
-            pass
-        defaults = {'id': '', 'media': 'all', 'enabled': True}
-        defaults.update(cssInfo)
-        portalCss.registerStylesheet(**defaults)
-
     def manageIndexes(self):
         '''For every indexed field, this method installs and updates the
            corresponding index if it does not exist yet.'''
@@ -350,54 +337,34 @@ class PloneInstaller:
         site = self.ploneSite
         # Do not allow an anonymous user to register himself as new user
         site.manage_permission('Add portal member', ('Manager',), acquire=0)
-        # Call custom installer if any
-        if hasattr(self.appyTool, 'install'):
-            self.tool.executeAppyAction('install', reindex=False)
         # Replace Plone front-page with an application-specific page if needed
         if self.appFrontPage:
             frontPageName = self.productName + 'FrontPage'
             site.manage_changeProperties(default_page=frontPageName)
+        # Store the used Appy version (used for detecting new versions)
+        self.appyTool.appyVersion = appy.version.short
+        self.info('Appy version is %s.' % self.appyTool.appyVersion)
+        # Call custom installer if any
+        if hasattr(self.appyTool, 'install'):
+            self.tool.executeAppyAction('install', reindex=False)
 
     def info(self, msg): return self.appyTool.log(msg)
 
     def install(self):
+        # Begin with a migration if required.
+        self.installTool()
+        if self.reinstall: Migrator(self).run()
         self.installRootFolder()
         self.installTypes()
-        self.installTool()
+        self.manageLanguages()
+        self.manageIndexes()
+        self.updatePodTemplates()
         self.installTranslations()
         self.installRolesAndGroups()
-        self.installStyleSheet()
-        self.manageIndexes()
-        self.manageLanguages()
         self.finalizeInstallation()
         self.appyTool.log("Installation done.")
 
-    def uninstallTool(self):
-        site = self.ploneSite
-        # Unmention tool in the search form
-        portalProperties = getattr(site, 'portal_properties', None)
-        if portalProperties is not None:
-            siteProperties = getattr(portalProperties, 'site_properties', None)
-            if siteProperties is not None and \
-               siteProperties.hasProperty('types_not_searched'):
-                current = list(siteProperties.getProperty('types_not_searched'))
-                if self.toolName in current:
-                    current.remove(self.toolName)
-                    siteProperties.manage_changeProperties(
-                        **{'types_not_searched' : current})
-
-        # Unmention tool in the navigation
-        if portalProperties is not None:
-            nvProps = getattr(portalProperties, 'navtree_properties', None)
-            if nvProps is not None and nvProps.hasProperty('idsNotToList'):
-                current = list(nvProps.getProperty('idsNotToList'))
-                if self.toolInstanceName in current:
-                    current.remove(self.toolInstanceName)
-                    nvProps.manage_changeProperties(**{'idsNotToList': current})
-
-    def uninstall(self):
-        self.uninstallTool()
-        return 'Done.'
+    def uninstall(self): return 'Done.'
 
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}

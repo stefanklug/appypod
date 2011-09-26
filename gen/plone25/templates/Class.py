@@ -8,11 +8,6 @@ from appy.gen.plone25.mixins import BaseMixin
 from appy.gen.plone25.mixins.ToolMixin import ToolMixin
 from Extensions.appyWrappers import <!genClassName!>_Wrapper
 <!imports!>
-
-schema = Schema((<!fields!>
-),)
-fullSchema = <!baseSchema!>.copy() + schema.copy()
-
 class <!genClassName!>(<!parents!>):
     '''<!classDoc!>'''
     security = ClassSecurityInfo()
@@ -30,7 +25,7 @@ class <!genClassName!>(<!parents!>):
     typeDescMsgId = '<!genClassName!>'
     i18nDomain = '<!applicationName!>'
     wrapperClass = <!genClassName!>_Wrapper
-    schema = fullSchema
+    schema = <!baseSchema!>.copy()
     for elem in dir(<!baseMixin!>):
         if not elem.startswith('__'): security.declarePublic(elem)
     <!static!>

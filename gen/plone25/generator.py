@@ -286,14 +286,13 @@ class Generator(AbstractGenerator):
                 res = [r for r in res if eval('r.%s == %s' % (p, p))]
         return res
 
-    def addReferer(self, fieldDescr, relationship):
-        '''p_fieldDescr is a Ref type definition. We will create in config.py a
-           dict that lists all back references, by type.'''
+    def addReferer(self, fieldDescr):
+        '''p_fieldDescr is a Ref type definition.'''
         k = fieldDescr.appyType.klass
         refClassName = getClassName(k, self.applicationName)
         if not self.referers.has_key(refClassName):
             self.referers[refClassName] = []
-        self.referers[refClassName].append( (fieldDescr, relationship))
+        self.referers[refClassName].append(fieldDescr)
 
     def getAppyTypePath(self, name, appyType, klass, isBack=False):
         '''Gets the path to the p_appyType when a direct reference to an
@@ -363,7 +362,7 @@ class Generator(AbstractGenerator):
             if not titleFound: names.insert(0, 'title')
             # Any backward attributes to append?
             if classDescr.name in self.referers:
-                for field, rel in self.referers[classDescr.name]:
+                for field in self.referers[classDescr.name]:
                     names.append(field.appyType.back.attribute)
             qNames = ['"%s"' % name for name in names]
             attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
@@ -536,10 +535,10 @@ class Generator(AbstractGenerator):
             self.labels += [ Msg(klass.name, '', klassType),
                              Msg('%s_plural' % klass.name,'', klass.name+'s')]
             repls = self.repls.copy()
-            repls.update({'fields': klass.schema, 'methods': klass.methods,
-              'genClassName': klass.name, 'imports': '','baseMixin':'BaseMixin',
-              'baseSchema': 'BaseSchema', 'global_allow': 1,
-              'parents': 'BaseMixin, BaseContent', 'static': '',
+            repls.update({'methods': klass.methods, 'genClassName': klass.name,
+              'imports': '','baseMixin':'BaseMixin', 'baseSchema': 'BaseSchema',
+              'global_allow': 1, 'parents': 'BaseMixin, BaseContent',
+              'static': '',
               'classDoc': 'User class for %s' % self.applicationName,
               'implements': "(getattr(BaseContent,'__implements__',()),)",
               'register': "registerType(%s, '%s')" % (klass.name,
@@ -567,7 +566,7 @@ class Generator(AbstractGenerator):
 
         # Generate the Tool class
         repls = self.repls.copy()
-        repls.update({'fields': self.tool.schema, 'methods': self.tool.methods,
+        repls.update({'methods': self.tool.methods,
           'genClassName': self.tool.name, 'imports':'', 'baseMixin':'ToolMixin',
           'baseSchema': 'OrderedBaseFolderSchema', 'global_allow': 0,
           'parents': 'ToolMixin, UniqueObject, OrderedBaseFolder',
@@ -584,7 +583,7 @@ class Generator(AbstractGenerator):
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for
-           generating the corresponding Archetype class and schema.'''
+           generating the corresponding Archetype class.'''
         k = classDescr.klass
         print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
         if not classDescr.isAbstract():
@@ -625,9 +624,9 @@ class Generator(AbstractGenerator):
           'className': classDescr.klass.__name__, 'global_allow': 1,
           'genClassName': classDescr.name, 'baseMixin':'BaseMixin',
           'classDoc': classDoc, 'applicationName': self.applicationName,
-          'fields': classDescr.schema, 'methods': classDescr.methods,
-          'implements': implements, 'baseSchema': baseSchema, 'static': '',
-          'register': register, 'toolInstanceName': self.toolInstanceName})
+          'methods': classDescr.methods, 'implements': implements,
+          'baseSchema': baseSchema, 'static': '', 'register': register,
+          'toolInstanceName': self.toolInstanceName})
         fileName = '%s.py' % classDescr.name
         # Create i18n labels (class name and plural form)
         poMsg = PoMessage(classDescr.name, '', classDescr.klass.__name__)
@@ -651,7 +650,7 @@ class Generator(AbstractGenerator):
                 poMsg.produceNiceDefault()
                 if poMsg not in self.labels:
                     self.labels.append(poMsg)
-        # Generate the resulting Archetypes class and schema.
+        # Generate the resulting Archetypes class.
         self.copyFile('Class.py', repls, destName=fileName)
 
     def generateWorkflow(self, wfDescr):

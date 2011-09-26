@@ -86,65 +86,67 @@ class AbstractWrapper(object):
 
     def getField(self, name): return self.o.getAppyType(name)
 
-    def link(self, fieldName, obj):
+    def link(self, fieldName, obj, back=False):
         '''This method links p_obj (which can be a list of objects) to this one
-           through reference field p_fieldName.'''
-        postfix = 'et%s%s' % (fieldName[0].upper(), fieldName[1:])
-        # Update the Archetypes reference field
-        exec 'objs = self.o.g%s()' % postfix
-        if not objs:
-            objs = []
-        elif type(objs) not in sequenceTypes:
-            objs = [objs]
-        # Add p_obj to the existing objects
+           through reference field p_fieldName. As this method is recursive and
+           can be called to update the corresponding back reference, param
+           p_back is there, but, you, as Appy developer, should never set it
+           to True.'''
+        # p_objs can be a list of objects
         if type(obj) in sequenceTypes:
-            for o in obj: objs.append(o.o)
-        else:
-            objs.append(obj.o)
-        exec 'self.o.s%s(objs)' % postfix
-        # Update the ordered list of references
-        sorted = self.o._appy_getSortedField(fieldName)
-        if type(obj) in sequenceTypes:
-            for o in obj: sorted.append(o.o.UID())
-        else:
-            sorted.append(obj.o.UID())
+            for o in obj: self.link(fieldName, o, back=back)
+            return
+        # Gets the list of referred objects (=list of uids), or create it.
+        selfO = self.o
+        refs = getattr(selfO, fieldName, None)
+        if refs == None:
+            refs = selfO.getProductConfig().PersistentList()
+            setattr(selfO, fieldName, refs)
+        # Insert p_obj into it.
+        uid = obj.o.UID()
+        if uid not in refs:
+            refs.append(uid)
+            # Update the back reference
+            if not back:
+                backName = selfO.getAppyType(fieldName).back.attribute
+                obj.appy().link(backName, self, back=True)
 
-    def unlink(self, fieldName, obj):
+    def unlink(self, fieldName, obj, back=False):
         '''This method unlinks p_obj (which can be a list of objects) from this
-           one through reference field p_fieldName.'''
-        postfix = 'et%s%s' % (fieldName[0].upper(), fieldName[1:])
-        # Update the Archetypes reference field.
-        exec 'objs = self.o.g%s()' % postfix
-        if not objs: return
-        if type(objs) not in sequenceTypes: objs = [objs]
-        # Remove p_obj from existing objects
+           one through reference field p_fieldName. As this method is recursive
+           and can be called to update the corresponding back reference, param
+           p_back is there, but, you, as Appy developer, should never set it
+           to True.'''
+        # p_objs can be a list of objects
         if type(obj) in sequenceTypes:
-            for o in obj:
-                if o.o in objs: objs.remove(o.o)
-        else:
-            if obj.o in objs: objs.remove(obj.o)
-        exec 'self.o.s%s(objs)' % postfix
-        # Update the ordered list of references
-        sorted = self.o._appy_getSortedField(fieldName)
-        if type(obj) in sequenceTypes:
-            for o in obj:
-                if o.o.UID() in sorted:
-                    sorted.remove(o.o.UID())
-        else:
-            if obj.o.UID() in sorted:
-                sorted.remove(obj.o.UID())
+            for o in obj: self.unlink(fieldName, o, back=back)
+            return
+        # Get the list of referred objects
+        selfO = self.o
+        refs = getattr(selfO, fieldName, None)
+        if not refs: return
+        # Unlink the object
+        uid = obj.o.UID()
+        if uid in refs:
+            refs.remove(uid)
+            # Update the back reference
+            if not back:
+                backName = selfO.getAppyType(fieldName).back.attribute
+                obj.appy().unlink(backName, self, back=True)
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
            to a given p_sortKey which must be an attribute set on referred
            objects ("title", by default).'''
-        sortedUids = getattr(self.o, '_appy_%s' % fieldName)
-        c = self.o.portal_catalog
-        sortedUids.sort(lambda x,y: \
+        selfO = self.o
+        refs = getattr(selfO, fieldName, None)
+        if not refs: return
+        c = selfO.portal_catalog
+        refs.sort(lambda x,y: \
            cmp(getattr(c(UID=x)[0].getObject().appy(), sortKey),
                getattr(c(UID=y)[0].getObject().appy(), sortKey)))
         if reverse:
-            sortedUids.reverse()
+            refs.reverse()
 
     def create(self, fieldNameOrClass, **kwargs):
         '''If p_fieldNameOfClass is the name of a field, this method allows to

@@ -11,7 +11,6 @@ from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor
 from appy.gen.plone25.descriptors import ClassDescriptor
-from appy.gen.plone25.utils import updateRolesForPermission,checkTransitionGuard
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -81,6 +80,11 @@ class BaseMixin:
         # Call a custom "onDelete" if it exists
         appyObj = self.appy()
         if hasattr(appyObj, 'onDelete'): appyObj.onDelete()
+        # Any people referencing me must forget me now
+        for field in self.getAllAppyTypes():
+            if field.type != 'Ref': continue
+            for obj in field.getValue(self):
+                obj.unlink(field.back.name, self, back=True)
         # Delete the object
         self.getParentNode().manage_delObjects([self.id])
 
@@ -430,7 +434,6 @@ class BaseMixin:
         appyType = self.getAppyType(name)
         if not onlyIfSync or (onlyIfSync and appyType.sync[layoutType]):
             return appyType.getValue(self)
-        return None
 
     def getFormattedFieldValue(self, name, value):
         '''Gets a nice, string representation of p_value which is a value from
@@ -442,9 +445,9 @@ class BaseMixin:
            If p_startNumber is None, this method returns all referred objects.
            If p_startNumber is a number, this method will return
            appyType.maxPerPage objects, starting at p_startNumber.'''
-        appyType = self.getAppyType(name)
-        return appyType.getValue(self, type='zobjects', someObjects=True,
-                                 startNumber=startNumber).__dict__
+        field = self.getAppyType(name)
+        return field.getValue(self, type='zobjects', someObjects=True,
+                              startNumber=startNumber).__dict__
 
     def getSelectableAppyRefs(self, name):
         '''p_name is the name of a Ref field. This method returns the list of
@@ -494,9 +497,9 @@ class BaseMixin:
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
-        sortedObjectsUids = self._appy_getSortedField(fieldName)
-        res = sortedObjectsUids.index(obj.UID())
-        return res
+        refs = getattr(self, fieldName, None)
+        if not refs: raise IndexError()
+        return refs.index(obj.UID())
 
     def isDebug(self):
         '''Are we in debug mode ?'''
@@ -782,14 +785,14 @@ class BaseMixin:
         '''This method changes the position of object with uid p_objectUid in
            reference field p_fieldName to p_newIndex i p_isDelta is False, or
            to actualIndex+p_newIndex if p_isDelta is True.'''
-        sortedObjectsUids = self._appy_getSortedField(fieldName)
-        oldIndex = sortedObjectsUids.index(objectUid)
-        sortedObjectsUids.remove(objectUid)
+        refs = getattr(self, fieldName, None)
+        oldIndex = refs.index(objectUid)
+        refs.remove(objectUid)
         if isDelta:
             newIndex = oldIndex + newIndex
         else:
             pass # To implement later on
-        sortedObjectsUids.insert(newIndex, objectUid)
+        refs.insert(newIndex, objectUid)
 
     def onChangeRefOrder(self):
         '''This method is called when the user wants to change order of an
@@ -1074,7 +1077,7 @@ class BaseMixin:
         for appyType in self.getAllAppyTypes():
             if appyType.type != 'Ref': continue
             if appyType.isBack or appyType.link: continue
-            # Indeed, no possibility to create objects with such Ref
+            # Indeed, no possibility to create objects with such Refs
             refType = self.getTool().getPortalType(appyType.klass)
             if refType not in addPermissions: continue
             # Get roles that may add this content type
@@ -1110,16 +1113,6 @@ class BaseMixin:
         if not res:
             res = self.portal_type
         return res
-
-    def _appy_getSortedField(self, fieldName):
-        '''Gets, for reference field p_fieldName, the Appy persistent list
-           that contains the sorted list of referred object UIDs. If this list
-           does not exist, it is created.'''
-        sortedFieldName = '_appy_%s' % fieldName
-        if not hasattr(self.aq_base, sortedFieldName):
-            pList = self.getProductConfig().PersistentList
-            exec 'self.%s = pList()' % sortedFieldName
-        return getattr(self, sortedFieldName)
 
     getUrlDefaults = {'page':True, 'nav':True}
     def getUrl(self, base=None, mode='view', **kwargs):

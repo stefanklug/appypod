@@ -5,6 +5,7 @@ import sys, os.path
 from optparse import OptionParser
 from appy.gen.generator import GeneratorError
 from appy.shared.utils import LinesCounter
+import appy.version
 
 # ------------------------------------------------------------------------------
 ERROR_CODE = 1
@@ -103,6 +104,7 @@ class GeneratorScript:
         (options, args) = optParser.parse_args()
         try:
             self.manageArgs(optParser, options, args)
+            print 'Appy version:', appy.version.verbose
             print 'Generating %s product in %s...' % (args[1], args[2])
             self.generateProduct(options, *args)
             # Give the user some statistics about its code

@@ -528,7 +528,6 @@ class Type:
             # We must initialise the corresponding back reference
             self.back.klass = klass
             self.back.init(self.back.attribute, self.klass, appName)
-            self.back.relationship = '%s_%s_rel' % (prefix, name)
 
     def reload(self, klass, obj):
         '''In debug mode, we want to reload layouts without restarting Zope.
@@ -1735,17 +1734,15 @@ class Ref(Type):
         if (layoutType == 'edit') and self.add: return False
         if self.isBack:
             if layoutType == 'edit': return False
-            else:
-                return obj.getBRefs(self.relationship)
+            else: return getattr(obj, self.name, None)
         return res
 
     def getValue(self, obj, type='objects', noListIfSingleObj=False,
                  startNumber=None, someObjects=False):
-        '''Returns the objects linked to p_obj through Ref field "self".
+        '''Returns the objects linked to p_obj through this Ref field.
            - If p_type is "objects",  it returns the Appy wrappers;
            - If p_type is "zobjects", it returns the Zope objects;
            - If p_type is "uids",     it returns UIDs of objects (= strings).
-
 
            * If p_startNumber is None, it returns all referred objects.
            * If p_startNumber is a number, it returns self.maxPerPage objects,
@@ -1756,23 +1753,7 @@ class Ref(Type):
 
            If p_someObjects is True, it returns an instance of SomeObjects
            instead of returning a list of references.'''
-        if self.isBack:
-            getRefs = obj.reference_catalog.getBackReferences
-            uids = [r.sourceUID for r in getRefs(obj, self.relationship)]
-        else:
-            uids = obj._appy_getSortedField(self.name)
-            batchNeeded = startNumber != None
-            exec 'refUids = obj.getRaw%s%s()' % (self.name[0].upper(),
-                                                 self.name[1:])
-            # There may be too much UIDs in sortedField because these fields
-            # are not updated when objects are deleted. So we do it now.
-            # TODO: do such cleaning on object deletion ?
-            toDelete = []
-            for uid in uids:
-                if uid not in refUids:
-                    toDelete.append(uid)
-            for uid in toDelete:
-                uids.remove(uid)
+        uids = getattr(obj, self.name, [])
         if not uids:
             # Maybe is there a default value?
             defValue = Type.getValue(self, obj)
@@ -1783,8 +1764,8 @@ class Ref(Type):
                     uids = [o.o.UID() for o in defValue]
                 else:
                     uids = [defValue.o.UID()]
-        # Prepare the result: an instance of SomeObjects, that, in this case,
-        # represent a subset of all referred objects
+        # Prepare the result: an instance of SomeObjects, that will be unwrapped
+        # if not required.
         res = SomeObjects()
         res.totalNumber = res.batchSize = len(uids)
         batchNeeded = startNumber != None
@@ -1792,10 +1773,8 @@ class Ref(Type):
             res.batchSize = self.maxPerPage
         if startNumber != None:
             res.startNumber = startNumber
-        # Get the needed referred objects
+        # Get the objects given their uids
         i = res.startNumber
-        # Is it possible and more efficient to perform a single query in
-        # portal_catalog and get the result in the order of specified uids?
         while i < (res.startNumber + res.batchSize):
             if i >= res.totalNumber: break
             # Retrieve every reference in the correct format according to p_type
@@ -1852,22 +1831,23 @@ class Ref(Type):
            * a Appy object;
            * a list of Appy or Zope objects.
         '''
-        # Standardize the way p_value is expressed
-        refs = value
-        if not refs: refs = []
-        if type(refs) not in sequenceTypes: refs = [refs]
-        for i in range(len(refs)):
-            if isinstance(refs[i], basestring):
-                # Get the Zope object from the UID
-                refs[i] = obj.portal_catalog(UID=refs[i])[0].getObject()
-            else:
-                refs[i] = refs[i].o # Now we are sure to have a Zope object.
-        # Update the field storing on p_obj the ordered list of UIDs
-        sortedRefs = obj._appy_getSortedField(self.name)
-        del sortedRefs[:]
-        for ref in refs: sortedRefs.append(ref.UID())
-        # Update the Archetypes Ref field.
-        exec 'obj.set%s%s(refs)' % (self.name[0].upper(), self.name[1:])
+        # Standardize p_value into a list of uids
+        uids = value
+        if not uids: uids = []
+        if type(uids) not in sequenceTypes: uids = [uids]
+        for i in range(len(uids)):
+            if not isinstance(uids[i], basestring):
+                # Get the UID from the Zope or Appy object
+                uids[i] = uids[i].o.UID()
+        # Update the list of referred uids.
+        refs = getattr(obj, self.name, None)
+        if refs == None:
+            refs = obj.getProductConfig().PersistentList(uids)
+            setattr(obj, self.name, refs)
+        else:
+            # Empty the list and fill it with uids
+            del refs[:]
+            for uid in uids: refs.append(uid)
 
     def clone(self, forTool=True):
         '''Produces a clone of myself.'''
