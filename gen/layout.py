@@ -216,6 +216,7 @@ class Table(LayoutElement):
 
 # ------------------------------------------------------------------------------
 defaultPageLayouts  = {
-    'view': Table('s|-n!-w|-b|'), 'edit': Table('w|-b|')}
-defaultFieldLayouts = {'edit': 'lrv;f!'}
+    'view': Table('s|-n!-w|-b|', align="center"),
+    'edit': Table('w|-b|', width=None)}
+defaultFieldLayouts = {'edit': 'lrv-f'}
 # ------------------------------------------------------------------------------

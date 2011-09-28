@@ -69,12 +69,12 @@
   <tal:comment replace="nothing">Table containing the history</tal:comment>
   <tal:history condition="objs">
   <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
-  <table width="100%" class="listing nosort">
+  <table width="100%" class="history">
     <tr i18n:domain="plone">
-      <th i18n:translate="listingheader_action"/>
-      <th i18n:translate="listingheader_performed_by"/>
-      <th i18n:translate="listingheader_date_and_time"/>
-      <th i18n:translate="listingheader_comment"/>
+      <th align="left" i18n:translate="listingheader_action">Action</th>
+      <th align="left" i18n:translate="listingheader_performed_by">By</th>
+      <th align="left" i18n:translate="listingheader_date_and_time">Date</th>
+      <th align="left" i18n:translate="listingheader_comment">Comment</th>
     </tr>
     <tal:event repeat="event objs">
     <tr tal:define="odd repeat/event/odd;
@@ -132,8 +132,8 @@
   <table>
     <tr>
       <tal:state repeat="stateInfo states">
-        <td tal:attributes="class python: 'appyState step%sState' % stateInfo['stateStatus']"
-            tal:content="python: tool.translate(contextObj.getWorkflowLabel(stateInfo['name']))">
+        <td class="state"
+            tal:content="python: _(contextObj.getWorkflowLabel(stateInfo['name']))">
         </td>
         <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
           <img tal:attributes="src string: $appUrl/skyn/nextState.png"/>
@@ -184,8 +184,7 @@
    workflow-related info, object history, etc.
 </tal:comment>
 <div metal:define-macro="header"
-     tal:define="showCommonInfo python: layoutType == 'view';
-                 showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
+     tal:define="showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
                  hasHistory contextObj/hasHistory;
                  historyMaxPerPage options/maxPerPage|python: 5;
                  historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
@@ -193,37 +192,37 @@
      tal:condition="not: contextObj/isTemporary">
 
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
-    <table width="100%" tal:condition="showCommonInfo" class="summary">
+    <table width="100%" class="summary">
       <tr>
         <tal:comment replace="nothing">Title</tal:comment>
         <td colspan="2" class="objectTitle" tal:content="contextObj/title_or_id"></td>
       </tr>
       <tr class="underTitle">
-        <td class="by" colspan="2">
+        <td colspan="2" class="by">
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
             <img align="left" style="cursor:pointer" onClick="toggleCookie('appyHistory')"
                  tal:attributes="src python:test(historyExpanded, 'skyn/collapse.gif', 'skyn/expand.gif');"
                  id="appyHistory_img"/>&nbsp;
-            <span i18n:translate="label_history" i18n:domain="plone" class="appyHistory"></span>&nbsp;
+            <span i18n:translate="label_history" i18n:domain="plone" class="historyLabel">History</span> ||&nbsp;
             </tal:accessHistory>
 
             <tal:comment replace="nothing">Show document creator</tal:comment>
-            <tal:creator condition="creator"
-                 define="author python:contextObj.portal_membership.getMemberInfo(creator)">
-            <span i18n:domain="plone" i18n:translate="label_by_author">
-            by <span tal:content="python:author and author['fullname'] or creator"
+            <span class="by" tal:condition="creator"
+                  tal:define="author python:contextObj.portal_membership.getMemberInfo(creator)">
+             <span i18n:domain="plone" i18n:translate="label_by_author">
+             by <span tal:content="python:author and author['fullname'] or creator"
                      tal:omit-tag="not:author" i18n:name="author"/>
-            &mdash;
+             &mdash;
+             </span>
             </span>
-            </tal:creator>
             <tal:comment replace="nothing">Show last modification date</tal:comment>
             <span tal:replace="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
         </td>
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
-      <tr tal:condition="hasHistory">
+      <tr tal:condition="hasHistory" class="underTitle">
         <td colspan="2">
           <span id="appyHistory"
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
@@ -236,8 +235,8 @@
         </td>
       </tr>
       <tal:comment replace="nothing">Workflow-related information and actions</tal:comment>
-      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()">
-        <td colspan="2" class="workflow">
+      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()" class="workflow">
+        <td colspan="2">
           <table width="100%">
             <tr>
               <td><metal:states use-macro="here/skyn/page/macros/states"/></td>

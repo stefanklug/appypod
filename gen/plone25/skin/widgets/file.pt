@@ -52,9 +52,10 @@
   <br/>
 </tal:editButtons>
 <tal:comment replace="nothing">The upload field.</tal:comment>
-<input type="file" size="30"
+<input type="file"
        tal:attributes="name string:${name}_file;
-                       id string:${name}_file;"/>
+                       id string:${name}_file;
+                       size widget/width"/>
 <script type="text/javascript" 
         tal:define="isDisabled python:test(value and value.size, 'true', 'false')"
         tal:content="string: document.getElementById('${name}_file').disabled=$isDisabled;">

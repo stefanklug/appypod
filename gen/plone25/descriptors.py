@@ -97,11 +97,13 @@ class FieldDescriptor:
         # Update the list of referers
         self.generator.addReferer(self)
         # Add the widget label for the back reference
+        back = self.appyType.back
         refClassName = getClassName(self.appyType.klass, self.applicationName)
-        backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
-        poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
-        poMsg.produceNiceDefault()
-        self.generator.labels.append(poMsg)
+        if back.hasLabel:
+            backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
+            poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
+            poMsg.produceNiceDefault()
+            self.generator.labels.append(poMsg)
         # Add the label for the confirm message if relevant
         if self.appyType.addConfirm:
             label = '%s_%s_addConfirm' % (self.classDescr.name, self.fieldName)

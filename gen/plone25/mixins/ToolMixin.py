@@ -407,7 +407,8 @@ class ToolMixin(BaseMixin):
            on a given p_rootClass. This is done by calling method "maySearch"
            on the class. If no such method exists, we return True.'''
         # When editign a form, one should avoid annoying the user with this.
-        if self.REQUEST['ACTUAL_URL'].endswith('/edit'): return
+        url = self.REQUEST['ACTUAL_URL']
+        if url.endswith('/edit') or url.endswith('/do'): return
         pythonClass = self.getAppyClass(rootClass)
         if 'maySearch' in pythonClass.__dict__:
             return pythonClass.maySearch(self.appy())

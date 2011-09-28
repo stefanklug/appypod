@@ -449,6 +449,7 @@ class ZopeInstaller:
 
     def installTypes(self):
         '''Installs and configures the types defined in the application.'''
+        self.config.listTypes(self.productName)
         contentTypes, constructors, ftis = self.config.process_types(
             self.config.listTypes(self.productName), self.productName)
 

@@ -2,16 +2,6 @@
 .appyPod      { float:right; }
 .appyFocus    { color: #900101; }
 
-.appyState {
-  font-size: 85%;
-  font-style: normal;
-  border-style: solid;
-  border-width: thin;
-  text-align: center;
-  padding: 0.1em 1em 0.1em 1.3em;
-  background-position: -1px 4px;
-}
-
 .appyChanges th {
   font-style: italic;
   background-color: transparent;
@@ -25,13 +15,6 @@
   border-right: 0 none transparent !important; 
   border-left: 0 none transparent !important;
   border-bottom: 0 none transparent !important; 
-}
-
-.appyHistory {
-  font-variant: small-caps;
-  font-weight: bold;
-  color: black;
-  font-size: 105%;
 }
 
 /* Tooltip */

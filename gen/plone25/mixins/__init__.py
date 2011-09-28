@@ -597,10 +597,8 @@ class BaseMixin:
                     if fjs not in js: js.append(fjs)
         return {'css':css, 'js':js}
 
-    def getAppyTypesFromNames(self, fieldNames, asDict=True, addTitle=True):
-        '''Gets the Appy types named p_fieldNames. If 'title' is not among
-           p_fieldNames and p_addTitle is True, field 'title' is prepended to
-           the result.'''
+    def getAppyTypesFromNames(self, fieldNames, asDict=True):
+        '''Gets the Appy types named p_fieldNames.'''
         res = []
         for name in fieldNames:
             if name == 'state':
@@ -612,10 +610,8 @@ class BaseMixin:
                 appyType = self.getAppyType(name, asDict)
                 if appyType: res.append(appyType)
                 else:
-                    self.appy().log('Field "%s", used as shownInfo in a Ref, ' \
-                                    'was not found.' % name, type='warning')
-        if addTitle and ('title' not in fieldNames):
-            res.insert(0, self.getAppyType('title', asDict))
+                    self.log('Field "%s", used as shownInfo in a Ref, ' \
+                             'was not found.' % name, type='warning')
         return res
 
     def getAppyStates(self, phase, currentOnly=False):
@@ -1306,4 +1302,10 @@ class BaseMixin:
                 if (role in roles) and (id in ids): return True
             # Check then in the global roles.
             if role in userGlobalRoles: return True
+
+    def getEditorInit(self, name):
+        '''Gets the Javascrit init code for displaying a rich editor for
+           field p_name.'''
+        return 'tinyMCE.init({\nmode : "textareas",\ntheme : "simple",\n' \
+               'elements : "%s",\neditor_selector : "rich_%s"\n});'% (name,name)
 # ------------------------------------------------------------------------------

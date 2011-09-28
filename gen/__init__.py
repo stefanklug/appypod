@@ -1394,6 +1394,10 @@ class String(Type):
             return 'ZCTextIndex'
         return Type.getIndexType(self)
 
+    def getJs(self, layoutType):
+        if (layoutType == 'edit') and (self.format == String.XHTML):
+            return ('tiny_mce/tiny_mce.js',)
+
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
@@ -1699,7 +1703,18 @@ class Ref(Type):
         self.showHeaders = showHeaders
         # When displaying referenced object(s), we will display its title + all
         # other fields whose names are listed in the following attribute.
-        self.shownInfo = shownInfo
+        self.shownInfo = list(shownInfo)
+        if not self.shownInfo: self.shownInfo.append('title')
+        self.shownInfoWidths = []
+        for i in range(len(self.shownInfo)):
+            if '*' in self.shownInfo[i]:
+                # The width is also specified
+                info, width = self.shownInfo[i].split('*',1)
+                self.shownInfo[i] = info
+                self.shownInfoWidths.append(width)
+            else:
+                # No width is specified
+                self.shownInfoWidths.append('')
         # If a method is defined in this field "select", it will be used to
         # filter the list of available tied objects.
         self.select = select

@@ -15,7 +15,8 @@ class Protos:
     # List of attributes that can't be given to a Type constructor
     notInit = ('id', 'type', 'pythonType', 'slaves', 'isSelect', 'hasLabel',
                'hasDescr', 'hasHelp', 'master_css', 'required', 'filterable',
-               'validable', 'backd', 'isBack', 'sync', 'pageName')
+               'validable', 'backd', 'isBack', 'sync', 'pageName',
+               'shownInfoWidths')
     @classmethod
     def get(self, appyType):
         '''Returns a prototype instance for p_appyType.'''
@@ -179,17 +180,17 @@ class Tool(ModelClass):
     unoEnabledPython = String(group="connectionToOpenOffice",
                               validator=validPythonWithUno)
     openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
-    numberOfResultsPerPage = Integer(default=30)
-    listBoxesMaximumWidth = Integer(default=100)
+    numberOfResultsPerPage = Integer(default=30, show=False)
+    listBoxesMaximumWidth = Integer(default=100, show=False)
     appyVersion = String(show=False, layouts='f')
     def refreshSecurity(self): pass # Real method in the wrapper
     refreshSecurity = Action(action=refreshSecurity, confirm=True)
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
     users = Ref(User, multiplicity=(0,None), add=True, link=False,
-                back=Ref(attribute='toTool'), page='users', queryable=True,
-                queryFields=('login',), showHeaders=True,
+                back=Ref(attribute='toTool', show=False), page='users',
+                queryable=True, queryFields=('login',), showHeaders=True,
                 shownInfo=('login', 'title', 'roles'))
-    translations = Ref(Translation, multiplicity=(0,None), add=False,link=False,
+    translations = Ref(Translation, multiplicity=(0,None),add=False,link=False,
                        back=Ref(attribute='trToTool', show=False), show='view',
                        page=Page('translations', show='view'))
     enableNotifications = Boolean(default=True, page='notifications')

@@ -193,7 +193,8 @@
           <tal:row repeat="obj objs">
           <tr valign="middle" tal:define="odd repeat/obj/odd"
               tal:attributes="class python:test(odd, 'even', 'odd')">
-            <td tal:repeat="widget widgets">
+            <td tal:repeat="widget widgets"
+                tal:attributes="width python: appyType['shownInfoWidths'][repeat['widget'].index]">
               <tal:title condition="python: widget['name'] == 'title'">
                 <metal:showObjectTitle use-macro="app/skyn/widgets/ref/macros/objectTitle"/>
               </tal:title>
