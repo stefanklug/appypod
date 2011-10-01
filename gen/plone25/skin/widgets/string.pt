@@ -2,7 +2,7 @@
 <metal:view define-macro="view"
        tal:define="fmt widget/format">
   <span tal:condition="python: fmt in (0, 3)"
-        tal:attributes="class widget/master_css; id rawValue">
+        tal:attributes="class masterCss; value rawValue; name name; id name">
     <ul tal:condition="python: value and isMultiple">
       <li tal:repeat="sv value"><i tal:content="structure sv"></i></li>
     </ul>
@@ -31,8 +31,8 @@
           tal:attributes="name name;
                           id name;
                           multiple python: isMultiple and 'multiple' or '';
-                          onchange python: isMaster and ('updateSlaves(getMasterValue(this), \'%s\')' % widget['id']) or '';
-                          class    widget/master_css;
+                          onchange python: isMaster and 'updateSlaves(this)' or '';
+                          class    masterCss;
                           size     python: isMultiple and widget['height'] or 1">
     <option tal:repeat="possibleValue possibleValues"
             tal:attributes="value python: possibleValue[0];

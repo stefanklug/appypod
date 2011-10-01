@@ -9,15 +9,23 @@
     contextMacro       The base folder containing the macros to call for
                        rendering the elements within the layout.
                        Defaults to app.skyn
+    slaveId            The name and id of the main tag for this layout (used
+                       for master/slave relationships).
+    slaveCss           The CSS class for a slave.
 </tal:comment>
 <metal:show define-macro="layout"
-            tal:define="contextMacro contextMacro| python: app.skyn">
+            tal:define="contextMacro contextMacro| python: app.skyn;
+                        slaveId      slaveId|python:'';
+                        slaveCss     slaveCss|python:'';
+                        layoutCss    layout/css_class;">
  <table tal:attributes="cellpadding  layout/cellpadding;
                         cellspacing  layout/cellspacing;
                         width        layout/width;
                         align        layout/align;
-                        class        layout/css_class;
-                        style        layout/style">
+                        class        python: slaveCss and ('%s %s' % (slaveCss, layoutCss)) or layoutCss;
+                        style        layout/style;
+                        id           slaveId;
+                        name         slaveId;">
    <tal:comment replace="nothing">The table header row</tal:comment>
    <tr tal:condition="layout/headerRow" tal:attributes="valign layout/headerRow/valign">
      <th tal:repeat="cell layout/headerRow/cells"
@@ -42,17 +50,20 @@
     widget             The widget to render
 </tal:comment>
 <metal:field define-macro="field"
-       tal:define="contextMacro    python: app.skyn.widgets;
-                   layout          python: widget['layouts'][layoutType];
-                   name            widget/name;
-                   sync            python: widget['sync'][layoutType];
-                   rawValue        python: contextObj.getFieldValue(name, onlyIfSync=True, layoutType=layoutType);
-                   value           python: contextObj.getFormattedFieldValue(name, rawValue);
-                   requestValue    python: request.get(name, None);
-                   inRequest       python: request.has_key(name);
-                   errors          errors | python: ();
-                   inError         python: (widget['name'] in errors) and True or False;
-                   isMultiple      python: (widget['multiplicity'][1] == None) or (widget['multiplicity'][1] &gt; 1)">
+  tal:define="contextMacro python: app.skyn.widgets;
+              layout       python: widget['layouts'][layoutType];
+              name         widget/name;
+              sync         python: widget['sync'][layoutType];
+              rawValue     python: contextObj.getFieldValue(name, onlyIfSync=True, layoutType=layoutType);
+              value        python: contextObj.getFormattedFieldValue(name, rawValue);
+              requestValue python: request.get(name, None);
+              inRequest    python: request.has_key(name);
+              errors       errors | python: ();
+              inError      python: (widget['name'] in errors) and True or False;
+              isMultiple   python: (widget['multiplicity'][1] == None) or (widget['multiplicity'][1] &gt; 1);
+              masterCss    python: widget['slaves'] and ('master_%s' % name) or '';
+              slaveCss     python: widget['master'] and ('slave_%s_%s' % (widget['masterName'], '_'.join(widget['masterValue']))) or '';
+              slaveId      python: widget['master'] and 'slave' or ''">
 
   <metal:layout use-macro="here/skyn/widgets/show/macros/layout"/>
 </metal:field>
@@ -65,7 +76,11 @@
     layoutType         "edit"? "view"? "cell?"
     widget             The widget to render
 </tal:comment>
-<metal:group define-macro="group">
+<metal:group define-macro="group"
+   tal:define="slaveCss python: widget['master'] and ('slave_%s_%s' % (widget['masterName'], '_'.join(widget['masterValue']))) or '';
+               widgetCss widget/css_class;
+               groupCss python: slaveCss and ('%s %s' % (slaveCss, widgetCss)) or widgetCss;
+               slaveId python: widget['master'] and 'slave' or ''">
   <fieldset tal:condition="python: widget['style'] == 'fieldset'">
     <legend tal:condition="widget/hasLabel">
       <i tal:content="structure python: contextObj.translate(widget['labelId'])"></i>
@@ -81,9 +96,9 @@
     <metal:content use-macro="app/skyn/widgets/show/macros/groupContent"/>
   </tal:asSection>
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
-  <table cellpadding="0" cellspacing="0"
-         tal:attributes="width widget/wide;
-                         class widget/css_class">
+  <table tal:attributes="width widget/wide;
+                         class groupCss;
+                         id slaveId; name slaveId">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
       <table cellpadding="0" cellspacing="0" style="position:relative; bottom:-1px;">
@@ -132,9 +147,10 @@
        tal:define="cellgap widget/cellgap"
        tal:attributes="width widget/wide;
                        align widget/align;
-                       class widget/css_class;
+                       class groupCss;
                        cellspacing widget/cellspacing;
-                       cellpadding widget/cellpadding">
+                       cellpadding widget/cellpadding;
+                       id slaveId; name slaveId">
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);

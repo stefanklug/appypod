@@ -177,8 +177,8 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
                      action, actionParams){
   // Sends an Ajax request for getting the content of a reference field.
   var startKey = hookId + '_startNumber';
-  var params = {'fieldName': fieldName, 'innerRef': innerRef, };
-  params[startKey] =  startNumber;
+  var params = {'fieldName': fieldName, 'innerRef': innerRef };
+  params[startKey] = startNumber;
   if (action) params['action'] = action;
   if (actionParams) {
     for (key in actionParams) { params[key] = actionParams[key]; };
@@ -201,70 +201,94 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
 }
 
 // Functions used for master/slave relationships between widgets
-function getMasterValue(widget) {
-  // Returns an array of selected options in a select widget
-  res = new Array();
-  if (widget.type == 'checkbox') {
-    var mv = widget.checked + '';
-    mv = mv.charAt(0).toUpperCase() + mv.substr(1);
-    res.push(mv);
+function getSlaveInfo(slave, infoType) {
+  // Returns the appropriate info about slavery, depending on p_infoType.
+  cssClasses = slave.className.split(' ');
+  // Find the CSS class containing master-related info.
+  for (var j=0; j < cssClasses.length; j++) {
+    if (cssClasses[j].indexOf('slave_') == 0) {
+      // Extract, from this CSS class, master name or master values.
+      masterInfo = cssClasses[j].split('_');
+      if (infoType == 'masterName') return masterInfo[1];
+      else return masterInfo.slice(2); // Master values
+    }
+  }
+}
+
+function getMasterValues(master) {
+  // Returns the list of values that p_master currently has.
+  if (master.tagName == 'SPAN') {
+    res = master.attributes['value'].value;
+    if ((res[0] == '(') || (res[0] == '[')) {
+      // There are multiple values, split it
+      values = res.substring(1, res.length-1).split(',');
+      res = [];
+      for (var i=0; i < values.length; i++){
+        v = values[i].replace(' ', '');
+        res.push(v.substring(1, v.length-1));
+      }
+    }
+    else res = [res]; // A single value
+  }
+  else if (master.type == 'checkbox') {
+    res = master.checked + '';
+    res = res.charAt(0).toUpperCase() + res.substr(1);
+    res = [res];
   }
   else { // SELECT widget
-    for (var i=0; i < widget.options.length; i++) {
-      if (widget.options[i].selected) res.push(widget.options[i].value);
+    res = [];
+    for (var i=0; i < master.options.length; i++) {
+      if (master.options[i].selected) res.push(master.options[i].value);
     }
   }
   return res;
 }
 
-function updateSlaves(masterValues, appyTypeId) {
-  // Given the value(s) selected in a master field, this function updates the
-  // state of all corresponding slaves.
-  var slaves = cssQuery('table.slave_' + appyTypeId);
-  for (var i=0; i< slaves.length; i++){
-    slaves[i].style.display = "none";
-  }
-  for (var i=0; i < masterValues.length; i++) {
-    var activeSlaves = cssQuery('table.slaveValue_' + appyTypeId + '_' + masterValues[i]);
-    for (var j=0; j < activeSlaves.length; j++){
-      activeSlaves[j].style.display = "";
+function getSlaves(master) {
+  // Gets all the slaves of master.
+  allSlaves = document.getElementsByName('slave');
+  res = [];
+  slavePrefix = 'slave_' + master.attributes['name'].value + '_';
+  for (var i=0; i < slaves.length; i++){
+    cssClasses = slaves[i].className.split(' ');
+    for (var j=0; j < cssClasses.length; j++) {
+      if (cssClasses[j].indexOf(slavePrefix) == 0) {
+        res.push(slaves[i]);
+        break;
+      }
     }
+  }
+  return res;
+}
+
+function updateSlaves(master) {
+  // Given the value(s) in a master field, we must update slave's visibility.
+  slaves = getSlaves(master);
+  masterValues = getMasterValues(master);
+  for (var i=0; i < slaves.length; i++) {
+    showSlave = false;
+    slaveryValues = getSlaveInfo(slaves[i], 'masterValues');
+    for (var j=0; j < slaveryValues.length; j++) {
+      for (var k=0; k< masterValues.length; k++) {
+        if (slaveryValues[j] == masterValues[k]) showSlave = true;
+      }
+    } 
+    if (showSlave) slaves[i].style.display = "";
+    else slaves[i].style.display = "none";
   }
 }
 
 function initSlaves() {
   // When the current page is loaded, we must set the correct state for all
   // slave fields.
-  var masters = cssQuery('.appyMaster');
-  for (var i=0; i < masters.length; i++) {
-    var cssClasses = masters[i].className.split(' ');
-    for (var j=0; j < cssClasses.length; j++) {
-      if (cssClasses[j].indexOf('master_') == 0) {
-        var appyId = cssClasses[j].split('_')[1];
-        var masterValue = [];
-        if (masters[i].nodeName == 'SPAN'){
-          var idField = masters[i].id;
-          if (idField == '') {
-            masterValue.push(idField);
-          }
-          else {
-            if ((idField[0] == '(') || (idField[0] == '[')) {
-              // There are multiple values, split it
-              var subValues = idField.substring(1, idField.length-1).split(',');
-              for (var k=0; k < subValues.length; k++){
-                var subValue = subValues[k].replace(' ','');
-                masterValue.push(subValue.substring(1, subValue.length-1));
-              }
-            }
-            else { masterValue.push(masters[i].id);
-            }
-          }
-        }
-        else { masterValue = getMasterValue(masters[i]);
-        }
-        updateSlaves(masterValue, appyId);
-      }
-    }
+  slaves = document.getElementsByName('slave');
+  walkedMasters = {}; // Remember the already walked masters.
+  for (var i=0; i < slaves.length; i++) {
+    masterName = getSlaveInfo(slaves[i], 'masterName');
+    if (masterName in walkedMasters) continue;
+    master = document.getElementById(masterName);
+    updateSlaves(master);
+    walkedMasters[masterName] = 'walked';
   }
 }
 

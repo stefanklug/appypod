@@ -22,6 +22,13 @@ validatorTypes = (types.FunctionType, types.UnboundMethodType,
 emptyTuple = ()
 labelTypes = ('label', 'descr', 'help')
 
+def initMasterValue(v):
+    '''Standardizes p_v as a list.'''
+    if not v: res = []
+    elif type(v) not in sequenceTypes: res = [v]
+    else: res = v
+    return res
+
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
 class Page:
@@ -153,26 +160,10 @@ class Group:
             # Header labels will be used as labels for the tabs.
             self.hasHeaders = True
         self.css_class = css_class
-        self.master = None
-        self.masterValue = None
-        if master:
-            self._addMaster(master, masterValue)
-        self.label = label # See similar attr of Type class.
-
-    def _addMaster(self, master, masterValue):
-        '''Specifies this group being a slave of another field: we will add css
-           classes allowing to show/hide, in Javascript, its widget according
-           to master value.'''
         self.master = master
-        self.masterValue = masterValue
-        classes = 'slave_%s' % self.master.id
-        if type(self.masterValue) not in sequenceTypes:
-            masterValues = [self.masterValue]
-        else:
-            masterValues = self.masterValue
-        for masterValue in masterValues:
-            classes += ' slaveValue_%s_%s' % (self.master.id, masterValue)
-        self.css_class += ' ' + classes
+        self.masterValue = initMasterValue(masterValue)
+        if master: master.slaves.append(self)
+        self.label = label # See similar attr of Type class.
 
     def _setColumns(self):
         '''Standardizes field "columns" as a list of Column instances. Indeed,
@@ -440,17 +431,14 @@ class Type:
         # If the widget is in a group with multiple columns, the following
         # attribute specifies on how many columns to span the widget.
         self.colspan = colspan
+        # The list of slaves of this field, if it is a master
+        self.slaves = []
         # The behaviour of this field may depend on another, "master" field
         self.master = master
-        self.slaves = [] # The list of slaves of this field, if it is a master
-        # Every HTML input field corresponding to a master must get some
-        # CSS classes for controlling its slaves.
-        self.master_css = ''
         if master:
             self.master.slaves.append(self)
-            self.master.master_css = 'appyMaster master_%s' % self.master.id
         # When master has some value(s), there is impact on this field.
-        self.masterValue = masterValue
+        self.masterValue = initMasterValue(masterValue)
         # If a field must retain attention in a particular way, set focus=True.
         # It will be rendered in a special way.
         self.focus = focus
@@ -494,7 +482,8 @@ class Type:
         # Recompute the ID (and derived attributes) that may have changed if
         # we are in debug mode (because we recreate new Type instances).
         self.id = id(self)
-        if self.slaves: self.master_css = 'appyMaster master_%s' % self.id
+        # Remember master name on every slave
+        for slave in self.slaves: slave.masterName = name
         # Determine ids of i18n labels for this field
         labelName = name
         trPrefix = None
@@ -591,13 +580,10 @@ class Type:
             master, masterValue = masterData
             reqValue = master.getRequestValue(obj.REQUEST)
             reqValue = master.getStorableValue(reqValue)
-            # Manage the fact that values can be lists or single values
-            multiMaster = type(masterValue) in sequenceTypes
-            multiReq = type(reqValue) in sequenceTypes
-            if not multiMaster and not multiReq: return reqValue == masterValue
-            elif multiMaster and not multiReq: return reqValue in masterValue
-            elif not multiMaster and multiReq: return masterValue in reqValue
-            else: # multiMaster and multiReq
+            # reqValue can be a list or not
+            if type(reqValue) not in sequenceTypes:
+                return reqValue in masterValue
+            else:
                 for m in masterValue:
                     for r in reqValue:
                         if m == r: return True
@@ -674,19 +660,6 @@ class Type:
             layouts['cell'] = Table(other=layouts['view'], derivedType='cell')
         # Put the required CSS classes in the layouts
         layouts['cell'].addCssClasses('noStyle')
-        if self.master:
-            # This type has a master (so is a slave): we add css classes
-            # allowing to show/hide, in Javascript, its widget according to
-            # master value.
-            classes = 'slave_%s' % self.master.id
-            if type(self.masterValue) not in sequenceTypes:
-                masterValues = [self.masterValue]
-            else:
-                masterValues = self.masterValue
-            for masterValue in masterValues:
-                classes += ' slaveValue_%s_%s' % (self.master.id, masterValue)
-            layouts['view'].addCssClasses(classes)
-            layouts['edit'].addCssClasses(classes)
         if self.focus:
             # We need to make it flashy
             layouts['view'].addCssClasses('appyFocus')

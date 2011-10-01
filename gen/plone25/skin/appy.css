@@ -8,18 +8,26 @@ table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
 form { margin: 0; padding: 0;}
 p { margin: 0;}
 acronym {cursor: help;}
-input { border: 1px solid #cccccc; background-color: #f8f8f8;
-        font-family: Lucida,Helvetica,Arial,sans-serif; margin-bottom: 1px}
-input[type=image] { border-width: 0px; background: none; }
-input[type=button] { cursor: pointer; }
+input[type=image] { border: 0; background: none; }
+input[type=checkbox] { border: 0; background: none; cursor: pointer;}
+input[type=button] { border: 1px solid #cccccc; background-color: #f8f8f8;
+               cursor: pointer;}
+input[type=submit] { border: 1px solid #cccccc; background-color: #f8f8f8;
+                     cursor: pointer; }
+input[type=text] { border: 1px solid #cccccc; background-color: #f8f8f8;
+                   font-family: Lucida,Helvetica,Arial,sans-serif;
+                   margin-bottom: 1px}
+select { border: 1px solid #cccccc; background-color: #f8f8f8;}
+
 textarea { width: 99%; font: 100% Lucida,Helvetica,Arial,sans-serif;
            border: 1px solid #a79e9e; background-color: #f8f8f8;}
 label { font-weight: 600; font-style: italic; line-height: 1.4em;}
-legend { padding-bottom: 2px; padding-right: 3px;}
+legend { padding-bottom: 2px; padding-right: 3px; color: black;}
 ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
      list-style: none outside none;}
 li { margin: 0; background-image: url("skyn/li.gif"); padding-left: 10px;
      background-repeat: no-repeat; background-position: 0 4px;}
+img {border: 0;}
 
 .main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
         border-style: solid; border-width: 1px; border-color: grey; }

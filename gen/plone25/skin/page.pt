@@ -187,7 +187,7 @@
      tal:define="showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
                  hasHistory contextObj/hasHistory;
                  historyMaxPerPage options/maxPerPage|python: 5;
-                 historyExpanded python: tool.getCookieValue('appyHistory', default='collapsed') == 'expanded';
+                 historyExpanded python: request.get('appyHistory', 'collapsed') == 'expanded';
                  creator contextObj/Creator"
      tal:condition="not: contextObj/isTemporary">
 

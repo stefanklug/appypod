@@ -8,7 +8,7 @@
   <tal:comment replace="nothing">Query result</tal:comment>
   <div id="queryResult"></div>
 
-  <script language="javascript"
+  <script type="text/javascript"
     tal:define="ajaxUrl python: tool.getQueryUrl(contentType, searchName)"
     tal:content="python: 'askQueryResult(\'queryResult\', \'%s\',\'%s\',\'%s\',0)' % (tool.absolute_url(), contentType, searchName)">
   </script>

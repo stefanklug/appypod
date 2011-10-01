@@ -56,7 +56,7 @@
     <tal:searchOrGroup repeat="searchOrGroup python: tool.getSearches(rootClass)">
       <tal:group condition="searchOrGroup/isGroup">
       <tal:expanded define="group searchOrGroup;
-                            expanded python: tool.getCookieValue(group['labelId'], default='collapsed') == 'expanded'">
+                            expanded python: request.get(group['labelId'], 'collapsed') == 'expanded'">
         <tal:comment replace="nothing">Group name</tal:comment>
         <dt class="portletAppyItem portletGroup">
           <img align="left" style="cursor:pointer"

@@ -24,7 +24,7 @@
   <!--
   var importedElemsShown = false;
   function toggleViewableElements() {
-    var rows = cssQuery('#importedElem');
+    var rows = document.getElementsByName('importedElem');
     var newDisplay = 'table-row';
     if (isIe) newDisplay = 'block';
     if (importedElemsShown) newDisplay = 'none';
@@ -33,10 +33,9 @@
     }
     importedElemsShown = !importedElemsShown;
   }
-
   var checkBoxesChecked = true;
   function toggleCheckboxes() {
-    var checkBoxes = cssQuery('#cbElem');
+    var checkBoxes = document.getElementsByName('cbElem');
     var newCheckValue = true;
     if (checkBoxesChecked) newCheckValue = false;
     for (var i=0; i<checkBoxes.length; i++) {
@@ -44,18 +43,16 @@
     }
     checkBoxesChecked = newCheckValue;
   }
-
   function importSingleElement(importPath) {
     var f = document.forms['importElements'];
     f.importPath.value = importPath;
     f.submit();
   }
-
   function importManyElements() {
     var f = document.forms['importElements'];
     var importPaths = '';
     // Get the values of the checkboxes
-    var checkBoxes = cssQuery('#cbElem');
+    var checkBoxes = document.getElementsByName('cbElem');
     for (var i=0; i<checkBoxes.length; i++) {
       if (checkBoxes[i].checked) {
         importPaths += checkBoxes[i].value + '|';
@@ -67,7 +64,6 @@
       f.submit();
     }
   }
-
   -->
   </script>
   <tal:comment replace="nothing">Form for importing several meetings at once.</tal:comment>
@@ -98,9 +94,10 @@
     <tr tal:define="alreadyImported python: tool.isAlreadyImported(contentType, row[0]);
                     global allAreImported python: allAreImported and alreadyImported;
                     odd repeat/row/odd"
-        tal:attributes="id python:test(alreadyImported, 'importedElem', 'notImportedElem');
-                        style python:test(alreadyImported, 'display:none', 'display:table-row');
-                        class python:test(odd, 'even', 'odd')">
+        tal:attributes="id python: alreadyImported and 'importedElem' or 'notImportedElem';
+                        name python: alreadyImported and 'importedElem' or 'notImportedElem';
+                        style python: alreadyImported and 'display:none' or 'display:table-row';
+                        class python: odd and 'even' or 'odd'">
       <td tal:repeat="elem python: row[1:]" tal:content="elem">
       </td>
       <td>
@@ -109,8 +106,10 @@
                                value python: tool.translate('query_import')"/>
         <span tal:condition="alreadyImported" tal:replace="python: tool.translate('import_already')"/>
       </td>
-      <td align="center"><input type="checkbox" checked="checked" class="noborder" id="cbElem"
-          tal:attributes="value python: row[0]" tal:condition="not: alreadyImported"/></td>
+      <td align="center">
+       <input type="checkbox" checked="checked" class="noborder" id="cbElem" name="cbElem"
+              tal:attributes="value python: row[0]" tal:condition="not: alreadyImported"/>
+      </td>
     </tr>
     </tal:row>
     <tr tal:condition="python: not importElems[1] or allAreImported"><td colspan="15" tal:content="python: tool.translate('query_no_result')"></td></tr>

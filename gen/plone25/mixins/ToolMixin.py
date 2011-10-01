@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, time, Cookie, types
+import re, os, os.path, time, types
 from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
 import appy.gen
@@ -84,7 +84,6 @@ class ToolMixin(BaseMixin):
         '''Returns the (translated) names of fields of p_contentType.'''
         res = []
         for appyType in self.getAllAppyTypes(className=contentType):
-            if appyType.name == 'title': continue # Will be included by default.
             res.append((appyType.name, self.translate(appyType.labelId)))
         # Add object state
         res.append(('state', self.translate('workflow_state')))
@@ -610,13 +609,6 @@ class ToolMixin(BaseMixin):
             else:
                 res.append(dSearch)
         return res
-
-    def getCookieValue(self, cookieId, default=''):
-        '''Server-side code for getting the value of a cookie entry.'''
-        cookie = Cookie.SimpleCookie(self.REQUEST['HTTP_COOKIE'])
-        cookieValue = cookie.get(cookieId)
-        if cookieValue: return cookieValue.value
-        return default
 
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)

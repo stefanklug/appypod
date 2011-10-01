@@ -14,9 +14,9 @@ class Protos:
     protos = {}
     # List of attributes that can't be given to a Type constructor
     notInit = ('id', 'type', 'pythonType', 'slaves', 'isSelect', 'hasLabel',
-               'hasDescr', 'hasHelp', 'master_css', 'required', 'filterable',
-               'validable', 'backd', 'isBack', 'sync', 'pageName',
-               'shownInfoWidths')
+               'hasDescr', 'hasHelp', 'required', 'filterable', 'validable',
+               'backd', 'isBack', 'sync', 'pageName', 'shownInfoWidths',
+               'masterName')
     @classmethod
     def get(self, appyType):
         '''Returns a prototype instance for p_appyType.'''

@@ -1,6 +1,7 @@
 <tal:comment replace="nothing">View macro for a Boolean.</tal:comment>
 <metal:view define-macro="view">
-  <span tal:attributes="class widget/master_css; id rawValue" tal:content="value"></span>
+  <span tal:attributes="class masterCss; value rawValue; name name; id name"
+        tal:content="value"></span>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for an Boolean.</tal:comment>
@@ -9,8 +10,8 @@
          tal:attributes="name python: name + '_visible';
                          id name;
                          checked python:contextObj.checkboxChecked(name, rawValue);
-                         onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(getMasterValue(this), \'%s\')' % (name, name, widget['id']);
-                         class python: 'noborder ' + widget['master_css']"/>
+                         onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(this)' % (name, name);
+                         class python: 'noborder %s' % masterCss"/>
   <input tal:attributes="name name;
                          id string:${name}_hidden;
                          value python: test(contextObj.checkboxChecked(name, rawValue), 'True', 'False')"
