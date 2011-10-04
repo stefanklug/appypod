@@ -81,7 +81,7 @@
 <metal:search define-macro="search"
               tal:define="years python:range(widget['startYear'], widget['endYear']+1)">
   <label tal:content="python: tool.translate(widget['labelId'])"></label>
-  <table cellpadding="0" cellspacing="0">
+  <table>
     <tal:comment replace="nothing">From</tal:comment>
     <tr tal:define="yearFromName  python: '%s*date' % widgetName;
                     monthFromName python: '%s_from_month' % name;

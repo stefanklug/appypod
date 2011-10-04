@@ -23,11 +23,11 @@ emptyTuple = ()
 labelTypes = ('label', 'descr', 'help')
 
 def initMasterValue(v):
-    '''Standardizes p_v as a list.'''
+    '''Standardizes p_v as a list of strings.'''
     if not v: res = []
     elif type(v) not in sequenceTypes: res = [v]
     else: res = v
-    return res
+    return [str(v) for v in res]
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -1809,6 +1809,43 @@ class Ref(Type):
         elif nbOfRefs > maxRef:
             return obj.translate('max_ref_violated')
 
+    def linkObject(self, obj, value, back=False):
+        '''This method links p_value (which can be a list of objects) to p_obj
+           through this Ref field.'''
+        # p_value can be a list of objects
+        if type(value) in sequenceTypes:
+            for v in value: self.linkObject(obj, v, back=back)
+            return
+        # Gets the list of referred objects (=list of uids), or create it.
+        obj = obj.o
+        refs = getattr(obj, self.name, None)
+        if refs == None:
+            refs = obj.getProductConfig().PersistentList()
+            setattr(obj, self.name, refs)
+        # Insert p_value into it.
+        uid = value.o.UID()
+        if uid not in refs:
+            refs.append(uid)
+            # Update the back reference
+            if not back: self.back.linkObject(value, obj, back=True)
+
+    def unlinkObject(self, obj, value, back=False):
+        '''This method unlinks p_value (which can be a list of objects) from
+           p_obj through this Ref field.'''
+        # p_value can be a list of objects
+        if type(value) in sequenceTypes:
+            for v in value: self.unlinkObject(obj, v, back=back)
+            return
+        obj = obj.o
+        refs = getattr(obj, self.name, None)
+        if not refs: return
+        # Unlink p_value
+        uid = value.o.UID()
+        if uid in refs:
+            refs.remove(uid)
+            # Update the back reference
+            if not back: self.back.unlinkObject(value, obj, back=True)
+
     def store(self, obj, value):
         '''Stores on p_obj, the p_value, which can be:
            * None;
@@ -1817,25 +1854,31 @@ class Ref(Type):
              of UIDs come from Ref fields with link:True edited through the web;
            * a Zope object;
            * a Appy object;
-           * a list of Appy or Zope objects.
-        '''
-        # Standardize p_value into a list of uids
-        uids = value
-        if not uids: uids = []
-        if type(uids) not in sequenceTypes: uids = [uids]
-        for i in range(len(uids)):
-            if not isinstance(uids[i], basestring):
-                # Get the UID from the Zope or Appy object
-                uids[i] = uids[i].o.UID()
-        # Update the list of referred uids.
+           * a list of Appy or Zope objects.'''
+        # Standardize p_value into a list of Zope objects
+        objects = value
+        if not objects: objects = []
+        if type(objects) not in sequenceTypes: objects = [objects]
+        tool = obj.getTool()
+        for i in range(len(objects)):
+            if isinstance(objects[i], basestring):
+                # We have a UID here
+                objects[i] = tool.getObject(objects[i])
+            else:
+                # Be sure to have a Zope object
+                objects[i] = objects[i].o
+        uids = [o.UID() for o in objects]
+        # Unlink objects that are not referred anymore
         refs = getattr(obj, self.name, None)
-        if refs == None:
-            refs = obj.getProductConfig().PersistentList(uids)
-            setattr(obj, self.name, refs)
-        else:
-            # Empty the list and fill it with uids
-            del refs[:]
-            for uid in uids: refs.append(uid)
+        if refs:
+            i = len(refs)-1
+            while i >= 0:
+                if refs[i] not in uids:
+                    # Object having this UID must unlink p_obj
+                    self.back.unlinkObject(tool.getObject(refs[i]), obj)
+                i -= 1
+        # Link new objects
+        self.linkObject(obj, objects)
 
     def clone(self, forTool=True):
         '''Produces a clone of myself.'''

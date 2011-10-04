@@ -101,7 +101,7 @@
                          id slaveId; name slaveId">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
-      <table cellpadding="0" cellspacing="0" style="position:relative; bottom:-1px;">
+      <table style="position:relative; bottom:-1px;">
         <tr valign="middle">
           <tal:tab repeat="widgetRow widget/widgets">
           <tal:id define="tabId python:'tab_%s_%d_%d' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))">

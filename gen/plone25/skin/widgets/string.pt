@@ -90,9 +90,9 @@
                           orName   python: '%s_or'  % operName;
                           andName  python: '%s_and' % operName;"
                   condition="python: widget['multiplicity'][1]!=1">
-    <input type="radio" class="noborder" tal:attributes="name operName; id orName" checked="checked" value="or"/>
+    <input type="radio" tal:attributes="name operName; id orName" checked="checked" value="or"/>
     <label tal:attributes="for orName" tal:content="python: tool.translate('search_or')"></label>
-    <input type="radio" class="noborder" tal:attributes="name operName; id andName" value="and"/>
+    <input type="radio" tal:attributes="name operName; id andName" value="and"/>
     <label tal:attributes="for andName" tal:content="python: tool.translate('search_and')"></label><br/>
     </tal:operator>
     <tal:comment replace="nothing">The list of values</tal:comment>

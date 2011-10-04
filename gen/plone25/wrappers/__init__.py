@@ -86,53 +86,15 @@ class AbstractWrapper(object):
 
     def getField(self, name): return self.o.getAppyType(name)
 
-    def link(self, fieldName, obj, back=False):
+    def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one
-           through reference field p_fieldName. As this method is recursive and
-           can be called to update the corresponding back reference, param
-           p_back is there, but, you, as Appy developer, should never set it
-           to True.'''
-        # p_objs can be a list of objects
-        if type(obj) in sequenceTypes:
-            for o in obj: self.link(fieldName, o, back=back)
-            return
-        # Gets the list of referred objects (=list of uids), or create it.
-        selfO = self.o
-        refs = getattr(selfO, fieldName, None)
-        if refs == None:
-            refs = selfO.getProductConfig().PersistentList()
-            setattr(selfO, fieldName, refs)
-        # Insert p_obj into it.
-        uid = obj.o.UID()
-        if uid not in refs:
-            refs.append(uid)
-            # Update the back reference
-            if not back:
-                backName = selfO.getAppyType(fieldName).back.attribute
-                obj.appy().link(backName, self, back=True)
+           through reference field p_fieldName.'''
+        return self.getField(fieldName).linkObject(self.o, obj)
 
-    def unlink(self, fieldName, obj, back=False):
+    def unlink(self, fieldName, obj):
         '''This method unlinks p_obj (which can be a list of objects) from this
-           one through reference field p_fieldName. As this method is recursive
-           and can be called to update the corresponding back reference, param
-           p_back is there, but, you, as Appy developer, should never set it
-           to True.'''
-        # p_objs can be a list of objects
-        if type(obj) in sequenceTypes:
-            for o in obj: self.unlink(fieldName, o, back=back)
-            return
-        # Get the list of referred objects
-        selfO = self.o
-        refs = getattr(selfO, fieldName, None)
-        if not refs: return
-        # Unlink the object
-        uid = obj.o.UID()
-        if uid in refs:
-            refs.remove(uid)
-            # Update the back reference
-            if not back:
-                backName = selfO.getAppyType(fieldName).back.attribute
-                obj.appy().unlink(backName, self, back=True)
+           one through reference field p_fieldName.'''
+        return self.getField(fieldName).unlinkObject(self.o, obj)
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
@@ -194,8 +156,7 @@ class AbstractWrapper(object):
             setattr(appyObj, attrName, attrValue)
         if isField:
             # Link the object to this one
-            self.link(fieldName, ploneObj)
-            self.o.reindexObject()
+            appyType.linkObject(self.o, ploneObj)
         # Call custom initialization
         if externalData: param = externalData
         else: param = True

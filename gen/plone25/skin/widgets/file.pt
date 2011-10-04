@@ -23,7 +23,7 @@
 </tal:showFile>
 <tal:editButtons condition="python: value and value.size">
   <tal:comment replace="nothing">Keep the file untouched.</tal:comment>
-  <input class="noborder" type="radio" value="nochange"
+  <input type="radio" value="nochange"
          tal:attributes="checked python:test(value.size!=0, 'checked', None);
                          name string:${name}_delete;
                          id string:${name}_nochange;
@@ -33,7 +33,7 @@
   <br/>
   <tal:comment replace="nothing">Delete the file.</tal:comment>
   <tal:delete condition="not: widget/required">
-  <input class="noborder" type="radio" value="delete"
+  <input type="radio" value="delete"
          tal:attributes="name string:${name}_delete;
                          id string:${name}_delete;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
@@ -42,7 +42,7 @@
   <br/>
   </tal:delete>
   <tal:comment replace="nothing">Replace with a new file.</tal:comment>
-  <input class="noborder" type="radio" value=""
+  <input type="radio" value=""
          tal:attributes="checked python:test(value.size==0, 'checked', None);
                          name string:${name}_delete;
                          id string:${name}_upload;

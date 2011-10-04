@@ -75,7 +75,7 @@
   </form>
 
   <h1 tal:content="python: tool.translate('import_title')"></h1><br/>
-  <table cellpadding="0" cellspacing="0" class="listing nosort" width="100%">
+  <table class="list" width="100%">
     <tr>
       <th tal:repeat="columnHeader python: importElems[0]">
         <img tal:condition="python: repeat['columnHeader'].number() == 1"
@@ -107,7 +107,7 @@
         <span tal:condition="alreadyImported" tal:replace="python: tool.translate('import_already')"/>
       </td>
       <td align="center">
-       <input type="checkbox" checked="checked" class="noborder" id="cbElem" name="cbElem"
+       <input type="checkbox" checked="checked" id="cbElem" name="cbElem"
               tal:attributes="value python: row[0]" tal:condition="not: alreadyImported"/>
       </td>
     </tr>

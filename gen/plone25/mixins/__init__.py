@@ -84,7 +84,7 @@ class BaseMixin:
         for field in self.getAllAppyTypes():
             if field.type != 'Ref': continue
             for obj in field.getValue(self):
-                obj.unlink(field.back.name, self, back=True)
+                field.back.unlinkObject(obj, self, back=True)
         # Delete the object
         self.getParentNode().manage_delObjects([self.id])
 

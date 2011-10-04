@@ -248,7 +248,11 @@ function getSlaves(master) {
   // Gets all the slaves of master.
   allSlaves = document.getElementsByName('slave');
   res = [];
-  slavePrefix = 'slave_' + master.attributes['name'].value + '_';
+  masterName = master.attributes['name'].value;
+  if (master.type == 'checkbox') {
+    masterName = masterName.substr(0, masterName.length-8);
+  }
+  slavePrefix = 'slave_' + masterName + '_';
   for (var i=0; i < slaves.length; i++){
     cssClasses = slaves[i].className.split(' ');
     for (var j=0; j < cssClasses.length; j++) {
@@ -381,13 +385,15 @@ function openPopup(popupId, msg) {
   // Open the popup
   var popup = document.getElementById(popupId);
   // Put it at the right place on the screen
-  var scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+  var scrollTop = document.body.scrollTop || window.pageYOffset || 0;
   popup.style.top = (scrollTop + 150) + 'px';
   popup.style.display = "block";
   // Show the greyed zone
   var greyed = document.getElementById('grey');
   greyed.style.top = scrollTop + 'px';
   greyed.style.display = "block";
+  greyed.style.height = document.body.clientHeight;
+  greyed.style.width = document.body.clientWidth;
 }
 
 function closePopup(popupId) {

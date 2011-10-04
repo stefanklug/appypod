@@ -10,10 +10,12 @@ p { margin: 0;}
 acronym {cursor: help;}
 input[type=image] { border: 0; background: none; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
+input[type=radio] { border: 0; background: none; cursor: pointer;}
 input[type=button] { border: 1px solid #cccccc; background-color: #f8f8f8;
-               cursor: pointer;}
+                     cursor: pointer;}
 input[type=submit] { border: 1px solid #cccccc; background-color: #f8f8f8;
                      cursor: pointer; }
+input[type=password] { border: 1px solid #cccccc; background-color: #f8f8f8;}
 input[type=text] { border: 1px solid #cccccc; background-color: #f8f8f8;
                    font-family: Lucida,Helvetica,Arial,sans-serif;
                    margin-bottom: 1px}
@@ -48,8 +50,8 @@ img {border: 0;}
 .phase { border-style: dashed; border-width: thin; padding: 0 0.6em 0 1em; }
 .content { padding: 14px 3px 9px 15px;}
 .grey { display: none; position: absolute; left: 0px; top: 0px;
-        width:100%; height:100%; background:grey; opacity:0.5;
-        -moz-opacity:0.5; -khtml-opacity:0.5; filter:alpha(Opacity=50);}
+        background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
+        filter:alpha(Opacity=50);}
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; }

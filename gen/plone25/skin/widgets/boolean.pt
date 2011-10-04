@@ -7,11 +7,10 @@
 <tal:comment replace="nothing">Edit macro for an Boolean.</tal:comment>
 <metal:edit define-macro="edit">
   <input type="checkbox"
-         tal:attributes="name python: name + '_visible';
-                         id name;
+         tal:attributes="name python: name + '_visible'; id name;
                          checked python:contextObj.checkboxChecked(name, rawValue);
                          onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(this)' % (name, name);
-                         class python: 'noborder %s' % masterCss"/>
+                         class masterCss"/>
   <input tal:attributes="name name;
                          id string:${name}_hidden;
                          value python: test(contextObj.checkboxChecked(name, rawValue), 'True', 'False')"
@@ -28,15 +27,15 @@
               tal:define="typedWidget python:'%s*bool' % widgetName">
   <label tal:attributes="for widgetName" tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
   <tal:yes define="valueId python:'%s_yes' % name">
-    <input type="radio" class="noborder" value="True" tal:attributes="name typedWidget; id valueId"/>
+    <input type="radio" value="True" tal:attributes="name typedWidget; id valueId"/>
     <label tal:attributes="for valueId" i18n:translate="yes" i18n:domain="plone"></label>
   </tal:yes>
   <tal:no define="valueId python:'%s_no' % name">
-    <input type="radio" class="noborder" value="False" tal:attributes="name typedWidget; id valueId"/>
+    <input type="radio" value="False" tal:attributes="name typedWidget; id valueId"/>
     <label tal:attributes="for valueId" i18n:translate="no" i18n:domain="plone"></label>
   </tal:no>
   <tal:whatever define="valueId python:'%s_whatever' % name">
-    <input type="radio" class="noborder" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
+    <input type="radio" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
     <label tal:attributes="for valueId" tal:content="python: tool.translate('whatever')"></label>
   </tal:whatever><br/>
 </metal:search>
