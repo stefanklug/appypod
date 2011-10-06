@@ -64,14 +64,15 @@ class BaseMixin:
             fieldName = splitted[2].split(':')[0]
             initiator.appy().link(fieldName, obj)
 
+        # Manage "add" permissions and reindex the object
+        obj._appy_managePermissions()
+
         # Call the custom "onEdit" if available
         msg = None # The message to display to the user. It can be set by onEdit
         if obj.wrapperClass:
             appyObject = obj.appy()
             if hasattr(appyObject, 'onEdit'):
                 msg = appyObject.onEdit(created)
-        # Manage "add" permissions and reindex the object
-        obj._appy_managePermissions()
         obj.reindexObject()
         return obj, msg
 

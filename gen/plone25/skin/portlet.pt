@@ -10,7 +10,7 @@
                rootClasses        tool/getRootClasses">
 
   <tal:publishedObject condition="python: contextObj and contextObj.mayNavigate()">
-  <b tal:content="contextObj/Title"></b>
+  <div class="portletTitle" tal:content="contextObj/Title"></div>
   <span><metal:phases use-macro="here/skyn/portlet/macros/phases"/></span>
   </tal:publishedObject>
 
@@ -95,16 +95,21 @@
 </tal:comment>
 <metal:phases define-macro="phases">
 <table tal:define="phases contextObj/getAppyPhases|nothing;
+                   singlePhase python: len(phases) == 1;
                    page python: req.get('page', 'main')"
-       tal:condition="python: phases and not ((len(phases)==1) and len(phases[0]['pages'])==1)"
+       tal:condition="python: phases and not (singlePhase and len(phases[0]['pages'])==1)"
        width="100%">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
     <tr>
       <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
-                      displayLink python: (phase['phaseStatus'] != 'Future') and ('/portal_factory' not in contextObj.absolute_url()) and (len(phase['pages']) == 1)"
-          tal:attributes="class python: (len(phases) &gt; 1) and 'phase' or ''">
-        <div class="portletGroup" tal:condition="python: len(phases) &gt; 1">
+                      singlePage python: len(phase['pages']) == 1;
+                      status phase/phaseStatus;
+                      phaseCss python: (status == 'Current') and ' phaseSelected' or '';
+                      underCreation python: '/portal_factory' in context.absolute_url();
+                      displayLink python: (status != 'Future') and not underCreation and singlePage"
+          tal:attributes="class python: not singlePhase and 'phase%s' % phaseCss or ''">
+        <div class="portletGroup" tal:condition="not: singlePhase">
 
         <tal:comment replace="nothing">A single page in the phase</tal:comment>
         <table tal:condition="displayLink" width="100%">
@@ -124,8 +129,7 @@
         <span tal:condition="not: displayLink" tal:replace="structure python: _(label)"/>
         </div>
         <div class="portletMenu">
-        <table cellpadding="0" cellspacing="0" width="100%"
-               tal:condition="python: len(phase['pages']) &gt; 1">
+        <table width="100%" cellpadding="0" tal:condition="python: len(phase['pages']) &gt; 1">
           <tr tal:repeat="aPage phase/pages" valign="top">
             <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPage', 'portletPage')">
               <a tal:attributes="href python: contextObj.getUrl(page=aPage)"

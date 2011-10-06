@@ -11,6 +11,8 @@ acronym {cursor: help;}
 input[type=image] { border: 0; background: none; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
 input[type=radio] { border: 0; background: none; cursor: pointer;}
+input[type=file] { border: 0px solid #cccccc; background-color: #f8f8f8;
+                   cursor: pointer;}
 input[type=button] { border: 1px solid #cccccc; background-color: #f8f8f8;
                      cursor: pointer;}
 input[type=submit] { border: 1px solid #cccccc; background-color: #f8f8f8;
@@ -44,10 +46,14 @@ img {border: 0;}
 .discreet { font-size: 90%; }
 .portlet { width: 150px; padding: 12px 9px 9px 9px;
            border-right: 1px solid #9b0000;}
+.portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px;}
 .portletCurrent { font-weight: bold; }
 .portletSep { border-top: 1px solid grey; margin-top: 9px; padding-top: 9px;}
 .portletPage { font-style: italic; }
-.phase { border-style: dashed; border-width: thin; padding: 0 0.6em 0 1em; }
+.portletGroup { font-variant: small-caps; font-weight: bold; font-style: normal;
+                margin: 0.4em 0 0.2em 0; }
+.phase { border-style: dashed; border-width: thin; padding: 0 0.6em 5px 1em;}
+.phaseSelected { background-color: #EDEDED; }
 .content { padding: 14px 3px 9px 15px;}
 .grey { display: none; position: absolute; left: 0px; top: 0px;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
@@ -66,7 +72,7 @@ img {border: 0;}
 .section1 { font-size: 120%; margin: 0.45em 0em 0.1em 0;
             padding: 0.3em 0em 0.2em 0.1em; background-color: #eef3f5;
             border-top: 1px solid #8CACBB;border-bottom: 1px solid #8CACBB; }
-.section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.1em 0;
+.section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.2em 0;
             border-bottom: 2px solid grey; }
 .section3 { font-size: 100%; font-style: italic; margin: 0.45em 0em 0.1em 0;
             background-color: #efeae8; text-align: center; color: grey; }
@@ -80,8 +86,10 @@ img {border: 0;}
             background-color: #f8f8f8;}
 .underTitle { background-color: #ededed;}
 .objectNavigate { margin-top: 3px;}
-.underline {border-bottom: 1px dotted grey;}
-.state {font-weight: bold; border-bottom: 1px dashed grey;}
+.underline { border-bottom: 1px dotted grey;}
+.state { font-weight: bold; border-bottom: 1px dashed grey;}
 .historyLabel { font-variant: small-caps; font-weight: bold;}
-.history td {border-top: 1px solid grey;}
-.history th {font-style: italic; text-align; left;}
+.history td { border-top: 1px solid grey;}
+.history th { font-style: italic; text-align; left;}
+.topSpace { margin-top: 15px;}
+.discreet { color: grey}

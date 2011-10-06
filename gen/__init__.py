@@ -1179,7 +1179,7 @@ class String(Type):
         '''Returns the default layouts for this type. Default layouts can vary
            acccording to format or multiplicity.'''
         if self.format in (String.TEXT, String.XHTML):
-            return {'view': 'l-d-f', 'edit': 'lrv-d-f'}
+            return {'view': 'l-f', 'edit': 'lrv-d-f'}
         elif self.isMultiValued():
             return {'view': 'l-f', 'edit': 'lrv-f'}
 
@@ -2237,7 +2237,7 @@ class Role:
         # Authenticated roles, automatically attributed to a user.
 
 class State:
-    def __init__(self, permissions, initial=False, phase='main', show=True):
+    def __init__(self, permissions, initial=False, phase=None, show=True):
         self.usedRoles = {}
         # The following dict ~{s_permissionName:[s_roleName|Role_role]}~
         # gives, for every permission managed by a workflow, the list of roles
@@ -2648,7 +2648,7 @@ class Config:
         # People having one of these roles will be able to create instances
         # of classes defined in your application.
         self.defaultCreators = ['Manager', 'Owner']
-        # If you want to replace the Plone front page with a page coming from
+        # If you want to replace the default front page with a page coming from
         # your application, use the following parameter. Setting
         # frontPage = True will replace the Plone front page with a page
         # whose content will come fron i18n label "front_page_text".
