@@ -68,6 +68,11 @@ class HtmlDiff:
         jn = len(new)
         diffFound = False
         while not diffFound:
+            if (jo == i) or (jn == i):
+                # We have reached the end of substring old[i:] or new[i:]
+                jo -=1
+                jn -= 1
+                break
             jo -= 1
             jn -= 1
             if old[jo] != new[jn]: diffFound=True
@@ -168,7 +173,11 @@ class HtmlDiff:
                             diff = self.getHtmlDiff(lineA[i:ja],lineB[i:jb],' ')
                             toAdd += lineB[:i] + diff + lineB[jb:]
                 else:
-                    toAdd = self.getModifiedChunk(a[i1:i2],'delete', sep)
+                    if ((i2-i1) == 1) and (a[i1] == ''):
+                        # difflib has considered an empty char as 'removed' (?)
+                        toAdd = ''
+                    else:
+                        toAdd = self.getModifiedChunk(a[i1:i2],'delete', sep)
                     toAdd += self.getModifiedChunk(b[j1:j2],'insert', sep)
             res.append(toAdd)
         return sep.join(res)
