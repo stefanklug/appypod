@@ -1,14 +1,13 @@
 <tal:comment replace="nothing">View macro for a File.</tal:comment>
 <metal:view define-macro="view"
-            tal:define="empty python: not value or not value.size;
+            tal:define="info python: contextObj.getFileInfo(value);
+                        empty not: info/size;
                         imageSrc string:${contextObj/absolute_url}/download?name=$name">
   <tal:file condition="python: not empty and not widget['isImage']">
-    <img tal:define="icon value/getBestIcon"
-         tal:condition="icon" tal:attributes="src string: $appUrl/$icon"/>
     <a tal:attributes="href imageSrc"
-       tal:content="value/filename">
+       tal:content="info/filename">
     </a>&nbsp;&nbsp;-
-    <i class="discreet" tal:content="python:'%sKb' % (value.size / 1024)"></i>
+    <i class="discreet" tal:content="python:'%sKb' % (info['size'] / 1024)"></i>
   </tal:file>
   <tal:image condition="python: not empty and widget['isImage']">
     <img tal:attributes="src python: imageSrc" />
@@ -17,14 +16,17 @@
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for an File.</tal:comment>
-<metal:edit define-macro="edit">
-<tal:showFile condition="python: value and value.size">
+<metal:edit define-macro="edit"
+            tal:define="info python: contextObj.getFileInfo(value);
+                        empty not: info/size;">
+
+ <tal:showFile condition="not: empty">
   <metal:call use-macro="app/skyn/widgets/file/macros/view"/><br/>
-</tal:showFile>
-<tal:editButtons condition="python: value and value.size">
+ </tal:showFile>
+ <tal:editButtons condition="not: empty">
   <tal:comment replace="nothing">Keep the file untouched.</tal:comment>
   <input type="radio" value="nochange"
-         tal:attributes="checked python:test(value.size!=0, 'checked', None);
+         tal:attributes="checked python:test(info['size']!=0, 'checked', None);
                          name string:${name}_delete;
                          id string:${name}_nochange;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
@@ -43,23 +45,23 @@
   </tal:delete>
   <tal:comment replace="nothing">Replace with a new file.</tal:comment>
   <input type="radio" value=""
-         tal:attributes="checked python:test(value.size==0, 'checked', None);
+         tal:attributes="checked python:test(info['size']==0, 'checked', None);
                          name string:${name}_delete;
                          id string:${name}_upload;
                          onclick string:document.getElementById('${name}_file').disabled=false"/>
   <label tal:attributes="for string:${name}_upload;"
          i18n:translate="upload_file" i18n:domain="plone">Replace it with a new file</label>
   <br/>
-</tal:editButtons>
-<tal:comment replace="nothing">The upload field.</tal:comment>
-<input type="file"
+ </tal:editButtons>
+ <tal:comment replace="nothing">The upload field.</tal:comment>
+ <input type="file"
        tal:attributes="name string:${name}_file;
                        id string:${name}_file;
                        size widget/width"/>
-<script type="text/javascript" 
-        tal:define="isDisabled python:test(value and value.size, 'true', 'false')"
-        tal:content="string: document.getElementById('${name}_file').disabled=$isDisabled;">
-</script>
+ <script type="text/javascript" 
+         tal:define="isDisabled python:test(empty, 'false', 'true')"
+         tal:content="string: document.getElementById('${name}_file').disabled=$isDisabled;">
+ </script>
 </metal:edit>
 
 <tal:comment replace="nothing">Cell macro for an File.</tal:comment>

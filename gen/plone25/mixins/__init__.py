@@ -26,7 +26,8 @@ class BaseMixin:
         return self
     o = property(get_o)
 
-    def createOrUpdate(self, created, values):
+    def createOrUpdate(self, created, values,
+                       initiator=None, initiatorField=None):
         '''This method creates (if p_created is True) or updates an object.
            p_values are manipulated versions of those from the HTTP request.
            In the case of an object creation (p_created is True), p_self is a
@@ -56,13 +57,7 @@ class BaseMixin:
             self.historizeData(previousData)
 
         # Manage potential link with an initiator object
-        if created and rq.get('nav', None):
-            # Get the initiator
-            splitted = rq['nav'].split('.')
-            if splitted[0] == 'search': return # Not an initiator but a search.
-            initiator = self.getTool().getObject(splitted[1])
-            fieldName = splitted[2].split(':')[0]
-            initiator.appy().link(fieldName, obj)
+        if created and initiator: initiator.appy().link(initiatorField, obj)
 
         # Manage "add" permissions and reindex the object
         obj._appy_managePermissions()
@@ -182,10 +177,11 @@ class BaseMixin:
         # If this object is created from an initiator, get info about him.
         initiator = None
         initiatorPage = None
+        initiatorField = None
         if rq.get('nav', '').startswith('ref.'):
             splitted = rq['nav'].split('.')
             initiator = tool.getObject(splitted[1])
-            initiatorPage = splitted[2].split(':')[1]
+            initiatorField, initiatorPage = splitted[2].split(':')
         # If the user clicked on 'Cancel', go back to the previous page.
         if rq.get('buttonCancel.x', None):
             if initiator:
@@ -230,14 +226,14 @@ class BaseMixin:
                 return self.gotoEdit()
 
         # Create or update the object in the database
-        obj, msg = self.createOrUpdate(isNew, values)
+        obj, msg = self.createOrUpdate(isNew, values, initiator, initiatorField)
 
         # Redirect the user to the appropriate page
         if not msg: msg = obj.translate('Changes saved.', domain='plone')
         # If the object has already been deleted (ie, it is a kind of transient
         # object like a one-shot form and has already been deleted in method
         # onEdit), redirect to the main site page.
-        if not getattr(obj.getParentNode(), obj.id, None):
+        if not getattr(obj.getParentNode().aq_base, obj.id, None):
             obj.unindexObject()
             return self.goto(tool.getSiteUrl(), msg)
         # If the user can't access the object anymore, redirect him to the
@@ -426,6 +422,8 @@ class BaseMixin:
 
     def getMethod(self, methodName):
         '''Returns the method named p_methodName.'''
+        # If I write "self.aq_base" instead of self, acquisition will be
+        # broken on returned object.
         return getattr(self, methodName, None)
 
     def getFieldValue(self, name, onlyIfSync=False, layoutType=None):
@@ -440,6 +438,11 @@ class BaseMixin:
         '''Gets a nice, string representation of p_value which is a value from
            field named p_name.'''
         return self.getAppyType(name).getFormattedValue(self, value)
+
+    def getFileInfo(self, fileObject):
+        '''Returns filename and size of p_fileObject.'''
+        if not fileObject: return {'filename': '', 'size': 0}
+        return {'filename': fileObject.filename, 'size': fileObject.size}
 
     def getAppyRefs(self, name, startNumber=None):
         '''Gets the objects linked to me through Ref field named p_name.
@@ -498,7 +501,7 @@ class BaseMixin:
 
     def getAppyRefIndex(self, fieldName, obj):
         '''Gets the position of p_obj within Ref field named p_fieldName.'''
-        refs = getattr(self, fieldName, None)
+        refs = getattr(self.aq_base, fieldName, None)
         if not refs: raise IndexError()
         return refs.index(obj.UID())
 
@@ -782,7 +785,7 @@ class BaseMixin:
         '''This method changes the position of object with uid p_objectUid in
            reference field p_fieldName to p_newIndex i p_isDelta is False, or
            to actualIndex+p_newIndex if p_isDelta is True.'''
-        refs = getattr(self, fieldName, None)
+        refs = getattr(self.aq_base, fieldName, None)
         oldIndex = refs.index(objectUid)
         refs.remove(objectUid)
         if isDelta:
@@ -1269,7 +1272,7 @@ class BaseMixin:
         appyType = self.getAppyType(name)
         if (not appyType.type =='File') or not appyType.isShowable(self,'view'):
             return
-        theFile = getattr(self, name, None)
+        theFile = getattr(self.aq_base, name, None)
         if theFile:
             response = self.REQUEST.RESPONSE
             response.setHeader('Content-Disposition', 'inline;filename="%s"' % \

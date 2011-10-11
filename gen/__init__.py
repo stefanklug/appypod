@@ -723,7 +723,7 @@ class Type:
 
     def getValue(self, obj):
         '''Gets, on_obj, the value conforming to self's type definition.'''
-        value = getattr(obj, self.name, None)
+        value = getattr(obj.aq_base, self.name, None)
         if (value == None):
             # If there is no value, get the default value if any
             if not self.editDefault:
@@ -1586,7 +1586,7 @@ class File(Type):
             if isinstance(value, ZFileUpload):
                 # The file content comes from a HTTP POST.
                 # Retrieve the existing value, or create one if None
-                existingValue = getattr(obj, self.name, None)
+                existingValue = getattr(obj.aq_base, self.name, None)
                 if not existingValue:
                     existingValue = OFSImageFile(self.name, '', '')
                 # Set mimetype
@@ -1722,7 +1722,7 @@ class Ref(Type):
         if (layoutType == 'edit') and self.add: return False
         if self.isBack:
             if layoutType == 'edit': return False
-            else: return getattr(obj, self.name, None)
+            else: return getattr(obj.aq_base, self.name, None)
         return res
 
     def getValue(self, obj, type='objects', noListIfSingleObj=False,
@@ -1741,7 +1741,7 @@ class Ref(Type):
 
            If p_someObjects is True, it returns an instance of SomeObjects
            instead of returning a list of references.'''
-        uids = getattr(obj, self.name, [])
+        uids = getattr(obj.aq_base, self.name, [])
         if not uids:
             # Maybe is there a default value?
             defValue = Type.getValue(self, obj)
@@ -1818,7 +1818,7 @@ class Ref(Type):
             return
         # Gets the list of referred objects (=list of uids), or create it.
         obj = obj.o
-        refs = getattr(obj, self.name, None)
+        refs = getattr(obj.aq_base, self.name, None)
         if refs == None:
             refs = obj.getProductConfig().PersistentList()
             setattr(obj, self.name, refs)
@@ -1837,7 +1837,7 @@ class Ref(Type):
             for v in value: self.unlinkObject(obj, v, back=back)
             return
         obj = obj.o
-        refs = getattr(obj, self.name, None)
+        refs = getattr(obj.aq_base, self.name, None)
         if not refs: return
         # Unlink p_value
         uid = value.o.UID()
@@ -1869,7 +1869,7 @@ class Ref(Type):
                 objects[i] = objects[i].o
         uids = [o.UID() for o in objects]
         # Unlink objects that are not referred anymore
-        refs = getattr(obj, self.name, None)
+        refs = getattr(obj.aq_base, self.name, None)
         if refs:
             i = len(refs)-1
             while i >= 0:
@@ -2085,7 +2085,7 @@ class Pod(Type):
 
     def isFrozen(self, obj):
         '''Is there a frozen document for p_self on p_obj?'''
-        value = getattr(obj.o, self.name, None)
+        value = getattr(obj.o.aq_base, self.name, None)
         return isinstance(value, obj.o.getProductConfig().File)
 
     def getToolInfo(self, obj):
@@ -2098,7 +2098,7 @@ class Pod(Type):
         # Get the output format(s)
         if self.isFrozen(obj):
             # The only available format is the one from the frozen document
-            fileName = getattr(obj.o, self.name).filename
+            fileName = getattr(obj.o.aq_base, self.name).filename
             formats = (os.path.splitext(fileName)[1][1:],)
         else:
             # Available formats are those which are selected in the tool.
@@ -2115,7 +2115,7 @@ class Pod(Type):
            field has been frozen. Else, it means that the value must be
            retrieved by calling pod to compute the result.'''
         rq = getattr(obj, 'REQUEST', None)
-        res = getattr(obj, self.name, None)
+        res = getattr(obj.aq_base, self.name, None)
         if res and res.size: return FileWrapper(res) # Return the frozen file.
         # If we are here, it means that we must call pod to compute the file.
         # A Pod field differs from other field types because there can be
