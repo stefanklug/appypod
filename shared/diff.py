@@ -148,11 +148,15 @@ class HtmlDiff:
             if action == 'equal':
                 toAdd = sep.join(a[i1:i2])
             elif action == 'insert':
+                print 'INSERT', b[j1:j2]
                 toAdd = self.getModifiedChunk(b[j1:j2], action, sep)
             elif action == 'delete':
+                print 'DELETE', a[i1:i2]
                 toAdd = self.getModifiedChunk(a[i1:i2], action, sep)
             elif action == 'replace':
                 if sep == '\n':
+                    print 'REPLACE', a[i1:i2]
+                    print 'WITH', b[j1:j2]
                     # We know that some lines have been replaced from a to b. By
                     # identifying similarities between those lines, consider
                     # some as having been deleted, modified or inserted.
@@ -184,5 +188,6 @@ class HtmlDiff:
 
     def get(self):
         '''Produces the result.'''
+        print 'RUN'
         return self.getHtmlDiff(self.old, self.new, '\n')
 # ------------------------------------------------------------------------------

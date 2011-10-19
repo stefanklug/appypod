@@ -120,6 +120,14 @@ class FieldDescriptor:
         # Add the POD-related fields on the Tool
         self.generator.tool.addPodRelatedFields(self)
 
+    def walkList(self):
+        # Add i18n-specific messages
+        for name, field in self.appyType.fields:
+            label = '%s_%s_%s' % (self.classDescr.name, self.fieldName, name)
+            msg = PoMessage(label, '', name)
+            msg.produceNiceDefault()
+            self.generator.labels.append(msg)
+
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
            i18n labels.'''
@@ -176,6 +184,8 @@ class FieldDescriptor:
         elif self.appyType.type == 'Ref': self.walkRef()
         # Manage things which are specific to Pod types
         elif self.appyType.type == 'Pod': self.walkPod()
+        # Manage things which are specific to List types
+        elif self.appyType.type == 'List': self.walkList()
 
     def generate(self):
         '''Generates the i18n labels for this type.'''

@@ -5,7 +5,7 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
-                           getClassName, SomeObjects
+                           getClassName, SomeObjects, AppyObject
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
@@ -517,6 +517,11 @@ class Type:
             # We must initialise the corresponding back reference
             self.back.klass = klass
             self.back.init(self.back.attribute, self.klass, appName)
+        if isinstance(self, List):
+            for subName, subField in self.fields:
+                fullName = '%s_%s' % (name, subName)
+                subField.init(fullName, klass, appName)
+                subField.name = '%s*%s' % (name, subName)
 
     def reload(self, klass, obj):
         '''In debug mode, we want to reload layouts without restarting Zope.
@@ -1534,7 +1539,6 @@ class File(Type):
         return value._atFile
 
     def getRequestValue(self, request):
-        res = request.get('%s_file' % self.name)
         return request.get('%s_file' % self.name)
 
     def getDefaultLayouts(self): return {'view':'lf','edit':'lrv-f'}
@@ -1783,9 +1787,6 @@ class Ref(Type):
 
     def getFormattedValue(self, obj, value):
         return value
-
-    def getRequestValue(self, request):
-        return request.get('appy_ref_%s' % self.name, None)
 
     def validateValue(self, obj, value):
         if not self.link: return None
@@ -2209,6 +2210,94 @@ class Pod(Type):
         if isinstance(value, FileWrapper):
             value = value._atFile
         setattr(obj, self.name, value)
+
+class List(Type):
+    '''A list.'''
+    def __init__(self, fields, validator=None, multiplicity=(0,1), index=None,
+                 default=None, optional=False, editDefault=False, show=True,
+                 page='main', group=None, layouts=None, move=0, indexed=False,
+                 searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, label=None,
+                 subLayouts=Table('fv', width=None)):
+        Type.__init__(self, validator, multiplicity, index, default, optional,
+                      editDefault, show, page, group, layouts, move, indexed,
+                      False, specificReadPermission, specificWritePermission,
+                      width, height, None, colspan, master, masterValue, focus,
+                      historized, True, mapping, label)
+        self.validable = True
+        # Tuples of (names, Type instances) determining the format of every
+        # element in the list.
+        self.fields = fields
+        self.fieldsd = [(n, f.__dict__) for (n,f) in self.fields]
+        # Force some layouting for sub-fields, if subLayouts are given. So the
+        # one who wants freedom on tuning layouts at the field level must
+        # specify subLayouts=None.
+        if subLayouts:
+            for name, field in self.fields:
+                field.layouts = field.formatLayouts(subLayouts)
+
+    def getField(self, name):
+        '''Gets the field definition whose name is p_name.'''
+        for n, field in self.fields:
+            if n == name: return field
+
+    def isEmptyValue(self, value, obj=None):
+        '''Returns True if the p_value must be considered as an empty value.'''
+        return not value
+
+    def getRequestValue(self, request):
+        '''Concatenates the list from distinct form elements in the request.'''
+        prefix = self.name + '*' + self.fields[0][0] + '*'
+        res = {}
+        for key in request.keys():
+            if not key.startswith(prefix): continue
+            # I have found a row. Gets its index
+            row = AppyObject()
+            rowIndex = int(key.split('*')[-1])
+            if rowIndex == -1: continue # Ignore the template row.
+            for name, field in self.fields:
+                keyName = '%s*%s*%s' % (self.name, name, rowIndex)
+                if request.has_key(keyName):
+                    # Simulate the request as if it was for a single value
+                    request.set(field.name, request[keyName])
+                    v = field.getRequestValue(request)
+                else:
+                    v = None
+                setattr(row, name, v)
+            res[rowIndex] = row
+        # Produce a sorted list.
+        keys = res.keys()
+        keys.sort()
+        res = [res[key] for key in keys]
+        print 'REQUEST VALUE FOR LIST (%d)' % len(res)
+        for value in res:
+            for k, v in value.__dict__.iteritems():
+                print k, '=', v
+        # I store in the request this computed value. This way, when individual
+        # subFields will need to get their value, they will take it from here,
+        # instead of taking it from the specific request key. Indeed, specific
+        # request keys contain row indexes that may be wrong after row deletions
+        # by the user.
+        request.set(self.name, res)
+        return res
+
+    def getStorableValue(self, value):
+        '''Gets p_value in a form that can be stored in the database.'''
+        for v in value:
+            for name, field in self.fields:
+                setattr(v, name, field.getStorableValue(getattr(v, name)))
+        return value
+
+    def getInnerValue(self, obj, name, i):
+        '''Returns the value of inner field named p_name in row number p_i
+           with the list of values from this field on p_obj.'''
+        if i == -1: return ''
+        value = getattr(obj, self.name, None)
+        if not value: return ''
+        if i >= len(value): return ''
+        return getattr(value[i], name, '')
 
 # Workflow-specific types and default workflows --------------------------------
 appyToZopePermissions = {

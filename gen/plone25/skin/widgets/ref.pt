@@ -28,13 +28,13 @@
       <tal:comment replace="nothing">Move up</tal:comment>
       <img tal:condition="python: objectIndex &gt; 0"
         tal:attributes="src string: $appUrl/skyn/arrowUp.png;
-                        title python: tool.translate('move_up');
+                        title python: _('move_up');
                         onClick python: ajaxBaseCall.replace('**v**', 'up')"
         style="cursor:pointer"/>
       <tal:comment replace="nothing">Move down</tal:comment>
       <img tal:condition="python: objectIndex &lt; (totalNumber-1)"
         tal:attributes="src string: $appUrl/skyn/arrowDown.png;
-                        title python: tool.translate('move_down');
+                        title python: _('move_down');
                         onClick python: ajaxBaseCall.replace('**v**', 'down')"
         style="cursor:pointer"/>
       </tal:moveRef>
@@ -69,7 +69,7 @@
                    noFormCall python: navBaseCall.replace('**v**', '%d, \'CreateWithoutForm\'' % startNumber);
                    noFormCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (noFormCall, addConfirmMsg), noFormCall)"
        tal:attributes="src string:$appUrl/skyn/plus.png;
-                       title python: tool.translate('add_ref');
+                       title python: _('add_ref');
                        onClick python: test(appyType['noForm'], noFormCall, formCall)"/>
 </metal:plusIcon>
 
@@ -108,6 +108,7 @@
                  ajaxHookId python: contextObj.UID()+fieldName;
                  startNumber python: int(request.get('%s_startNumber' % ajaxHookId, 0));
                  tool contextObj/getTool;
+                 _ python: tool.translate;
                  refObjects python:contextObj.getAppyRefs(fieldName, startNumber);
                  objs refObjects/objects;
                  totalNumber refObjects/totalNumber;
@@ -121,7 +122,7 @@
                  showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and user.has_permission(addPermission, folder) and canWrite;
                  atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
                  label python: contextObj.translate('label', field=appyType);
-                 addConfirmMsg python: appyType['addConfirm'] and tool.translate('%s_addConfirm' % appyType['labelId']) or '';
+                 addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "view" page.
@@ -139,7 +140,7 @@
 
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
-        <td tal:content="python: tool.translate('no_ref')"></td>
+        <td tal:content="python: _('no_ref')"></td>
         <td><metal:plusIcon use-macro="app/skyn/widgets/ref/macros/plusIcon"/></td>
       </tal:noObject>
 
@@ -162,7 +163,7 @@
         <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
         <a tal:condition="appyType/queryable"
            tal:attributes="href python: '%s/skyn/search?type_name=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
-          <img src="search.gif" tal:attributes="title python: tool.translate('search_objects')"/></a>
+          <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
       </legend>
 
       <tal:comment replace="nothing">Object description</tal:comment>
@@ -173,7 +174,7 @@
       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
 
       <tal:comment replace="nothing">No object is present</tal:comment>
-      <p tal:condition="not:objs" tal:content="python: tool.translate('no_ref')"></p>
+      <p tal:condition="not:objs" tal:content="python: _('no_ref')"></p>
 
       <table width="100%" tal:condition="python: objs"
              tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">
@@ -185,10 +186,10 @@
           <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
           <tr tal:condition="appyType/showHeaders">
             <th tal:repeat="widget widgets">
-              <span tal:content="python: tool.translate(widget['labelId'])"></span>
+              <span tal:content="python: _(widget['labelId'])"></span>
               <metal:sortIcons use-macro="app/skyn/widgets/ref/macros/sortIcons" />
             </th>
-            <th tal:content="python: tool.translate('ref_actions')"></th>
+            <th tal:content="python: _('ref_actions')"></th>
           </tr>
           <tal:row repeat="obj objs">
           <tr valign="middle" tal:define="odd repeat/obj/odd"
@@ -199,7 +200,7 @@
                 <metal:showObjectTitle use-macro="app/skyn/widgets/ref/macros/objectTitle"/>
               </tal:title>
               <tal:state condition="python: widget['name'] == 'state'"
-                         content="python: tool.translate(obj.getWorkflowLabel())">
+                         content="python: _(obj.getWorkflowLabel())">
               </tal:state>
               <tal:other condition="python: widget['name'] not in ('title', 'state')">
                 <tal:field define="contextObj python:obj;
@@ -231,14 +232,13 @@
 <tal:comment replace="nothing">Edit macro for an Ref.</tal:comment>
 <metal:editRef define-macro="edit"
      tal:condition="widget/link"
-     tal:define="rname           python: 'appy_ref_%s' % name;
-                 requestValue    python: request.get(rname, []);
-                 inRequest       python: request.has_key(rname);
+     tal:define="requestValue    python: request.get(name, []);
+                 inRequest       python: request.has_key(name);
                  allObjects      python: contextObj.getSelectableAppyRefs(name);
                  refUids         python: [o.UID() for o in contextObj.getAppyRefs(name)['objects']];
                  isBeingCreated  python: contextObj.isTemporary() or ('/portal_factory/' in contextObj.absolute_url())">
 
-<select tal:attributes="name rname;
+<select tal:attributes="name name;
                         size python: test(isMultiple, widget['height'], '');
                         multiple python: test(isMultiple, 'multiple', '')">
   <option tal:condition="not: isMultiple" i18n:translate="choose_a_value"></option>

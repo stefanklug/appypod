@@ -492,3 +492,59 @@ function initTab(cookieId, defaultValue) {
   if (!toSelect) { showTab(defaultValue) }
   else { showTab(toSelect); }
 }
+
+// List-related Javascript functions
+function updateRowNumber(row, rowIndex, action) {
+  /* Within p_row, we update every field whose name and id include the row index
+     with new p_rowIndex. If p_action is 'set', p_rowIndex becomes the new
+     index. If p_action is 'add', new index becomes:
+     existing index + p_rowIndex. */
+  tagTypes = ['input', 'select'];
+  currentIndex = -1;
+  for (var i=0; i < tagTypes.length; i++) {
+    widgets = row.getElementsByTagName(tagTypes[i]);
+    for (var j=0; j < widgets.length; j++) {
+      id = widgets[j].id;
+      name = widgets[j].name;
+      idNbIndex = id.lastIndexOf('*') + 1;
+      nameNbIndex = name.lastIndexOf('*') + 1;
+      // Compute the current row index if not already done.
+      if (currentIndex == -1) {
+        currentIndex = parseInt(id.substring(idNbIndex));
+      }
+      // Compute the new values for attributes "id" and "name".
+      newId = id.substring(0, idNbIndex);
+      newName = id.substring(0, nameNbIndex);
+      newIndex = rowIndex;
+      if (action == 'add') newIndex = newIndex + currentIndex;
+      widgets[j].id = newId + String(newIndex);
+      widgets[j].name = newName + String(newIndex);
+    }
+  }
+}
+function insertRow(tableId) {
+  // This function adds a new row in table with ID p_tableId.
+  table = document.getElementById(tableId);
+  newRow = table.rows[1].cloneNode(true);
+  newRow.style.display = 'table-row';
+  // Within newRow, I must include in field names and ids the row number
+  updateRowNumber(newRow, table.rows.length-3, 'set');
+  table.tBodies[0].appendChild(newRow);
+}
+
+function deleteRow(tableId, deleteImg) {
+  row = deleteImg.parentNode.parentNode;
+  table = document.getElementById(tableId);
+  allRows = table.rows;
+  toDeleteIndex = -1; // Will hold the index of the row to delete.
+  for (var i=0; i < allRows.length; i++) {
+    if (toDeleteIndex == -1) {
+      if (row == allRows[i]) toDeleteIndex = i;
+    }
+    else {
+      // Decrement higher row numbers by 1 because of the deletion
+      updateRowNumber(allRows[i], -1, 'add');
+    }
+  }
+  table.deleteRow(toDeleteIndex);
+}

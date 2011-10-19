@@ -142,6 +142,15 @@ class BaseMixin:
                 setattr(errors, appyType.name, message)
             else:
                 setattr(values, appyType.name, appyType.getStorableValue(value))
+            # Validate sub-fields within Lists
+            if appyType.type != 'List': continue
+            i = -1
+            for row in value:
+                i += 1
+                for name, field in appyType.fields:
+                    message = field.validate(self, getattr(row,name,None))
+                    if message:
+                        setattr(errors, '%s*%d' % (field.name, i), message)
 
     def interFieldValidation(self, errors, values):
         '''This method is called when individual validation of all fields
@@ -432,12 +441,31 @@ class BaseMixin:
            retrieved in synchronous mode.'''
         appyType = self.getAppyType(name)
         if not onlyIfSync or (onlyIfSync and appyType.sync[layoutType]):
-            return appyType.getValue(self)
+            # We must really get the field value.
+            if '*' not in name: return appyType.getValue(self)
+            # The field is an inner field from a List.
+            listName, name, i = name.split('*')
+            return self.getAppyType(listName).getInnerValue(self, name, int(i))
 
     def getFormattedFieldValue(self, name, value):
         '''Gets a nice, string representation of p_value which is a value from
            field named p_name.'''
         return self.getAppyType(name).getFormattedValue(self, value)
+
+    def getRequestFieldValue(self, name):
+        '''Gets the value of field p_name as may be present in the request.'''
+        # Return the request value for standard fields.
+        if '*' not in name:
+            return self.getAppyType(name).getRequestValue(self.REQUEST)
+        # For sub-fields within Lists, the corresponding request values have
+        # already been computed in the request key corresponding to the whole
+        # List.
+        listName, name, rowIndex = name.split('*')
+        rowIndex = int(rowIndex)
+        if rowIndex == -1: return ''
+        allValues = self.REQUEST.get(listName)
+        if not allValues: return ''
+        return getattr(allValues[rowIndex], name, '')
 
     def getFileInfo(self, fileObject):
         '''Returns filename and size of p_fileObject.'''
@@ -533,11 +561,15 @@ class BaseMixin:
     def getAppyType(self, name, asDict=False, className=None):
         '''Returns the Appy type named p_name. If no p_className is defined, the
            field is supposed to belong to self's class.'''
+        isInnerType = '*' in name # An inner type lies within a List type.
+        subName = None
+        if isInnerType: name, subName, i = name.split('*')
         if not className:
             klass = self.__class__.wrapperClass
         else:
             klass = self.getTool().getAppyClass(className, wrapper=True)
         res = getattr(klass, name, None)
+        if res and isInnerType: res = res.getField(subName)
         if res and asDict: return res.__dict__
         return res
 
