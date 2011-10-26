@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 import re, time, copy, sys, types, os, os.path, mimetypes, string, StringIO
+from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
-                           getClassName, SomeObjects, AppyObject
+                           getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
@@ -16,7 +17,7 @@ r, w, d = ('read', 'write', 'delete')
 digit  = re.compile('[0-9]')
 alpha  = re.compile('[a-zA-Z0-9]')
 letter = re.compile('[a-zA-Z]')
-nullValues = (None, '', ' ')
+nullValues = (None, '', [])
 validatorTypes = (types.FunctionType, types.UnboundMethodType,
                   type(re.compile('')))
 emptyTuple = ()
@@ -729,7 +730,7 @@ class Type:
     def getValue(self, obj):
         '''Gets, on_obj, the value conforming to self's type definition.'''
         value = getattr(obj.aq_base, self.name, None)
-        if (value == None):
+        if self.isEmptyValue(value):
             # If there is no value, get the default value if any
             if not self.editDefault:
                 # Return self.default, of self.default() if it is a method
@@ -2243,10 +2244,6 @@ class List(Type):
         for n, field in self.fields:
             if n == name: return field
 
-    def isEmptyValue(self, value, obj=None):
-        '''Returns True if the p_value must be considered as an empty value.'''
-        return not value
-
     def getRequestValue(self, request):
         '''Concatenates the list from distinct form elements in the request.'''
         prefix = self.name + '*' + self.fields[0][0] + '*'
@@ -2254,7 +2251,7 @@ class List(Type):
         for key in request.keys():
             if not key.startswith(prefix): continue
             # I have found a row. Gets its index
-            row = AppyObject()
+            row = Object()
             rowIndex = int(key.split('*')[-1])
             if rowIndex == -1: continue # Ignore the template row.
             for name, field in self.fields:
@@ -2271,10 +2268,6 @@ class List(Type):
         keys = res.keys()
         keys.sort()
         res = [res[key] for key in keys]
-        print 'REQUEST VALUE FOR LIST (%d)' % len(res)
-        for value in res:
-            for k, v in value.__dict__.iteritems():
-                print k, '=', v
         # I store in the request this computed value. This way, when individual
         # subFields will need to get their value, they will take it from here,
         # instead of taking it from the specific request key. Indeed, specific
@@ -2290,14 +2283,13 @@ class List(Type):
                 setattr(v, name, field.getStorableValue(getattr(v, name)))
         return value
 
-    def getInnerValue(self, obj, name, i):
+    def getInnerValue(self, outerValue, name, i):
         '''Returns the value of inner field named p_name in row number p_i
-           with the list of values from this field on p_obj.'''
+           within the whole list of values p_outerValue.'''
         if i == -1: return ''
-        value = getattr(obj, self.name, None)
-        if not value: return ''
-        if i >= len(value): return ''
-        return getattr(value[i], name, '')
+        if not outerValue: return ''
+        if i >= len(outerValue): return ''
+        return getattr(outerValue[i], name, '')
 
 # Workflow-specific types and default workflows --------------------------------
 appyToZopePermissions = {

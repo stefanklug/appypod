@@ -159,9 +159,6 @@ def produceNiceMessage(msg):
     return res
 
 # ------------------------------------------------------------------------------
-class AppyObject: pass
-
-# ------------------------------------------------------------------------------
 class SomeObjects:
     '''Represents a bunch of objects retrieved from a reference or a query in
        portal_catalog.'''

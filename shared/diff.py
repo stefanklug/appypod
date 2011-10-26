@@ -212,26 +212,25 @@ class HtmlDiff:
         ratio = difflib.SequenceMatcher(a=s1.lower(), b=s2.lower()).ratio()
         return ratio > self.diffRatio
 
-    def isEmpty(self, l):
-        '''Is list p_l empty ?'''
-        return not l or ( (len(l) == 1) and (l[0] in ('', '\r')))
-
-    def getTagContent(self, line):
-        '''p_lines is a XHTML tag with content. This method returns the content
-           of the tag, removing start and end tags.'''
-        return line[line.find('>')+1:line.rfind('<')]
+    def splitTagAndContent(self, line):
+        '''p_line is a XHTML tag with content. This method returns a tuple
+           (startTag, content), where p_startTag is the isolated start tag and
+           content is the tag content.'''
+        i = line.find('>')+1
+        return line[0:i], line[i:line.rfind('<')]
 
     def getLineAndType(self, line):
         '''p_line is a string that can already have been surrounded by an
            "insert" or "delete" tag. This is what we try to determine here.
-           This method returns a tuple (type, line, innerDiffs), where "type"
-           can be:
+           This method returns a tuple (type, line, innerDiffs, outerTag),
+           where "type" can be:
            * "insert" if it has already been flagged as inserted;
            * "delete" if it has already been flagged as deleted;
            * None else;
            "line" holds the original parameter p_line, excepted:
            * if type="insert". In that case, the surrounding insert tag has been
-             removed;
+             removed and placed into "outerTag" (the outer start tag to be more
+             precise);
            * if inner diff tags (insert or delete) are found. In that case,
              - if inner "insert" tags are found, they are removed but their
                content is kept;
@@ -240,10 +239,15 @@ class HtmlDiff:
              - "innerDiffs" holds the list of re.MatchObjects instances
                representing the found inner tags.
         '''
-        if line.startswith(self.divDeletePrefix): return ('delete', line, None)
+        if line.startswith(self.divDeletePrefix):
+            return ('delete', line, None, None)
         if line.startswith(self.divInsertPrefix):
             # Return the line without the surrounding tag.
-            return ('insert', self.getTagContent(line), None)
+            action = 'insert'
+            outerTag, line = self.splitTagAndContent(line)
+        else:
+            action = None
+            outerTag = None
         # Replace found inner inserts with their content.
         innerDiffs = []
         while True:
@@ -256,7 +260,7 @@ class HtmlDiff:
             if match.group(1) == 'insert':
                 content = match.group(2)
             line = line[:match.start()] + content + line[match.end():]
-        return (None, line, innerDiffs)
+        return (action, line, innerDiffs, outerTag)
 
     def getSeqDiff(self, seqA, seqB):
         '''p_seqA and p_seqB are lists of strings. Here we will try to identify
@@ -278,7 +282,7 @@ class HtmlDiff:
         # Scan every string from p_seqA and try to find a similar string in
         # p_seqB.
         while i < len(seqA):
-            pastAction, lineSeqA, innerDiffs = self.getLineAndType(seqA[i])
+            pastAction, lineA, innerDiffs, outerTag=self.getLineAndType(seqA[i])
             if pastAction == 'delete':
                 # We will consider this line as "equal" because it already has
                 # been noted as deleted in a previous diff.
@@ -293,10 +297,10 @@ class HtmlDiff:
                     # be found in seqB.
                     res.append( ('equal', seqA[i]) )
             else:
-                # Try to find a line in seqB which is similar to lineSeqA.
+                # Try to find a line in seqB which is similar to lineA.
                 similarFound = False
                 for j in range(k, len(seqB)):
-                    if self.isSimilar(lineSeqA, seqB[j]):
+                    if self.isSimilar(lineA, seqB[j]):
                         similarFound = True
                         # Strings between indices k and j in p_seqB must be
                         # considered as inserted, because no similar line exists
@@ -304,16 +308,15 @@ class HtmlDiff:
                         if k < j:
                             for line in seqB[k:j]: res.append(('insert', line))
                         # Similar strings are appended in a 'replace' entry,
-                        # excepted if lineSeqA is already an insert from a
+                        # excepted if lineA is already an insert from a
                         # previous diff: in this case, we keep the "old"
                         # version: the new one is the same, but for which we
                         # don't remember who updated it.
-                        if (pastAction == 'insert') and (lineSeqA == seqB[j]):
+                        if (pastAction == 'insert') and (lineA == seqB[j]):
                             res.append( ('equal', seqA[i]) )
-                            # TODO: manage lineSeqA != seqB[j]
                         else:
-                            res.append(('replace', (lineSeqA, seqB[j],
-                                                    innerDiffs)))
+                            res.append(('replace', (lineA, seqB[j],
+                                                    innerDiffs, outerTag)))
                         k = j+1
                         break
                 if not similarFound: res.append( ('delete', seqA[i]) )
@@ -337,6 +340,16 @@ class HtmlDiff:
         if trailSpace: res[-1] = res[-1] + sep
         return res
 
+    garbage = ('', '\r')
+    def removeGarbage(self, l):
+        '''Removes from list p_l elements that have no interest, like blank
+           strings or considered as is.'''
+        i = len(l)-1
+        while i >= 0:
+            if l[i] in self.garbage: del l[i]
+            i -= 1
+        return l
+
     def getHtmlDiff(self, old, new, sep):
         '''Returns the differences between p_old and p_new. Result is a string
            containing the comparison in HTML format. p_sep is used for turning
@@ -352,29 +365,27 @@ class HtmlDiff:
         matcher = difflib.SequenceMatcher()
         matcher.set_seqs(a,b)
         for action, i1, i2, j1, j2 in matcher.get_opcodes():
-            chunkA = a[i1:i2]
-            chunkB = b[j1:j2]
-            aIsEmpty = self.isEmpty(chunkA)
-            bIsEmpty = self.isEmpty(chunkB)
+            chunkA = self.removeGarbage(a[i1:i2])
+            chunkB = self.removeGarbage(b[j1:j2])
             toAdd = None
             if action == 'equal':
-                if not aIsEmpty: toAdd = sep.join(chunkA)
+                if chunkA: toAdd = sep.join(chunkA)
             elif action == 'insert':
-                if not bIsEmpty:
+                if chunkB:
                     toAdd = self.getModifiedChunk(chunkB, action, sep)
             elif action == 'delete':
-                if not aIsEmpty:
+                if chunkA:
                     toAdd = self.getModifiedChunk(chunkA, action, sep)
             elif action == 'replace':
-                if aIsEmpty and bIsEmpty:
+                if not chunkA and not chunkB:
                     toAdd = ''
-                elif aIsEmpty:
+                elif not chunkA:
                     # Was an addition, not a replacement
                     toAdd = self.getModifiedChunk(chunkB, 'insert', sep)
-                elif bIsEmpty:
+                elif not chunkB:
                     # Was a deletion, not a replacement
                     toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
-                else: # At least, a true replacement (grr difflib)
+                else: # At least, a true replacement
                     if sep == '\n':
                         # We know that some lines have been replaced from a to
                         # b. By identifying similarities between those lines,
@@ -387,7 +398,7 @@ class HtmlDiff:
                             elif sAction == 'equal':
                                 toAdd += line
                             elif sAction == 'replace':
-                                lineA, lineB, previousDiffsA = line
+                                lineA, lineB, previousDiffsA, outerTag = line
                                 # Investigate further here and explore
                                 # differences at the *word* level between lineA
                                 # and lineB. As a preamble, and in order to
@@ -405,6 +416,10 @@ class HtmlDiff:
                                 if previousDiffsA:
                                     merger= Merger(lineA, toAdd, previousDiffsA)
                                     toAdd = merger.merge()
+                                # Rewrap line into outerTag if lineA was a line
+                                # tagged as previously inserted.
+                                if outerTag:
+                                    toAdd = outerTag + toAdd + '</div>'
                     else:
                         toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
                         toAdd += self.getModifiedChunk(chunkB, 'insert', sep)

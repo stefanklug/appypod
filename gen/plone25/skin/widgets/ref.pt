@@ -145,7 +145,7 @@
       </tal:noObject>
 
       <tal:comment replace="nothing">If there is an object...</tal:comment>
-      <tal:objectIsPresent condition="objs">
+      <tal:objectIsPresent condition="python: objs">
         <tal:obj repeat="obj objs">
           <td tal:define="includeShownInfo python:True"><metal:showObjectTitle use-macro="app/skyn/widgets/ref/macros/objectTitle" /></td>
         </tal:obj>
@@ -161,7 +161,7 @@
         (<span tal:replace="totalNumber"/>)
         <metal:plusIcon use-macro="app/skyn/widgets/ref/macros/plusIcon"/>
         <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
-        <a tal:condition="appyType/queryable"
+        <a tal:condition="python: objs and appyType['queryable']"
            tal:attributes="href python: '%s/skyn/search?type_name=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
           <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
       </legend>

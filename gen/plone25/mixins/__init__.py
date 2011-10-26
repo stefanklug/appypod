@@ -4,6 +4,7 @@
 
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes, urllib, cgi
+from appy import Object
 import appy.gen
 from appy.gen import Type, String, Selection, Role, No, WorkflowAnonymous, \
                      Transition, Permission
@@ -206,9 +207,9 @@ class BaseMixin:
             return self.goto(urlBack)
 
         # Object for storing validation errors
-        errors = AppyObject()
+        errors = Object()
         # Object for storing the (converted) values from the request
-        values = AppyObject()
+        values = Object()
 
         # Trigger field-specific validation
         self.intraFieldValidation(errors, values)
@@ -435,7 +436,8 @@ class BaseMixin:
         # broken on returned object.
         return getattr(self, methodName, None)
 
-    def getFieldValue(self, name, onlyIfSync=False, layoutType=None):
+    def getFieldValue(self, name, onlyIfSync=False, layoutType=None,
+                      outerValue=None):
         '''Returns the database value of field named p_name for p_self.
            If p_onlyIfSync is True, it returns the value only if appyType can be
            retrieved in synchronous mode.'''
@@ -445,7 +447,8 @@ class BaseMixin:
             if '*' not in name: return appyType.getValue(self)
             # The field is an inner field from a List.
             listName, name, i = name.split('*')
-            return self.getAppyType(listName).getInnerValue(self, name, int(i))
+            listType = self.getAppyType(listName)
+            return listType.getInnerValue(outerValue, name, int(i))
 
     def getFormattedFieldValue(self, name, value):
         '''Gets a nice, string representation of p_value which is a value from

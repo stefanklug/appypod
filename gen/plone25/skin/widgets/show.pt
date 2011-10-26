@@ -59,7 +59,8 @@
               layout       python: widget['layouts'][layoutType];
               name         widgetName| widget/name;
               sync         python: widget['sync'][layoutType];
-              rawValue     python: contextObj.getFieldValue(name, onlyIfSync=True, layoutType=layoutType);
+              outerValue   value|nothing;
+              rawValue     python: contextObj.getFieldValue(name,onlyIfSync=True,layoutType=layoutType,outerValue=outerValue);
               value        python: contextObj.getFormattedFieldValue(name, rawValue);
               requestValue python: contextObj.getRequestFieldValue(name);
               inRequest    python: request.has_key(name);

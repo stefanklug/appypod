@@ -448,7 +448,8 @@ class XmlMarshaller:
         self.rootElementName = rootTag
         # The namespaces that will be defined at the root of the XML message.
         # It is a dict whose keys are namespace prefixes and whose values are
-        # namespace URLs.
+        # namespace URLs. If you want to specify a default namespace, specify an
+        # entry with an empty string as a key.
         self.namespaces = namespaces
         # The following dict will tell which XML tags will get which namespace
         # prefix ({s_tagName: s_prefix}). Special optional dict entry
@@ -475,8 +476,12 @@ class XmlMarshaller:
         res.write('<'); res.write(tagName)
         # Dumps namespace definitions if any
         for prefix, url in self.namespaces.iteritems():
-            res.write(' xmlns:%s="%s"' % (prefix, url))
-        # Dumps Appy- or Plone-specific attributed
+            if not prefix:
+                pre = 'xmlns' # The default namespace
+            else:
+                pre = 'xmlns:%s' % prefix
+            res.write(' %s="%s"' % (pre, url))
+        # Dumps Appy- or Plone-specific attribute
         if self.objectType != 'popo':
             res.write(' type="object" id="%s"' % instance.UID())
         res.write('>')
@@ -572,6 +577,11 @@ class XmlMarshaller:
 
     def dumpField(self, res, fieldName, fieldValue, fieldType='basic'):
         '''Dumps in p_res, the value of the p_field for p_instance.'''
+        # As a preamble, manage special case of p_fieldName == "_any". In that
+        # case, p_fieldValue corresponds to a previously marshalled string that
+        # must be included as is here, without dumping the tag name.
+        if fieldName == '_any': self.dumpValue(res, fieldValue, None)
+        # Now, dump "normal" fields.
         fieldTag = self.getTagName(fieldName)
         res.write('<'); res.write(fieldTag)
         # Dump the type of the field as an XML attribute
