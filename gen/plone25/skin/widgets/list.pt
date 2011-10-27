@@ -23,9 +23,9 @@
        tal:condition="python: isEdit or value"
        tal:attributes="id python: 'list_%s' % name">
  <tal:comment replace="nothing">Header</tal:comment>
- <tr>
+ <tr valign="bottom">
   <th tal:repeat="fieldInfo widget/fieldsd"
-      tal:content="python: _(fieldInfo[1]['labelId'])">
+      tal:content="structure python: _(fieldInfo[1]['labelId'])">
   </th>
   <tal:comment replace="nothing">Icon for adding a new row.</tal:comment>
   <th tal:condition="isEdit">

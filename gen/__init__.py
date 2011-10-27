@@ -2278,10 +2278,13 @@ class List(Type):
 
     def getStorableValue(self, value):
         '''Gets p_value in a form that can be stored in the database.'''
+        res = []
         for v in value:
+            sv = Object()
             for name, field in self.fields:
-                setattr(v, name, field.getStorableValue(getattr(v, name)))
-        return value
+                setattr(sv, name, field.getStorableValue(getattr(v, name)))
+            res.append(sv)
+        return res
 
     def getInnerValue(self, outerValue, name, i):
         '''Returns the value of inner field named p_name in row number p_i

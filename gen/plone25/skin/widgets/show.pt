@@ -23,7 +23,7 @@
                         cellspacing  layout/cellspacing;
                         width        layout/width;
                         align        layout/align;
-                        class        python: tagCss and ('%s %s' % (tagCss, layoutCss)) or layoutCss;
+                        class        python: tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or layoutCss;
                         style        layout/style;
                         id           tagId;
                         name         tagId;">
@@ -69,7 +69,8 @@
               isMultiple   python: (widget['multiplicity'][1] == None) or (widget['multiplicity'][1] &gt; 1);
               masterCss    python: widget['slaves'] and ('master_%s' % name) or '';
               slaveCss     python: widget['master'] and ('slave_%s_%s' % (widget['masterName'], '_'.join(widget['masterValue']))) or '';
-              tagCss       tagCss | slaveCss;
+              tagCss       tagCss | python:'';
+              tagCss       python: ('%s %s' % (slaveCss, tagCss)).strip();
               tagId        python: widget['master'] and 'slave' or ''">
   <metal:layout use-macro="here/skyn/widgets/show/macros/layout"/>
 </metal:field>
