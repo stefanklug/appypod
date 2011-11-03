@@ -10,7 +10,7 @@ from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
-from appy.shared.utils import Traceback, getOsTempFolder
+from appy.shared.utils import Traceback, getOsTempFolder, formatNumber
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -989,29 +989,7 @@ class Float(Type):
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
-        if self.isEmptyValue(value): return ''
-        # Determine the field separator
-        sep = self.sep[0]
-        # Produce the rounded string representation
-        if self.precision == None:
-            res = str(value)
-        else:
-            format = '%%.%df' % self.precision
-            res = format % value
-        # Use the correct decimal separator
-        res = res.replace('.', sep)
-        # Remove the decimal part if = 0
-        splitted = res.split(sep)
-        if len(splitted) > 1:
-            try:
-                decPart = int(splitted[1])
-                if decPart == 0:
-                    res = splitted[0]
-            except ValueError:
-                # This exception may occur when the float value has an "exp"
-                # part, like in this example: 4.345e-05.
-                pass
-        return res
+        return formatNumber(value, sep=self.sep[0], precision=self.precision)
 
     def validateValue(self, obj, value):
         # Replace used separator with the Python separator '.'

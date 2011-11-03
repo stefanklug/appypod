@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 # Appy is a framework for building applications in the Python language.
 # Copyright (C) 2007 Gaetan Delannay
@@ -194,11 +195,59 @@ def normalizeString(s, usage='fileName'):
         res = s
     return res
 
+def formatNumber(n, sep=',', precision=2, tsep=' '):
+    '''Returns a string representation of number p_n, which can be a float
+       or integer. p_sep is the decimal separator to use. p_precision is the
+       number of digits to keep in the decimal part for producing a nice rounded
+       string representation. p_tsep is the "thousands" separator.'''
+    if n == None: return ''
+    # Manage precision
+    if precision == None:
+        res = str(n)
+    else:
+        format = '%%.%df' % precision
+        res = format % n
+    # Use the correct decimal separator
+    res = res.replace('.', sep)
+    # Format the integer part with tsep: TODO.
+    splitted = res.split(sep)
+    # Remove the decimal part if = 0
+    if len(splitted) > 1:
+        try:
+            decPart = int(splitted[1])
+            if decPart == 0:
+                res = splitted[0]
+        except ValueError:
+            # This exception may occur when the float value has an "exp"
+            # part, like in this example: 4.345e-05.
+            pass
+    return res
+
+# ------------------------------------------------------------------------------
+toLower = {'Ç':'ç','Ù':'ù','Û':'û','Ü':'ü','Î':'î','Ï':'ï','Ô':'ô','Ö':'ö',
+           'É':'é','È':'è','Ê':'ê','Ë':'ë','À':'à','Â':'â','Ä':'ä'}
+toUpper = {'ç':'Ç','ù':'Ù','û':'Û','ü':'Ü','î':'Î','ï':'Ï','ô':'Ô','ö':'Ö',
+           'é':'É','è':'È','ê':'Ê','ë':'Ë','à':'À','â':'Â','ä':'Ä'}
+
+def lower(s):
+    '''French-accents-aware variant of string.lower.'''
+    res = s.lower()
+    for upp, low in toLower.iteritems():
+        if upp in res: res = res.replace(upp, low)
+    return res
+
+def upper(s):
+    '''French-accents-aware variant of string.upper.'''
+    res = s.upper()
+    for low, upp in toUpper.iteritems():
+        if low in res: res = res.replace(low, upp)
+    return res
+
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
                'l': list, 'd': dict}
 exts = {'py': ('.py', '.vpy', '.cpy'), 'pt': ('.pt', '.cpt')}
-# ------------------------------------------------------------------------------
+
 class CodeAnalysis:
     '''This class holds information about some code analysis (line counts) that
        spans some folder hierarchy.'''

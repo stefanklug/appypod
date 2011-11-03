@@ -580,7 +580,9 @@ class XmlMarshaller:
         # As a preamble, manage special case of p_fieldName == "_any". In that
         # case, p_fieldValue corresponds to a previously marshalled string that
         # must be included as is here, without dumping the tag name.
-        if fieldName == '_any': self.dumpValue(res, fieldValue, None)
+        if fieldName == '_any':
+            res.write(value)
+            return
         # Now, dump "normal" fields.
         fieldTag = self.getTagName(fieldName)
         res.write('<'); res.write(fieldTag)

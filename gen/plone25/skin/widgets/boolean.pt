@@ -7,14 +7,14 @@
 <tal:comment replace="nothing">Edit macro for an Boolean.</tal:comment>
 <metal:edit define-macro="edit">
   <input type="checkbox"
-         tal:attributes="name python: name + '_visible'; id name;
-                         checked python:contextObj.checkboxChecked(name, rawValue);
-                         onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(this)' % (name, name);
-                         class masterCss"/>
-  <input tal:attributes="name name;
-                         id string:${name}_hidden;
-                         value python: test(contextObj.checkboxChecked(name, rawValue), 'True', 'False')"
-         type="hidden" />&nbsp;
+    tal:attributes="name python: name + '_visible'; id name;
+                    checked python:contextObj.checkboxChecked(name, rawValue);
+                    onClick python:'toggleCheckbox(\'%s\', \'%s_hidden\');;updateSlaves(this)' % (name, name);
+                    class masterCss"/>
+  <input type="hidden"
+    tal:attributes="name name;
+                    id string:${name}_hidden;
+                    value python: test(contextObj.checkboxChecked(name, rawValue), 'True', 'False')"/>
 </metal:edit>
 
 <tal:comment replace="nothing">Cell macro for an Boolean.</tal:comment>
