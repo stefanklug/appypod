@@ -25,7 +25,7 @@ labelTypes = ('label', 'descr', 'help')
 
 def initMasterValue(v):
     '''Standardizes p_v as a list of strings.'''
-    if not v: res = []
+    if not isinstance(v, bool) and not v: res = []
     elif type(v) not in sequenceTypes: res = [v]
     else: res = v
     return [str(v) for v in res]
@@ -959,6 +959,7 @@ class Integer(Type):
 
 class Float(Type):
     allowedDecimalSeps = (',', '.')
+    allowedThousandsSeps = (' ', '')
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, layouts=None, move=0, indexed=False,
@@ -966,7 +967,7 @@ class Float(Type):
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 precision=None, sep=(',', '.')):
+                 precision=None, sep=(',', '.'), tsep=' '):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -981,6 +982,7 @@ class Float(Type):
         for sep in self.sep:
             if sep not in Float.allowedDecimalSeps:
                 raise 'Char "%s" is not allowed as decimal separator.' % sep
+        self.tsep = tsep
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
@@ -989,11 +991,13 @@ class Float(Type):
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
-        return formatNumber(value, sep=self.sep[0], precision=self.precision)
+        return formatNumber(value, sep=self.sep[0], precision=self.precision,
+                            tsep=self.tsep)
 
     def validateValue(self, obj, value):
         # Replace used separator with the Python separator '.'
         for sep in self.sep: value = value.replace(sep, '.')
+        value = value.replace(self.tsep, '')
         try:
             value = self.pythonType(value)
         except ValueError:
@@ -1002,6 +1006,7 @@ class Float(Type):
     def getStorableValue(self, value):
         if not self.isEmptyValue(value):
             for sep in self.sep: value = value.replace(sep, '.')
+            value = value.replace(self.tsep, '')
             return self.pythonType(value)
 
 class String(Type):
@@ -1752,7 +1757,7 @@ class Ref(Type):
             if type == 'uids':
                 ref = uids[i]
             else:
-                ref = obj.portal_catalog(UID=uids[i])[0].getObject()
+                ref = obj.uid_catalog(UID=uids[i])[0].getObject()
                 if type == 'objects':
                     ref = ref.appy()
             res.objects.append(ref)

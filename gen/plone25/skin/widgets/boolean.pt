@@ -1,7 +1,8 @@
 <tal:comment replace="nothing">View macro for a Boolean.</tal:comment>
 <metal:view define-macro="view">
-  <span tal:attributes="class masterCss; value rawValue; name name; id name"
-        tal:content="value"></span>
+  <span tal:replace="value"></span>
+  <input type="hidden" tal:condition="masterCss"
+         tal:attributes="class masterCss; value rawValue; name name; id name"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for an Boolean.</tal:comment>

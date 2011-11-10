@@ -2,13 +2,14 @@
 import re, difflib
 
 # ------------------------------------------------------------------------------
-innerDiff = re.compile('<span name="(insert|delete)".*?>(.*?)</span>')
+innerDiff = re.compile('<span name="(insert|delete)".*? title="(.*?)">' \
+                       '(.*?)</span>')
 
 # ------------------------------------------------------------------------------
 class Merger:
     '''This class allows to merge 2 lines of text, each containing inserts and
        deletions.'''
-    def __init__(self, lineA, lineB, previousDiffs):
+    def __init__(self, lineA, lineB, previousDiffs, differ):
         # lineA comes "naked": any diff previously found on it was removed from
         # it (ie, deleted text has been completely removed, while inserted text
         # has been included, but without its surrounding tag). Info about
@@ -25,6 +26,11 @@ class Merger:
         self.i = 0
         # The delta index that must be applied on previous diffs
         self.deltaPrevious = 0
+        # A link to the caller HtmlDiff class.
+        self.differ = differ
+        # While "consuming" diffs (see m_getNextDiff), keep here every message
+        # from every diff.
+        self.messages = [self.differ.complexMsg]
 
     def computeNewDiffs(self):
         '''lineB may include inner "insert" and/or tags. This function
@@ -68,10 +74,31 @@ class Merger:
             del self.newDiffs[0]
             return newDiff, newDiffIndex, False
 
+    def manageOverlaps(self):
+        '''We have detected that changes between lineA and lineB include
+           overlapping inserts and deletions. Our solution: to remember names
+           of editors and return the whole line in a distinct colour, where
+           we (unfortunately) can't distinguish editors's specific updates.'''
+        # First, get a "naked" version of self.lineB, without the latest
+        # updates.
+        res = self.lineB
+        for diff in self.newDiffs:
+            res = self.differ.applyDiff(res, diff)
+        # Construct the message explaining the series of updates.
+        # self.messages already contains messages from the "consumed" diffs
+        # (see m_getNextDiff).
+        for type in ('previous', 'new'):
+            exec 'diffs = self.%sDiffs' % type
+            for diff in diffs:
+                self.messages.append(diff.group(2))
+        msg = ' -=- '.join(self.messages)
+        return self.differ.getModifiedChunk(res, 'complex', '\n', msg=msg)
+
     def merge(self):
         '''Merges self.previousDiffs into self.lineB.'''
         res = ''
         diff, diffStart, isPrevious = self.getNextDiff()
+        if diff: self.messages.append(diff.group(2))
         while diff:
             # Dump the part of lineB between self.i and diffStart
             res += self.lineB[self.i:diffStart]
@@ -80,7 +107,14 @@ class Merger:
             res += diff.group(0)
             if isPrevious:
                 if diff.group(1) == 'insert':
-                    self.i += len(diff.group(2))
+                    # Check if the inserted text is still present in lineB
+                    if self.lineB[self.i:].startswith(diff.group(3)):
+                        # Yes. Go ahead within lineB
+                        self.i += len(diff.group(3))
+                    else:
+                        # The inserted text can't be found as is in lineB.
+                        # Must have been (partly) re-edited or removed.
+                        return self.manageOverlaps()
             else:
                 # Update self.i
                 self.i += len(diff.group(0))
@@ -92,9 +126,10 @@ class Merger:
                     # The indexes in lineA do not take the deleted text into
                     # account, because it wasn't deleted at this time. So remove
                     # from self.deltaPrevious the length of removed text.
-                    self.deltaPrevious -= len(diff.group(2))
+                    self.deltaPrevious -= len(diff.group(3))
             # Load next diff
             diff, diffStart, isPrevious = self.getNextDiff()
+            if diff: self.messages.append(diff.group(2))
         # Dump the end of self.lineB if not completely consumed
         if self.i < len(self.lineB):
             res += self.lineB[self.i:]
@@ -106,11 +141,14 @@ class HtmlDiff:
        HTML chunk.'''
     insertStyle = 'color: blue; cursor: help'
     deleteStyle = 'color: red; text-decoration: line-through; cursor: help'
+    complexStyle = 'color: purple; cursor: help'
 
     def __init__(self, old, new,
                  insertMsg='Inserted text', deleteMsg='Deleted text',
-                 insertCss=None, deleteCss=None, insertName='insert',
-                 deleteName='delete', diffRatio=0.7):
+                 complexMsg='Multiple inserts and/or deletions',
+                 insertCss=None, deleteCss=None, complexCss=None,
+                 insertName='insert', deleteName='delete',
+                 complexName='complex', diffRatio=0.7):
         # p_old and p_new are strings containing chunks of HTML.
         self.old = old.strip()
         self.new = new.strip()
@@ -121,15 +159,18 @@ class HtmlDiff:
         # (who made it and at what time, for example).
         self.insertMsg = insertMsg
         self.deleteMsg = deleteMsg
+        self.complexMsg = complexMsg
         # This tag will get a CSS class p_insertCss or p_deleteCss for
         # highlighting the change. If no class is provided, default styles will
         # be used (see HtmlDiff.insertStyle and HtmlDiff.deleteStyle).
         self.insertCss = insertCss
         self.deleteCss = deleteCss
+        self.complexCss = complexCss
         # This tag will get a "name" attribute whose content will be
         # p_insertName or p_deleteName
         self.insertName = insertName
         self.deleteName = deleteName
+        self.complexName = complexName
         # The diff algorithm of this class will need to identify similarities
         # between strings. Similarity ratios will be computed by using method
         # difflib.SequenceMatcher.ratio (see m_isSimilar below). Strings whose
@@ -138,27 +179,33 @@ class HtmlDiff:
         self.diffRatio = diffRatio
         # Some computed values
         for tag in ('div', 'span'):
-            setattr(self, '%sInsertPrefix' % tag,
-                    '<%s name="%s"' % (tag, self.insertName))
-            setattr(self, '%sDeletePrefix' % tag,
-                    '<%s name="%s"' % (tag, self.deleteName))
+            for type in ('insert', 'delete', 'complex'):
+                setattr(self, '%s%sPrefix' % (tag, type.capitalize()),
+                        '<%s name="%s"' % (tag, getattr(self, '%sName' % type)))
 
-    def getModifiedChunk(self, seq, type, sep):
+    def getModifiedChunk(self, seq, type, sep, msg=None):
         '''p_sep.join(p_seq) (if p_seq is a list) or p_seq (if p_seq is a
            string) is a chunk that was either inserted (p_type='insert') or
-           deleted (p_type='delete'). This method will surround this part with
-           a div or span tag that will get some CSS class allowing to highlight
-           the difference.'''
-        # Prepare parts of the surrounding tag.
+           deleted (p_type='delete'). It can also be a complex, partially
+           managed combination of inserts/deletions (p_type='insert').
+           This method will surround this part with a div or span tag that will
+           get some CSS class allowing to highlight the update. If p_msg is
+           given, it will be used instead of the default p_type-related message
+           stored on p_self.'''
+        # Will the surrouding tag be a div or a span?
         if sep == '\n': tag = 'div'
         else: tag = 'span'
-        exec 'msg = self.%sMsg' % type
+        # What message wiill it show in its 'title' attribute?
+        if not msg:
+            exec 'msg = self.%sMsg' % type
+        # What CSS class (or, if none, tag-specific style) will be used ?
         exec 'cssClass = self.%sCss' % type
         if cssClass:
             style = 'class="%s"' % cssClass
         else:
             exec 'style = self.%sStyle' % type
             style = 'style="%s"' % style
+        # the 'name' attribute of the tag indicates the type of the update.
         exec 'tagName = self.%sName' % type
         # The idea is: if there are several lines, every line must be surrounded
         # by a tag. this way, we know that a surrounding tag can't span several
@@ -175,6 +222,16 @@ class HtmlDiff:
                 res += '%s<%s name="%s" %s title="%s">%s</%s>%s' % \
                        (sep, tag, tagName, style, msg, line, tag, sep)
             return res
+
+    def applyDiff(self, line, diff):
+        '''p_diff is a regex containing an insert or delete that was found within
+           line. This function applies the diff, removing or inserting the diff
+           into p_line.'''
+        # Keep content only for "insert" tags.
+        content = ''
+        if diff.group(1) == 'insert':
+            content = diff.group(3)
+        return line[:diff.start()] + content + line[diff.end():]
 
     def getStringDiff(self, old, new):
         '''Identifies the differences between strings p_old and p_new by
@@ -255,11 +312,7 @@ class HtmlDiff:
             if not match: break
             # I found one.
             innerDiffs.append(match)
-            # Keep content only for "insert" tags.
-            content = ''
-            if match.group(1) == 'insert':
-                content = match.group(2)
-            line = line[:match.start()] + content + line[match.end():]
+            line = self.applyDiff(line, match)
         return (action, line, innerDiffs, outerTag)
 
     def getSeqDiff(self, seqA, seqB):
@@ -414,7 +467,8 @@ class HtmlDiff:
                                 # Merge potential previous inner diff tags that
                                 # were found (but extracted from) lineA.
                                 if previousDiffsA:
-                                    merger= Merger(lineA, toAdd, previousDiffsA)
+                                    merger = Merger(lineA, toAdd,
+                                                    previousDiffsA, self)
                                     toAdd = merger.merge()
                                 # Rewrap line into outerTag if lineA was a line
                                 # tagged as previously inserted.

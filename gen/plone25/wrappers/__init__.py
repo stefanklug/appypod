@@ -148,6 +148,14 @@ class AbstractWrapper(object):
             else:
                 folder = self.o.getParentNode()
         # Create the object
+        # -------------------- Try to replace invokeFactory --------------------
+        #folder._objects = folder._objects + ({'id':id,'meta_type':portalType},)
+        #folder._setOb(id, ob)
+        #ploneObj = self._getOb(id)
+        #ob._setPortalTypeName(self.getId())
+        #ob.notifyWorkflowCreated()
+        # + Check what's done in Archetypes/ClassGen.py in m_genCtor
+        # ------------------------------ Try end -------------------------------
         folder.invokeFactory(portalType, objId)
         ploneObj = getattr(folder, objId)
         appyObj = ploneObj.appy()
@@ -157,6 +165,7 @@ class AbstractWrapper(object):
         if isField:
             # Link the object to this one
             appyType.linkObject(self.o, ploneObj)
+        ploneObj._appy_managePermissions()
         # Call custom initialization
         if externalData: param = externalData
         else: param = True

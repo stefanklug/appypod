@@ -1,8 +1,7 @@
 <tal:comment replace="nothing">View macro for a String.</tal:comment>
 <metal:view define-macro="view"
        tal:define="fmt widget/format">
-  <span tal:condition="python: fmt in (0, 3)"
-        tal:attributes="class masterCss; value rawValue; name name; id name">
+  <span tal:condition="python: fmt in (0, 3)">
     <ul tal:condition="python: value and isMultiple">
       <li tal:repeat="sv value"><i tal:content="structure sv"></i></li>
     </ul>
@@ -16,6 +15,8 @@
           tal:replace="structure python: contextObj.formatText(value, format='html')"/>
     <span tal:condition="python: value and (fmt == 2)" tal:replace="structure value"/>
   </tal:formattedString>
+  <input type="hidden" tal:condition="masterCss"
+         tal:attributes="class masterCss; value rawValue; name name; id name"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for a String.</tal:comment>

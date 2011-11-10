@@ -452,7 +452,6 @@ class ZopeInstaller:
         self.config.listTypes(self.productName)
         contentTypes, constructors, ftis = self.config.process_types(
             self.config.listTypes(self.productName), self.productName)
-
         self.config.cmfutils.ContentInit(self.productName + ' Content',
             content_types = contentTypes,
             permission = self.defaultAddContentPermission,

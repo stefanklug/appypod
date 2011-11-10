@@ -217,8 +217,8 @@ function getSlaveInfo(slave, infoType) {
 
 function getMasterValues(master) {
   // Returns the list of values that p_master currently has.
-  if (master.tagName == 'SPAN') {
-    res = master.attributes['value'].value;
+  if ((master.tagName == 'INPUT') && (master.type != 'checkbox')) {
+    res = master.value;
     if ((res[0] == '(') || (res[0] == '[')) {
       // There are multiple values, split it
       values = res.substring(1, res.length-1).split(',');
@@ -247,17 +247,17 @@ function getMasterValues(master) {
 function getSlaves(master) {
   // Gets all the slaves of master.
   allSlaves = document.getElementsByName('slave');
-  res = [];
+  res = [];  
   masterName = master.attributes['name'].value;
   if (master.type == 'checkbox') {
     masterName = masterName.substr(0, masterName.length-8);
   }
   slavePrefix = 'slave_' + masterName + '_';
-  for (var i=0; i < slaves.length; i++){
-    cssClasses = slaves[i].className.split(' ');
+  for (var i=0; i < allSlaves.length; i++){
+    cssClasses = allSlaves[i].className.split(' ');
     for (var j=0; j < cssClasses.length; j++) {
       if (cssClasses[j].indexOf(slavePrefix) == 0) {
-        res.push(slaves[i]);
+        res.push(allSlaves[i]);
         break;
       }
     }
@@ -265,9 +265,13 @@ function getSlaves(master) {
   return res;
 }
 
-function updateSlaves(master) {
+function updateSlaves(master, slave) {
   // Given the value(s) in a master field, we must update slave's visibility.
-  slaves = getSlaves(master);
+  // If p_slave is given, it updates only this slave. Else, it updates all
+  // slaves of p_master.
+  var slaves = null;
+  if (slave) { slaves = [slave]; }
+  else { slaves = getSlaves(master); }
   masterValues = getMasterValues(master);
   for (var i=0; i < slaves.length; i++) {
     showSlave = false;
@@ -286,13 +290,12 @@ function initSlaves() {
   // When the current page is loaded, we must set the correct state for all
   // slave fields.
   slaves = document.getElementsByName('slave');
-  walkedMasters = {}; // Remember the already walked masters.
-  for (var i=0; i < slaves.length; i++) {
+  i = slaves.length -1;
+  while (i >= 0) {
     masterName = getSlaveInfo(slaves[i], 'masterName');
-    if (masterName in walkedMasters) continue;
     master = document.getElementById(masterName);
-    updateSlaves(master);
-    walkedMasters[masterName] = 'walked';
+    updateSlaves(master, slaves[i]);
+    i -= 1;
   }
 }
 

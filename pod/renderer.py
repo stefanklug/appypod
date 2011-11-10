@@ -237,6 +237,7 @@ class Renderer:
         ns = self.currentParser.env.namespaces
         # xhtmlString can only be a chunk of XHTML. So we must surround it a
         # tag in order to get a XML-compliant file (we need a root tag).
+        if xhtmlString == None: xhtmlString = ''
         xhtmlContent = '<p>%s</p>' % xhtmlString
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
                                   stylesMapping, ns).run()
@@ -244,6 +245,7 @@ class Renderer:
     def renderText(self, text, encoding='utf-8', stylesMapping={}):
         '''Method that can be used (under the name 'text') into a pod template
            for inserting a text containing carriage returns.'''
+        if text == None: text = ''
         text = cgi.escape(text).replace('\r\n', '<br/>').replace('\n', '<br/>')
         return self.renderXhtml(text, encoding, stylesMapping)
 

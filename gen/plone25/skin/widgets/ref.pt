@@ -130,7 +130,6 @@
   The definition of "atMostOneRef" above may sound strange: we shouldn't check the actual number
   of referenced objects. But for back references people often forget to specify multiplicities.
   So concretely, multiplicities (0,None) are coded as (0,1).</tal:comment>
-
   <tal:atMostOneReference condition="atMostOneRef">
     <tal:comment replace="nothing">Display a simplified widget if maximum number of
       referenced objects is 1.</tal:comment>

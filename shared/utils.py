@@ -209,18 +209,27 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
         res = format % n
     # Use the correct decimal separator
     res = res.replace('.', sep)
-    # Format the integer part with tsep: TODO.
+    # Insert p_tsep every 3 chars in the integer part of the number
     splitted = res.split(sep)
-    # Remove the decimal part if = 0
+    res = ''
+    i = len(splitted[0])-1
+    j = 0
+    while i >= 0:
+        j += 1
+        res = splitted[0][i] + res
+        if (j % 3) == 0:
+            res = tsep + res
+        i -= 1
+    # Add the decimal part if not 0
     if len(splitted) > 1:
         try:
             decPart = int(splitted[1])
-            if decPart == 0:
-                res = splitted[0]
+            if decPart != 0:
+                res += sep + str(decPart)
         except ValueError:
             # This exception may occur when the float value has an "exp"
-            # part, like in this example: 4.345e-05.
-            pass
+            # part, like in this example: 4.345e-05
+            res += sep + splitted[1]
     return res
 
 # ------------------------------------------------------------------------------

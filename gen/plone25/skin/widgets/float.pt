@@ -1,7 +1,8 @@
 <tal:comment replace="nothing">View macro for a Float.</tal:comment>
 <metal:view define-macro="view">
-  <span tal:content="value"
-        tal:attributes="value value; class masterCss; name name; id name"></span>
+  <span tal:replace="value"></span>
+  <input type="hidden" tal:condition="masterCss"
+         tal:attributes="class masterCss; value value; name name; id name"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for an Float.</tal:comment>
