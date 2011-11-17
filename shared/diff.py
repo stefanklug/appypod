@@ -4,6 +4,7 @@ import re, difflib
 # ------------------------------------------------------------------------------
 innerDiff = re.compile('<span name="(insert|delete)".*? title="(.*?)">' \
                        '(.*?)</span>')
+htmlTag = re.compile('<(?P<tag>\w+)( .*?)?>(.*)</(?P=tag)>')
 
 # ------------------------------------------------------------------------------
 class Merger:
@@ -28,9 +29,6 @@ class Merger:
         self.deltaPrevious = 0
         # A link to the caller HtmlDiff class.
         self.differ = differ
-        # While "consuming" diffs (see m_getNextDiff), keep here every message
-        # from every diff.
-        self.messages = [self.differ.complexMsg]
 
     def computeNewDiffs(self):
         '''lineB may include inner "insert" and/or tags. This function
@@ -74,49 +72,73 @@ class Merger:
             del self.newDiffs[0]
             return newDiff, newDiffIndex, False
 
-    def manageOverlaps(self):
-        '''We have detected that changes between lineA and lineB include
-           overlapping inserts and deletions. Our solution: to remember names
-           of editors and return the whole line in a distinct colour, where
-           we (unfortunately) can't distinguish editors's specific updates.'''
-        # First, get a "naked" version of self.lineB, without the latest
-        # updates.
-        res = self.lineB
-        for diff in self.newDiffs:
-            res = self.differ.applyDiff(res, diff)
-        # Construct the message explaining the series of updates.
-        # self.messages already contains messages from the "consumed" diffs
-        # (see m_getNextDiff).
-        for type in ('previous', 'new'):
-            exec 'diffs = self.%sDiffs' % type
-            for diff in diffs:
-                self.messages.append(diff.group(2))
-        msg = ' -=- '.join(self.messages)
-        return self.differ.getModifiedChunk(res, 'complex', '\n', msg=msg)
+    def manageOverlap(self, oldDiff):
+        '''p_oldDiff is a previously inserted text from self.lineA. This text
+           is not found anymore at the start of self.lineB[self.i:]: it means
+           that an overlapping diff exists among new diffs. We will manage this
+           by identifying several, cutted, "insert" and/or "edit" zones.'''
+        # The idea here is to "consume" the old inserted text until we have
+        # found, within the new diff, all updates that have been performed on
+        # this old text. Then, we will have found the complete "zone" that was
+        # impacted by both old and new diffs.
+        oldText = oldDiff.group(3)
+        res = ''
+        while oldText:
+            # Get the overlapping (new) diff.
+            newDiff, newDiffStart, isPrevious = self.getNextDiff()
+            if not newDiff:
+                res += self.differ.getModifiedChunk(oldText, 'insert', '',
+                                                    msg=oldDiff.group(2))
+                self.i += len(oldText)
+                oldText = ''
+                break
+            # Dump the part of the old text that has been untouched by the new
+            # diff.
+            if self.i < newDiffStart:
+                untouched = self.lineB[self.i:newDiffStart]
+                res += self.differ.getModifiedChunk(untouched, 'insert', '',
+                                                    msg=oldDiff.group(2))
+                self.i = newDiffStart
+                oldText = oldText[len(untouched):]
+            # Manage the new diff
+            res += newDiff.group(0)
+            self.i += len(newDiff.group(0))
+            self.deltaPrevious += len(newDiff.group(0))
+            if newDiff.group(1) == 'delete':
+                # Consume oldText, that was deleted, at least partly, by
+                # this diff.
+                if len(newDiff.group(3)) >= len(oldText):
+                    # We have consumed oldText in its entirety
+                    oldText = ''
+                else:
+                    oldText = oldText[len(newDiff.group(3)):]
+                self.deltaPrevious -= len(newDiff.group(3))
+        return res
 
     def merge(self):
         '''Merges self.previousDiffs into self.lineB.'''
         res = ''
         diff, diffStart, isPrevious = self.getNextDiff()
-        if diff: self.messages.append(diff.group(2))
         while diff:
             # Dump the part of lineB between self.i and diffStart
             res += self.lineB[self.i:diffStart]
             self.i = diffStart
-            # Dump the diff
-            res += diff.group(0)
             if isPrevious:
                 if diff.group(1) == 'insert':
                     # Check if the inserted text is still present in lineB
                     if self.lineB[self.i:].startswith(diff.group(3)):
-                        # Yes. Go ahead within lineB
+                        # Yes. Dump the diff and go ahead within lineB
+                        res += diff.group(0)
                         self.i += len(diff.group(3))
                     else:
                         # The inserted text can't be found as is in lineB.
                         # Must have been (partly) re-edited or removed.
-                        return self.manageOverlaps()
+                        
+                        overlap = self.manageOverlap(diff)
+                        res += overlap
             else:
-                # Update self.i
+                # Dump the diff and update self.i
+                res += diff.group(0)
                 self.i += len(diff.group(0))
                 # Because of this new diff, all indexes computed on lineA are
                 # now wrong because we express them relative to lineB. So:
@@ -129,7 +151,6 @@ class Merger:
                     self.deltaPrevious -= len(diff.group(3))
             # Load next diff
             diff, diffStart, isPrevious = self.getNextDiff()
-            if diff: self.messages.append(diff.group(2))
         # Dump the end of self.lineB if not completely consumed
         if self.i < len(self.lineB):
             res += self.lineB[self.i:]
@@ -141,14 +162,11 @@ class HtmlDiff:
        HTML chunk.'''
     insertStyle = 'color: blue; cursor: help'
     deleteStyle = 'color: red; text-decoration: line-through; cursor: help'
-    complexStyle = 'color: purple; cursor: help'
 
     def __init__(self, old, new,
                  insertMsg='Inserted text', deleteMsg='Deleted text',
-                 complexMsg='Multiple inserts and/or deletions',
-                 insertCss=None, deleteCss=None, complexCss=None,
-                 insertName='insert', deleteName='delete',
-                 complexName='complex', diffRatio=0.7):
+                 insertCss=None, deleteCss=None, insertName='insert',
+                 deleteName='delete', diffRatio=0.7):
         # p_old and p_new are strings containing chunks of HTML.
         self.old = old.strip()
         self.new = new.strip()
@@ -159,18 +177,15 @@ class HtmlDiff:
         # (who made it and at what time, for example).
         self.insertMsg = insertMsg
         self.deleteMsg = deleteMsg
-        self.complexMsg = complexMsg
         # This tag will get a CSS class p_insertCss or p_deleteCss for
         # highlighting the change. If no class is provided, default styles will
         # be used (see HtmlDiff.insertStyle and HtmlDiff.deleteStyle).
         self.insertCss = insertCss
         self.deleteCss = deleteCss
-        self.complexCss = complexCss
         # This tag will get a "name" attribute whose content will be
         # p_insertName or p_deleteName
         self.insertName = insertName
         self.deleteName = deleteName
-        self.complexName = complexName
         # The diff algorithm of this class will need to identify similarities
         # between strings. Similarity ratios will be computed by using method
         # difflib.SequenceMatcher.ratio (see m_isSimilar below). Strings whose
@@ -179,19 +194,17 @@ class HtmlDiff:
         self.diffRatio = diffRatio
         # Some computed values
         for tag in ('div', 'span'):
-            for type in ('insert', 'delete', 'complex'):
+            for type in ('insert', 'delete'):
                 setattr(self, '%s%sPrefix' % (tag, type.capitalize()),
                         '<%s name="%s"' % (tag, getattr(self, '%sName' % type)))
 
     def getModifiedChunk(self, seq, type, sep, msg=None):
         '''p_sep.join(p_seq) (if p_seq is a list) or p_seq (if p_seq is a
            string) is a chunk that was either inserted (p_type='insert') or
-           deleted (p_type='delete'). It can also be a complex, partially
-           managed combination of inserts/deletions (p_type='insert').
-           This method will surround this part with a div or span tag that will
-           get some CSS class allowing to highlight the update. If p_msg is
-           given, it will be used instead of the default p_type-related message
-           stored on p_self.'''
+           deleted (p_type='delete'). This method will surround this part with
+           a div or span tag that will get some CSS class allowing to highlight
+           the update. If p_msg is given, it will be used instead of the default
+           p_type-related message stored on p_self.'''
         # Will the surrouding tag be a div or a span?
         if sep == '\n': tag = 'div'
         else: tag = 'span'
@@ -224,57 +237,20 @@ class HtmlDiff:
             return res
 
     def applyDiff(self, line, diff):
-        '''p_diff is a regex containing an insert or delete that was found within
-           line. This function applies the diff, removing or inserting the diff
-           into p_line.'''
+        '''p_diff is a regex containing an insert or delete that was found
+           within line. This function applies the diff, removing or inserting
+           the diff into p_line.'''
         # Keep content only for "insert" tags.
         content = ''
         if diff.group(1) == 'insert':
             content = diff.group(3)
         return line[:diff.start()] + content + line[diff.end():]
 
-    def getStringDiff(self, old, new):
-        '''Identifies the differences between strings p_old and p_new by
-           computing:
-           * i = the end index of the potential common starting part (if no
-                 common part is found, i=0);
-           * jo = the start index in p_old of the potential common ending part;
-           * jn = the start index in p_new of the potential common ending part.
-        '''
-        # Compute i
-        i = -1
-        diffFound = False
-        while not diffFound:
-            i += 1
-            if (i == len(old)) or (i == len(new)): break
-            if old[i] != new[i]: diffFound = True
-        # Compute jo and jn
-        jo = len(old)
-        jn = len(new)
-        diffFound = False
-        while not diffFound:
-            if (jo == i) or (jn == i):
-                # We have reached the end of substring old[i:] or new[i:]
-                jo -=1
-                jn -= 1
-                break
-            jo -= 1
-            jn -= 1
-            if old[jo] != new[jn]: diffFound=True
-        return i, jo+1, jn+1
-
     def isSimilar(self, s1, s2):
         '''Returns True if strings p_s1 and p_s2 can be considered as
            similar.'''
         ratio = difflib.SequenceMatcher(a=s1.lower(), b=s2.lower()).ratio()
         return ratio > self.diffRatio
-
-    def splitTagAndContent(self, line):
-        '''p_line is a XHTML tag with content. This method returns a tuple
-           (startTag, content), where p_startTag is the isolated start tag and
-           content is the tag content.'''
-        i = line.find('>')+1
-        return line[0:i], line[i:line.rfind('<')]
 
     def getLineAndType(self, line):
         '''p_line is a string that can already have been surrounded by an
@@ -286,14 +262,14 @@ class HtmlDiff:
            * None else;
            "line" holds the original parameter p_line, excepted:
            * if type="insert". In that case, the surrounding insert tag has been
-             removed and placed into "outerTag" (the outer start tag to be more
-             precise);
+             removed and placed into "outerTag" (a re.MatchObject from regex
+             innerHtml, see above);
            * if inner diff tags (insert or delete) are found. In that case,
              - if inner "insert" tags are found, they are removed but their
                content is kept;
              - if inner "delete" tags are found, they are removed, content
                included;
-             - "innerDiffs" holds the list of re.MatchObjects instances
+             - "innerDiffs" holds the list of re.MatchObject instances
                representing the found inner tags.
         '''
         if line.startswith(self.divDeletePrefix):
@@ -301,7 +277,8 @@ class HtmlDiff:
         if line.startswith(self.divInsertPrefix):
             # Return the line without the surrounding tag.
             action = 'insert'
-            outerTag, line = self.splitTagAndContent(line)
+            outerTag = htmlTag.match(line)
+            line = outerTag.group(3)
         else:
             action = None
             outerTag = None
@@ -314,6 +291,21 @@ class HtmlDiff:
             innerDiffs.append(match)
             line = self.applyDiff(line, match)
         return (action, line, innerDiffs, outerTag)
+
+    def computeTag(self, regexTag, content):
+        '''p_regexTag is a re.MatchObject from regex htmlTag. p_content is a
+           new content to put within this tag. This method produces the new
+           string tag filled with p_content.'''
+        # Recompute start tag from p_regexTag
+        startTag = '<%s' % regexTag.group(1)
+        # Add tag attributes if found
+        if regexTag.group(2):
+            startTag += regexTag.group(2)
+        startTag += '>'
+        # Recompute end tag
+        endTag = '</%s>' % regexTag.group(1)
+        # Wrap content info reified tag
+        return startTag + content + endTag
 
     def getSeqDiff(self, seqA, seqB):
         '''p_seqA and p_seqB are lists of strings. Here we will try to identify
@@ -403,6 +395,42 @@ class HtmlDiff:
             i -= 1
         return l
 
+    def getLineReplacement(self, lineA, lineB, previousDiffsA, outerTagA):
+        '''p_lineA has been replaced with p_lineB. Here, we will investigate
+           further here and explore differences at the *word* level between
+           p_lineA and p_lineB.
+
+           p_previousDiffsA may contain a series of updates (inserts, deletions)
+           that have already been performed on p_lineA.
+
+           If p_lineA was a previously inserted line, p_lineA comes without his
+           outer tag, that lies in p_outerTagA (as a re.MatchObject instance
+           computed from regex htmlTag). In that case, we will wrap the result
+           with that tag.'''
+        # As a preamble, and in order to restrict annoyances due to the presence
+        # of XHTML tags, we will remove start and end tags from p_lineA and
+        # p_lineB if present.
+        matchA = htmlTag.match(lineA)
+        contentA = matchA and matchA.group(3) or lineA
+        matchB = htmlTag.match(lineB)
+        contentB = matchB and matchB.group(3) or lineB
+        # Perform the diff at the level fo words
+        diff = self.getHtmlDiff(contentA, contentB, ' ')
+        if matchB:
+            res = self.computeTag(matchB, diff)
+        else:
+            res = diff
+        # Merge potential previous inner diff tags that
+        # were found (but extracted from) lineA.
+        if previousDiffsA:
+            merger = Merger(lineA, res, previousDiffsA, self)
+            res = merger.merge()
+        # Rewrap line into outerTagA if lineA was a line tagged as previously
+        # inserted.
+        if outerTagA:
+            res = self.computeTag(outerTagA, res)
+        return res
+
     def getHtmlDiff(self, old, new, sep):
         '''Returns the differences between p_old and p_new. Result is a string
            containing the comparison in HTML format. p_sep is used for turning
@@ -440,40 +468,20 @@ class HtmlDiff:
                     toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
                 else: # At least, a true replacement
                     if sep == '\n':
+                        toAdd = []
                         # We know that some lines have been replaced from a to
                         # b. By identifying similarities between those lines,
                         # consider some as having been deleted, modified or
                         # inserted.
-                        toAdd = ''
                         for sAction, line in self.getSeqDiff(chunkA, chunkB):
                             if sAction in ('insert', 'delete'):
-                                toAdd += self.getModifiedChunk(line,sAction,sep)
+                                mChunk = self.getModifiedChunk(line,sAction,sep)
+                                toAdd.append(mChunk)
                             elif sAction == 'equal':
-                                toAdd += line
+                                toAdd.append(line)
                             elif sAction == 'replace':
-                                lineA, lineB, previousDiffsA, outerTag = line
-                                # Investigate further here and explore
-                                # differences at the *word* level between lineA
-                                # and lineB. As a preamble, and in order to
-                                # restrict annoyances due to the presence of
-                                # XHTML tags, we will compute start and end
-                                # parts wich are similar between lineA and
-                                # lineB: they may correspond to opening and
-                                # closing XHTML tags.
-                                i, ja, jb = self.getStringDiff(lineA, lineB)
-                                diff = self.getHtmlDiff(lineA[i:ja],
-                                                        lineB[i:jb], ' ')
-                                toAdd += lineB[:i] + diff + lineB[jb:]
-                                # Merge potential previous inner diff tags that
-                                # were found (but extracted from) lineA.
-                                if previousDiffsA:
-                                    merger = Merger(lineA, toAdd,
-                                                    previousDiffsA, self)
-                                    toAdd = merger.merge()
-                                # Rewrap line into outerTag if lineA was a line
-                                # tagged as previously inserted.
-                                if outerTag:
-                                    toAdd = outerTag + toAdd + '</div>'
+                                toAdd.append(self.getLineReplacement(*line))
+                        toAdd = sep.join(toAdd)
                     else:
                         toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
                         toAdd += self.getModifiedChunk(chunkB, 'insert', sep)

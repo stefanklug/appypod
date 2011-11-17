@@ -164,7 +164,7 @@ def executeCommand(cmd):
     return res
 
 # ------------------------------------------------------------------------------
-unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ')
+unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ', '\t')
 alphaRex = re.compile('[a-zA-Z]')
 alphanumRex = re.compile('[a-zA-Z0-9]')
 def normalizeString(s, usage='fileName'):
@@ -212,14 +212,16 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
     # Insert p_tsep every 3 chars in the integer part of the number
     splitted = res.split(sep)
     res = ''
-    i = len(splitted[0])-1
-    j = 0
-    while i >= 0:
-        j += 1
-        res = splitted[0][i] + res
-        if (j % 3) == 0:
-            res = tsep + res
-        i -= 1
+    if len(splitted[0]) < 4: res = splitted[0]
+    else:
+        i = len(splitted[0])-1
+        j = 0
+        while i >= 0:
+            j += 1
+            res = splitted[0][i] + res
+            if (j % 3) == 0:
+                res = tsep + res
+            i -= 1
     # Add the decimal part if not 0
     if len(splitted) > 1:
         try:
