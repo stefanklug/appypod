@@ -86,15 +86,18 @@ class Merger:
         while oldText:
             # Get the overlapping (new) diff.
             newDiff, newDiffStart, isPrevious = self.getNextDiff()
-            if not newDiff:
-                # No more new diff. So normally, we should find what remains in
-                # oldText at self.lineB[self.i:]
-                if not self.lineB[self.i:].startswith(oldText):
-                    raise 'Error!!!!'
+            if not newDiff or (newDiffStart >= (self.i + len(oldText))):
+                # No more new diff, or a new diff but far away, not within
+                # oldText. So insert new the rest of p_oldText.
+                # Invariant: at this point, we should find what remains in
+                # oldText at self.lineB[self.i:].
                 res += self.differ.getModifiedChunk(oldText, 'insert', '',
                                                     msg=oldDiff.group(2))
                 self.i += len(oldText)
                 oldText = ''
+                # If we have "popped" a new diff, dump it anyway.
+                if newDiff:
+                    res = self.dumpDiff(res, newDiff, newDiffStart, isPrevious)
                 break
             # Dump the part of the old text that has been untouched by the new
             # diff.
@@ -119,47 +122,54 @@ class Merger:
                 self.deltaPrevious -= len(newDiff.group(3))
         return res
 
+    def dumpDiff(self, res, diff, diffStart, isPrevious):
+        '''Dumps the next p_diff (starting at p_diffStart) to insert into p_res
+           and return p_res. If p_isPrevious is True, the diff is an old one
+           (from self.lineA); else, it is a new one (from self.lineB).'''
+        # Dump the part of lineB between self.i and diffStart
+        res += self.lineB[self.i:diffStart]
+        self.i = diffStart
+        if isPrevious:
+            # Dump the old diff (from self.lineA)
+            if diff.group(1) == 'insert':
+                # Check if the inserted text is still present in lineB
+                if self.lineB[self.i:].startswith(diff.group(3)):
+                    # Yes. Dump the diff and go ahead within lineB
+                    res += diff.group(0)
+                    self.i += len(diff.group(3))
+                else:
+                    # The inserted text can't be found as is in lineB.
+                    # Must have been (partly) re-edited or removed.
+                    overlap = self.manageOverlap(diff)
+                    res += overlap
+            elif diff.group(1) == 'delete':
+                res += diff.group(0)
+        else:
+            # Dump the new diff (from self.lineB)
+            res += diff.group(0)
+            # Move forward within self.lineB
+            self.i += len(diff.group(0))
+            # Because of this new diff, all indexes computed on lineA are
+            # now wrong because we express them relative to lineB. So:
+            # update self.deltaPrevious to take this into account.
+            self.deltaPrevious += len(diff.group(0))
+            if diff.group(1) == 'delete':
+                # The indexes in self.lineA do not take the deleted text into
+                # account, because it wasn't deleted at this time. So remove
+                # from self.deltaPrevious the length of removed text.
+                self.deltaPrevious -= len(diff.group(3))
+        return res
+
     def merge(self):
         '''Merges self.previousDiffs into self.lineB.'''
         res = ''
         diff, diffStart, isPrevious = self.getNextDiff()
         while diff:
-            # Dump the part of lineB between self.i and diffStart
-            res += self.lineB[self.i:diffStart]
-            self.i = diffStart
-            if isPrevious:
-                if diff.group(1) == 'insert':
-                    # Check if the inserted text is still present in lineB
-                    if self.lineB[self.i:].startswith(diff.group(3)):
-                        # Yes. Dump the diff and go ahead within lineB
-                        res += diff.group(0)
-                        self.i += len(diff.group(3))
-                    else:
-                        # The inserted text can't be found as is in lineB.
-                        # Must have been (partly) re-edited or removed.
-                        
-                        overlap = self.manageOverlap(diff)
-                        res += overlap
-                elif diff.group(1) == 'delete':
-                    res += diff.group(0)
-            else:
-                # Dump the diff and update self.i
-                res += diff.group(0)
-                self.i += len(diff.group(0))
-                # Because of this new diff, all indexes computed on lineA are
-                # now wrong because we express them relative to lineB. So:
-                # update self.deltaPrevious to take this into account.
-                self.deltaPrevious += len(diff.group(0))
-                if diff.group(1) == 'delete':
-                    # The indexes in lineA do not take the deleted text into
-                    # account, because it wasn't deleted at this time. So remove
-                    # from self.deltaPrevious the length of removed text.
-                    self.deltaPrevious -= len(diff.group(3))
-            # Load next diff
+            res = self.dumpDiff(res, diff, diffStart, isPrevious)
+            # Load the next diff, if any
             diff, diffStart, isPrevious = self.getNextDiff()
         # Dump the end of self.lineB if not completely consumed
-        if self.i < len(self.lineB):
-            res += self.lineB[self.i:]
+        if self.i < len(self.lineB): res += self.lineB[self.i:]
         return res
 
 # ------------------------------------------------------------------------------
@@ -405,12 +415,14 @@ class HtmlDiff:
         return res
 
     garbage = ('', '\r')
-    def removeGarbage(self, l):
+    def removeGarbage(self, l, sep):
         '''Removes from list p_l elements that have no interest, like blank
-           strings or considered as is.'''
+           strings or considered as is. Also: strip lines (ie, if sep is a
+           carriage return.'''
         i = len(l)-1
         while i >= 0:
             if l[i] in self.garbage: del l[i]
+            if sep == '\n': l[i] = l[i].strip()
             i -= 1
         return l
 
@@ -444,33 +456,64 @@ class HtmlDiff:
             if old[jo] != new[jn]: diffFound=True
         return i, jo+1, jn+1
 
-    def getReplacement(self, sep, lineA, lineB, previousDiffsA, outerTagA):
-        '''p_lineA has been replaced with p_lineB. Here, we will investigate
-           further here and explore differences at the *word* level between
-           p_lineA and p_lineB.
+    def getDumpPrefix(self, res, add, previousAdd, sep):
+        '''In most cases, when concatenating the next diff (p_add) to the
+           global result (p_res), I must prefix it with p_sep (excepted if p_res
+           is still empty). But when p_sep is a space, no space must be inserted
+           between 2 adjacent updates (p_add and p_previousAdd), because such a
+           space was not in the original version. This method computes the
+           prefix, that can thus be empty if this latter case is met.'''
+        prefix = ''
+        if not res: return prefix
+        if (sep == ' ') and previousAdd and \
+           previousAdd.endswith('</span>') and add.startswith('<span'):
+            pass
+        else:
+            prefix = sep
+        return prefix
 
-           p_previousDiffsA may contain a series of updates (inserts, deletions)
-           that have already been performed on p_lineA.
+    def getReplacement(self, chunkA, chunkB, sep):
+        '''p_chunkA has been replaced with p_chunkB. Compute this update and
+           return it.'''
+        res = ''
+        # We know that some lines have been replaced from chunkA to chunkB. By
+        # identifying similarities between those lines, consider some as having
+        # been deleted, modified or inserted.
+        previousAdd = None
+        for action, line in self.getSeqDiff(chunkA, chunkB, sep):
+            add = None
+            if action in ('insert', 'delete'):
+                add = self.getModifiedChunk(line, action, sep)
+            elif action == 'equal':
+                add = line
+            elif action == 'replace':
+                lineA, lineB, previousDiffsA, outerTagA = line
+                # lineA has been replaced with lineB. Here, we will investigate
+                # further here and explore differences at the *word* level
+                # between lineA and lineB. previousDiffsA may contain a series
+                # of updates (inserts, deletions) that have already been
+                # performed on lineA. If lineA was a previously inserted line,
+                # lineA comes without his outer tag, that lies in outerTagA
+                # (as a re.MatchObject instance computed from regex htmlTag).
+                # In that case, we will wrap the result with that tag.
 
-           If p_lineA was a previously inserted line, p_lineA comes without his
-           outer tag, that lies in p_outerTagA (as a re.MatchObject instance
-           computed from regex htmlTag). In that case, we will wrap the result
-           with that tag.'''
-        # As a preamble, and in order to restrict annoyances due to the presence
-        # of XHTML tags, we will remove start and end tags from p_lineA and
-        # p_lineB if present.
-        i, ja, jb = self.getStringDiff(lineA, lineB)
-        diff = self.getHtmlDiff(lineA[i:ja], lineB[i:jb], ' ')
-        res = lineB[:i] + diff + lineB[jb:]
-        # Merge potential previous inner diff tags that were found (but
-        # extracted from) lineA.
-        if previousDiffsA:
-            merger = Merger(lineA, res, previousDiffsA, self)
-            res = merger.merge()
-        # Rewrap line into outerTagA if lineA was a line tagged as previously
-        # inserted.
-        if outerTagA:
-            res = self.computeTag(outerTagA, res)
+                # As a preamble, and in order to restrict annoyances due to the
+                # presence of XHTML tags, we will remove start and end tags
+                # from lineA and lineB if present.
+                i, ja, jb = self.getStringDiff(lineA, lineB)
+                diff = self.getHtmlDiff(lineA[i:ja], lineB[i:jb], ' ')
+                add = lineB[:i] + diff + lineB[jb:]
+                # Merge potential previous inner diff tags that were found (but
+                # extracted from) lineA.
+                if previousDiffsA:
+                    merger = Merger(lineA, add, previousDiffsA, self)
+                    add = merger.merge()
+                # Rewrap line into outerTagA if lineA was a line tagged as
+                # previously inserted.
+                if outerTagA:
+                    add = self.computeTag(outerTagA, add)
+            if add: res += self.getDumpPrefix(res, add, previousAdd, sep) + add
+            previousAdd = add
         return res
 
     def getHtmlDiff(self, old, new, sep):
@@ -482,65 +525,40 @@ class HtmlDiff:
            word-by-word comparison within 2 lines that have been detected as
            similar in a previous call to m_getHtmlDiff with sep=carriage
            return.'''
-        res = []
+        res = ''
         a = self.split(old, sep)
         b = self.split(new, sep)
         matcher = difflib.SequenceMatcher()
         matcher.set_seqs(a, b)
+        previousAdd = None
         for action, i1, i2, j1, j2 in matcher.get_opcodes():
+            add = None
             # When sep is a space, we need to remember if we are dealing with
             # the last diff within the line or not.
-            chunkA = self.removeGarbage(a[i1:i2])
-            chunkB = self.removeGarbage(b[j1:j2])
-            toAdd = None
+            chunkA = self.removeGarbage(a[i1:i2], sep)
+            chunkB = self.removeGarbage(b[j1:j2], sep)
             if action == 'equal':
-                if chunkA: toAdd = sep.join(chunkA)
+                if chunkA: add = sep.join(chunkA)
             elif action == 'insert':
                 if chunkB:
-                    toAdd = self.getModifiedChunk(chunkB, action, sep)
+                    add = self.getModifiedChunk(chunkB, action, sep)
             elif action == 'delete':
                 if chunkA:
-                    toAdd = self.getModifiedChunk(chunkA, action, sep)
+                    add = self.getModifiedChunk(chunkA, action, sep)
             elif action == 'replace':
                 if not chunkA and not chunkB:
-                    toAdd = ''
+                    pass
                 elif not chunkA:
                     # Was an addition, not a replacement
-                    toAdd = self.getModifiedChunk(chunkB, 'insert', sep)
+                    add = self.getModifiedChunk(chunkB, 'insert', sep)
                 elif not chunkB:
                     # Was a deletion, not a replacement
-                    toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
+                    add = self.getModifiedChunk(chunkA, 'delete', sep)
                 else: # At least, a true replacement
-                    toAdd = ''
-                    # We know that some lines have been replaced from a to b.
-                    # By identifying similarities between those lines, consider
-                    # some as having been deleted, modified or inserted.
-                    previousAdd = None
-                    for sAction, line in self.getSeqDiff(chunkA, chunkB, sep):
-                        if sAction in ('insert', 'delete'):
-                            add = self.getModifiedChunk(line, sAction, sep)
-                        elif sAction == 'equal':
-                            add = line
-                        elif sAction == 'replace':
-                            add = self.getReplacement(sep, *line)
-                        # In most cases, I must prefix "add" with "sep" before
-                        # concatenating it to "toAdd" (excepted if toAdd is
-                        # still empty). But when "sep" is a space, no space
-                        # must be inserted between 2 adjacent updates, because
-                        # such a space was not in the original version.
-                        prefix = ''
-                        if toAdd:
-                            if (sep == ' ') and previousAdd and \
-                               previousAdd.endswith('</span>') and \
-                               add.startswith('<span'):
-                                pass
-                            else:
-                                prefix = sep
-                        toAdd += prefix + add
-                        if sep == ' ':
-                        previousAdd = add
-            if toAdd: res.append(toAdd)
-        return sep.join(res)
+                    add = self.getReplacement(chunkA, chunkB, sep)
+            if add: res += self.getDumpPrefix(res, add, previousAdd, sep) + add
+            previousAdd = add
+        return res
 
     def get(self):
         '''Produces the result.'''
