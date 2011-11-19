@@ -90,13 +90,7 @@ class Merger:
                 # No more new diff. So normally, we should find what remains in
                 # oldText at self.lineB[self.i:]
                 if not self.lineB[self.i:].startswith(oldText):
-                    # Anormal additional char. Probably a space? Indeed,
-                    # word-level comparisons imply split(' ') which can be
-                    # error-prone.
-                    res += self.lineB[self.i]
-                    self.i += 1
-                    if not self.lineB[self.i:].startswith(oldText):
-                        raise 'Error!!!!'
+                    raise 'Error!!!!'
                 res += self.differ.getModifiedChunk(oldText, 'insert', '',
                                                     msg=oldDiff.group(2))
                 self.i += len(oldText)
@@ -128,9 +122,6 @@ class Merger:
     def merge(self):
         '''Merges self.previousDiffs into self.lineB.'''
         res = ''
-        print 'MERGE'
-        print 'Line A', self.lineA
-        print 'Line B', self.lineB
         diff, diffStart, isPrevious = self.getNextDiff()
         while diff:
             # Dump the part of lineB between self.i and diffStart
@@ -218,7 +209,9 @@ class HtmlDiff:
            string) is a chunk that was either inserted (p_type='insert') or
            deleted (p_type='delete'). This method will surround this part with
            a div or span tag that will get some CSS class allowing to highlight
-           the update. If p_msg is given, it will be used instead of the default
+           the update.
+
+           If p_msg is given, it will be used instead of the default
            p_type-related message stored on p_self.'''
         # Will the surrouding tag be a div or a span?
         if sep == '\n': tag = 'div'
@@ -233,7 +226,7 @@ class HtmlDiff:
         else:
             exec 'style = self.%sStyle' % type
             style = 'style="%s"' % style
-        # the 'name' attribute of the tag indicates the type of the update.
+        # The 'name' attribute of the tag indicates the type of the update.
         exec 'tagName = self.%sName' % type
         # The idea is: if there are several lines, every line must be surrounded
         # by a tag. This way, we know that a surrounding tag can't span several
@@ -421,7 +414,36 @@ class HtmlDiff:
             i -= 1
         return l
 
-    nextSeps = {'\n': ' ', ' ': ''}
+    def getStringDiff(self, old, new):
+        '''Identifies the differences between strings p_old and p_new by
+           computing:
+           * i = the end index of the potential common starting part (if no
+                 common part is found, i=0);
+           * jo = the start index in p_old of the potential common ending part;
+           * jn = the start index in p_new of the potential common ending part.
+        '''
+        # Compute i
+        i = -1
+        diffFound = False
+        while not diffFound:
+            i += 1
+            if (i == len(old)) or (i == len(new)): break
+            if old[i] != new[i]: diffFound = True
+        # Compute jo and jn
+        jo = len(old)
+        jn = len(new)
+        diffFound = False
+        while not diffFound:
+            if (jo == i) or (jn == i):
+                # We have reached the end of substring old[i:] or new[i:]
+                jo -=1
+                jn -= 1
+                break
+            jo -= 1
+            jn -= 1
+            if old[jo] != new[jn]: diffFound=True
+        return i, jo+1, jn+1
+
     def getReplacement(self, sep, lineA, lineB, previousDiffsA, outerTagA):
         '''p_lineA has been replaced with p_lineB. Here, we will investigate
            further here and explore differences at the *word* level between
@@ -437,18 +459,11 @@ class HtmlDiff:
         # As a preamble, and in order to restrict annoyances due to the presence
         # of XHTML tags, we will remove start and end tags from p_lineA and
         # p_lineB if present.
-        matchA = htmlTag.match(lineA)
-        contentA = matchA and matchA.group(3) or lineA
-        matchB = htmlTag.match(lineB)
-        contentB = matchB and matchB.group(3) or lineB
-        # Perform the diff at the level of words
-        diff = self.getHtmlDiff(contentA, contentB, self.nextSeps[sep])
-        if matchB:
-            res = self.computeTag(matchB, diff)
-        else:
-            res = diff
-        # Merge potential previous inner diff tags that
-        # were found (but extracted from) lineA.
+        i, ja, jb = self.getStringDiff(lineA, lineB)
+        diff = self.getHtmlDiff(lineA[i:ja], lineB[i:jb], ' ')
+        res = lineB[:i] + diff + lineB[jb:]
+        # Merge potential previous inner diff tags that were found (but
+        # extracted from) lineA.
         if previousDiffsA:
             merger = Merger(lineA, res, previousDiffsA, self)
             res = merger.merge()
@@ -468,15 +483,13 @@ class HtmlDiff:
            similar in a previous call to m_getHtmlDiff with sep=carriage
            return.'''
         res = []
-        if sep:
-            a = self.split(old, sep)
-            b = self.split(new, sep)
-        else:
-            a = old
-            b = new
+        a = self.split(old, sep)
+        b = self.split(new, sep)
         matcher = difflib.SequenceMatcher()
         matcher.set_seqs(a, b)
         for action, i1, i2, j1, j2 in matcher.get_opcodes():
+            # When sep is a space, we need to remember if we are dealing with
+            # the last diff within the line or not.
             chunkA = self.removeGarbage(a[i1:i2])
             chunkB = self.removeGarbage(b[j1:j2])
             toAdd = None
@@ -498,27 +511,34 @@ class HtmlDiff:
                     # Was a deletion, not a replacement
                     toAdd = self.getModifiedChunk(chunkA, 'delete', sep)
                 else: # At least, a true replacement
-                    toAdd = []
-                    # We know that some lines/words have been replaced from a to
-                    # b. By identifying similarities between those lines/words,
-                    # consider some as having been deleted, modified or
-                    # inserted.
+                    toAdd = ''
+                    # We know that some lines have been replaced from a to b.
+                    # By identifying similarities between those lines, consider
+                    # some as having been deleted, modified or inserted.
+                    previousAdd = None
                     for sAction, line in self.getSeqDiff(chunkA, chunkB, sep):
                         if sAction in ('insert', 'delete'):
-                            mChunk = self.getModifiedChunk(line, sAction, sep)
-                            toAdd.append(mChunk)
+                            add = self.getModifiedChunk(line, sAction, sep)
                         elif sAction == 'equal':
-                            toAdd.append(line)
+                            add = line
                         elif sAction == 'replace':
-                            toAdd.append(self.getReplacement(sep, *line))
-                    # The following line, when sep is the space (=when workin
-                    # on diffs at the word level), leads to additional spaces
-                    # being dumped into the result (ie, a space between a delete
-                    # and an insert, which was not in the initial text). We
-                    # could not find a way to avoid inserting those spaces. So
-                    # when merging diffs (see Merger.merge), we know that a
-                    # 'space' error can occur and we take it into account then.
-                    toAdd = sep.join(toAdd)
+                            add = self.getReplacement(sep, *line)
+                        # In most cases, I must prefix "add" with "sep" before
+                        # concatenating it to "toAdd" (excepted if toAdd is
+                        # still empty). But when "sep" is a space, no space
+                        # must be inserted between 2 adjacent updates, because
+                        # such a space was not in the original version.
+                        prefix = ''
+                        if toAdd:
+                            if (sep == ' ') and previousAdd and \
+                               previousAdd.endswith('</span>') and \
+                               add.startswith('<span'):
+                                pass
+                            else:
+                                prefix = sep
+                        toAdd += prefix + add
+                        if sep == ' ':
+                        previousAdd = add
             if toAdd: res.append(toAdd)
         return sep.join(res)
 
