@@ -72,6 +72,61 @@ class Merger:
             del self.newDiffs[0]
             return newDiff, newDiffIndex, False
 
+    def manageBackOverlap(self, newDiff, oldText):
+        '''p_newDiff has been removed from self.lineB. Here we check if there
+           is no overlap with inserts from self.lineA, ie, text that was
+           inserted in one if the many cumulative updates from self.lineA and
+           that was deleted in self.lineB.'''
+        # Before managing the overlap, check if there is one.
+        oldDiff, oldDiffStart, isPrevious = self.getNextDiff()
+        newDiffEnd = self.i + len(newDiff.group(3)) - len(oldText)
+        if not oldDiff or not isPrevious or (oldDiffStart >= newDiffEnd):
+            # There is no overlapping. Dump p_newDiff and the next diff as is
+            # (if any).
+            res = self.dumpNewDiff(newDiff)
+            if oldDiff:
+                # WARNING: oldDiffStart is not up-to-date! Indeed, we have
+                # called getNextDiff (at the start of this method) BEFORE
+                # calling dumpNewDiff (the line above). But dumpNewDiff updates
+                # self.deltaPrevious. So we need to recompute oldDiffStart with
+                # the current self.deltaPrevious
+                if isPrevious:
+                    oldDiffStart = oldDiff.start() + self.deltaPrevious
+                res += self.dumpDiff(oldDiff, oldDiffStart, isPrevious)
+            return res
+        # If we are here, we must manage a back overlap. We will do it by
+        # "consuming" p_newDiff.
+        newText = newDiff.group(3)
+        res = ''
+        consumed = 0
+        while True:
+            # First, dump the part of p_newDiff that is not impacted by oldDiff.
+            text = newText[consumed:oldDiffStart-self.i]
+            if text:
+                res += self.differ.getModifiedChunk(text, 'delete', '',
+                                                    msg=newDiff.group(2))
+                consumed += len(text)
+            # Then, dump the part that overlaps with oldDiff
+            text = oldDiff.group(3)
+            res += self.differ.getModifiedChunk(text, 'delete', '',
+                                                msg=newDiff.group(2))
+            consumed += len(text)
+            if consumed >= len(newText): break
+            # Get the next diff
+            oldDiff, oldDiffStart, isPrevious = self.getNextDiff()
+            if not oldDiff or not isPrevious or (oldDiffStart > newDiffEnd):
+                # End of the overlapping. Dump what remains in newText and dump
+                # this next uncorrelated diff afterwards.
+                res += self.differ.getModifiedChunk(text, 'delete', '',
+                                                    msg=newDiff.group(2))
+                self.i += len(newDiff.group(3))
+                if oldDiff:
+                    res += self.dumpDiff(oldDiff, oldDiffStart, isPrevious)
+                break
+        # Move forward within self.lineB w.r.t p_newDiff
+        self.i += len(newDiff.group(0))
+        return res
+
     def manageOverlap(self, oldDiff):
         '''p_oldDiff is a previously inserted text from self.lineA. This text
            is not found anymore at the start of self.lineB[self.i:]: it means
@@ -91,13 +146,15 @@ class Merger:
                 # oldText. So insert new the rest of p_oldText.
                 # Invariant: at this point, we should find what remains in
                 # oldText at self.lineB[self.i:].
+                if not self.lineB[self.i:].startswith(oldText):
+                    raise 'Error!!!!'
                 res += self.differ.getModifiedChunk(oldText, 'insert', '',
                                                     msg=oldDiff.group(2))
                 self.i += len(oldText)
                 oldText = ''
                 # If we have "popped" a new diff, dump it anyway.
                 if newDiff:
-                    res = self.dumpDiff(res, newDiff, newDiffStart, isPrevious)
+                    res += self.dumpDiff(newDiff, newDiffStart, isPrevious)
                 break
             # Dump the part of the old text that has been untouched by the new
             # diff.
@@ -108,26 +165,45 @@ class Merger:
                 self.i = newDiffStart
                 oldText = oldText[len(untouched):]
             # Manage the new diff
-            res += newDiff.group(0)
-            self.i += len(newDiff.group(0))
-            self.deltaPrevious += len(newDiff.group(0))
-            if newDiff.group(1) == 'delete':
-                # Consume oldText, that was deleted, at least partly, by
-                # this diff.
-                if len(newDiff.group(3)) >= len(oldText):
-                    # We have consumed oldText in its entirety
-                    oldText = ''
-                else:
+            if (newDiff.group(1) == 'delete') and \
+               len(newDiff.group(3)) > len(oldText):
+                # Among deleted text, check if there is no overlap with previous
+                # diffs (text deleted in self.lineB, might have been added in
+                # one of the many cumulated updates in self.lineA).
+                res += self.manageBackOverlap(newDiff, oldText)
+                oldText = ''
+            else:
+                # Dump the new diff and update oldText
+                res += self.dumpNewDiff(newDiff)
+                if newDiff.group(1) == 'delete':
+                    # Consume oldText, that was deleted, at least partly, by
+                    # this diff.
                     oldText = oldText[len(newDiff.group(3)):]
-                self.deltaPrevious -= len(newDiff.group(3))
         return res
 
-    def dumpDiff(self, res, diff, diffStart, isPrevious):
-        '''Dumps the next p_diff (starting at p_diffStart) to insert into p_res
-           and return p_res. If p_isPrevious is True, the diff is an old one
+    def dumpNewDiff(self, diff):
+        '''Computes p_newDiff as it must appear in the result and return it.'''
+        # Dump the new diff (from self.lineB)
+        res = diff.group(0)
+        # Move forward within self.lineB
+        self.i += len(diff.group(0))
+        # Because of this new diff, all indexes computed on self.lineA are now
+        # wrong because we express them relative to lineB. So: update
+        # self.deltaPrevious to take this into account.
+        self.deltaPrevious += len(diff.group(0))
+        if diff.group(1) == 'delete':
+            # The indexes in self.lineA do not take the deleted text into
+            # account, because it wasn't deleted at this time. So remove
+            # from self.deltaPrevious the length of removed text.
+            self.deltaPrevious -= len(diff.group(3))
+        return res
+
+    def dumpDiff(self, diff, diffStart, isPrevious):
+        '''Computes the next p_diff (starting at p_diffStart) to insert into the
+           result and return it. If p_isPrevious is True, the diff is an old one
            (from self.lineA); else, it is a new one (from self.lineB).'''
         # Dump the part of lineB between self.i and diffStart
-        res += self.lineB[self.i:diffStart]
+        res = self.lineB[self.i:diffStart]
         self.i = diffStart
         if isPrevious:
             # Dump the old diff (from self.lineA)
@@ -145,19 +221,7 @@ class Merger:
             elif diff.group(1) == 'delete':
                 res += diff.group(0)
         else:
-            # Dump the new diff (from self.lineB)
-            res += diff.group(0)
-            # Move forward within self.lineB
-            self.i += len(diff.group(0))
-            # Because of this new diff, all indexes computed on lineA are
-            # now wrong because we express them relative to lineB. So:
-            # update self.deltaPrevious to take this into account.
-            self.deltaPrevious += len(diff.group(0))
-            if diff.group(1) == 'delete':
-                # The indexes in self.lineA do not take the deleted text into
-                # account, because it wasn't deleted at this time. So remove
-                # from self.deltaPrevious the length of removed text.
-                self.deltaPrevious -= len(diff.group(3))
+            res += self.dumpNewDiff(diff)
         return res
 
     def merge(self):
@@ -165,7 +229,7 @@ class Merger:
         res = ''
         diff, diffStart, isPrevious = self.getNextDiff()
         while diff:
-            res = self.dumpDiff(res, diff, diffStart, isPrevious)
+            res += self.dumpDiff(diff, diffStart, isPrevious)
             # Load the next diff, if any
             diff, diffStart, isPrevious = self.getNextDiff()
         # Dump the end of self.lineB if not completely consumed
