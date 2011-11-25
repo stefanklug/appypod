@@ -21,7 +21,7 @@
                         empty not: info/size;">
 
  <tal:showFile condition="not: empty">
-  <metal:call use-macro="app/skyn/widgets/file/macros/view"/><br/>
+  <metal:call use-macro="app/ui/widgets/file/macros/view"/><br/>
  </tal:showFile>
  <tal:editButtons condition="not: empty">
   <tal:comment replace="nothing">Keep the file untouched.</tal:comment>
@@ -66,7 +66,7 @@
 
 <tal:comment replace="nothing">Cell macro for an File.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="app/skyn/widgets/file/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/file/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an File.</tal:comment>

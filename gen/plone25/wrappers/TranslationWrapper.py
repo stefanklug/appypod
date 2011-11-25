@@ -25,7 +25,7 @@ class TranslationWrapper(AbstractWrapper):
             # This way, the translator sees the HTML tags and can reproduce them
             # in the translation.
             url = self.request['URL']
-            if url.endswith('/skyn/edit') or url.endswith('/skyn/do'):
+            if url.endswith('/ui/edit') or url.endswith('/do'):
                 sourceMsg = sourceMsg.replace('<','&lt;').replace('>','&gt;')
             sourceMsg = sourceMsg.replace('\n', '<br/>')
         return '<div class="translationLabel"><acronym title="%s">' \

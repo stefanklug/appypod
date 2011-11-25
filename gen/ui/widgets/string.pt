@@ -69,7 +69,7 @@
                 content="python: ', '.join(value)">
   </tal:multiple>
   <tal:notMultiple condition="not: multipleValues">
-    <metal:call use-macro="app/skyn/widgets/string/macros/view"/>
+    <metal:call use-macro="app/ui/widgets/string/macros/view"/>
   </tal:notMultiple>
 </metal:cell>
 

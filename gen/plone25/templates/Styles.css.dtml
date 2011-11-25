@@ -58,7 +58,7 @@ fieldset {
 }
 
 .fakeButton {
-  background: #ffd5c0 url(&dtml-portal_url;/skyn/fakeTransition.gif) 5px 1px no-repeat;
+  background: #ffd5c0 url(&dtml-portal_url;/ui/fakeTransition.gif) 5px 1px no-repeat;
   padding: 3px 4px 3px 12px;
 }
 

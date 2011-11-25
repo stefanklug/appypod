@@ -1,10 +1,10 @@
 <html metal:define-macro="main"
-      tal:define="user context/portal_membership/getAuthenticatedMember;
-                  isAnon python: user.getUserName() == 'Anonymous User';
+      tal:define="user tool/getUser;
+                  isAnon tool/userIsAnon;
                   app tool/getApp;
                   appUrl app/absolute_url;
-                  appFolder tool/getAppFolder;
-                  appName appFolder/getId;
+                  appFolder app/data;
+                  appName tool/getAppName;
                   _ python: tool.translate;
                   req python: request;
                   resp req/RESPONSE;
@@ -14,8 +14,8 @@
 
 <head>
   <title tal:content="tool/getAppName"></title>
-  <link rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/skyn/appy.css"/>
-  <script type="text/javascript" tal:attributes="src string:$appUrl/skyn/appy.js"></script>
+  <link rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/appy.css"/>
+  <script type="text/javascript" tal:attributes="src string:$appUrl/ui/appy.js"></script>
 </head>
 
 <body>
@@ -26,30 +26,29 @@
    <table width="100%">
     <tr valign="top">
      <tal:comment replace="nothing">Logo</tal:comment>
-     <td><a tal:attributes="href appUrl"><img tal:attributes="src string: $appUrl/skyn/logo.jpg"/></a></td>
+     <td><a tal:attributes="href appUrl"><img tal:attributes="src string: $appUrl/ui/logo.jpg"/></a></td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
      <td align="right"
-         tal:define="appLangs app/portal_languages/listSupportedLanguages;
-                     defLang python: app.portal_languages.getLanguageBindings()[0];
+         tal:define="languages tool/getLanguages;
+                     defaultLanguage python: languages[0];
                      suffix python: req.get('ACTUAL_URL').split('/')[-1];
-                     asLinks python: len(appLangs) &lt;= 5"
-         tal:condition="python: len(appLangs) &gt;= 2 and (suffix not in ('edit', 'query', 'search'))">
+                     asLinks python: len(languages) &lt;= 5"
+         tal:condition="python: len(languages) &gt;= 2 and (suffix not in ('edit', 'query', 'search'))">
       <table tal:condition="asLinks">
        <tr>
-        <td tal:repeat="lang appLangs">
+        <td tal:repeat="lang languages">
           <a class="lang"
-             tal:attributes="href python: req.get('ACTUAL_URL')+'/switchLanguage?set_language=%s' % lang[0];
-                             title python: app.portal_languages.getNameForLanguageCode(lang[1])"
-             tal:content="python: lang[0]"></a>
+             tal:attributes="href python: req.get('ACTUAL_URL')+'/switchLanguage?set_language=%s' % lang;
+                             title python: tool.getLanguageName(lang)"
+             tal:content="python: lang"></a>
          </td>
         </tr>
       </table>
       <select tal:condition="not: asLinks"
               tal:attributes="onchange string:window.location='${context/absolute_url}/switchLanguage?set_language=' + this.options[this.selectedIndex].value">
-       <option tal:repeat="lang appLangs"
-               tal:content="python:app.portal_languages.getNameForLanguageCode(lang[0]) or lang[1]"
-               tal:attributes="selected python:defLanguage == lang[0];
-                               value python:lang[0]">
+       <option tal:repeat="lang languages"
+               tal:content="python: tool.getLanguageName(lang)"
+               tal:attributes="selected python:defaultLanguage == lang; value lang">
        </option>
       </select>
      </td>
@@ -61,7 +60,7 @@
  <tr>
   <td>
    <div style="position: relative" align="right">
-    <metal:msg use-macro="app/skyn/page/macros/message"/>
+    <metal:msg use-macro="app/ui/page/macros/message"/>
    </div>
    <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
    <div id="grey" class="grey"></div>
@@ -89,8 +88,7 @@
     <tr>
      <td>
       <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
-       <table align="center" tal:condition="isAnon" class="login"
-              tal:define="auth nocall:app/acl_users/credentials_cookie_auth">
+       <table align="center" tal:condition="isAnon" class="login">
        <tr><td>
         <form name="loginform" method="post"
               tal:attributes="action python: tool.absolute_url() + '/performLogin'">
@@ -115,17 +113,17 @@
         <td>
          <!-- Go home -->
          <a tal:attributes="href appUrl; title python: _('home')">
-          <img tal:attributes="src string: $appUrl/skyn/home.gif"/>
+          <img tal:attributes="src string: $appUrl/ui/home.gif"/>
          </a>
          <!-- Config -->
          <img style="cursor:pointer" tal:condition="python: user.has_role('Manager')"
            tal:attributes="onClick python: 'href: window.location=\'%s\'' % tool.getUrl(page='main', nav='');
                            title python: _('%sTool' % appName);
-                           src string:$appUrl/skyn/appyConfig.gif"/>
+                           src string:$appUrl/ui/appyConfig.gif"/>
          <!-- Logout -->
          <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
                             title python: _('logout')">
-          <img tal:attributes="src string: $appUrl/skyn/logout.gif"/>
+          <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
          </a>
         </td>
         <td align="right" tal:content="python: tool.getUserLine(user)"></td>
@@ -142,7 +140,7 @@
      <tr valign="top">
       <tal:comment replace="nothing">Portlet</tal:comment>
       <td tal:condition="python: tool.showPortlet(context)" class="portlet">
-        <metal:portlet use-macro="app/skyn/portlet/macros/portlet"/>
+        <metal:portlet use-macro="app/ui/portlet/macros/portlet"/>
       </td>
       <tal:comment replace="nothing">Page content</tal:comment>
       <td class="content"><span metal:define-slot="content"></span></td>

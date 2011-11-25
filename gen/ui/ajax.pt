@@ -11,10 +11,10 @@
                   page req/page;
                   macro req/macro;
                   action req/action|nothing;
-                  user contextObj/portal_membership/getAuthenticatedMember;
+                  user contextObj/getUser;
                   app tool/getApp;
                   appUrl app/absolute_url;
-                  template python: contextObj.getPageTemplate(app.skyn, page);
+                  template python: contextObj.getPageTemplate(app.ui, page);
                   x python: resp.setHeader('Content-Type','text/html;;charset=utf-8');
                   x python: resp.setHeader('Expires', 'Mon, 11 Dec 1975 12:05:05 GMT');
                   x python: resp.setHeader('Content-Language', req.get('language', 'en'));

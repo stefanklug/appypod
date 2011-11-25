@@ -14,12 +14,12 @@
 <body>
 <metal:fill fill-slot="main"
        tal:define="appFolder context/getParentNode;
-                   contentType request/type_name;
+                   className request/className;
                    tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   importElems python: tool.getImportElements(contentType);
+                   importElems python: tool.getImportElements(className);
                    global allAreImported python:True">
 
-  <div metal:use-macro="here/skyn/page/macros/prologue"/>
+  <div metal:use-macro="context/ui/page/macros/prologue"/>
   <script language="javascript">
   <!--
   var importedElemsShown = false;
@@ -68,9 +68,9 @@
   </script>
   <tal:comment replace="nothing">Form for importing several meetings at once.</tal:comment>
   <form name="importElements"
-        tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
+        tal:attributes="action python: appFolder.absolute_url()+'/do'" method="post">
     <input type="hidden" name="action" value="ImportObjects"/>
-    <input type="hidden" name="type_name" tal:attributes="value contentType"/>
+    <input type="hidden" name="className" tal:attributes="value className"/>
     <input type="hidden" name="importPath" value=""/>
   </form>
 
@@ -79,19 +79,19 @@
     <tr>
       <th tal:repeat="columnHeader python: importElems[0]">
         <img tal:condition="python: repeat['columnHeader'].number() == 1"
-             tal:attributes="src string:$appUrl/skyn/eye.png;
+             tal:attributes="src string:$appUrl/ui/eye.png;
                              title python: tool.translate('import_show_hide')"
              style="cursor:pointer" onClick="toggleViewableElements()" align="left" />
         <span tal:replace="columnHeader"/>
       </th>
       <th tal:content="python: tool.translate('ref_actions')"></th>
       <th width="20px"><img
-        tal:attributes="src string: $appUrl/skyn/select_elems.png;
+        tal:attributes="src string: $appUrl/ui/select_elems.png;
                         title python: tool.translate('select_delesect')"
         onClick="toggleCheckboxes()" style="cursor:pointer"/>
     </tr>
     <tal:row repeat="row python: importElems[1]">
-    <tr tal:define="alreadyImported python: tool.isAlreadyImported(contentType, row[0]);
+    <tr tal:define="alreadyImported python: tool.isAlreadyImported(className, row[0]);
                     global allAreImported python: allAreImported and alreadyImported;
                     odd repeat/row/odd"
         tal:attributes="id python: alreadyImported and 'importedElem' or 'notImportedElem';

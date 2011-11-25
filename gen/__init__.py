@@ -311,9 +311,9 @@ class Search:
            named p_fieldName can't be used for p_usage.'''
         if fieldName == 'title':
             if usage == 'search':  return 'Title'
-            else:                  return 'sortable_title'
-            # Indeed, for field 'title', Plone has created a specific index
-            # 'sortable_title', because index 'Title' is a ZCTextIndex
+            else:                  return 'SortableTitle'
+            # Indeed, for field 'title', Appy has a specific index
+            # 'SortableTitle', because index 'Title' is a ZCTextIndex
             # (for searchability) and can't be used for sorting.
         elif fieldName == 'description':
             if usage == 'search':  return 'Description'
@@ -1229,12 +1229,12 @@ class String(Type):
         res = Type.getIndexValue(self, obj, forSearch)
         if isinstance(res, unicode):
             res = res.encode('utf-8')
-        # Ugly portal_catalog: if I give an empty tuple as index value,
-        # portal_catalog keeps the previous value! If I give him a tuple
-        # containing an empty string, it is ok.
+        # Ugly catalog: if I give an empty tuple as index value, it keeps the
+        # previous value. If I give him a tuple containing an empty string, it
+        # is ok.
         if isinstance(res, tuple) and not res: res = self.emptyStringTuple
-        # Ugly portal_catalog: if value is an empty string or None, it keeps
-        # the previous index value!
+        # Ugly catalog: if value is an empty string or None, it keeps the
+        # previous index value.
         if res in self.emptyValuesCatalogIgnored: res = ' '
         return res
 
@@ -1757,7 +1757,7 @@ class Ref(Type):
             if type == 'uids':
                 ref = uids[i]
             else:
-                ref = obj.uid_catalog(UID=uids[i])[0].getObject()
+                ref = obj.getTool().getObject(uids[i])
                 if type == 'objects':
                     ref = ref.appy()
             res.objects.append(ref)
@@ -1907,14 +1907,14 @@ class Computed(Type):
 
     def callMacro(self, obj, macroPath):
         '''Returns the macro corresponding to p_macroPath. The base folder
-           where we search is "skyn".'''
+           where we search is "ui".'''
         # Get the special page in Appy that allows to call a macro
-        macroPage = obj.skyn.callMacro
+        macroPage = obj.ui.callMacro
         # Get, from p_macroPath, the page where the macro lies, and the macro
         # name.
         names = self.method.split('/')
         # Get the page where the macro lies
-        page = obj.skyn
+        page = obj.ui
         for name in names[:-1]:
             page = getattr(page, name)
         macroName = names[-1]
@@ -2140,7 +2140,7 @@ class Pod(Type):
             exec cmd
             # (re-)execute the query, but without any limit on the number of
             # results; return Appy objects.
-            objs = tool.o.executeQuery(type_name, searchName=search,
+            objs = tool.o.executeQuery(obj.o.portal_type, searchName=search,
                      sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
                      filterValue=filterValue, maxResults='NO_LIMIT')
             podContext['objects'] = [o.appy() for o in objs['objects']]
@@ -2376,7 +2376,7 @@ class State:
            effectively updated.'''
         attr = Permission.getZopeAttrName(zopePermission)
         if not hasattr(obj.aq_base, attr) or \
-           (getattr(obj.aq_base, attr) != roleNames):
+            (getattr(obj.aq_base, attr) != roleNames):
             setattr(obj, attr, roleNames)
             return True
         return False
@@ -2476,7 +2476,7 @@ class Transition:
         wf = wf.__instance__ # We need the prototypical instance here.
         # Checks that the current state of the object is a start state for this
         # transition.
-        objState = obj.getState(name=False)
+        objState = obj.State(name=False)
         if self.isSingle():
             if objState != self.states[0]: return False
         else:
@@ -2487,7 +2487,7 @@ class Transition:
                     break
             if not startFound: return False
         # Check that the condition is met
-        user = obj.portal_membership.getAuthenticatedMember()
+        user = obj.getUser()
         if isinstance(self.condition, Role):
             # Condition is a role. Transition may be triggered if the user has
             # this role.
@@ -2552,7 +2552,7 @@ class Transition:
             targetState = self.states[1]
             targetStateName = targetState.getName(wf)
         else:
-            startState = obj.getState(name=False)
+            startState = obj.State(name=False)
             for sState, tState in self.states:
                 if startState == sState:
                     targetState = tState
@@ -2568,7 +2568,7 @@ class Transition:
         targetState.updatePermissions(wf, obj)
         # Refresh catalog-related security if required
         if not obj.isTemporary():
-            obj.reindexObject(idxs=('allowedRolesAndUsers', 'getState'))
+            obj.reindex(indexes=('allowedRolesAndUsers', 'State'))
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)

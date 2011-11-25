@@ -58,7 +58,7 @@ function getAjaxChunk(pos) {
     if (xhrObjects[pos].xhr.readyState == 1) {
       // The request has been initialized: display the waiting radar
       var hookElem = document.getElementById(hook);
-      if (hookElem) hookElem.innerHTML = "<div align=\"center\"><img src=\"skyn/waiting.gif\"/><\/div>";
+      if (hookElem) hookElem.innerHTML = "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>";
     }
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
@@ -125,7 +125,7 @@ function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
        if (res) paramsFull = paramsFull + res;
     }
     // Construct the URL to call
-    var urlFull = url + '/skyn/ajax';
+    var urlFull = url + '/ui/ajax';
     if (mode == 'GET') {
       urlFull = urlFull + '?' + paramsFull;
     }
@@ -150,10 +150,10 @@ function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
 
 /* The functions below wrap askAjaxChunk for getting specific content through
    an Ajax request. */
-function askQueryResult(hookId, objectUrl, contentType, searchName,
+function askQueryResult(hookId, objectUrl, className, searchName,
                         startNumber, sortKey, sortOrder, filterKey) {
   // Sends an Ajax request for getting the result of a query.
-  var params = {'type_name': contentType, 'search': searchName,
+  var params = {'className': className, 'search': searchName,
                 'startNumber': startNumber};
   if (sortKey) params['sortKey'] = sortKey;
   if (sortOrder) params['sortOrder'] = sortOrder;
@@ -351,11 +351,11 @@ function toggleCookie(cookieId) {
   // the HTML document that needs to be shown or hidden.
   var displayValue = 'none';
   var newState = 'collapsed';
-  var imgSrc = 'skyn/expand.gif';
+  var imgSrc = 'ui/expand.gif';
   if (state == 'collapsed') {
     // Show the HTML zone
     displayValue = 'block';
-    imgSrc = 'skyn/collapse.gif';
+    imgSrc = 'ui/collapse.gif';
     newState = 'expanded';
   }
   // Update the corresponding HTML element
@@ -459,14 +459,14 @@ function manageTab(tabId, action) {
   var tab = document.getElementById('tab_' + tabId);
   var right = document.getElementById('tab_' + tabId + '_right');
   if (action == 'show') {
-      left.src  = "skyn/tabLeft.png";
-      tab.style.backgroundImage = "url(skyn/tabBg.png)";
-      right.src = "skyn/tabRight.png";
+      left.src  = "ui/tabLeft.png";
+      tab.style.backgroundImage = "url(ui/tabBg.png)";
+      right.src = "ui/tabRight.png";
   }
   if (action == 'hide') {
-      left.src  = "skyn/tabLeftu.png";
-      tab.style.backgroundImage = "url(skyn/tabBgu.png)";
-      right.src = "skyn/tabRightu.png";
+      left.src  = "ui/tabLeftu.png";
+      tab.style.backgroundImage = "url(ui/tabBgu.png)";
+      right.src = "ui/tabRightu.png";
   }
 }
 

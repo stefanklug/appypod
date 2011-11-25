@@ -3,7 +3,7 @@
   <form name="executeAppyAction"
         tal:define="formId python: '%s_%s' % (contextObj.UID(), name);
                     label  python: contextObj.translate(widget['labelId'])"
-        tal:attributes="id formId; action python: contextObj.absolute_url()+'/skyn/do'">
+        tal:attributes="id formId; action python: tool.absolute_url()+'/do'">
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value name"/>
@@ -26,7 +26,7 @@
 
 <tal:comment replace="nothing">Cell macro for an Action.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/action/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/action/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an Action.</tal:comment>

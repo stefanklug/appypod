@@ -1,0 +1,17 @@
+<tal:main define="tool context/getParentNode">
+<html metal:use-macro="context/ui/template/macros/main">
+ <metal:fill fill-slot="content"
+   tal:define="className request/className;
+               searchName request/search|python:''">
+
+  <div metal:use-macro="context/ui/page/macros/prologue"/>
+  <tal:comment replace="nothing">Query result</tal:comment>
+  <div id="queryResult"></div>
+
+  <script type="text/javascript"
+    tal:define="ajaxUrl python: tool.getQueryUrl(className, searchName)"
+    tal:content="python: 'askQueryResult(\'queryResult\', \'%s\',\'%s\',\'%s\',0)' % (tool.absolute_url(), className, searchName)">
+  </script>
+ </metal:fill>
+</html>
+</tal:main>

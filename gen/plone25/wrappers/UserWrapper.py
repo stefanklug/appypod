@@ -56,38 +56,38 @@ class UserWrapper(AbstractWrapper):
 
     def onEdit(self, created):
         self.title = self.firstName + ' ' + self.name
-        pm = self.o.portal_membership
+        aclUsers = self.o.acl_users
+        login = self.login
         if created:
-            # Create the corresponding Plone user
-            pm.addMember(self.login, self.password1, ('Member',), None)
+            # Create the corresponding Zope user
+            aclUsers._doAddUser(login, self.password1, self.roles, ())
             # Remove our own password copies
             self.password1 = self.password2 = ''
         # Perform updates on the corresponding Plone user
-        ploneUser = self.o.portal_membership.getMemberById(self.login)
-        ploneUser.setMemberProperties({'fullname': self.title})
+        zopeUser = aclUsers.getUserById(login)
         # This object must be owned by its Plone user
-        if 'Owner' not in self.o.get_local_roles_for_userid(self.login):
-            self.o.manage_addLocalRoles(self.login, ('Owner',))
+        if 'Owner' not in self.o.get_local_roles_for_userid(login):
+            self.o.manage_addLocalRoles(login, ('Owner',))
         # Change group membership according to self.roles. Indeed, instead of
         # granting roles directly to the user, we will add the user to a
         # Appy-created group having this role.
         userRoles = self.roles
-        userGroups = ploneUser.getGroups()
-        for role in self.o.getProductConfig().grantableRoles:
-            # Retrieve the group corresponding to this role
-            groupName = '%s_group' % role
-            if role == 'Manager':    groupName = 'Administrators'
-            elif role == 'Reviewer': groupName = 'Reviewers'
-            group = self.o.portal_groups.getGroupById(groupName)
-            # Add or remove the user from this group according to its role(s).
-            if role in userRoles:
-                # Add the user if not already present in the group
-                if groupName not in userGroups:
-                    group.addMember(self.login)
-            else:
-                # Remove the user if it was in the corresponding group
-                if groupName in userGroups:
-                    group.removeMember(self.login)
+        #userGroups = zopeUser.getGroups()
+        # for role in self.o.getProductConfig().grantableRoles:
+        #    # Retrieve the group corresponding to this role
+        #    groupName = '%s_group' % role
+        #    if role == 'Manager':    groupName = 'Administrators'
+        #    elif role == 'Reviewer': groupName = 'Reviewers'
+        #    group = self.o.portal_groups.getGroupById(groupName)
+        #    # Add or remove the user from this group according to its role(s).
+        #    if role in userRoles:
+        #        # Add the user if not already present in the group
+        #        if groupName not in userGroups:
+        #            group.addMember(self.login)
+        #    else:
+        #        # Remove the user if it was in the corresponding group
+        #        if groupName in userGroups:
+        #            group.removeMember(self.login)
         return self._callCustom('onEdit', created)
 
     def onDelete(self):

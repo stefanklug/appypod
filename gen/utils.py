@@ -4,6 +4,31 @@ import appy.pod
 from appy.shared.utils import getOsTempFolder, normalizeString, executeCommand
 sequenceTypes = (list, tuple)
 
+# Function for creating a Zope object ------------------------------------------
+def createObject(folder, id, className, appName, wf=True):
+    '''Creates, in p_folder, object with some p_id. Object will be an instance
+       of p_className from application p_appName. In a very special case (the
+       creation of the config object), computing workflow-related info is not
+       possible at this time. This is why this function can be called with
+       p_wf=False.'''
+    exec 'from Products.%s.%s import %s as ZopeClass' % (appName, className,
+                                                         className)
+    obj = ZopeClass(id)
+    folder._objects = folder._objects + \
+                      ({'id':id, 'meta_type':className},)
+    folder._setOb(id, obj)
+    obj = folder._getOb(id) # Important. Else, obj is not really in the folder.
+    obj.portal_type = className
+    obj.id = id
+    obj._at_uid = id
+    userId = obj.getUser().getId()
+    obj.creator = userId
+    from DateTime import DateTime
+    obj.created = DateTime()
+    obj.__ac_local_roles__ = { userId: ['Owner'] }
+    if wf: obj.notifyWorkflowCreated()
+    return obj
+
 # Classes used by edit/view templates for accessing information ----------------
 class Descr:
     '''Abstract class for description classes.'''
@@ -161,7 +186,7 @@ def produceNiceMessage(msg):
 # ------------------------------------------------------------------------------
 class SomeObjects:
     '''Represents a bunch of objects retrieved from a reference or a query in
-       portal_catalog.'''
+       the catalog.'''
     def __init__(self, objects=None, batchSize=None, startNumber=0,
                  noSecurity=False):
         self.objects = objects or [] # The objects
@@ -173,7 +198,7 @@ class SomeObjects:
         # self.objects in the whole list.
         self.noSecurity = noSecurity
     def brainsToObjects(self):
-        '''self.objects has been populated from brains from the portal_catalog,
+        '''self.objects has been populated from brains from the catalog,
            not from True objects. This method turns them (or some of them
            depending on batchSize and startNumber) into real objects.
            If self.noSecurity is True, it gets the objects even if the logged

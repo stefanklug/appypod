@@ -34,6 +34,5 @@ def initialize(context):
     # I need to do those imports here; else, types and add permissions will not
     # be registered.
     classes = [<!classes!>]
-    ZopeInstaller(context, <!applicationName!>Tool.<!applicationName!>Tool,
-        config, classes).install()
+    ZopeInstaller(context, config, classes).install()
 # ------------------------------------------------------------------------------

@@ -29,7 +29,7 @@ label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 legend { padding-bottom: 2px; padding-right: 3px; color: black;}
 ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
      list-style: none outside none;}
-li { margin: 0; background-image: url("skyn/li.gif"); padding-left: 10px;
+li { margin: 0; background-image: url("ui/li.gif"); padding-left: 10px;
      background-repeat: no-repeat; background-position: 0 4px;}
 img {border: 0;}
 

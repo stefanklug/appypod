@@ -117,13 +117,14 @@ class Merger:
             if not oldDiff or not isPrevious or (oldDiffStart > newDiffEnd):
                 # End of the overlapping. Dump what remains in newText and dump
                 # this next uncorrelated diff afterwards.
-                res += self.differ.getModifiedChunk(text, 'delete', '',
-                                                    msg=newDiff.group(2))
-                self.i += len(newDiff.group(3))
+                res += self.differ.getModifiedChunk(newText[consumed:],
+                                             'delete', '', msg=newDiff.group(2))
+                self.i += len(newDiff.group(0))
                 if oldDiff:
                     res += self.dumpDiff(oldDiff, oldDiffStart, isPrevious)
-                break
-        # Move forward within self.lineB w.r.t p_newDiff
+                return res
+        # We have consumed p_newDiff entirely. Move forward within self.lineB
+        # w.r.t p_newDiff.
         self.i += len(newDiff.group(0))
         return res
 

@@ -1,5 +1,5 @@
-'''This file contains the main Generator class used for generating a
-   Plone 2.5-compliant product.'''
+'''This file contains the main Generator class used for generating a Zope
+   product.'''
 
 # ------------------------------------------------------------------------------
 import os, os.path, re, sys
@@ -13,20 +13,6 @@ from descriptors import ClassDescriptor, ToolClassDescriptor, \
                         UserClassDescriptor, TranslationClassDescriptor
 from model import ModelClass, User, Tool, Translation
 
-# Common methods that need to be defined on every Archetype class --------------
-COMMON_METHODS = '''
-    def getTool(self): return self.%s
-    def getProductConfig(self): return Products.%s.config
-    def skynView(self):
-       """Redirects to skyn/view. Transfers the status message if any."""
-       rq = self.REQUEST
-       msg = rq.get('portal_status_message', '')
-       if msg:
-           url = self.getUrl(portal_status_message=msg)
-       else:
-           url = self.getUrl()
-       return rq.RESPONSE.redirect(url)
-'''
 # ------------------------------------------------------------------------------
 class Generator(AbstractGenerator):
     '''This generator generates a Plone 2.5-compliant product from a given
@@ -45,15 +31,10 @@ class Generator(AbstractGenerator):
         # i18n labels to generate
         self.labels = [] # i18n labels
         self.toolInstanceName = 'portal_%s' % self.applicationName.lower()
-        self.skinsFolder = 'skins/%s' % self.applicationName
         # The following dict, pre-filled in the abstract generator, contains a
         # series of replacements that need to be applied to file templates to
         # generate files.
-        commonMethods = COMMON_METHODS % \
-                        (self.toolInstanceName, self.applicationName)
-        self.repls.update(
-            {'toolInstanceName': self.toolInstanceName,
-            'commonMethods': commonMethods})
+        self.repls.update({'toolInstanceName': self.toolInstanceName})
         self.referers = {}
 
     versionRex = re.compile('(.*?\s+build)\s+(\d+)')
@@ -160,14 +141,12 @@ class Generator(AbstractGenerator):
         self.generateTool()
         self.generateInit()
         self.generateTests()
-        if self.config.frontPage: self.generateFrontPage()
         self.copyFile('Install.py', self.repls, destFolder='Extensions')
         self.generateConfigureZcml()
         self.copyFile('import_steps.xml', self.repls,
                       destFolder='profiles/default')
         self.copyFile('ProfileInit.py', self.repls, destFolder='profiles',
                       destName='__init__.py')
-        self.copyFile('tool.gif', {})
         # Create version.txt
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
@@ -334,7 +313,7 @@ class Generator(AbstractGenerator):
                               ['"%s"' % r for r in self.config.defaultCreators])
         # Compute list of add permissions
         addPermissions = ''
-        for classDescr in classesButTool:
+        for classDescr in classesAll:
             addPermissions += '    "%s":"%s: Add %s",\n' % (classDescr.name,
                 self.applicationName, classDescr.name)
         repls['addPermissions'] = addPermissions
@@ -492,30 +471,6 @@ class Generator(AbstractGenerator):
         repls['modulesWithTests'] = ','.join(modules)
         self.copyFile('testAll.py', repls, destFolder='tests')
 
-    def generateFrontPage(self):
-        fp = self.config.frontPage
-        repls = self.repls.copy()
-        template = 'frontPage.pt'
-        if self.config.frontPageTemplate== 'appy': template = 'frontPageAppy.pt'
-        if fp == True:
-            # We need a front page, but no specific one has been given.
-            # So we will create a basic one that will simply display
-            # some translated text.
-            self.labels.append(PoMessage('front_page_text', '',
-                                         PoMessage.FRONT_PAGE_TEXT))
-            repls['pageContent'] = '<span tal:replace="structure python: ' \
-                'tool.translateWithMapping(\'front_page_text\')"/>'
-        else:
-            # The user has specified a macro to show. So in the generated front
-            # page, we will call this macro. The user will need to add itself
-            # a .pt file containing this macro in the skins folder of the
-            # generated Plone product.
-            page, macro = fp.split('/')
-            repls['pageContent'] = '<metal:call use-macro=' \
-                                   '"context/%s/macros/%s"/>' % (page, macro)
-        self.copyFile(template, repls, destFolder=self.skinsFolder,
-                      destName='%sFrontPage.pt' % self.applicationName)
-
     def generateTool(self):
         '''Generates the Plone tool that corresponds to this application.'''
         Msg = PoMessage
@@ -536,13 +491,9 @@ class Generator(AbstractGenerator):
                              Msg('%s_plural' % klass.name,'', klass.name+'s')]
             repls = self.repls.copy()
             repls.update({'methods': klass.methods, 'genClassName': klass.name,
-              'imports': '','baseMixin':'BaseMixin', 'baseSchema': 'BaseSchema',
-              'global_allow': 1, 'parents': 'BaseMixin, BaseContent',
-              'static': '',
+              'baseMixin':'BaseMixin', 'parents': 'BaseMixin, SimpleItem',
               'classDoc': 'User class for %s' % self.applicationName,
-              'implements': "(getattr(BaseContent,'__implements__',()),)",
-              'register': "registerType(%s, '%s')" % (klass.name,
-                                                      self.applicationName)})
+              'icon':'object.gif'})
             self.copyFile('Class.py', repls, destName='%s.py' % klass.name)
 
         # Before generating the Tool class, finalize it with query result
@@ -567,18 +518,9 @@ class Generator(AbstractGenerator):
         # Generate the Tool class
         repls = self.repls.copy()
         repls.update({'methods': self.tool.methods,
-          'genClassName': self.tool.name, 'imports':'', 'baseMixin':'ToolMixin',
-          'baseSchema': 'OrderedBaseFolderSchema', 'global_allow': 0,
-          'parents': 'ToolMixin, UniqueObject, OrderedBaseFolder',
-          'classDoc': 'Tool class for %s' % self.applicationName,
-          'implements': "(getattr(UniqueObject,'__implements__',()),) + " \
-                        "(getattr(OrderedBaseFolder,'__implements__',()),)",
-          'register': "registerType(%s, '%s')" % (self.tool.name,
-                                                  self.applicationName),
-          'static': "def __init__(self, id=None):\n    " \
-                    "    OrderedBaseFolder.__init__(self, '%s')\n    " \
-                    "    self.setTitle('%s')\n" % (self.toolInstanceName,
-                                                   self.applicationName)})
+          'genClassName': self.tool.name, 'baseMixin':'ToolMixin',
+          'parents': 'ToolMixin, Folder', 'icon': 'folder.gif',
+          'classDoc': 'Tool class for %s' % self.applicationName})
         self.copyFile('Class.py', repls, destName='%s.py' % self.tool.name)
 
     def generateClass(self, classDescr):
@@ -588,45 +530,19 @@ class Generator(AbstractGenerator):
         print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
         if not classDescr.isAbstract():
             self.tool.addWorkflowFields(classDescr)
-        # Determine base archetypes schema and class
-        baseClass = 'BaseContent'
-        baseSchema = 'BaseSchema'
-        if classDescr.isFolder():
-            baseClass = 'OrderedBaseFolder'
-            baseSchema = 'OrderedBaseFolderSchema'
-        parents = ['BaseMixin', baseClass]
-        imports = []
-        implements = [baseClass]
-        for baseClass in classDescr.klass.__bases__:
-            if self.determineAppyType(baseClass) == 'class':
-                bcName = getClassName(baseClass)
-                parents.remove('BaseMixin')
-                parents.insert(0, bcName)
-                implements.append(bcName)
-                imports.append('from %s import %s' % (bcName, bcName))
-                baseSchema = '%s.schema' % bcName
-                break
-        parents = ','.join(parents)
-        implements = '+'.join(['(getattr(%s,"__implements__",()),)' % i \
-                               for i in implements])
-        classDoc = classDescr.klass.__doc__
-        if not classDoc:
-            classDoc = 'Class generated with appy.gen.'
-        # If the class is abstract I will not register it
-        register = "registerType(%s, '%s')" % (classDescr.name,
-                                               self.applicationName)
-        if classDescr.isAbstract():
-            register = ''
+        # Determine base Zope class
+        isFolder = classDescr.isFolder()
+        baseClass = isFolder and 'Folder' or 'SimpleItem'
+        icon = isFolder and 'folder.gif' or 'object.gif'
+        parents = 'BaseMixin, %s' % baseClass
+        classDoc = classDescr.klass.__doc__ or 'Appy class.'
         repls = self.repls.copy()
         classDescr.generateSchema()
         repls.update({
-          'imports': '\n'.join(imports), 'parents': parents,
-          'className': classDescr.klass.__name__, 'global_allow': 1,
+          'parents': parents, 'className': classDescr.klass.__name__,
           'genClassName': classDescr.name, 'baseMixin':'BaseMixin',
           'classDoc': classDoc, 'applicationName': self.applicationName,
-          'methods': classDescr.methods, 'implements': implements,
-          'baseSchema': baseSchema, 'static': '', 'register': register,
-          'toolInstanceName': self.toolInstanceName})
+          'methods': classDescr.methods, 'icon':icon})
         fileName = '%s.py' % classDescr.name
         # Create i18n labels (class name and plural form)
         poMsg = PoMessage(classDescr.name, '', classDescr.klass.__name__)

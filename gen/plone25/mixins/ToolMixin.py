@@ -1,13 +1,18 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, time, types
+import re, os, os.path, time, random, types, base64, urllib
 from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
+from appy.shared.data import languages
 import appy.gen
 from appy.gen import Type, Search, Selection
 from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
 from appy.gen.plone25.mixins import BaseMixin
 from appy.gen.plone25.wrappers import AbstractWrapper
 from appy.gen.plone25.descriptors import ClassDescriptor
+try:
+    from AccessControl.ZopeSecurityPolicy import _noroles
+except ImportError:
+    _noroles = []
 
 # Errors -----------------------------------------------------------------------
 jsMessages = ('no_elem_selected', 'delete_confirm')
@@ -27,13 +32,17 @@ class ToolMixin(BaseMixin):
             res = '%s%s' % (elems[1], elems[4])
         return res
 
+    def getCatalog(self):
+        '''Returns the catalog object.'''
+        return self.getParentNode().catalog
+
     def getApp(self):
-        '''Returns the root application object.'''
-        return self.portal_url.getPortalObject()
+        '''Returns the root Zope object.'''
+        return self.getPhysicalRoot()
 
     def getSiteUrl(self):
         '''Returns the absolute URL of this site.'''
-        return self.portal_url.getPortalObject().absolute_url()
+        return self.getApp().absolute_url()
 
     def getPodInfo(self, obj, name):
         '''Gets the available POD formats for Pod field named p_name on
@@ -61,20 +70,43 @@ class ToolMixin(BaseMixin):
         return res.content
 
     def getAttr(self, name):
-        '''Gets attribute named p_attrName. Useful because we can't use getattr
-           directly in Zope Page Templates.'''
+        '''Gets attribute named p_name.'''
         return getattr(self.appy(), name, None)
 
     def getAppName(self):
-        '''Returns the name of this application.'''
+        '''Returns the name of the application.'''
         return self.getProductConfig().PROJECTNAME
 
-    def getAppFolder(self):
-        '''Returns the folder at the root of the Plone site that is dedicated
-           to this application.'''
-        cfg = self.getProductConfig()
-        portal = cfg.getToolByName(self, 'portal_url').getPortalObject()
-        return getattr(portal, self.getAppName())
+    def getPath(self, path):
+        '''Returns the folder or object whose absolute path p_path.'''
+        res = self.getPhysicalRoot()
+        if path == '/': return res
+        path = path[1:]
+        if '/' not in path: return res._getOb(path) # For performance
+        for elem in path.split('/'): res = res._getOb(elem)
+        return res
+
+    def getLanguages(self):
+        '''Returns the supported languages. First one is the default.'''
+        return self.getProductConfig().languages
+
+    def getLanguageName(self, code):
+        '''Gets the language name (in this language) from a 2-chars language
+           p_code.'''
+        return languages.get(code)[2]
+
+    def getMessages(self):
+        '''Returns the list of messages to return to the user.'''
+        if hasattr(self.REQUEST, 'messages'):
+            # Empty the messages and return it
+            res = self.REQUEST.messages
+            del self.REQUEST.messages
+        else:
+            res = []
+        # Add portal_status_message key if present
+        if 'portal_status_message' in self.REQUEST:
+            res.append( ('info', self.REQUEST['portal_status_message']) )
+        return res
 
     def getRootClasses(self):
         '''Returns the list of root classes for this application.'''
@@ -124,7 +156,7 @@ class ToolMixin(BaseMixin):
         return {'fields': fields, 'nbOfColumns': nbOfColumns,
                 'fieldDicts': fieldDicts}
 
-    queryParamNames = ('type_name', 'search', 'sortKey', 'sortOrder',
+    queryParamNames = ('className', 'search', 'sortKey', 'sortOrder',
                        'filterKey', 'filterValue')
     def getQueryInfo(self):
         '''If we are showing search results, this method encodes in a string all
@@ -160,8 +192,8 @@ class ToolMixin(BaseMixin):
         return [importParams['headers'], elems]
 
     def showPortlet(self, context):
-        if self.portal_membership.isAnonymousUser(): return False
-        if context.id == 'skyn': context = context.getParentNode()
+        if self.userIsAnon(): return False
+        if context.id == 'ui': context = context.getParentNode()
         res = True
         if not self.getRootClasses():
             res = False
@@ -170,24 +202,25 @@ class ToolMixin(BaseMixin):
             if (self.id in context.absolute_url()): res = True
         return res
 
-    def getObject(self, uid, appy=False):
+    def getObject(self, uid, appy=False, brain=False):
         '''Allows to retrieve an object from its p_uid.'''
-        res = self.portal_catalog(UID=uid)
-        if res:
-            res = res[0].getObject()
-            if appy:
-                res = res.appy()
-        return res
+        res = self.getPhysicalRoot().catalog(UID=uid)
+        if not res: return
+        res = res[0]
+        if brain: return res
+        res = res.getObject()
+        if not appy: return res
+        return res.appy()
 
-    def executeQuery(self, contentType, searchName=None, startNumber=0,
+    def executeQuery(self, className, searchName=None, startNumber=0,
                      search=None, remember=False, brainsOnly=False,
                      maxResults=None, noSecurity=False, sortBy=None,
                      sortOrder='asc', filterKey=None, filterValue=None,
                      refObject=None, refField=None):
-        '''Executes a query on a given p_contentType (or several, separated
-           with commas) in portal_catalog. If p_searchName is specified, it
-           corresponds to:
-             1) a search defined on p_contentType: additional search criteria
+        '''Executes a query on instances of a given p_className (or several,
+           separated with commas) in the catalog. If p_searchName is specified,
+           it corresponds to:
+             1) a search defined on p_className: additional search criteria
                 will be added to the query, or;
              2) "_advanced": in this case, additional search criteria will also
                 be added to the query, but those criteria come from the session
@@ -224,16 +257,16 @@ class ToolMixin(BaseMixin):
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
         # Is there one or several content types ?
-        if contentType.find(',') != -1:
-            portalTypes = contentType.split(',')
+        if className.find(',') != -1:
+            classNames = className.split(',')
         else:
-            portalTypes = contentType
-        params = {'portal_type': portalTypes}
+            classNames = className
+        params = {'ClassName': classNames}
         if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
         if searchName:
-            # In this case, contentType must contain a single content type.
-            appyClass = self.getAppyClass(contentType)
+            # In this case, className must contain a single content type.
+            appyClass = self.getAppyClass(className)
             if searchName != '_advanced':
                 search = ClassDescriptor.getSearch(appyClass, searchName)
             else:
@@ -273,7 +306,7 @@ class ToolMixin(BaseMixin):
         # Determine what method to call on the portal catalog
         if noSecurity: catalogMethod = 'unrestrictedSearchResults'
         else:          catalogMethod = 'searchResults'
-        exec 'brains = self.portal_catalog.%s(**params)' % catalogMethod
+        exec 'brains = self.getPath("/catalog").%s(**params)' % catalogMethod
         if brainsOnly:
             # Return brains only.
             if not maxResults: return brains
@@ -290,8 +323,8 @@ class ToolMixin(BaseMixin):
         # time a page for an element is consulted.
         if remember:
             if not searchName:
-                # It is the global search for all objects pf p_contentType
-                searchName = contentType
+                # It is the global search for all objects pf p_className
+                searchName = className
             uids = {}
             i = -1
             for obj in res.objects:
@@ -339,15 +372,6 @@ class ToolMixin(BaseMixin):
             return '<acronym title="%s">%s</acronym>' % \
                    (text, text[:width] + '...')
 
-    translationMapping = {'portal_path': ''}
-    def translateWithMapping(self, label):
-        '''Translates p_label in the application domain, with a default
-           translation mapping.'''
-        if not self.translationMapping['portal_path']:
-            self.translationMapping['portal_path'] = \
-                self.portal_url.getPortalPath()
-        return self.translate(label, mapping=self.translationMapping)
-
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among
            application classes.'''
@@ -355,24 +379,24 @@ class ToolMixin(BaseMixin):
         # If we are querying object, there is no published object (the truth is:
         # the tool is the currently published object but we don't want to
         # consider it this way).
-        if not req['ACTUAL_URL'].endswith('/skyn/view'): return
+        if not req['ACTUAL_URL'].endswith('/ui/view'): return
         obj = self.REQUEST['PUBLISHED']
         parent = obj.getParentNode()
-        if parent.id == 'skyn': obj = parent.getParentNode()
+        if parent.id == 'ui': obj = parent.getParentNode()
         if obj.meta_type in self.getProductConfig().attributes: return obj
 
-    def getAppyClass(self, contentType, wrapper=False):
-        '''Gets the Appy Python class that is related to p_contentType.'''
-        # Retrieve first the Archetypes class corresponding to p_ContentType
-        portalType = self.portal_types.get(contentType)
-        if not portalType: return
-        atClassName = portalType.getProperty('content_meta_type')
-        appName = self.getProductConfig().PROJECTNAME
-        exec 'from Products.%s.%s import %s as atClass' % \
-            (appName, atClassName, atClassName)
-        # Get then the Appy Python class
-        if wrapper: return atClass.wrapperClass
-        else: return atClass.wrapperClass.__bases__[-1]
+    def getZopeClass(self, name):
+        '''Returns the Zope class whose name is p_name.'''
+        exec 'from Products.%s.%s import %s as C'% (self.getAppName(),name,name)
+        return C
+
+    def getAppyClass(self, zopeName, wrapper=False):
+        '''Gets the Appy class corresponding to the Zope class named p_name.
+           If p_wrapper is True, it returns the Appy wrapper. Else, it returns
+           the user-defined class.'''
+        zopeClass = self.getZopeClass(zopeName)
+        if wrapper: return zopeClass.wrapperClass
+        else: return zopeClass.wrapperClass.__bases__[-1]
 
     def getCreateMeans(self, contentTypeOrAppyClass):
         '''Gets the different ways objects of p_contentTypeOrAppyClass (which
@@ -417,9 +441,9 @@ class ToolMixin(BaseMixin):
         '''This method is called when the user wants to create objects from
            external data.'''
         rq = self.REQUEST
-        appyClass = self.getAppyClass(rq.get('type_name'))
+        appyClass = self.getAppyClass(rq.get('className'))
         importPaths = rq.get('importPath').split('|')
-        appFolder = self.getAppFolder()
+        appFolder = self.getPath('/data')
         for importPath in importPaths:
             if not importPath: continue
             objectId = os.path.basename(importPath)
@@ -428,9 +452,9 @@ class ToolMixin(BaseMixin):
         return self.goto(rq['HTTP_REFERER'])
 
     def isAlreadyImported(self, contentType, importPath):
-        appFolder = self.getAppFolder()
+        data = self.getPath('/data')
         objectId = os.path.basename(importPath)
-        if hasattr(appFolder.aq_base, objectId):
+        if hasattr(data.aq_base, objectId):
             return True
         else:
             return False
@@ -553,8 +577,8 @@ class ToolMixin(BaseMixin):
         if refInfo: criteria['_ref'] = refInfo
         rq.SESSION['searchCriteria'] = criteria
         # Go to the screen that displays search results
-        backUrl = '%s/skyn/query?type_name=%s&&search=_advanced' % \
-                  (self.absolute_url(), rq['type_name'])
+        backUrl = '%s/ui/query?className=%s&&search=_advanced' % \
+                  (self.absolute_url(), rq['className'])
         return self.goto(backUrl)
 
     def getJavascriptMessages(self):
@@ -614,8 +638,8 @@ class ToolMixin(BaseMixin):
         '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName
            on p_contentType.'''
-        baseUrl = self.absolute_url() + '/skyn'
-        baseParams = 'type_name=%s' % contentType
+        baseUrl = self.absolute_url() + '/ui'
+        baseParams = 'className=%s' % contentType
         rq = self.REQUEST
         if rq.get('ref'): baseParams += '&ref=%s' % rq.get('ref')
         # Manage start number
@@ -663,7 +687,7 @@ class ToolMixin(BaseMixin):
             res['backText'] = self.translate(label)
         else:
             fieldName, pageName = d2.split(':')
-            sourceObj = self.portal_catalog(UID=d1)[0].getObject()
+            sourceObj = self.getObject(d1)
             label = '%s_%s' % (sourceObj.meta_type, fieldName)
             res['backText'] = '%s : %s' % (sourceObj.Title(),
                                            self.translate(label))
@@ -739,9 +763,9 @@ class ToolMixin(BaseMixin):
                 except KeyError: pass
                 except IndexError: pass
                 if uid:
-                    brain = self.portal_catalog(UID=uid)
+                    brain = self.getObject(uid, brain=True)
                     if brain:
-                        sibling = brain[0].getObject()
+                        sibling = brain.getObject()
                         res[urlKey] = sibling.getUrl(nav=newNav % (index + 1),
                                                      page='main')
         return res
@@ -777,6 +801,9 @@ class ToolMixin(BaseMixin):
         '''Gets the translated month name of month numbered p_monthNumber.'''
         return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
 
+    # --------------------------------------------------------------------------
+    # Authentication-related methods
+    # --------------------------------------------------------------------------
     def performLogin(self):
         '''Logs the user in.'''
         rq = self.REQUEST
@@ -788,11 +815,14 @@ class ToolMixin(BaseMixin):
             msg = self.translate(u'You must enable cookies before you can ' \
                                   'log in.', domain='plone')
             return self.goto(urlBack, msg.encode('utf-8'))
-
         # Perform the Zope-level authentication
-        self.acl_users.credentials_cookie_auth.login()
-        login = rq['login_name']
-        if self.portal_membership.isAnonymousUser():
+        login = rq.get('__ac_name', '')
+        password = rq.get('__ac_password', '')
+        cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
+        cookieValue = urllib.quote(cookieValue)
+        rq.RESPONSE.setCookie('__ac', cookieValue, path='/')
+        user = self.acl_users.validate(rq)
+        if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')
             msg = self.translate(u'Login failed', domain='plone')
             logMsg = 'Authentication failed (tried with login "%s")' % login
@@ -803,7 +833,7 @@ class ToolMixin(BaseMixin):
         msg = msg.encode('utf-8')
         self.log(logMsg)
         # Bring Managers to the config, leave others on the main page.
-        user = self.portal_membership.getAuthenticatedMember()
+        user = self.getUser()
         if user.has_role('Manager'):
             # Bring the user to the configuration
             url = self.goto(self.absolute_url(), msg)
@@ -814,28 +844,72 @@ class ToolMixin(BaseMixin):
     def performLogout(self):
         '''Logs out the current user when he clicks on "disconnect".'''
         rq = self.REQUEST
-        userId = self.portal_membership.getAuthenticatedMember().getId()
+        userId = self.getUser().getId()
         # Perform the logout in acl_users
-        try:
-            self.acl_users.logout(rq)
-        except:
-            pass
-        skinvar = self.portal_skins.getRequestVarname()
-        path = '/' + self.absolute_url(1)
-        if rq.has_key(skinvar) and not self.portal_skins.getCookiePersistence():
-            rq.RESPONSE.expireCookie(skinvar, path=path)
-        # Invalidate existing sessions, but only if they exist.
+        rq.RESPONSE.expireCookie('__ac', path='/')
+        # Invalidate existing sessions.
         sdm = self.session_data_manager
         session = sdm.getSessionData(create=0)
         if session is not None:
             session.invalidate()
-        from Products.CMFPlone import transaction_note
-        transaction_note('Logged out')
         self.log('User "%s" has been logged out.' % userId)
         # Remove user from variable "loggedUsers"
         from appy.gen.plone25.installer import loggedUsers
         if loggedUsers.has_key(userId): del loggedUsers[userId]
-        return self.goto(self.getParentNode().absolute_url())
+        return self.goto(self.getApp().absolute_url())
+
+    def validate(self, request, auth='', roles=_noroles):
+        '''This method performs authentication and authorization. It is used as
+           a replacement for Zope's AccessControl.User.BasicUserFolder.validate,
+           that allows to manage cookie-based authentication.'''
+        v = request['PUBLISHED'] # The published object
+        # v is the object (value) we're validating access to
+        # n is the name used to access the object
+        # a is the object the object was accessed through
+        # c is the physical container of the object
+        a, c, n, v = self._getobcontext(v, request)
+        # Try to get user name and password from basic authentication
+        login, password = self.identify(auth)
+        if not login:
+            # Try to get them from a cookie
+            cookie = request.get('__ac', None)
+            login = request.get('__ac_name', None)
+            if login and request.form.has_key('__ac_password'):
+                # The user just entered his credentials. The cookie has not been
+                # set yet (it will come in the upcoming HTTP response when the
+                # current request will be served).
+                login = request.get('__ac_name', '')
+                password = request.get('__ac_password', '')
+            elif cookie and (cookie != 'deleted'):
+                cookieValue = base64.decodestring(urllib.unquote(cookie))
+                login, password = cookieValue.split(':')
+        # Try to authenticate this user
+        user = self.authenticate(login, password, request)
+        emergency = self._emergency_user
+        if emergency and user is emergency:
+            # It is the emergency user.
+            return emergency.__of__(self)
+        elif user is None:
+            # Login and/or password incorrect. Try to authorize and return the
+            # anonymous user.
+            if self.authorize(self._nobody, a, c, n, v, roles):
+                return self._nobody.__of__(self)
+            else:
+                return # Anonymous can't acces this object
+        else:
+            # We found a user and his password was correct. Try to authorize him
+            # against the published object.
+            if self.authorize(user, a, c, n, v, roles):
+                return user.__of__(self)
+            # That didn't work.  Try to authorize the anonymous user.
+            elif self.authorize(self._nobody, a, c, n, v, roles):
+                return self._nobody.__of__(self)
+            else:
+                return
+
+    # Patch BasicUserFolder with our version of m_validate above.
+    from AccessControl.User import BasicUserFolder
+    BasicUserFolder.validate = validate
 
     def tempFile(self):
         '''A temp file has been created in a temp folder. This method returns
@@ -864,11 +938,16 @@ class ToolMixin(BaseMixin):
     def getUserLine(self, user):
         '''Returns a one-line user info as shown on every page.'''
         res = [user.getId()]
-        name = user.getProperty('fullname')
-        if name: res.insert(0, name)
         rolesToShow = [r for r in user.getRoles() \
                        if r not in ('Authenticated', 'Member')]
         if rolesToShow:
             res.append(', '.join([self.translate(r) for r in rolesToShow]))
         return ' | '.join(res)
+
+    def generateUid(self, className):
+        '''Generates a UID for an instance of p_className.'''
+        name = className.replace('_', '')
+        randomNumber = str(random.random()).split('.')[1]
+        timestamp = ('%f' % time.time()).replace('.', '')
+        return '%s%s%s' % (name, timestamp, randomNumber)
 # ------------------------------------------------------------------------------

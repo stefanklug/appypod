@@ -1,4 +1,7 @@
 # ------------------------------------------------------------------------------
+import cgi
+
+# ------------------------------------------------------------------------------
 class OdtTable:
     '''This class allows to construct an ODT table programmatically.'''
     # Some namespace definitions
@@ -38,7 +41,8 @@ class OdtTable:
                     '%snumber-columns-spanned="%d">' % \
                     (self.tns, self.tns, cellStyle, self.tns, span)
         self.res += '<%sp %sstyle-name="%s">%s</%sp>' % \
-                    (self.txns, self.txns, paraStyle, content, self.txns)
+                    (self.txns, self.txns, paraStyle, cgi.escape(str(content)),
+                     self.txns)
         self.res += '</%stable-cell>' % self.tns
 
     def startRow(self):

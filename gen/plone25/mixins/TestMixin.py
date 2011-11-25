@@ -6,8 +6,7 @@ class TestMixin:
     '''This class is mixed in with any PloneTestCase.'''
     def createUser(self, userId, roles):
         '''Creates a user with id p_userId with some p_roles.'''
-        pms = self.portal.portal_membership
-        pms.addMember(userId, 'password', [], [])
+        self.acl_users.addMember(userId, 'password', [], [])
         self.setRoles(roles, name=userId)
 
     def changeUser(self, userId):

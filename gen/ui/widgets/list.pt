@@ -5,13 +5,13 @@
     <tal:show define="widget python: fieldInfo[1];
                       tagCss python: 'noStyle';
                       widgetName python: '%s*%d' % (widget['name'], rowIndex)">
-      <metal:call use-macro="app/skyn/widgets/show/macros/field"/>
+      <metal:call use-macro="app/ui/widgets/show/macros/field"/>
     </tal:show>
   </td>
   <tal:comment replace="nothing">Icon for removing the row</tal:comment>
   <td align="right" tal:condition="python: layoutType=='edit'">
    <img style="cursor:pointer"
-        tal:attributes="src string:$appUrl/skyn/delete.png;
+        tal:attributes="src string:$appUrl/ui/delete.png;
                         title python: 'Delete';
                         onClick python: 'deleteRow(\'list_%s\',this)' % name"/>
   </td>
@@ -30,28 +30,28 @@
   <tal:comment replace="nothing">Icon for adding a new row.</tal:comment>
   <th tal:condition="isEdit">
    <img style="cursor:pointer"
-             tal:attributes="src string:$appUrl/skyn/plus.png;
+             tal:attributes="src string:$appUrl/ui/plus.png;
                              title python: _('add_ref');
                              onClick python: 'insertRow(\'list_%s\')' % name"/>
   </th>
  </tr>
  <tal:comment replace="nothing">Template row (edit only)</tal:comment>
  <tal:templateRow define="rowIndex python:-1" condition="isEdit">
-  <metal:call use-macro="app/skyn/widgets/list/macros/row"/>
+  <metal:call use-macro="app/ui/widgets/list/macros/row"/>
  </tal:templateRow>
  <tr height="7px"><td></td></tr>
  <tal:comment replace="nothing">Rows of data</tal:comment>
  <tal:rows define="rows python: inRequest and requestValue or value"
            repeat="row rows">
   <tal:row define="rowIndex repeat/row/index">
-   <metal:call use-macro="app/skyn/widgets/list/macros/row"/>
+   <metal:call use-macro="app/ui/widgets/list/macros/row"/>
   </tal:row>
  </tal:rows>
 </table>
 
 <tal:comment replace="nothing">View</tal:comment>
 <metal:view define-macro="view">
- <metal:call use-macro="app/skyn/widgets/list/macros/table"/>
+ <metal:call use-macro="app/ui/widgets/list/macros/table"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit</tal:comment>
@@ -60,12 +60,12 @@
    The following input makes Appy aware that this field is in the request.
  </tal:comment>
  <input type="hidden" tal:attributes="name name" value="">
- <metal:call use-macro="app/skyn/widgets/list/macros/table"/>
+ <metal:call use-macro="app/ui/widgets/list/macros/table"/>
 </metal:edit>
 
 <tal:comment replace="nothing">Cell</tal:comment>
 <metal:cell define-macro="cell">
- <metal:call use-macro="app/skyn/widgets/list/macros/table"/>
+ <metal:call use-macro="app/ui/widgets/list/macros/table"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search</tal:comment>

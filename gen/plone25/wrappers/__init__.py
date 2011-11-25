@@ -2,10 +2,10 @@
    developer the real classes used by the underlying web framework.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, time, mimetypes, random
+import os, os.path, mimetypes
 import appy.pod
 from appy.gen import Type, Search, Ref, String
-from appy.gen.utils import sequenceTypes
+from appy.gen.utils import sequenceTypes, createObject
 from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
 from appy.shared.xml_parser import XmlMarshaller
 from appy.shared.csv_parser import CsvMarshaller
@@ -43,7 +43,7 @@ class AbstractWrapper(object):
         elif name == 'uid': return self.o.UID()
         elif name == 'klass': return self.__class__.__bases__[-1]
         elif name == 'url': return self.o.absolute_url()
-        elif name == 'state': return self.o.getState()
+        elif name == 'state': return self.o.State()
         elif name == 'stateLabel':
             o = self.o
             appName = o.getProductConfig().PROJECTNAME
@@ -53,7 +53,7 @@ class AbstractWrapper(object):
             key = o.workflow_history.keys()[0]
             return o.workflow_history[key]
         elif name == 'user':
-            return self.o.portal_membership.getAuthenticatedMember()
+            return self.o.getUser()
         elif name == 'fields': return self.o.getAllAppyTypes()
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)
@@ -100,40 +100,36 @@ class AbstractWrapper(object):
         '''Sorts referred elements linked to p_self via p_fieldName according
            to a given p_sortKey which must be an attribute set on referred
            objects ("title", by default).'''
-        selfO = self.o
-        refs = getattr(selfO, fieldName, None)
+        refs = getattr(self.o, fieldName, None)
         if not refs: return
-        c = selfO.portal_catalog
-        refs.sort(lambda x,y: \
-           cmp(getattr(c(UID=x)[0].getObject().appy(), sortKey),
-               getattr(c(UID=y)[0].getObject().appy(), sortKey)))
-        if reverse:
-            refs.reverse()
+        tool = self.tool
+        refs.sort(lambda x,y: cmp(getattr(tool.getObject(x), sortKey),
+                                  getattr(tool.getObject(y), sortKey)))
+        if reverse: refs.reverse()
 
     def create(self, fieldNameOrClass, **kwargs):
-        '''If p_fieldNameOfClass is the name of a field, this method allows to
+        '''If p_fieldNameOrClass is the name of a field, this method allows to
            create an object and link it to the current one (self) through
            reference field named p_fieldName.
            If p_fieldNameOrClass is a class from the gen-application, it must
            correspond to a root class and this method allows to create a
            root object in the application folder.'''
         isField = isinstance(fieldNameOrClass, basestring)
+        tool = self.tool.o
         # Determine the portal type of the object to create
         if isField:
-            fieldName = idPrefix = fieldNameOrClass
+            fieldName = fieldNameOrClass
             appyType = self.o.getAppyType(fieldName)
-            portalType = self.tool.o.getPortalType(appyType.klass)
+            portalType = tool.getPortalType(appyType.klass)
         else:
             klass = fieldNameOrClass
-            idPrefix = klass.__name__
-            portalType = self.tool.o.getPortalType(klass)
+            portalType = tool.getPortalType(klass)
         # Determine object id
         if kwargs.has_key('id'):
             objId = kwargs['id']
             del kwargs['id']
         else:
-            objId = '%s.%f.%s' % (idPrefix, time.time(),
-                                  str(random.random()).split('.')[1])
+            objId = tool.generateUid(portalType)
         # Determine if object must be created from external data
         externalData = None
         if kwargs.has_key('_data'):
@@ -141,36 +137,27 @@ class AbstractWrapper(object):
             del kwargs['_data']
         # Where must I create the object?
         if not isField:
-            folder = self.o.getTool().getAppFolder()
+            folder = tool.getPath('/data')
         else:
             if hasattr(self, 'folder') and self.folder:
                 folder = self.o
             else:
                 folder = self.o.getParentNode()
         # Create the object
-        # -------------------- Try to replace invokeFactory --------------------
-        #folder._objects = folder._objects + ({'id':id,'meta_type':portalType},)
-        #folder._setOb(id, ob)
-        #ploneObj = self._getOb(id)
-        #ob._setPortalTypeName(self.getId())
-        #ob.notifyWorkflowCreated()
-        # + Check what's done in Archetypes/ClassGen.py in m_genCtor
-        # ------------------------------ Try end -------------------------------
-        folder.invokeFactory(portalType, objId)
-        ploneObj = getattr(folder, objId)
-        appyObj = ploneObj.appy()
+        zopeObj = createObject(folder, objId,portalType, tool.getAppName())
+        appyObj = zopeObj.appy()
         # Set object attributes
         for attrName, attrValue in kwargs.iteritems():
             setattr(appyObj, attrName, attrValue)
         if isField:
             # Link the object to this one
-            appyType.linkObject(self.o, ploneObj)
-        ploneObj._appy_managePermissions()
+            appyType.linkObject(self.o, zopeObj)
+        zopeObj._appy_managePermissions()
         # Call custom initialization
         if externalData: param = externalData
         else: param = True
         if hasattr(appyObj, 'onEdit'): appyObj.onEdit(param)
-        ploneObj.reindexObject()
+        zopeObj.reindex()
         return appyObj
 
     def freeze(self, fieldName, doAction=False):
@@ -222,8 +209,8 @@ class AbstractWrapper(object):
            doHistory=True):
         '''This method allows to trigger on p_self a workflow p_transition
            programmatically. See doc in self.o.do.'''
-        return self.o.do(transition, comment, doAction=doAction,
-                         doNotify=doNotify, doHistory=doHistory, doSay=False)
+        return self.o.trigger(transition, comment, doAction=doAction,
+                            doNotify=doNotify, doHistory=doHistory, doSay=False)
 
     def log(self, message, type='info'): return self.o.log(message, type)
     def say(self, message, type='info'): return self.o.say(message, type)
@@ -242,25 +229,27 @@ class AbstractWrapper(object):
            p_maxResults. If p_noSecurity is specified, you get all objects,
            even if the logged user does not have the permission to view it.'''
         # Find the content type corresponding to p_klass
-        contentType = self.tool.o.getPortalType(klass)
+        tool = self.tool.o
+        contentType = tool.getPortalType(klass)
         # Create the Search object
         search = Search('customSearch', sortBy=sortBy, **fields)
         if not maxResults:
             maxResults = 'NO_LIMIT'
             # If I let maxResults=None, only a subset of the results will be
             # returned by method executeResult.
-        res = self.tool.o.executeQuery(contentType, search=search,
-                                   maxResults=maxResults, noSecurity=noSecurity)
+        res = tool.executeQuery(contentType, search=search,
+                                maxResults=maxResults, noSecurity=noSecurity)
         return [o.appy() for o in res['objects']]
 
     def count(self, klass, noSecurity=False, **fields):
         '''Identical to m_search above, but returns the number of objects that
            match the search instead of returning the objects themselves. Use
            this method instead of writing len(self.search(...)).'''
-        contentType = self.tool.o.getPortalType(klass)
+        tool = self.tool.o
+        contentType = tool.getPortalType(klass)
         search = Search('customSearch', **fields)
-        res = self.tool.o.executeQuery(contentType, search=search,
-                                       brainsOnly=True, noSecurity=noSecurity)
+        res = tool.executeQuery(contentType, search=search, brainsOnly=True,
+                                noSecurity=noSecurity)
         if res: return res._len # It is a LazyMap instance
         else: return 0
 
@@ -289,11 +278,12 @@ class AbstractWrapper(object):
            
                     "for obj in self.search(MyClass,...)"
            '''
-        contentType = self.tool.o.getPortalType(klass)
+        tool = self.tool.o
+        contentType = tool.getPortalType(klass)
         search = Search('customSearch', sortBy=sortBy, **fields)
         # Initialize the context variable "ctx"
         ctx = context
-        for brain in self.tool.o.executeQuery(contentType, search=search, \
+        for brain in tool.executeQuery(contentType, search=search, \
                  brainsOnly=True, maxResults=maxResults, noSecurity=noSecurity):
             # Get the Appy object from the brain
             if noSecurity: method = '_unrestrictedGetObject'
@@ -309,7 +299,7 @@ class AbstractWrapper(object):
            this object automatically. But if your code modifies other objects,
            Appy may not know that they must be reindexed, too. So use this
            method in those cases.'''
-        self.o.reindexObject()
+        self.o.reindex()
 
     def export(self, at='string', format='xml', include=None, exclude=None):
         '''Creates an "exportable" version of this object. p_format is "xml" by

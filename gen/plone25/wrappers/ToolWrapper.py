@@ -38,12 +38,8 @@ class ToolWrapper(AbstractWrapper):
     def getInitiator(self):
         '''Retrieves the object that triggered the creation of the object
            being currently created (if any).'''
-        res = None
-        rq = self.o.REQUEST
-        if rq.get('nav', ''):
-            initiatorUid = rq['nav'].split('.')[1]
-            res = self.o.portal_catalog(UID=initiatorUid)[0].getObject().appy()
-        return res
+        nav = self.o.REQUEST.get('nav', '')
+        if nav: return self.getObject(nav.split('.')[1])
 
     def getObject(self, uid):
         '''Allow to retrieve an object from its unique identifier p_uid.'''

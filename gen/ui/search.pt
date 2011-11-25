@@ -1,25 +1,25 @@
 <tal:main define="tool context/getParentNode">
-<html metal:use-macro="context/skyn/template/macros/main">
+<html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
-   tal:define="contentType request/type_name;
+   tal:define="className request/className;
                refInfo request/ref|nothing;
-               searchInfo python: tool.getSearchInfo(contentType, refInfo);
+               searchInfo python: tool.getSearchInfo(className, refInfo);
                cssJs python: tool.getCssAndJs(searchInfo['fields'], 'edit')">
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
   <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"
-        tal:attributes="href string:$appUrl/skyn/$cssFile"/>
+        tal:attributes="href string:$appUrl/ui/$cssFile"/>
   <script tal:repeat="jsFile cssJs/js" type="text/javascript"
-          tal:attributes="src string:$appUrl/skyn/$jsFile"></script>
+          tal:attributes="src string:$appUrl/ui/$jsFile"></script>
 
   <tal:comment replace="nothing">Search title</tal:comment>  
-  <h1><span tal:replace="python: tool.translate('%s_plural' % contentType)"/> —
+  <h1><span tal:replace="python: tool.translate('%s_plural' % className)"/> —
       <span tal:replace="python: tool.translate('search_title')"/></h1><br/>
 
-  <tal:comment replace="nothing">Form for searching objects of request/type_name.</tal:comment>
-  <form name="search" tal:attributes="action python: appFolder.absolute_url()+'/skyn/do'" method="post">
+  <tal:comment replace="nothing">Form for searching objects of request/className.</tal:comment>
+  <form name="search" tal:attributes="action python: tool.absolute_url()+'/do'" method="post">
     <input type="hidden" name="action" value="SearchObjects"/>
-    <input type="hidden" name="type_name" tal:attributes="value contentType"/>
+    <input type="hidden" name="className" tal:attributes="value className"/>
     <input tal:condition="refInfo" type="hidden" name="ref" tal:attributes="value refInfo"/>
 
     <table width="100%">
@@ -30,7 +30,7 @@
             <tal:show define="name widget/name;
                                    widgetName python: 'w_%s' % name;
                                    macroPage python: widget['type'].lower()">
-              <metal:call use-macro="python: appFolder.skyn.widgets.get(macroPage).macros.get('search')"/>
+              <metal:call use-macro="python: getattr(appFolder.ui.widgets, macroPage).macros['search']"/>
             </tal:show>
           </tal:field><br class="discreet"/>
         </td>

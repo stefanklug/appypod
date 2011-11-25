@@ -20,17 +20,17 @@
                         widget python: contextObj.getAppyType(name, asDict=True);
                         value python: contextObj.getFieldValue(name);
                         sync python:True">
-  <metal:call use-macro="app/skyn/widgets/computed/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/computed/macros/view"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro for a Computed.</tal:comment>
 <metal:edit define-macro="edit">
-  <metal:call use-macro="app/skyn/widgets/computed/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/computed/macros/view"/>
 </metal:edit>
 
 <tal:comment replace="nothing">Cell macro for a Computed.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="app/skyn/widgets/computed/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/computed/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for a Computed.</tal:comment>

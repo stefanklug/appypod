@@ -6,7 +6,7 @@
   <script language="javascript" tal:content="tool/getJavascriptMessages"></script>
 
   <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
-  <form id="deleteForm" method="post" action="skyn/do">
+  <form id="deleteForm" method="post" action="do">
     <input type="hidden" name="action" value="Delete"/>
     <input type="hidden" name="objectUid"/>
   </form>
@@ -30,7 +30,7 @@
                        will be rendered.
 </tal:comment>
 <metal:show define-macro="show">
-  <metal:layout use-macro="here/skyn/widgets/show/macros/layout"/>
+  <metal:layout use-macro="context/ui/widgets/show/macros/layout"/>
 </metal:show>
 
 <tal:comment replace="nothing">
@@ -44,10 +44,10 @@
        tal:attributes="width layout/width">
   <tr tal:repeat="widget python: contextObj.getGroupedAppyTypes(layoutType, page)">
     <td tal:condition="python: widget['type'] == 'group'">
-      <metal:call use-macro="app/skyn/widgets/show/macros/group"/>
+      <metal:call use-macro="app/ui/widgets/show/macros/group"/>
     </td>
     <td tal:condition="python: widget['type'] != 'group'">
-      <metal:call use-macro="app/skyn/widgets/show/macros/field"/>
+      <metal:call use-macro="app/ui/widgets/show/macros/field"/>
     </td>
   </tr>
 </table>
@@ -68,7 +68,7 @@
 
   <tal:comment replace="nothing">Table containing the history</tal:comment>
   <tal:history condition="objs">
-  <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
+  <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
   <table width="100%" class="history">
     <tr i18n:domain="plone">
       <th align="left" i18n:translate="listingheader_action">Action</th>
@@ -86,11 +86,7 @@
       <td tal:condition="not: isDataChange"
           tal:content="python: tool.translate(contextObj.getWorkflowLabel(event['action']))"
           tal:attributes="class string:state-${state}"/>
-      <td tal:define="actorid python:event.get('actor');
-                      actor python:contextObj.portal_membership.getMemberInfo(actorid);
-                      fullname actor/fullname|nothing;
-                      username actor/username|nothing"
-          tal:content="python:fullname or username or actorid"/>
+      <td tal:define="actorid python:event.get('actor');" tal:content="actorid"/>
       <td tal:content="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(event['time'],long_format=True)"/>
       <td tal:condition="not: isDataChange"><tal:comment condition="rhComments" tal:content="structure rhComments"/>
         <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
@@ -136,7 +132,7 @@
             tal:content="python: _(contextObj.getWorkflowLabel(stateInfo['name']))">
         </td>
         <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
-          <img tal:attributes="src string: $appUrl/skyn/nextState.png"/>
+          <img tal:attributes="src string: $appUrl/ui/nextState.png"/>
         </td>
       </tal:state>
     </tr>
@@ -150,8 +146,8 @@
                    tal:define="transitions contextObj/getAppyTransitions"
                    tal:condition="transitions">
   <form id="triggerTransitionForm" method="post"
-        tal:attributes="action python: contextObj.absolute_url() + '/skyn/do'">
-    <input type="hidden" name="action" value="Do"/>
+        tal:attributes="action python: contextObj.absolute_url() + '/do'">
+    <input type="hidden" name="action" value="Trigger"/>
     <input type="hidden" name="workflow_action"/>
     <table>
       <tr valign="middle">
@@ -203,22 +199,19 @@
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
             <img align="left" style="cursor:pointer" onClick="toggleCookie('appyHistory')"
-                 tal:attributes="src python:test(historyExpanded, 'skyn/collapse.gif', 'skyn/expand.gif');"
+                 tal:attributes="src python:test(historyExpanded, 'ui/collapse.gif', 'ui/expand.gif');"
                  id="appyHistory_img"/>&nbsp;
             <span i18n:translate="label_history" i18n:domain="plone" class="historyLabel">History</span> ||&nbsp;
             </tal:accessHistory>
 
             <tal:comment replace="nothing">Show document creator</tal:comment>
-            <span class="by" tal:condition="creator"
-                  tal:define="author python:contextObj.portal_membership.getMemberInfo(creator)">
-             <span i18n:domain="plone" i18n:translate="label_by_author">
-             by <span tal:content="python:author and author['fullname'] or creator"
-                     tal:omit-tag="not:author" i18n:name="author"/>
+            <span class="by" tal:condition="creator">
+             <span>by <span tal:replace="creator"/>
              &mdash;
              </span>
             </span>
-            <tal:comment replace="nothing">Show last modification date</tal:comment>
-            <span tal:replace="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(contextObj.ModificationDate(),long_format=1)"></span>
+            <tal:comment replace="nothing">Show creation date</tal:comment>
+            <span tal:replace="python:contextObj.created"></span>
         </td>
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
@@ -239,8 +232,8 @@
         <td colspan="2">
           <table width="100%">
             <tr>
-              <td><metal:states use-macro="here/skyn/page/macros/states"/></td>
-              <td align="right"><metal:states use-macro="here/skyn/page/macros/transitions"/></td>
+              <td><metal:states use-macro="here/ui/page/macros/states"/></td>
+              <td align="right"><metal:states use-macro="here/ui/page/macros/transitions"/></td>
             </tr>
           </table>
         </td>
@@ -250,7 +243,6 @@
 
 <tal:comment replace="nothing">The page footer.</tal:comment>
 <metal:footer define-macro="footer">
-<tal:dummy define="messages app/plone_utils/showPortalMessages"/>
 <script language="javascript">
 <!--
   initSlaves();
@@ -271,12 +263,12 @@
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonPrevious"
              title="label_previous" i18n:attributes="title" i18n:domain="plone"
-             tal:attributes="src string:$appUrl/skyn/previous.png"/>
+             tal:attributes="src string:$appUrl/ui/previous.png"/>
       <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=previousPage)">
-        <img tal:attributes="src string:$appUrl/skyn/previous.png"
+        <img tal:attributes="src string:$appUrl/ui/previous.png"
              title="label_previous" i18n:attributes="title" i18n:domain="plone"/>
       </a>
     </tal:link>
@@ -285,38 +277,38 @@
   <tal:save condition="python: isEdit and pageInfo['showSave']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonOk"
            title="label_save" i18n:attributes="title" i18n:domain="plone"
-           tal:attributes="src string:$appUrl/skyn/save.png"/>
+           tal:attributes="src string:$appUrl/ui/save.png"/>
   </tal:save>
 
   <tal:cancel condition="python: isEdit and pageInfo['showCancel']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonCancel"
            title="label_cancel" i18n:attributes="title" i18n:domain="plone"
-           tal:attributes="src string:$appUrl/skyn/cancel.png"/>
+           tal:attributes="src string:$appUrl/ui/cancel.png"/>
   </tal:cancel>
 
   <tal:edit condition="python: not isEdit and pageInfo['showOnEdit']">
     <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
-                         src string: $appUrl/skyn/editBig.png"
+                         src string: $appUrl/ui/editBig.png"
          tal:condition="python: contextObj.allows('Modify portal content')"/>
   </tal:edit>
 
   <tal:refresh condition="contextObj/isDebug">
     <img title="Refresh" style="cursor:pointer"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode=layoutType, page=page, refresh='yes');
-                         src string: $appUrl/skyn/refresh.png"/>
+                         src string: $appUrl/ui/refresh.png"/>
   </tal:refresh>
 
   <tal:next condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonNext"
              title="label_next" i18n:attributes="title" i18n:domain="plone"
-             tal:attributes="src string:$appUrl/skyn/next.png"/>
+             tal:attributes="src string:$appUrl/ui/next.png"/>
       <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=nextPage)">
-        <img tal:attributes="src string:$appUrl/skyn/next.png"
+        <img tal:attributes="src string:$appUrl/ui/next.png"
              title="label_next" i18n:attributes="title" i18n:domain="plone"/>
       </a>
     </tal:link>
@@ -326,14 +318,6 @@
 <tal:comment replace="nothing">
   This macro displays the global message on the page.
 </tal:comment>
-<metal:message define-macro="message">
-  <tal:comment replace="nothing">Single message from portal_status_message request key</tal:comment>
-  <div tal:define="msg req/portal_status_message | nothing"
-       tal:condition="msg" class="message" tal:content="structure msg"></div>
-
-  <tal:comment replace="nothing">Messages added via plone_utils</tal:comment>
-  <tal:messages define="messages python: ''.join([m.message for m in app.plone_utils.showPortalMessages()])"
-                condition="messages">
-    <div class="message" tal:content="structure messages"></div>
-  </tal:messages>
+<metal:message define-macro="message" tal:define="messages tool/getMessages" tal:condition="messages">
+  <div class="message" tal:content="structure python: ''.join([m[1] for m in messages])"></div>
 </metal:message>

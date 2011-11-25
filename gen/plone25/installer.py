@@ -7,18 +7,38 @@ from StringIO import StringIO
 from sets import Set
 import appy
 import appy.version
-from appy.gen import Type, Ref, String
+from appy.gen import Type, Ref, String, File
 from appy.gen.po import PoParser
-from appy.gen.utils import produceNiceMessage, updateRolesForPermission
+from appy.gen.utils import produceNiceMessage, updateRolesForPermission, \
+                           createObject
 from appy.shared.data import languages
 from migrator import Migrator
 
-# ------------------------------------------------------------------------------
-class ZCTextIndexInfo:
-    '''Silly class used for storing information about a ZCTextIndex.'''
-    lexicon_id = "plone_lexicon"
-    index_type = 'Okapi BM25 Rank'
 
+# ------------------------------------------------------------------------------
+homePage = '''
+<tal:main define="tool python: context.config">
+ <html metal:use-macro="context/ui/template/macros/main">
+  <div metal:fill-slot="content">
+   <span tal:replace="structure python: tool.translate('front_page_text')"/>
+  </div>
+ </html>
+</tal:main>
+'''
+errorPage = '''
+<tal:main define="tool python: context.config">
+ <html metal:use-macro="context/ui/template/macros/main">
+  <div metal:fill-slot="content" tal:define="o python:options">
+   <p tal:condition="o/error_message"
+      tal:content="structure o/error_message"></p>
+   <p>Error type: <b><span tal:replace="o/error_type"/></b></p>
+   <p>Error value: <b><span tal:replace="o/error_value"/></b></p>
+   <p tal:content="structure o/error_tb"></p>
+  </div>
+ </html>
+</tal:main>
+'''
+# ------------------------------------------------------------------------------
 class PloneInstaller:
     '''This Plone installer runs every time the generated Plone product is
        installed or uninstalled (in the Plone configuration interface).'''
@@ -40,77 +60,10 @@ class PloneInstaller:
         self.attributes = cfg.attributes
         # A buffer for logging purposes
         self.toLog = StringIO()
-        self.typeAliases = {'sharing': '', 'gethtml': '',
-            '(Default)': 'skynView', 'edit': 'skyn/edit',
-            'index.html': '', 'properties': '', 'view': ''}
         self.tool = None # The Plone version of the application tool
         self.appyTool = None # The Appy version of the application tool
         self.toolName = '%sTool' % self.productName
         self.toolInstanceName = 'portal_%s' % self.productName.lower()
-
-    @staticmethod
-    def updateIndexes(ploneSite, indexInfo, logger):
-        '''This method creates or updates, in a p_ploneSite, definitions of
-           indexes in its portal_catalog, based on index-related information
-           given in p_indexInfo. p_indexInfo is a dictionary of the form
-           {s_indexName:s_indexType}. Here are some examples of index types:
-           "FieldIndex", "ZCTextIndex", "DateIndex".'''
-        catalog = ploneSite.portal_catalog
-        zopeCatalog = catalog._catalog
-        for indexName, indexType in indexInfo.iteritems():
-            # If this index already exists but with a different type, remove it.
-            if (indexName in zopeCatalog.indexes):
-                oldType = zopeCatalog.indexes[indexName].__class__.__name__
-                if oldType != indexType:
-                    catalog.delIndex(indexName)
-                    logger.info('Existing index "%s" of type "%s" was removed:'\
-                                ' we need to recreate it with type "%s".' % \
-                                (indexName, oldType, indexType))
-            if indexName not in zopeCatalog.indexes:
-                # We need to create this index
-                if indexType != 'ZCTextIndex':
-                    catalog.addIndex(indexName, indexType)
-                else:
-                    catalog.addIndex(indexName,indexType,extra=ZCTextIndexInfo)
-                # Indexing database content based on this index.
-                catalog.reindexIndex(indexName, ploneSite.REQUEST)
-                logger.info('Created index "%s" of type "%s"...' % \
-                            (indexName, indexType))
-
-    appyFolderType = 'AppyFolder'
-    def registerAppyFolderType(self):
-        '''We need a specific content type for the folder that will hold all
-           objects created from this application, in order to remove it from
-           Plone navigation settings. We will create a new content type based
-           on Large Plone Folder.'''
-        if not hasattr(self.ploneSite.portal_types, self.appyFolderType):
-            portal_types = self.ploneSite.portal_types
-            lpf = 'Large Plone Folder'
-            largePloneFolder = getattr(portal_types, lpf)
-            typeInfoName = 'ATContentTypes: ATBTreeFolder (ATBTreeFolder)'
-            portal_types.manage_addTypeInformation(
-                largePloneFolder.meta_type, id=self.appyFolderType,
-                typeinfo_name=typeInfoName)
-            appyFolder = getattr(portal_types, self.appyFolderType)
-            appyFolder.title = 'Appy folder'
-            #appyFolder.factory = largePloneFolder.factory
-            #appyFolder.product = largePloneFolder.product
-            # Copy actions and aliases
-            appyFolder._actions = tuple(largePloneFolder._cloneActions())
-            # Copy aliases from the base portal type
-            appyFolder.setMethodAliases(largePloneFolder.getMethodAliases())
-            # Prevent Appy folders to be visible in standard Plone navigation
-            nv = self.ploneSite.portal_properties.navtree_properties
-            metaTypesNotToList = list(nv.getProperty('metaTypesNotToList'))
-            if self.appyFolderType not in metaTypesNotToList:
-                metaTypesNotToList.append(self.appyFolderType)
-            nv.manage_changeProperties(
-                metaTypesNotToList=tuple(metaTypesNotToList))
-
-    def getAddPermission(self, className):
-        '''What is the name of the permission allowing to create instances of
-           class whose name is p_className?'''
-        return self.productName + ': Add ' + className
 
     def installRootFolder(self):
         '''Creates and/or configures, at the root of the Plone site and if
@@ -158,128 +111,6 @@ class PloneInstaller:
         # have the main permission "Add portal content".
         permission = 'Add portal content'
         updateRolesForPermission(permission, tuple(allCreators), appFolder)
-        # Creates the "appy" Directory view
-        if hasattr(site.aq_base, 'skyn'):
-            site.manage_delObjects(['skyn'])
-        # This way, if Appy has moved from one place to the other, the
-        # directory view will always refer to the correct place.
-        addDirView = self.config.manage_addDirectoryView
-        addDirView(site, appy.getPath() + '/gen/plone25/skin', id='skyn')
-
-    def installTypes(self):
-        '''Registers and configures the Plone content types that correspond to
-           gen-classes.'''
-        site = self.ploneSite
-        # Do Plone-based type registration
-        classes = self.config.listTypes(self.productName)
-        self.config.installTypes(site, self.toLog, classes, self.productName)
-        self.config.install_subskin(site, self.toLog, self.config.__dict__)
-        # Set appy view/edit pages for every created type
-        for className in self.allClassNames + ['%sTool' % self.productName]:
-            # I did not put the app tool in self.allClassNames because it
-            # must not be registered in portal_factory
-            if hasattr(site.portal_types, className):
-                # className may correspond to an abstract class that has no
-                # corresponding Plone content type
-                typeInfo = getattr(site.portal_types, className)
-                typeInfo.setMethodAliases(self.typeAliases)
-                # Update edit and view actions
-                typeActions = typeInfo.listActions()
-                for action in typeActions:
-                    if action.id == 'view':
-                        page = 'skynView'
-                        action.edit(action='string:${object_url}/%s' % page)
-                    elif action.id == 'edit':
-                        page = 'skyn/edit'
-                        action.edit(action='string:${object_url}/%s' % page)
-
-        # Configure types for instance creation through portal_factory
-        factoryTool = site.portal_factory
-        factoryTypes = self.allClassNames + factoryTool.getFactoryTypes().keys()
-        factoryTool.manage_setPortalFactoryTypes(listOfTypeIds=factoryTypes)
-
-        # Whitelist tool in Archetypes, because now UID is in portal_catalog
-        atTool = getattr(site, self.config.ARCHETYPETOOLNAME)
-        atTool.setCatalogsByType(self.toolName, ['portal_catalog'])
-
-    def updatePodTemplates(self):
-        '''Creates or updates the POD templates in the tool according to pod
-           declarations in the application classes.'''
-        # Creates the templates for Pod fields if they do not exist.
-        for contentType in self.attributes.iterkeys():
-            appyClass = self.tool.getAppyClass(contentType)
-            if not appyClass: continue # May be an abstract class
-            wrapperClass = self.tool.getAppyClass(contentType, wrapper=True)
-            for appyType in wrapperClass.__fields__:
-                if appyType.type != 'Pod': continue
-                # Find the attribute that stores the template, and store on
-                # it the default one specified in the appyType if no
-                # template is stored yet.
-                attrName = self.appyTool.getAttributeName(
-                                        'podTemplate', appyClass, appyType.name)
-                fileObject = getattr(self.appyTool, attrName)
-                if not fileObject or (fileObject.size == 0):
-                    # There is no file. Put the one specified in the appyType.
-                    fileName = os.path.join(self.appyTool.getDiskFolder(),
-                                            appyType.template)
-                    if os.path.exists(fileName):
-                        setattr(self.appyTool, attrName, fileName)
-                        self.appyTool.log('Imported "%s" in the tool in ' \
-                                          'attribute "%s"'% (fileName,attrName))
-                    else:
-                        self.appyTool.log('Template "%s" was not found!' % \
-                                          fileName, type='error')
-
-    def installTool(self):
-        '''Configures the application tool.'''
-        # Register the tool in Plone
-        try:
-            self.ploneSite.manage_addProduct[
-                self.productName].manage_addTool(self.toolName)
-        except self.config.BadRequest:
-            # If an instance with the same name already exists, this error will
-            # be unelegantly raised by Zope.
-            pass
-
-        self.tool = getattr(self.ploneSite, self.toolInstanceName)
-        self.tool.refreshSecurity()
-        self.appyTool = self.tool.appy()
-        if self.reinstall:
-            self.tool.createOrUpdate(False, None)
-        else:
-            self.tool.createOrUpdate(True, None)
-
-    def installTranslations(self):
-        '''Creates or updates the translation objects within the tool.'''
-        translations = [t.o.id for t in self.appyTool.translations]
-        # We browse the languages supported by this application and check
-        # whether we need to create the corresponding Translation objects.
-        for language in self.languages:
-            if language in translations: continue
-            # We will create, in the tool, the translation object for this
-            # language. Determine first its title.
-            langId, langEn, langNat = languages.get(language)
-            if langEn != langNat:
-                title = '%s (%s)' % (langEn, langNat)
-            else:
-                title = langEn
-            self.appyTool.create('translations', id=language, title=title)
-            self.appyTool.log('Translation object created for "%s".' % language)
-        # Now, we synchronise every Translation object with the corresponding
-        # "po" file on disk.
-        appFolder = self.config.diskFolder
-        appName = self.config.PROJECTNAME
-        dn = os.path.dirname
-        jn = os.path.join
-        i18nFolder = jn(jn(jn(dn(dn(dn(appFolder))),'Products'),appName),'i18n')
-        for translation in self.appyTool.translations:
-            # Get the "po" file
-            poName = '%s-%s.po' % (appName, translation.id)
-            poFile = PoParser(jn(i18nFolder, poName)).parse()
-            for message in poFile.messages:
-                setattr(translation, message.id, message.getMessage())
-            self.appyTool.log('Translation "%s" updated from "%s".' % \
-                              (translation.id, poName))
 
     def installRolesAndGroups(self):
         '''Registers roles used by workflows and classes defined in this
@@ -305,33 +136,6 @@ class PloneInstaller:
             site.portal_groups.setRolesForGroup(group, [role])
         site.__ac_roles__ = tuple(data)
 
-    def manageIndexes(self):
-        '''For every indexed field, this method installs and updates the
-           corresponding index if it does not exist yet.'''
-        # Create a special index for object state, that does not correspond to
-        # a field.
-        indexInfo = {'getState': 'FieldIndex', 'UID': 'FieldIndex'}
-        for className in self.attributes.iterkeys():
-            wrapperClass = self.tool.getAppyClass(className, wrapper=True)
-            for appyType in wrapperClass.__fields__:
-                if not appyType.indexed or (appyType.name == 'title'): continue
-                n = appyType.name
-                indexName = 'get%s%s' % (n[0].upper(), n[1:])
-                indexInfo[indexName] = appyType.getIndexType()
-        if indexInfo:
-            PloneInstaller.updateIndexes(self.ploneSite, indexInfo, self)
-
-    def manageLanguages(self):
-        '''Manages the languages supported by the application.'''
-        languageTool = self.ploneSite.portal_languages
-        defLanguage = self.languages[0]
-        languageTool.manage_setLanguageSettings(defaultLanguage=defLanguage,
-            supportedLanguages=self.languages, setContentN=None,
-            setCookieN=True, setRequestN=True, setPathN=True,
-            setForcelanguageUrls=True, setAllowContentLanguageFallback=None,
-            setUseCombinedLanguageCodes=None, displayFlags=False,
-            startNeutral=False)
-
     def finalizeInstallation(self):
         '''Performs some final installation steps.'''
         site = self.ploneSite
@@ -345,26 +149,6 @@ class PloneInstaller:
         self.appyTool.appyVersion = appy.version.short
         self.info('Appy version is %s.' % self.appyTool.appyVersion)
         # Call custom installer if any
-        if hasattr(self.appyTool, 'install'):
-            self.tool.executeAppyAction('install', reindex=False)
-
-    def info(self, msg): return self.appyTool.log(msg)
-
-    def install(self):
-        # Begin with a migration if required.
-        self.installTool()
-        if self.reinstall: Migrator(self).run()
-        self.installRootFolder()
-        self.installTypes()
-        self.manageLanguages()
-        self.manageIndexes()
-        self.updatePodTemplates()
-        self.installTranslations()
-        self.installRolesAndGroups()
-        self.finalizeInstallation()
-        self.appyTool.log("Installation done.")
-
-    def uninstall(self): return 'Done.'
 
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}
@@ -400,18 +184,226 @@ def onDelSession(sessionObject, container):
 class ZopeInstaller:
     '''This Zope installer runs every time Zope starts and encounters this
        generated Zope product.'''
-    def __init__(self, zopeContext, toolClass, config, classes):
+    def __init__(self, zopeContext, config, classes):
         self.zopeContext = zopeContext
-        self.toolClass = toolClass
-        self.config = cfg = config
+        self.app = zopeContext._ProductContext__app # The root of the Zope tree
+        self.config = config
         self.classes = classes
         # Unwrap some useful config variables
-        self.productName = cfg.PROJECTNAME
-        self.logger = cfg.logger
-        self.defaultAddContentPermission = cfg.DEFAULT_ADD_CONTENT_PERMISSION
-        self.addContentPermissions = cfg.ADD_CONTENT_PERMISSIONS
+        self.productName = config.PROJECTNAME
+        self.languages = config.languages
+        self.logger = config.logger
+        self.addContentPermissions = config.ADD_CONTENT_PERMISSIONS
 
-    def completeAppyTypes(self):
+    def installUi(self):
+        '''Installs the user interface.'''
+        # Delete the existing folder if it existed.
+        zopeContent = self.app.objectIds()
+        if 'ui' in zopeContent: self.app.manage_delObjects(['ui'])
+        self.app.manage_addFolder('ui')
+        # Some useful imports
+        from Products.PythonScripts.PythonScript import PythonScript
+        from Products.PageTemplates.ZopePageTemplate import \
+             manage_addPageTemplate
+        # Browse the physical folder and re-create it in the Zope folder
+        j = os.path.join
+        ui = j(j(appy.getPath(), 'gen'), 'ui')
+        for root, dirs, files in os.walk(ui):
+            folderName = root[len(ui):]
+            # Get the Zope folder that corresponds to this name
+            zopeFolder = self.app.ui
+            if folderName:
+                for name in folderName.strip(os.sep).split(os.sep):
+                    zopeFolder = zopeFolder._getOb(name)
+            # Create sub-folders at this level
+            for name in dirs: zopeFolder.manage_addFolder(name)
+            # Create files at this level
+            for name in files:
+                baseName, ext = os.path.splitext(name)
+                f = file(j(root, name))
+                if ext in File.imageExts:
+                    zopeFolder.manage_addImage(name, f)
+                elif ext == '.pt':
+                    manage_addPageTemplate(zopeFolder, baseName, '', f.read())
+                elif ext == '.py':
+                    obj = PythonScript(baseName)
+                    zopeFolder._setObject(baseName, obj)
+                    zopeFolder._getOb(baseName).write(f.read())
+                else:
+                    zopeFolder.manage_addFile(name, f)
+                f.close()
+        # Update the home page
+        if 'index_html' in zopeContent:
+            self.app.manage_delObjects(['index_html'])
+        manage_addPageTemplate(self.app, 'index_html', '', homePage)
+        # Update the error page
+        if 'standard_error_message' in zopeContent:
+            self.app.manage_delObjects(['standard_error_message'])
+        manage_addPageTemplate(self.app, 'standard_error_message', '',errorPage)
+
+    def installIndexes(self, indexInfo):
+        '''Updates indexes in the catalog.'''
+        catalog = self.app.catalog
+        logger = self.logger
+        for indexName, indexType in indexInfo.iteritems():
+            # If this index already exists but with a different type, remove it.
+            if indexName in catalog.indexes():
+                oldType = catalog.Indexes[indexName].__class__.__name__
+                if oldType != indexType:
+                    catalog.delIndex(indexName)
+                    logger.info('Existing index "%s" of type "%s" was removed:'\
+                                ' we need to recreate it with type "%s".' % \
+                                (indexName, oldType, indexType))
+            if indexName not in catalog.indexes():
+                # We need to create this index
+                type = indexType
+                if type == 'ZCTextIndex': type = 'TextIndex'
+                catalog.addIndex(indexName, type)
+                logger.info('Created index "%s" of type "%s"...' % \
+                            (indexName, type))
+
+    def installCatalog(self):
+        '''Create the catalog at the root of Zope if id does not exist.'''
+        if 'catalog' not in self.app.objectIds():
+            # Create the catalog
+            from Products.ZCatalog.ZCatalog import manage_addZCatalog
+            manage_addZCatalog(self.app, 'catalog', '')
+            self.logger.info('Appy catalog created.')
+        # Create or update Appy-wide indexes and field-related indexes
+        indexInfo = {'State': 'FieldIndex', 'UID': 'FieldIndex',
+                     'Title': 'TextIndex', 'SortableTitle': 'FieldIndex',
+                     'SearchableText': 'FieldIndex', 'Creator': 'FieldIndex',
+                     'Created': 'DateIndex', 'ClassName': 'FieldIndex'}
+        tool = self.app.config
+        for className in self.config.attributes.iterkeys():
+            wrapperClass = tool.getAppyClass(className, wrapper=True)
+            for appyType in wrapperClass.__fields__:
+                if not appyType.indexed or (appyType.name == 'title'): continue
+                n = appyType.name
+                indexName = 'get%s%s' % (n[0].upper(), n[1:])
+                indexInfo[indexName] = appyType.getIndexType()
+        self.installIndexes(indexInfo)
+
+    def installBaseObjects(self):
+        '''Creates the tool and the root data folder if they do not exist.'''
+        # Create or update the base folder for storing data
+        zopeContent = self.app.objectIds()
+        if 'data' not in zopeContent: self.app.manage_addFolder('data')
+        if 'config' not in zopeContent:
+            toolName = '%sTool' % self.productName
+            createObject(self.app, 'config', toolName,self.productName,wf=False)
+        # Remove some default objects created by Zope but not useful
+        for name in ('standard_html_footer', 'standard_html_header',\
+                     'standard_template.pt'):
+            if name in zopeContent: self.app.manage_delObjects([name])
+
+    def installTool(self):
+        '''Updates the tool (now that the catalog is created) and updates its
+           inner objects (translations, documents).'''
+        tool = self.app.config
+        tool.createOrUpdate(True, None)
+        tool.refreshSecurity()
+        appyTool = tool.appy()
+
+        # Create the admin user if no user exists.
+        if not self.app.acl_users.getUsers():
+            appyTool.create('users', name='min', firstName='ad',
+                            login='admin', password1='admin',
+                            password2='admin', roles=['Manager'])
+            appyTool.log('Admin user "admin" created.')
+        # Create POD templates within the tool if required
+        for contentType in self.config.attributes.iterkeys():
+            appyClass = tool.getAppyClass(contentType)
+            if not appyClass: continue # May be an abstract class
+            wrapperClass = tool.getAppyClass(contentType, wrapper=True)
+            for appyType in wrapperClass.__fields__:
+                if appyType.type != 'Pod': continue
+                # Find the attribute that stores the template, and store on
+                # it the default one specified in the appyType if no
+                # template is stored yet.
+                attrName = appyTool.getAttributeName('podTemplate', appyClass,
+                                                     appyType.name)
+                fileObject = getattr(appyTool, attrName)
+                if not fileObject or (fileObject.size == 0):
+                    # There is no file. Put the one specified in the appyType.
+                    fileName = os.path.join(appyTool.getDiskFolder(),
+                                            appyType.template)
+                    if os.path.exists(fileName):
+                        setattr(appyTool, attrName, fileName)
+                        appyTool.log('Imported "%s" in the tool in ' \
+                                     'attribute "%s"'% (fileName, attrName))
+                    else:
+                        appyTool.log('Template "%s" was not found!' % \
+                                     fileName, type='error')
+
+        # Create or update Translation objects
+        translations = [t.o.id for t in appyTool.translations]
+        # We browse the languages supported by this application and check
+        # whether we need to create the corresponding Translation objects.
+        for language in self.languages:
+            if language in translations: continue
+            # We will create, in the tool, the translation object for this
+            # language. Determine first its title.
+            langId, langEn, langNat = languages.get(language)
+            if langEn != langNat:
+                title = '%s (%s)' % (langEn, langNat)
+            else:
+                title = langEn
+            appyTool.create('translations', id=language, title=title)
+            appyTool.log('Translation object created for "%s".' % language)
+        # Now, we synchronise every Translation object with the corresponding
+        # "po" file on disk.
+        appFolder = self.config.diskFolder
+        appName = self.config.PROJECTNAME
+        dn = os.path.dirname
+        jn = os.path.join
+        i18nFolder = jn(jn(jn(dn(dn(dn(appFolder))),'Products'),appName),'i18n')
+        for translation in appyTool.translations:
+            # Get the "po" file
+            poName = '%s-%s.po' % (appName, translation.id)
+            poFile = PoParser(jn(i18nFolder, poName)).parse()
+            for message in poFile.messages:
+                setattr(translation, message.id, message.getMessage())
+            appyTool.log('Translation "%s" updated from "%s".' % \
+                         (translation.id, poName))
+
+        # Execute custom installation code if any
+        if hasattr(appyTool, 'install'):
+            tool.executeAppyAction('install', reindex=False)
+
+    def configureSessions(self):
+        '''Configure the session machinery.'''
+        # Register a function warning us when a session object is deleted. When
+        # launching Zope, the temp folder does not exist.
+        if not hasattr(self.app, 'temp_folder'): return
+        self.app.temp_folder.session_data.setDelNotificationTarget(onDelSession)
+
+    def enableUserTracking(self):
+        '''Enables the machinery allowing to know who is currently logged in.
+           Information about logged users will be stored in RAM, in the variable
+           named loggedUsers defined above.'''
+        global originalTraverse
+        if not originalTraverse:
+            # User tracking is not enabled yet. Do it now.
+            BaseRequest = self.config.BaseRequest
+            originalTraverse = BaseRequest.traverse
+            BaseRequest.traverse = traverseWrapper
+
+    def installZopeClasses(self):
+        '''Zope-level class registration.'''
+        for klass in self.classes:
+            name = klass.__name__
+            module = klass.__module__
+            wrapper = klass.wrapperClass
+            exec 'from %s import manage_add%s as ctor' % (module, name)
+            self.zopeContext.registerClass(meta_type=name,
+                constructors = (ctor,),
+                permission = self.addContentPermissions[name])
+            # Create workflow prototypical instances in __instance__ attributes
+            wf = getattr(klass.wrapperClass, 'workflow', None)
+            if wf and not hasattr(wf, '__instance__'): wf.__instance__ = wf()
+
+    def installAppyTypes(self):
         '''We complete here the initialisation process of every Appy type of
            every gen-class of the application.'''
         appName = self.productName
@@ -434,74 +426,15 @@ class ZopeInstaller:
                         continue # Back refs are initialised within fw refs
                     appyType.init(name, baseClass, appName)
 
-    def installApplication(self):
-        '''Performs some application-wide installation steps.'''
-        register = self.config.DirectoryView.registerDirectory
-        register('skins', self.config.__dict__)
-        # Register the appy skin folder among DirectoryView'able folders
-        register('skin', appy.getPath() + '/gen/plone25')
-
-    def installTool(self):
-        '''Installs the tool.'''
-        self.config.ToolInit(self.productName + ' Tools',
-            tools = [self.toolClass], icon='tool.gif').initialize(
-                self.zopeContext)
-
-    def installTypes(self):
-        '''Installs and configures the types defined in the application.'''
-        self.config.listTypes(self.productName)
-        contentTypes, constructors, ftis = self.config.process_types(
-            self.config.listTypes(self.productName), self.productName)
-        self.config.cmfutils.ContentInit(self.productName + ' Content',
-            content_types = contentTypes,
-            permission = self.defaultAddContentPermission,
-            extra_constructors = constructors, fti = ftis).initialize(
-                self.zopeContext)
-        # Define content-specific "add" permissions
-        for i in range(0, len(contentTypes)):
-            className = contentTypes[i].__name__
-            if not className in self.addContentPermissions: continue
-            self.zopeContext.registerClass(meta_type = ftis[i]['meta_type'],
-                constructors = (constructors[i],),
-                permission = self.addContentPermissions[className])
-        # Create workflow prototypical instances in __instance__ attributes
-        for contentType in contentTypes:
-            wf = getattr(contentType.wrapperClass, 'workflow', None)
-            if wf and not hasattr(wf, '__instance__'):
-                wf.__instance__ = wf()
-
-    def enableUserTracking(self):
-        '''Enables the machinery allowing to know who is currently logged in.
-           Information about logged users will be stored in RAM, in the variable
-           named loggedUsers defined above.'''
-        global originalTraverse
-        if not originalTraverse:
-            # User tracking is not enabled yet. Do it now.
-            BaseRequest = self.config.BaseRequest
-            originalTraverse = BaseRequest.traverse
-            BaseRequest.traverse = traverseWrapper
-
-    def finalizeInstallation(self):
-        '''Performs some final installation steps.'''
-        cfg = self.config
-        # Apply customization policy if any
-        cp = cfg.CustomizationPolicy
-        if cp and hasattr(cp, 'register'): cp.register(context)
-        # Install the default profile
-        cfg.profile_registry.registerProfile(self.productName, self.productName,
-            'Installation of %s' % self.productName, 'profiles/default',
-            self.productName, cfg.EXTENSION, for_=cfg.IPloneSiteRoot)
-        # Register a function warning us when a session object is deleted.
-        app = self.zopeContext._ProductContext__app
-        if hasattr(app, 'temp_folder'): # This is not the case in test mode
-            app.temp_folder.session_data.setDelNotificationTarget(onDelSession)
-
     def install(self):
         self.logger.info('is being installed...')
-        self.completeAppyTypes()
-        self.installApplication()
-        self.installTool()
-        self.installTypes()
+        # Create the "admin" user if no user is present in the database
+        self.installAppyTypes()
+        self.installZopeClasses()
         self.enableUserTracking()
-        self.finalizeInstallation()
+        self.configureSessions()
+        self.installBaseObjects()
+        self.installCatalog()
+        self.installTool()
+        self.installUi()
 # ------------------------------------------------------------------------------

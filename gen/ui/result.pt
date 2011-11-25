@@ -1,5 +1,5 @@
 <metal:queryResults define-macro="queryResult"
-   tal:define="contentType   request/type_name;
+   tal:define="className    request/className;
                refInfo       tool/getRefInfo;
                refObject     python: refInfo[0];
                refField      python: refInfo[1];
@@ -7,27 +7,27 @@
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
                searchName    request/search;
-               labelId       python: searchName and ('%s_search_%s' % (contentType, searchName)) or '';
+               labelId       python: searchName and ('%s_search_%s' % (className, searchName)) or '';
                labelId       python: (searchName == '_advanced') and 'search_results' or labelId;
                searchLabel   python: labelId and tool.translate(labelId) or '';
-               severalTypes  python: contentType and (contentType.find(',') != -1);
+               severalTypes  python: className and (className.find(',') != -1);
                sortKey       request/sortKey| python:'';
                sortOrder     request/sortOrder| python:'asc';
                filterKey     request/filterKey| python:'';
                filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(contentType, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
+               queryResult   python: tool.executeQuery(className, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
                ajaxHookId    python:'queryResult';
-               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), contentType, searchName);
-               newSearchUrl  python: '%s/skyn/search?type_name=%s%s' % (tool.absolute_url(), contentType, refUrlPart)">
+               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
+               newSearchUrl  python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart)">
 
   <tal:result condition="objs">
 
   <fieldset>
     <legend>
-      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % contentType)))"/>
+      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % className)))"/>
       (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
@@ -37,12 +37,12 @@
 
     <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
     <table align="right"
-           tal:define="widgets python: tool.getResultPodFields(contentType);
+           tal:define="widgets python: tool.getResultPodFields(className);
                        layoutType python:'view'"
            tal:condition="python: objs and widgets">
       <tr><td tal:define="contextObj python: objs[0]"
               tal:repeat="widget widgets">
-          <metal:pod use-macro="here/skyn/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;
+          <metal:pod use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;
       </td></tr>
     </table>
 
@@ -56,21 +56,21 @@
       </tal:descr>
       <td align="right" width="25%">
        <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-       <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
+       <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
       </td>
      </tr>
     </table>
 
-    <table tal:define="fieldNames python: tool.getResultColumnsNames(contentType, refInfo);
+    <table tal:define="fieldNames python: tool.getResultColumnsNames(className, refInfo);
                        widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
            class="list" width="100%">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
       <tal:header repeat="widget widgets">
-       <th tal:define="sortable   python: tool.isSortable(widget['name'], contentType, 'search');
+       <th tal:define="sortable   python: tool.isSortable(widget['name'], className, 'search');
                        filterable widget/filterable|nothing;">
         <span tal:replace="structure python: tool.truncateText(tool.translate(widget['labelId']))"/>
-        <metal:icons use-macro="here/skyn/navigate/macros/sortAndFilter"/>
+        <metal:icons use-macro="context/ui/navigate/macros/sortAndFilter"/>
        </th>
       </tal:header>
       <tal:comment replace="nothing">Object type, shown if instances of several types are shown</tal:comment>
@@ -90,7 +90,7 @@
       <tal:comment replace="nothing">Title</tal:comment>
       <td id="field_title"
           tal:condition="python: widget['name'] == 'title'">
-        <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+        <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
            tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a>
       </td>
 
@@ -107,7 +107,7 @@
                            layoutType python:'cell';
                            innerRef python:True"
                    condition="python: contextObj.showField(widget['name'], 'view')">
-           <metal:field use-macro="here/skyn/widgets/show/macros/field"/>
+           <metal:field use-macro="context/ui/widgets/show/macros/field"/>
          </tal:field>
       </td>
       </tal:fields>
@@ -122,17 +122,17 @@
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
             <td>
-              <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (contentType, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+              <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
                  tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
                  tal:condition="python: obj.allows('Modify portal content')">
                 <img title="Edit" i18n:domain="plone" i18n:attributes="title"
-                     tal:attributes="src string: $appUrl/skyn/edit.gif"/>
+                     tal:attributes="src string: $appUrl/ui/edit.gif"/>
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
             <td>
               <img tal:condition="python: obj.allows('Delete objects') and obj.mayDelete()"
                    title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
-                   tal:attributes="src string: $appUrl/skyn/delete.png;
+                   tal:attributes="src string: $appUrl/ui/delete.png;
                                    onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
             </td>
           </tr>
@@ -143,7 +143,7 @@
     </table>
 
     <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-    <metal:nav use-macro="here/skyn/navigate/macros/appyNavigate"/>
+    <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
   </fieldset>
   </tal:result>
 

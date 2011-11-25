@@ -1,5 +1,5 @@
 <tal:main define="tool context/getTool">
-<html metal:use-macro="context/skyn/template/macros/main">
+<html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
     tal:define="contextObj  context/getParentNode;
                 errors      request/errors | python:{};
@@ -13,25 +13,25 @@
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
   <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"
-        tal:attributes="href string:$appUrl/skyn/$cssFile"/>
+        tal:attributes="href string:$appUrl/ui/$cssFile"/>
   <script tal:repeat="jsFile cssJs/js" type="text/javascript"
-          tal:attributes="src string:$appUrl/skyn/$jsFile"></script>
+          tal:attributes="src string:$appUrl/ui/$jsFile"></script>
 
-  <metal:prologue use-macro="here/skyn/page/macros/prologue"/>
+  <metal:prologue use-macro="context/ui/page/macros/prologue"/>
   <form id="appyEditForm" name="appyEditForm" method="post" enctype="multipart/form-data"
-        tal:attributes="action python: contextObj.absolute_url()+'/skyn/do';
+        tal:attributes="action python: contextObj.absolute_url()+'/do';
                         class python: test(confirmMsg, 'atBaseEditForm', 'enableUnloadProtection atBaseEditForm')">
     <input type="hidden" name="action" value="Update"/>
     <input type="hidden" name="page" tal:attributes="value page"/>
     <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
     <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
     <input type="hidden" name="confirmed" value="False"/>
-    <metal:show use-macro="here/skyn/page/macros/show"/>
+    <metal:show use-macro="context/ui/page/macros/show"/>
   </form>
   <script tal:condition="confirmMsg"
           tal:content="python: 'askConfirm(\'script\', \'postConfirmedEditForm()\', \'%s\')' % confirmMsg">
   </script>
-  <metal:footer use-macro="here/skyn/page/macros/footer"/>
+  <metal:footer use-macro="context/ui/page/macros/footer"/>
 </metal:fill>
 </html>
 </tal:main>

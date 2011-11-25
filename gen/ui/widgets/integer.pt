@@ -14,7 +14,7 @@
 
 <tal:comment replace="nothing">Cell macro for an Integer.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/integer/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/integer/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an Integer.</tal:comment>

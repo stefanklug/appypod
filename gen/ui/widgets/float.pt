@@ -14,7 +14,7 @@
 
 <tal:comment replace="nothing">Cell macro for an Float.</tal:comment>
 <metal:cell define-macro="cell">
-  <metal:call use-macro="portal/skyn/widgets/float/macros/view"/>
+  <metal:call use-macro="app/ui/widgets/float/macros/view"/>
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for an Float.</tal:comment>
