@@ -54,6 +54,8 @@ class AbstractWrapper(object):
             return o.workflow_history[key]
         elif name == 'user':
             return self.o.getUser()
+        elif name == 'appyUser':
+            return self.search('User', login=self.o.getUser().getId())[0]
         elif name == 'fields': return self.o.getAllAppyTypes()
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)

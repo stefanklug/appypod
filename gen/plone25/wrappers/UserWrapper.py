@@ -12,24 +12,18 @@ class UserWrapper(AbstractWrapper):
     def validateLogin(self, login):
         '''Is this p_login valid?'''
         # The login can't be the id of the whole site or "admin"
-        if (login == self.o.portal_url.getPortalObject().getId()) or \
-           (login == 'admin'):
-            return self.translate(u'This username is reserved. Please choose ' \
-                                   'a different name.', domain='plone')
-        # Check that the login does not already exist and check some
-        # Plone-specific rules.
-        pr = self.o.portal_registration
-        if not pr.isMemberIdAllowed(login):
-            return self.translate(u'The login name you selected is already ' \
-               'in use or is not valid. Please choose another.', domain='plone')
+        if login == 'admin':
+            return self.translate('This username is reserved.')
+        # Check that no user or group already uses this login.
+        if self.count('User', login=login) or self.count('Group', login=login):
+            return self.translate('This login is already in use.')
         return True
 
     def validatePassword(self, password):
         '''Is this p_password valid?'''
         # Password must be at least 5 chars length
         if len(password) < 5:
-            return self.translate(u'Passwords must contain at least 5 letters.',
-                                  domain='plone')
+            return self.translate('Passwords must contain at least 5 letters.')
         return True
 
     def showPassword(self):
@@ -49,7 +43,7 @@ class UserWrapper(AbstractWrapper):
         page = self.request.get('page', 'main')
         if page == 'main':
             if hasattr(new, 'password1') and (new.password1 != new.password2):
-                msg = self.translate(u'Passwords do not match.', domain='plone')
+                msg = self.translate('Passwords do not match.')
                 errors.password1 = msg
                 errors.password2 = msg
         return self._callCustom('validate', new, errors)
@@ -61,41 +55,104 @@ class UserWrapper(AbstractWrapper):
         if created:
             # Create the corresponding Zope user
             aclUsers._doAddUser(login, self.password1, self.roles, ())
+            zopeUser = aclUsers.getUser(login)
             # Remove our own password copies
             self.password1 = self.password2 = ''
-        # Perform updates on the corresponding Plone user
-        zopeUser = aclUsers.getUserById(login)
-        # This object must be owned by its Plone user
+            from persistent.mapping import PersistentMapping
+            # The following dict will store, for every group, global roles
+            # granted to it.
+            zopeUser.groups = PersistentMapping()
+        else:
+            # Updates roles at the Zope level.
+            zopeUser = aclUsers.getUserById(login)
+            zopeUser.roles = self.roles
+        # "self" must be owned by its Zope user
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))
-        # Change group membership according to self.roles. Indeed, instead of
-        # granting roles directly to the user, we will add the user to a
-        # Appy-created group having this role.
-        userRoles = self.roles
-        #userGroups = zopeUser.getGroups()
-        # for role in self.o.getProductConfig().grantableRoles:
-        #    # Retrieve the group corresponding to this role
-        #    groupName = '%s_group' % role
-        #    if role == 'Manager':    groupName = 'Administrators'
-        #    elif role == 'Reviewer': groupName = 'Reviewers'
-        #    group = self.o.portal_groups.getGroupById(groupName)
-        #    # Add or remove the user from this group according to its role(s).
-        #    if role in userRoles:
-        #        # Add the user if not already present in the group
-        #        if groupName not in userGroups:
-        #            group.addMember(self.login)
-        #    else:
-        #        # Remove the user if it was in the corresponding group
-        #        if groupName in userGroups:
-        #            group.removeMember(self.login)
         return self._callCustom('onEdit', created)
 
+    def getZopeUser(self):
+        '''Gets the Zope user corresponding to this user.'''
+        return self.o.acl_users.getUser(self.login)
+
     def onDelete(self):
-        '''Before deleting myself, I must delete the corresponding Plone
-           user.'''
-        # Delete the corresponding Plone user
-        self.o.acl_users._doDelUser(self.login)
-        self.log('Plone user "%s" deleted.' % self.login)
+        '''Before deleting myself, I must delete the corresponding Zope user.'''
+        self.o.acl_users._doDelUsers([self.login])
+        self.log('User "%s" deleted.' % self.login)
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
+
+# ------------------------------------------------------------------------------
+try:
+    from AccessControl.PermissionRole import _what_not_even_god_should_do, \
+                                             rolesForPermissionOn
+    from Acquisition import aq_base
+except ImportError:
+    pass # For those using Appy without Zope
+
+class ZopeUserPatches:
+    '''This class is a fake one that defines Appy variants of some of Zope's
+       AccessControl.User methods. The idea is to implement the notion of group
+       of users.'''
+
+    def getRoles(self):
+        '''Returns the global roles that this user (or any of its groups)
+           possesses.'''
+        res = list(self.roles)
+        # Add group global roles
+        if not hasattr(aq_base(self), 'groups'): return res
+        for roles in self.groups.itervalues():
+            for role in roles:
+                if role not in res: res.append(role)
+        return res
+
+    def getRolesInContext(self, object):
+        '''Return the list of global and local (to p_object) roles granted to
+           this user (or to any of its groups).'''
+        object = getattr(object, 'aq_inner', object)
+        # Start with user global roles
+        res = self.getRoles()
+        # Add local roles
+        localRoles = getattr(object, '__ac_local_roles__', None)
+        if not localRoles: return res
+        userId = self.getId()
+        groups = getattr(self, 'groups', ())
+        for id, roles in localRoles.iteritems():
+            if (id != userId) and (id not in groups): continue
+            for role in roles: res.add(role)
+        return res
+
+    def allowed(self, object, object_roles=None):
+        '''Checks whether the user has access to p_object. The user (or one of
+           its groups) must have one of the roles in p_object_roles.'''
+        if object_roles is _what_not_even_god_should_do: return 0
+        # If "Anonymous" is among p_object_roles, grant access.
+        if (object_roles is None) or ('Anonymous' in object_roles): return 1
+        # If "Authenticated" is among p_object_roles, grant access if the user
+        # is not anonymous.
+        if 'Authenticated' in object_roles and \
+           (self.getUserName() != 'Anonymous User'):
+            if self._check_context(object): return 1
+        # Try first to grant access based on global user roles
+        for role in self.getRoles():
+            if role not in object_roles: continue
+            if self._check_context(object): return 1
+            return
+        # Try then to grant access based on local roles
+        innerObject = getattr(object, 'aq_inner', object)
+        localRoles = getattr(innerObject, '__ac_local_roles__', None)
+        if not localRoles: return
+        userId = self.getId()
+        groups = getattr(self, 'groups', ())
+        for id, roles in localRoles.iteritems():
+            if (id != userId) and (id not in groups): continue
+            for role in roles:
+                if role not in object_roles: continue
+                if self._check_context(object): return 1
+                return
+
+    from AccessControl.User import SimpleUser
+    SimpleUser.getRoles = getRoles
+    SimpleUser.getRolesInContext = getRolesInContext
+    SimpleUser.allowed = allowed
 # ------------------------------------------------------------------------------

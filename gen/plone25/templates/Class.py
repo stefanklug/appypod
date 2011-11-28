@@ -23,21 +23,11 @@ class <!genClassName!>(<!parents!>):
     global_allow = 1
     icon = "ui/<!icon!>"
     wrapperClass = Wrapper
-    for elem in dir(<!baseMixin!>):
-        if not elem.startswith('__'): security.declarePublic(elem)
-    def getTool(self): return self.getPhysicalRoot().config
-    def getProductConfig(self): return cfg
-    def index_html(self):
-       """Redirects to /ui. Transfers the status message if any."""
-       rq = self.REQUEST
-       msg = rq.get('portal_status_message', '')
-       if msg:
-           url = self.getUrl(portal_status_message=msg)
-       else:
-           url = self.getUrl()
-       return rq.RESPONSE.redirect(url)
+    config = cfg
     def do(self):
         '''BaseMixin.do can't be traversed by Zope if this class is the tool.
            So here, we redefine this method.'''
         return BaseMixin.do(self)
+    for elem in dir(<!baseMixin!>):
+        if not elem.startswith('__'): security.declarePublic(elem)
 <!methods!>

@@ -8,6 +8,7 @@
 # ------------------------------------------------------------------------------
 import types
 from appy.gen import *
+Grp=Group # Avoid name clash between appy.gen.Group and class Group below
 
 # Prototypical instances of every type -----------------------------------------
 class Protos:
@@ -83,8 +84,8 @@ class ModelClass:
                     value = '%s.%s' % (moduleName, value.__name__)
             elif isinstance(value, Selection):
                 value = 'Selection("%s")' % value.methodName
-            elif isinstance(value, Group):
-                value = 'Group("%s")' % value.name
+            elif isinstance(value, Grp):
+                value = 'Grp("%s")' % value.name
             elif isinstance(value, Page):
                 value = 'pages["%s"]' % value.name
             elif callable(value):
@@ -149,6 +150,23 @@ class User(ModelClass):
     gm['multiplicity'] = (0, None)
     roles = String(validator=Selection('getGrantableRoles'), indexed=True, **gm)
 
+# The Group class --------------------------------------------------------------
+class Group(ModelClass):
+    # In a ModelClass we need to declare attributes in the following list.
+    _appy_attributes = ['title', 'login', 'roles', 'users']
+    # All methods defined below are fake. Real versions are in the wrapper.
+    m = {'group': 'main', 'width': 25, 'indexed': True}
+    title = String(multiplicity=(1,1), **m)
+    def showLogin(self): pass
+    def validateLogin(self): pass
+    login = String(show=showLogin, validator=validateLogin,
+                   multiplicity=(1,1), **m)
+    roles = String(validator=Selection('getGrantableRoles'),
+                   multiplicity=(0,None), **m)
+    users = Ref(User, multiplicity=(0,None), add=False, link=True,
+                back=Ref(attribute='groups', show=True),
+                showHeaders=True, shownInfo=('title', 'login'))
+
 # The Translation class --------------------------------------------------------
 class Translation(ModelClass):
     _appy_attributes = ['po', 'title']
@@ -166,7 +184,7 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showWorkflowCommentField', 'showAllStatesInPhase')
-defaultToolFields = ('users', 'translations', 'enableNotifications',
+defaultToolFields = ('users', 'groups', 'translations', 'enableNotifications',
                      'unoEnabledPython', 'openOfficePort',
                      'numberOfResultsPerPage', 'listBoxesMaximumWidth',
                      'appyVersion', 'refreshSecurity')
@@ -187,13 +205,20 @@ class Tool(ModelClass):
     refreshSecurity = Action(action=refreshSecurity, confirm=True)
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
     users = Ref(User, multiplicity=(0,None), add=True, link=False,
-                back=Ref(attribute='toTool', show=False), page='users',
-                queryable=True, queryFields=('login',), showHeaders=True,
-                shownInfo=('login', 'title', 'roles'))
+                back=Ref(attribute='toTool', show=False),
+                page=Page('users', show='view'),
+                queryable=True, queryFields=('title', 'login'),
+                showHeaders=True, shownInfo=('title', 'login', 'roles'))
+    groups = Ref(Group, multiplicity=(0,None), add=True, link=False,
+                 back=Ref(attribute='toTool2', show=False),
+                 page=Page('groups', show='view'),
+                 queryable=True, queryFields=('title', 'login'),
+                 showHeaders=True, shownInfo=('title', 'login', 'roles'))
     translations = Ref(Translation, multiplicity=(0,None),add=False,link=False,
                        back=Ref(attribute='trToTool', show=False), show='view',
                        page=Page('translations', show='view'))
-    enableNotifications = Boolean(default=True, page='notifications')
+    enableNotifications = Boolean(default=True,
+                                  page=Page('notifications', show=False))
 
     @classmethod
     def _appy_clean(klass):

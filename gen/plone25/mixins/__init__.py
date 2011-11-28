@@ -87,6 +87,8 @@ class BaseMixin:
             if field.type != 'Ref': continue
             for obj in field.getValue(self):
                 field.back.unlinkObject(obj, self, back=True)
+        # Uncatalog the object
+        self.reindex(unindex=True)
         # Delete the object
         self.getParentNode().manage_delObjects([self.id])
 
@@ -306,22 +308,12 @@ class BaseMixin:
         url = self.absolute_url_path()
         catalog = self.getPhysicalRoot().catalog
         if unindex:
-            method = catalog.uncatalog_object
+            catalog.uncatalog_object(url)
         else:
-            method = catalog.catalog_object
-        if indexes:
-            return method(self, url)
-        else:
-            return method(self, url, idxs=indexes)
-
-    def unindex(self, indexes=None):
-        '''Undatalog this object.'''
-        url = self.absolute_url_path()
-        catalog = self.getPhysicalRoot().catalog
-        if indexes:
-            return catalog.catalog_object(self, url)
-        else:
-            return catalog.catalog_object(self, url, idxs=indexes)
+            if indexes:
+                catalog.catalog_object(self, url, idxs=indexes)
+            else:
+                catalog.catalog_object(self, url)
 
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
@@ -620,7 +612,7 @@ class BaseMixin:
                 # Insert the GroupDescr instance corresponding to
                 # appyType.group at the right place
                 groupDescr = appyType.group.insertInto(res, groups,
-                    appyType.page, self.meta_type)
+                                                  appyType.page, self.meta_type)
                 GroupDescr.addWidget(groupDescr, appyType.__dict__)
         return res
 
@@ -1170,6 +1162,23 @@ class BaseMixin:
         '''Returns the name of the (Zope) class for self.'''
         return self.portal_type
 
+    def Allowed(self):
+        '''Returns the list of roles and users that are allowed to view this
+           object. This index value will be used within catalog queries for
+           filtering objects the user is allowed to see.'''
+        res = set()
+        # Get, from the workflow, roles having permission 'View'.
+        for role in self.getProductConfig().rolesForPermissionOn('View', self):
+            res.add(role)
+        # Add users having, locally, this role on this object.
+        localRoles = getattr(self, '__ac_local_roles__', None)
+        if not localRoles: return list(res)
+        for id, roles in localRoles.iteritems():
+            for role in roles:
+                if role in res:
+                    res.add('user:%s' % id)
+        return list(res)
+
     def _appy_showState(self, workflow, stateShow):
         '''Must I show a state whose "show value" is p_stateShow?'''
         if callable(stateShow):
@@ -1279,6 +1288,24 @@ class BaseMixin:
             from AccessControl.User import nobody
             return nobody
         return user
+
+    def getTool(self):
+        '''Returns the application tool.'''
+        return self.getPhysicalRoot().config
+
+    def getProductConfig(self):
+        '''Returns a reference to the config module.'''
+        return self.__class__.config
+
+    def index_html(self):
+       """Redirects to /ui. Transfers the status message if any."""
+       rq = self.REQUEST
+       msg = rq.get('portal_status_message', '')
+       if msg:
+           url = self.getUrl(portal_status_message=msg)
+       else:
+           url = self.getUrl()
+       return rq.RESPONSE.redirect(url)
 
     def userIsAnon(self):
         '''Is the currently logged user anonymous ?'''
@@ -1406,22 +1433,7 @@ class BaseMixin:
 
     def allows(self, permission):
         '''Has the logged user p_permission on p_self ?'''
-        # Get first the roles that have this permission on p_self.
-        zopeAttr = Permission.getZopeAttrName(permission)
-        if not hasattr(self.aq_base, zopeAttr): return
-        allowedRoles = getattr(self.aq_base, zopeAttr)
-        # Has the user one of those roles?
-        user = self.getUser()
-        # XXX no groups at present
-        #ids = [user.getId()] + user.getGroups()
-        ids = [user.getId()]
-        userGlobalRoles = user.getRoles()
-        for role in allowedRoles:
-            # Has the user this role ? Check in the local roles first.
-            for id, roles in self.__ac_local_roles__.iteritems():
-                if (role in roles) and (id in ids): return True
-            # Check then in the global roles.
-            if role in userGlobalRoles: return True
+        return self.getUser().has_permission(permission, self)
 
     def getEditorInit(self, name):
         '''Gets the Javascrit init code for displaying a rich editor for

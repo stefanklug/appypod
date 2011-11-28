@@ -14,6 +14,7 @@ from ZPublisher.HTTPRequest import BaseRequest
 from OFS.Image import File
 from ZPublisher.HTTPRequest import FileUpload
 from AccessControl import getSecurityManager
+from AccessControl.PermissionRole import rolesForPermissionOn
 from DateTime import DateTime
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 from Products.Transience.Transience import TransientObjectContainer

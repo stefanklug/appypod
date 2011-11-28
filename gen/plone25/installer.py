@@ -85,28 +85,10 @@ class PloneInstaller:
             site.invokeFactory(self.appyFolderType, self.productName,
                                title=self.productName)
             getattr(site.portal_types, self.appyFolderType).global_allow = 0
-            # Manager has been granted Add permissions for all root classes.
-            # This may not be desired, so remove this.
-            appFolder = getattr(site, self.productName)
-            for className in self.config.rootClasses:
-                permission = self.getAddPermission(className)
-                appFolder.manage_permission(permission, (), acquire=0)
+            
         else:
             appFolder = getattr(site, self.productName)
-        # All roles defined as creators should be able to create the
-        # corresponding root content types in this folder.
-        i = -1
-        allCreators = set()
-        for klass in self.appClasses:
-            i += 1
-            if not klass.__dict__.has_key('root') or not klass.__dict__['root']:
-                continue # It is not a root class
-            creators = getattr(klass, 'creators', None)
-            if not creators: creators = self.defaultAddRoles
-            allCreators = allCreators.union(creators)
-            className = self.appClassNames[i]
-            permission = self.getAddPermission(className)
-            updateRolesForPermission(permission, tuple(creators), appFolder)
+
         # Beyond content-type-specific "add" permissions, creators must also
         # have the main permission "Add portal content".
         permission = 'Add portal content'
@@ -273,7 +255,8 @@ class ZopeInstaller:
         indexInfo = {'State': 'FieldIndex', 'UID': 'FieldIndex',
                      'Title': 'TextIndex', 'SortableTitle': 'FieldIndex',
                      'SearchableText': 'FieldIndex', 'Creator': 'FieldIndex',
-                     'Created': 'DateIndex', 'ClassName': 'FieldIndex'}
+                     'Created': 'DateIndex', 'ClassName': 'FieldIndex',
+                     'Allowed': 'KeywordIndex'}
         tool = self.app.config
         for className in self.config.attributes.iterkeys():
             wrapperClass = tool.getAppyClass(className, wrapper=True)
@@ -284,22 +267,49 @@ class ZopeInstaller:
                 indexInfo[indexName] = appyType.getIndexType()
         self.installIndexes(indexInfo)
 
+    def getAddPermission(self, className):
+        '''What is the name of the permission allowing to create instances of
+           class whose name is p_className?'''
+        return self.productName + ': Add ' + className
+
     def installBaseObjects(self):
         '''Creates the tool and the root data folder if they do not exist.'''
         # Create or update the base folder for storing data
         zopeContent = self.app.objectIds()
-        if 'data' not in zopeContent: self.app.manage_addFolder('data')
+
+        if 'data' not in zopeContent:
+            self.app.manage_addFolder('data')
+            data = self.app.data
+            # Manager has been granted Add permissions for all root classes.
+            # This may not be desired, so remove this.
+            for className in self.config.rootClasses:
+                permission = self.getAddPermission(className)
+                data.manage_permission(permission, (), acquire=0)
+            # All roles defined as creators should be able to create the
+            # corresponding root classes in this folder.
+            i = -1
+            for klass in self.config.appClasses:
+                i += 1
+                if not klass.__dict__.has_key('root') or \
+                   not klass.__dict__['root']:
+                    continue # It is not a root class
+                creators = getattr(klass, 'creators', None)
+                if not creators: creators = self.config.defaultAddRoles
+                className = self.config.appClassNames[i]
+                permission = self.getAddPermission(className)
+                updateRolesForPermission(permission, tuple(creators), data)
+
         if 'config' not in zopeContent:
             toolName = '%sTool' % self.productName
             createObject(self.app, 'config', toolName,self.productName,wf=False)
-        # Remove some default objects created by Zope but not useful
+        # Remove some default objects created by Zope but not useful to Appy
         for name in ('standard_html_footer', 'standard_html_header',\
                      'standard_template.pt'):
             if name in zopeContent: self.app.manage_delObjects([name])
 
     def installTool(self):
         '''Updates the tool (now that the catalog is created) and updates its
-           inner objects (translations, documents).'''
+           inner objects (users, groups, translations, documents).'''
         tool = self.app.config
         tool.createOrUpdate(True, None)
         tool.refreshSecurity()
@@ -307,10 +317,24 @@ class ZopeInstaller:
 
         # Create the admin user if no user exists.
         if not self.app.acl_users.getUsers():
-            appyTool.create('users', name='min', firstName='ad',
-                            login='admin', password1='admin',
-                            password2='admin', roles=['Manager'])
+            self.app.acl_users._doAddUser('admin', 'admin', ['Manager'], ())
             appyTool.log('Admin user "admin" created.')
+
+        # Create group "admins" if it does not exist
+        if not appyTool.count('Group', login='admins'):
+            appyTool.create('groups', login='admins', title='Administrators',
+                            roles=['Manager'])
+            appyTool.log('Group "admins" created.')
+
+        # Create a group for every global role defined in the application
+        for role in self.config.applicationGlobalRoles:
+            relatedGroup = '%s_group' % role
+            if appyTool.count('Group', login=relatedGroup): continue
+            appyTool.create('groups', login=relatedGroup, title=relatedGroup,
+                            roles=[role])
+            appyTool.log('Group "%s", related to global role "%s", was ' \
+                         'created.' % (relatedGroup, role))
+
         # Create POD templates within the tool if required
         for contentType in self.config.attributes.iterkeys():
             appyClass = tool.getAppyClass(contentType)
@@ -426,9 +450,16 @@ class ZopeInstaller:
                         continue # Back refs are initialised within fw refs
                     appyType.init(name, baseClass, appName)
 
+    def installRoles(self):
+        '''Installs the application-specific roles if not already done.'''
+        roles = list(self.app.__ac_roles__)
+        for role in self.config.applicationRoles:
+            if role not in roles: roles.append(role)
+        self.app.__ac_roles__ = tuple(roles)
+
     def install(self):
         self.logger.info('is being installed...')
-        # Create the "admin" user if no user is present in the database
+        self.installRoles()
         self.installAppyTypes()
         self.installZopeClasses()
         self.enableUserTracking()

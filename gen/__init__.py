@@ -2566,9 +2566,9 @@ class Transition:
                             comments=comment)
         # Update permissions-to-roles attributes
         targetState.updatePermissions(wf, obj)
-        # Refresh catalog-related security if required
-        if not obj.isTemporary():
-            obj.reindex(indexes=('allowedRolesAndUsers', 'State'))
+        # Reindex the object if required. Not only security-related indexes
+        # (Allowed, State) need to be updated here.
+        if not obj.isTemporary(): obj.reindex()
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
@@ -2718,7 +2718,7 @@ class Config:
         # If you want to replace the default front page with a page coming from
         # your application, use the following parameter. Setting
         # frontPage = True will replace the Plone front page with a page
-        # whose content will come fron i18n label "front_page_text".
+        # whose content will come from i18n label "front_page_text".
         self.frontPage = False
         # You can choose the Plone or Appy main template
         self.frontPageTemplate = 'plone' # or "appy"

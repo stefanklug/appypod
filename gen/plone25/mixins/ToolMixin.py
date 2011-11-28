@@ -30,6 +30,7 @@ class ToolMixin(BaseMixin):
         if res.find('Extensions_appyWrappers') != -1:
             elems = res.split('_')
             res = '%s%s' % (elems[1], elems[4])
+        if res in ('User', 'Group', 'Translation'): res = appName + res
         return res
 
     def getCatalog(self):
@@ -212,6 +213,17 @@ class ToolMixin(BaseMixin):
         if not appy: return res
         return res.appy()
 
+    def getAllowedValue(self):
+        '''Gets, for the currently logged user, the value for index
+           "Allowed".'''
+        user = self.getUser()
+        res = ['user:%s' % user.getId(), 'Anonymous'] + user.getRoles()
+        try:
+            res += ['user:%s' % g for g in user.groups.keys()]
+        except AttributeError, ae:
+            pass # The Zope admin does not have this attribute.
+        return res
+
     def executeQuery(self, className, searchName=None, startNumber=0,
                      search=None, remember=False, brainsOnly=False,
                      maxResults=None, noSecurity=False, sortBy=None,
@@ -303,10 +315,9 @@ class ToolMixin(BaseMixin):
         if refObject:
             refField = refObject.getAppyType(refField)
             params['UID'] = getattr(refObject, refField.name).data
-        # Determine what method to call on the portal catalog
-        if noSecurity: catalogMethod = 'unrestrictedSearchResults'
-        else:          catalogMethod = 'searchResults'
-        exec 'brains = self.getPath("/catalog").%s(**params)' % catalogMethod
+        # Use index "Allowed" if noSecurity is False
+        if not noSecurity: params['Allowed'] = self.getAllowedValue()
+        brains = self.getPath("/catalog")(**params)
         if brainsOnly:
             # Return brains only.
             if not maxResults: return brains

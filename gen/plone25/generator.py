@@ -9,9 +9,8 @@ from appy.gen.po import PoMessage, PoFile, PoParser
 from appy.gen.generator import Generator as AbstractGenerator
 from appy.gen.utils import getClassName
 from appy.gen.descriptors import WorkflowDescriptor
-from descriptors import ClassDescriptor, ToolClassDescriptor, \
-                        UserClassDescriptor, TranslationClassDescriptor
-from model import ModelClass, User, Tool, Translation
+from descriptors import *
+from model import ModelClass, User, Group, Tool, Translation
 
 # ------------------------------------------------------------------------------
 class Generator(AbstractGenerator):
@@ -24,9 +23,10 @@ class Generator(AbstractGenerator):
         AbstractGenerator.__init__(self, *args, **kwargs)
         # Set our own Descriptor classes
         self.descriptorClasses['class'] = ClassDescriptor
-        # Create our own Tool, User and Translation instances
+        # Create our own Tool, User, Group and Translation instances
         self.tool = ToolClassDescriptor(Tool, self)
         self.user = UserClassDescriptor(User, self)
+        self.group = GroupClassDescriptor(Group, self)
         self.translation = TranslationClassDescriptor(Translation, self)
         # i18n labels to generate
         self.labels = [] # i18n labels
@@ -132,6 +132,7 @@ class Generator(AbstractGenerator):
             msg('pdf',                  '', msg.FORMAT_PDF),
             msg('doc',                  '', msg.FORMAT_DOC),
             msg('rtf',                  '', msg.FORMAT_RTF),
+            msg('front_page_text',      '', msg.FRONT_PAGE_TEXT),
         ]
         # Create a label for every role added by this application
         for role in self.getAllUsedRoles():
@@ -283,6 +284,27 @@ class Generator(AbstractGenerator):
         if isBack: res += '.back'
         return res
 
+    def getClasses(self, include=None):
+        '''Returns the descriptors for all the classes in the generated
+           gen-application. If p_include is:
+           * "all"        it includes the descriptors for the config-related
+                          classes (tool, user, group, translation)
+           * "allButTool" it includes the same descriptors, the tool excepted
+           * "custom"     it includes descriptors for the config-related classes
+                          for which the user has created a sub-class.'''
+        if not include: return self.classes
+        res = self.classes[:]
+        configClasses = [self.tool, self.user, self.group, self.translation]
+        if include == 'all':
+            res += configClasses
+        elif include == 'allButTool':
+            res += configClasses[1:]
+        elif include == 'custom':
+            res += [c for c in configClasses if c.customized]
+        elif include == 'predefined':
+            res = configClasses
+        return res
+
     def generateConfigureZcml(self):
         '''Generates file configure.zcml.'''
         repls = self.repls.copy()
@@ -375,27 +397,6 @@ class Generator(AbstractGenerator):
         repls['totalNumberOfTests'] = self.totalNumberOfTests
         self.copyFile('__init__.py', repls)
 
-    def getClasses(self, include=None):
-        '''Returns the descriptors for all the classes in the generated
-           gen-application. If p_include is:
-           * "all"        it includes the descriptors for the config-related
-                          classes (tool, user, translation)
-           * "allButTool" it includes the same descriptors, the tool excepted
-           * "custom"     it includes descriptors for the config-related classes
-                          for which the user has created a sub-class.'''
-        if not include: return self.classes
-        res = self.classes[:]
-        configClasses = [self.tool, self.user, self.translation]
-        if include == 'all':
-            res += configClasses
-        elif include == 'allButTool':
-            res += configClasses[1:]
-        elif include == 'custom':
-            res += [c for c in configClasses if c.customized]
-        elif include == 'predefined':
-            res = configClasses
-        return res
-
     def getClassesInOrder(self, allClasses):
         '''When generating wrappers, classes mut be dumped in order (else, it
            generates forward references in the Python file, that does not
@@ -478,13 +479,14 @@ class Generator(AbstractGenerator):
         msg = Msg(self.tool.name, '', Msg.CONFIG % self.applicationName)
         self.labels.append(msg)
 
-        # Tune the Ref field between Tool and User
+        # Tune the Ref field between Tool->User and Group->User
         Tool.users.klass = User
         if self.user.customized:
             Tool.users.klass = self.user.klass
+            Group.users.klass = self.user.klass
 
-        # Generate the Tool-related classes (User, Translation)
-        for klass in (self.user, self.translation):
+        # Generate the Tool-related classes (User, Group, Translation)
+        for klass in (self.user, self.group, self.translation):
             klassType = klass.name[len(self.applicationName):]
             klass.generateSchema()
             self.labels += [ Msg(klass.name, '', klassType),
@@ -492,8 +494,7 @@ class Generator(AbstractGenerator):
             repls = self.repls.copy()
             repls.update({'methods': klass.methods, 'genClassName': klass.name,
               'baseMixin':'BaseMixin', 'parents': 'BaseMixin, SimpleItem',
-              'classDoc': 'User class for %s' % self.applicationName,
-              'icon':'object.gif'})
+              'classDoc': 'Standard Appy class', 'icon':'object.gif'})
             self.copyFile('Class.py', repls, destName='%s.py' % klass.name)
 
         # Before generating the Tool class, finalize it with query result

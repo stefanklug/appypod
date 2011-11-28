@@ -515,6 +515,33 @@ class UserClassDescriptor(ClassDescriptor):
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
 
+class GroupClassDescriptor(ClassDescriptor):
+    '''Represents the class that corresponds to the Group for the generated
+       application.'''
+    def __init__(self, klass, generator):
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()):
+        res = ['Group']
+        if self.customized:
+            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
+        return res
+    def update(self, klass, attributes):
+        '''This method is called by the generator when he finds a custom group
+           definition. We must then add the custom group elements in this
+           default Group descriptor.
+
+           NOTE: currently, it is not possible to define a custom Group
+           class.'''
+        self.orderedAttributes += attributes
+        self.klass = klass
+        self.customized = True
+    def isFolder(self, klass=None): return False
+    def generateSchema(self):
+        ClassDescriptor.generateSchema(self, configClass=True)
+
 class TranslationClassDescriptor(ClassDescriptor):
     '''Represents the set of translation ids for a gen-application.'''
 
