@@ -371,6 +371,7 @@ class ToolMixin(BaseMixin):
     def truncateValue(self, value, appyType):
         '''Truncates the p_value according to p_appyType width.'''
         maxWidth = appyType['width']
+        if isinstance(value, str): value = value.decode('utf-8')
         if len(value) > maxWidth:
             return value[:maxWidth] + '...'
         return value
@@ -378,10 +379,9 @@ class ToolMixin(BaseMixin):
     def truncateText(self, text, width=15):
         '''Truncates p_text to max p_width chars. If the text is longer than
            p_width, the truncated part is put in a "acronym" html tag.'''
+        if isinstance(text, str): text = text.decode('utf-8')
         if len(text) <= width: return text
-        else:
-            return '<acronym title="%s">%s</acronym>' % \
-                   (text, text[:width] + '...')
+        return '<acronym title="%s">%s</acronym>' % (text, text[:width] + '...')
 
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among

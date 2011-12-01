@@ -1,19 +1,14 @@
 '''This package contains stuff used at run-time for installing a generated
-   Plone product.'''
+   Zope product.'''
 
 # ------------------------------------------------------------------------------
 import os, os.path, time
-from StringIO import StringIO
-from sets import Set
 import appy
 import appy.version
 from appy.gen import Type, Ref, String, File
 from appy.gen.po import PoParser
-from appy.gen.utils import produceNiceMessage, updateRolesForPermission, \
-                           createObject
+from appy.gen.utils import updateRolesForPermission, createObject
 from appy.shared.data import languages
-from migrator import Migrator
-
 
 # ------------------------------------------------------------------------------
 homePage = '''
@@ -38,99 +33,6 @@ errorPage = '''
  </html>
 </tal:main>
 '''
-# ------------------------------------------------------------------------------
-class PloneInstaller:
-    '''This Plone installer runs every time the generated Plone product is
-       installed or uninstalled (in the Plone configuration interface).'''
-    def __init__(self, reinstall, ploneSite, config):
-        # p_cfg is the configuration module of the Plone product.
-        self.reinstall = reinstall # Is it a fresh install or a re-install?
-        self.ploneSite = ploneSite
-        self.config = cfg = config
-        # Unwrap some useful variables from config
-        self.productName = cfg.PROJECTNAME
-        self.appClasses = cfg.appClasses
-        self.appClassNames = cfg.appClassNames
-        self.allClassNames = cfg.allClassNames
-        self.applicationRoles = cfg.applicationRoles # Roles defined in the app
-        self.defaultAddRoles = cfg.defaultAddRoles
-        self.appFrontPage = cfg.appFrontPage
-        self.languages = cfg.languages
-        self.languageSelector = cfg.languageSelector
-        self.attributes = cfg.attributes
-        # A buffer for logging purposes
-        self.toLog = StringIO()
-        self.tool = None # The Plone version of the application tool
-        self.appyTool = None # The Appy version of the application tool
-        self.toolName = '%sTool' % self.productName
-        self.toolInstanceName = 'portal_%s' % self.productName.lower()
-
-    def installRootFolder(self):
-        '''Creates and/or configures, at the root of the Plone site and if
-           needed, the folder where the application will store instances of
-           root classes. Creates also the 'appy' folder (more precisely,
-           a Filesystem Directory View) at the root of the site, for storing
-           appy-wide ZPTs an images.'''
-        # Register first our own Appy folder type if needed.
-        site = self.ploneSite
-        if not hasattr(site.portal_types, self.appyFolderType):
-            self.registerAppyFolderType()
-        # Create the folder
-        if not hasattr(site.aq_base, self.productName):
-            # Temporarily allow me to create Appy large plone folders
-            getattr(site.portal_types, self.appyFolderType).global_allow = 1
-            # Allow to create Appy large folders in the plone site
-            getattr(site.portal_types,
-                'Plone Site').allowed_content_types += (self.appyFolderType,)
-            site.invokeFactory(self.appyFolderType, self.productName,
-                               title=self.productName)
-            getattr(site.portal_types, self.appyFolderType).global_allow = 0
-            
-        else:
-            appFolder = getattr(site, self.productName)
-
-        # Beyond content-type-specific "add" permissions, creators must also
-        # have the main permission "Add portal content".
-        permission = 'Add portal content'
-        updateRolesForPermission(permission, tuple(allCreators), appFolder)
-
-    def installRolesAndGroups(self):
-        '''Registers roles used by workflows and classes defined in this
-           application if they are not registered yet. Creates the corresponding
-           groups if needed.'''
-        site = self.ploneSite
-        data = list(site.__ac_roles__)
-        for role in self.config.applicationRoles:
-            if not role in data:
-                data.append(role)
-                # Add to portal_role_manager
-                prm = site.acl_users.portal_role_manager
-                try:
-                    prm.addRole(role, role, 'Added by "%s"' % self.productName)
-                except KeyError: # Role already exists
-                    pass
-            # If it is a global role, create a specific group and grant him
-            # this role
-            if role not in self.config.applicationGlobalRoles: continue
-            group = '%s_group' % role
-            if site.portal_groups.getGroupById(group): continue # Already there
-            site.portal_groups.addGroup(group, title=group)
-            site.portal_groups.setRolesForGroup(group, [role])
-        site.__ac_roles__ = tuple(data)
-
-    def finalizeInstallation(self):
-        '''Performs some final installation steps.'''
-        site = self.ploneSite
-        # Do not allow an anonymous user to register himself as new user
-        site.manage_permission('Add portal member', ('Manager',), acquire=0)
-        # Replace Plone front-page with an application-specific page if needed
-        if self.appFrontPage:
-            frontPageName = self.productName + 'FrontPage'
-            site.manage_changeProperties(default_page=frontPageName)
-        # Store the used Appy version (used for detecting new versions)
-        self.appyTool.appyVersion = appy.version.short
-        self.info('Appy version is %s.' % self.appyTool.appyVersion)
-        # Call custom installer if any
 
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}
@@ -161,6 +63,11 @@ def onDelSession(sessionObject, container):
         resp.expireCookie('__ac', path='/')
         resp.write('<center>For security reasons, your session has ' \
                    'expired.</center>')
+
+class ZCTextIndexInfo:
+    '''Silly class used for storing information about a ZCTextIndex.'''
+    lexicon_id = "lexicon"
+    index_type = 'Okapi BM25 Rank'
 
 # ------------------------------------------------------------------------------
 class ZopeInstaller:
@@ -238,12 +145,20 @@ class ZopeInstaller:
                                 (indexName, oldType, indexType))
             if indexName not in catalog.indexes():
                 # We need to create this index
-                type = indexType
-                if type == 'ZCTextIndex': type = 'TextIndex'
-                catalog.addIndex(indexName, type)
+                if indexType != 'ZCTextIndex':
+                    catalog.addIndex(indexName, indexType)
+                else:
+                    catalog.addIndex(indexName, indexType,extra=ZCTextIndexInfo)
+                catalog.reindexIndex(indexName, self.app.REQUEST)
                 logger.info('Created index "%s" of type "%s"...' % \
-                            (indexName, type))
+                            (indexName, indexType))
+                            # Indexing database content based on this index.
 
+    lexiconInfos = [
+        appy.Object(group='Case Normalizer', name='Case Normalizer'),
+        appy.Object(group='Stop Words', name=" Don't remove stop words"),
+        appy.Object(group='Word Splitter', name='Whitespace splitter')
+    ]
     def installCatalog(self):
         '''Create the catalog at the root of Zope if id does not exist.'''
         if 'catalog' not in self.app.objectIds():
@@ -251,10 +166,17 @@ class ZopeInstaller:
             from Products.ZCatalog.ZCatalog import manage_addZCatalog
             manage_addZCatalog(self.app, 'catalog', '')
             self.logger.info('Appy catalog created.')
+
+        # Create a lexicon for ZCTextIndexes
+        if 'lexicon' not in self.app.catalog.objectIds():
+            from Products.ZCTextIndex.ZCTextIndex import manage_addLexicon
+            manage_addLexicon(self.app.catalog, 'lexicon',
+                              elements=self.lexiconInfos)
+
         # Create or update Appy-wide indexes and field-related indexes
         indexInfo = {'State': 'FieldIndex', 'UID': 'FieldIndex',
-                     'Title': 'TextIndex', 'SortableTitle': 'FieldIndex',
-                     'SearchableText': 'FieldIndex', 'Creator': 'FieldIndex',
+                     'Title': 'ZCTextIndex', 'SortableTitle': 'FieldIndex',
+                     'SearchableText': 'ZCTextIndex', 'Creator': 'FieldIndex',
                      'Created': 'DateIndex', 'ClassName': 'FieldIndex',
                      'Allowed': 'KeywordIndex'}
         tool = self.app.config
@@ -314,6 +236,7 @@ class ZopeInstaller:
         tool.createOrUpdate(True, None)
         tool.refreshSecurity()
         appyTool = tool.appy()
+        appyTool.log('Appy version is "%s".' % appy.version.short)
 
         # Create the admin user if no user exists.
         if not self.app.acl_users.getUsers():
@@ -457,8 +380,17 @@ class ZopeInstaller:
             if role not in roles: roles.append(role)
         self.app.__ac_roles__ = tuple(roles)
 
+    def installDependencies(self):
+        '''Zope products are installed in alphabetical order. But here, we need
+           ZCTextIndex to be installed before our Appy application. So, we cheat
+           and force Zope to install it now.'''
+        from OFS.Application import install_product
+        import Products
+        install_product(self.app, Products.__path__[1], 'ZCTextIndex', [], {})
+    
     def install(self):
         self.logger.info('is being installed...')
+        self.installDependencies()
         self.installRoles()
         self.installAppyTypes()
         self.installZopeClasses()

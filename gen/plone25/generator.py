@@ -142,7 +142,6 @@ class Generator(AbstractGenerator):
         self.generateTool()
         self.generateInit()
         self.generateTests()
-        self.copyFile('Install.py', self.repls, destFolder='Extensions')
         self.generateConfigureZcml()
         self.copyFile('import_steps.xml', self.repls,
                       destFolder='profiles/default')

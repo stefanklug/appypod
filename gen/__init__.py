@@ -315,9 +315,6 @@ class Search:
             # Indeed, for field 'title', Appy has a specific index
             # 'SortableTitle', because index 'Title' is a ZCTextIndex
             # (for searchability) and can't be used for sorting.
-        elif fieldName == 'description':
-            if usage == 'search':  return 'Description'
-            else:                  return None
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
     @staticmethod

@@ -29,7 +29,7 @@ class TranslationWrapper(AbstractWrapper):
                 sourceMsg = sourceMsg.replace('<','&lt;').replace('>','&gt;')
             sourceMsg = sourceMsg.replace('\n', '<br/>')
         return '<div class="translationLabel"><acronym title="%s">' \
-               '<img src="help.png"/></acronym>%s</div>' % \
+               '<img src="ui/help.png"/></acronym>%s</div>' % \
                (fieldName, sourceMsg)
 
     def show(self, field):
