@@ -43,14 +43,13 @@
     <td tal:condition="python: obj.allows('Modify portal content') and not appyType['noForm']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
           tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
-        <img title="label_edit" i18n:domain="plone" i18n:attributes="title"
-             tal:attributes="src string: $appUrl/ui/edit.gif"/>
+        <img title="Edit" tal:attributes="src string: $appUrl/ui/edit.gif"/>
        </a>
     </td>
     <tal:comment replace="nothing">Delete the element</tal:comment>
     <td>
       <img tal:condition="python: not appyType['isBack'] and obj.allows('Delete objects') and obj.mayDelete()"
-           title="Delete" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+           title="Delete" style="cursor:pointer"
            tal:attributes="src string: $appUrl/ui/delete.png;
                            onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
     </td>

@@ -6,9 +6,9 @@ from appy.shared.data import languages
 import appy.gen
 from appy.gen import Type, Search, Selection
 from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
-from appy.gen.plone25.mixins import BaseMixin
-from appy.gen.plone25.wrappers import AbstractWrapper
-from appy.gen.plone25.descriptors import ClassDescriptor
+from appy.gen.mixins import BaseMixin
+from appy.gen.wrappers import AbstractWrapper
+from appy.gen.descriptors import ClassDescriptor
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -411,7 +411,7 @@ class ToolMixin(BaseMixin):
 
     def getCreateMeans(self, contentTypeOrAppyClass):
         '''Gets the different ways objects of p_contentTypeOrAppyClass (which
-           can be a Plone content type or a Appy class) can be created
+           can be a Zope content type or a Appy class) can be created
            (via a web form, by importing external data, etc). Result is a
            dict whose keys are strings (ie "form", "import"...) and whose
            values are additional data bout the particular mean.'''
@@ -810,7 +810,7 @@ class ToolMixin(BaseMixin):
         9:  'month_sep', 10: 'month_oct', 11: 'month_nov', 12: 'month_dec'}
     def getMonthName(self, monthNumber):
         '''Gets the translated month name of month numbered p_monthNumber.'''
-        return self.translate(self.monthsIds[int(monthNumber)], domain='plone')
+        return self.translate(self.monthsIds[int(monthNumber)])
 
     # --------------------------------------------------------------------------
     # Authentication-related methods
@@ -824,7 +824,7 @@ class ToolMixin(BaseMixin):
 
         if jsEnabled and not cookiesEnabled:
             msg = self.translate(u'You must enable cookies before you can ' \
-                                  'log in.', domain='plone')
+                                  'log in.')
             return self.goto(urlBack, msg.encode('utf-8'))
         # Perform the Zope-level authentication
         login = rq.get('__ac_name', '')
@@ -835,11 +835,10 @@ class ToolMixin(BaseMixin):
         user = self.acl_users.validate(rq)
         if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')
-            msg = self.translate(u'Login failed', domain='plone')
+            msg = self.translate(u'Login failed')
             logMsg = 'Authentication failed (tried with login "%s")' % login
         else:
-            msg = self.translate(u'Welcome! You are now logged in.',
-                                 domain='plone')
+            msg = self.translate(u'Welcome! You are now logged in.')
             logMsg = 'User "%s" has been logged in.' % login
         msg = msg.encode('utf-8')
         self.log(logMsg)
@@ -865,7 +864,7 @@ class ToolMixin(BaseMixin):
             session.invalidate()
         self.log('User "%s" has been logged out.' % userId)
         # Remove user from variable "loggedUsers"
-        from appy.gen.plone25.installer import loggedUsers
+        from appy.gen.installer import loggedUsers
         if loggedUsers.has_key(userId): del loggedUsers[userId]
         return self.goto(self.getApp().absolute_url())
 

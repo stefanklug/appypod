@@ -14,10 +14,7 @@
                            onClick python: 'askConfirm(\'form\', \'%s\', &quot;%s&quot;)' % (formId, labelConfirm)"/>
     </tal:confirm>
     <input type="submit" name="do" tal:condition="not: widget/confirm"
-           tal:attributes="value label" onClick="javascript:;"/>
-    <tal:comment replace="nothing">The previous onClick is simply used to prevent Plone
-      from adding a CSS class that displays a popup when the user triggers the form multiple
-      times.</tal:comment>
+           tal:attributes="value label"/>
   </form>
 </metal:view>
 

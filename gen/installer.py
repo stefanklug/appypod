@@ -5,7 +5,7 @@
 import os, os.path, time
 import appy
 import appy.version
-from appy.gen import Type, Ref, String, File
+import appy.gen as gen
 from appy.gen.po import PoParser
 from appy.gen.utils import updateRolesForPermission, createObject
 from appy.shared.data import languages
@@ -110,7 +110,7 @@ class ZopeInstaller:
             for name in files:
                 baseName, ext = os.path.splitext(name)
                 f = file(j(root, name))
-                if ext in File.imageExts:
+                if ext in gen.File.imageExts:
                     zopeFolder.manage_addImage(name, f)
                 elif ext == '.pt':
                     manage_addPageTemplate(zopeFolder, baseName, '', f.read())
@@ -302,13 +302,11 @@ class ZopeInstaller:
         # "po" file on disk.
         appFolder = self.config.diskFolder
         appName = self.config.PROJECTNAME
-        dn = os.path.dirname
-        jn = os.path.join
-        i18nFolder = jn(jn(jn(dn(dn(dn(appFolder))),'Products'),appName),'i18n')
+        i18nFolder = os.path.join(appFolder, 'tr')
         for translation in appyTool.translations:
             # Get the "po" file
             poName = '%s-%s.po' % (appName, translation.id)
-            poFile = PoParser(jn(i18nFolder, poName)).parse()
+            poFile = PoParser(os.path.join(i18nFolder, poName)).parse()
             for message in poFile.messages:
                 setattr(translation, message.id, message.getMessage())
             appyTool.log('Translation "%s" updated from "%s".' % \
@@ -359,7 +357,7 @@ class ZopeInstaller:
             wrapperClass = klass.wrapperClass
             if not hasattr(wrapperClass, 'title'):
                 # Special field "type" is mandatory for every class.
-                title = String(multiplicity=(1,1), show='edit', indexed=True)
+                title = gen.String(multiplicity=(1,1), show='edit',indexed=True)
                 title.init('title', None, 'appy')
                 setattr(wrapperClass, 'title', title)
             names = self.config.attributes[wrapperClass.__name__[:-8]]
@@ -368,8 +366,8 @@ class ZopeInstaller:
             for baseClass in klass.wrapperClass.__bases__:
                 if baseClass.__name__ == 'AbstractWrapper': continue
                 for name, appyType in baseClass.__dict__.iteritems():
-                    if not isinstance(appyType, Type) or \
-                           (isinstance(appyType, Ref) and appyType.isBack):
+                    if not isinstance(appyType, gen.Type) or \
+                           (isinstance(appyType, gen.Ref) and appyType.isBack):
                         continue # Back refs are initialised within fw refs
                     appyType.init(name, baseClass, appName)
 

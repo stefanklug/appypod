@@ -24,14 +24,13 @@
   <metal:call use-macro="app/ui/widgets/file/macros/view"/><br/>
  </tal:showFile>
  <tal:editButtons condition="not: empty">
-  <tal:comment replace="nothing">Keep the file untouched.</tal:comment>
+  <tal:comment replace="nothing">Keep the file unchanged.</tal:comment>
   <input type="radio" value="nochange"
          tal:attributes="checked python:test(info['size']!=0, 'checked', None);
                          name string:${name}_delete;
                          id string:${name}_nochange;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
-  <label tal:attributes="for string:${name}_nochange"
-         i18n:translate="nochange_file" i18n:domain="plone">Keep the file unchanged</label>
+  <label tal:attributes="for string:${name}_nochange">Keep the file unchanged</label>
   <br/>
   <tal:comment replace="nothing">Delete the file.</tal:comment>
   <tal:delete condition="not: widget/required">
@@ -39,8 +38,7 @@
          tal:attributes="name string:${name}_delete;
                          id string:${name}_delete;
                          onclick string:document.getElementById('${name}_file').disabled=true;"/>
-  <label tal:attributes="for string:${name}_delete"
-         i18n:translate="delete_file" i18n:domain="plone">Delete the file</label>
+  <label tal:attributes="for string:${name}_delete">Delete the file</label>
   <br/>
   </tal:delete>
   <tal:comment replace="nothing">Replace with a new file.</tal:comment>
@@ -49,8 +47,7 @@
                          name string:${name}_delete;
                          id string:${name}_upload;
                          onclick string:document.getElementById('${name}_file').disabled=false"/>
-  <label tal:attributes="for string:${name}_upload;"
-         i18n:translate="upload_file" i18n:domain="plone">Replace it with a new file</label>
+  <label tal:attributes="for string:${name}_upload;">Replace it with a new file</label>
   <br/>
  </tal:editButtons>
  <tal:comment replace="nothing">The upload field.</tal:comment>

@@ -4,8 +4,8 @@ from OFS.Folder import Folder
 from appy.gen.utils import createObject
 from AccessControl import ClassSecurityInfo
 import Products.<!applicationName!>.config as cfg
-from appy.gen.plone25.mixins import BaseMixin
-from appy.gen.plone25.mixins.ToolMixin import ToolMixin
+from appy.gen.mixins import BaseMixin
+from appy.gen.mixins.ToolMixin import ToolMixin
 from wrappers import <!genClassName!>_Wrapper as Wrapper
 
 def manage_add<!genClassName!>(self, id, title='', REQUEST=None):

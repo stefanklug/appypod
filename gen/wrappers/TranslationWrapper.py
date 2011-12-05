@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os.path
-from appy.gen.plone25.wrappers import AbstractWrapper
+from appy.gen.wrappers import AbstractWrapper
 from appy.gen.po import PoFile, PoMessage
 from appy.shared.utils import getOsTempFolder
 

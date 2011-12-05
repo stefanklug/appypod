@@ -1,7 +1,7 @@
 <!codeHeader!>
 # Test coverage-related stuff --------------------------------------------------
 import sys
-from appy.gen.plone25.mixins.TestMixin import TestMixin
+from appy.gen.mixins.TestMixin import TestMixin
 covFolder = TestMixin.getCovFolder()
 # The previous method checks in sys.argv whether Zope was lauched for performing
 # coverage tests or not.
@@ -26,7 +26,7 @@ def countTest():
 
 # ------------------------------------------------------------------------------
 import config
-from appy.gen.plone25.installer import ZopeInstaller
+from appy.gen.installer import ZopeInstaller
 
 # Zope-level installation of the generated product. ----------------------------
 def initialize(context):

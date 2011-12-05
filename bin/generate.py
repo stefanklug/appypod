@@ -3,18 +3,15 @@
 # ------------------------------------------------------------------------------
 import sys, os.path
 from optparse import OptionParser
-from appy.gen.generator import GeneratorError
+from appy.gen.generator import GeneratorError, ZopeGenerator
 from appy.shared.utils import LinesCounter
 import appy.version
 
 # ------------------------------------------------------------------------------
 ERROR_CODE = 1
-VALID_PRODUCT_TYPES = ('zope', 'odt')
 APP_NOT_FOUND = 'Application not found at %s.'
 WRONG_NG_OF_ARGS = 'Wrong number of arguments.'
 WRONG_OUTPUT_FOLDER = 'Output folder not found. Please create it first.'
-PRODUCT_TYPE_ERROR = 'Wrong product type. Product type may be one of the ' \
-                     'following: %s' % str(VALID_PRODUCT_TYPES)
 C_OPTION = 'Removes from i18n files all labels that are not automatically ' \
            'generated from your gen-application. It can be useful during ' \
            'development, when you do lots of name changes (classes, ' \
@@ -37,7 +34,7 @@ S_OPTION = 'Sorts all i18n labels. If you use this option, among the ' \
            'set of translation files.'
 
 class GeneratorScript:
-    '''usage: %prog [options] app productType outputFolder
+    '''usage: %prog [options] app outputFolder
 
        "app"          is the path to your Appy application, which must be a
                       Python package (= a folder containing a file named
@@ -47,44 +44,29 @@ class GeneratorScript:
                       generated product, stored or symlinked in
                       <yourZopeInstance>/Products.
 
-       "productType"  is the kind of product you want to generate. "zope" is
-                      the only available production-ready target.
-                      "odt" is experimental.
-                      
        "outputFolder" is the folder where the Zope product will be generated.
                       For example, if you develop your application in
                       /home/gdy/MyProject/MyProject, you typically specify
                       "/home/gdy/MyProject/zope" as outputFolder.
     '''
-
-    def generateProduct(self, options, application, productType, outputFolder):
-        if productType == 'odt':
-            exec 'from appy.gen.odt.generator import Generator'
-        else:
-            from appy.gen.generator import ZopeGenerator as Generator
-        Generator(application, outputFolder, options).run()
-
     def manageArgs(self, parser, options, args):
         # Check number of args
-        if len(args) != 3:
+        if len(args) != 2:
             print WRONG_NG_OF_ARGS
             parser.print_help()
-            sys.exit(ERROR_CODE)
-        # Check productType
-        if args[1] not in VALID_PRODUCT_TYPES:
-            print PRODUCT_TYPE_ERROR
             sys.exit(ERROR_CODE)
         # Check existence of application
         if not os.path.exists(args[0]):
             print APP_NOT_FOUND % args[0]
             sys.exit(ERROR_CODE)
-        # Check existence of outputFolder basic type
-        if not os.path.exists(args[2]):
+        # Check existence of outputFolder
+        if not os.path.exists(args[1]):
             print WRONG_OUTPUT_FOLDER
             sys.exit(ERROR_CODE)
         # Convert all paths in absolute paths
-        for i in (0,2):
+        for i in (0,1):
             args[i] = os.path.abspath(args[i])
+
     def run(self):
         optParser = OptionParser(usage=GeneratorScript.__doc__)
         optParser.add_option("-c", "--i18n-clean", action='store_true',
@@ -95,8 +77,8 @@ class GeneratorScript:
         try:
             self.manageArgs(optParser, options, args)
             print 'Appy version:', appy.version.verbose
-            print 'Generating %s product in %s...' % (args[1], args[2])
-            self.generateProduct(options, *args)
+            print 'Generating Zope product in %s...' % args[1]
+            ZopeGenerator(args[0], args[1], options).run()
             # Give the user some statistics about its code
             LinesCounter(args[0]).run()
         except GeneratorError, ge:

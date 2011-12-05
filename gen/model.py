@@ -1,14 +1,10 @@
 '''This file contains basic classes that will be added into any user
    application for creating the basic structure of the application "Tool" which
-   is the set of web pages used for configuring the application. The "Tool" is
-   available to administrators under the standard Plone link "site setup". Plone
-   itself is shipped with several tools used for conguring the various parts of
-   Plone (content types, catalogs, workflows, etc.)'''
+   is the set of web pages used for configuring the application.'''
 
 # ------------------------------------------------------------------------------
 import types
-from appy.gen import *
-Grp=Group # Avoid name clash between appy.gen.Group and class Group below
+import appy.gen as gen
 
 # Prototypical instances of every type -----------------------------------------
 class Protos:
@@ -73,7 +69,7 @@ class ModelClass:
                     value = appyType.getInputLayouts()
             elif isinstance(value, basestring):
                 value = '"%s"' % value
-            elif isinstance(value, Ref):
+            elif isinstance(value, gen.Ref):
                 if not value.isBack: continue
                 value = klass._appy_getTypeBody(value, wrapperName)
             elif type(value) == type(ModelClass):
@@ -82,11 +78,11 @@ class ModelClass:
                     value = value.__name__
                 else:
                     value = '%s.%s' % (moduleName, value.__name__)
-            elif isinstance(value, Selection):
+            elif isinstance(value, gen.Selection):
                 value = 'Selection("%s")' % value.methodName
-            elif isinstance(value, Grp):
+            elif isinstance(value, gen.Group):
                 value = 'Grp("%s")' % value.name
-            elif isinstance(value, Page):
+            elif isinstance(value, gen.Page):
                 value = 'pages["%s"]' % value.name
             elif callable(value):
                 value = '%s.%s' % (wrapperName, value.__name__)
@@ -135,20 +131,22 @@ class User(ModelClass):
     _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
                         'password2', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
-    title = String(show=False, indexed=True)
+    title = gen.String(show=False, indexed=True)
     gm = {'group': 'main', 'multiplicity': (1,1), 'width': 25}
-    name = String(**gm)
-    firstName = String(**gm)
+    name = gen.String(**gm)
+    firstName = gen.String(**gm)
     def showLogin(self): pass
     def validateLogin(self): pass
-    login = String(show=showLogin, validator=validateLogin, indexed=True, **gm)
+    login = gen.String(show=showLogin, validator=validateLogin,
+                       indexed=True, **gm)
     def showPassword(self): pass
     def validatePassword(self): pass
-    password1 = String(format=String.PASSWORD, show=showPassword,
-                       validator=validatePassword, **gm)
-    password2 = String(format=String.PASSWORD, show=showPassword, **gm)
+    password1 = gen.String(format=gen.String.PASSWORD, show=showPassword,
+                           validator=validatePassword, **gm)
+    password2 = gen.String(format=gen.String.PASSWORD, show=showPassword, **gm)
     gm['multiplicity'] = (0, None)
-    roles = String(validator=Selection('getGrantableRoles'), indexed=True, **gm)
+    roles = gen.String(validator=gen.Selection('getGrantableRoles'),
+                       indexed=True, **gm)
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):
@@ -156,25 +154,25 @@ class Group(ModelClass):
     _appy_attributes = ['title', 'login', 'roles', 'users']
     # All methods defined below are fake. Real versions are in the wrapper.
     m = {'group': 'main', 'width': 25, 'indexed': True}
-    title = String(multiplicity=(1,1), **m)
+    title = gen.String(multiplicity=(1,1), **m)
     def showLogin(self): pass
     def validateLogin(self): pass
-    login = String(show=showLogin, validator=validateLogin,
-                   multiplicity=(1,1), **m)
-    roles = String(validator=Selection('getGrantableRoles'),
-                   multiplicity=(0,None), **m)
-    users = Ref(User, multiplicity=(0,None), add=False, link=True,
-                back=Ref(attribute='groups', show=True),
-                showHeaders=True, shownInfo=('title', 'login'))
+    login = gen.String(show=showLogin, validator=validateLogin,
+                       multiplicity=(1,1), **m)
+    roles = gen.String(validator=gen.Selection('getGrantableRoles'),
+                       multiplicity=(0,None), **m)
+    users = gen.Ref(User, multiplicity=(0,None), add=False, link=True,
+                    back=gen.Ref(attribute='groups', show=True),
+                    showHeaders=True, shownInfo=('title', 'login'))
 
 # The Translation class --------------------------------------------------------
 class Translation(ModelClass):
     _appy_attributes = ['po', 'title']
     # All methods defined below are fake. Real versions are in the wrapper.
     def getPoFile(self): pass
-    po = Action(action=getPoFile, page=Page('actions', show='view'),
-                result='filetmp')
-    title = String(show=False, indexed=True)
+    po = gen.Action(action=getPoFile, page=gen.Page('actions', show='view'),
+                    result='filetmp')
+    title = gen.String(show=False, indexed=True)
     def label(self): pass
     def show(self, name): pass
 
@@ -195,30 +193,31 @@ class Tool(ModelClass):
 
     # Tool attributes
     def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = String(group="connectionToOpenOffice",
-                              validator=validPythonWithUno)
-    openOfficePort = Integer(default=2002, group="connectionToOpenOffice")
-    numberOfResultsPerPage = Integer(default=30, show=False)
-    listBoxesMaximumWidth = Integer(default=100, show=False)
-    appyVersion = String(show=False, layouts='f')
+    unoEnabledPython = gen.String(group="connectionToOpenOffice",
+                                  validator=validPythonWithUno)
+    openOfficePort = gen.Integer(default=2002, group="connectionToOpenOffice")
+    numberOfResultsPerPage = gen.Integer(default=30, show=False)
+    listBoxesMaximumWidth = gen.Integer(default=100, show=False)
+    appyVersion = gen.String(show=False, layouts='f')
     def refreshSecurity(self): pass # Real method in the wrapper
-    refreshSecurity = Action(action=refreshSecurity, confirm=True)
+    refreshSecurity = gen.Action(action=refreshSecurity, confirm=True)
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
-    users = Ref(User, multiplicity=(0,None), add=True, link=False,
-                back=Ref(attribute='toTool', show=False),
-                page=Page('users', show='view'),
-                queryable=True, queryFields=('title', 'login'),
-                showHeaders=True, shownInfo=('title', 'login', 'roles'))
-    groups = Ref(Group, multiplicity=(0,None), add=True, link=False,
-                 back=Ref(attribute='toTool2', show=False),
-                 page=Page('groups', show='view'),
-                 queryable=True, queryFields=('title', 'login'),
-                 showHeaders=True, shownInfo=('title', 'login', 'roles'))
-    translations = Ref(Translation, multiplicity=(0,None),add=False,link=False,
-                       back=Ref(attribute='trToTool', show=False), show='view',
-                       page=Page('translations', show='view'))
-    enableNotifications = Boolean(default=True,
-                                  page=Page('notifications', show=False))
+    users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
+                    back=gen.Ref(attribute='toTool', show=False),
+                    page=gen.Page('users', show='view'),
+                    queryable=True, queryFields=('title', 'login'),
+                    showHeaders=True, shownInfo=('title', 'login', 'roles'))
+    groups = gen.Ref(Group, multiplicity=(0,None), add=True, link=False,
+                     back=gen.Ref(attribute='toTool2', show=False),
+                     page=gen.Page('groups', show='view'),
+                     queryable=True, queryFields=('title', 'login'),
+                     showHeaders=True, shownInfo=('title', 'login', 'roles'))
+    translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
+                           link=False, show='view',
+                           back=gen.Ref(attribute='trToTool', show=False),
+                           page=gen.Page('translations', show='view'))
+    enableNotifications = gen.Boolean(default=True,
+                                     page=gen.Page('notifications', show=False))
 
     @classmethod
     def _appy_clean(klass):

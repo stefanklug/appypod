@@ -2,7 +2,7 @@
 import os.path
 import appy
 from appy.shared.utils import executeCommand
-from appy.gen.plone25.wrappers import AbstractWrapper
+from appy.gen.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
 _PY = 'Please specify a file corresponding to a Python interpreter ' \

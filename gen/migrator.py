@@ -9,8 +9,7 @@ class Migrator:
         self.installer = installer
 
     def migrateTo_0_7_1(self):
-        '''Appy 0.7.1 has its own management of Ref fields and does not use
-           Archetypes references and the reference catalog anymore. So we must
+        '''Appy 0.7.1 has its own management of Ref fields. So we must
            update data structures that store Ref info on instances.'''
         ins = self.installer
         ins.info('Migrating to Appy 0.7.1...')

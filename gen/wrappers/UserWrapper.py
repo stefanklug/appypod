@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-from appy.gen.plone25.wrappers import AbstractWrapper
+from appy.gen.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):

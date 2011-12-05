@@ -4,7 +4,7 @@
 
 # ------------------------------------------------------------------------------
 import types, copy
-from appy.gen import State, Transition, Type
+import appy.gen as gen
 from po import PoMessage
 from model import ModelClass, toolFieldPrefixes
 from utils import produceNiceMessage, getClassName
@@ -27,8 +27,7 @@ class ClassDescriptor(Descriptor):
     '''This class gives information about an Appy class.'''
 
     def __init__(self, klass, orderedAttributes, generator):
-        appy.gen.descriptors.ClassDescriptor.__init__(self, klass,
-            orderedAttributes, generator)
+        Descriptor.__init__(self, klass, orderedAttributes, generator)
         self.methods = '' # Needed method definitions will be generated here
         # We remember here encountered pages and groups defined in the Appy
         # type. Indeed, after having parsed all application classes, we will
@@ -70,7 +69,7 @@ class ClassDescriptor(Descriptor):
             except AttributeError:
                 attrValue = getattr(self.modelClass, attrName)
                 hookClass = self.modelClass
-            if isinstance(attrValue, Type):
+            if isinstance(attrValue, gen.Type):
                 if not condition or eval(condition):
                     attrs.append( (attrName, attrValue, hookClass) )
         # Then, add attributes from parent classes
@@ -142,7 +141,7 @@ class ClassDescriptor(Descriptor):
                 attrValue = getattr(self.klass, attrName)
             except AttributeError:
                 attrValue = getattr(self.modelClass, attrName)
-            if isinstance(attrValue, Type):
+            if isinstance(attrValue, gen.Type):
                 if configClass:
                     attrValue = copy.copy(attrValue)
                     attrValue.optional = False
@@ -184,13 +183,13 @@ class ClassDescriptor(Descriptor):
         res = []
         if self.klass.__dict__.has_key('creators') and self.klass.creators:
             for creator in self.klass.creators:
-                if isinstance(creator, Role):
+                if isinstance(creator, gen.Role):
                     if creator.local:
                         raise 'Local role "%s" cannot be used as a creator.' % \
                               creator.name
                     res.append(creator)
                 else:
-                    res.append(Role(creator))
+                    res.append(gen.Role(creator))
         return res
 
     def getCreateMean(self, type='Import'):
@@ -213,13 +212,17 @@ class ClassDescriptor(Descriptor):
         res = []
         if klass.__dict__.has_key('search'):
             searches = klass.__dict__['search']
-            if isinstance(searches, basestring): res.append(Search(searches))
-            elif isinstance(searches, Search):   res.append(searches)
+            if isinstance(searches, basestring):
+                res.append(gen.Search(searches))
+            elif isinstance(searches, gen.Search):
+                res.append(searches)
             else:
                 # It must be a list of searches.
                 for search in searches:
-                    if isinstance(search, basestring):res.append(Search(search))
-                    else:                             res.append(search)
+                    if isinstance(search, basestring):
+                        res.append(gen.Search(search))
+                    else:
+                        res.append(search)
         return res
 
     @staticmethod
@@ -268,11 +271,10 @@ class FieldDescriptor:
     '''This class gathers information about a specific typed attribute defined
        in a gen-class.'''
 
-    singleValuedTypes = ('Integer', 'Float', 'Boolean', 'Date', 'File')
     # Although Appy allows to specify a multiplicity[0]>1 for those types, it is
-    # not supported by Archetypes. So we will always generate single-valued type
-    # definitions for them.
-    specialParams = ('title', 'description')
+    # not currently. So we will always generate single-valued type definitions
+    # for them.
+    singleValuedTypes = ('Integer', 'Float', 'Boolean', 'Date', 'File')
 
     def __init__(self, fieldName, appyType, classDescriptor):
         self.appyType = appyType
@@ -387,8 +389,7 @@ class FieldDescriptor:
         if self.appyType.editDefault:
             self.generator.tool.addDefaultField(self)
         # - put an index on this field?
-        if self.appyType.indexed and \
-           (self.fieldName not in ('title', 'description')):
+        if self.appyType.indexed and (self.fieldName != 'title'):
             self.classDescr.addIndexMethod(self)
         # i18n labels
         messages = self.generator.labels
@@ -477,7 +478,7 @@ class ToolClassDescriptor(ClassDescriptor):
             self.addField(fieldName, fieldType)
         fieldType.validator.append(fieldDescr.fieldName)
         fieldType.page.name = 'data'
-        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
+        fieldType.group = gen.Group(fieldDescr.classDescr.klass.__name__)
 
     def addDefaultField(self, fieldDescr):
         className = fieldDescr.classDescr.name
@@ -485,22 +486,22 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldType = fieldDescr.appyType.clone()
         self.addField(fieldName, fieldType)
         fieldType.page.name = 'data'
-        fieldType.group = Group(fieldDescr.classDescr.klass.__name__)
+        fieldType.group = gen.Group(fieldDescr.classDescr.klass.__name__)
 
     def addPodRelatedFields(self, fieldDescr):
         '''Adds the fields needed in the Tool for configuring a Pod field.'''
         className = fieldDescr.classDescr.name
         # On what page and group to display those fields ?
         pg = {'page': 'documentGeneration',
-              'group': Group(fieldDescr.classDescr.klass.__name__, ['50%']*2)}
+              'group':gen.Group(fieldDescr.classDescr.klass.__name__,['50%']*2)}
         # Add the field that will store the pod template.
         fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = File(**pg)
+        fieldType = gen.File(**pg)
         self.addField(fieldName, fieldType)
         # Add the field that will store the output format(s)
         fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = String(validator=Selection('getPodOutputFormats'),
-                           multiplicity=(1,None), default=('odt',), **pg)
+        fieldType = gen.String(validator=gen.Selection('getPodOutputFormats'),
+                               multiplicity=(1,None), default=('odt',), **pg)
         self.addField(fieldName, fieldType)
 
     def addQueryResultColumns(self, classDescr):
@@ -508,7 +509,7 @@ class ToolClassDescriptor(ClassDescriptor):
            to select what default columns will be shown on query results.'''
         className = classDescr.name
         fieldName = 'resultColumnsFor%s' % className
-        fieldType = String(multiplicity=(0,None), validator=Selection(
+        fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
             '_appy_getAllFields*%s' % className), page='userInterface',
             group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
@@ -520,21 +521,21 @@ class ToolClassDescriptor(ClassDescriptor):
         # Field that defines if advanced search is enabled for class
         # p_classDescr or not.
         fieldName = 'enableAdvancedSearchFor%s' % className
-        fieldType = Boolean(default=True, page='userInterface',
-                            group=classDescr.klass.__name__)
+        fieldType = gen.Boolean(default=True, page='userInterface',
+                                group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
         # Field that defines how many columns are shown on the custom search
         # screen.
         fieldName = 'numberOfSearchColumnsFor%s' % className
-        fieldType = Integer(default=3, page='userInterface',
-                            group=classDescr.klass.__name__)
+        fieldType = gen.Integer(default=3, page='userInterface',
+                                group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
         # Field that allows to select, among all indexed fields, what fields
         # must really be used in the search screen.
         fieldName = 'searchFieldsFor%s' % className
         defaultValue = [a[0] for a in classDescr.getOrderedAppyAttributes(
             condition='attrValue.indexed')]
-        fieldType = String(multiplicity=(0,None), validator=Selection(
+        fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
             '_appy_getSearchableFields*%s' % className), default=defaultValue,
             page='userInterface', group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
@@ -546,8 +547,8 @@ class ToolClassDescriptor(ClassDescriptor):
         # Field that defines the path of the files to import.
         fieldName = 'importPathFor%s' % className
         defValue = classDescr.getCreateMean('Import').path
-        fieldType = String(page='data', multiplicity=(1,1), default=defValue,
-                           group=classDescr.klass.__name__)
+        fieldType = gen.String(page='data', multiplicity=(1,1),
+                               default=defValue,group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
 
     def addWorkflowFields(self, classDescr):
@@ -560,13 +561,13 @@ class ToolClassDescriptor(ClassDescriptor):
         if classDescr.isRoot() or issubclass(classDescr.klass, ModelClass):
             defaultValue = True
         fieldName = 'showWorkflowFor%s' % className
-        fieldType = Boolean(default=defaultValue, page='userInterface',
-                            group=groupName)
+        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
+                                group=groupName)
         self.addField(fieldName, fieldType)
         # Adds the boolean field for showing or not the field "enter comments".
         fieldName = 'showWorkflowCommentFieldFor%s' % className
-        fieldType = Boolean(default=defaultValue, page='userInterface',
-                            group=groupName)
+        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
+                                group=groupName)
         self.addField(fieldName, fieldType)
         # Adds the boolean field for showing all states in current state or not.
         # If this boolean is True but the current phase counts only one state,
@@ -577,13 +578,12 @@ class ToolClassDescriptor(ClassDescriptor):
         if len(classDescr.getPhases()) > 1:
             defaultValue = True
         fieldName = 'showAllStatesInPhaseFor%s' % className
-        fieldType = Boolean(default=defaultValue, page='userInterface',
-                            group=groupName)
+        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
+                                group=groupName)
         self.addField(fieldName, fieldType)
 
 class UserClassDescriptor(ClassDescriptor):
-    '''Represents an Archetypes-compliant class that corresponds to the User
-       for the generated application.'''
+    '''Appy-specific class for representing a user.'''
     def __init__(self, klass, generator):
         ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
         self.modelClass = self.klass
@@ -649,8 +649,8 @@ class TranslationClassDescriptor(ClassDescriptor):
     def addLabelField(self, messageId, page):
         '''Adds a Computed field that will display, in the source language, the
            content of the text to translate.'''
-        field = Computed(method=self.modelClass.label, plainText=False,
-                         page=page, show=self.modelClass.show, layouts='f')
+        field = gen.Computed(method=self.modelClass.label, plainText=False,
+                             page=page, show=self.modelClass.show, layouts='f')
         self.addField('%s_label' % messageId, field)
 
     def addMessageField(self, messageId, page, i18nFiles):
@@ -683,7 +683,7 @@ class TranslationClassDescriptor(ClassDescriptor):
             params['width'] = width
         else:
             # This is a multi-line field, or a very-long-single-lined field
-            params['format'] = String.TEXT
+            params['format'] = gen.String.TEXT
             params['height'] = height
-        self.addField(messageId, String(**params))
+        self.addField(messageId, gen.String(**params))
 # ------------------------------------------------------------------------------

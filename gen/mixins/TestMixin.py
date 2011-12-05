@@ -3,7 +3,7 @@ import os, os.path, sys
 
 # ------------------------------------------------------------------------------
 class TestMixin:
-    '''This class is mixed in with any PloneTestCase.'''
+    '''This class is mixed in with any ZopeTestCase.'''
     def createUser(self, userId, roles):
         '''Creates a user with id p_userId with some p_roles.'''
         self.acl_users.addMember(userId, 'password', [], [])
@@ -59,7 +59,7 @@ class TestMixin:
 def beforeTest(test):
     '''Is executed before every test.'''
     g = test.globs
-    g['tool'] = test.app.plone.get('portal_%s' % g['appName'].lower()).appy()
+    g['tool'] = test.app.config.appy()
     cfg = g['tool'].o.getProductConfig()
     g['appFolder'] = cfg.diskFolder
     moduleOrClassName = g['test'].name # Not used yet.

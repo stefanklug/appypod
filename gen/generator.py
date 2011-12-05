@@ -2,7 +2,7 @@
 import os, os.path, re, sys, parser, symbol, token, types
 import appy.pod, appy.pod.renderer
 from appy.shared.utils import FolderDeleter
-#from appy.gen import *
+import appy.gen as gen
 from po import PoMessage, PoFile, PoParser
 from descriptors import *
 from utils import produceNiceMessage, getClassName
@@ -140,7 +140,7 @@ class Generator:
         self.user = None
         self.workflows = []
         self.initialize()
-        self.config = Config.getDefault()
+        self.config = gen.Config.getDefault()
         self.modulesWithTests = set()
         self.totalNumberOfTests = 0
 
@@ -152,9 +152,9 @@ class Generator:
            workflow.'''
         res = 'none'
         for attrValue in klass.__dict__.itervalues():
-            if isinstance(attrValue, Type):
+            if isinstance(attrValue, gen.Type):
                 res = 'class'
-            elif isinstance(attrValue, State):
+            elif isinstance(attrValue, gen.State):
                 res = 'workflow'
         if not res:
             for baseClass in klass.__bases__:
@@ -219,13 +219,13 @@ class Generator:
                     attrs = astClasses[moduleElem.__name__].attributes
                     if appyType == 'class':
                         # Determine the class type (standard, tool, user...)
-                        if issubclass(moduleElem, Tool):
+                        if issubclass(moduleElem, gen.Tool):
                             if not self.tool:
                                 klass = self.descriptorClasses['tool']
                                 self.tool = klass(moduleElem, attrs, self)
                             else:
                                 self.tool.update(moduleElem, attrs)
-                        elif issubclass(moduleElem, User):
+                        elif issubclass(moduleElem, gen.User):
                             if not self.user:
                                 klass = self.descriptorClasses['user']
                                 self.user = klass(moduleElem, attrs, self)
@@ -244,7 +244,7 @@ class Generator:
                         self.workflows.append(descriptor)
                         if self.containsTests(moduleElem):
                             self.modulesWithTests.add(moduleObj.__name__)
-            elif isinstance(moduleElem, Config):
+            elif isinstance(moduleElem, gen.Config):
                 self.config = moduleElem
 
         # Walk potential sub-modules
@@ -461,7 +461,6 @@ class ZopeGenerator(Generator):
         self.generateTool()
         self.generateInit()
         self.generateTests()
-        self.generateConfigureZcml()
         # Create version.txt
         f = open(os.path.join(self.outputFolder, 'version.txt'), 'w')
         f.write(self.version)
@@ -536,13 +535,13 @@ class ZopeGenerator(Generator):
         self.generateWrappers()
         self.generateConfig()
 
-    def getAllUsedRoles(self, plone=None, local=None, grantable=None):
+    def getAllUsedRoles(self, zope=None, local=None, grantable=None):
         '''Produces a list of all the roles used within all workflows and
            classes defined in this application.
 
-           If p_plone is True, it keeps only Plone-standard roles; if p_plone
+           If p_zope is True, it keeps only Zope-standard roles; if p_zope
            is False, it keeps only roles which are specific to this application;
-           if p_plone is None it has no effect (so it keeps both roles).
+           if p_zope is None it has no effect (so it keeps both roles).
 
            If p_local is True, it keeps only local roles (ie, roles that can
            only be granted locally); if p_local is False, it keeps only "global"
@@ -557,8 +556,8 @@ class ZopeGenerator(Generator):
         for wfDescr in self.workflows:
             for attr in dir(wfDescr.klass):
                 attrValue = getattr(wfDescr.klass, attr)
-                if isinstance(attrValue, State) or \
-                   isinstance(attrValue, Transition):
+                if isinstance(attrValue, gen.State) or \
+                   isinstance(attrValue, gen.Transition):
                     for role in attrValue.getUsedRoles():
                         if role.name not in allRoles:
                             allRoles[role.name] = role
@@ -569,7 +568,7 @@ class ZopeGenerator(Generator):
                     allRoles[role.name] = role
         res = allRoles.values()
         # Filter the result according to parameters
-        for p in ('plone', 'local', 'grantable'):
+        for p in ('zope', 'local', 'grantable'):
             if eval(p) != None:
                 res = [r for r in res if eval('r.%s == %s' % (p, p))]
         return res
@@ -612,17 +611,6 @@ class ZopeGenerator(Generator):
         elif include == 'predefined':
             res = configClasses
         return res
-
-    def generateConfigureZcml(self):
-        '''Generates file configure.zcml.'''
-        repls = self.repls.copy()
-        # Note every class as "deprecated".
-        depr = ''
-        for klass in self.getClasses(include='all'):
-            depr += '<five:deprecatedManageAddDelete class=".%s.%s"/>\n' % \
-                    (klass.name, klass.name)
-        repls['deprecated'] = depr
-        self.copyFile('configure.zcml', repls)
 
     def generateConfig(self):
         repls = self.repls.copy()
@@ -677,9 +665,9 @@ class ZopeGenerator(Generator):
             attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
         repls['attributes'] = ',\n    '.join(attributes)
         # Compute list of used roles for registering them if needed
-        specificRoles = self.getAllUsedRoles(plone=False)
+        specificRoles = self.getAllUsedRoles(zope=False)
         repls['roles'] = ','.join(['"%s"' % r.name for r in specificRoles])
-        globalRoles = self.getAllUsedRoles(plone=False, local=False)
+        globalRoles = self.getAllUsedRoles(zope=False, local=False)
         repls['gRoles'] = ','.join(['"%s"' % r.name for r in globalRoles])
         grantableRoles = self.getAllUsedRoles(local=False, grantable=True)
         repls['grRoles'] = ','.join(['"%s"' % r.name for r in grantableRoles])
@@ -780,7 +768,7 @@ class ZopeGenerator(Generator):
         self.copyFile('testAll.py', repls, destFolder='tests')
 
     def generateTool(self):
-        '''Generates the Plone tool that corresponds to this application.'''
+        '''Generates the tool that corresponds to this application.'''
         Msg = PoMessage
         # Create Tool-related i18n-related messages
         msg = Msg(self.tool.name, '', Msg.CONFIG % self.applicationName)
@@ -874,7 +862,7 @@ class ZopeGenerator(Generator):
                 poMsg.produceNiceDefault()
                 if poMsg not in self.labels:
                     self.labels.append(poMsg)
-        # Generate the resulting Archetypes class.
+        # Generate the resulting Zope class.
         self.copyFile('Class.py', repls, destName=fileName)
 
     def generateWorkflow(self, wfDescr):
@@ -886,14 +874,14 @@ class ZopeGenerator(Generator):
         wfName = WorkflowDescriptor.getWorkflowName(wfDescr.klass)
         # Add i18n messages for states
         for name in dir(wfDescr.klass):
-            if not isinstance(getattr(wfDescr.klass, name), State): continue
+            if not isinstance(getattr(wfDescr.klass, name), gen.State): continue
             poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
             poMsg.produceNiceDefault()
             self.labels.append(poMsg)
         # Add i18n messages for transitions
         for name in dir(wfDescr.klass):
             transition = getattr(wfDescr.klass, name)
-            if not isinstance(transition, Transition): continue
+            if not isinstance(transition, gen.Transition): continue
             poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
             poMsg.produceNiceDefault()
             self.labels.append(poMsg)

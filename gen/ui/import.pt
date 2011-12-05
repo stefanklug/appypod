@@ -1,23 +1,9 @@
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
-      lang="en" xmlns:tal="http://xml.zope.org/namespaces/tal"
-      xmlns:metal="http://xml.zope.org/namespaces/metal"
-      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
-      metal:use-macro="here/main_template/macros/master">
-
-<tal:comment replace="nothing">Disable standard Plone green tabs</tal:comment>
-<div metal:fill-slot="top_slot">
-  <metal:block metal:use-macro="here/global_defines/macros/defines" />
-  <div tal:define="dummy python:request.set('disable_border', 1)" />
-</div>
-
-<tal:comment replace="nothing">Fill main slot of Plone main_template</tal:comment>
-<body>
-<metal:fill fill-slot="main"
-       tal:define="appFolder context/getParentNode;
-                   className request/className;
-                   tool python: portal.get('portal_%s' % appFolder.id.lower());
-                   importElems python: tool.getImportElements(className);
-                   global allAreImported python:True">
+<tal:main define="tool context/config">
+<html metal:use-macro="context/ui/template/macros/main">
+ <metal:fill fill-slot="content"
+    tal:define="className request/className;
+                importElems python: tool.getImportElements(className);
+                global allAreImported python:True">
 
   <div metal:use-macro="context/ui/page/macros/prologue"/>
   <script language="javascript">
@@ -68,7 +54,7 @@
   </script>
   <tal:comment replace="nothing">Form for importing several meetings at once.</tal:comment>
   <form name="importElements"
-        tal:attributes="action python: appFolder.absolute_url()+'/do'" method="post">
+        tal:attributes="action python: tool.absolute_url()+'/do'" method="post">
     <input type="hidden" name="action" value="ImportObjects"/>
     <input type="hidden" name="className" tal:attributes="value className"/>
     <input type="hidden" name="importPath" value=""/>
@@ -120,6 +106,6 @@
            tal:condition="python: importElems[1] and not allAreImported"
            tal:attributes="value python:tool.translate('import_many')"/>
   </p>
-</metal:fill>
-</body>
+ </metal:fill>
 </html>
+</tal:main>

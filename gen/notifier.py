@@ -41,8 +41,8 @@ def sendMail(obj, transition, transitionName, workflow):
     '''Sends mail about p_transition that has been triggered on p_obj that is
        controlled by p_workflow.'''
     wfName = WorkflowDescriptor.getWorkflowName(workflow.__class__)
-    ploneObj = obj.o
-    portal = ploneObj.portal_url.getPortalObject()
+    zopeObj = obj.o
+    tool = zopeObj.getTool()
     mailInfo = transition.notify(workflow, obj)
     if not mailInfo[0]: return # Send a mail to nobody.
     # mailInfo may be one of the following:
@@ -54,15 +54,15 @@ def sendMail(obj, transition, transitionName, workflow):
     # address or one role) or sequences of strings.
     # Determine mail subject and body.
     if len(mailInfo) <= 2:
-        # The user didn't mention mail body and subject. We will use
-        # those defined from i18n labels.
-        wfHistory = ploneObj.getWorkflowHistory()
+        # The user didn't mention mail body and subject. We will use those
+        # defined from i18n labels.
+        wfHistory = zopeObj.getHistory()
         labelPrefix = '%s_%s' % (wfName, transitionName)
         tName = obj.translate(labelPrefix)
-        keys = {'siteUrl': portal.absolute_url(),
-                'siteTitle': portal.Title(),
-                'objectUrl': ploneObj.absolute_url(),
-                'objectTitle': ploneObj.Title(),
+        keys = {'siteUrl': tool.getPath('/').absolute_url(),
+                'siteTitle': tool.getAppName(),
+                'objectUrl': zopeObj.absolute_url(),
+                'objectTitle': zopeObj.Title(),
                 'transitionName': tName,
                 'transitionComment': wfHistory[0]['comments']}
         mailSubject = obj.translate(labelPrefix + '_mail_subject', keys)

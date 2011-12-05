@@ -70,11 +70,11 @@
   <tal:history condition="objs">
   <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
   <table width="100%" class="history">
-    <tr i18n:domain="plone">
-      <th align="left" i18n:translate="listingheader_action">Action</th>
-      <th align="left" i18n:translate="listingheader_performed_by">By</th>
-      <th align="left" i18n:translate="listingheader_date_and_time">Date</th>
-      <th align="left" i18n:translate="listingheader_comment">Comment</th>
+    <tr>
+      <th align="left">Action</th>
+      <th align="left">By</th>
+      <th align="left">Date</th>
+      <th align="left">Comment</th>
     </tr>
     <tal:event repeat="event objs">
     <tr tal:define="odd repeat/event/odd;
@@ -202,7 +202,7 @@
             <img align="left" style="cursor:pointer" onClick="toggleCookie('appyHistory')"
                  tal:attributes="src python:test(historyExpanded, 'ui/collapse.gif', 'ui/expand.gif');"
                  id="appyHistory_img"/>&nbsp;
-            <span i18n:translate="label_history" i18n:domain="plone" class="historyLabel">History</span> ||&nbsp;
+            <span>History</span> ||&nbsp;
             </tal:accessHistory>
 
             <tal:comment replace="nothing">Show document creator</tal:comment>
@@ -263,32 +263,28 @@
   <tal:previous condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonPrevious"
-             title="label_previous" i18n:attributes="title" i18n:domain="plone"
-             tal:attributes="src string:$appUrl/ui/previous.png"/>
+             title="Previous" tal:attributes="src string:$appUrl/ui/previous.png"/>
       <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=previousPage)">
-        <img tal:attributes="src string:$appUrl/ui/previous.png"
-             title="label_previous" i18n:attributes="title" i18n:domain="plone"/>
+        <img tal:attributes="src string:$appUrl/ui/previous.png" title="Previous"/>
       </a>
     </tal:link>
   </tal:previous>
 
   <tal:save condition="python: isEdit and pageInfo['showSave']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonOk"
-           title="label_save" i18n:attributes="title" i18n:domain="plone"
-           tal:attributes="src string:$appUrl/ui/save.png"/>
+           title="Save" tal:attributes="src string:$appUrl/ui/save.png"/>
   </tal:save>
 
   <tal:cancel condition="python: isEdit and pageInfo['showCancel']">
     <input type="image" class="imageInput" style="cursor:pointer" name="buttonCancel"
-           title="label_cancel" i18n:attributes="title" i18n:domain="plone"
-           tal:attributes="src string:$appUrl/ui/cancel.png"/>
+           title="Cancel" tal:attributes="src string:$appUrl/ui/cancel.png"/>
   </tal:cancel>
 
   <tal:edit condition="python: not isEdit and pageInfo['showOnEdit']">
-    <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+    <img title="Edit" style="cursor:pointer"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
                          src string: $appUrl/ui/editBig.png"
          tal:condition="python: contextObj.allows('Modify portal content')"/>
@@ -303,14 +299,12 @@
   <tal:next condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
       <input type="image" class="imageInput" style="cursor:pointer" name="buttonNext"
-             title="label_next" i18n:attributes="title" i18n:domain="plone"
-             tal:attributes="src string:$appUrl/ui/next.png"/>
+             title="Next" tal:attributes="src string:$appUrl/ui/next.png"/>
       <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=nextPage)">
-        <img tal:attributes="src string:$appUrl/ui/next.png"
-             title="label_next" i18n:attributes="title" i18n:domain="plone"/>
+        <img tal:attributes="src string:$appUrl/ui/next.png" title="Next"/>
       </a>
     </tal:link>
   </tal:next>

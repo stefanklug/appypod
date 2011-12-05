@@ -247,30 +247,30 @@ CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
 class FileWrapper:
     '''When you get, from an appy object, the value of a File attribute, you
        get an instance of this class.'''
-    def __init__(self, atFile):
+    def __init__(self, zopeFile):
         '''This constructor is only used by Appy to create a nice File instance
-           from a Plone/Zope corresponding instance (p_atFile). If you need to
+           from a Zope corresponding instance (p_zopeFile). If you need to
            create a new file and assign it to a File attribute, use the
            attribute setter, do not create yourself an instance of this
            class.'''
         d = self.__dict__
-        d['_atFile'] = atFile # Not for you!
-        d['name'] = atFile.filename
-        d['content'] = atFile.data
-        d['mimeType'] = atFile.content_type
-        d['size'] = atFile.size # In bytes
+        d['_zopeFile'] = zopeFile # Not for you!
+        d['name'] = zopeFile.filename
+        d['content'] = zopeFile.data
+        d['mimeType'] = zopeFile.content_type
+        d['size'] = zopeFile.size # In bytes
 
     def __setattr__(self, name, v):
         d = self.__dict__
         if name == 'name':
-            self._atFile.filename = v
+            self._zopeFile.filename = v
             d['name'] = v
         elif name == 'content':
-            self._atFile.update_data(v, self.mimeType, len(v))
+            self._zopeFile.update_data(v, self.mimeType, len(v))
             d['content'] = v
             d['size'] = len(v)
         elif name == 'mimeType':
-            self._atFile.content_type = self.mimeType = v
+            self._zopeFile.content_type = self.mimeType = v
         else:
             raise 'Impossible to set attribute %s. "Settable" attributes ' \
                   'are "name", "content" and "mimeType".' % name
@@ -326,8 +326,7 @@ def getClassName(klass, appName=None):
        Zope class. For some classes, name p_appName is required: it is
        part of the class name.'''
     moduleName = klass.__module__
-    if (moduleName == 'appy.gen.plone25.model') or \
-       moduleName.endswith('.wrappers'):
+    if (moduleName == 'appy.gen.model') or moduleName.endswith('.wrappers'):
         # This is a model (generation time or run time)
         res = appName + klass.__name__
     elif klass.__bases__ and (klass.__bases__[-1].__module__ == 'appy.gen'):

@@ -117,7 +117,7 @@
                    tal:content="structure python: _(label)"></a>
             </td>
             <td align="right">
-              <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+              <img title="Edit" style="cursor:pointer"
                    tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=pageName);
                                    src string: $appUrl/ui/edit.gif"
                    tal:condition="python: contextObj.allows('Modify portal content') and phase['pagesInfo'][pageName]['showOnEdit']"/>
@@ -136,7 +136,7 @@
               </a>
             </td>
             <td align="right">
-              <img title="Edit" i18n:domain="plone" i18n:attributes="title" style="cursor:pointer"
+              <img title="Edit" style="cursor:pointer"
                    tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=aPage);
                                    src string: $appUrl/ui/edit.gif"
                    tal:condition="python: user.has_permission('Modify portal content', contextObj) and phase['pagesInfo'][aPage]['showOnEdit']"/>

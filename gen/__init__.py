@@ -1026,8 +1026,7 @@ class String(Type):
            it will be given by the Appy validation machinery, so it must be
            specified as parameter. The function returns True if the check is
            successful.'''
-        if not value: return True # Plone calls me erroneously for
-        # non-mandatory fields.
+        if not value: return True
         # First, remove any non-digit char
         v = ''
         for c in value:
@@ -1058,8 +1057,7 @@ class String(Type):
         '''Checks that p_value corresponds to a valid IBAN number. IBAN stands
            for International Bank Account Number (ISO 13616). If the number is
            valid, the method returns True.'''
-        if not value: return True # Plone calls me erroneously for
-        # non-mandatory fields.
+        if not value: return True
         # First, remove any non-digit or non-letter char
         v = ''
         for c in value:
@@ -1088,8 +1086,7 @@ class String(Type):
         '''Checks that p_value corresponds to a valid BIC number. BIC stands
            for Bank Identifier Code (ISO 9362). If the number is valid, the
            method returns True.'''
-        if not value: return True # Plone calls me erroneously for
-        # non-mandatory fields.
+        if not value: return True
         # BIC number must be 8 or 11 chars
         if len(value) not in (8, 11): return False
         # 4 first chars, representing bank name, must be letters
@@ -1176,15 +1173,7 @@ class String(Type):
             else: return value
         if isinstance(value, basestring) and self.isMultiValued():
             value = [value]
-        # Some backward compatibilities with Archetypes.
-        elif value.__class__.__name__ == 'BaseUnit':
-            try:
-                value = unicode(value)
-            except UnicodeDecodeError:
-                value = str(value)
         elif isinstance(value, tuple):
-            # When Appy storage was based on Archetype, multivalued string
-            # fields stored values as tuples of unicode strings.
             value = list(value)
         return value
 
@@ -1207,12 +1196,6 @@ class String(Type):
                     res = [t('%s_list_%s' % (self.labelId, v)) for v in value]
                 else:
                     res = t('%s_list_%s' % (self.labelId, value))
-        elif not isinstance(value, basestring):
-            # Archetypes "Description" fields may hold a BaseUnit instance.
-            try:
-                res = unicode(value)
-            except UnicodeDecodeError:
-                res = str(value)
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
         if isinstance(res, basestring) and \
@@ -1384,8 +1367,8 @@ class Boolean(Type):
         return value
 
     def getFormattedValue(self, obj, value):
-        if value: res = obj.translate('yes', domain='plone')
-        else:     res = obj.translate('no', domain='plone')
+        if value: res = obj.translate('yes')
+        else:     res = obj.translate('no')
         return res
 
     def getStorableValue(self, value):
@@ -1517,7 +1500,7 @@ class File(Type):
 
     def getFormattedValue(self, obj, value):
         if not value: return value
-        return value._atFile
+        return value._zopeFile
 
     def getRequestValue(self, request):
         return request.get('%s_file' % self.name)
@@ -1591,7 +1574,7 @@ class File(Type):
             elif isinstance(value, OFSImageFile):
                 setattr(obj, self.name, value)
             elif isinstance(value, FileWrapper):
-                setattr(obj, self.name, value._atFile)
+                setattr(obj, self.name, value._zopeFile)
             elif isinstance(value, basestring):
                 setattr(obj, self.name, File.getFileObject(value, zope=True))
             elif type(value) in sequenceTypes:
@@ -2189,7 +2172,7 @@ class Pod(Type):
     def store(self, obj, value):
         '''Stores (=freezes) a document (in p_value) in the field.'''
         if isinstance(value, FileWrapper):
-            value = value._atFile
+            value = value._zopeFile
         setattr(obj, self.name, value)
 
 class List(Type):
@@ -2283,19 +2266,18 @@ appyToZopePermissions = {
 
 class Role:
     '''Represents a role.'''
-    ploneRoles = ('Manager', 'Member', 'Owner', 'Reviewer', 'Anonymous',
-                  'Authenticated')
-    ploneLocalRoles = ('Owner',)
-    ploneUngrantableRoles = ('Anonymous', 'Authenticated')
+    zopeRoles = ('Manager', 'Owner', 'Anonymous', 'Authenticated')
+    zopeLocalRoles = ('Owner',)
+    zopeUngrantableRoles = ('Anonymous', 'Authenticated')
     def __init__(self, name, local=False, grantable=True):
         self.name = name
         self.local = local # True if it can be used as local role only.
-        # It is a standard Plone role or an application-specific one?
-        self.plone = name in self.ploneRoles
-        if self.plone and (name in self.ploneLocalRoles):
+        # It is a standard Zope role or an application-specific one?
+        self.zope = name in self.zopeRoles
+        if self.zope and (name in self.zopeLocalRoles):
             self.local = True
         self.grantable = grantable
-        if self.plone and (name in self.ploneUngrantableRoles):
+        if self.zope and (name in self.zopeUngrantableRoles):
             self.grantable = False
         # An ungrantable role is one that is, like the Anonymous or
         # Authenticated roles, automatically attributed to a user.
@@ -2575,8 +2557,7 @@ class Transition:
         # Return a message to the user if needed
         if not doSay or (transitionName == '_init_'): return
         if not msg:
-            msg = obj.translate(u'Your content\'s status has been modified.',
-                                domain='plone')
+            msg = obj.translate(u'Changes saved.')
         obj.say(msg)
 
 class Permission:

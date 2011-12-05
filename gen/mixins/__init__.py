@@ -1,17 +1,14 @@
 '''This package contains mixin classes that are mixed in with generated classes:
-   - mixins/BaseMixin is mixed in with Standard Archetypes classes;
+   - mixins/BaseMixin is mixed in with standard Zope classes;
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, mimetypes, urllib, cgi
 from appy import Object
-import appy.gen
-from appy.gen import Type, String, Selection, Role, No, WorkflowAnonymous, \
-                     Transition, Permission
+import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
-from appy.gen.descriptors import WorkflowDescriptor
-from appy.gen.plone25.descriptors import ClassDescriptor
+from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -187,8 +184,7 @@ class BaseMixin:
            fields in the database.'''
         rq = self.REQUEST
         tool = self.getTool()
-        errorMessage = self.translate(
-            'Please correct the indicated errors.', domain='plone')
+        errorMessage = self.translate('Please correct the indicated errors.')
         isNew = rq.get('is_new') == 'True'
         # If this object is created from an initiator, get info about him.
         initiator = None
@@ -209,7 +205,7 @@ class BaseMixin:
                    urlBack = tool.getSiteUrl()
                 else:
                    urlBack = self.getUrl()
-            self.say(self.translate('Changes canceled.', domain='plone'))
+            self.say(self.translate('Changes canceled.'))
             return self.goto(urlBack)
 
         # Object for storing validation errors
@@ -245,7 +241,7 @@ class BaseMixin:
         obj, msg = self.createOrUpdate(isNew, values, initiator, initiatorField)
 
         # Redirect the user to the appropriate page
-        if not msg: msg = obj.translate('Changes saved.', domain='plone')
+        if not msg: msg = obj.translate('Changes saved.')
         # If the object has already been deleted (ie, it is a kind of transient
         # object like a one-shot form and has already been deleted in method
         # onEdit), redirect to the main site page.
@@ -711,7 +707,7 @@ class BaseMixin:
             if not includeFake:
                 includeIt = mayTrigger
             else:
-                includeIt = mayTrigger or isinstance(mayTrigger, No)
+                includeIt = mayTrigger or isinstance(mayTrigger, gen.No)
             if not includeNotShowable:
                 includeIt = includeIt and transition.isShowable(wf, self)
             if not includeIt: continue
@@ -864,7 +860,7 @@ class BaseMixin:
         # Get the initial workflow state
         initialState = self.State(name=False)
         # Create a Transition instance representing the initial transition.
-        initialTransition = Transition((initialState, initialState))
+        initialTransition = gen.Transition((initialState, initialState))
         initialTransition.trigger('_init_', self, wf, '')
 
     def getWorkflow(self, name=False, className=None):
@@ -875,7 +871,7 @@ class BaseMixin:
         else:
             appyClass = self.getTool().getAppyClass(className)
         if hasattr(appyClass, 'workflow'): wf = appyClass.workflow
-        else: wf = WorkflowAnonymous
+        else: wf = gen.WorkflowAnonymous
         if not name: return wf
         return WorkflowDescriptor.getWorkflowName(wf)
 

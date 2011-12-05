@@ -3,17 +3,13 @@
 from unittest import TestSuite
 from Testing import ZopeTestCase
 from Testing.ZopeTestCase import ZopeDocTestSuite
-from Products.PloneTestCase import PloneTestCase
-from appy.gen.plone25.mixins.TestMixin import TestMixin, beforeTest, afterTest
+from appy.gen.mixins.TestMixin import TestMixin, beforeTest, afterTest
 <!imports!>
 
-# Initialize Zope & Plone test systems -----------------------------------------
-ZopeTestCase.installProduct('PloneLanguageTool')
+# Initialize the Zope test system ----------------------------------------------
 ZopeTestCase.installProduct('<!applicationName!>')
-PloneTestCase.setupPloneSite(products=['PloneLanguageTool',
-                                       '<!applicationName!>'])
 
-class Test(PloneTestCase.PloneTestCase, TestMixin):
+class Test(ZopeTestCase.ZopeTestCase, TestMixin):
     '''Base test class for <!applicationName!> test cases.'''
 
 # Data needed for defining the tests -------------------------------------------

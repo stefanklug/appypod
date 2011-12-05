@@ -5,9 +5,7 @@ import wrappers
 <!imports!>
     
 # The following imports are here for allowing mixin classes to access those
-# elements without being statically dependent on Plone/Zope packages. Indeed,
-# every Archetype instance has a method "getProductConfig" that returns this
-# module.
+# elements without being statically dependent on Zope packages.
 from persistent.list import PersistentList
 from zExceptions import BadRequest
 from ZPublisher.HTTPRequest import BaseRequest
