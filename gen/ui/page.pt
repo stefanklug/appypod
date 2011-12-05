@@ -313,6 +313,6 @@
 <tal:comment replace="nothing">
   This macro displays the global message on the page.
 </tal:comment>
-<metal:message define-macro="message" tal:define="messages tool/getMessages" tal:condition="messages">
-  <div class="message" tal:content="structure python: ''.join([m[1] for m in messages])"></div>
+<metal:message define-macro="message" tal:define="messages tool/consumeMessages" tal:condition="messages">
+  <div class="message" tal:content="structure messages"></div>
 </metal:message>

@@ -314,15 +314,13 @@ class BaseMixin:
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
            "warning" or "error".'''
-        mType = type
         rq = self.REQUEST
-        if not hasattr(rq, 'messages'):
-            messages = rq.messages = []
+        if 'messages' not in rq.SESSION.keys():
+            plist = self.getProductConfig().PersistentList
+            messages = rq.SESSION['messages'] = plist()
         else:
-            messages = rq.messages
-        if mType == 'warning': mType = 'warn'
-        elif mType == 'error': mType = 'stop'
-        messages.append( (mType, msg) )
+            messages = rq.SESSION['messages']
+        messages.append( (type, msg) )
 
     def log(self, msg, type='info'):
         '''Logs a p_msg in the log file. p_logLevel may be "info", "warning"
@@ -409,13 +407,7 @@ class BaseMixin:
 
     def goto(self, url, msg=None):
         '''Brings the user to some p_url after an action has been executed.'''
-        if msg:
-            # Remove previous message if any
-            if 'portal_status_message=' in url:
-                url = url[:url.find('portal_status_message=')-1]
-            if '?' in url: op = '&'
-            else: op = '?'
-            url += op + urllib.urlencode([('portal_status_message',msg)])
+        if msg: self.say(msg)
         return self.REQUEST.RESPONSE.redirect(url)
 
     def gotoEdit(self):
@@ -1085,9 +1077,12 @@ class BaseMixin:
            way.'''
         # Create the dict for storing Appy wrapper on the REQUEST if needed.
         rq = getattr(self, 'REQUEST', None)
-        if not rq: rq = Object()
+        if not rq:
+            # We are in test mode or Zope is starting. Use static variable
+            # config.fakeRequest instead.
+            rq = self.getProductConfig().fakeRequest
         if not hasattr(rq, 'wrappers'): rq.wrappers = {}
-        # Return the Appy wrapper from rq.wrappers if already there
+        # Return the Appy wrapper if already present in the cache
         uid = self.UID()
         if uid in rq.wrappers: return rq.wrappers[uid]
         # Create the Appy wrapper, cache it in rq.wrappers and return it
@@ -1293,14 +1288,8 @@ class BaseMixin:
         return self.__class__.config
 
     def index_html(self):
-       """Redirects to /ui. Transfers the status message if any."""
-       rq = self.REQUEST
-       msg = rq.get('portal_status_message', '')
-       if msg:
-           url = self.getUrl(portal_status_message=msg)
-       else:
-           url = self.getUrl()
-       return rq.RESPONSE.redirect(url)
+       '''Redirects to /ui.'''
+       return self.REQUEST.RESPONSE.redirect(self.getUrl())
 
     def userIsAnon(self):
         '''Is the currently logged user anonymous ?'''

@@ -398,4 +398,6 @@ class ZopeInstaller:
         self.installCatalog()
         self.installTool()
         self.installUi()
+        # Empty the fake REQUEST object, only used at Zope startup.
+        del self.app.config.getProductConfig().fakeRequest.wrappers
 # ------------------------------------------------------------------------------

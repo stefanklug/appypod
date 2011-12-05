@@ -18,7 +18,7 @@
   <script type="text/javascript" tal:attributes="src string:$appUrl/ui/appy.js"></script>
 </head>
 
-<body>
+<body tal:on-error="structure python: tool.manageError(error)">
 <table class="main" align="center" cellpadding="0">
  <tal:comment replace="nothing">Top banner</tal:comment>
  <tr class="top" metal:define-slot="top">

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, time, random, types, base64, urllib
+import os, os.path, sys, re, time, random, types, base64, urllib
 from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder
 from appy.shared.data import languages
@@ -96,17 +96,14 @@ class ToolMixin(BaseMixin):
            p_code.'''
         return languages.get(code)[2]
 
-    def getMessages(self):
-        '''Returns the list of messages to return to the user.'''
-        if hasattr(self.REQUEST, 'messages'):
-            # Empty the messages and return it
-            res = self.REQUEST.messages
-            del self.REQUEST.messages
-        else:
-            res = []
-        # Add portal_status_message key if present
-        if 'portal_status_message' in self.REQUEST:
-            res.append( ('info', self.REQUEST['portal_status_message']) )
+    def consumeMessages(self):
+        '''Returns the list of messages to show to a web page and clean it in
+           the session.'''
+        rq = self.REQUEST
+        res = rq.SESSION.get('messages', '')
+        if res:
+            del rq.SESSION['messages']
+            res = ' '.join([m[1] for m in res])
         return res
 
     def getRootClasses(self):
@@ -960,4 +957,15 @@ class ToolMixin(BaseMixin):
         randomNumber = str(random.random()).split('.')[1]
         timestamp = ('%f' % time.time()).replace('.', '')
         return '%s%s%s' % (name, timestamp, randomNumber)
+
+    def manageError(self, error):
+        '''Manages an error.'''
+        tb = sys.exc_info()
+        from zExceptions.ExceptionFormatter import format_exception
+        htmlMessage = format_exception(tb[0], tb[1], tb[2], as_html=1)
+        textMessage = format_exception(tb[0], tb[1], tb[2], as_html=0)
+        self.log(''.join(textMessage).strip(), type='error')
+        return '<table class="main" align="center" cellpadding="0"><tr>' \
+               '<td style="padding: 1em 1em 1em 1em">An error occurred. %s' \
+               '</td></tr></table>' % '\n'.join(htmlMessage)
 # ------------------------------------------------------------------------------

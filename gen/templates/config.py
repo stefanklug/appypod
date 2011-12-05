@@ -1,5 +1,6 @@
 <!codeHeader!>
 import os, os.path, sys, copy
+import appy
 import appy.gen
 import wrappers
 <!imports!>
@@ -46,4 +47,8 @@ grantableRoles = [<!grRoles!>]
 languages = [<!languages!>]
 languageSelector = <!languageSelector!>
 sourceLanguage = '<!sourceLanguage!>'
+
+# When Zope is starting or runs in test mode, there is no request object. We
+# create here a fake one for storing Appy wrappers.
+fakeRequest = appy.Object()
 # ------------------------------------------------------------------------------
