@@ -84,12 +84,13 @@
         tal:attributes="class python:test(odd, 'even', 'odd')" valign="top">
       <td tal:condition="isDataChange" tal:content="python: tool.translate('data_change')"></td>
       <td tal:condition="not: isDataChange"
-          tal:content="python: tool.translate(contextObj.getWorkflowLabel(event['action']))"
-          tal:attributes="class string:state-${state}"/>
+          tal:content="python: tool.translate(contextObj.getWorkflowLabel(event['action']))"/>
       <td tal:define="actorid python:event.get('actor');" tal:content="actorid"/>
-      <td tal:content="python:contextObj.restrictedTraverse('@@plone').toLocalizedTime(event['time'],long_format=True)"/>
-      <td tal:condition="not: isDataChange"><tal:comment condition="rhComments" tal:content="structure rhComments"/>
-        <tal:noComment condition="not: rhComments" i18n:translate="no_comments" i18n:domain="plone"/></td>
+      <td tal:content="event/time"/>
+      <td tal:condition="not: isDataChange">
+        <tal:comment condition="rhComments" tal:content="structure rhComments"/>
+        <span tal:condition="not: rhComments">No comment.</span>
+      </td>
       <td tal:condition="isDataChange">
         <tal:comment replace="nothing">
           Display the previous values of the fields whose value were modified in this change.</tal:comment>

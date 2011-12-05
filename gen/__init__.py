@@ -2712,13 +2712,6 @@ class Config:
         # People having one of these roles will be able to create instances
         # of classes defined in your application.
         self.defaultCreators = ['Manager', 'Owner']
-        # If you want to replace the default front page with a page coming from
-        # your application, use the following parameter. Setting
-        # frontPage = True will replace the Plone front page with a page
-        # whose content will come from i18n label "front_page_text".
-        self.frontPage = False
-        # You can choose the Plone or Appy main template
-        self.frontPageTemplate = 'plone' # or "appy"
         # Number of translations for every page on a Translation object
         self.translationsPerPage = 30
         # Language that will be used as a basis for translating to other

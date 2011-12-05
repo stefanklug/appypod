@@ -27,7 +27,7 @@ class ToolMixin(BaseMixin):
         res = metaTypeOrAppyClass
         if not isinstance(metaTypeOrAppyClass, basestring):
             res = getClassName(metaTypeOrAppyClass, appName)
-        if res.find('Extensions_appyWrappers') != -1:
+        if res.find('_wrappers') != -1:
             elems = res.split('_')
             res = '%s%s' % (elems[1], elems[4])
         if res in ('User', 'Group', 'Translation'): res = appName + res

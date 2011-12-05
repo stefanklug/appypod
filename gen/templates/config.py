@@ -1,7 +1,7 @@
 <!codeHeader!>
 import os, os.path, sys, copy
 import appy.gen
-import Extensions.appyWrappers as wraps
+import wrappers
 <!imports!>
     
 # The following imports are here for allowing mixin classes to access those
@@ -47,6 +47,5 @@ grantableRoles = [<!grRoles!>]
 # Configuration options
 languages = [<!languages!>]
 languageSelector = <!languageSelector!>
-appFrontPage = <!appFrontPage!>
 sourceLanguage = '<!sourceLanguage!>'
 # ------------------------------------------------------------------------------

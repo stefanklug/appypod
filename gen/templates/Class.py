@@ -6,7 +6,7 @@ from AccessControl import ClassSecurityInfo
 import Products.<!applicationName!>.config as cfg
 from appy.gen.plone25.mixins import BaseMixin
 from appy.gen.plone25.mixins.ToolMixin import ToolMixin
-from Extensions.appyWrappers import <!genClassName!>_Wrapper as Wrapper
+from wrappers import <!genClassName!>_Wrapper as Wrapper
 
 def manage_add<!genClassName!>(self, id, title='', REQUEST=None):
     '''Creates instances of this class.'''

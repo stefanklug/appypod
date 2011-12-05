@@ -65,7 +65,7 @@ class ModelClass:
                 layouts = appyType.getInputLayouts()
                 # For the Translation class that has potentially thousands of
                 # attributes, the most used layout is cached in a global var in
-                # named "tfw" in appyWrappers.py.
+                # named "tfw" in wrappers.py.
                 if (klass.__name__ == 'Translation') and \
                    (layouts == '{"edit":"f","cell":"f","view":"f",}'):
                     value = 'tfw'
@@ -96,7 +96,7 @@ class ModelClass:
     @classmethod
     def _appy_getBody(klass):
         '''This method returns the code declaration of this class. We will dump
-           this in appyWrappers.py in the resulting product.'''
+           this in wrappers.py in the Zope product.'''
         className = klass.__name__
         # Determine the name of the class and its wrapper. Because so much
         # attributes can be generated on a TranslationWrapper, shortcutting it

@@ -561,9 +561,8 @@ class BaseMixin:
             exec 'res = %s.%s' % (moduleName, klass.__name__)
             # More manipulations may have occurred in m_update
             if hasattr(res, 'update'):
-                parentName = res.__bases__[-1].__name__
-                moduleName = 'Products.%s.Extensions.appyWrappers' % \
-                             self.getTool().getAppName()
+                parentName= res.__bases__[-1].__name__
+                moduleName= 'Products.%s.wrappers' % self.getTool().getAppName()
                 exec 'import %s' % moduleName
                 exec 'parent = %s.%s' % (moduleName, parentName)
                 res.update(parent)
@@ -1091,13 +1090,13 @@ class BaseMixin:
         # Create the dict for storing Appy wrapper on the REQUEST if needed.
         rq = getattr(self, 'REQUEST', None)
         if not rq: rq = Object()
-        if not hasattr(rq, 'appyWrappers'): rq.appyWrappers = {}
-        # Return the Appy wrapper from rq.appyWrappers if already there
+        if not hasattr(rq, 'wrappers'): rq.wrappers = {}
+        # Return the Appy wrapper from rq.wrappers if already there
         uid = self.UID()
-        if uid in rq.appyWrappers: return rq.appyWrappers[uid]
-        # Create the Appy wrapper, cache it in rq.appyWrappers and return it
+        if uid in rq.wrappers: return rq.wrappers[uid]
+        # Create the Appy wrapper, cache it in rq.wrappers and return it
         wrapper = self.wrapperClass(self)
-        rq.appyWrappers[uid] = wrapper
+        rq.wrappers[uid] = wrapper
         return wrapper
 
     # --------------------------------------------------------------------------

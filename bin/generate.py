@@ -9,7 +9,7 @@ import appy.version
 
 # ------------------------------------------------------------------------------
 ERROR_CODE = 1
-VALID_PRODUCT_TYPES = ('plone25', 'odt')
+VALID_PRODUCT_TYPES = ('zope', 'odt')
 APP_NOT_FOUND = 'Application not found at %s.'
 WRONG_NG_OF_ARGS = 'Wrong number of arguments.'
 WRONG_OUTPUT_FOLDER = 'Output folder not found. Please create it first.'
@@ -39,39 +39,29 @@ S_OPTION = 'Sorts all i18n labels. If you use this option, among the ' \
 class GeneratorScript:
     '''usage: %prog [options] app productType outputFolder
 
-       "app"          is the path to your Appy application, which may be a
-                      Python module (= a file than ends with .py) or a Python
-                      package (= a folder containing a file named __init__.py).
-                      Your app may reside anywhere (but it needs to be
-                      accessible by the underlying application server, ie Zope),
-                      excepted within the generated product. Typically, if you
-                      generate a Plone product, it may reside within
-                      <yourZopeInstance>/lib/python, but not within the
-                      generated product (typically stored in
-                      <yourZopeInstance>/Products).
-       "productType"  is the kind of product you want to generate
-                      (currently, only "plone25" and 'odt' are supported;
-                      in the near future, the "plone25" target will also produce
-                      Plone 3-compliant code that will still work with
-                      Plone 2.5).
-       "outputFolder" is the folder where the product will be generated.
-                      For example, if you specify /my/output/folder for your
-                      application /home/gde/MyApp.py, this script will create
-                      a folder /my/output/folder/MyApp and put in it the
-                      generated product.
+       "app"          is the path to your Appy application, which must be a
+                      Python package (= a folder containing a file named
+                      __init__.py). Your app may reside anywhere, but needs to
+                      be accessible by Zope. Typically, it may be or symlinked
+                      in <yourZopeInstance>/lib/python, but not within the
+                      generated product, stored or symlinked in
+                      <yourZopeInstance>/Products.
 
-       Example: generating a Plone product
-       -----------------------------------
-       In your Zope instance named myZopeInstance, create a folder
-       "myZopeInstance/lib/python/MyApp". Create into it your Appy application
-       (we suppose here that it is a Python package, containing a __init__.py
-       file and other files). Then, chdir into this folder and type
-       "python <appyPath>/gen/generator.py . plone25 ../../../Products" and the
-       product will be generated in myZopeInstance/Products/MyApp.
-       "python" must refer to a Python interpreter that knows package appy.'''
+       "productType"  is the kind of product you want to generate. "zope" is
+                      the only available production-ready target.
+                      "odt" is experimental.
+                      
+       "outputFolder" is the folder where the Zope product will be generated.
+                      For example, if you develop your application in
+                      /home/gdy/MyProject/MyProject, you typically specify
+                      "/home/gdy/MyProject/zope" as outputFolder.
+    '''
 
     def generateProduct(self, options, application, productType, outputFolder):
-        exec 'from appy.gen.%s.generator import Generator' % productType
+        if productType == 'odt':
+            exec 'from appy.gen.odt.generator import Generator'
+        else:
+            from appy.gen.generator import ZopeGenerator as Generator
         Generator(application, outputFolder, options).run()
 
     def manageArgs(self, parser, options, args):
