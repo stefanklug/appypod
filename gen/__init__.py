@@ -2556,8 +2556,7 @@ class Transition:
             notifier.sendMail(obj.appy(), self, transitionName, wf)
         # Return a message to the user if needed
         if not doSay or (transitionName == '_init_'): return
-        if not msg:
-            msg = obj.translate(u'Changes saved.')
+        if not msg: msg = 'Changes saved.' # XXX Translate
         obj.say(msg)
 
 class Permission:

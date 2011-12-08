@@ -370,15 +370,21 @@ class ToolMixin(BaseMixin):
         maxWidth = appyType['width']
         if isinstance(value, str): value = value.decode('utf-8')
         if len(value) > maxWidth:
-            return value[:maxWidth] + '...'
-        return value
+            return value[:maxWidth].encode('utf-8') + '...'
+        return value.encode('utf-8')
 
     def truncateText(self, text, width=15):
         '''Truncates p_text to max p_width chars. If the text is longer than
            p_width, the truncated part is put in a "acronym" html tag.'''
-        if isinstance(text, str): text = text.decode('utf-8')
-        if len(text) <= width: return text
-        return '<acronym title="%s">%s</acronym>' % (text, text[:width] + '...')
+        # p_text has to be unicode-encoded for being truncated (else, one char
+        # may be spread on 2 chars). But this method must return an encoded
+        # string, else, ZPT crashes. The same remark holds for m_truncateValue
+        # above.
+        uText = text # uText will store the unicode version
+        if isinstance(text, str): uText = text.decode('utf-8')
+        if len(uText) <= width: return text
+        return '<acronym title="%s">%s</acronym>' % \
+               (text, uText[:width].encode('utf-8') + '...')
 
     def getPublishedObject(self):
         '''Gets the currently published object, if its meta_class is among
@@ -820,9 +826,8 @@ class ToolMixin(BaseMixin):
         urlBack = rq['HTTP_REFERER']
 
         if jsEnabled and not cookiesEnabled:
-            msg = self.translate(u'You must enable cookies before you can ' \
-                                  'log in.')
-            return self.goto(urlBack, msg.encode('utf-8'))
+            msg = 'You must enable cookies before you can log in.' # XXX transl.
+            return self.goto(urlBack, msg)
         # Perform the Zope-level authentication
         login = rq.get('__ac_name', '')
         password = rq.get('__ac_password', '')
@@ -832,12 +837,11 @@ class ToolMixin(BaseMixin):
         user = self.acl_users.validate(rq)
         if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')
-            msg = self.translate(u'Login failed')
+            msg = 'Login failed' # XXX to translate
             logMsg = 'Authentication failed (tried with login "%s")' % login
         else:
-            msg = self.translate(u'Welcome! You are now logged in.')
+            msg = 'Welcome! You are now logged in.' # XXX to translate
             logMsg = 'User "%s" has been logged in.' % login
-        msg = msg.encode('utf-8')
         self.log(logMsg)
         # Bring Managers to the config, leave others on the main page.
         user = self.getUser()

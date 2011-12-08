@@ -8,7 +8,7 @@
                   _ python: tool.translate;
                   req python: request;
                   resp req/RESPONSE;
-                  x python: resp.setHeader('Content-Type', 'text/html;;charset=utf-8');
+                  x python: resp.setHeader('Content-Type', 'text/html;;charset=UTF-8');
                   x python: resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
                   x python: resp.setHeader('Content-Language', req.get('language', 'en'))">
 

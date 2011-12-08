@@ -184,7 +184,7 @@ class BaseMixin:
            fields in the database.'''
         rq = self.REQUEST
         tool = self.getTool()
-        errorMessage = self.translate('Please correct the indicated errors.')
+        errorMessage = 'Please correct the indicated errors.' # XXX Translate
         isNew = rq.get('is_new') == 'True'
         # If this object is created from an initiator, get info about him.
         initiator = None
@@ -205,7 +205,7 @@ class BaseMixin:
                    urlBack = tool.getSiteUrl()
                 else:
                    urlBack = self.getUrl()
-            self.say(self.translate('Changes canceled.'))
+            self.say('Changes canceled.') # XXX Translate
             return self.goto(urlBack)
 
         # Object for storing validation errors
@@ -241,7 +241,7 @@ class BaseMixin:
         obj, msg = self.createOrUpdate(isNew, values, initiator, initiatorField)
 
         # Redirect the user to the appropriate page
-        if not msg: msg = obj.translate('Changes saved.')
+        if not msg: msg = 'Changes saved.' # XXX Translate
         # If the object has already been deleted (ie, it is a kind of transient
         # object like a one-shot form and has already been deleted in method
         # onEdit), redirect to the main site page.
@@ -1058,7 +1058,7 @@ class BaseMixin:
            instead of returning a list of string values, the result is a list
            of tuples (s_value, s_translation). If p_withBlankValue is True, a
            blank value is prepended to the list. If no p_className is defined,
-           the field is supposed to belong to self's class'''
+           the field is supposed to belong to self's class.'''
         appyType = self.getAppyType(name, className=className)
         if className:
             # We need an instance of className, but self can be an instance of
@@ -1333,51 +1333,40 @@ class BaseMixin:
            p_mapping.'''
         cfg = self.getProductConfig()
         if not domain: domain = cfg.PROJECTNAME
-        if domain != cfg.PROJECTNAME:
-            # We need to translate something that is in a standard Zope catalog
-            try:
-                res = self.Control_Panel.TranslationService.utranslate(
-                    domain, label, mapping, self, default=default,
-                    target_language=language)
-            except AttributeError:
-                # When run in test mode, Zope does not create the
-                # TranslationService
-                res = label
-        else:
-            # Get the label name, and the field-specific mapping if any.
-            if field:
-                # p_field is the dict version of a appy type or group
-                if field['type'] != 'group':
-                    fieldMapping = field['mapping'][label]
-                    if fieldMapping:
-                        if callable(fieldMapping):
-                            appyField = self.getAppyType(field['name'])
-                            fieldMapping=appyField.callMethod(self,fieldMapping)
-                        mapping.update(fieldMapping)
-                label = field['%sId' % label]
-            # We will get the translation from a Translation object.
-            # In what language must we get the translation?
-            if not language: language = self.getUserLanguage()
-            tool = self.getTool()
-            try:
-                translation = getattr(tool, language).appy()
-            except AttributeError:
-                # We have no translation for this language. Fallback to 'en'.
-                translation = getattr(tool, 'en').appy()
+        # Get the label name, and the field-specific mapping if any.
+        if field:
+            # p_field is the dict version of a appy type or group
+            if field['type'] != 'group':
+                fieldMapping = field['mapping'][label]
+                if fieldMapping:
+                    if callable(fieldMapping):
+                        appyField = self.getAppyType(field['name'])
+                        fieldMapping=appyField.callMethod(self,fieldMapping)
+                    mapping.update(fieldMapping)
+            label = field['%sId' % label]
+        # We will get the translation from a Translation object.
+        # In what language must we get the translation?
+        if not language: language = self.getUserLanguage()
+        tool = self.getTool()
+        try:
+            translation = getattr(tool, language).appy()
+        except AttributeError:
+            # We have no translation for this language. Fallback to 'en'.
+            translation = getattr(tool, 'en').appy()
+        res = getattr(translation, label, '')
+        if not res:
+            # Fallback to 'en'.
+            translation = getattr(tool, 'en').appy()
             res = getattr(translation, label, '')
-            if not res:
-                # Fallback to 'en'.
-                translation = getattr(tool, 'en').appy()
-                res = getattr(translation, label, '')
-            # If still no result, put the label instead of a translated message
-            if not res: res = label
-            else:
-                # Perform replacements, according to p_format.
-                res = self.formatText(res, format)
-                # Perform variable replacements
-                for name, repl in mapping.iteritems():
-                    if not isinstance(repl, basestring): repl = str(repl)
-                    res = res.replace('${%s}' % name, repl)
+        # If still no result, put the label instead of a translated message
+        if not res: res = label
+        else:
+            # Perform replacements, according to p_format.
+            res = self.formatText(res, format)
+            # Perform variable replacements
+            for name, repl in mapping.iteritems():
+                if not isinstance(repl, basestring): repl = str(repl)
+                res = res.replace('${%s}' % name, repl)
         return res
 
     def getPageLayout(self, layoutType):
