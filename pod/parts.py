@@ -3,14 +3,17 @@ import cgi
 
 # ------------------------------------------------------------------------------
 class OdtTable:
-    '''This class allows to construct an ODT table programmatically.'''
+    '''This class allows to construct an ODT table programmatically. As ODT and
+       HTML are very similar, this class also allows to contruct an
+       HTML table.'''
     # Some namespace definitions
     tns = 'table:'
     txns = 'text:'
 
     def __init__(self, name, paraStyle, cellStyle, nbOfCols,
-                 paraHeaderStyle=None, cellHeaderStyle=None):
-        # An ODT table must have a name.
+                 paraHeaderStyle=None, cellHeaderStyle=None, html=False):
+        # An ODT table must have a name. In the case of an HTML table, p_name
+        # represents the CSS class for the whole table.
         self.name = name
         # The default style of every paragraph within cells
         self.paraStyle = paraStyle
@@ -24,6 +27,8 @@ class OdtTable:
         self.cellHeaderStyle = cellHeaderStyle or cellStyle
         # The buffer where the resulting table will be rendered
         self.res = ''
+        # Do we need to generate an HTML table instead of an ODT table ?
+        self.html = html
 
     def dumpCell(self, content, span=1, header=False,
                  paraStyle=None, cellStyle=None):
@@ -37,32 +42,55 @@ class OdtTable:
         if not cellStyle:
             if header: cellStyle = self.cellHeaderStyle
             else: cellStyle = self.cellStyle
-        self.res += '<%stable-cell %sstyle-name="%s" ' \
-                    '%snumber-columns-spanned="%d">' % \
-                    (self.tns, self.tns, cellStyle, self.tns, span)
-        self.res += '<%sp %sstyle-name="%s">%s</%sp>' % \
-                    (self.txns, self.txns, paraStyle, cgi.escape(str(content)),
-                     self.txns)
-        self.res += '</%stable-cell>' % self.tns
+        if not self.html:
+            self.res += '<%stable-cell %sstyle-name="%s" ' \
+                        '%snumber-columns-spanned="%d">' % \
+                        (self.tns, self.tns, cellStyle, self.tns, span)
+            self.res += '<%sp %sstyle-name="%s">%s</%sp>' % \
+                        (self.txns, self.txns, paraStyle,
+                         cgi.escape(str(content)), self.txns)
+            self.res += '</%stable-cell>' % self.tns
+        else:
+            tag = header and 'th' or 'td'
+            self.res += '<%s colspan="%d">%s</%s>' % \
+                        (tag, span, cgi.escape(str(content)), tag)
 
     def startRow(self):
-        self.res += '<%stable-row>' % self.tns
+        if not self.html:
+            self.res += '<%stable-row>' % self.tns
+        else:
+            self.res += '<tr>'
 
     def endRow(self):
-        self.res += '</%stable-row>' % self.tns
+        if not self.html:
+            self.res += '</%stable-row>' % self.tns
+        else:
+            self.res += '</tr>'
 
     def startTable(self):
-        self.res += '<%stable %sname="%s">' % (self.tns, self.tns, self.name)
-        self.res += '<%stable-column %snumber-columns-repeated="%d"/>' % \
-                    (self.tns, self.tns, self.nbOfCols)
+        if not self.html:
+            self.res += '<%stable %sname="%s">' % (self.tns, self.tns,
+                                                   self.name)
+            self.res += '<%stable-column %snumber-columns-repeated="%d"/>' % \
+                        (self.tns, self.tns, self.nbOfCols)
+        else:
+            css = ''
+            if self.name: css = ' class="%s"' % self.name
+            self.res += '<table%s cellpadding="0" cellspacing="0">' % css
 
     def endTable(self):
-        self.res += '</%stable>' % self.tns
+        if not self.html:
+            self.res += '</%stable>' % self.tns
+        else:
+            self.res += '</table>'
 
     def dumpFloat(self, number):
         return str(round(number, 2))
 
     def get(self):
         '''Returns the whole table.'''
-        return self.res.decode('utf-8')
+        if self.html:
+            return self.res
+        else:
+            return self.res.decode('utf-8')
 # ------------------------------------------------------------------------------

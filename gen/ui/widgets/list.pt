@@ -18,10 +18,11 @@
 </tr>
 
 <tal:comment replace="nothing">The whole table, edit or view.</tal:comment>
-<table metal:define-macro="table" class="grid"
+<table metal:define-macro="table"
        tal:define="isEdit python: layoutType == 'edit'"
        tal:condition="python: isEdit or value"
-       tal:attributes="id python: 'list_%s' % name">
+       tal:attributes="id python: 'list_%s' % name;
+                       class python: isEdit and 'grid' or 'list'">
  <tal:comment replace="nothing">Header</tal:comment>
  <tr valign="bottom">
   <th tal:repeat="fieldInfo widget/fieldsd"
@@ -39,7 +40,7 @@
  <tal:templateRow define="rowIndex python:-1" condition="isEdit">
   <metal:call use-macro="app/ui/widgets/list/macros/row"/>
  </tal:templateRow>
- <tr height="7px"><td></td></tr>
+ <tr height="7px" tal:condition="isEdit"><td></td></tr>
  <tal:comment replace="nothing">Rows of data</tal:comment>
  <tal:rows define="rows python: inRequest and requestValue or value"
            repeat="row rows">
