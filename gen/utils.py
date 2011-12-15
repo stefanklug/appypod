@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, time
+import re, os, os.path
 import appy.pod
-from appy.shared.utils import getOsTempFolder, normalizeString, executeCommand
 sequenceTypes = (list, tuple)
 
 # Function for creating a Zope object ------------------------------------------
@@ -241,84 +240,6 @@ class Keywords:
             op = ' %s ' % self.operator
             return op.join(self.keywords)+'*'
         return ''
-
-# ------------------------------------------------------------------------------
-CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
-class FileWrapper:
-    '''When you get, from an appy object, the value of a File attribute, you
-       get an instance of this class.'''
-    def __init__(self, zopeFile):
-        '''This constructor is only used by Appy to create a nice File instance
-           from a Zope corresponding instance (p_zopeFile). If you need to
-           create a new file and assign it to a File attribute, use the
-           attribute setter, do not create yourself an instance of this
-           class.'''
-        d = self.__dict__
-        d['_zopeFile'] = zopeFile # Not for you!
-        d['name'] = zopeFile.filename
-        d['content'] = zopeFile.data
-        d['mimeType'] = zopeFile.content_type
-        d['size'] = zopeFile.size # In bytes
-
-    def __setattr__(self, name, v):
-        d = self.__dict__
-        if name == 'name':
-            self._zopeFile.filename = v
-            d['name'] = v
-        elif name == 'content':
-            self._zopeFile.update_data(v, self.mimeType, len(v))
-            d['content'] = v
-            d['size'] = len(v)
-        elif name == 'mimeType':
-            self._zopeFile.content_type = self.mimeType = v
-        else:
-            raise 'Impossible to set attribute %s. "Settable" attributes ' \
-                  'are "name", "content" and "mimeType".' % name
-
-    def dump(self, filePath=None, format=None, tool=None):
-        '''Writes the file on disk. If p_filePath is specified, it is the
-           path name where the file will be dumped; folders mentioned in it
-           must exist. If not, the file will be dumped in the OS temp folder.
-           The absolute path name of the dumped file is returned.
-           If an error occurs, the method returns None. If p_format is
-           specified, OpenOffice will be called for converting the dumped file
-           to the desired format. In this case, p_tool, a Appy tool, must be
-           provided. Indeed, any Appy tool contains parameters for contacting
-           OpenOffice in server mode.'''
-        if not filePath:
-            filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
-                normalizeString(self.name))
-        f = file(filePath, 'w')
-        if self.content.__class__.__name__ == 'Pdata':
-            # The file content is splitted in several chunks.
-            f.write(self.content.data)
-            nextPart = self.content.next
-            while nextPart:
-                f.write(nextPart.data)
-                nextPart = nextPart.next
-        else:
-            # Only one chunk
-            f.write(self.content)
-        f.close()
-        if format:
-            if not tool: return
-            # Convert the dumped file using OpenOffice
-            errorMessage = tool.convert(filePath, format)
-            # Even if we have an "error" message, it could be a simple warning.
-            # So we will continue here and, as a subsequent check for knowing if
-            # an error occurred or not, we will test the existence of the
-            # converted file (see below).
-            os.remove(filePath)
-            # Return the name of the converted file.
-            baseName, ext = os.path.splitext(filePath)
-            if (ext == '.%s' % format):
-                filePath = '%s.res.%s' % (baseName, format)
-            else:
-                filePath = '%s.%s' % (baseName, format)
-            if not os.path.exists(filePath):
-                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
-                return
-        return filePath
 
 # ------------------------------------------------------------------------------
 def getClassName(klass, appName=None):

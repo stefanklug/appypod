@@ -1,6 +1,6 @@
-#!/usr/bin/python2.4.4
+#!/usr/bin/python
 # Imports ----------------------------------------------------------------------
-import os, os.path, shutil, re, zipfile, sys, ftplib, time
+import os, os.path, sys, shutil, re, zipfile, sys, ftplib, time
 import appy
 from appy.shared import appyPath
 from appy.shared.utils import FolderDeleter, LinesCounter
@@ -9,17 +9,23 @@ from appy.gen.utils import produceNiceMessage
 
 # ------------------------------------------------------------------------------
 versionRex = re.compile('(\d+\.\d+\.\d+)')
-eggInfo = '''import os, setuptools
-setuptools.setup(
-    name = "appy", version = "%s", description = "The Appy framework",
-    long_description = "See http://appyframework.org",
-    author = "Gaetan Delannay", author_email = "gaetan.delannay AT gmail.com",
-    license = "GPL", keywords = "plone, pod, pdf, odt, document",
-    url = 'http://appyframework.org',
-    classifiers = ['Development Status :: 4 - Beta', "License :: OSI Approved"],
-    packages = setuptools.find_packages('src'), include_package_data = True,
-    package_dir = {'':'src'}, data_files = [('.', [])],
-    namespace_packages = ['appy'], zip_safe = False)'''
+distInfo = '''from distutils.core import setup
+setup(name = "appy", version = "%s",
+      description = "The Appy framework",
+      long_description = "Appy builds simple but complex web Python apps.",
+      author = "Gaetan Delannay",
+      author_email = "gaetan.delannay AT geezteem.com",
+      license = "GPL", platforms="all",
+      url = 'http://appyframework.org',
+      packages = [%s],
+      package_data = {'':["*.*"]})
+'''
+manifestInfo = '''
+recursive-include appy/bin *
+recursive-include appy/gen *
+recursive-include appy/pod *
+recursive-include appy/shared *
+'''
 
 def askLogin():
     print 'Login: ',
@@ -27,29 +33,6 @@ def askLogin():
     print 'Password: ',
     passwd = sys.stdin.readline().strip()
     return (login, passwd)
-
-def askQuestion(question, default='yes'):
-    '''Asks a question to the user (yes/no) and returns True if the user
-        answered "yes".'''
-    defaultIsYes = (default.lower() in ('y', 'yes'))
-    if defaultIsYes:
-        yesNo = '[Y/n]'
-    else:
-        yesNo = '[y/N]'
-    print question + ' ' + yesNo + ' ',
-    response = sys.stdin.readline().strip().lower()
-    res = False
-    if response in ('y', 'yes'):
-        res = True
-    elif response in ('n', 'no'):
-        res = False
-    elif not response:
-        # It depends on default value
-        if defaultIsYes:
-            res = True
-        else:
-            res = False
-    return res
 
 class FtpFolder:
     '''Represents a folder on a FTP site.'''
@@ -247,52 +230,95 @@ class Publisher:
         self.versionLong = '%s (%s)' % (self.versionShort,
                                         time.strftime('%Y/%m/%d %H:%M'))
         f.close()
+        # In silent mode (option -s), no question is asked, default answers are
+        # automatically given.
+        if (len(sys.argv) > 1) and (sys.argv[1] == '-s'):
+            self.silent = True
+        else:
+            self.silent = False
+
+    def askQuestion(self, question, default='yes'):
+        '''Asks a question to the user (yes/no) and returns True if the user
+            answered "yes".'''
+        if self.silent: return (default == 'yes')
+        defaultIsYes = (default.lower() in ('y', 'yes'))
+        if defaultIsYes:
+            yesNo = '[Y/n]'
+        else:
+            yesNo = '[y/N]'
+        print question + ' ' + yesNo + ' ',
+        response = sys.stdin.readline().strip().lower()
+        res = False
+        if response in ('y', 'yes'):
+            res = True
+        elif response in ('n', 'no'):
+            res = False
+        elif not response:
+            # It depends on default value
+            if defaultIsYes:
+                res = True
+            else:
+                res = False
+        return res
 
     def executeCommand(self, cmd):
         '''Executes the system command p_cmd.'''
         print 'Executing %s...' % cmd
         os.system(cmd)
 
-    def createCodeAndEggReleases(self):
-        '''Publishes the egg on pypi.python.org.'''
+    distExcluded = ('appy/doc', 'appy/temp', 'appy/versions', 'appy/gen/test')
+    def isDistExcluded(self, name):
+        '''Returns True if folder named p_name must be included in the
+           distribution.'''
+        if '.bzr' in name: return True
+        for prefix in self.distExcluded:
+            if name.startswith(prefix): return True
+
+    def createDistRelease(self):
+        '''Create the distutils package.'''
         curdir = os.getcwd()
-        if askQuestion('Upload eggs on PyPI?', default='no'):
-            # Create egg structure
-            eggFolder = '%s/egg' % self.genFolder
-            os.mkdir(eggFolder)
-            f = file('%s/setup.py' % eggFolder, 'w')
-            f.write(eggInfo % self.versionShort)
-            f.close()
-            os.mkdir('%s/docs' % eggFolder)
-            os.mkdir('%s/src' % eggFolder)
-            os.mkdir('%s/src/appy' % eggFolder)
-            shutil.copy('%s/doc/version.txt' % appyPath,
-                        '%s/docs/HISTORY.txt' % eggFolder)
-            shutil.copy('%s/doc/license.txt' % appyPath,
-                        '%s/docs/LICENSE.txt' % eggFolder)
-            # Move appy sources within the egg
-            os.rename('%s/appy' % self.genFolder, '%s/src/appy' % eggFolder)
-            # Create eggs and publish them on pypi
-            os.chdir(eggFolder)
-            print 'Uploading appy%s source egg on PyPI...' % self.versionShort
-            #self.executeCommand('python setup.py sdist upload')
-            self.executeCommand('python setup.py sdist')
-            for pythonTarget in self.pythonTargets:
-                print 'Uploading appy%s binary egg for python%s...' % \
-                      (self.versionShort, pythonTarget)
-                #self.executeCommand('python%s setup.py bdist_egg upload' % \
-                #    pythonTarget)
-                self.executeCommand('python%s setup.py bdist_egg' % \
-                    pythonTarget)
+        distFolder = '%s/dist' % self.genFolder
+        # Create setup.py
+        os.mkdir(distFolder)
+        f = file('%s/setup.py' % distFolder, 'w')
+        # List all packages to include
+        packages = []
+        os.chdir(os.path.dirname(appyPath))
+        for dir, dirnames, filenames in os.walk('appy'):
+            if self.isDistExcluded(dir): continue
+            packageName = dir.replace('/', '.')
+            packages.append('"%s"' % packageName)
+        f.write(distInfo % (self.versionShort, ','.join(packages)))
+        f.close()
+        # Create MANIFEST.in
+        f = file('%s/MANIFEST.in' % distFolder, 'w')
+        f.write(manifestInfo)
+        f.close()
+        # Move appy sources within the dist folder
+        os.rename('%s/appy' % self.genFolder, '%s/appy' % distFolder)
+        # Create the source distribution
+        os.chdir(distFolder)
+        self.executeCommand('python setup.py sdist')
+        # DistUtils has created the .tar.gz file. Copy it into folder "versions"
+        name = 'appy-%s.tar.gz' % self.versionShort
+        os.rename('%s/dist/%s' % (distFolder, name),
+                  '%s/versions/%s' % (appyPath, name))
+        # Clean temp files
         os.chdir(curdir)
+        FolderDeleter.delete(os.path.join(self.genFolder, 'dist'))
+        return name
+
+    def uploadOnPypi(self, name):
+        print 'Uploading %s on PyPI...' % name
+        #self.executeCommand('python setup.py sdist upload')
 
     def createZipRelease(self):
         '''Creates a zip file with the appy sources.'''
         newZipRelease = '%s/versions/appy%s.zip' % (appyPath, self.versionShort)
         if os.path.exists(newZipRelease):
-            if not askQuestion('"%s" already exists. Replace it?' % \
-                               newZipRelease, default='yes'):
-                print 'Publication cancelled.'
+            if not self.askQuestion('"%s" already exists. Replace it?' % \
+                                    newZipRelease, default='yes'):
+                print 'Publication canceled.'
                 sys.exit(1)
             print 'Removing obsolete %s...' % newZipRelease
             os.remove(newZipRelease)
@@ -306,8 +332,6 @@ class Publisher:
                 # [2:] is there to avoid havin './' in the path in the zip file.
         zipFile.close()
         os.chdir(curdir)
-        # Remove the "appy" folder within the gen folder.
-        FolderDeleter.delete(os.path.join(self.genFolder, 'appy'))
 
     def applyTemplate(self):
         '''Decorates each page with the template.'''
@@ -405,7 +429,7 @@ class Publisher:
         # Create a temp clean copy of appy sources (without .svn folders, etc)
         genSrcFolder = '%s/appy' % self.genFolder
         os.mkdir(genSrcFolder)
-        for aFile in ('__init__.py', 'install.txt'):
+        for aFile in ('__init__.py',):
             shutil.copy('%s/%s' % (appyPath, aFile), genSrcFolder)
         for aFolder in ('gen', 'pod', 'shared', 'bin'):
             shutil.copytree('%s/%s' % (appyPath, aFolder),
@@ -438,17 +462,18 @@ class Publisher:
         # Perform a small analysis on the Appy code
         LinesCounter(appy).run()
         print 'Generating site in %s...' % self.genFolder
-        minimalist = askQuestion('Minimalist (shipped without tests)?',
-                                 default='no')
+        minimalist = self.askQuestion('Minimalist (shipped without tests)?',
+                                      default='no')
         self.prepareGenFolder(minimalist)
         self.createDocToc()
         self.applyTemplate()
         self.createZipRelease()
-        #self.createCodeAndEggReleases()
-        if askQuestion('Do you want to publish the site on ' \
-                       'appyframework.org?', default='no'):
+        tarball = self.createDistRelease()
+        if self.askQuestion('Upload %s on PyPI?' % tarball, default='no'):
+            self.uploadOnPypi(tarball)
+        if self.askQuestion('Publish on appyframework.org?', default='no'):
             AppySite().publish()
-        if askQuestion('Delete locally generated site ?', default='no'):
+        if self.askQuestion('Delete locally generated site ?', default='yes'):
             FolderDeleter.delete(self.genFolder)
 
 # ------------------------------------------------------------------------------

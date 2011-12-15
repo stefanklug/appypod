@@ -5,12 +5,13 @@ from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
-from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, FileWrapper, \
-                           getClassName, SomeObjects
+from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, getClassName, \
+                           SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
-from appy.shared.utils import Traceback, getOsTempFolder, formatNumber
+from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
+                              FileWrapper
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -1505,7 +1506,7 @@ class File(Type):
     def getRequestValue(self, request):
         return request.get('%s_file' % self.name)
 
-    def getDefaultLayouts(self): return {'view':'lf','edit':'lrv-f'}
+    def getDefaultLayouts(self): return {'view':'l-f','edit':'lrv-f'}
 
     def isEmptyValue(self, value, obj=None):
         '''Must p_value be considered as empty?'''
@@ -1536,8 +1537,9 @@ class File(Type):
            * an instance of Zope class ZPublisher.HTTPRequest.FileUpload. In
              this case, it is file content coming from a HTTP POST;
            * an instance of Zope class OFS.Image.File;
-           * an instance of appy.gen.utils.FileWrapper, which wraps an instance
-             of OFS.Image.File and adds useful methods for manipulating it;
+           * an instance of appy.shared.utils.FileWrapper, which wraps an
+             instance of OFS.Image.File and adds useful methods for manipulating
+             it;
            * a string. In this case, the string represents the path of a file
              on disk;
            * a 2-tuple (fileName, fileContent) where:

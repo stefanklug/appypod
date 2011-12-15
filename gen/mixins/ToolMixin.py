@@ -781,7 +781,7 @@ class ToolMixin(BaseMixin):
                     if brain:
                         sibling = brain.getObject()
                         res[urlKey] = sibling.getUrl(nav=newNav % (index + 1),
-                                                     page='main')
+                                          page=self.REQUEST.get('page', 'main'))
         return res
 
     def tabularize(self, data, numberOfRows):

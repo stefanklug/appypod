@@ -26,6 +26,7 @@ from appy.pod import PodError
 from appy.shared import mimeTypesExts
 from appy.shared.xml_parser import XmlElement
 from appy.shared.utils import FolderDeleter, executeCommand
+from appy.shared.utils import FileWrapper
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
 from appy.pod.converter import FILE_TYPES
 from appy.pod.buffers import FileBuffer
@@ -281,6 +282,8 @@ class Renderer:
         if not content and not at:
             raise PodError(DOC_NOT_SPECIFIED)
         # Guess document format
+        if isinstance(content, FileWrapper):
+            format = content.mimeType
         if not format:
             # It should be deduced from p_at
             if not at:

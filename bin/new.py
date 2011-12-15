@@ -109,8 +109,9 @@ class NewScript:
             f.write(self.patchRex.sub('<!--Del. includePlugins-->',fileContent))
             f.close()
 
-    filesToPatch2 = ('profiles/default/skins.xml')
-    def patchPlone4(self):
+    missingIncludes = ('plone.app.upgrade', 'plonetheme.sunburst',
+                       'plonetheme.classic')
+    def patchPlone4(self, versions):
         '''Patches Plone 4 that can't live without buildout as-is.'''
         self.patchPlone3x() # We still need this for Plone 4 as well.
         # bin/zopectl
@@ -124,42 +125,44 @@ class NewScript:
         f.write(content)
         f.close()
         j = os.path.join
-        themeFolder = '%s/plonetheme' % self.libFolder
-        for theme in os.listdir(themeFolder):
-            # Create a simlink to every theme in self.productsFolder
-            tFolder = j(themeFolder, theme)
-            if not os.path.isdir(tFolder): continue
-            os.system('ln -s %s %s/%s' % (tFolder, self.productsFolder, theme))
-            # Patch skins.xml
-            fileName = '%s/profiles/default/skins.xml' % tFolder
-            f = file(fileName)
-            content = f.read()
-            f.close()
-            f = file(fileName, 'w')
-            f.write(content.replace('plonetheme.%s:' % theme, '%s/' % theme))
-            f.close()
-        # As eggs have been deleted, Plone can't tell which version of Zope and
-        # Plone are there. So we patch the code that tries to get Plone and Zope
-        # versions.
+        # As eggs have been deleted, versions of components are lost. Reify
+        # them from p_versions.
+        dVersions = ['"%s":"%s"' % (n, v) for n, v in versions.iteritems()]
+        sVersions = 'appyVersions = {' + ','.join(dVersions) + '}'
         codeFile = "%s/pkg_resources.py" % self.libFolder
         f = file(codeFile)
-        content = f.read()
+        content = sVersions + '\n' + f.read()
         f.close()
         content = content.replace("raise DistributionNotFound(req)",
             "dist = Distribution(project_name=req.project_name, " \
-            "version='1.1.1', platform='linux2', location='%s')" % \
-            self.instancePath)
+            "version=appyVersions[req.project_name], platform='linux2', " \
+            "location='%s')" % self.instancePath)
         f = file(codeFile, 'w')
+        f.write(content)
+        f.close()
+        # Some 'include' directives must be added with our install.
+        configPlone = j(self.productsFolder, 'CMFPlone', 'configure.zcml')
+        f = file(configPlone)
+        content = f.read()
+        f.close()
+        missing = ''
+        for missingInclude in self.missingIncludes:
+            missing += '  <include package="%s"/>\n' % missingInclude
+        content = content.replace('</configure>', '%s\n</configure>' % missing)
+        f = file(configPlone, 'w')
         f.write(content)
         f.close()
 
     def copyEggs(self):
-        '''Copy content of eggs into the Zope instance.'''
+        '''Copy content of eggs into the Zope instance. This method also
+           retrieves every egg version and returns a dict {s_egg:s_version}.'''
         j = os.path.join
         eggsFolder = j(self.plonePath, 'buildout-cache/eggs')
-        self.ploneThemes = []
+        res = {}
         for name in os.listdir(eggsFolder):
             if name == 'EGG-INFO': continue
+            splittedName = name.split('-')
+            res[splittedName[0]] = splittedName[1]
             absName = j(eggsFolder, name)
             # Copy every file or sub-folder into self.libFolder or
             # self.productsFolder.
@@ -175,6 +178,7 @@ class NewScript:
                     copyFolder(absFileName, j(self.libFolder, fileName))
                 else:
                     shutil.copy(absFileName, self.libFolder)
+        return res
 
     def createInstance(self, linksForProducts):
         '''Calls the Zope script that allows to create a Zope instance and copy
@@ -224,7 +228,7 @@ class NewScript:
         if self.ploneVersion in ('plone25', 'plone30'):
             self.installPlone25or30Stuff(linksForProducts)
         elif self.ploneVersion in ('plone3x', 'plone4'):
-            self.copyEggs()
+            versions = self.copyEggs()
             if self.ploneVersion == 'plone3x':
                 self.patchPlone3x()
             elif self.ploneVersion == 'plone4':
@@ -234,7 +238,7 @@ class NewScript:
                      j(self.instancePath, 'lib/python'))
                 print cmd
                 os.system(cmd)
-                self.patchPlone4()
+                self.patchPlone4(versions)
         # Remove .bat files under Linux
         if os.name == 'posix':
             cleanFolder(j(self.instancePath, 'bin'), exts=('.bat',))

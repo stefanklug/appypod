@@ -675,7 +675,7 @@ class ZopeGenerator(Generator):
         repls['languages'] = ','.join('"%s"' % l for l in self.config.languages)
         repls['languageSelector'] = self.config.languageSelector
         repls['sourceLanguage'] = self.config.sourceLanguage
-        self.copyFile('config.py', repls)
+        self.copyFile('config.pyt', repls, destName='config.py')
 
     def generateInit(self):
         # Compute imports
@@ -690,7 +690,7 @@ class ZopeGenerator(Generator):
         repls['imports'] = '\n'.join(imports)
         repls['classes'] = ','.join(classNames)
         repls['totalNumberOfTests'] = self.totalNumberOfTests
-        self.copyFile('__init__.py', repls)
+        self.copyFile('__init__.pyt', repls, destName='__init__.py')
 
     def getClassesInOrder(self, allClasses):
         '''When generating wrappers, classes mut be dumped in order (else, it
@@ -757,7 +757,7 @@ class ZopeGenerator(Generator):
         for klass in self.getClasses(include='predefined'):
             modelClass = klass.modelClass
             repls['%s' % modelClass.__name__] = modelClass._appy_getBody()
-        self.copyFile('wrappers.py', repls)
+        self.copyFile('wrappers.pyt', repls, destName='wrappers.py')
 
     def generateTests(self):
         '''Generates the file needed for executing tests.'''
@@ -765,7 +765,8 @@ class ZopeGenerator(Generator):
         modules = self.modulesWithTests
         repls['imports'] = '\n'.join(['import %s' % m for m in modules])
         repls['modulesWithTests'] = ','.join(modules)
-        self.copyFile('testAll.py', repls, destFolder='tests')
+        self.copyFile('testAll.pyt', repls, destName='testAll.py',
+                      destFolder='tests')
 
     def generateTool(self):
         '''Generates the tool that corresponds to this application.'''
@@ -790,7 +791,7 @@ class ZopeGenerator(Generator):
             repls.update({'methods': klass.methods, 'genClassName': klass.name,
               'baseMixin':'BaseMixin', 'parents': 'BaseMixin, SimpleItem',
               'classDoc': 'Standard Appy class', 'icon':'object.gif'})
-            self.copyFile('Class.py', repls, destName='%s.py' % klass.name)
+            self.copyFile('Class.pyt', repls, destName='%s.py' % klass.name)
 
         # Before generating the Tool class, finalize it with query result
         # columns, with fields to propagate, workflow-related fields.
@@ -817,7 +818,7 @@ class ZopeGenerator(Generator):
           'genClassName': self.tool.name, 'baseMixin':'ToolMixin',
           'parents': 'ToolMixin, Folder', 'icon': 'folder.gif',
           'classDoc': 'Tool class for %s' % self.applicationName})
-        self.copyFile('Class.py', repls, destName='%s.py' % self.tool.name)
+        self.copyFile('Class.pyt', repls, destName='%s.py' % self.tool.name)
 
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for
@@ -863,7 +864,7 @@ class ZopeGenerator(Generator):
                 if poMsg not in self.labels:
                     self.labels.append(poMsg)
         # Generate the resulting Zope class.
-        self.copyFile('Class.py', repls, destName=fileName)
+        self.copyFile('Class.pyt', repls, destName=fileName)
 
     def generateWorkflow(self, wfDescr):
         '''This method creates the i18n labels related to the workflow described

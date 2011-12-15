@@ -20,6 +20,7 @@
 import os, os.path, time, shutil, struct, random
 from appy.pod import PodError
 from appy.pod.odf_parser import OdfEnvironment
+from appy.shared.utils import FileWrapper
 
 # ------------------------------------------------------------------------------
 FILE_NOT_FOUND = "'%s' does not exist or is not a file."
@@ -59,9 +60,12 @@ class DocImporter:
             self.importPath = self.moveFile(at, self.importPath)
         else:
             # We need to dump the file content (in self.content) in a temp file
-            # first. self.content may be binary or a file handler.
+            # first. self.content may be binary, a file handler or a
+            # FileWrapper.
             if isinstance(self.content, file):
                 fileContent = self.content.read()
+            elif isinstance(self.content, FileWrapper):
+                fileContent = content.content
             else:
                 fileContent = self.content
             f = file(self.importPath, 'wb')
