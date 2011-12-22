@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # Imports ----------------------------------------------------------------------
-import os, os.path, sys, shutil, re, zipfile, sys, ftplib, time
+import os, os.path, sys, shutil, re, zipfile, sys, ftplib, time, subprocess, md5
 import appy
 from appy.shared import appyPath
 from appy.shared.utils import FolderDeleter, LinesCounter
@@ -25,6 +25,33 @@ recursive-include appy/bin *
 recursive-include appy/gen *
 recursive-include appy/pod *
 recursive-include appy/shared *
+'''
+debianInfo = '''Package: python-appy
+Version: %s
+Architecture: all
+Maintainer: Gaetan Delannay <gaetan.delannay@geezteem.com>
+Installed-Size: %d
+Depends: python (>= 2.6), python (<< 3.0)
+Section: python
+Priority: optional
+Homepage: http://appyframework.org
+Description: Appy builds simple but complex web Python apps.
+'''
+debianPostInst = '''#!/bin/sh
+set -e
+if [ -e /usr/bin/python2.6 ]
+then
+    /usr/bin/python2.6 -m compileall -q /usr/lib/python2.6/appy 2> /dev/null
+fi
+if [ -e /usr/bin/python2.7 ]
+then
+    /usr/bin/python2.7 -m compileall -q /usr/lib/python2.7/appy 2> /dev/null
+fi
+'''
+debianPreRm = '''#!/bin/sh
+set -e
+find /usr/lib/python2.6/appy -name "*.pyc" -delete
+find /usr/lib/python2.7/appy -name "*.pyc" -delete
 '''
 
 def askLogin():
@@ -274,6 +301,69 @@ class Publisher:
         for prefix in self.distExcluded:
             if name.startswith(prefix): return True
 
+    def createDebianRelease(self):
+        '''Creates a Debian package for Appy.'''
+        curdir = os.getcwd()
+        # Create a temp folder for creating the Debian files hierarchy.
+        srcFolder = os.path.join(self.genFolder, 'debian', 'usr', 'lib')
+        os.makedirs(os.path.join(srcFolder, 'python2.6'))
+        os.makedirs(os.path.join(srcFolder, 'python2.7'))
+        # Copy Appy sources in it
+        py26 = os.path.join(srcFolder, 'python2.6', 'appy')
+        os.rename(os.path.join(self.genFolder, 'appy'), py26)
+        shutil.copytree(py26, os.path.join(srcFolder, 'python2.7', 'appy'))
+        # Create data.tar.gz based on it.
+        debFolder = os.path.join(self.genFolder, 'debian')
+        os.chdir(debFolder)
+        os.system('tar czvf data.tar.gz ./usr')
+        # Get the size of Appy, in Kb.
+        cmd = subprocess.Popen(['du', '-b', '-s', 'usr'],stdout=subprocess.PIPE)
+        size = int(int(cmd.stdout.read().split()[0])/1024.0)
+        # Create control file
+        f = file('control', 'w')
+        f.write(debianInfo % (self.versionShort, size))
+        f.close()
+        # Create md5sum file
+        f = file('md5sums', 'w')
+        for dir, dirnames, filenames in os.walk('usr'):
+            for name in filenames:
+                m = md5.new()
+                pathName = os.path.join(dir, name)
+                currentFile = file(pathName, 'rb')
+                while True:
+                    data = currentFile.read(8096)
+                    if not data:
+                        break
+                    m.update(data)
+                currentFile.close()
+                # Add the md5 sum to the file
+                f.write('%s  %s\n' % (m.hexdigest(), pathName))
+        f.close()
+        # Create postinst and prerm
+        f = file('postinst', 'w')
+        f.write(debianPostInst)
+        f.close()
+        f = file('prerm', 'w')
+        f.write(debianPreRm)
+        f.close()
+        # Create control.tar.gz
+        os.system('tar czvf control.tar.gz ./control ./md5sums ./postinst ' \
+                  './prerm')
+        # Create debian-binary
+        f = file('debian-binary', 'w')
+        f.write('2.0\n')
+        f.close()
+        # Create the .deb package
+        debName = 'python-appy-%s.deb' % self.versionShort
+        os.system('ar -r %s debian-binary control.tar.gz data.tar.gz' % \
+                  debName)
+        os.chdir(curdir)
+        # Move it to folder "versions".
+        os.rename(os.path.join(debFolder, debName),
+                  os.path.join(appyPath, 'versions', debName))
+        # Clean temp files
+        FolderDeleter.delete(debFolder)
+
     def createDistRelease(self):
         '''Create the distutils package.'''
         curdir = os.getcwd()
@@ -299,12 +389,15 @@ class Publisher:
         # Create the source distribution
         os.chdir(distFolder)
         self.executeCommand('python setup.py sdist')
-        # DistUtils has created the .tar.gz file. Copy it into folder "versions"
+        # DistUtils has created the .tar.gz file. Move it to folder "versions"
         name = 'appy-%s.tar.gz' % self.versionShort
         os.rename('%s/dist/%s' % (distFolder, name),
                   '%s/versions/%s' % (appyPath, name))
         # Clean temp files
         os.chdir(curdir)
+        # Keep the Appy source for building the Debian package afterwards
+        os.rename(os.path.join(self.genFolder, 'dist', 'appy'), \
+                  os.path.join(self.genFolder, 'appy'))
         FolderDeleter.delete(os.path.join(self.genFolder, 'dist'))
         return name
 
@@ -314,7 +407,7 @@ class Publisher:
 
     def createZipRelease(self):
         '''Creates a zip file with the appy sources.'''
-        newZipRelease = '%s/versions/appy%s.zip' % (appyPath, self.versionShort)
+        newZipRelease = '%s/versions/appy-%s.zip' % (appyPath,self.versionShort)
         if os.path.exists(newZipRelease):
             if not self.askQuestion('"%s" already exists. Replace it?' % \
                                     newZipRelease, default='yes'):
@@ -469,6 +562,7 @@ class Publisher:
         self.applyTemplate()
         self.createZipRelease()
         tarball = self.createDistRelease()
+        self.createDebianRelease()
         if self.askQuestion('Upload %s on PyPI?' % tarball, default='no'):
             self.uploadOnPypi(tarball)
         if self.askQuestion('Publish on appyframework.org?', default='no'):

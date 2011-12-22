@@ -44,6 +44,23 @@ export PYTHON
 export PYTHONPATH
 exec "$PYTHON" "$ZOPE_RUN" -C "$CONFIG_FILE" "$@"
 '''
+pkgResourcesPatch = '''import os, os.path
+productsFolder = os.path.join(os.environ["INSTANCE_HOME"], "Products")
+for name in os.listdir(productsFolder):
+    if os.path.isdir(os.path.join(productsFolder, name)):
+        if name not in appyVersions:
+            appyVersions[name] = "1.0"
+            appyVersions['Products.%s' % name] = "1.0"
+
+def getAppyVersion(req, location):
+    global appyVersions
+    if req.project_name not in appyVersions:
+        raise DistributionNotFound(req)
+    return Distribution(project_name=req.project_name,
+                        version=appyVersions[req.project_name],
+                        platform='linux2', location=location)
+'''
+
 # ------------------------------------------------------------------------------
 class NewScript:
     '''usage: %prog ploneVersion plonePath instancePath
@@ -131,12 +148,10 @@ class NewScript:
         sVersions = 'appyVersions = {' + ','.join(dVersions) + '}'
         codeFile = "%s/pkg_resources.py" % self.libFolder
         f = file(codeFile)
-        content = sVersions + '\n' + f.read()
+        content = f.read().replace("raise DistributionNotFound(req)",
+                         "dist = getAppyVersion(req, '%s')" % self.instancePath)
+        content = sVersions + '\n' + pkgResourcesPatch + '\n' + content
         f.close()
-        content = content.replace("raise DistributionNotFound(req)",
-            "dist = Distribution(project_name=req.project_name, " \
-            "version=appyVersions[req.project_name], platform='linux2', " \
-            "location='%s')" % self.instancePath)
         f = file(codeFile, 'w')
         f.write(content)
         f.close()
@@ -163,6 +178,8 @@ class NewScript:
             if name == 'EGG-INFO': continue
             splittedName = name.split('-')
             res[splittedName[0]] = splittedName[1]
+            if splittedName[0].startswith('Products.'):
+                res[splittedName[0][9:]] = splittedName[1]
             absName = j(eggsFolder, name)
             # Copy every file or sub-folder into self.libFolder or
             # self.productsFolder.
