@@ -506,6 +506,8 @@ class HtmlDiff:
             i += 1
             if (i == len(old)) or (i == len(new)): break
             if old[i] != new[i]: diffFound = True
+        # i can't be inside an HTML tag.
+        if (i > 0) and (old[i-1] == '<'): i -= 1
         # Compute jo and jn
         jo = len(old)
         jn = len(new)
@@ -627,5 +629,6 @@ class HtmlDiff:
 
     def get(self):
         '''Produces the result.'''
+        if not self.old or not self.old.strip(): return self.new
         return self.getHtmlDiff(self.old, self.new, '\n')
 # ------------------------------------------------------------------------------
