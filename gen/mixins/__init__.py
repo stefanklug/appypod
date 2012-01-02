@@ -1411,8 +1411,7 @@ class BaseMixin:
     def getEditorInit(self, name):
         '''Gets the Javascrit init code for displaying a rich editor for
            field p_name.'''
-        return 'tinyMCE.init({\nmode : "textareas",\ntheme : "simple",\n' \
-               'elements : "%s",\neditor_selector : "rich_%s"\n});'% (name,name)
+        return "CKEDITOR.replace('%s', {toolbar: 'Appy'})" % name
 
     def isTemporary(self):
         '''Is this object temporary ?'''

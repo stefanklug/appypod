@@ -1339,7 +1339,7 @@ class String(Type):
 
     def getJs(self, layoutType):
         if (layoutType == 'edit') and (self.format == String.XHTML):
-            return ('tiny_mce/tiny_mce.js',)
+            return ('ckeditor/ckeditor.js',)
 
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,

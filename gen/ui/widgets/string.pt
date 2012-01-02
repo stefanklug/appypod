@@ -49,9 +49,6 @@
                            type  python: (widget['format'] == 3) and 'password' or 'text'"/>
   </tal:line>
   <tal:textarea condition="python: fmt in (1,2)">
-    <script tal:condition="python: fmt == 2"
-            tal:content="python: contextObj.getEditorInit(name)">
-    </script>
     <textarea tal:attributes="id name; name name;
                               cols widget/width;
                               rows widget/height;
@@ -59,6 +56,9 @@
                               class python: (fmt==2) and ('rich_%s' % name) or ''"
               tal:content="python: test(inRequest, requestValue, value)">
     </textarea>
+    <script tal:condition="python: fmt == 2"
+            tal:content="python: contextObj.getEditorInit(name)">
+    </script>
   </tal:textarea>
 </metal:edit>
 
