@@ -3,10 +3,7 @@
 
 <tal:comment replace="nothing">Edit macro for an Date.</tal:comment>
 <metal:edit define-macro="edit"
-            tal:define="years python: contextObj.getSelectableYears(widget['name']);
-                        dummyName python: '_d_ummy_%s' % name">
-  <tal:comment replace="nothing">This field is not used but required by the Javascript popup.</tal:comment>
-  <input type="hidden" tal:attributes="name dummyName; id dummyName"/>
+            tal:define="years python: contextObj.getSelectableYears(widget['name'])">
   <tal:comment replace="nothing">Day</tal:comment>
   <select tal:define="days python:range(1,32)"
           tal:attributes="name string:${name}_day;
@@ -42,9 +39,10 @@
                             selected python:contextObj.dateValueSelected(name, 'year', year, rawValue)"
             tal:content="year"></option>
   </select>
-  <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
-  <a tal:condition="widget/calendar"
-     tal:attributes="onclick python: 'return showJsCalendar(\'%s_month\', \'%s\', \'%s_year\', \'%s_month\', \'%s_day\', null, null, %d, %d)' % (name, dummyName, name, name, name, years[0], years[-1])"><img tal:attributes="src string: $appUrl/calendar.gif"/></a>
+  <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
+  <input type="hidden" tal:attributes="id name; name name"/>
+  <img tal:attributes="id string:${name}_img; src string: $appUrl/ui/calendar.gif"/>
+  <script tal:content="python: contextObj.getCalendarInit(name, years)"></script>
 
   <tal:hour condition="python: widget['format'] == 0">
     <select tal:define="hours python:range(0,24);"
@@ -83,48 +81,47 @@
   <label tal:content="python: tool.translate(widget['labelId'])"></label>
   <table>
     <tal:comment replace="nothing">From</tal:comment>
-    <tr tal:define="yearFromName  python: '%s*date' % widgetName;
-                    monthFromName python: '%s_from_month' % name;
+    <tr tal:define="fromName      python: '%s_from' % name;
                     dayFromName   python: '%s_from_day' % name;
-                    dummyFromName python: '_d_ummy_from_%s' % name;">
+                    monthFromName python: '%s_from_month' % name;
+                    yearFromName  python: '%s*date' % widgetName">
       <td width="10px">&nbsp;</td>
       <td>
         <label tal:content="python: tool.translate('search_from')"></label>
       </td>
       <td>
-        <input type="hidden" tal:attributes="id dummyFromName; name dummyFromName" originalvalue=""/>
+        
         <select tal:attributes="id dayFromName; name dayFromName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
                   tal:content="value" tal:attributes="value value"></option>
-        </select> / 
+        </select> /
         <select tal:attributes="id monthFromName; name monthFromName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
-                  tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
+                  tal:content="value" tal:attributes="value value"></option>
         </select> /
         <select tal:attributes="id yearFromName; name yearFromName">
           <option value="">--</option>
           <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
                   tal:content="value" tal:attributes="value value"></option>
         </select>
-       <tal:comment replace="nothing">The icon for displaying the calendar (=date chooser)</tal:comment>
-       <a tal:condition="widget/calendar"
-          tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthFromName, dummyFromName, yearFromName, monthFromName, dayFromName, years[0], years[-1])">
-          <img tal:attributes="src string: $appUrl/calendar.gif"/></a>
+       <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
+       <input type="hidden" tal:attributes="id fromName; name fromName"/>
+       <img tal:attributes="id string:${fromName}_img; src string: $appUrl/ui/calendar.gif"/>
+       <script tal:content="python: tool.getCalendarInit(fromName, years)"></script>
       </td>
     </tr>
     <tal:comment replace="nothing">To</tal:comment>
-    <tr tal:define="dummyToName python: '_d_ummy_to_%s' % name;
-                    yearToName  python: '%s_to_year' % name;
+    <tr tal:define="toName      python: '%s_to' % name;
+                    dayToName   python: '%s_to_day' % name;
                     monthToName python: '%s_to_month' % name;
-                    dayToName   python: '%s_to_day' % name">
+                    yearToName  python: '%s_to_year' % name">
       <td></td>
       <td>
         <label tal:content="python: tool.translate('search_to')"></label>&nbsp;&nbsp;&nbsp;&nbsp;
       </td>
       <td height="20px;">
-        <input type="hidden" tal:attributes="id dummyToName; name dummyToName" originalvalue=""/>
         <select tal:attributes="id dayToName; name dayToName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 32)]"
@@ -133,16 +130,17 @@
         <select tal:attributes="id monthToName; name monthToName">
           <option value="">--</option>
           <option tal:repeat="value python: [str(v).zfill(2) for v in range(1, 13)]"
-                  tal:content="python:tool.getMonthName(value)" tal:attributes="value value"></option>
+                  tal:content="value" tal:attributes="value value"></option>
         </select> /
         <select tal:attributes="id yearToName; name yearToName">
           <option value="">--</option>
           <option tal:repeat="value python:range(widget['startYear'], widget['endYear']+1)"
                  tal:content="value" tal:attributes="value value"></option>
         </select>
-       <a tal:condition="widget/calendar"
-          tal:attributes="onclick python: 'return showJsCalendar(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\', null, null, %d, %d)' % (monthToName, dummyToName, yearToName, monthToName, dayToName, years[0], years[-1])">
-          <img tal:attributes="src string: $appUrl/calendar.gif"/></a>
+       <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
+       <input type="hidden" tal:attributes="id toName; name toName"/>
+       <img tal:attributes="id string:${toName}_img; src string: $appUrl/ui/calendar.gif"/>
+       <script tal:content="python: tool.getCalendarInit(toName, years)"></script>
       </td>
     </tr>
   </table>

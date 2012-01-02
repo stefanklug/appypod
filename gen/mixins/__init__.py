@@ -1410,8 +1410,15 @@ class BaseMixin:
 
     def getEditorInit(self, name):
         '''Gets the Javascrit init code for displaying a rich editor for
-           field p_name.'''
+           field named p_name.'''
         return "CKEDITOR.replace('%s', {toolbar: 'Appy'})" % name
+
+    def getCalendarInit(self, name, years):
+        '''Gets the Javascript init code for displaying a calendar popup for
+           field named p_name.'''
+        return 'Calendar.setup({inputField: "%s", button: "%s_img", ' \
+               'onSelect: onSelectDate, range:[%d,%d]});' % \
+               (name, name, years[0], years[-1])
 
     def isTemporary(self):
         '''Is this object temporary ?'''

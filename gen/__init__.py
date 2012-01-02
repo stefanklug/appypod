@@ -1408,10 +1408,13 @@ class Date(Type):
                       label)
 
     def getCss(self, layoutType):
-        if (layoutType == 'edit') and self.calendar: return ('calendar.css',)
+        if (layoutType == 'edit') and self.calendar:
+            return ('jscalendar/calendar-blue.css',)
 
     def getJs(self, layoutType):
-        if (layoutType == 'edit') and self.calendar: return ('calendar.js',)
+        if (layoutType == 'edit') and self.calendar:
+            return ('jscalendar/calendar.js', 'jscalendar/lang/calendar-en.js',
+                    'jscalendar/calendar-setup.js')
 
     def getSelectableYears(self):
         '''Gets the list of years one may select for this field.'''

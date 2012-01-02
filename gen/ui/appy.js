@@ -551,3 +551,30 @@ function deleteRow(tableId, deleteImg) {
   }
   table.deleteRow(toDeleteIndex);
 }
+
+function onSelectDate(cal) {
+  var p = cal.params;
+  var update = (cal.dateClicked || p.electric);
+  if (update && p.inputField) {
+    var fieldName = cal.params.inputField.id;
+    // Update day
+    var dayValue = cal.date.getDate() + '';
+    if (dayValue.length == 1) dayValue = '0' + dayValue;
+    document.getElementById(fieldName + '_day').value = dayValue;
+    // Update month
+    var monthValue = (cal.date.getMonth() + 1) + '';
+    if (monthValue.length == 1) monthValue = '0' + monthValue;
+    document.getElementById(fieldName + '_month').value = monthValue;
+    // Update year
+    var year = document.getElementById(fieldName + '_year');
+    if (!year) {
+      // On the search screen, the 'from year' field has a special name.
+      var yearId = 'w_' + fieldName.split('_')[0] + '*date';
+      year = document.getElementById(yearId);
+    }
+    year.value = cal.date.getFullYear() + '';
+  }
+  if (update && p.singleClick && cal.dateClicked) {
+    cal.callCloseHandler();
+  }
+};
