@@ -2138,7 +2138,8 @@ class Pod(Type):
             stylesMapping = self.stylesMapping
         rendererParams = {'template': StringIO.StringIO(template.content),
                           'context': podContext, 'result': tempFileName,
-                          'stylesMapping': stylesMapping}
+                          'stylesMapping': stylesMapping,
+                          'imageResolver': tool.o.getApp()}
         if tool.unoEnabledPython:
             rendererParams['pythonWithUnoPath'] = tool.unoEnabledPython
         if tool.openOfficePort:

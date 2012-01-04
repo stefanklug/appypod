@@ -214,16 +214,18 @@ class XhtmlEnvironment(XmlEnvironment):
                   'ul_kwn': 'podBulletItemKeepWithNext',
                   'ol_kwn': 'podNumberItemKeepWithNext'}
     listStyles = {'ul': 'podBulletedList', 'ol': 'podNumberedList'}
-    def __init__(self, ns):
+    def __init__(self, renderer):
         XmlEnvironment.__init__(self)
+        self.renderer = renderer
+        self.ns = renderer.currentParser.env.namespaces
         self.res = u''
         self.currentContent = u''
         self.currentElements = [] # Stack of currently walked elements
         self.currentLists = [] # Stack of currently walked lists (ul or ol)
         self.currentTables = [] # Stack of currently walked tables
-        self.textNs = ns[OdfEnvironment.NS_TEXT]
-        self.linkNs = ns[OdfEnvironment.NS_XLINK]
-        self.tableNs = ns[OdfEnvironment.NS_TABLE]
+        self.textNs = self.ns[OdfEnvironment.NS_TEXT]
+        self.linkNs = self.ns[OdfEnvironment.NS_XLINK]
+        self.tableNs = self.ns[OdfEnvironment.NS_TABLE]
         self.ignore = False # Will be True when parsing parts of the XHTML that
         # must be ignored.
 
@@ -445,6 +447,12 @@ class XhtmlParser(XmlParser):
                 e.dumpString(' %s:number-columns-spanned="%s"' % \
                              (e.tableNs, attrs['colspan']))
             e.dumpString('>')
+        elif elem == 'img':
+            style = None
+            if attrs.has_key('style'): style = attrs['style']
+            imgCode = e.renderer.importDocument(at=attrs['src'],
+                                                wrapInPara=False, style=style)
+            e.dumpString(imgCode)
         elif elem in IGNORABLE_TAGS:
             e.ignore = True
 
@@ -483,7 +491,8 @@ class XhtmlParser(XmlParser):
 class Xhtml2OdtConverter:
     '''Converts a chunk of XHTML into a chunk of ODT.'''
     def __init__(self, xhtmlString, encoding, stylesManager, localStylesMapping,
-                 ns):
+                 renderer):
+        self.renderer = renderer
         self.xhtmlString = xhtmlString
         self.encoding = encoding # Todo: manage encoding that is not utf-8
         self.stylesManager = stylesManager
@@ -491,7 +500,7 @@ class Xhtml2OdtConverter:
         self.globalStylesMapping = stylesManager.stylesMapping
         self.localStylesMapping = localStylesMapping
         self.odtChunk = None
-        self.xhtmlParser = XhtmlParser(XhtmlEnvironment(ns), self)
+        self.xhtmlParser = XhtmlParser(XhtmlEnvironment(renderer), self)
 
     def run(self):
         self.xhtmlParser.parse(self.xhtmlString)

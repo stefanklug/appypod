@@ -94,7 +94,8 @@ STYLES_POD_FONTS = '<@style@:font-face @style@:name="PodStarSymbol" ' \
 class Renderer:
     def __init__(self, template, context, result, pythonWithUnoPath=None,
                  ooPort=2002, stylesMapping={}, forceOoCall=False,
-                 finalizeFunction=None, overwriteExisting=False):
+                 finalizeFunction=None, overwriteExisting=False,
+                 imageResolver=None):
         '''This Python Open Document Renderer (PodRenderer) loads a document
         template (p_template) which is an ODT file with some elements
         written in Python. Based on this template and some Python objects
@@ -128,7 +129,13 @@ class Renderer:
 
          - If you set p_overwriteExisting to True, the renderer will overwrite
            the result file. Else, an exception will be thrown if the result file
-           already exists.'''
+           already exists.
+
+         - p_imageResolver allows POD to retrieve images, from "img" tags within
+           XHTML content. Indeed, POD may not be able (ie, may not have the
+           permission to) perform a HTTP GET on those images. Currently, the
+           resolver can only be a Zope application object.
+        '''
         self.template = template
         self.templateZip = zipfile.ZipFile(template)
         self.result = result
@@ -143,6 +150,7 @@ class Renderer:
         self.forceOoCall = forceOoCall
         self.finalizeFunction = finalizeFunction
         self.overwriteExisting = overwriteExisting
+        self.imageResolver = imageResolver
         # Remember potential files or images that will be included through
         # "do ... from document" statements: we will need to declare them in
         # META-INF/manifest.xml. Keys are file names as they appear within the
@@ -235,13 +243,12 @@ class Renderer:
            for converting a chunk of XHTML content (p_xhtmlString) into a chunk
            of ODT content.'''
         stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
-        ns = self.currentParser.env.namespaces
         # xhtmlString can only be a chunk of XHTML. So we must surround it a
         # tag in order to get a XML-compliant file (we need a root tag).
         if xhtmlString == None: xhtmlString = ''
         xhtmlContent = '<p>%s</p>' % xhtmlString
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
-                                  stylesMapping, ns).run()
+                                  stylesMapping, self).run()
 
     def renderText(self, text, encoding='utf-8', stylesMapping={}):
         '''Method that can be used (under the name 'text') into a pod template
@@ -262,7 +269,8 @@ class Renderer:
     imageFormats = ('png', 'jpeg', 'jpg', 'gif')
     ooFormats = ('odt',)
     def importDocument(self, content=None, at=None, format=None,
-                       anchor='as-char', wrapInPara=True, size=None):
+                       anchor='as-char', wrapInPara=True, size=None,
+                       sizeUnit='cm', style=None):
         '''If p_at is not None, it represents a path or url allowing to find
            the document. If p_at is None, the content of the document is
            supposed to be in binary format in p_content. The document
@@ -274,9 +282,14 @@ class Renderer:
            * p_wrapInPara, if true, wraps the resulting 'image' tag into a 'p'
                            tag;
            * p_size, if specified, is a tuple of float or integers
-                     (width, height) expressing size in centimeters. If not
-                     specified, size will be computed from image info.'''
-        ns = self.currentParser.env.namespaces
+                     (width, height) expressing size in p_sizeUnit (see below).
+                     If not specified, size will be computed from image info.
+           * p_sizeUnit is the unit for p_size elements, it can be "cm"
+             (centimeters) or "px" (pixels).
+           * If p_style is given, it is the content of a "style" attribute,
+             containing CSS attributes. If "width" and "heigth" attributes are
+             found there, they will override p_size and p_sizeUnit.
+        '''
         importer = None
         # Is there someting to import?
         if not content and not at:
@@ -297,16 +310,17 @@ class Renderer:
         if format in self.ooFormats:
             importer = OdtImporter
             self.forceOoCall = True
-        elif format in self.imageFormats:
+        elif (format in self.imageFormats) or not format:
+            # If the format can't be guessed, we suppose it is an image.
             importer = ImageImporter
             isImage = True
         elif format == 'pdf':
             importer = PdfImporter
         else:
             raise PodError(DOC_WRONG_FORMAT % format)
-        imp = importer(content, at, format, self.tempFolder, ns, self.fileNames)
+        imp = importer(content, at, format, self)
         # Initialise image-specific parameters
-        if isImage: imp.setImageInfo(anchor, wrapInPara, size)
+        if isImage: imp.setImageInfo(anchor, wrapInPara, size, sizeUnit, style)
         res = imp.run()
         return res
 

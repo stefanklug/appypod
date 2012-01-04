@@ -2,6 +2,7 @@
 <html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
     tal:define="contextObj  context/getParentNode;
+                dummy       python: contextObj.allows('Modify portal content', raiseError=True);
                 errors      request/errors | python:{};
                 layoutType  python:'edit';
                 layout      python: contextObj.getPageLayout(layoutType);
@@ -9,7 +10,8 @@
                 phase       phaseInfo/name;
                 page        request/page|python:'main';
                 cssJs       python: contextObj.getCssAndJs(contextObj.getAppyTypes(layoutType, page), layoutType);
-                confirmMsg  request/confirmMsg | nothing;">
+                confirmMsg  request/confirmMsg | nothing;"
+    tal:on-error="structure python: tool.manageError(error)">
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
   <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"

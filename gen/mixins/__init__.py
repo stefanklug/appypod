@@ -1387,31 +1387,71 @@ class BaseMixin:
         for name in templateName.split('/'): res = getattr(res, name)
         return res
 
-    def download(self):
-        '''Downloads the content of the file that is in the File field named
-           p_name.'''
+    def download(self, name=None):
+        '''Downloads the content of the file that is in the File field whose
+           name is in the request. This name can also represent an attribute
+           storing an image within a rich text field. If p_name is not given, it is retrieved
+           from the request.'''
         name = self.REQUEST.get('name')
         if not name: return
-        appyType = self.getAppyType(name)
-        if (not appyType.type =='File') or not appyType.isShowable(self,'view'):
-            return
+        if '_img_' not in name:
+            appyType = self.getAppyType(name)
+        else:
+            appyType = self.getAppyType(name.split('_img_')[0])
+        if not appyType.isShowable(self, 'view'):
+            from zExceptions import NotFound
+            raise NotFound()
         theFile = getattr(self.aq_base, name, None)
         if theFile:
             response = self.REQUEST.RESPONSE
             response.setHeader('Content-Disposition', 'inline;filename="%s"' % \
                                theFile.filename)
+            # Define content type
+            if theFile.content_type:
+                response.setHeader('Content-Type', theFile.content_type)
             response.setHeader('Cachecontrol', 'no-cache')
             response.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
             return theFile.index_html(self.REQUEST, self.REQUEST.RESPONSE)
 
-    def allows(self, permission):
+    def upload(self):
+        '''Receives an image uploaded by the user via ckeditor and stores it in
+           a special field on this object.'''
+        # Get the name of the rich text field for which an image must be stored.
+        params = self.REQUEST['QUERY_STRING'].split('&')
+        fieldName = params[0].split('=')[1]
+        ckNum = params[1].split('=')[1]
+        # We will store the image in a field named [fieldName]_img_[nb].
+        i = 1
+        attrName = '%s_img_%d' % (fieldName, i)
+        while True:
+            if not hasattr(self.aq_base, attrName):
+                break
+            else:
+                i += 1
+                attrName = '%s_img_%d' % (fieldName, i)
+        # Store the image. Create a fake File instance for doing the job.
+        fakeFile = gen.File(isImage=True)
+        fakeFile.name = attrName
+        fakeFile.store(self, self.REQUEST['upload'])
+        # Return the URL of the image.
+        url = '%s/download?name=%s' % (self.absolute_url(), attrName)
+        resp = "<script type='text/javascript'>window.parent.CKEDITOR.tools" \
+               ".callFunction(%s, '%s');</script>" % (ckNum, url)
+        self.REQUEST.RESPONSE.write(resp)
+
+    def allows(self, permission, raiseError=False):
         '''Has the logged user p_permission on p_self ?'''
-        return self.getUser().has_permission(permission, self)
+        hasPermission = self.getUser().has_permission(permission, self)
+        if not hasPermission and raiseError:
+            from AccessControl import Unauthorized
+            raise Unauthorized
+        return hasPermission
 
     def getEditorInit(self, name):
-        '''Gets the Javascrit init code for displaying a rich editor for
+        '''Gets the Javascript init code for displaying a rich editor for
            field named p_name.'''
-        return "CKEDITOR.replace('%s', {toolbar: 'Appy'})" % name
+        return "CKEDITOR.replace('%s', {toolbar: 'Appy', filebrowserUploadUrl:"\
+               "'%s/upload'})" % (name, self.absolute_url())
 
     def getCalendarInit(self, name, years):
         '''Gets the Javascript init code for displaying a calendar popup for

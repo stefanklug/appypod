@@ -21,7 +21,8 @@ homePage = '''
 </tal:main>
 '''
 errorPage = '''
-<tal:main define="tool python: context.config">
+<tal:main define="tool python: context.config"
+          on-error="string: ServerError">
  <html metal:use-macro="context/ui/template/macros/main">
   <div metal:fill-slot="content" tal:define="o python:options">
    <p tal:condition="o/error_message"

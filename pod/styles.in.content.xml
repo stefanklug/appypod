@@ -113,3 +113,9 @@
     <@style@:list-level-properties @text@:space-before="2.5in" @text@:min-label-width="0.25in"/>
   </@text@:list-level-style-number>
 </@text@:list-style>
+<@style@:style @style@:name="podImageLeft" @style@:family="graphic" @style@:parent-style-name="Graphics">
+  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="left" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0.3cm, 0cm, 0cm)"/>
+</@style@:style>
+<@style@:style @style@:name="podImageRight" @style@:family="graphic" @style@:parent-style-name="Graphics">
+  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="right" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0.3cm, 0cm, 0cm)"/>
+</@style@:style>
