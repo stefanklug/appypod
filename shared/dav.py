@@ -114,7 +114,7 @@ class HttpResponse:
                         raise ResourceError('Invalid XML response (%s)'%str(se))
 
 # ------------------------------------------------------------------------------
-urlRex = re.compile(r'http://([^:/]+)(:[0-9]+)?(/.+)?', re.I)
+urlRex = re.compile(r'http[s]?://([^:/]+)(:[0-9]+)?(/.+)?', re.I)
 binaryRex = re.compile(r'[\000-\006\177-\277]')
 
 class Resource:
@@ -139,7 +139,7 @@ class Resource:
             self.host = host
             self.port = port and int(port[1:]) or 80
             self.uri = uri or '/'
-        else: raise 'Wrong URL: %s' % str(url)
+        else: raise Exception('Wrong URL: %s' % str(url))
         # If some headers must be sent with any request sent through this
         # resource (like a cookie), you can store them in the following dict.
         self.headers = {'Host': self.host}

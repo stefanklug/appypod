@@ -1450,8 +1450,18 @@ class BaseMixin:
     def getEditorInit(self, name):
         '''Gets the Javascript init code for displaying a rich editor for
            field named p_name.'''
-        return "CKEDITOR.replace('%s', {toolbar: 'Appy', filebrowserUploadUrl:"\
-               "'%s/upload'})" % (name, self.absolute_url())
+        # Define the attributes that will initialize the ckeditor instance for
+        # this field.
+        field = self.getAppyType(name)
+        ckAttrs = {'toolbar': 'Appy',
+                   'format_tags': '%s' % ';'.join(field.styles)}
+        if field.allowImageUpload:
+            ckAttrs['filebrowserUploadUrl'] = '%s/upload' % self.absolute_url()
+        ck = ''
+        for k, v in ckAttrs.iteritems():
+            ck += "%s: '%s'," % (k, v)
+        res = "CKEDITOR.replace('%s', {%s})" % (name, ck)
+        return res
 
     def getCalendarInit(self, name, years):
         '''Gets the Javascript init code for displaying a calendar popup for

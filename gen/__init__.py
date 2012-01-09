@@ -1113,8 +1113,16 @@ class String(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 transform='none'):
+                 transform='none', styles=('p','h1','h2','h3','h4'),
+                 allowImageUpload=True):
+        # According to format, the widget will be different: input field,
+        # textarea, inline editor...
         self.format = format
+        # When format is XHTML, the list of styles that the user will be able to
+        # select in the styles dropdown is defined hereafter.
+        self.styles = styles
+        # When format is XHTML, do we allow the user to upload images in it ?
+        self.allowImageUpload = allowImageUpload
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
         # "text-transform" property. Allowed values are those allowed for the

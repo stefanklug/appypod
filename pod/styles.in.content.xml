@@ -114,8 +114,8 @@
   </@text@:list-level-style-number>
 </@text@:list-style>
 <@style@:style @style@:name="podImageLeft" @style@:family="graphic" @style@:parent-style-name="Graphics">
-  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="left" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0.3cm, 0cm, 0cm)"/>
+  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="left" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0cm, 0cm, 0cm)" @fo@:margin-right="0.3cm" @fo@:margin-bottom="0.2cm"/>
 </@style@:style>
 <@style@:style @style@:name="podImageRight" @style@:family="graphic" @style@:parent-style-name="Graphics">
-  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="right" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0.3cm, 0cm, 0cm)"/>
+  <@style@:graphic-properties @style@:run-through="foreground" @style@:wrap="parallel" @style@:number-wrapped-paragraphs="no-limit" @style@:wrap-contour="false" @style@:vertical-pos="top" @style@:vertical-rel="paragraph" @style@:horizontal-pos="right" @style@:horizontal-rel="paragraph" @style@:mirror="none" @fo@:clip="rect(0cm, 0cm, 0cm, 0cm)" @fo@:margin-left="0.3cm" @fo@:margin-bottom="0.2cm"/>
 </@style@:style>

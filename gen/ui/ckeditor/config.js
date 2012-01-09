@@ -23,4 +23,9 @@ CKEDITOR.editorConfig = function( config )
                                 'SpecialChar', 'PageBreak', 'Link', 'Unlink',
                                 '-', 'Maximize']},
   ];
+  config.format_p =  { element:'p',  attributes:{'style':'margin:0;padding:0'}};
+  config.format_h1 = { element:'h1', attributes:{'style':'margin:0;padding:0'}};
+  config.format_h2 = { element:'h2', attributes:{'style':'margin:0;padding:0'}};
+  config.format_h3 = { element:'h3', attributes:{'style':'margin:0;padding:0'}};
+  config.format_h4 = { element:'h4', attributes:{'style':'margin:0;padding:0'}};
 };

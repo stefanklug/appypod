@@ -10,11 +10,13 @@
       <span tal:condition="python: fmt == 3">********</span>
     </tal:singleValue>
   </span>
-  <tal:formattedString condition="python: fmt not in (0, 3)">
-    <span tal:condition="python: value and (fmt == 1)"
-          tal:replace="structure python: contextObj.formatText(value, format='html')"/>
-    <span tal:condition="python: value and (fmt == 2)" tal:replace="structure value"/>
-  </tal:formattedString>
+  <tal:comment replace="nothing">Text</tal:comment>
+  <span tal:condition="python: value and (fmt == 1)"
+        tal:replace="structure python: contextObj.formatText(value, format='html')"/>
+  <tal:comment replace="nothing">XHTML text</tal:comment>
+  <div tal:condition="python: value and (fmt == 2)" class="xhtml">
+    <span tal:replace="structure value"/>
+  </div>
   <input type="hidden" tal:condition="masterCss"
          tal:attributes="class masterCss; value rawValue; name name; id name"/>
 </metal:view>
