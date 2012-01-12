@@ -5,8 +5,7 @@ from StringIO import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
 from appy import Object
-from appy.shared.utils import copyData
-from appy.gen.utils import sequenceTypes
+from appy.shared.utils import copyData, sequenceTypes
 from appy.shared.xml_parser import XmlUnmarshaller, XmlMarshaller
 
 # ------------------------------------------------------------------------------

@@ -5,8 +5,9 @@
 import os, os.path, mimetypes
 import appy.pod
 from appy.gen import Type, Search, Ref, String
-from appy.gen.utils import sequenceTypes, createObject
-from appy.shared.utils import getOsTempFolder, executeCommand, normalizeString
+from appy.gen.utils import createObject
+from appy.shared.utils import getOsTempFolder, executeCommand, \
+                              normalizeString, sequenceTypes
 from appy.shared.xml_parser import XmlMarshaller
 from appy.shared.csv_parser import CsvMarshaller
 

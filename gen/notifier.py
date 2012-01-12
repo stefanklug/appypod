@@ -33,9 +33,9 @@ def convertRolesToEmails(users, portal):
 SENDMAIL_ERROR = 'Error while sending mail: %s.'
 ENCODING_ERROR = 'Encoding error while sending mail: %s.'
 
-from appy.gen.utils import sequenceTypes
-from appy.gen.descriptors import WorkflowDescriptor
 import socket
+from appy.shared.utils import sequenceTypes
+from appy.gen.descriptors import WorkflowDescriptor
 
 def sendMail(obj, transition, transitionName, workflow):
     '''Sends mail about p_transition that has been triggered on p_obj that is

@@ -19,6 +19,7 @@
 
 # ------------------------------------------------------------------------------
 import os, os.path, re, time, sys, traceback, unicodedata, shutil
+sequenceTypes = (list, tuple)
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:

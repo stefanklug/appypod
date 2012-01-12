@@ -496,8 +496,6 @@ class Xhtml2OdtConverter:
         self.xhtmlString = xhtmlString
         self.encoding = encoding # Todo: manage encoding that is not utf-8
         self.stylesManager = stylesManager
-        self.odtStyles = stylesManager.styles
-        self.globalStylesMapping = stylesManager.stylesMapping
         self.localStylesMapping = localStylesMapping
         self.odtChunk = None
         self.xhtmlParser = XhtmlParser(XhtmlEnvironment(renderer), self)
@@ -507,59 +505,6 @@ class Xhtml2OdtConverter:
         return self.xhtmlParser.env.res
 
     def findStyle(self, elem, attrs=None, classValue=None):
-        '''Finds the ODT style that must be applied to XHTML p_elem that has
-           attrs p_attrs. In some cases, p_attrs is not given; the value of the
-           "class" attribute is given instead (in p_classValue).
-
-           Here are the places where we will search, ordered by
-           priority (highest first):
-           (1) local styles mapping (CSS style in "class" attr)
-           (2)         "            (HTML elem)
-           (3) global styles mapping (CSS style in "class" attr)
-           (4)          "            (HTML elem)
-           (5) ODT style that has the same name as CSS style in "class" attr
-           (6) Prefefined pod-specific ODT style that has the same name as
-               CSS style in "class" attr
-           (7) ODT style that has the same outline level as HTML elem.'''
-        res = None
-        cssStyleName = None
-        if attrs and attrs.has_key('class'):
-            cssStyleName = attrs['class']
-        if classValue:
-            cssStyleName = classValue
-        # (1)
-        if self.localStylesMapping.has_key(cssStyleName):
-            res = self.localStylesMapping[cssStyleName]
-        # (2)
-        elif self.localStylesMapping.has_key(elem):
-            res = self.localStylesMapping[elem]
-        # (3)
-        elif self.globalStylesMapping.has_key(cssStyleName):
-            res = self.globalStylesMapping[cssStyleName]
-        # (4)
-        elif self.globalStylesMapping.has_key(elem):
-            res = self.globalStylesMapping[elem]
-        # (5)
-        elif self.odtStyles.has_key(cssStyleName):
-            res = self.odtStyles[cssStyleName]
-        # (6)
-        elif self.stylesManager.podSpecificStyles.has_key(cssStyleName):
-            res = self.stylesManager.podSpecificStyles[cssStyleName]
-        # (7)
-        else:
-            # Try to find a style with the correct outline level
-            if elem in XHTML_HEADINGS:
-                # Is there a delta that must be taken into account ?
-                outlineDelta = 0
-                if self.localStylesMapping.has_key('h*'):
-                    outlineDelta += self.localStylesMapping['h*']
-                elif self.globalStylesMapping.has_key('h*'):
-                    outlineDelta += self.globalStylesMapping['h*']
-                outlineLevel = int(elem[1]) + outlineDelta
-                # Normalize the outline level
-                if outlineLevel < 1: outlineLevel = 1
-                res = self.odtStyles.getParagraphStyleAtLevel(outlineLevel)
-        if res:
-            self.stylesManager.checkStylesAdequation(elem, res)
-        return res
+        return self.stylesManager.findStyle(elem, attrs, classValue,
+                                            self.localStylesMapping)
 # ------------------------------------------------------------------------------

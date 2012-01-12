@@ -1,11 +1,11 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, re, time, random, types, base64, urllib
 from appy.shared import mimeTypes
-from appy.shared.utils import getOsTempFolder
+from appy.shared.utils import getOsTempFolder, sequenceTypes
 from appy.shared.data import languages
 import appy.gen
 from appy.gen import Type, Search, Selection
-from appy.gen.utils import SomeObjects, sequenceTypes, getClassName
+from appy.gen.utils import SomeObjects, getClassName
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor

@@ -9,6 +9,7 @@ import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
+from appy.shared.utils import sequenceTypes
 
 # ------------------------------------------------------------------------------
 class BaseMixin:

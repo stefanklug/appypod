@@ -1,7 +1,5 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path
-import appy.pod
-sequenceTypes = (list, tuple)
 
 # Function for creating a Zope object ------------------------------------------
 def createObject(folder, id, className, appName, wf=True):

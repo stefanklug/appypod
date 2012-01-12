@@ -5,13 +5,12 @@ from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
-from appy.gen.utils import sequenceTypes, GroupDescr, Keywords, getClassName, \
-                           SomeObjects
+from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
 from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
-                              FileWrapper
+                              FileWrapper, sequenceTypes
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')

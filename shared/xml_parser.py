@@ -24,6 +24,7 @@ from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges,\
 from xml.sax.xmlreader import InputSource
 from appy.shared import UnicodeBuffer, xmlPrologue
 from appy.shared.errors import AppyError
+from appy.shared.utils import sequenceTypes
 
 # Constants --------------------------------------------------------------------
 CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
@@ -420,7 +421,6 @@ class XmlMarshaller:
     xmlEntities = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
                    "'": '&apos;'}
     trueFalse = {True: 'True', False: 'False'}
-    sequenceTypes = (tuple, list)
     fieldsToMarshall = 'all'
     fieldsToExclude = []
     atFiles = ('image', 'file') # Types of archetypes fields that contain files.
@@ -549,12 +549,12 @@ class XmlMarshaller:
         elif fieldType == 'dict': self.dumpDict(res, value)
         elif isRef:
             if value:
-                if type(value) in self.sequenceTypes:
+                if type(value) in sequenceTypes:
                     for elem in value:
                         self.dumpField(res, 'url', elem.absolute_url())
                 else:
                     self.dumpField(res, 'url', value.absolute_url())
-        elif type(value) in self.sequenceTypes:
+        elif type(value) in sequenceTypes:
             # The previous condition must be checked before this one because
             # referred objects may be stored in lists or tuples, too.
             for elem in value: self.dumpField(res, 'e', elem)
@@ -603,7 +603,7 @@ class XmlMarshaller:
         if self.objectType != 'popo':
             if fType: res.write(' type="%s"' % fType)
             # Dump other attributes if needed
-            if type(fieldValue) in self.sequenceTypes:
+            if type(fieldValue) in sequenceTypes:
                 res.write(' count="%d"' % len(fieldValue))
         if fType == 'file':
             if hasattr(fieldValue, 'content_type'):
@@ -662,7 +662,7 @@ class XmlMarshaller:
                     elif self.fieldsToMarshall == 'all':
                         mustDump = True
                     else:
-                        if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                        if (type(self.fieldsToMarshall) in sequenceTypes) \
                            and (fieldName in self.fieldsToMarshall):
                             mustDump = True
                     if mustDump:
@@ -679,7 +679,7 @@ class XmlMarshaller:
                     elif self.fieldsToMarshall == 'all_with_metadata':
                         mustDump = True
                     else:
-                        if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                        if (type(self.fieldsToMarshall) in sequenceTypes) \
                            and (field.getName() in self.fieldsToMarshall):
                             mustDump = True
                     if mustDump:
@@ -695,7 +695,7 @@ class XmlMarshaller:
                     # Dump only needed fields
                     if field.name in self.fieldsToExclude: continue
                     if (field.type == 'Ref') and field.isBack: continue
-                    if (type(self.fieldsToMarshall) in self.sequenceTypes) \
+                    if (type(self.fieldsToMarshall) in sequenceTypes) \
                         and (field.name not in self.fieldsToMarshall): continue
                     # Determine field type
                     fieldType = 'basic'

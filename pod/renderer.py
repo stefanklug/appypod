@@ -243,8 +243,8 @@ class Renderer:
            for converting a chunk of XHTML content (p_xhtmlString) into a chunk
            of ODT content.'''
         stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
-        # xhtmlString can only be a chunk of XHTML. So we must surround it a
-        # tag in order to get a XML-compliant file (we need a root tag).
+        # xhtmlString can only be a chunk of XHTML. So we must surround it with
+        # a tag in order to get a XML-compliant file (we need a root tag).
         if xhtmlString == None: xhtmlString = ''
         xhtmlContent = '<p>%s</p>' % xhtmlString
         return Xhtml2OdtConverter(xhtmlContent, encoding, self.stylesManager,
