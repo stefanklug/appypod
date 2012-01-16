@@ -333,6 +333,9 @@ class HtmlDiff:
     def isSimilar(self, s1, s2):
         '''Returns True if strings p_s1 and p_s2 can be considered as
            similar.'''
+        # Bypass the similarity algorithm for strings of length==1. Else, it can
+        # lead to infinite loops between methods getHtmlDiff and getReplacement.
+        if (len(s1) == 1) and (len(s2) == 1) and (s1 != s2): return False
         ratio = difflib.SequenceMatcher(a=s1.lower(), b=s2.lower()).ratio()
         return ratio > self.diffRatio
 
@@ -487,7 +490,7 @@ class HtmlDiff:
         i = len(l)-1
         while i >= 0:
             if l[i] in self.garbage: del l[i]
-            if sep == '\n': l[i] = l[i].strip()
+            elif sep == '\n': l[i] = l[i].strip()
             i -= 1
         return l
 
