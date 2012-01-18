@@ -364,7 +364,10 @@ class CodeAnalysis:
 # ------------------------------------------------------------------------------
 class LinesCounter:
     '''Counts and classifies the lines of code within a folder hierarchy.'''
-    def __init__(self, folderOrModule):
+    defaultExcludes = ('%s.svn' % os.sep, '%s.bzr' % os.sep, '%stmp' % os.sep,
+                       '%stemp' % os.sep)
+
+    def __init__(self, folderOrModule, excludes=None):
         if isinstance(folderOrModule, basestring):
             # It is the path of some folder
             self.folder = folderOrModule
@@ -378,11 +381,19 @@ class LinesCounter:
                     True:  CodeAnalysis('ZPT (test)')}
         # Are we currently analysing real or test code?
         self.inTest = False
+        # Which paths to exclude from the analysis?
+        self.excludes = list(self.defaultExcludes)
+        if excludes: self.excludes += excludes
 
     def printReport(self):
         '''Displays on stdout a small analysis report about self.folder.'''
         for zone in (False, True): self.python[zone].printReport()
         for zone in (False, True): self.zpt[zone].printReport()
+
+    def isExcluded(self, path):
+        '''Must p_path be excluded from the analysis?'''
+        for excl in self.excludes:
+            if excl in path: return True
 
     def run(self):
         '''Let's start the analysis of self.folder.'''
@@ -394,10 +405,7 @@ class LinesCounter:
         testMarker4 = '%stests' % os.sep
         j = os.path.join
         for root, folders, files in os.walk(self.folder):
-            rootName = os.path.basename(root)
-            if rootName.startswith('.') or \
-               (rootName in ('tmp', 'temp')):
-                continue
+            if self.isExcluded(root): continue
             # Are we in real code or in test code ?
             self.inTest = False
             if root.endswith(testMarker2) or (root.find(testMarker1) != -1) or \

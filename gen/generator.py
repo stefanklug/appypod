@@ -115,12 +115,12 @@ CODE_HEADER = '''# -*- coding: utf-8 -*-
 '''
 class Generator:
     '''Abstract base class for building a generator.'''
-    def __init__(self, application, outputFolder, options):
+    def __init__(self, application, options):
         self.application = application
         # Determine application name
         self.applicationName = os.path.basename(application)
         # Determine output folder (where to store the generated product)
-        self.outputFolder = outputFolder
+        self.outputFolder = os.path.join(application, 'zope')
         self.options = options
         # Determine templates folder
         genFolder = os.path.dirname(__file__)
@@ -186,8 +186,13 @@ class Generator:
 
     IMPORT_ERROR = 'Warning: error while importing module %s (%s)'
     SYNTAX_ERROR = 'Warning: error while parsing module %s (%s)'
+    noVisit = ('tr', 'zope')
     def walkModule(self, moduleName):
         '''Visits a given (sub-*)module into the application.'''
+        # Some sub-modules must not be visited
+        for nv in self.noVisit:
+            nvName = '%s.%s' % (self.applicationName, nv)
+            if moduleName == nvName: return
         try:
             exec 'import %s' % moduleName
             exec 'moduleObj = %s' % moduleName
@@ -359,7 +364,7 @@ class ZopeGenerator(Generator):
     versionRex = re.compile('(.*?\s+build)\s+(\d+)')
     def initialize(self):
         # Determine version number
-        self.version = '0.1 build 1'
+        self.version = '0.1.0 build 1'
         versionTxt = os.path.join(self.outputFolder, 'version.txt')
         if os.path.exists(versionTxt):
             f = file(versionTxt)

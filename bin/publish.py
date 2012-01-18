@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # Imports ----------------------------------------------------------------------
-import os, os.path, sys, shutil, re, zipfile, sys, ftplib, time, subprocess, md5
+import os, os.path, sys, shutil, re, zipfile, sys, ftplib, time
 import appy
 from appy.shared import appyPath
 from appy.shared.utils import FolderDeleter, LinesCounter
+from appy.shared.packaging import Debianizer
 from appy.bin.clean import Cleaner
 from appy.gen.utils import produceNiceMessage
 
@@ -26,34 +27,6 @@ recursive-include appy/gen *
 recursive-include appy/pod *
 recursive-include appy/shared *
 '''
-debianInfo = '''Package: python-appy
-Version: %s
-Architecture: all
-Maintainer: Gaetan Delannay <gaetan.delannay@geezteem.com>
-Installed-Size: %d
-Depends: python (>= 2.6), python (<< 3.0)
-Section: python
-Priority: optional
-Homepage: http://appyframework.org
-Description: Appy builds simple but complex web Python apps.
-'''
-debianPostInst = '''#!/bin/sh
-set -e
-if [ -e /usr/bin/python2.6 ]
-then
-    /usr/bin/python2.6 -m compileall -q /usr/lib/python2.6/appy 2> /dev/null
-fi
-if [ -e /usr/bin/python2.7 ]
-then
-    /usr/bin/python2.7 -m compileall -q /usr/lib/python2.7/appy 2> /dev/null
-fi
-'''
-debianPreRm = '''#!/bin/sh
-set -e
-find /usr/lib/python2.6/appy -name "*.pyc" -delete
-find /usr/lib/python2.7/appy -name "*.pyc" -delete
-'''
-
 def askLogin():
     print 'Login: ',
     login = sys.stdin.readline().strip()
@@ -242,9 +215,6 @@ class Text2Html:
 class Publisher:
     '''Publishes Appy on the web.'''
     pageBody = re.compile('<body.*?>(.*)</body>', re.S)
-    eggVersion = re.compile('version\s*=\s*".*?"')
-    pythonTargets = ('2.4', '2.5')
-    svnServer = 'http://svn.communesplone.org/svn/communesplone/appy'
 
     def __init__(self):
         self.genFolder = '%s/temp' % appyPath
@@ -303,66 +273,9 @@ class Publisher:
 
     def createDebianRelease(self):
         '''Creates a Debian package for Appy.'''
-        curdir = os.getcwd()
-        # Create a temp folder for creating the Debian files hierarchy.
-        srcFolder = os.path.join(self.genFolder, 'debian', 'usr', 'lib')
-        os.makedirs(os.path.join(srcFolder, 'python2.6'))
-        os.makedirs(os.path.join(srcFolder, 'python2.7'))
-        # Copy Appy sources in it
-        py26 = os.path.join(srcFolder, 'python2.6', 'appy')
-        os.rename(os.path.join(self.genFolder, 'appy'), py26)
-        shutil.copytree(py26, os.path.join(srcFolder, 'python2.7', 'appy'))
-        # Create data.tar.gz based on it.
-        debFolder = os.path.join(self.genFolder, 'debian')
-        os.chdir(debFolder)
-        os.system('tar czvf data.tar.gz ./usr')
-        # Get the size of Appy, in Kb.
-        cmd = subprocess.Popen(['du', '-b', '-s', 'usr'],stdout=subprocess.PIPE)
-        size = int(int(cmd.stdout.read().split()[0])/1024.0)
-        # Create control file
-        f = file('control', 'w')
-        f.write(debianInfo % (self.versionShort, size))
-        f.close()
-        # Create md5sum file
-        f = file('md5sums', 'w')
-        for dir, dirnames, filenames in os.walk('usr'):
-            for name in filenames:
-                m = md5.new()
-                pathName = os.path.join(dir, name)
-                currentFile = file(pathName, 'rb')
-                while True:
-                    data = currentFile.read(8096)
-                    if not data:
-                        break
-                    m.update(data)
-                currentFile.close()
-                # Add the md5 sum to the file
-                f.write('%s  %s\n' % (m.hexdigest(), pathName))
-        f.close()
-        # Create postinst and prerm
-        f = file('postinst', 'w')
-        f.write(debianPostInst)
-        f.close()
-        f = file('prerm', 'w')
-        f.write(debianPreRm)
-        f.close()
-        # Create control.tar.gz
-        os.system('tar czvf control.tar.gz ./control ./md5sums ./postinst ' \
-                  './prerm')
-        # Create debian-binary
-        f = file('debian-binary', 'w')
-        f.write('2.0\n')
-        f.close()
-        # Create the .deb package
-        debName = 'python-appy-%s.deb' % self.versionShort
-        os.system('ar -r %s debian-binary control.tar.gz data.tar.gz' % \
-                  debName)
-        os.chdir(curdir)
-        # Move it to folder "versions".
-        os.rename(os.path.join(debFolder, debName),
-                  os.path.join(appyPath, 'versions', debName))
-        # Clean temp files
-        FolderDeleter.delete(debFolder)
+        j = os.path.join
+        Debianizer(j(self.genFolder, 'appy'), j(appyPath, 'versions'),
+                   appVersion=self.versionShort).run()
 
     def createDistRelease(self):
         '''Create the distutils package.'''
