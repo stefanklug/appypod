@@ -275,7 +275,7 @@ class Publisher:
         '''Creates a Debian package for Appy.'''
         j = os.path.join
         Debianizer(j(self.genFolder, 'appy'), j(appyPath, 'versions'),
-                   appVersion=self.versionShort).run()
+                   appVersion=self.versionShort, depends=[]).run()
 
     def createDistRelease(self):
         '''Create the distutils package.'''

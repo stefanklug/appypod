@@ -20,7 +20,8 @@ class Debianizer:
        package.'''
 
     def __init__(self, app, out, appVersion='0.1.0',
-                 pythonVersions=('2.6', '2.7')):
+                 pythonVersions=('2.6', '2.7'),
+                 depends=('zope2.12', 'openoffice.org')):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)
@@ -30,6 +31,8 @@ class Debianizer:
         self.appVersion = appVersion
         # On which Python versions will the Debian package depend?
         self.pythonVersions = pythonVersions
+        # Debian package dependencies
+        self.depends = depends
 
     def run(self):
         '''Generates the Debian package.'''
@@ -56,10 +59,15 @@ class Debianizer:
         # Create the control file
         f = file('control', 'w')
         nameSuffix = ''
-        depends = ''
+        dependencies = []
         if self.appName != 'appy':
-            nameSuffix = '-%s' % self.appName
-            depends = ', python-appy'
+            nameSuffix = '-%s' % self.appName.lower()
+            dependencies.append('python-appy')
+        if self.depends:
+            for d in self.depends: dependencies.append(d)
+        depends = ''
+        if dependencies:
+            depends = ', ' + ', '.join(dependencies)
         f.write(debianInfo % (nameSuffix, self.appVersion, size,
                               self.pythonVersions[0], self.pythonVersions[1],
                               depends))
