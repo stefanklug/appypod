@@ -88,15 +88,32 @@ class Debianizer:
                 # Add the md5 sum to the file
                 f.write('%s  %s\n' % (m.hexdigest(), pathName))
         f.close()
-        # Create postinst, a script that will bytecompile Python files after the
-        # Debian install.
+        # Create postinst, a script that will:
+        # - bytecompile Python files after the Debian install
+        # - create a Zope instance (excepted if we are installing Appy itself).
         f = file('postinst', 'w')
         content = '#!/bin/sh\nset -e\n'
         for version in self.pythonVersions:
-            content += 'if [ -e /usr/bin/python%s ]\nthen\n    ' \
-                       '/usr/bin/python%s -m compileall -q ' \
-                       '/usr/lib/python%s/%s 2> /dev/null\nfi\n' % \
-                       (version, version, version, self.appName)
+            bin = '/usr/bin/python%s' % version
+            lib = '/usr/lib/python%s' % version
+            cmds = '  %s -m compileall -q %s/%s 2> /dev/null\n' % (bin, lib,
+                                                                   self.appName)
+            if self.appName != 'appy':
+                inst = '/home/zope/%sInstance' % self.appName
+                cmds += '  if [ -e %s ]\n  then\n' % inst
+                # If the Zope instance already exists, simply restart it.
+                cmds += '    %s/bin/zopectl restart\n  else\n' % inst
+                # Else, create a Zope instance in the home of user "zope".
+                cmds += '    %s %s/appy/bin/new.py zope /usr/lib/zope2.12 ' \
+                        '%s\n' % (bin, lib, inst)
+                # Within this instance, create a symlink to the Zope product
+                cmds += '    ln -s %s/%s/zope %s/Products/%s\n' % \
+                        (lib, self.appName, inst, self.appName)
+                # Launch the instance
+                cmds += '    %s/bin/zopectl start\n' % inst
+                # Launch OpenOffice in server mode
+                cmds += '    %s/bin/startoo\n  fi\n' % inst
+            content += 'if [ -e %s ]\nthen\n%sfi\n' % (bin, cmds)
         f.write(content)
         f.close()
         # Create prerm, a script that will remove all pyc files before removing

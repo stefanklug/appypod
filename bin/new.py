@@ -22,7 +22,68 @@ MKZOPE_NOT_FOUND = 'Script mkzopeinstance.py not found in "%s and ' \
 WRONG_INSTANCE_PATH = '"%s" must be an existing folder for creating the ' \
     'instance in it.'
 
+# zopectl template file for a pure Zope instance -------------------------------
 zopeCtl = '''#!/bin/sh
+PYTHON="/usr/lib/zope2.12/bin/python"
+INSTANCE_HOME="%s"
+CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
+ZDCTL="/usr/lib/zope2.12/bin/zopectl"
+export INSTANCE_HOME
+export PYTHON
+exec "$ZDCTL" -C "$CONFIG_FILE" "$@"
+'''
+
+# runzope template file for a pure Zope instance -------------------------------
+runZope = '''#! /bin/sh
+INSTANCE_HOME="%s"
+CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
+ZOPE_RUN="/usr/lib/zope2.12/bin/runzope"
+export INSTANCE_HOME
+exec "$ZOPE_RUN" -C "$CONFIG_FILE" "$@"
+'''
+
+# zope.conf template file for a pure Zope instance -----------------------------
+zopeConf = '''# Zope configuration.
+%%define INSTANCE %s
+%%define HTTPPORT 8080
+%%define ZOPE_USER zope
+
+instancehome $INSTANCE
+effective-user $ZOPE_USER
+<eventlog>
+  level info
+  <logfile>
+    path $INSTANCE/log/event.log
+    level info
+  </logfile>
+</eventlog>
+<logger access>
+  level WARN
+  <logfile>
+    path $INSTANCE/log/Z2.log
+    format %%(message)s
+  </logfile>
+</logger>
+<http-server>
+  address $HTTPPORT
+</http-server>
+<zodb_db main>
+  <filestorage>
+    path $INSTANCE/var/Data.fs
+  </filestorage>
+  mount-point /
+</zodb_db>
+<zodb_db temporary>
+  <temporarystorage>
+   name temporary storage for sessioning
+  </temporarystorage>
+  mount-point /temp_folder
+  container-class Products.TemporaryFolder.TemporaryContainer
+</zodb_db>
+'''
+
+# zopectl template for a Plone (4) Zope instance -------------------------------
+zopeCtlPlone = '''#!/bin/sh
 PYTHON="%s"
 INSTANCE_HOME="%s"
 CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
@@ -33,7 +94,9 @@ export PYTHON
 export PYTHONPATH
 exec "$PYTHON" "$ZDCTL" -C "$CONFIG_FILE" "$@"
 '''
-runZope = '''#! /bin/sh
+
+# runzope template for a Plone (4) Zope instance -------------------------------
+runZopePlone = '''#! /bin/sh
 PYTHON="%s"
 INSTANCE_HOME="%s"
 CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
@@ -44,6 +107,8 @@ export PYTHON
 export PYTHONPATH
 exec "$PYTHON" "$ZOPE_RUN" -C "$CONFIG_FILE" "$@"
 '''
+
+# Patch to apply to file pkg_resources.py in a Plone4 Zope instance ------------
 pkgResourcesPatch = '''import os, os.path
 productsFolder = os.path.join(os.environ["INSTANCE_HOME"], "Products")
 for name in os.listdir(productsFolder):
@@ -62,19 +127,76 @@ def getAppyVersion(req, location):
 '''
 
 # ------------------------------------------------------------------------------
+class ZopeInstanceCreator:
+    '''This class allows to create a Zope instance. It makes the assumption that
+       Zope was installed via the Debian package zope2.12.'''
+
+    def __init__(self, instancePath):
+        self.instancePath = instancePath
+
+    def run(self):
+        # Create the instance folder hierarchy
+        if not os.path.exists(self.instancePath):
+            os.makedirs(self.instancePath)
+        curdir = os.getcwd()
+        # Create bin/zopectl
+        os.chdir(self.instancePath)
+        os.mkdir('bin')
+        f = file('bin/zopectl', 'w')
+        f.write(zopeCtl % self.instancePath)
+        f.close()
+        os.chmod('bin/zopectl', 0744) # Make it executable by owner.
+        # Create bin/runzope
+        f = file('bin/runzope', 'w')
+        f.write(runZope % self.instancePath)
+        f.close()
+        os.chmod('bin/runzope', 0744) # Make it executable by owner.
+        # Create bin/startoo
+        f = file('bin/startoo', 'w')
+        f.write('#!/bin/sh\nsoffice -invisible -headless -nofirststartwizard '\
+                '"-accept=socket,host=localhost,port=2002;urp;"&\n')
+        f.close()
+        os.chmod('bin/startoo', 0744) # Make it executable by owner.
+        # Create etc/zope.conf
+        os.mkdir('etc')
+        f = file('etc/zope.conf', 'w')
+        f.write(zopeConf % self.instancePath)
+        f.close()
+        # Create other folders
+        for name in ('Extensions', 'log', 'Products', 'var'): os.mkdir(name)
+        f = file('Products/__init__.py', 'w')
+        f.write('#Makes me a Python package.\n')
+        f.close()
+        # Create 'inituser' file with admin password
+        import binascii
+        try:
+            from hashlib import sha1 as sha
+        except:
+            from sha import new as sha
+        f = open('inituser', 'w')
+        password = binascii.b2a_base64(sha('admin').digest())[:-1]
+        f.write('admin:{SHA}%s\n' % password)
+        f.close()
+        os.chmod('inituser', 0644)
+        # User "zope" must own this instance
+        os.system('chown -R zope %s' % self.instancePath)
+        print 'Zope instance created in %s.' % self.instancePath
+        os.chdir(curdir)
+
+# ------------------------------------------------------------------------------
 class NewScript:
     '''usage: %prog ploneVersion plonePath instancePath
 
-       "ploneVersion"  can be plone25, plone30, plone3x or plone4
+       "ploneVersion"  can be plone25, plone30, plone3x, plone4 or zope
                        (plone3x represents Plone 3.2.x, Plone 3.3.5...)
        
-       "plonePath"     is the (absolute) path to you plone installation.
-                       Plone 2.5 and 3.0 are typically installed in
-                       /opt/Plone-x.x.x, while Plone 3 > 3.0 is typically
+       "plonePath"     is the (absolute) path to your plone (or zope)
+                       installation. Plone 2.5 and 3.0 are typically installed
+                       in /opt/Plone-x.x.x, while Plone 3 > 3.0 is typically
                        installed in in /usr/local/Plone.
        "instancePath"  is the (absolute) path where you want to create your
                        instance (should not already exist).'''
-    ploneVersions = ('plone25', 'plone30', 'plone3x', 'plone4')
+    ploneVersions = ('plone25', 'plone30', 'plone3x', 'plone4', 'zope')
 
     def installPlone25or30Stuff(self, linksForProducts):
         '''Here, we will copy all Plone2-related stuff in the Zope instance
@@ -132,12 +254,14 @@ class NewScript:
         '''Patches Plone 4 that can't live without buildout as-is.'''
         self.patchPlone3x() # We still need this for Plone 4 as well.
         # bin/zopectl
-        content = zopeCtl % (self.pythonPath, self.instancePath, self.zopePath)
+        content = zopeCtlPlone % (self.pythonPath, self.instancePath,
+                                   self.zopePath)
         f = file('%s/bin/zopectl' % self.instancePath, 'w')
         f.write(content)
         f.close()
         # bin/runzope
-        content = runZope % (self.pythonPath, self.instancePath, self.zopePath)
+        content = runZopePlone % (self.pythonPath, self.instancePath,
+                                  self.zopePath)
         f = file('%s/bin/runzope' % self.instancePath, 'w')
         f.write(content)
         f.close()
@@ -293,8 +417,11 @@ class NewScript:
         linksForProducts = options.links
         try:
             self.manageArgs(args)
-            print 'Creating new %s instance...' % self.ploneVersion
-            self.createInstance(linksForProducts)
+            if self.ploneVersion != 'zope':
+                print 'Creating new %s instance...' % self.ploneVersion
+                self.createInstance(linksForProducts)
+            else:
+                ZopeInstanceCreator(self.instancePath).run()
         except NewError, ne:
             optParser.print_help()
             print
