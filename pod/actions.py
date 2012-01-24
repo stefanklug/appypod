@@ -127,6 +127,7 @@ class ForAction(BufferAction):
         BufferAction.__init__(self, name, buffer, expr, elem, minus, source,
                               fromExpr)
         self.iter = iter # Name of the iterator variable used in the each loop
+
     def do(self):
         context = self.buffer.env.context
         # Check self.exprResult type
@@ -195,7 +196,8 @@ class ForAction(BufferAction):
             context[self.iter] = hiddenVariable
         else:
             if self.exprResult:
-                del context[self.iter]
+                if self.iter in context: # May not be the case on error.
+                    del context[self.iter]
 
 class NullAction(BufferAction):
     '''Action that does nothing. Used in conjunction with a "from" clause, it

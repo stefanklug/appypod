@@ -266,7 +266,7 @@ class Renderer:
             return ifTrue
         return ifFalse
 
-    imageFormats = ('png', 'jpeg', 'jpg', 'gif')
+    imageFormats = ('png', 'jpeg', 'jpg', 'gif', 'svg')
     ooFormats = ('odt',)
     def importDocument(self, content=None, at=None, format=None,
                        anchor='as-char', wrapInPara=True, size=None,

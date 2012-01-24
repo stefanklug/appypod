@@ -21,7 +21,7 @@ class Debianizer:
 
     def __init__(self, app, out, appVersion='0.1.0',
                  pythonVersions=('2.6', '2.7'),
-                 depends=('zope2.12', 'openoffice.org')):
+                 depends=('zope2.12', 'openoffice.org', 'imagemagick')):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)

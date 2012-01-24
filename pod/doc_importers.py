@@ -29,6 +29,8 @@ FILE_NOT_FOUND = "'%s' does not exist or is not a file."
 PDF_TO_IMG_ERROR = 'A PDF file could not be converted into images. Please ' \
                    'ensure that Ghostscript (gs) is installed on your ' \
                    'system and the "gs" program is in the path.'
+CONVERT_ERROR = 'Program "convert", from imagemagick, must be installed and ' \
+                'in the path for converting a SVG file into a PNG file.'
 
 # ------------------------------------------------------------------------------
 class DocImporter:
@@ -186,7 +188,11 @@ def getSize(filePath, fileType):
         if len(buf) == 5:
             # else: invalid/corrupted GIF (bad header)
             x, y, u = struct.unpack("<HHB", buf)
-    return float(x)/pxToCm, float(y)/pxToCm
+    f.close()
+    if x and y:
+        return float(x)/pxToCm, float(y)/pxToCm
+    else:
+        return x, y
 
 class ImageImporter(DocImporter):
     '''This class allows to import into the ODT result an image stored
@@ -262,13 +268,14 @@ class ImageImporter(DocImporter):
         self.sizeUnit = sizeUnit
         # Put CSS attributes from p_style in a dict.
         self.cssAttrs = {}
-        for attr in style.split(';'):
-            if not attr.strip(): continue
-            name, value = attr.strip().split(':')
-            value = value.strip()
-            if value.endswith('px'): value = value[:-2]
-            if value.isdigit(): value=int(value)
-            self.cssAttrs[name.strip()] = value
+        if style:
+            for attr in style.split(';'):
+                if not attr.strip(): continue
+                name, value = attr.strip().split(':')
+                value = value.strip()
+                if value.endswith('px'): value = value[:-2]
+                if value.isdigit(): value=int(value)
+                self.cssAttrs[name.strip()] = value
 
     def run(self):
         # Some shorcuts for the used xml namespaces
@@ -281,6 +288,16 @@ class ImageImporter(DocImporter):
         i = self.importPath.rfind(self.pictFolder)
         imagePath = self.importPath[i+1:].replace('\\', '/')
         self.fileNames[imagePath] = self.at
+        # In the case of SVG files, perform an image conversion to PNG
+        if imagePath.endswith('.svg'):
+            newImportPath = os.path.splitext(self.importPath)[0] + '.png'
+            err= os.system('convert "%s" "%s"'% (self.importPath,newImportPath))
+            if err:
+                raise Exception(CONVERT_ERROR)
+            os.remove(self.importPath)
+            self.importPath = newImportPath
+            imagePath = os.path.splitext(imagePath)[0] + '.png'
+            self.format = 'png'
         # Retrieve image size from self.size.
         width = height = None
         if self.size:
