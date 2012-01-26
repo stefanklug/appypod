@@ -353,6 +353,8 @@ class Renderer:
             j = os.path.join
             toInsert = ''
             for fileName in self.fileNames.iterkeys():
+                if fileName.endswith('.svg'):
+                    fileName = os.path.splitext(fileName)[0] + '.png'
                 mimeType = mimetypes.guess_type(fileName)[0]
                 toInsert += ' <manifest:file-entry manifest:media-type="%s" ' \
                             'manifest:full-path="%s"/>\n' % (mimeType, fileName)
