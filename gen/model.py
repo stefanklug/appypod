@@ -129,7 +129,7 @@ class ModelClass:
 class User(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
     _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
-                        'password2', 'roles']
+                        'password2', 'email', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = gen.String(show=False, indexed=True)
     gm = {'group': 'main', 'multiplicity': (1,1), 'width': 25}
@@ -144,6 +144,7 @@ class User(ModelClass):
     password1 = gen.String(format=gen.String.PASSWORD, show=showPassword,
                            validator=validatePassword, **gm)
     password2 = gen.String(format=gen.String.PASSWORD, show=showPassword, **gm)
+    email = gen.String(group='main', width=25)
     gm['multiplicity'] = (0, None)
     roles = gen.String(validator=gen.Selection('getGrantableRoles'),
                        indexed=True, **gm)
@@ -177,7 +178,7 @@ class Translation(ModelClass):
     def show(self, name): pass
 
 # The Tool class ---------------------------------------------------------------
-# Here are the prefixes of the fields generated on the Tool.
+# Prefixes of the fields generated on the Tool.
 toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',

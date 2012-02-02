@@ -120,7 +120,8 @@ class Generator:
         # Determine application name
         self.applicationName = os.path.basename(application)
         # Determine output folder (where to store the generated product)
-        self.outputFolder = os.path.join(application, 'zope')
+        self.outputFolder = os.path.join(application, 'zope',
+                                         self.applicationName)
         self.options = options
         # Determine templates folder
         genFolder = os.path.dirname(__file__)

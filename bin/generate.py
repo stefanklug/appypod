@@ -80,8 +80,9 @@ class GeneratorScript:
             if options.debian:
                 app = args[0]
                 appDir = os.path.dirname(app)
+                appName = os.path.basename(app)
                 # Get the app version from zope/version.txt
-                f = file(os.path.join(app, 'zope', 'version.txt'))
+                f = file(os.path.join(app, 'zope', appName, 'version.txt'))
                 version = f.read()
                 f.close()
                 version = version[:version.find('build')-1]

@@ -424,7 +424,7 @@ class Publisher:
         f.write(toc)
         f.close()
 
-    privateScripts = ('publish.py', 'zip.py', 'runOpenOffice.sh')
+    privateScripts = ('publish.py', 'zip.py', 'startoo.sh')
     def prepareGenFolder(self, minimalist=False):
         '''Creates the basic structure of the temp folder where the appy
            website will be generated.'''

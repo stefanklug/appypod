@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, os.path, subprocess, md5, shutil
-from appy.shared.utils import getOsTempFolder, FolderDeleter
+from appy.shared.utils import getOsTempFolder, FolderDeleter, cleanFolder
 
 # ------------------------------------------------------------------------------
 debianInfo = '''Package: python-appy%s
@@ -8,11 +8,64 @@ Version: %s
 Architecture: all
 Maintainer: Gaetan Delannay <gaetan.delannay@geezteem.com>
 Installed-Size: %d
-Depends: python (>= %s), python (<= %s)%s
+Depends: python (>= %s)%s
 Section: python
 Priority: optional
 Homepage: http://appyframework.org
 Description: Appy builds simple but complex web Python apps.
+'''
+appCtl = '''#!/usr/lib/zope2.12/bin/python
+import sys
+from appy.bin.zopectl import ZopeRunner
+args = ' '.join(sys.argv[1:])
+sys.argv = [sys.argv[0], '-C', '/etc/%s.conf', args]
+ZopeRunner().run()
+'''
+appRun = '''#!/bin/sh
+exec "/usr/lib/zope2.12/bin/runzope" -C "/etc/%s.conf" "$@"
+'''
+ooStart = '#!/bin/sh\nsoffice -invisible -headless -nofirststartwizard ' \
+          '"-accept=socket,host=localhost,port=2002;urp;"&\n'
+zopeConf = '''# Zope configuration.
+%%define INSTANCE %s
+%%define DATA %s
+%%define LOG %s
+%%define HTTPPORT 8080
+%%define ZOPE_USER zope
+
+instancehome $INSTANCE
+effective-user $ZOPE_USER
+%s
+<eventlog>
+  level info
+  <logfile>
+    path $LOG/event.log
+    level info
+  </logfile>
+</eventlog>
+<logger access>
+  level WARN
+  <logfile>
+    path $LOG/Z2.log
+    format %%(message)s
+  </logfile>
+</logger>
+<http-server>
+  address $HTTPPORT
+</http-server>
+<zodb_db main>
+  <filestorage>
+    path $DATA/Data.fs
+  </filestorage>
+  mount-point /
+</zodb_db>
+<zodb_db temporary>
+  <temporarystorage>
+   name temporary storage for sessioning
+  </temporarystorage>
+  mount-point /temp_folder
+  container-class Products.TemporaryFolder.TemporaryContainer
+</zodb_db>
 '''
 
 class Debianizer:
@@ -20,11 +73,12 @@ class Debianizer:
        package.'''
 
     def __init__(self, app, out, appVersion='0.1.0',
-                 pythonVersions=('2.6', '2.7'),
+                 pythonVersions=('2.6',),
                  depends=('zope2.12', 'openoffice.org', 'imagemagick')):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)
+        self.appNameLower = self.appName.lower()
         # out is the folder where the Debian package will be generated.
         self.out = out
         # What is the version number for this app ?
@@ -33,6 +87,8 @@ class Debianizer:
         self.pythonVersions = pythonVersions
         # Debian package dependencies
         self.depends = depends
+        # Zope 2.12 requires Python 2.6
+        if 'zope2.12' in depends: self.pythonVersions = ('2.6',)
 
     def run(self):
         '''Generates the Debian package.'''
@@ -49,19 +105,74 @@ class Debianizer:
         for version in self.pythonVersions:
             libFolder = j(srcFolder, 'python%s' % version)
             os.makedirs(libFolder)
-            shutil.copytree(self.app, j(libFolder, self.appName))
-        # Create data.tar.gz based on it.
-        os.chdir(debFolder)
-        os.system('tar czvf data.tar.gz ./usr')
+            destFolder = j(libFolder, self.appName)
+            shutil.copytree(self.app, destFolder)
+            # Clean dest folder (.svn/.bzr files)
+            cleanFolder(destFolder, folders=('.svn', '.bzr'))
+        # When packaging Appy itself, everything is in /usr/lib/pythonX. When
+        # packaging an Appy app, we will generate more files for creating a
+        # running instance.
+        if self.appName != 'appy':
+            # Create the folders that will collectively represent the deployed
+            # Zope instance.
+            binFolder = j(debFolder, 'usr', 'bin')
+            os.makedirs(binFolder)
+            # <app>ctl
+            name = '%s/%sctl' % (binFolder, self.appNameLower)
+            f = file(name, 'w')
+            f.write(appCtl % self.appNameLower)
+            os.chmod(name, 0744) # Make it executable by owner.
+            f.close()
+            # <app>run
+            name = '%s/%srun' % (binFolder, self.appNameLower)
+            f = file(name, 'w')
+            f.write(appRun % self.appNameLower)
+            os.chmod(name, 0744) # Make it executable by owner.
+            f.close()
+            # startoo
+            name = '%s/startoo' % binFolder
+            f = file(name, 'w')
+            f.write(ooStart)
+            f.close()
+            os.chmod(name, 0744) # Make it executable by owner.
+            # /var/lib/<app> (will store Data.fs, lock files, etc)
+            varLibFolder = j(debFolder, 'var', 'lib', self.appNameLower)
+            os.makedirs(varLibFolder)
+            f = file('%s/README' % varLibFolder, 'w')
+            f.write('This folder stores the %s database.\n' % self.appName)
+            f.close()
+            # /var/log/<app> (will store event.log and Z2.log)
+            varLogFolder = j(debFolder, 'var', 'log', self.appNameLower)
+            os.makedirs(varLogFolder)
+            f = file('%s/README' % varLogFolder, 'w')
+            f.write('This folder stores the log files for %s.\n' % self.appName)
+            f.close()
+            # /etc/<app>.conf (Zope configuration file)
+            etcFolder = j(debFolder, 'etc')
+            os.makedirs(etcFolder)
+            name = '%s/%s.conf' % (etcFolder, self.appNameLower)
+            n = self.appNameLower
+            f = file(name, 'w')
+            productsFolder = '/usr/lib/python%s/%s/zope' % \
+                             (self.pythonVersions[0], self.appName)
+            f.write(zopeConf % ('/var/lib/%s' % n, '/var/lib/%s' % n,
+                                '/var/log/%s' % n,
+                                'products %s\n' % productsFolder))
+            f.close()
         # Get the size of the app, in Kb.
-        cmd = subprocess.Popen(['du', '-b', '-s', 'usr'],stdout=subprocess.PIPE)
+        os.chdir(tempFolder)
+        cmd = subprocess.Popen(['du', '-b', '-s', 'debian'],
+                               stdout=subprocess.PIPE)
         size = int(int(cmd.stdout.read().split()[0])/1024.0)
+        os.chdir(debFolder)
+        # Create data.tar.gz based on it.
+        os.system('tar czvf data.tar.gz *')
         # Create the control file
         f = file('control', 'w')
         nameSuffix = ''
         dependencies = []
         if self.appName != 'appy':
-            nameSuffix = '-%s' % self.appName.lower()
+            nameSuffix = '-%s' % self.appNameLower
             dependencies.append('python-appy')
         if self.depends:
             for d in self.depends: dependencies.append(d)
@@ -69,51 +180,48 @@ class Debianizer:
         if dependencies:
             depends = ', ' + ', '.join(dependencies)
         f.write(debianInfo % (nameSuffix, self.appVersion, size,
-                              self.pythonVersions[0], self.pythonVersions[1],
-                              depends))
+                              self.pythonVersions[0], depends))
         f.close()
         # Create md5sum file
         f = file('md5sums', 'w')
-        for dir, dirnames, filenames in os.walk('usr'):
-            for name in filenames:
-                m = md5.new()
-                pathName = j(dir, name)
-                currentFile = file(pathName, 'rb')
-                while True:
-                    data = currentFile.read(8096)
-                    if not data:
-                        break
-                    m.update(data)
-                currentFile.close()
-                # Add the md5 sum to the file
-                f.write('%s  %s\n' % (m.hexdigest(), pathName))
+        toWalk = ['usr']
+        if self.appName != 'appy':
+            toWalk += ['etc', 'var']
+        for folderToWalk in toWalk:
+            for dir, dirnames, filenames in os.walk(folderToWalk):
+                for name in filenames:
+                    m = md5.new()
+                    pathName = j(dir, name)
+                    currentFile = file(pathName, 'rb')
+                    while True:
+                        data = currentFile.read(8096)
+                        if not data:
+                            break
+                        m.update(data)
+                    currentFile.close()
+                    # Add the md5 sum to the file
+                    f.write('%s  %s\n' % (m.hexdigest(), pathName))
         f.close()
         # Create postinst, a script that will:
         # - bytecompile Python files after the Debian install
-        # - create a Zope instance (excepted if we are installing Appy itself).
+        # - change ownership of some files if required
         f = file('postinst', 'w')
         content = '#!/bin/sh\nset -e\n'
         for version in self.pythonVersions:
             bin = '/usr/bin/python%s' % version
             lib = '/usr/lib/python%s' % version
-            cmds = '  %s -m compileall -q %s/%s 2> /dev/null\n' % (bin, lib,
-                                                                   self.appName)
-            if self.appName != 'appy':
-                inst = '/home/zope/%sInstance' % self.appName
-                cmds += '  if [ -e %s ]\n  then\n' % inst
-                # If the Zope instance already exists, simply restart it.
-                cmds += '    %s/bin/zopectl restart\n  else\n' % inst
-                # Else, create a Zope instance in the home of user "zope".
-                cmds += '    %s %s/appy/bin/new.py zope /usr/lib/zope2.12 ' \
-                        '%s\n' % (bin, lib, inst)
-                # Within this instance, create a symlink to the Zope product
-                cmds += '    ln -s %s/%s/zope %s/Products/%s\n' % \
-                        (lib, self.appName, inst, self.appName)
-                # Launch the instance
-                cmds += '    %s/bin/zopectl start\n' % inst
-                # Launch OpenOffice in server mode
-                cmds += '    %s/bin/startoo\n  fi\n' % inst
+            cmds = ' %s -m compileall -q %s/%s 2> /dev/null\n' % (bin, lib,
+                                                                  self.appName)
             content += 'if [ -e %s ]\nthen\n%sfi\n' % (bin, cmds)
+        if self.appName != 'appy':
+            # Allow user "zope", that runs the Zope instance, to write the
+            # database and log files.
+            content += 'chown -R zope:root /var/lib/%s\n' % self.appNameLower
+            content += 'chown -R zope:root /var/log/%s\n' % self.appNameLower
+            # (re-)start the app
+            content += '%sctl restart\n' % self.appNameLower
+            # (re-)start oo
+            content += 'startoo\n'
         f.write(content)
         f.close()
         # Create prerm, a script that will remove all pyc files before removing

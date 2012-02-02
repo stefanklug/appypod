@@ -110,6 +110,7 @@ class ZopeUserPatches:
     def getRolesInContext(self, object):
         '''Return the list of global and local (to p_object) roles granted to
            this user (or to any of its groups).'''
+        if isinstance(object, AbstractWrapper): object = object.o
         object = getattr(object, 'aq_inner', object)
         # Start with user global roles
         res = self.getRoles()
@@ -120,7 +121,8 @@ class ZopeUserPatches:
         groups = getattr(self, 'groups', ())
         for id, roles in localRoles.iteritems():
             if (id != userId) and (id not in groups): continue
-            for role in roles: res.add(role)
+            for role in roles:
+                if role not in res: res.append(role)
         return res
 
     def allowed(self, object, object_roles=None):

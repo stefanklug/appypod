@@ -6,6 +6,7 @@
 import os, os.path, sys, shutil, re
 from optparse import OptionParser
 from appy.shared.utils import cleanFolder, copyFolder
+from appy.shared.packaging import ooStart, zopeConf
 
 # ------------------------------------------------------------------------------
 class NewError(Exception): pass
@@ -34,52 +35,12 @@ exec "$ZDCTL" -C "$CONFIG_FILE" "$@"
 '''
 
 # runzope template file for a pure Zope instance -------------------------------
-runZope = '''#! /bin/sh
+runZope = '''#!/bin/sh
 INSTANCE_HOME="%s"
 CONFIG_FILE="$INSTANCE_HOME/etc/zope.conf"
 ZOPE_RUN="/usr/lib/zope2.12/bin/runzope"
 export INSTANCE_HOME
 exec "$ZOPE_RUN" -C "$CONFIG_FILE" "$@"
-'''
-
-# zope.conf template file for a pure Zope instance -----------------------------
-zopeConf = '''# Zope configuration.
-%%define INSTANCE %s
-%%define HTTPPORT 8080
-%%define ZOPE_USER zope
-
-instancehome $INSTANCE
-effective-user $ZOPE_USER
-<eventlog>
-  level info
-  <logfile>
-    path $INSTANCE/log/event.log
-    level info
-  </logfile>
-</eventlog>
-<logger access>
-  level WARN
-  <logfile>
-    path $INSTANCE/log/Z2.log
-    format %%(message)s
-  </logfile>
-</logger>
-<http-server>
-  address $HTTPPORT
-</http-server>
-<zodb_db main>
-  <filestorage>
-    path $INSTANCE/var/Data.fs
-  </filestorage>
-  mount-point /
-</zodb_db>
-<zodb_db temporary>
-  <temporarystorage>
-   name temporary storage for sessioning
-  </temporarystorage>
-  mount-point /temp_folder
-  container-class Products.TemporaryFolder.TemporaryContainer
-</zodb_db>
 '''
 
 # zopectl template for a Plone (4) Zope instance -------------------------------
@@ -153,14 +114,14 @@ class ZopeInstanceCreator:
         os.chmod('bin/runzope', 0744) # Make it executable by owner.
         # Create bin/startoo
         f = file('bin/startoo', 'w')
-        f.write('#!/bin/sh\nsoffice -invisible -headless -nofirststartwizard '\
-                '"-accept=socket,host=localhost,port=2002;urp;"&\n')
+        f.write(ooStart)
         f.close()
         os.chmod('bin/startoo', 0744) # Make it executable by owner.
         # Create etc/zope.conf
         os.mkdir('etc')
         f = file('etc/zope.conf', 'w')
-        f.write(zopeConf % self.instancePath)
+        f.write(zopeConf % (self.instancePath, '%s/var' % self.instancePath,
+                            '%s/log' % self.instancePath, ''))
         f.close()
         # Create other folders
         for name in ('Extensions', 'log', 'Products', 'var'): os.mkdir(name)

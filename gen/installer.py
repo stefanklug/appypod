@@ -8,6 +8,7 @@ import appy.version
 import appy.gen as gen
 from appy.gen.po import PoParser
 from appy.gen.utils import updateRolesForPermission, createObject
+from appy.gen.migrator import Migrator
 from appy.shared.data import languages
 
 # ------------------------------------------------------------------------------
@@ -87,14 +88,16 @@ class ZopeInstaller:
 
     def installUi(self):
         '''Installs the user interface.'''
-        # Delete the existing folder if it existed.
-        zopeContent = self.app.objectIds()
-        if 'ui' in zopeContent: self.app.manage_delObjects(['ui'])
-        self.app.manage_addFolder('ui')
         # Some useful imports
+        from OFS.Folder import manage_addFolder
+        from OFS.Image import manage_addImage, manage_addFile
         from Products.PythonScripts.PythonScript import PythonScript
         from Products.PageTemplates.ZopePageTemplate import \
              manage_addPageTemplate
+        # Delete the existing folder if it existed.
+        zopeContent = self.app.objectIds()
+        if 'ui' in zopeContent: self.app.manage_delObjects(['ui'])
+        manage_addFolder(self.app, 'ui')
         # Browse the physical folder and re-create it in the Zope folder
         j = os.path.join
         ui = j(j(appy.getPath(), 'gen'), 'ui')
@@ -106,13 +109,13 @@ class ZopeInstaller:
                 for name in folderName.strip(os.sep).split(os.sep):
                     zopeFolder = zopeFolder._getOb(name)
             # Create sub-folders at this level
-            for name in dirs: zopeFolder.manage_addFolder(name)
+            for name in dirs: manage_addFolder(zopeFolder, name)
             # Create files at this level
             for name in files:
                 baseName, ext = os.path.splitext(name)
                 f = file(j(root, name))
                 if ext in gen.File.imageExts:
-                    zopeFolder.manage_addImage(name, f)
+                    manage_addImage(zopeFolder, name, f)
                 elif ext == '.pt':
                     manage_addPageTemplate(zopeFolder, baseName, '', f.read())
                 elif ext == '.py':
@@ -120,7 +123,7 @@ class ZopeInstaller:
                     zopeFolder._setObject(baseName, obj)
                     zopeFolder._getOb(baseName).write(f.read())
                 else:
-                    zopeFolder.manage_addFile(name, f)
+                    manage_addFile(zopeFolder, name, f)
                 f.close()
         # Update the home page
         if 'index_html' in zopeContent:
@@ -199,9 +202,10 @@ class ZopeInstaller:
         '''Creates the tool and the root data folder if they do not exist.'''
         # Create or update the base folder for storing data
         zopeContent = self.app.objectIds()
+        from OFS.Folder import manage_addFolder
 
         if 'data' not in zopeContent:
-            self.app.manage_addFolder('data')
+            manage_addFolder(self.app, 'data')
             data = self.app.data
             # Manager has been granted Add permissions for all root classes.
             # This may not be desired, so remove this.
@@ -240,7 +244,13 @@ class ZopeInstaller:
         appyTool.log('Appy version is "%s".' % appy.version.short)
 
         # Create the admin user if no user exists.
-        if not self.app.acl_users.getUsers():
+        try:
+            users = self.app.acl_users.getUsers()
+        except:
+            # When Plone has installed PAS in acl_users this may fail. Plone
+            # may still be in the way for migration purposes.
+            users = ('admin') # We suppose there is at least a user.
+        if not users:
             self.app.acl_users._doAddUser('admin', 'admin', ['Manager'], ())
             appyTool.log('Admin user "admin" created.')
 
@@ -386,7 +396,7 @@ class ZopeInstaller:
         from OFS.Application import install_product
         import Products
         install_product(self.app, Products.__path__[1], 'ZCTextIndex', [], {})
-    
+
     def install(self):
         self.logger.info('is being installed...')
         self.installDependencies()
@@ -399,6 +409,10 @@ class ZopeInstaller:
         self.installCatalog()
         self.installTool()
         self.installUi()
+        # Perform migrations if required
+        Migrator(self).run()
+        # Update Appy version in the database
+        self.app.config.appy().appyVersion = appy.version.short
         # Empty the fake REQUEST object, only used at Zope startup.
         del self.app.config.getProductConfig().fakeRequest.wrappers
 # ------------------------------------------------------------------------------

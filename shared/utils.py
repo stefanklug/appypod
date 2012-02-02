@@ -36,18 +36,28 @@ class FolderDeleter:
 
 # ------------------------------------------------------------------------------
 extsToClean = ('.pyc', '.pyo', '.fsz', '.deltafsz', '.dat', '.log')
-def cleanFolder(folder, exts=extsToClean, verbose=False):
+def cleanFolder(folder, exts=extsToClean, folders=(), verbose=False):
     '''This function allows to remove, in p_folder and subfolders, any file
-       whose extension is in p_exts.'''
+       whose extension is in p_exts, and any folder whose name is in
+       p_folders.'''
     if verbose: print 'Cleaning folder', folder, '...'
-    # Remove files with an extension listed in exts
-    for root, dirs, files in os.walk(folder):
-        for fileName in files:
-            ext = os.path.splitext(fileName)[1]
-            if (ext in exts) or ext.endswith('~'):
-                fileToRemove = os.path.join(root, fileName)
-                if verbose: print 'Removing %s...' % fileToRemove
-                os.remove(fileToRemove)
+    # Remove files with an extension listed in p_exts
+    if exts:
+        for root, dirs, files in os.walk(folder):
+            for fileName in files:
+                ext = os.path.splitext(fileName)[1]
+                if (ext in exts) or ext.endswith('~'):
+                    fileToRemove = os.path.join(root, fileName)
+                    if verbose: print 'Removing file %s...' % fileToRemove
+                    os.remove(fileToRemove)
+    # Remove folders whose names are in p_folders.
+    if folders:
+        for root, dirs, files in os.walk(folder):
+            for folderName in dirs:
+                if folderName in folders:
+                    toDelete = os.path.join(root, folderName)
+                    if verbose: print 'Removing folder %s...' % toDelete
+                    FolderDeleter.delete(toDelete)
 
 # ------------------------------------------------------------------------------
 def copyFolder(source, dest, cleanDest=False):
