@@ -14,18 +14,19 @@ Priority: optional
 Homepage: http://appyframework.org
 Description: Appy builds simple but complex web Python apps.
 '''
-appCtl = '''#!/usr/lib/zope2.12/bin/python
+appCtl = '''#! /usr/lib/zope2.12/bin/python
 import sys
 from appy.bin.zopectl import ZopeRunner
 args = ' '.join(sys.argv[1:])
 sys.argv = [sys.argv[0], '-C', '/etc/%s.conf', args]
 ZopeRunner().run()
 '''
-appRun = '''#!/bin/sh
+appRun = '''#! /bin/sh
 exec "/usr/lib/zope2.12/bin/runzope" -C "/etc/%s.conf" "$@"
 '''
-ooStart = '#!/bin/sh\nsoffice -invisible -headless -nofirststartwizard ' \
-          '"-accept=socket,host=localhost,port=2002;urp;"&\n'
+ooStart = 'soffice -invisible -headless -nofirststartwizard ' \
+          '"-accept=socket,host=localhost,port=2002;urp;"'
+ooStartSh = '#! /bin/sh\n%s\n' % ooStart
 zopeConf = '''# Zope configuration.
 %%define INSTANCE %s
 %%define DATA %s
@@ -66,6 +67,38 @@ effective-user $ZOPE_USER
   mount-point /temp_folder
   container-class Products.TemporaryFolder.TemporaryContainer
 </zodb_db>
+'''
+# initScript below will be used to define the scripts that will run the
+# app-powered Zope instance and OpenOffice in server mode at boot time.
+initScript = '''#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          %s
+# Required-Start:    $syslog $remote_fs
+# Required-Stop:     $syslog $remote_fs
+# Should-Start:      $remote_fs
+# Should-Stop:       $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start %s
+# Description:       Start the Zope and Appy-based %s application.
+### END INIT INFO
+
+case "$1" in
+  start)
+    %s
+    ;;
+  restart|reload|force-reload)
+    %s
+    ;;
+  stop)
+    %s
+    ;;
+  *)
+    echo "Usage: $0 start|restart|stop" >&2
+    exit 3
+    ;;
+esac
+exit 0
 '''
 
 class Debianizer:
@@ -132,7 +165,7 @@ class Debianizer:
             # startoo
             name = '%s/startoo' % binFolder
             f = file(name, 'w')
-            f.write(ooStart)
+            f.write(ooStartSh)
             f.close()
             os.chmod(name, 0744) # Make it executable by owner.
             # /var/lib/<app> (will store Data.fs, lock files, etc)
@@ -159,6 +192,24 @@ class Debianizer:
                                 '/var/log/%s' % n,
                                 'products %s\n' % productsFolder))
             f.close()
+            # /etc/init.d/<app> (start the app at boot time)
+            initdFolder = j(etcFolder, 'init.d')
+            os.makedirs(initdFolder)
+            name = '%s/%s' % (initdFolder, self.appNameLower)
+            f = file(name, 'w')
+            n = self.appNameLower
+            f.write(initScript % (n, n, 'Start the Zope and Appy-based %s ' \
+                                  'application.' % n, '%sctl start' % n,
+                                  '%sctl restart' % n, '%sctl stop' % n))
+            f.close()
+            os.chmod(name, 0744) # Make it executable by owner.
+            # /etc/init.d/oo (start OpenOffice at boot time)
+            name = '%s/oo' % initdFolder
+            f = file(name, 'w')
+            f.write(initScript % ('oo', 'oo', 'Start OpenOffice in server mode',
+                                  ooStart, ooStart, "#Can't stop OO."))
+            f.close()
+            os.chmod(name, 0744) # Make it executable by owner.
         # Get the size of the app, in Kb.
         os.chdir(tempFolder)
         cmd = subprocess.Popen(['du', '-b', '-s', 'debian'],
@@ -205,6 +256,8 @@ class Debianizer:
         # Create postinst, a script that will:
         # - bytecompile Python files after the Debian install
         # - change ownership of some files if required
+        # - [in the case of an app-package] call update-rc.d for starting it at
+        #   boot time.
         f = file('postinst', 'w')
         content = '#!/bin/sh\nset -e\n'
         for version in self.pythonVersions:
@@ -218,6 +271,9 @@ class Debianizer:
             # database and log files.
             content += 'chown -R zope:root /var/lib/%s\n' % self.appNameLower
             content += 'chown -R zope:root /var/log/%s\n' % self.appNameLower
+            # Call update-rc.d for starting the app at boot time
+            content += 'update-rc.d %s defaults\n' % self.appNameLower
+            content += 'update-rc.d oo defaults\n'
             # (re-)start the app
             content += '%sctl restart\n' % self.appNameLower
             # (re-)start oo

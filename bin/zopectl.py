@@ -17,6 +17,7 @@ class ZopeRunner:
         options = zctl.ZopeCtlOptions()
         options.realize(None)
         options.program = ['/usr/bin/%srun' % app]
+        options.sockname = '/var/lib/%s/zopectlsock' % app
         c = zctl.ZopeCmd(options)
         c.onecmd(" ".join(options.args))
         return min(c._exitstatus, 1)
