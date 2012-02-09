@@ -206,7 +206,7 @@ class ToolMixin(BaseMixin):
         if not res: return
         res = res[0]
         if brain: return res
-        res = res.getObject()
+        res = res._unrestrictedGetObject()
         if not appy: return res
         return res.appy()
 

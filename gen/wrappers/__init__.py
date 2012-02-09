@@ -244,6 +244,11 @@ class AbstractWrapper(object):
                                 maxResults=maxResults, noSecurity=noSecurity)
         return [o.appy() for o in res['objects']]
 
+    def search1(self, *args, **kwargs):
+        '''Identical to m_search above, but returns a single result (if any).'''
+        res = self.search(*args, **kwargs)
+        if res: return res[0]
+
     def count(self, klass, noSecurity=False, **fields):
         '''Identical to m_search above, but returns the number of objects that
            match the search instead of returning the objects themselves. Use

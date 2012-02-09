@@ -12,13 +12,14 @@ acronym {cursor: help;}
 input[type=image] { border: 0; background: none; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
 input[type=radio] { border: 0; background: none; cursor: pointer;}
-input[type=file] { border: 0px solid #cccccc; background-color: #f8f8f8;
-                   cursor: pointer;}
-input[type=button] { border: 1px solid #cccccc; background-color: #f8f8f8;
-                     cursor: pointer;}
+input[type=file] { border: 0px solid #cccccc;
+                   background-color: #f8f8f8; cursor: pointer;}
+input[type=button] { border: 1px solid #cccccc;
+                     background-color: #f8f8f8; cursor: pointer;}
 input[type=submit] { border: 1px solid #cccccc; background-color: #f8f8f8;
                      cursor: pointer; }
-input[type=password] { border: 1px solid #cccccc; background-color: #f8f8f8;}
+input[type=password] { border: 1px solid #cccccc; background-color: #f8f8f8;
+                       font-family: Lucida,Helvetica,Arial,sans-serif;}
 input[type=text] { border: 1px solid #cccccc; background-color: #f8f8f8;
                    font-family: Lucida,Helvetica,Arial,sans-serif;
                    margin-bottom: 1px}

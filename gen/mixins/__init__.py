@@ -846,9 +846,9 @@ class BaseMixin:
         self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
 
     def notifyWorkflowCreated(self):
-        '''This method is called by Zope/CMF every time an object is created,
-           be it temp or not. The objective here is to initialise workflow-
-           related data on the object.'''
+        '''This method is called every time an object is created, be it temp or
+           not. The objective here is to initialise workflow-related data on
+           the object.'''
         wf = self.getWorkflow()
         # Get the initial workflow state
         initialState = self.State(name=False)

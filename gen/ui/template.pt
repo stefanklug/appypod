@@ -99,9 +99,9 @@
          <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
 
          <span>Login</span>&nbsp;
-         <input type="text" size="15" name="__ac_name" id="__ac_name" value=""/>&nbsp;
+         <input type="text" size="25" name="__ac_name" id="__ac_name" value=""/>&nbsp;
          <span>Password</span>&nbsp;
-         <input type="password" size="15" name="__ac_password" id="__ac_password"/>
+         <input type="password" size="25" name="__ac_password" id="__ac_password"/>
          <input type="submit" name="submit" onclick="setLoginVars()"
                 tal:define="label python: _('Login');" tal:attributes="value label; alt label;"/>
         </form>
