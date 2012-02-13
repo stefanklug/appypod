@@ -469,6 +469,28 @@ class XmlMarshaller:
         if prefix: return '%s:%s' % (prefix, name)
         return name
 
+    def isAnObject(self, instance):
+        '''Returns True if p_instance is a class instance, False if it is a
+           basic type, or tuple, sequence, etc.'''
+        if instance.__class__.__name__ == 'LazyMap': return False
+        iType = type(instance)
+        if iType == types.InstanceType:
+            return True
+        elif iType.__name__ == 'ImplicitAcquirerWrapper':
+            # This is the case with Archetype instances
+            return True
+        elif iType.__class__.__name__ == 'ExtensionClass':
+            return True
+        return False
+
+    def isAList(self, value):
+        '''Is p_value a list?'''
+        return value.__class__.__name__ in ('list', 'PersistentList', 'LazyMap')
+
+    def isADict(self, value):
+        '''Is p_value a dict?'''
+        return value.__class__.__name__ in ('dict', 'PersistentMapping')
+
     def dumpRootTag(self, res, instance):
         '''Dumps the root tag.'''
         # Dumps the name of the tag.
@@ -554,7 +576,7 @@ class XmlMarshaller:
                         self.dumpField(res, 'url', elem.absolute_url())
                 else:
                     self.dumpField(res, 'url', value.absolute_url())
-        elif type(value) in sequenceTypes:
+        elif fieldType in ('list', 'tuple'):
             # The previous condition must be checked before this one because
             # referred objects may be stored in lists or tuples, too.
             for elem in value: self.dumpField(res, 'e', elem)
@@ -595,15 +617,14 @@ class XmlMarshaller:
         elif isinstance(fieldValue, float):               fType = 'float'
         elif isinstance(fieldValue, long):                fType = 'long'
         elif isinstance(fieldValue, tuple):               fType = 'tuple'
-        elif isinstance(fieldValue, list):                fType = 'list'
-        elif isinstance(fieldValue, dict) or \
-             fieldValue.__class__.__name__ == 'PersistentMapping':fType = 'dict'
+        elif self.isAList(fieldValue):                    fType = 'list'
+        elif self.isADict(fieldValue):                    fType = 'dict'
         elif fieldValue.__class__.__name__ == 'DateTime': fType = 'DateTime'
         elif self.isAnObject(fieldValue):                 fType = 'object'
         if self.objectType != 'popo':
             if fType: res.write(' type="%s"' % fType)
             # Dump other attributes if needed
-            if type(fieldValue) in sequenceTypes:
+            if fType in ('list', 'tuple'):
                 res.write(' count="%d"' % len(fieldValue))
         if fType == 'file':
             if hasattr(fieldValue, 'content_type'):
@@ -616,20 +637,6 @@ class XmlMarshaller:
         # Dump the field value
         self.dumpValue(res, fieldValue, fType, isRef=(fieldType=='ref'))
         res.write('</'); res.write(fieldTag); res.write('>')
-
-    def isAnObject(self, instance):
-        '''Returns True if p_instance is a class instance, False if it is a
-           basic type, or tuple, sequence, etc.'''
-        iType = type(instance)
-        if iType == types.InstanceType:
-            return True
-        elif iType.__name__ == 'ImplicitAcquirerWrapper':
-            # This is the case with Archetype instances
-            return True
-        elif iType.__class__.__name__ == 'ExtensionClass':
-            return True
-        
-        return False
 
     def marshall(self, instance, objectType='popo', conversionFunctions={}):
         '''Returns in a UnicodeBuffer the XML version of p_instance. If
