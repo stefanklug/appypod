@@ -121,7 +121,7 @@ class ZopeInstanceCreator:
         os.mkdir('etc')
         f = file('etc/zope.conf', 'w')
         f.write(zopeConf % (self.instancePath, '%s/var' % self.instancePath,
-                            '%s/log' % self.instancePath, ''))
+                            '%s/log' % self.instancePath, '8080', ''))
         f.close()
         # Create other folders
         for name in ('Extensions', 'log', 'Products', 'var'): os.mkdir(name)

@@ -5,7 +5,7 @@ import sys, os.path
 from optparse import OptionParser
 from appy.gen.generator import GeneratorError, ZopeGenerator
 from appy.shared.utils import LinesCounter
-from appy.shared.packaging import Debianizer
+from appy.shared.packaging import Debianizer, Cortexer
 import appy.version
 
 # ------------------------------------------------------------------------------
@@ -34,6 +34,9 @@ S_OPTION = 'Sorts all i18n labels. If you use this option, among the ' \
            'set of translation files.'
 D_OPTION = 'Generates a Debian package for this app. The Debian package will ' \
            'be generated at the same level as the root application folder.'
+X_OPTION = 'Generates a Cortex application definition for this app, in a ' \
+           'folder "cortex.admin" that will be generated at the same level ' \
+           'as the root application folder.'
 
 class GeneratorScript:
     '''usage: %prog [options] app
@@ -68,6 +71,8 @@ class GeneratorScript:
             dest='i18nSort', default=False, help=S_OPTION)
         optParser.add_option("-d", "--debian", action='store_true',
             dest='debian', default=False, help=D_OPTION)
+        optParser.add_option("-x", "--cortex", action='store_true',
+            dest='cortex', default=False, help=X_OPTION)
         (options, args) = optParser.parse_args()
         try:
             self.manageArgs(optParser, options, args)
@@ -87,6 +92,9 @@ class GeneratorScript:
                 f.close()
                 version = version[:version.find('build')-1]
                 Debianizer(app, appDir, appVersion=version).run()
+            # Generates a Cortex application definition if required
+            if options.cortex:
+                Cortexer(args[0]).run()
         except GeneratorError, ge:
             sys.stderr.write(str(ge))
             sys.stderr.write('\n')
