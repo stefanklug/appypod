@@ -107,11 +107,16 @@ class Debianizer:
 
     def __init__(self, app, out, appVersion='0.1.0',
                  pythonVersions=('2.6',), zopePort=8080,
-                 depends=('zope2.12', 'openoffice.org', 'imagemagick')):
+                 depends=('zope2.12', 'openoffice.org', 'imagemagick'),
+                 sign=True):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)
         self.appNameLower = self.appName.lower()
+        # Must we sign the Debian package? If yes, we make the assumption that
+        # the currently logged user has a public/private key pair in ~/.gnupg,
+        # generated with command "gpg --gen-key".
+        self.sign = sign
         # out is the folder where the Debian package will be generated.
         self.out = out
         # What is the version number for this app ?
@@ -298,10 +303,32 @@ class Debianizer:
         f = file('debian-binary', 'w')
         f.write('2.0\n')
         f.close()
+        # Create the signature if required
+        if self.sign:
+            # Create the concatenated version of all files within the deb
+            os.system('cat debian-binary control.tar.gz data.tar.gz > ' \
+                      '/tmp/combined-contents')
+            os.system('gpg -abs -o _gpgorigin /tmp/combined-contents')
+            signFile = '_gpgorigin '
+            os.remove('/tmp/combined-contents')
+            # Export the public key and name it according to its ID as found by
+            # analyzing the result of command "gpg --fingerprint".
+            cmd = subprocess.Popen(['gpg', '--fingerprint'],
+                                   stdout=subprocess.PIPE)
+            fingerprint = cmd.stdout.read().split('\n')
+            id = 'pubkey'
+            for line in fingerprint:
+                if '=' not in line: continue
+                id = line.split('=')[1].strip()
+                id = ''.join(id.split()[-4:])
+                break
+            os.system('gpg --export -a > %s/%s.asc' % (self.out, id))
+        else:
+            signFile = ''
         # Create the .deb package
         debName = 'python-appy%s-%s.deb' % (nameSuffix, self.appVersion)
-        os.system('ar -r %s debian-binary control.tar.gz data.tar.gz' % \
-                  debName)
+        os.system('ar -r %s %sdebian-binary control.tar.gz data.tar.gz' % \
+                  (debName, signFile))
         # Move it to self.out
         os.rename(j(debFolder, debName), j(self.out, debName))
         # Clean temp files
@@ -325,11 +352,11 @@ definitionJson = '''{
       "do": [
         { "action": "update", "resource": "file://%s.conf" }, 
         { "action": "restart", "resource": "service://%s" }
-      ]},
-    ], 
+      ]}
+    ],
   "services": [
     { "name": "%s", "enabled": "true", "running": "false" }, 
-    { "name": "oo",  "enabled": "true",  "running": "false" }], 
+    { "name": "oo",  "enabled": "true",  "running": "false" }]
 }
 '''
 definitionJsonConf = '''{
@@ -339,7 +366,7 @@ definitionJsonConf = '''{
     { "key": "%s_http_port",  "name": "%s HTTP port",
       "description": "%s HTTP port for the Zope process",
       "value": "8080"}
-  ],
+  ]
 }
 '''
 

@@ -274,8 +274,9 @@ class Publisher:
     def createDebianRelease(self):
         '''Creates a Debian package for Appy.'''
         j = os.path.join
+        sign = self.askQuestion('Sign the Debian package?', default='no')
         Debianizer(j(self.genFolder, 'appy'), j(appyPath, 'versions'),
-                   appVersion=self.versionShort, depends=[]).run()
+                   appVersion=self.versionShort, depends=[], sign=sign).run()
 
     def createDistRelease(self):
         '''Create the distutils package.'''
