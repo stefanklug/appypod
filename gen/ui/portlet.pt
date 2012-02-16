@@ -30,24 +30,24 @@
                       userMayAdd python: user.has_permission(addPermission, appFolder);
                       createMeans python: tool.getCreateMeans(rootClass)">
        <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
-       <img style="cursor:pointer"
-            tal:condition="python: ('form' in createMeans) and userMayAdd"
-            tal:attributes="onClick python: 'href: window.location=\'%s/do?action=Create&className=%s\'' % (toolUrl, rootClass);
-                            src string: $appUrl/ui/plus.png;
-                            title python: _('query_create')"/>
+       <a tal:condition="python: ('form' in createMeans) and userMayAdd"
+          tal:attributes="href python: '%s/do?action=Create&className=%s' % (toolUrl, rootClass);
+                          title python: _('query_create')">
+        <img tal:attributes="src string: $appUrl/ui/plus.png"/>
+       </a>
        <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
-       <img style="cursor:pointer"
-            tal:condition="python: ('import' in createMeans) and userMayAdd"
-            tal:attributes="onClick python: 'href: window.location=\'%s/ui/import?className=%s\'' % (toolUrl, rootClass);
-                            src string: $appUrl/ui/import.png;
-                            title python: _('query_import')"/>
+       <a tal:condition="python: ('import' in createMeans) and userMayAdd"
+          tal:attributes="href python: '%s/ui/import?className=%s' % (toolUrl, rootClass);
+                          title python: _('query_import')">
+        <img tal:attributes="src string: $appUrl/ui/import.png"/>
+       </a>
        <tal:comment replace="nothing">Search objects of this type</tal:comment>
-       <img style="cursor:pointer"
-            tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
-            tal:condition="showSearch"
-            tal:attributes="onClick python: 'href: window.location=\'%s/ui/search?className=%s\'' % (toolUrl, rootClass);
-                            src string: $appUrl/ui/search.gif;
-                            title python: _('search_objects')"/>
+       <a tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
+          tal:condition="showSearch"
+          tal:attributes="href python: '%s/ui/search?className=%s' % (toolUrl, rootClass);
+                          title python: _('search_objects')">
+        <img tal:attributes="src string: $appUrl/ui/search.gif"/>
+       </a>
       </td>
      </tr>
     </table>

@@ -70,5 +70,9 @@ class GroupWrapper(AbstractWrapper):
                 self.log('User "%s" added to group "%s".' % \
                          (user.login, self.login))
         if hasattr(self.o.aq_base, '_oldUsers'): del self.o._oldUsers
+        # If the group was created by an Anonymous, Anonymous can't stay Owner
+        # of the object.
+        if None in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__[None]
         return self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------

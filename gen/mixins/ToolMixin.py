@@ -938,14 +938,17 @@ class ToolMixin(BaseMixin):
         return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
 
-    def getUserLine(self, user):
-        '''Returns a one-line user info as shown on every page.'''
-        res = [user.getId()]
-        rolesToShow = [r for r in user.getRoles() \
+    def getUserLine(self):
+        '''Returns a info about the currently logged user as a 2-tuple: first
+           elem is the one-line user info as shown on every page; second line is
+           the URL to edit user info.'''
+        appyUser = self.appy().appyUser
+        res = [appyUser.title, appyUser.login]
+        rolesToShow = [r for r in appyUser.roles \
                        if r not in ('Authenticated', 'Member')]
         if rolesToShow:
             res.append(', '.join([self.translate(r) for r in rolesToShow]))
-        return ' | '.join(res)
+        return (' | '.join(res), appyUser.o.getUrl(mode='edit'))
 
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''

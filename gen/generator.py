@@ -458,6 +458,8 @@ class ZopeGenerator(Generator):
             msg('doc',                  '', msg.FORMAT_DOC),
             msg('rtf',                  '', msg.FORMAT_RTF),
             msg('front_page_text',      '', msg.FRONT_PAGE_TEXT),
+            msg('captcha_text',         '', msg.CAPTCHA_TEXT),
+            msg('bad_captcha',          '', msg.BAD_CAPTCHA),
         ]
         # Create a label for every role added by this application
         for role in self.getAllUsedRoles():

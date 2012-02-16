@@ -19,10 +19,11 @@ def createObject(folder, id, className, appName, wf=True):
     obj.id = id
     obj._at_uid = id
     userId = obj.getUser().getId()
-    obj.creator = userId
+    # If user is anonymous, userIs is None
+    obj.creator = userId or 'Anonymous User'
     from DateTime import DateTime
     obj.created = DateTime()
-    obj.__ac_local_roles__ = { userId: ['Owner'] }
+    obj.__ac_local_roles__ = { userId: ['Owner'] } # userId can be None (anon).
     if wf: obj.notifyWorkflowCreated()
     return obj
 

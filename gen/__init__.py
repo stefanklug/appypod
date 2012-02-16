@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
-import re, time, copy, sys, types, os, os.path, mimetypes, string, StringIO
+import re, time, copy, sys, types, os, os.path, mimetypes, string, StringIO, \
+       random
 from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
@@ -1105,6 +1106,7 @@ class String(Type):
     TEXT = 1
     XHTML = 2
     PASSWORD = 3
+    CAPTCHA = 4
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, format=LINE,
                  show=True, page='main', group=None, layouts=None, move=0,
@@ -1115,7 +1117,9 @@ class String(Type):
                  transform='none', styles=('p','h1','h2','h3','h4'),
                  allowImageUpload=True):
         # According to format, the widget will be different: input field,
-        # textarea, inline editor...
+        # textarea, inline editor... Note that there can be only one String
+        # field of format CAPTCHA by page, because the captcha challenge is
+        # stored in the session at some global key.
         self.format = format
         # When format is XHTML, the list of styles that the user will be able to
         # select in the styles dropdown is defined hereafter.
@@ -1285,18 +1289,25 @@ class String(Type):
         return res
 
     def validateValue(self, obj, value):
-        if not self.isSelect: return
-        # Check that the value is among possible values
-        possibleValues = self.getPossibleValues(obj)
-        if isinstance(value, basestring):
-            error = value not in possibleValues
-        else:
-            error = False
-            for v in value:
-                if v not in possibleValues:
-                    error = True
-                    break
-        if error: return obj.translate('bad_select_value')
+        if self.format == String.CAPTCHA:
+            challenge = obj.REQUEST.SESSION.get('captcha', None)
+            # Compute the challenge minus the char to remove
+            i = challenge['number']-1
+            text = challenge['text'][:i] + challenge['text'][i+1:]
+            if value != text:
+                return obj.translate('bad_captcha')
+        elif self.isSelect:
+            # Check that the value is among possible values
+            possibleValues = self.getPossibleValues(obj)
+            if isinstance(value, basestring):
+                error = value not in possibleValues
+            else:
+                error = False
+                for v in value:
+                    if v not in possibleValues:
+                        error = True
+                        break
+            if error: return obj.translate('bad_select_value')
 
     accents = {'é':'e','è':'e','ê':'e','ë':'e','à':'a','â':'a','ä':'a',
                'ù':'u','û':'u','ü':'u','î':'i','ï':'i','ô':'o','ö':'o',
@@ -1347,6 +1358,26 @@ class String(Type):
     def getJs(self, layoutType):
         if (layoutType == 'edit') and (self.format == String.XHTML):
             return ('ckeditor/ckeditor.js',)
+
+    def getCaptchaChallenge(self, session):
+        '''Returns a Captcha challenge in the form of a dict. At key "text",
+           value is a string that the user will be required to re-type, but
+           without 1 character whose position is at key "number". The challenge
+           is stored in the p_session, for the server-side subsequent check.'''
+        length = random.randint(5, 9) # The length of the challenge to encode
+        number = random.randint(1, length) # The position of the char to remove
+        text = '' # The challenge the user needs to type (minus one char)
+        for i in range(length):
+            j = random.randint(0, 1)
+            if j == 0:
+                chars = string.digits
+            else:
+                chars = string.letters
+            # Choose a char
+            text += chars[random.randint(0,len(chars)-1)]
+        res = {'text': text, 'number': number}
+        session['captcha'] = res
+        return res
 
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -2636,14 +2667,17 @@ class No:
 class WorkflowAnonymous:
     '''One-state workflow allowing anyone to consult and Manager to edit.'''
     mgr = 'Manager'
-    active = State({r:(mgr, 'Anonymous'), w:mgr, d:mgr}, initial=True)
+    o = 'Owner'
+    active = State({r:(mgr, 'Anonymous'), w:(mgr,o), d:(mgr,o)}, initial=True)
 WorkflowAnonymous.__instance__ = WorkflowAnonymous()
 
 class WorkflowAuthenticated:
     '''One-state workflow allowing authenticated users to consult and Manager
        to edit.'''
     mgr = 'Manager'
-    active = State({r:(mgr, 'Authenticated'), w:mgr, d:mgr}, initial=True)
+    o = 'Owner'
+    active = State({r:(mgr, 'Authenticated'), w:(mgr,o), d:(mgr,o)},
+                   initial=True)
 WorkflowAuthenticated.__instance__ = WorkflowAuthenticated()
 
 # ------------------------------------------------------------------------------

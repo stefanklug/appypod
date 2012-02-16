@@ -418,7 +418,7 @@ class BaseMixin:
            return the result.'''
         page = self.REQUEST.get('page', 'main')
         for field in self.getAppyTypes('edit', page):
-            if (field.type == 'String') and (field.format == 3):
+            if (field.type == 'String') and (field.format in (3,4)):
                 self.REQUEST.set(field.name, '')
         return self.ui.edit(self)
 
@@ -1072,6 +1072,9 @@ class BaseMixin:
         else:
             obj = self
         return appyType.getPossibleValues(obj, withTranslations, withBlankValue)
+
+    def getCaptchaChallenge(self, name):
+        return self.getAppyType(name).getCaptchaChallenge(self.REQUEST.SESSION)
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy

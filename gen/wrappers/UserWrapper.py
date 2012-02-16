@@ -67,9 +67,13 @@ class UserWrapper(AbstractWrapper):
             # Updates roles at the Zope level.
             zopeUser = aclUsers.getUserById(login)
             zopeUser.roles = self.roles
-        # "self" must be owned by its Zope user
+        # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))
+        # If the user was created by an Anonymous, Anonymous can't stay Owner
+        # of the object.
+        if None in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__[None]
         return self._callCustom('onEdit', created)
 
     def getZopeUser(self):

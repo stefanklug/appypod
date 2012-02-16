@@ -88,7 +88,8 @@
     <tr>
      <td>
       <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
-       <table align="center" tal:condition="isAnon" class="login">
+       <table align="center" tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])"
+              class="login">
        <tr><td>
         <form name="loginform" method="post"
               tal:attributes="action python: tool.absolute_url() + '/performLogin'">
@@ -116,17 +117,23 @@
           <img tal:attributes="src string: $appUrl/ui/home.gif"/>
          </a>
          <!-- Config -->
-         <img style="cursor:pointer" tal:condition="python: user.has_role('Manager')"
-           tal:attributes="onClick python: 'href: window.location=\'%s\'' % tool.getUrl(page='main', nav='');
-                           title python: _('%sTool' % appName);
-                           src string:$appUrl/ui/appyConfig.gif"/>
+         <a tal:condition="python: user.has_role('Manager')"
+            tal:attributes="href python: tool.getUrl(page='main', nav='');
+                            title python: _('%sTool' % appName)">
+          <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
+         </a>
          <!-- Logout -->
          <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
                             title python: _('logout')">
           <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
          </a>
         </td>
-        <td align="right" tal:content="python: tool.getUserLine(user)"></td>
+        <td align="right" tal:define="userInfo tool/getUserLine">
+          <span tal:content="python: userInfo[0]"></span>
+          <a tal:attributes="href python: userInfo[1]">
+            <img tal:attributes="src string: $appUrl/ui/edit.gif"/>
+          </a>
+        </td>
        </tr>
       </table>
      </td>

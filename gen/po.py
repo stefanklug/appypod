@@ -114,6 +114,10 @@ class PoMessage:
     FORMAT_PDF = 'PDF'
     FORMAT_DOC = 'DOC'
     FORMAT_RTF = 'RTF'
+    CAPTCHA_TEXT = 'Please type "${text}" (without the double quotes) in the ' \
+                   'field besides, but without the character at position ' \
+                   '${number}.'
+    BAD_CAPTCHA = 'The code was not correct. Please try again.'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):
