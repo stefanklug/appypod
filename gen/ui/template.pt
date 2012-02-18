@@ -14,19 +14,22 @@
 
 <head>
   <title tal:content="tool/getAppName"></title>
-  <link rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/appy.css"/>
-  <script type="text/javascript" tal:attributes="src string:$appUrl/ui/appy.js"></script>
+  <tal:link repeat="name python: app.ui.objectIds('File')">
+    <link tal:condition="python: name.endswith('.css')"
+          rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>
+    <script tal:condition="python: name.endswith('.js')"
+          type="text/javascript" tal:attributes="src string:$appUrl/ui/$name"></script>
+  </tal:link>
 </head>
 
 <body tal:on-error="structure python: tool.manageError(error)">
 <table class="main" align="center" cellpadding="0">
  <tal:comment replace="nothing">Top banner</tal:comment>
  <tr class="top" metal:define-slot="top">
-  <td>
+  <td tal:attributes="style python: 'background-image: url(%s/ui/banner.jpg)' % appUrl">
    <table width="100%">
     <tr valign="top">
-     <tal:comment replace="nothing">Logo</tal:comment>
-     <td><a tal:attributes="href appUrl"><img tal:attributes="src string: $appUrl/ui/logo.jpg"/></a></td>
+     <td></td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
      <td align="right"
          tal:define="languages tool/getLanguages;
@@ -59,7 +62,7 @@
  <tal:comment replace="nothing">The message strip</tal:comment>
  <tr>
   <td>
-   <div style="position: relative" align="right">
+   <div style="position: relative">
     <metal:msg use-macro="app/ui/page/macros/message"/>
    </div>
    <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>

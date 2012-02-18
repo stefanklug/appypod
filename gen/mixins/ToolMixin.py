@@ -33,6 +33,21 @@ class ToolMixin(BaseMixin):
         if res in ('User', 'Group', 'Translation'): res = appName + res
         return res
 
+    def getHomePage(self):
+        '''Return the home page when a user hits the app.'''
+        # If the app defines a method "getHomePage", call it.
+        appyTool = self.appy()
+        try:
+            url = appyTool.getHomePage()
+        except AttributeError:
+            # Bring Managers to the config, lead others to home.pt.
+            user = self.getUser()
+            if user.has_role('Manager'):
+                url = self.goto(self.absolute_url())
+            else:
+                url = self.goto(self.getApp().ui.home.absolute_url())
+        return url
+
     def getCatalog(self):
         '''Returns the catalog object.'''
         return self.getParentNode().catalog
@@ -829,20 +844,13 @@ class ToolMixin(BaseMixin):
         user = self.acl_users.validate(rq)
         if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')
-            msg = 'Login failed' # XXX to translate
-            logMsg = 'Authentication failed (tried with login "%s")' % login
+            msg = 'Login failed.' # XXX to translate
+            logMsg = 'Authentication failed (tried with login "%s").' % login
         else:
             msg = 'Welcome! You are now logged in.' # XXX to translate
             logMsg = 'User "%s" has been logged in.' % login
         self.log(logMsg)
-        # Bring Managers to the config, leave others on the main page.
-        user = self.getUser()
-        if user.has_role('Manager'):
-            # Bring the user to the configuration
-            url = self.goto(self.absolute_url(), msg)
-        else:
-            url = self.goto(rq['HTTP_REFERER'], msg)
-        return url
+        return self.goto(self.getApp().absolute_url(), msg)
 
     def performLogout(self):
         '''Logs out the current user when he clicks on "disconnect".'''

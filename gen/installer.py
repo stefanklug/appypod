@@ -13,13 +13,9 @@ from appy.shared.data import languages
 
 # ------------------------------------------------------------------------------
 homePage = '''
-<tal:main define="tool python: context.config">
- <html metal:use-macro="context/ui/template/macros/main">
-  <div metal:fill-slot="content">
-   <span tal:replace="structure python: tool.translate('front_page_text')"/>
-  </div>
- </html>
-</tal:main>
+<tal:hp define="tool python: context.config;
+                dummy python: request.RESPONSE.redirect(tool.getHomePage())">
+</tal:hp>
 '''
 errorPage = '''
 <tal:main define="tool python: context.config"
@@ -98,33 +94,46 @@ class ZopeInstaller:
         zopeContent = self.app.objectIds()
         if 'ui' in zopeContent: self.app.manage_delObjects(['ui'])
         manage_addFolder(self.app, 'ui')
-        # Browse the physical folder and re-create it in the Zope folder
+        # Browse the physical ui folders (the Appy one and an app-specific, if
+        # the app defines one) and create the corresponding objects in the Zope
+        # folder. In the case of files having the same name in both folders,
+        # the one from the app-specific folder is chosen.
         j = os.path.join
-        ui = j(j(appy.getPath(), 'gen'), 'ui')
-        for root, dirs, files in os.walk(ui):
-            folderName = root[len(ui):]
-            # Get the Zope folder that corresponds to this name
-            zopeFolder = self.app.ui
-            if folderName:
-                for name in folderName.strip(os.sep).split(os.sep):
-                    zopeFolder = zopeFolder._getOb(name)
-            # Create sub-folders at this level
-            for name in dirs: manage_addFolder(zopeFolder, name)
-            # Create files at this level
-            for name in files:
-                baseName, ext = os.path.splitext(name)
-                f = file(j(root, name))
-                if ext in gen.File.imageExts:
-                    manage_addImage(zopeFolder, name, f)
-                elif ext == '.pt':
-                    manage_addPageTemplate(zopeFolder, baseName, '', f.read())
-                elif ext == '.py':
-                    obj = PythonScript(baseName)
-                    zopeFolder._setObject(baseName, obj)
-                    zopeFolder._getOb(baseName).write(f.read())
-                else:
-                    manage_addFile(zopeFolder, name, f)
-                f.close()
+        uiFolders = [j(j(appy.getPath(), 'gen'), 'ui')]
+        appUi = j(self.config.diskFolder, 'ui')
+        if os.path.exists(appUi): uiFolders.insert(0, appUi)
+        for ui in uiFolders:
+            for root, dirs, files in os.walk(ui):
+                folderName = root[len(ui):]
+                # Get the Zope folder that corresponds to this name
+                zopeFolder = self.app.ui
+                if folderName:
+                    for name in folderName.strip(os.sep).split(os.sep):
+                        zopeFolder = zopeFolder._getOb(name)
+                # Create sub-folders at this level
+                for name in dirs:
+                    if not hasattr(zopeFolder.aq_base, name):
+                        manage_addFolder(zopeFolder, name)
+                # Create files at this level
+                for name in files:
+                    zopeName, ext = os.path.splitext(name)
+                    if ext not in ('.pt', '.py'):
+                        # In the ZODB, pages and scripts have their name without
+                        # their extension.
+                        zopeName = name
+                    if hasattr(zopeFolder.aq_base, zopeName): continue
+                    f = file(j(root, name))
+                    if ext in gen.File.imageExts:
+                        manage_addImage(zopeFolder, zopeName, f)
+                    elif ext == '.pt':
+                        manage_addPageTemplate(zopeFolder,zopeName,'',f.read())
+                    elif ext == '.py':
+                        obj = PythonScript(zopeName)
+                        zopeFolder._setObject(zopeName, obj)
+                        zopeFolder._getOb(zopeName).write(f.read())
+                    else:
+                        manage_addFile(zopeFolder, zopeName, f)
+                    f.close()
         # Update the home page
         if 'index_html' in zopeContent:
             self.app.manage_delObjects(['index_html'])

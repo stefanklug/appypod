@@ -1,4 +1,4 @@
-<tal:main define="tool context/getParentNode">
+<tal:main define="tool python: context.config">
 <html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
    tal:define="className request/className;
