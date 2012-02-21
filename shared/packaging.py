@@ -108,7 +108,7 @@ class Debianizer:
     def __init__(self, app, out, appVersion='0.1.0',
                  pythonVersions=('2.6',), zopePort=8080,
                  depends=('zope2.12', 'openoffice.org', 'imagemagick'),
-                 sign=True):
+                 sign=False):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)
@@ -372,7 +372,15 @@ definitionJsonConf = '''{
 
 class Cortexer:
     '''This class allows to produce a Cortex application definition for
-       a Debianized Python/Appy application.'''
+       a Debianized Python/Appy application.
+
+       Once the "cortex.admin" folder and its content has been generated, in
+       order to push the app definition into Cortex, go in the folder where
+       "cortex.admin" lies and type (command-line tool "cortex-client" must
+       be installed):
+
+       cortex-client sync push --api http://<cortex-host-ip>/api
+    '''
     def __init__(self, app, pythonVersions=('2.6',)):
         self.appName = os.path.basename(app)
         self.pythonVersions = pythonVersions

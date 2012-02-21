@@ -9,6 +9,16 @@ class UserWrapper(AbstractWrapper):
         if self.o.isTemporary(): return 'edit'
         return 'view'
 
+    def showEmail(self):
+        '''In most cases, email is the login. Show the field only if it is not
+           the case.'''
+        email = self.email
+        return email and (email != self.login)
+
+    def showRoles(self):
+        '''Only the admin can view or edit roles.'''
+        return self.user.has_role('Manager')
+
     def validateLogin(self, login):
         '''Is this p_login valid?'''
         # The login can't be the id of the whole site or "admin"
@@ -28,8 +38,11 @@ class UserWrapper(AbstractWrapper):
 
     def showPassword(self):
         '''When must we show the 2 fields for entering a password ?'''
+        # When someone creates the user
         if self.o.isTemporary(): return 'edit'
-        return False
+        # When the user itself (which is Owner of the object representing him)
+        # wants to edit information about himself.
+        if self.user.has_role('Owner', self): return 'edit'
 
     def getGrantableRoles(self):
         '''Returns the list of roles that the admin can grant to a user.'''
@@ -64,9 +77,16 @@ class UserWrapper(AbstractWrapper):
             # granted to it.
             zopeUser.groups = PersistentMapping()
         else:
-            # Updates roles at the Zope level.
+            # Update roles at the Zope level.
             zopeUser = aclUsers.getUserById(login)
             zopeUser.roles = self.roles
+            # Update the password if the user has entered new ones.
+            rq = self.request
+            if rq.has_key('password1'):
+                zopeUser.__ = aclUsers._encryptPassword(rq['password1'])
+                # Update the cookie value
+                self.tool.o._updateCookie(login, rq['password1'])
+            self.password1 = self.password2 = ''
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))

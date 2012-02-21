@@ -335,8 +335,7 @@ class ZopeInstaller:
                          (translation.id, poName))
 
         # Execute custom installation code if any
-        if hasattr(appyTool, 'install'):
-            tool.executeAppyAction('install', reindex=False)
+        if hasattr(appyTool, 'onInstall'): appyTool.onInstall()
 
     def configureSessions(self):
         '''Configure the session machinery.'''

@@ -14,7 +14,7 @@
 
 <head>
   <title tal:content="tool/getAppName"></title>
-  <tal:link repeat="name python: app.ui.objectIds('File')">
+  <tal:link repeat="name tool/getCssJs">
     <link tal:condition="python: name.endswith('.css')"
           rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>
     <script tal:condition="python: name.endswith('.js')"
@@ -31,12 +31,10 @@
     <tr valign="top">
      <td></td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
-     <td align="right"
-         tal:define="languages tool/getLanguages;
-                     defaultLanguage python: languages[0];
-                     suffix python: req.get('ACTUAL_URL').split('/')[-1];
-                     asLinks python: len(languages) &lt;= 5"
-         tal:condition="python: len(languages) &gt;= 2 and (suffix not in ('edit', 'query', 'search'))">
+     <td align="right" tal:condition="tool/showLanguageSelector">
+     <tal:lgs define="languages tool/getLanguages;
+                      defaultLanguage python: languages[0];
+                      asLinks python: len(languages) &lt;= 5">
       <table tal:condition="asLinks">
        <tr>
         <td tal:repeat="lang languages">
@@ -54,6 +52,7 @@
                tal:attributes="selected python:defaultLanguage == lang; value lang">
        </option>
       </select>
+      </tal:lgs>
      </td>
     </tr>
    </table>

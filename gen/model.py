@@ -85,7 +85,10 @@ class ModelClass:
             elif isinstance(value, gen.Page):
                 value = 'pages["%s"]' % value.name
             elif callable(value):
-                value = '%s.%s' % (wrapperName, value.__name__)
+                className = wrapperName
+                if (appyType.type == 'Ref') and appyType.isBack:
+                    className = appyType.back.klass.__name__
+                value = '%s.%s' % (className, value.__name__)
             typeArgs += '%s=%s,' % (name, value)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
 
@@ -144,10 +147,12 @@ class User(ModelClass):
     password1 = gen.String(format=gen.String.PASSWORD, show=showPassword,
                            validator=validatePassword, **gm)
     password2 = gen.String(format=gen.String.PASSWORD, show=showPassword, **gm)
-    email = gen.String(group='main', width=25)
+    def showEmail(self): pass
+    email = gen.String(show=showEmail, group='main', width=25)
     gm['multiplicity'] = (0, None)
-    roles = gen.String(validator=gen.Selection('getGrantableRoles'),
-                       indexed=True, **gm)
+    def showRoles(self): pass
+    roles = gen.String(show=showRoles, indexed=True,
+                       validator=gen.Selection('getGrantableRoles'), **gm)
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):
@@ -163,7 +168,7 @@ class Group(ModelClass):
     roles = gen.String(validator=gen.Selection('getGrantableRoles'),
                        multiplicity=(0,None), **m)
     users = gen.Ref(User, multiplicity=(0,None), add=False, link=True,
-                    back=gen.Ref(attribute='groups', show=True),
+                    back=gen.Ref(attribute='groups', show=User.showRoles),
                     showHeaders=True, shownInfo=('title', 'login'))
 
 # The Translation class --------------------------------------------------------

@@ -102,6 +102,16 @@ class ToolMixin(BaseMixin):
         for elem in path.split('/'): res = res._getOb(elem)
         return res
 
+    def showLanguageSelector(self):
+        '''We must show the language selector if the app config requires it and
+           it there is more than 2 supported languages. Moreover, on some pages,
+           switching the language is not allowed.'''
+        cfg = self.getProductConfig()
+        if not cfg.languageSelector: return
+        if len(cfg.languages) < 2: return
+        page = self.REQUEST.get('ACTUAL_URL').split('/')[-1]
+        return page not in ('edit', 'query', 'search')
+
     def getLanguages(self):
         '''Returns the supported languages. First one is the default.'''
         return self.getProductConfig().languages
@@ -110,6 +120,14 @@ class ToolMixin(BaseMixin):
         '''Gets the language name (in this language) from a 2-chars language
            p_code.'''
         return languages.get(code)[2]
+
+    def getCssJs(self):
+        '''Returns the list of CSS and JS files to include in the main template.
+           The method ensures that appy.css and appy.js come first.'''
+        names = self.getPhysicalRoot().ui.objectIds('File')
+        names.remove('appy.js'); names.insert(0, 'appy.js')
+        names.remove('appy.css'); names.insert(0, 'appy.css')
+        return names
 
     def consumeMessages(self):
         '''Returns the list of messages to show to a web page and clean it in
@@ -825,6 +843,11 @@ class ToolMixin(BaseMixin):
     # --------------------------------------------------------------------------
     # Authentication-related methods
     # --------------------------------------------------------------------------
+    def _updateCookie(self, login, password):
+        cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
+        cookieValue = urllib.quote(cookieValue)
+        self.REQUEST.RESPONSE.setCookie('__ac', cookieValue, path='/')
+
     def performLogin(self):
         '''Logs the user in.'''
         rq = self.REQUEST
@@ -837,10 +860,7 @@ class ToolMixin(BaseMixin):
             return self.goto(urlBack, msg)
         # Perform the Zope-level authentication
         login = rq.get('__ac_name', '')
-        password = rq.get('__ac_password', '')
-        cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
-        cookieValue = urllib.quote(cookieValue)
-        rq.RESPONSE.setCookie('__ac', cookieValue, path='/')
+        self._updateCookie(login, rq.get('__ac_password', ''))
         user = self.acl_users.validate(rq)
         if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')

@@ -1,0 +1,7 @@
+<tal:main define="tool python: context.config">
+ <html metal:use-macro="context/ui/template/macros/main">
+  <div metal:fill-slot="content">
+   <span tal:replace="structure python: tool.translate('front_page_text')"/>
+  </div>
+ </html>
+</tal:main>

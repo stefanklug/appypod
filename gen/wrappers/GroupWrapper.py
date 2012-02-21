@@ -9,6 +9,10 @@ class GroupWrapper(AbstractWrapper):
         if self.o.isTemporary(): return 'edit'
         return 'view'
 
+    def showGroups(self):
+        '''Only the admin can view or edit roles.'''
+        return self.user.has_role('Manager')
+
     def validateLogin(self, login):
         '''Is this p_login valid?'''
         return True
