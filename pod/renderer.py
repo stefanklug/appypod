@@ -297,6 +297,9 @@ class Renderer:
         # Guess document format
         if isinstance(content, FileWrapper):
             format = content.mimeType
+        elif hasattr(content, 'filename') and content.filename:
+            format = os.path.splitext(content.filename)[1][1:]
+            content = content.data
         if not format:
             # It should be deduced from p_at
             if not at:

@@ -146,7 +146,7 @@ class PdfImporter(DocImporter):
             if os.path.exists(nextImage):
                 # Use internally an Image importer for doing this job.
                 imgImporter =ImageImporter(None, nextImage, 'jpg',self.renderer)
-                imgImporter.setAnchor('paragraph')
+                imgImporter.setImageInfo('paragraph', True, None, None, None)
                 self.res += imgImporter.run()
                 os.remove(nextImage)
             else:

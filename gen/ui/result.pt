@@ -118,7 +118,7 @@
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
       <td align="right">
-        <table class="noStyle">
+        <table class="noStyle" tal:condition="obj/mayAct">
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>
             <td>

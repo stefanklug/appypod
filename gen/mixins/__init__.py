@@ -923,6 +923,15 @@ class BaseMixin:
         if hasattr(appyObj, 'mayNavigate'): return appyObj.mayNavigate()
         return True
 
+    def mayAct(self):
+        '''May the currently logged user see column "actions" for this
+           object? This can be used for hiding the "edit" icon, for example:
+           when a user may edit only a restricted set of fields on an object,
+           we may avoid showing him the global "edit" icon.'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'mayAct'): return appyObj.mayAct()
+        return True
+
     def mayDelete(self):
         '''May the currently logged user delete this object? This condition
            comes as an addition/refinement to the corresponding workflow
@@ -1290,6 +1299,13 @@ class BaseMixin:
     def getProductConfig(self):
         '''Returns a reference to the config module.'''
         return self.__class__.config
+
+    def getParent(self):
+        '''If this object is stored within another one, this method returns it.
+           Else (if the object is stored directly within the tool or the root
+           data folder) it returns None.'''
+        parent = self.getParentNode()
+        if parent.meta_type != 'Folder': return parent
 
     def index_html(self):
        '''Redirects to /ui.'''

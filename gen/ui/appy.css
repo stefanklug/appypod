@@ -1,5 +1,5 @@
-body { font: 75% Lucida,Helvetica,Arial,sans-serif; background-color: #EAEAEA; }
-pre { font: 100% Lucida,Helvetica,Arial,sans-serif; margin: 0}
+body { font: 75% Helvetica,Arial,sans-serif; background-color: #EAEAEA; }
+pre { font: 100% Helvetica,Arial,sans-serif; margin: 0}
 h1 { font-size: 11pt; margin:0;}
 h2 { font-size: 10pt; margin:0; font-style: italic; font-weight: normal;}
 h3 { font-size: 9pt; margin:0; font-weight: bold;}
@@ -19,13 +19,13 @@ input[type=button] { border: 1px solid #cccccc;
 input[type=submit] { border: 1px solid #cccccc; background-color: #f8f8f8;
                      cursor: pointer; }
 input[type=password] { border: 1px solid #cccccc; background-color: #f8f8f8;
-                       font-family: Lucida,Helvetica,Arial,sans-serif;}
+                       font-family: Helvetica,Arial,sans-serif;}
 input[type=text] { border: 1px solid #cccccc; background-color: #f8f8f8;
-                   font-family: Lucida,Helvetica,Arial,sans-serif;
+                   font-family: Helvetica,Arial,sans-serif;
                    margin-bottom: 1px}
 select { border: 1px solid #cccccc; background-color: #f8f8f8;}
 
-textarea { width: 99%; font: 100% Lucida,Helvetica,Arial,sans-serif;
+textarea { width: 99%; font: 100% Helvetica,Arial,sans-serif;
            border: 1px solid #a79e9e; background-color: #f8f8f8;}
 label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 legend { padding-bottom: 2px; padding-right: 3px; color: black;}
@@ -40,19 +40,19 @@ img {border: 0}
         border-style: solid; border-width: 1px; border-color: grey; }
 .top { height: 75px; margin-left: 3em; vertical-align: top;}
 .lang { margin-right: 3px; }
-.userStrip { background-color: #89A6B1; height: 40px;
-             border-top: 3px solid #405A64; border-bottom: 2px solid #5F7983; }
+.userStrip { background-color: #d7dee4; height: 40px;
+             border-top: 1px solid #5F7983; border-bottom: 1px solid #5F7983; }
 .login { margin-top: 2px; margin-bottom: 2px; color: white;}
 .buttons { margin-left: 4px;}
 .message { color: #fd9c03; position: absolute; top: -55px; left: 100px;
            width: 700px; border: 1px black dashed; padding: 2px 6px;
            background-color: #f4f5f6}
 .discreet { font-size: 90%; }
-.portlet { width: 150px; padding: 12px 9px 9px 9px;
-           border-right: 2px solid #5F7983;}
+.portlet { width: 150px; border-right: 1px solid #5F7983;}
+.portletContent { margin: 9px; }
 .portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px;}
 .portletCurrent { font-weight: bold; }
-.portletSep { border-top: 1px solid grey; margin-top: 9px; padding-top: 9px;}
+.portletSep { border-top: 1px solid #5F7983; margin-top: 2px;}
 .portletPage { font-style: italic; }
 .portletGroup { font-variant: small-caps; font-weight: bold; font-style: normal;
                 margin: 0.4em 0 0.2em 0; }
@@ -68,7 +68,7 @@ img {border: 0}
 .list { border: 1px solid grey; margin-bottom: 3px;}
 .list td, .list th { border: 1px solid grey;
                      padding-left: 5px; padding-right: 5px; padding-top: 3px;}
-.list th { background-color: #c8d7e1; font-style: italic; font-weight: normal;}
+.list th { background-color: #d7dee4; font-style: italic; font-weight: normal;}
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 2px solid grey; padding: 2px 2px;}
 .grid td { padding-right: 5px; }

@@ -9,49 +9,56 @@
                contextObj         tool/getPublishedObject;
                rootClasses        tool/getRootClasses">
 
-  <tal:publishedObject condition="python: contextObj and contextObj.mayNavigate()">
-  <div class="portletTitle" tal:content="contextObj/Title"></div>
+ <div class="portletContent" tal:condition="python: contextObj and contextObj.mayNavigate()">
+  <div class="portletTitle" tal:define="parent contextObj/getParent">
+    <span tal:replace="contextObj/Title"></span>
+    <div style="float:right" tal:condition="python: parent">
+     <a tal:attributes="href parent/absolute_url">
+       <img tal:attributes="src string: $appUrl/ui/gotoSource.png"/>
+     </a>
+    </div>
+  </div>
   <span><metal:phases use-macro="here/ui/portlet/macros/phases"/></span>
-  </tal:publishedObject>
+ </div>
 
-  <tal:comment replace="nothing">One section for every searchable root class.</tal:comment>
-  <tal:section repeat="rootClass python: [rc for rc in rootClasses if tool.userMaySearch(rc)]">
-    <tal:comment replace="nothing">Section title, with action icons</tal:comment>
-    <table width="100%"
-           tal:attributes="class python:test((repeat['rootClass'].number()==1) and not contextObj, '', 'portletSep')">
-     <tr>
-      <td>
-       <a tal:attributes="href python: '%s?className=%s' % (queryUrl, rootClass);
-                          class python:test(not currentSearch and (currentClass==rootClass), 'portletCurrent', '')"
-          tal:content="structure python: _(rootClass + '_plural')"></a>
-      </td>
-      <td align="right"
-          tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
-                      userMayAdd python: user.has_permission(addPermission, appFolder);
-                      createMeans python: tool.getCreateMeans(rootClass)">
-       <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
-       <a tal:condition="python: ('form' in createMeans) and userMayAdd"
-          tal:attributes="href python: '%s/do?action=Create&className=%s' % (toolUrl, rootClass);
-                          title python: _('query_create')">
-        <img tal:attributes="src string: $appUrl/ui/plus.png"/>
-       </a>
-       <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
-       <a tal:condition="python: ('import' in createMeans) and userMayAdd"
-          tal:attributes="href python: '%s/ui/import?className=%s' % (toolUrl, rootClass);
-                          title python: _('query_import')">
-        <img tal:attributes="src string: $appUrl/ui/import.png"/>
-       </a>
-       <tal:comment replace="nothing">Search objects of this type</tal:comment>
-       <a tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
-          tal:condition="showSearch"
-          tal:attributes="href python: '%s/ui/search?className=%s' % (toolUrl, rootClass);
-                          title python: _('search_objects')">
-        <img tal:attributes="src string: $appUrl/ui/search.gif"/>
-       </a>
-      </td>
-     </tr>
-    </table>
-    <tal:comment replace="nothing">Searches for this content type.</tal:comment>
+ <tal:comment replace="nothing">One section for every searchable root class.</tal:comment>
+ <tal:section repeat="rootClass python: [rc for rc in rootClasses if tool.userMaySearch(rc)]">
+
+  <tal:comment replace="nothing">A separator if required</tal:comment>
+  <div class="portletSep" tal:define="nb repeat/rootClass/number"
+                          tal:condition="python: (nb == 1 and contextObj) or (nb != 1)"></div>  
+
+  <div class="portletContent">
+   <tal:comment replace="nothing">Section title, with action icons</tal:comment>
+   <a tal:attributes="href python: '%s?className=%s' % (queryUrl, rootClass);
+                      class python:test(not currentSearch and (currentClass==rootClass), 'portletCurrent', '')"
+      tal:content="structure python: _(rootClass + '_plural')">
+   </a>
+   <div style="float: right"
+        tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
+                    userMayAdd python: user.has_permission(addPermission, appFolder);
+                    createMeans python: tool.getCreateMeans(rootClass)">
+    <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
+    <a tal:condition="python: ('form' in createMeans) and userMayAdd"
+       tal:attributes="href python: '%s/do?action=Create&className=%s' % (toolUrl, rootClass);
+                       title python: _('query_create')">
+     <img tal:attributes="src string: $appUrl/ui/plus.png"/>
+    </a>
+    <tal:comment replace="nothing">Create (a) new object(s) by importing data</tal:comment>
+    <a tal:condition="python: ('import' in createMeans) and userMayAdd"
+       tal:attributes="href python: '%s/ui/import?className=%s' % (toolUrl, rootClass);
+                       title python: _('query_import')">
+     <img tal:attributes="src string: $appUrl/ui/import.png"/>
+    </a>
+    <tal:comment replace="nothing">Search objects of this type</tal:comment>
+    <a tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
+       tal:condition="showSearch"
+       tal:attributes="href python: '%s/ui/search?className=%s' % (toolUrl, rootClass);
+                       title python: _('search_objects')">
+     <img tal:attributes="src string: $appUrl/ui/search.gif"/>
+    </a>
+   </div>
+   <tal:comment replace="nothing">Searches for this content type.</tal:comment>
     <tal:searchOrGroup repeat="searchOrGroup python: tool.getSearches(rootClass)">
       <tal:group condition="searchOrGroup/isGroup">
       <tal:expanded define="group searchOrGroup;
@@ -84,7 +91,7 @@
                      class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
            tal:content="structure search/label"></a>
       </dt>
-    </tal:searchOrGroup>
+   </tal:searchOrGroup>
   </tal:section>
 </metal:portlet>
 
