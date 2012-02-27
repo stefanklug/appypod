@@ -6,7 +6,7 @@
 import os, os.path, sys, shutil, re
 from optparse import OptionParser
 from appy.shared.utils import cleanFolder, copyFolder
-from appy.shared.packaging import ooStartSh, zopeConf
+from appy.shared.packaging import ooStart, zopeConf
 
 # ------------------------------------------------------------------------------
 class NewError(Exception): pass
@@ -114,7 +114,7 @@ class ZopeInstanceCreator:
         os.chmod('bin/runzope', 0744) # Make it executable by owner.
         # Create bin/startoo
         f = file('bin/startoo', 'w')
-        f.write(ooStartSh)
+        f.write(ooStart)
         f.close()
         os.chmod('bin/startoo', 0744) # Make it executable by owner.
         # Create etc/zope.conf

@@ -24,9 +24,8 @@ ZopeRunner().run()
 appRun = '''#! /bin/sh
 exec "/usr/lib/zope2.12/bin/runzope" -C "/etc/%s.conf" "$@"
 '''
-ooStart = 'soffice -invisible -headless -nofirststartwizard ' \
+ooStart = '#! /bin/sh\nsoffice -invisible -headless -nofirststartwizard ' \
           '"-accept=socket,host=localhost,port=2002;urp;"'
-ooStartSh = '#! /bin/sh\n%s\n' % ooStart
 zopeConf = '''# Zope configuration.
 %%define INSTANCE %s
 %%define DATA %s
@@ -80,7 +79,7 @@ initScript = '''#! /bin/sh
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Start %s
-# Description:       Start the Zope and Appy-based %s application.
+# Description:       %s
 ### END INIT INFO
 
 case "$1" in
@@ -172,7 +171,7 @@ class Debianizer:
             # startoo
             name = '%s/startoo' % binFolder
             f = file(name, 'w')
-            f.write(ooStartSh)
+            f.write(ooStart)
             f.close()
             os.chmod(name, 0744) # Make it executable by owner.
             # /var/lib/<app> (will store Data.fs, lock files, etc)
@@ -205,7 +204,7 @@ class Debianizer:
             name = '%s/%s' % (initdFolder, self.appNameLower)
             f = file(name, 'w')
             n = self.appNameLower
-            f.write(initScript % (n, n, 'Start the Zope and Appy-based %s ' \
+            f.write(initScript % (n, n, 'Start Zope with the Appy-based %s ' \
                                   'application.' % n, '%sctl start' % n,
                                   '%sctl restart' % n, '%sctl stop' % n))
             f.close()
@@ -214,7 +213,7 @@ class Debianizer:
             name = '%s/oo' % initdFolder
             f = file(name, 'w')
             f.write(initScript % ('oo', 'oo', 'Start OpenOffice in server mode',
-                                  ooStart, ooStart, "#Can't stop OO."))
+                                  'startoo', 'startoo', "#Can't stop OO."))
             f.close()
             os.chmod(name, 0744) # Make it executable by owner.
         # Get the size of the app, in Kb.

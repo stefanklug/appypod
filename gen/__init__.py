@@ -2150,7 +2150,7 @@ class Pod(Type):
         tempFileName = '%s/%s_%f.%s' % (
             getOsTempFolder(), obj.uid, time.time(), outputFormat)
         # Define parameters to give to the appy.pod renderer
-        podContext = {'tool': tool, 'user': obj.user, 'self': obj,
+        podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
                       '_': obj.translate, 'projectFolder': tool.getDiskFolder()}
         # If the POD document is related to a query, get it from the request,
