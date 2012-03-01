@@ -583,7 +583,6 @@ class Type:
         else:
             master, masterValue = masterData
             reqValue = master.getRequestValue(obj.REQUEST)
-            reqValue = master.getStorableValue(reqValue)
             # reqValue can be a list or not
             if type(reqValue) not in sequenceTypes:
                 return reqValue in masterValue
@@ -783,10 +782,21 @@ class Type:
             return res
         return value
 
-    def getRequestValue(self, request):
-        '''Gets the string (or list of strings if multi-valued)
-           representation of this field as found in the p_request.'''
-        return request.get(self.name, None)
+    def getRequestValue(self, request, requestName=None):
+        '''Gets a value for this field as carried in the request object. In the
+           simplest cases, the request value is a single value whose name in the
+           request is the name of the field.
+
+           Sometimes (ie: a Date: see the overriden method in the Date class),
+           several request values must be combined.
+
+           Sometimes (ie, a field which is a sub-field in a List), the name of
+           the request value(s) representing the field value do not correspond
+           to the field name (ie: the request name includes information about
+           the container field). In this case, p_requestName must be used for
+           searching into the request, instead of the field name (self.name).'''
+        name = requestName or self.name
+        return request.get(name, None)
 
     def getStorableValue(self, value):
         '''p_value is a valid value initially computed through calling
@@ -1474,11 +1484,12 @@ class Date(Type):
             res += ' %s' % value.strftime('%H:%M')
         return res
 
-    def getRequestValue(self, request):
+    def getRequestValue(self, request, requestName=None):
+        name = requestName or self.name
         # Manage the "date" part
         value = ''
         for part in self.dateParts:
-            valuePart = request.get('%s_%s' % (self.name, part), None)
+            valuePart = request.get('%s_%s' % (name, part), None)
             if not valuePart: return None
             value += valuePart + '/'
         value = value[:-1]
@@ -1486,7 +1497,7 @@ class Date(Type):
         if self.format == self.WITH_HOUR:
             value += ' '
             for part in self.hourParts:
-                valuePart = request.get('%s_%s' % (self.name, part), None)
+                valuePart = request.get('%s_%s' % (name, part), None)
                 if not valuePart: return None
                 value += valuePart + ':'
             value = value[:-1]
@@ -1544,8 +1555,9 @@ class File(Type):
         if not value: return value
         return value._zopeFile
 
-    def getRequestValue(self, request):
-        return request.get('%s_file' % self.name)
+    def getRequestValue(self, request, requestName=None):
+        name = requestName or self.name
+        return request.get('%s_file' % name)
 
     def getDefaultLayouts(self): return {'view':'l-f','edit':'lrv-f'}
 
@@ -2251,25 +2263,22 @@ class List(Type):
         for n, field in self.fields:
             if n == name: return field
 
-    def getRequestValue(self, request):
+    def getRequestValue(self, request, requestName=None):
         '''Concatenates the list from distinct form elements in the request.'''
-        prefix = self.name + '*' + self.fields[0][0] + '*'
+        name = requestName or self.name # A List may be into another List (?)
+        prefix = name + '*' + self.fields[0][0] + '*'
         res = {}
         for key in request.keys():
             if not key.startswith(prefix): continue
             # I have found a row. Gets its index
             row = Object()
+            if '_' in key: key = key[:key.index('_')]
             rowIndex = int(key.split('*')[-1])
             if rowIndex == -1: continue # Ignore the template row.
-            for name, field in self.fields:
-                keyName = '%s*%s*%s' % (self.name, name, rowIndex)
-                if request.has_key(keyName):
-                    # Simulate the request as if it was for a single value
-                    request.set(field.name, request[keyName])
-                    v = field.getRequestValue(request)
-                else:
-                    v = None
-                setattr(row, name, v)
+            for subName, subField in self.fields:
+                keyName = '%s*%s*%s' % (name, subName, rowIndex)
+                v = subField.getRequestValue(request, requestName=keyName)
+                setattr(row, subName, v)
             res[rowIndex] = row
         # Produce a sorted list.
         keys = res.keys()
@@ -2280,7 +2289,7 @@ class List(Type):
         # instead of taking it from the specific request key. Indeed, specific
         # request keys contain row indexes that may be wrong after row deletions
         # by the user.
-        request.set(self.name, res)
+        request.set(name, res)
         return res
 
     def getStorableValue(self, value):
@@ -2300,6 +2309,22 @@ class List(Type):
         if not outerValue: return ''
         if i >= len(outerValue): return ''
         return getattr(outerValue[i], name, '')
+
+    def getCss(self, layoutType):
+        '''Gets the CSS required by sub-fields if any.'''
+        res = ()
+        for name, field in self.fields:
+            css = field.getCss(layoutType)
+            if css: res += css
+        return res
+
+    def getJs(self, layoutType):
+        '''Gets the JS required by sub-fields if any.'''
+        res = ()
+        for name, field in self.fields:
+            js = field.getJs(layoutType)
+            if js: res += js
+        return res
 
 # Workflow-specific types and default workflows --------------------------------
 appyToZopePermissions = {

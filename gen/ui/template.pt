@@ -14,7 +14,7 @@
 
 <head>
   <title tal:content="tool/getAppName"></title>
-  <tal:link repeat="name tool/getCssJs">
+  <tal:link repeat="name tool/getGlobalCssJs">
     <link tal:condition="python: name.endswith('.css')"
           rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>
     <script tal:condition="python: name.endswith('.js')"

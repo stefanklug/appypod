@@ -502,26 +502,58 @@ function updateRowNumber(row, rowIndex, action) {
      with new p_rowIndex. If p_action is 'set', p_rowIndex becomes the new
      index. If p_action is 'add', new index becomes:
      existing index + p_rowIndex. */
-  tagTypes = ['input', 'select'];
-  currentIndex = -1;
+  var tagTypes = ['input', 'select', 'img'];
+  var currentIndex = -1;
   for (var i=0; i < tagTypes.length; i++) {
-    widgets = row.getElementsByTagName(tagTypes[i]);
+    var widgets = row.getElementsByTagName(tagTypes[i]);
     for (var j=0; j < widgets.length; j++) {
-      id = widgets[j].id;
-      name = widgets[j].name;
+      var id = widgets[j].id;
+      if (!id) continue;
+      var name = widgets[j].name;
+      // Extract the suffix if there is one (ie, if the field is a Date part:
+      // _img, _day,...).
+      var iSuffix = id.lastIndexOf('_');
+      var idSuffix = '';
+      if (iSuffix != -1) {
+        idSuffix = id.substring(iSuffix);
+        id = id.substring(0, iSuffix);
+      }
+      var nSuffix = name.lastIndexOf('_');
+      var nameSuffix = '';
+      if (nSuffix != -1) {
+        nameSuffix = id.substring(nSuffix);
+        name = name.substring(0, nSuffix);
+      }
+      // Compute the current row index if not already done.
       idNbIndex = id.lastIndexOf('*') + 1;
       nameNbIndex = name.lastIndexOf('*') + 1;
-      // Compute the current row index if not already done.
       if (currentIndex == -1) {
         currentIndex = parseInt(id.substring(idNbIndex));
       }
       // Compute the new values for attributes "id" and "name".
       newId = id.substring(0, idNbIndex);
-      newName = id.substring(0, nameNbIndex);
+      newName = name.substring(0, nameNbIndex);
       newIndex = rowIndex;
       if (action == 'add') newIndex = newIndex + currentIndex;
-      widgets[j].id = newId + String(newIndex);
-      widgets[j].name = newName + String(newIndex);
+      var oldId = widgets[j].id;
+      widgets[j].id = newId + String(newIndex) + idSuffix;
+      if (name) widgets[j].name = newName + String(newIndex) + nameSuffix;
+      /* In the case of an img that must show a calendar, update the script that
+         is triggered when clicking on it. */
+      if ((tagTypes[i] == 'img') && (idSuffix == '_img')) {
+        var scripts = row.getElementsByTagName('script');
+        for (var k=0; k < scripts.length; k++) {
+          var text = scripts[k].text;
+          if (text.indexOf(oldId) != -1) {
+            var oldIdField = oldId.substring(0, oldId.length-4);
+            var newIdField = widgets[j].id.substring(0, widgets[j].id.length-4);
+            text = text.replace(oldIdField, newIdField);
+            scripts[k].text = text.replace(oldId, widgets[j].id);
+            eval(scripts[k].text);
+            break;
+          }
+        }
+      }
     }
   }
 }
@@ -530,9 +562,9 @@ function insertRow(tableId) {
   table = document.getElementById(tableId);
   newRow = table.rows[1].cloneNode(true);
   newRow.style.display = 'table-row';
-  // Within newRow, I must include in field names and ids the row number
-  updateRowNumber(newRow, table.rows.length-3, 'set');
+  // Within newRow, incorporate the row number within field names and ids.
   table.tBodies[0].appendChild(newRow);
+  updateRowNumber(newRow, table.rows.length-4, 'set');
 }
 
 function deleteRow(tableId, deleteImg) {

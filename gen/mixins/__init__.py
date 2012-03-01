@@ -562,7 +562,10 @@ class BaseMixin:
            field is supposed to belong to self's class.'''
         isInnerType = '*' in name # An inner type lies within a List type.
         subName = None
-        if isInnerType: name, subName, i = name.split('*')
+        if isInnerType:
+            elems = name.split('*')
+            if len(elems) == 2: name, subName = elems
+            else:               name, subName, i = elems
         if not className:
             klass = self.__class__.wrapperClass
         else:
@@ -614,10 +617,10 @@ class BaseMixin:
             res.append(appyType)
         return res
 
-    def getCssAndJs(self, fields, layoutType):
+    def getCssJs(self, fields, layoutType):
         '''Gets the list of Javascript and CSS files required by Appy types
            p_fields when shown on p_layoutType.'''
-        # lists css and js below are not sets, because order of Javascript
+        # Lists css and js below are not sets, because order of Javascript
         # inclusion can be important, and this could be losed by using sets.
         css = []
         js = []

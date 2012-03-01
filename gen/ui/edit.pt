@@ -9,7 +9,7 @@
                 phaseInfo   python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);
                 phase       phaseInfo/name;
                 page        request/page|python:'main';
-                cssJs       python: contextObj.getCssAndJs(contextObj.getAppyTypes(layoutType, page), layoutType);
+                cssJs       python: contextObj.getCssJs(contextObj.getAppyTypes(layoutType, page), layoutType);
                 confirmMsg  request/confirmMsg | nothing;"
     tal:on-error="structure python: tool.manageError(error)">
 

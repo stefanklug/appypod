@@ -121,7 +121,7 @@ class ToolMixin(BaseMixin):
            p_code.'''
         return languages.get(code)[2]
 
-    def getCssJs(self):
+    def getGlobalCssJs(self):
         '''Returns the list of CSS and JS files to include in the main template.
            The method ensures that appy.css and appy.js come first.'''
         names = self.getPhysicalRoot().ui.objectIds('File')
