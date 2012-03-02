@@ -58,7 +58,7 @@ img {border: 0}
                 margin: 0.4em 0 0.2em 0; }
 .phase { border-style: dashed; border-width: thin; padding: 0 0.6em 5px 1em;}
 .phaseSelected { background-color: #F4F5F6; }
-.content { padding: 14px 3px 9px 15px;}
+.content { padding: 14px 14px 9px 15px;}
 .grey { display: none; position: absolute; left: 0px; top: 0px;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
         filter:alpha(Opacity=50);}
@@ -81,8 +81,9 @@ img {border: 0}
             border-top: 1px solid #8CACBB;border-bottom: 1px solid #8CACBB; }
 .section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.2em 0;
             border-bottom: 2px solid grey; }
-.section3 { font-size: 100%; font-style: italic; margin: 0.45em 0em 0.1em 0;
-            background-color: #F4F5F6; text-align: center; color: grey; }
+.section3 { font-size: 100%; font-style: italic; font-weight: bold;
+            margin: 0.45em 0em 0.1em 0; background-color: #F4F5F6;
+            text-align: center; color: grey; }
 .odd { background-color: white; }
 .even { background-color: #F4F5F6; }
 .summary {margin-bottom: 5px;}

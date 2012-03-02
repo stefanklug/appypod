@@ -1898,7 +1898,8 @@ class Ref(Type):
                     self.back.unlinkObject(tool.getObject(refs[i]), obj)
                 i -= 1
         # Link new objects
-        self.linkObject(obj, objects)
+        if objects:
+            self.linkObject(obj, objects)
 
     def clone(self, forTool=True):
         '''Produces a clone of myself.'''

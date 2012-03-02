@@ -241,7 +241,7 @@
 <select tal:attributes="name name;
                         size python: test(isMultiple, widget['height'], '');
                         multiple python: test(isMultiple, 'multiple', '')">
-  <option tal:condition="not: isMultiple" tal:content="python: _('choose_a_value')"></option>
+  <option value="" tal:condition="not: isMultiple" tal:content="python: _('choose_a_value')"></option>
   <tal:ref repeat="refObj allObjects">
     <option tal:define="uid python: contextObj.getReferenceUid(refObj)"
             tal:content="python: contextObj.getReferenceLabel(name, refObj)"
