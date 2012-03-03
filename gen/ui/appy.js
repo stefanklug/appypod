@@ -521,7 +521,7 @@ function updateRowNumber(row, rowIndex, action) {
       var nSuffix = name.lastIndexOf('_');
       var nameSuffix = '';
       if (nSuffix != -1) {
-        nameSuffix = id.substring(nSuffix);
+        nameSuffix = name.substring(nSuffix);
         name = name.substring(0, nSuffix);
       }
       // Compute the current row index if not already done.

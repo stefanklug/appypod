@@ -9,6 +9,10 @@ class UserWrapper(AbstractWrapper):
         if self.o.isTemporary(): return 'edit'
         return 'view'
 
+    def showName(self):
+        '''Name and first name, by default, are always shown.'''
+        return True
+
     def showEmail(self):
         '''In most cases, email is the login. Show the field only if it is not
            the case.'''
@@ -178,8 +182,11 @@ class ZopeUserPatches:
                 if self._check_context(object): return 1
                 return
 
-    from AccessControl.User import SimpleUser
-    SimpleUser.getRoles = getRoles
-    SimpleUser.getRolesInContext = getRolesInContext
-    SimpleUser.allowed = allowed
+    try:
+        from AccessControl.User import SimpleUser
+        SimpleUser.getRoles = getRoles
+        SimpleUser.getRolesInContext = getRolesInContext
+        SimpleUser.allowed = allowed
+    except ImportError:
+        pass
 # ------------------------------------------------------------------------------
