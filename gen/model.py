@@ -189,8 +189,8 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showWorkflowCommentField', 'showAllStatesInPhase')
-defaultToolFields = ('users', 'groups', 'translations', 'enableNotifications',
-                     'unoEnabledPython', 'openOfficePort',
+defaultToolFields = ('title', 'users', 'groups', 'translations',
+                     'enableNotifications', 'unoEnabledPython','openOfficePort',
                      'numberOfResultsPerPage', 'listBoxesMaximumWidth',
                      'appyVersion', 'refreshSecurity')
 
@@ -199,12 +199,13 @@ class Tool(ModelClass):
     _appy_attributes = list(defaultToolFields)
 
     # Tool attributes
+    title = gen.String(show=False, page=gen.Page('main', show=False))
     def validPythonWithUno(self, value): pass # Real method in the wrapper
     unoEnabledPython = gen.String(group="connectionToOpenOffice",
                                   validator=validPythonWithUno)
     openOfficePort = gen.Integer(default=2002, group="connectionToOpenOffice")
-    numberOfResultsPerPage = gen.Integer(default=30, show=False)
-    listBoxesMaximumWidth = gen.Integer(default=100, show=False)
+    numberOfResultsPerPage = gen.Integer(default=30)
+    listBoxesMaximumWidth = gen.Integer(default=100)
     appyVersion = gen.String(show=False, layouts='f')
     def refreshSecurity(self): pass # Real method in the wrapper
     refreshSecurity = gen.Action(action=refreshSecurity, confirm=True)

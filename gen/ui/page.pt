@@ -185,6 +185,7 @@
                  hasHistory contextObj/hasHistory;
                  historyMaxPerPage options/maxPerPage|python: 5;
                  historyExpanded python: request.get('appyHistory', 'collapsed') == 'expanded';
+                 _ python: tool.translate;
                  creator contextObj/Creator"
      tal:condition="not: contextObj/isTemporary">
 

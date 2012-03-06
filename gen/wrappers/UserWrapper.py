@@ -87,9 +87,10 @@ class UserWrapper(AbstractWrapper):
             # Update the password if the user has entered new ones.
             rq = self.request
             if rq.has_key('password1'):
-                zopeUser.__ = aclUsers._encryptPassword(rq['password1'])
+                tool = self.tool.o
+                zopeUser.__ = tool._encryptPassword(rq['password1'])
                 # Update the cookie value
-                self.tool.o._updateCookie(login, rq['password1'])
+                tool._updateCookie(login, rq['password1'])
             self.password1 = self.password2 = ''
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):

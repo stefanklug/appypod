@@ -848,6 +848,10 @@ class ToolMixin(BaseMixin):
         cookieValue = urllib.quote(cookieValue)
         self.REQUEST.RESPONSE.setCookie('__ac', cookieValue, path='/')
 
+    def _encryptPassword(self, password):
+        '''Returns the encrypted version of clear p_password.'''
+        return self.acl_users._encryptPassword(password)
+
     def performLogin(self):
         '''Logs the user in.'''
         rq = self.REQUEST

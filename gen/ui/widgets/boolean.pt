@@ -26,17 +26,17 @@
 <tal:comment replace="nothing">Search macro for an Boolean.</tal:comment>
 <metal:search define-macro="search"
               tal:define="typedWidget python:'%s*bool' % widgetName">
-  <label tal:attributes="for widgetName" tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
+  <label tal:attributes="for widgetName" tal:content="python: _(widget['labelId'])"></label><br>&nbsp;&nbsp;
   <tal:yes define="valueId python:'%s_yes' % name">
     <input type="radio" value="True" tal:attributes="name typedWidget; id valueId"/>
-    <label tal:attributes="for valueId">Yes</label>
+    <label tal:attributes="for valueId" tal:content="python: _('yes')"></label>
   </tal:yes>
   <tal:no define="valueId python:'%s_no' % name">
     <input type="radio" value="False" tal:attributes="name typedWidget; id valueId"/>
-    <label tal:attributes="for valueId">No</label>
+    <label tal:attributes="for valueId" tal:content="python: _('no')"></label>
   </tal:no>
   <tal:whatever define="valueId python:'%s_whatever' % name">
     <input type="radio" value="" tal:attributes="name typedWidget; id valueId" checked="checked"/>
-    <label tal:attributes="for valueId" tal:content="python: tool.translate('whatever')"></label>
+    <label tal:attributes="for valueId" tal:content="python: _('whatever')"></label>
   </tal:whatever><br/>
 </metal:search>

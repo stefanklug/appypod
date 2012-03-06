@@ -120,7 +120,7 @@
          </a>
          <!-- Config -->
          <a tal:condition="python: user.has_role('Manager')"
-            tal:attributes="href python: tool.getUrl(page='main', nav='');
+            tal:attributes="href python: tool.getUrl(nav='');
                             title python: _('%sTool' % appName)">
           <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
          </a>

@@ -106,7 +106,7 @@
         <tal:field define="contextObj python:obj;
                            layoutType python:'cell';
                            innerRef python:True"
-                   condition="python: contextObj.showField(widget['name'], 'view')">
+                   condition="python: contextObj.showField(widget['name'], 'result')">
            <metal:field use-macro="context/ui/widgets/show/macros/field"/>
          </tal:field>
       </td>

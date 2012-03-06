@@ -571,8 +571,13 @@ class Type:
             res = self.callMethod(obj, self.show)
         else:
             res = self.show
-        # Take into account possible values 'view', 'edit', 'search'...
-        if res in ('view', 'edit', 'result'): return res == layoutType
+        # Take into account possible values 'view', 'edit', 'result'...
+        if type(res) in sequenceTypes:
+            for r in res:
+                if r == layoutType: return True
+            return False
+        elif res in ('view', 'edit', 'result'):
+            return res == layoutType
         return bool(res)
 
     def isClientVisible(self, obj):
@@ -1693,7 +1698,14 @@ class Ref(Type):
             back.isBack = True
             back.back = self
             back.backd = self.__dict__
-            setattr(klass, back.attribute, back)
+            # klass may be None in the case we are defining an auto-Ref to the
+            # same class as the class where this field is defined. In this case,
+            # when defining the field within the class, write
+            # myField = Ref(None, ...)
+            # and, at the end of the class definition (name it K), write:
+            # K.myField.klass = K
+            # setattr(K, K.myField.back.attribute, K.myField.back)
+            if klass: setattr(klass, back.attribute, back)
         # When displaying a tabular list of referenced objects, must we show
         # the table headers?
         self.showHeaders = showHeaders
