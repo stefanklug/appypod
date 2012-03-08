@@ -1,5 +1,5 @@
 <tal:comment replace="nothing">Single row.</tal:comment>
-<tr metal:define-macro="row"
+<tr metal:define-macro="row" valign="top"
     tal:attributes="style python: (rowIndex==-1) and 'display: none' or ''">
   <td align="center" tal:repeat="fieldInfo widget/fieldsd">
     <tal:show define="widget python: fieldInfo[1];

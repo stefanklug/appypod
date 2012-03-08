@@ -1346,21 +1346,19 @@ class String(Type):
         return value
 
     def getStorableValue(self, value):
-        if not self.isEmptyValue(value) and (self.transform != 'none'):
-            if isinstance(value, basestring):
-                return self.applyTransform(value)
-            else:
-                return [self.applyTransform(v) for v in value]
-        return value
-
-    def store(self, obj, value):
-        if self.isMultiValued() and isinstance(value, basestring):
-            value = [value]
+        isString = isinstance(value, basestring)
+        # Apply transform if required
+        if isString and not self.isEmptyValue(value) and \
+           (self.transform != 'none'):
+           value = self.applyTransform(value)
         # Truncate the result if longer than self.maxChars
-        if self.maxChars and isinstance(value, basestring) and \
-           (len(value) > self.maxChars):
+        if isString and self.maxChars and (len(value) > self.maxChars):
             value = value[:self.maxChars]
-        exec 'obj.%s = value' % self.name
+        # Get a multivalued value if required.
+        if value and self.isMultiValued() and \
+           (type(value) not in sequenceTypes):
+            value = [value]
+        return value
 
     def getIndexType(self):
         '''Index type varies depending on String parameters.'''

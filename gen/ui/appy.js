@@ -502,7 +502,7 @@ function updateRowNumber(row, rowIndex, action) {
      with new p_rowIndex. If p_action is 'set', p_rowIndex becomes the new
      index. If p_action is 'add', new index becomes:
      existing index + p_rowIndex. */
-  var tagTypes = ['input', 'select', 'img'];
+  var tagTypes = ['input', 'select', 'img', 'textarea'];
   var currentIndex = -1;
   for (var i=0; i < tagTypes.length; i++) {
     var widgets = row.getElementsByTagName(tagTypes[i]);

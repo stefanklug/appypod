@@ -133,5 +133,4 @@ class ToolWrapper(AbstractWrapper):
                          expression="ctx['nb'] += int(obj.o.refreshSecurity())")
         msg = 'Security refresh: %d object(s) updated.' % context['nb']
         self.log(msg)
-        self.say(msg)
 # ------------------------------------------------------------------------------
