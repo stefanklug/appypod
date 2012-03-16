@@ -128,6 +128,24 @@ def copyData(data, target, targetMethod, type='string', encoding=None,
                 data = data.next
 
 # ------------------------------------------------------------------------------
+def splitList(l, sub):
+    '''Returns a list that was build from list p_l whose elements were
+       re-grouped into sub-lists of p_sub elements.
+
+       For example, if l = [1,2,3,4,5] and sub = 3, the method returns
+       [ [1,2,3], [4,5] ].'''
+    res = []
+    i = -1
+    for elem in l:
+        i += 1
+        if (i % sub) == 0:
+            # A new sub-list must be created
+            res.append([elem])
+        else:
+            res[-1].append(elem)
+    return res
+
+# ------------------------------------------------------------------------------
 class Traceback:
     '''Dumps the last traceback into a string.'''
     def get():

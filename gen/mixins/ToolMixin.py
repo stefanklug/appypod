@@ -979,7 +979,8 @@ class ToolMixin(BaseMixin):
         rolesToShow = [r for r in appyUser.roles \
                        if r not in ('Authenticated', 'Member')]
         if rolesToShow:
-            res.append(', '.join([self.translate(r) for r in rolesToShow]))
+            res.append(', '.join([self.translate('role_%s'%r) \
+                                  for r in rolesToShow]))
         return (' | '.join(res), appyUser.o.getUrl(mode='edit'))
 
     def generateUid(self, className):
