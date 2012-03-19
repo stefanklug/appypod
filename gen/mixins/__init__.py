@@ -896,7 +896,11 @@ class BaseMixin:
             self.log('Wrong workflow info for a "%s"; is not in state "%s".' % \
                      (self.meta_type, stateName))
         # Update permission attributes on the object if required
-        return state.updatePermissions(wf, self)
+        updated = state.updatePermissions(wf, self)
+        if updated:
+            # Reindex the object because security-related info is indexed.
+            self.reindex()
+        return updated
 
     def hasHistory(self):
         '''Has this object an history?'''

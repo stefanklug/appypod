@@ -564,11 +564,6 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldType = gen.Boolean(default=defaultValue, page='userInterface',
                                 group=groupName)
         self.addField(fieldName, fieldType)
-        # Adds the boolean field for showing or not the field "enter comments".
-        fieldName = 'showWorkflowCommentFieldFor%s' % className
-        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
-                                group=groupName)
-        self.addField(fieldName, fieldType)
         # Adds the boolean field for showing all states in current state or not.
         # If this boolean is True but the current phase counts only one state,
         # we will not show the state at all: the fact of knowing in what phase

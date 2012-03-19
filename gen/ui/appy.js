@@ -307,7 +307,7 @@ function triggerTransition(transitionId, msg) {
     theForm.submit();
   }
   else { // Ask the user to confirm.
-   askConfirm('form', 'triggerTransitionForm', msg);
+   askConfirm('form', 'triggerTransitionForm', msg, true);
   }
 }
 
@@ -409,13 +409,17 @@ function closePopup(popupId) {
 }
 
 // Function triggered when an action needs to be confirmed by the user
-function askConfirm(actionType, action, msg) {
+function askConfirm(actionType, action, msg, showComment) {
   /* Store the actionType (send a form, call an URL or call a script) and the
      related action, and shows the confirm popup. If the user confirms, we
-     will perform the action. */
+     will perform the action. If p_showComment is true, an input field allowing
+     to enter a comment will be shown in the popup. */
   var confirmForm = document.getElementById('confirmActionForm');
   confirmForm.actionType.value = actionType;
   confirmForm.action.value = action;
+  var commentArea = document.getElementById('commentArea');
+  if (showComment) commentArea.style.display = "block";
+  else commentArea.style.display = "none";
   openPopup("confirmActionPopup", msg);
 }
 
@@ -427,8 +431,14 @@ function doConfirm() {
   var actionType = confirmForm.actionType.value;
   var action = confirmForm.action.value;
   if (actionType == 'form') {
-    // We must submit the form whose id is in "action"
-    document.getElementById(action).submit();
+    /* Submit the form whose id is in "action", and transmmit him the comment
+       from the popup when relevant */
+    var theForm = document.getElementById(action);
+    if ((confirmForm.comment.style.display != 'none') &&
+        (confirmForm.comment.value)) {
+      theForm.comment.value = confirmForm.comment.value;
+    }
+    theForm.submit();
   }
   else if (actionType == 'url') {
     // We must go to the URL defined in "action"

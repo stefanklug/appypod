@@ -188,7 +188,7 @@ class Translation(ModelClass):
 toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
-                     'showWorkflowCommentField', 'showAllStatesInPhase')
+                     'showAllStatesInPhase')
 defaultToolFields = ('title', 'users', 'groups', 'translations',
                      'enableNotifications', 'unoEnabledPython','openOfficePort',
                      'numberOfResultsPerPage', 'listBoxesMaximumWidth',

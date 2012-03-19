@@ -95,10 +95,6 @@ class ToolWrapper(AbstractWrapper):
                Stores the boolean field indicating if we must show workflow-
                related information for p_klass or not.
 
-           "showWorkflowCommentField"
-               Stores the boolean field indicating if we must show the field
-               allowing to enter a comment every time a transition is triggered.
-
            "showAllStatesInPhase"
                Stores the boolean field indicating if we must show all states
                linked to the current phase or not. If this field is False, we
@@ -133,4 +129,29 @@ class ToolWrapper(AbstractWrapper):
                          expression="ctx['nb'] += int(obj.o.refreshSecurity())")
         msg = 'Security refresh: %d object(s) updated.' % context['nb']
         self.log(msg)
+
+    def refreshCatalog(self, startObject=None):
+        '''Reindex all Appy objects. For some unknown reason, method
+           catalog.refreshCatalog is not able to recatalog Appy objects.'''
+        if not startObject:
+            # This is a global refresh. Clear the catallog completely, and then
+            # reindex all Appy-managed objects, ie those in folders "config"
+            # and "data".
+            # First, clear the catalog.
+            app = self.o.getParentNode()
+            app.catalog._catalog.clear()
+            app.config.reindex()
+            nb = 1
+            for obj in app.config.objectValues():
+                nb += self.refreshCatalog(startObject=obj)
+            # Then, refresh objects in the "data" folder.
+            for obj in app.data.objectValues():
+                nb += self.refreshCatalog(startObject=obj)
+            print '%d object(s) were reindexed.' % nb
+        else:
+            startObject.reindex()
+            nb = 1
+            for obj in startObject.objectValues():
+                nb += self.refreshCatalog(startObject=obj)
+            return nb
 # ------------------------------------------------------------------------------

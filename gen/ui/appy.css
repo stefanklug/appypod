@@ -9,6 +9,7 @@ table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
 form { margin: 0; padding: 0;}
 p { margin: 0;}
 acronym {cursor: help;}
+input { font: 92% Helvetica,Arial,sans-serif }
 input[type=image] { border: 0; background: none; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
 input[type=radio] { border: 0; background: none; cursor: pointer;}
@@ -44,6 +45,8 @@ img {border: 0}
              border-top: 1px solid #5F7983; border-bottom: 1px solid #5F7983; }
 .login { margin-top: 2px; margin-bottom: 2px; color: white;}
 .buttons { margin-left: 4px;}
+.fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
+              padding: 0px 8px 2px; font: italic 92% Helvetica,Arial,sans-serif}
 .message { color: #fd9c03; position: absolute; top: -55px; left: 100px;
            width: 700px; border: 1px black dashed; padding: 2px 6px;
            background-color: #f4f5f6}

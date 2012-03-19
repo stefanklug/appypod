@@ -88,8 +88,9 @@
       <td tal:define="actorid python:event.get('actor');" tal:content="actorid"/>
       <td tal:content="event/time"/>
       <td tal:condition="not: isDataChange">
-        <tal:comment condition="rhComments" tal:content="structure rhComments"/>
-        <span tal:condition="not: rhComments">No comment.</span>
+        <tal:c condition="rhComments"
+               content="structure python: contextObj.formatText(rhComments)"/>
+        <span tal:condition="not: rhComments">-</span>
       </td>
       <td tal:condition="isDataChange">
         <tal:comment replace="nothing">
@@ -152,21 +153,16 @@
     <input type="hidden" name="workflow_action"/>
     <table>
       <tr valign="middle">
-        <tal:comment replace="nothing">Input field allowing to enter a comment before triggering a transition</tal:comment>
-        <td tal:define="showCommentsField python:tool.getAttr('showWorkflowCommentFieldFor'+contextObj.meta_type)"
-            align="right" tal:condition="showCommentsField">
-          <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
-          <input type="text" id="comment" name="comment" size="30"/>
-        </td>
-
+        <tal:comment replace="nothing">Input field for storing comment</tal:comment>
+        <textarea id="comment" name="comment" cols="30" rows="3" style="display:none"></textarea>
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
         <td align="right" tal:repeat="transition transitions">
           <tal:comment replace="nothing">Real button</tal:comment>
-          <input type="button" class="appyButton" tal:condition="transition/may_trigger"
+          <input type="button" tal:condition="transition/may_trigger"
                  tal:attributes="value transition/title;
                                  onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['name'],transition['confirm']);"/>
           <tal:comment replace="nothing">Fake button, explaining why the transition can't be triggered</tal:comment>
-          <div class="appyButton fakeButton" tal:condition="not: transition/may_trigger">
+          <div class="fakeButton" tal:condition="not: transition/may_trigger">
             <acronym tal:content="transition/title"
                      tal:attributes="title transition/reason"></acronym>
           </div>

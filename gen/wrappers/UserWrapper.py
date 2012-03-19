@@ -129,6 +129,7 @@ class ZopeUserPatches:
         '''Returns the global roles that this user (or any of its groups)
            possesses.'''
         res = list(self.roles)
+        if 'Anonymous' not in res: res.append('Authenticated')
         # Add group global roles
         if not hasattr(aq_base(self), 'groups'): return res
         for roles in self.groups.itervalues():

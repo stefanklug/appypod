@@ -38,9 +38,6 @@ class PoMessage:
     MSG_searchFields = "Search fields"
     MSG_optionalFields = 'Optional fields'
     MSG_showWorkflow = 'Show workflow-related information'
-    MSG_showWorkflowCommentField = 'Show field allowing to enter a ' \
-                                   'comment every time a transition is ' \
-                                   'triggered'
     MSG_showAllStatesInPhase = 'Show all states in phase'
     POD_ASKACTION = 'Trigger related action'
     REF_NO = 'No object.'

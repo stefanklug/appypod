@@ -74,6 +74,12 @@
       <p id="appyConfirmText"></p>
       <input type="hidden" name="actionType"/>
       <input type="hidden" name="action"/>
+      <div id="commentArea" align="left"><br/>
+        <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
+        <textarea name="comment" cols="30" rows="3"></textarea>
+        <br/>
+      </div>
+      <br/>
       <input type="button" onClick="doConfirm()"
              tal:attributes="value python:_('yes')"/>
       <input type="button" value="No" onClick="closePopup('confirmActionPopup')"

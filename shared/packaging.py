@@ -375,10 +375,10 @@ class Cortexer:
 
        Once the "cortex.admin" folder and its content has been generated, in
        order to push the app definition into Cortex, go in the folder where
-       "cortex.admin" lies and type (command-line tool "cortex-client" must
+       "cortex.admin" lies and type (command-line tool "cortex" must
        be installed):
 
-       cortex-client sync push --api http://<cortex-host-ip>/api
+       cortex sync push --api http://<cortex-host-ip>/api
     '''
     def __init__(self, app, pythonVersions=('2.6',)):
         self.appName = os.path.basename(app)
