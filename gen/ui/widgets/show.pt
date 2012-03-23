@@ -198,7 +198,7 @@
 </table>
 
 <tal:comment replace="nothing">Displays a field label.</tal:comment>
-<tal:label metal:define-macro="label" condition="widget/hasLabel"><label tal:attributes="for widget/name" tal:condition="python: not ((widget['type'] == 'Action') or ((widget['type'] == 'Ref') and (widget['add'])))" tal:content="structure python: contextObj.translate('label', field=widget)"></label></tal:label>
+<tal:label metal:define-macro="label" condition="widget/hasLabel"><label tal:attributes="for widget/name" tal:condition="python: (widget['type'] != 'Action')" tal:content="structure python: contextObj.translate('label', field=widget)"></label></tal:label>
 
 <tal:comment replace="nothing">Displays a field description.</tal:comment>
 <tal:description metal:define-macro="description" condition="widget/hasDescr"><span class="discreet" tal:content="structure python: contextObj.translate('descr', field=widget)"></span>

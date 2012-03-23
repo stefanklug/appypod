@@ -155,7 +155,6 @@
   <tal:anyNumberOfReferences condition="not: atMostOneRef">
     <fieldset tal:attributes="class python:test(innerRef, 'innerAppyFieldset', '')">
       <legend tal:condition="python: not innerRef or showPlusIcon">
-        <span tal:condition="not: innerRef" tal:content="label"/>
         (<span tal:replace="totalNumber"/>)
         <metal:plusIcon use-macro="app/ui/widgets/ref/macros/plusIcon"/>
         <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
