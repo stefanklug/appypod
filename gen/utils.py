@@ -18,8 +18,14 @@ def createObject(folder, id, className, appName, wf=True):
     obj.portal_type = className
     obj.id = id
     obj._at_uid = id
-    userId = obj.getUser().getId()
-    # If user is anonymous, userIs is None
+    user = obj.getUser()
+    if not user.getId():
+        if user.name == 'System Processes':
+            userId = 'admin' # This is what happens when Zope is starting.
+        else:
+            userId = None # Anonymous.
+    else:
+        userId = user.getId()
     obj.creator = userId or 'Anonymous User'
     from DateTime import DateTime
     obj.created = DateTime()

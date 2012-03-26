@@ -29,7 +29,11 @@
   <td tal:attributes="style python: 'background-image: url(%s/ui/banner.jpg)' % appUrl">
    <table width="100%">
     <tr valign="top">
-     <td></td>
+     <tal:comment replace="nothing">Links to main pages</tal:comment>
+     <td>
+      <a tal:repeat="page tool/getMainPages" class="pageLink"
+         tal:content="page/title" tal:attributes="href page/absolute_url"></a>
+     </td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
      <td align="right" tal:condition="tool/showLanguageSelector">
      <tal:lgs define="languages tool/getLanguages;

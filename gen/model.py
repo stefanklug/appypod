@@ -42,7 +42,7 @@ class ModelClass:
        in order to avoid name conflicts with user-defined parts of the
        application model.'''
     _appy_attributes = [] # We need to keep track of attributes order.
-
+    folder = False
     @classmethod
     def _appy_getTypeBody(klass, appyType, wrapperName):
         '''This method returns the code declaration for p_appyType.'''
@@ -67,6 +67,12 @@ class ModelClass:
                     value = 'tfw'
                 else:
                     value = appyType.getInputLayouts()
+            elif (name == 'klass') and value and (value == klass):
+                # This is a auto-Ref (a Ref that references the klass itself).
+                # At this time, we can't reference the class that is still being
+                # defined. So we initialize it to None. The post-init of the
+                # field must be done manually in wrappers.py.
+                value = 'None'
             elif isinstance(value, basestring):
                 value = '"%s"' % value
             elif isinstance(value, gen.Ref):
@@ -83,7 +89,7 @@ class ModelClass:
             elif isinstance(value, gen.Group):
                 value = 'Grp("%s")' % value.name
             elif isinstance(value, gen.Page):
-                value = 'pages["%s"]' % value.name
+                value = 'pges["%s"]' % value.name
             elif callable(value):
                 className = wrapperName
                 if (appyType.type == 'Ref') and appyType.isBack:
@@ -104,7 +110,7 @@ class ModelClass:
         else: wrapperName = 'W%s' % className
         res = 'class %s(%s):\n' % (className, wrapperName)
         # Tool must be folderish
-        if className == 'Tool': res += '    folder=True\n'
+        if klass.folder: res += '    folder=True\n'
         # First, scan all attributes, determine all used pages and create a
         # dict with it. It will prevent us from creating a new Page instance
         # for every field.
@@ -114,12 +120,12 @@ class ModelClass:
             exec 'appyType = klass.%s' % name
             if appyType.page.name not in pages:
                 pages[appyType.page.name] = appyType.page
-        res += '    pages = {'
+        res += '    pges = {'
         for page in pages.itervalues():
             # Determine page show
             pageShow = page.show
             if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
-            res += '"%s":Page("%s", show=%s),'% (page.name, page.name, pageShow)
+            res += '"%s":Pge("%s", show=%s),'% (page.name, page.name, pageShow)
         res += '}\n'
         # Secondly, dump every attribute
         for name in klass._appy_attributes:
@@ -183,13 +189,27 @@ class Translation(ModelClass):
     def label(self): pass
     def show(self, name): pass
 
+# The Page class ---------------------------------------------------------------
+class Page(ModelClass):
+    _appy_attributes = ['title', 'content', 'pages']
+    folder = True
+    title = gen.String(show='edit', indexed=True)
+    content = gen.String(format=gen.String.XHTML, layouts='f')
+    # Pages can contain other pages.
+    def showSubPages(self): pass
+    pages = gen.Ref(None, multiplicity=(0,None), add=True, link=False,
+                    back=gen.Ref(attribute='parent', show=False),
+                    show=showSubPages)
+Page.pages.klass = Page
+setattr(Page, Page.pages.back.attribute, Page.pages.back)
+
 # The Tool class ---------------------------------------------------------------
 # Prefixes of the fields generated on the Tool.
 toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showAllStatesInPhase')
-defaultToolFields = ('title', 'users', 'groups', 'translations',
+defaultToolFields = ('title', 'users', 'groups', 'translations', 'pages',
                      'enableNotifications', 'unoEnabledPython','openOfficePort',
                      'numberOfResultsPerPage', 'listBoxesMaximumWidth',
                      'appyVersion')
@@ -197,6 +217,7 @@ defaultToolFields = ('title', 'users', 'groups', 'translations',
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
     _appy_attributes = list(defaultToolFields)
+    folder = True
 
     # Tool attributes
     title = gen.String(show=False, page=gen.Page('main', show=False))
@@ -222,6 +243,9 @@ class Tool(ModelClass):
                            link=False, show='view',
                            back=gen.Ref(attribute='trToTool', show=False),
                            page=gen.Page('translations', show='view'))
+    pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
+                    show='view', back=gen.Ref(attribute='toTool3', show=False),
+                    page=gen.Page('pages', show='view'))
     enableNotifications = gen.Boolean(default=True,
                                      page=gen.Page('notifications', show=False))
 
@@ -235,4 +259,5 @@ class Tool(ModelClass):
         for k in toClean:
             exec 'del klass.%s' % k
         klass._appy_attributes = list(defaultToolFields)
+        klass.folder = True
 # ------------------------------------------------------------------------------

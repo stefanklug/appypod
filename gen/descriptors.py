@@ -637,7 +637,7 @@ class TranslationClassDescriptor(ClassDescriptor):
         self.customized = False
 
     def getParents(self, allClasses=()): return ('Translation',)
-
+    def isFolder(self, klass=None): return False
     def generateSchema(self):
         ClassDescriptor.generateSchema(self, configClass=True)
 
@@ -681,4 +681,29 @@ class TranslationClassDescriptor(ClassDescriptor):
             params['format'] = gen.String.TEXT
             params['height'] = height
         self.addField(messageId, gen.String(**params))
+
+class PageClassDescriptor(ClassDescriptor):
+    '''Represents the class that corresponds to a Page.'''
+    def __init__(self, klass, generator):
+        ClassDescriptor.__init__(self,klass,klass._appy_attributes[:],generator)
+        self.modelClass = self.klass
+        self.predefined = True
+        self.customized = False
+    def getParents(self, allClasses=()):
+        res = ['Page']
+        if self.customized:
+            res.append('%s.%s' % (self.klass.__module__, self.klass.__name__))
+        return res
+    def update(self, klass, attributes):
+        '''This method is called by the generator when he finds a custom page
+           definition. We must then add the custom page elements in this
+           default Page descriptor.
+
+           NOTE: currently, it is not possible to define a custom Page class.'''
+        self.orderedAttributes += attributes
+        self.klass = klass
+        self.customized = True
+    def isFolder(self, klass=None): return True
+    def generateSchema(self):
+        ClassDescriptor.generateSchema(self, configClass=True)
 # ------------------------------------------------------------------------------

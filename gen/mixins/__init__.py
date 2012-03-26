@@ -1312,6 +1312,9 @@ class BaseMixin:
            Else (if the object is stored directly within the tool or the root
            data folder) it returns None.'''
         parent = self.getParentNode()
+        # Not-Managers can't navigate back to the tool
+        if (parent.id == 'config') and not self.getUser().has_role('Manager'):
+            return False
         if parent.meta_type != 'Folder': return parent
 
     def index_html(self):

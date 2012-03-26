@@ -223,14 +223,14 @@ class ToolMixin(BaseMixin):
         return [importParams['headers'], elems]
 
     def showPortlet(self, context):
-        if self.userIsAnon(): return False
         if context.id == 'ui': context = context.getParentNode()
         res = True
-        if not self.getRootClasses():
-            res = False
-            # If there is no root class, show the portlet only if we are within
-            # the configuration.
-            if (self.id in context.absolute_url()): res = True
+        if hasattr(context.aq_base, 'appy'):
+            appyObj = context.appy()
+            try:
+                res = appyObj.showPortlet()
+            except AttributeError:
+                res = True
         return res
 
     def getObject(self, uid, appy=False, brain=False):
@@ -1000,4 +1000,10 @@ class ToolMixin(BaseMixin):
         return '<table class="main" align="center" cellpadding="0"><tr>' \
                '<td style="padding: 1em 1em 1em 1em">An error occurred. %s' \
                '</td></tr></table>' % '\n'.join(htmlMessage)
+
+    def getMainPages(self):
+        '''Returns the main pages.'''
+        if hasattr(self.o.aq_base, 'pages') and self.o.pages:
+            return [self.getObject(uid) for uid in self.o.pages ]
+        return ()
 # ------------------------------------------------------------------------------

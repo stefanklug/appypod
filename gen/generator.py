@@ -6,7 +6,7 @@ import appy.gen as gen
 from po import PoMessage, PoFile, PoParser
 from descriptors import *
 from utils import produceNiceMessage, getClassName
-from model import ModelClass, User, Group, Tool, Translation
+from model import ModelClass, User, Group, Tool, Translation, Page
 
 # ------------------------------------------------------------------------------
 class GeneratorError(Exception): pass
@@ -353,11 +353,12 @@ class ZopeGenerator(Generator):
         Generator.__init__(self, *args, **kwargs)
         # Set our own Descriptor classes
         self.descriptorClasses['class'] = ClassDescriptor
-        # Create our own Tool, User, Group and Translation instances
+        # Create Tool, User, Group, Translation and Page instances.
         self.tool = ToolClassDescriptor(Tool, self)
         self.user = UserClassDescriptor(User, self)
         self.group = GroupClassDescriptor(Group, self)
         self.translation = TranslationClassDescriptor(Translation, self)
+        self.page = PageClassDescriptor(Page, self)
         # i18n labels to generate
         self.labels = [] # i18n labels
         self.referers = {}
@@ -603,13 +604,14 @@ class ZopeGenerator(Generator):
         '''Returns the descriptors for all the classes in the generated
            gen-application. If p_include is:
            * "all"        it includes the descriptors for the config-related
-                          classes (tool, user, group, translation)
+                          classes (tool, user, group, translation, page)
            * "allButTool" it includes the same descriptors, the tool excepted
            * "custom"     it includes descriptors for the config-related classes
                           for which the user has created a sub-class.'''
         if not include: return self.classes
         res = self.classes[:]
-        configClasses = [self.tool, self.user, self.group, self.translation]
+        configClasses = [self.tool, self.user, self.group, self.translation,
+                         self.page]
         if include == 'all':
             res += configClasses
         elif include == 'allButTool':
@@ -789,16 +791,22 @@ class ZopeGenerator(Generator):
             Tool.users.klass = self.user.klass
             Group.users.klass = self.user.klass
 
-        # Generate the Tool-related classes (User, Group, Translation)
-        for klass in (self.user, self.group, self.translation):
+        # Generate the Tool-related classes (User, Group, Translation, Page)
+        for klass in (self.user, self.group, self.translation, self.page):
             klassType = klass.name[len(self.applicationName):]
             klass.generateSchema()
             self.labels += [ Msg(klass.name, '', klassType),
                              Msg('%s_plural' % klass.name,'', klass.name+'s')]
             repls = self.repls.copy()
+            if klass.isFolder():
+                parents = 'BaseMixin, Folder'
+                icon = 'folder.gif'
+            else:
+                parents = 'BaseMixin, SimpleItem'
+                icon = 'object.gif'
             repls.update({'methods': klass.methods, 'genClassName': klass.name,
-              'baseMixin':'BaseMixin', 'parents': 'BaseMixin, SimpleItem',
-              'classDoc': 'Standard Appy class', 'icon':'object.gif'})
+                          'baseMixin':'BaseMixin', 'parents': parents,
+                          'classDoc': 'Standard Appy class', 'icon': icon})
             self.copyFile('Class.pyt', repls, destName='%s.py' % klass.name)
 
         # Before generating the Tool class, finalize it with query result
