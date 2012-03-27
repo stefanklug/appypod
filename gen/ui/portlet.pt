@@ -18,7 +18,7 @@
      </a>
     </div>
   </div>
-  <span><metal:phases use-macro="here/ui/portlet/macros/phases"/></span>
+  <metal:phases use-macro="here/ui/portlet/macros/phases"/>
  </div>
 
  <tal:comment replace="nothing">One section for every searchable root class.</tal:comment>
@@ -99,58 +99,48 @@
    This macro displays, within the portlet, the navigation tree for the
    currently shown object, made of phases and contained pages.
 </tal:comment>
-<metal:phases define-macro="phases">
-<table tal:define="phases contextObj/getAppyPhases|nothing;
+<table metal:define-macro="phases"
+       tal:define="phases contextObj/getAppyPhases|nothing;
                    singlePhase python: len(phases) == 1;
                    page python: req.get('page', 'main')"
-       tal:condition="python: phases and not (singlePhase and len(phases[0]['pages'])==1)"
-       width="100%">
+       tal:condition="python: phases" width="100%">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
     <tr>
       <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
-                      singlePage python: len(phase['pages']) == 1;
                       status phase/phaseStatus;
-                      phaseCss python: (status == 'Current') and ' phaseSelected' or '';
-                      underCreation python: '/portal_factory' in context.absolute_url();
-                      displayLink python: (status != 'Future') and not underCreation and singlePage"
+                      phaseCss python: (status == 'Current') and ' phaseSelected' or '';"
           tal:attributes="class python: not singlePhase and 'phase%s' % phaseCss or ''">
-        <div class="portletGroup" tal:condition="not: singlePhase">
-
-        <tal:comment replace="nothing">A single page in the phase</tal:comment>
-        <table tal:condition="displayLink" width="100%">
-          <tr tal:define="pageName python: phase['pages'][0]">
-            <td><a tal:attributes="href python: contextObj.getUrl(page=pageName)"
-                   tal:content="structure python: _(label)"></a>
-            </td>
-            <td align="right">
-              <img title="Edit" style="cursor:pointer"
-                   tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=pageName);
-                                   src string: $appUrl/ui/edit.gif"
-                   tal:condition="python: contextObj.allows('Modify portal content') and phase['pagesInfo'][pageName]['showOnEdit']"/>
-            </td>
+       <tal:comment replace="nothing">The title of the phase</tal:comment>
+       <div class="portletGroup" tal:condition="not: singlePhase"
+            tal:content="structure python: _(label)">
+       </div>
+       <tal:comment replace="nothing">The page(s) within the phase</tal:comment>
+       <table width="100%" cellpadding="0"
+              tal:define="singlePage python: len(phase['pages']) == 1">
+        <tal:page repeat="aPage phase/pages">
+         <tal:comment replace="nothing">1st line: page name and icons</tal:comment>
+         <tr valign="top" tal:condition="not: singlePage">
+          <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPage', 'portletPage')">
+           <a tal:attributes="href python: contextObj.getUrl(page=aPage)"
+             tal:content="structure python: _('%s_page_%s' % (contextObj.meta_type, aPage))">
+           </a>
+          </td>
+          <td align="right">
+           <img title="Edit" style="cursor:pointer"
+                tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=aPage);
+                                src string: $appUrl/ui/edit.gif"
+                tal:condition="python: contextObj.allows('Modify portal content') and phase['pagesInfo'][aPage]['showOnEdit']"/>
+          </td>
+         </tr>
+         <tal:comment replace="nothing">2nd line: links</tal:comment>
+         <tal:links define="links python: phase['pagesInfo'][aPage].get('links')" tal:condition="links">
+          <tr tal:repeat="link links">
+            <td><a tal:content="link/title" tal:attributes="href link/url"></a></td>
           </tr>
-        </table>
-        <tal:comment replace="nothing">Several pages in the phase</tal:comment>
-        <span tal:condition="not: displayLink" tal:replace="structure python: _(label)"/>
-        </div>
-        <div class="portletMenu">
-        <table width="100%" cellpadding="0" tal:condition="python: len(phase['pages']) &gt; 1">
-          <tr tal:repeat="aPage phase/pages" valign="top">
-            <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPage', 'portletPage')">
-              <a tal:attributes="href python: contextObj.getUrl(page=aPage)"
-                 tal:content="structure python: _('%s_page_%s' % (contextObj.meta_type, aPage))">
-              </a>
-            </td>
-            <td align="right">
-              <img title="Edit" style="cursor:pointer"
-                   tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=aPage);
-                                   src string: $appUrl/ui/edit.gif"
-                   tal:condition="python: user.has_permission('Modify portal content', contextObj) and phase['pagesInfo'][aPage]['showOnEdit']"/>
-            </td>
-          </tr>
-        </table>
-        </div>
+         </tal:links>
+        </tal:page>
+       </table>
       </td>
     </tr>
     <tal:comment replace="nothing">The down arrow pointing to the next phase (if any)</tal:comment>
@@ -159,4 +149,3 @@
     </tr>
   </tal:phase>
 </table>
-</metal:phases>

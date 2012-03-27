@@ -737,6 +737,8 @@ class BaseMixin:
             else:
                 phase = phases[typePhase]
             phase.addPage(appyType, self, layoutType)
+            if (appyType.type == 'Ref') and appyType.navigable:
+                phase.addPageLinks(appyType, self)
         # Remove phases that have no visible page
         for i in range(len(res)-1, -1, -1):
             if not res[i]['pages']:

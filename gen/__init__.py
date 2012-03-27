@@ -1671,7 +1671,8 @@ class Ref(Type):
                  specificWritePermission=False, width=None, height=5,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 queryable=False, queryFields=None, queryNbCols=1):
+                 queryable=False, queryFields=None, queryNbCols=1,
+                 navigable=False):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1737,6 +1738,8 @@ class Ref(Type):
         self.queryFields = queryFields
         # The search screen will have this number of columns
         self.queryNbCols = queryNbCols
+        # Within the portlet, will referred elements appear ?
+        self.navigable = navigable
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,

@@ -199,7 +199,7 @@ class Page(ModelClass):
     def showSubPages(self): pass
     pages = gen.Ref(None, multiplicity=(0,None), add=True, link=False,
                     back=gen.Ref(attribute='parent', show=False),
-                    show=showSubPages)
+                    show=showSubPages, navigable=True)
 Page.pages.klass = Page
 setattr(Page, Page.pages.back.attribute, Page.pages.back)
 

@@ -114,6 +114,15 @@ class PhaseDescr(Descr):
         self.previousPhase = None
         self.nextPhase = None
 
+    def addPageLinks(self, appyType, obj):
+        '''If p_appyType is a navigable Ref, we must add, within self.pagesInfo,
+           those links.'''
+        if appyType.page.name in self.hiddenPages: return
+        infos = []
+        for obj in appyType.getValue(obj, type="zobjects"):
+            infos.append({'title': obj.title, 'url':obj.absolute_url()})
+        self.pagesInfo[appyType.page.name]['links'] = infos
+
     def addPage(self, appyType, obj, layoutType):
         '''Adds page-related information in the phase.'''
         # If the page is already there, we have nothing more to do.
