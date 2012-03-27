@@ -302,15 +302,15 @@ class BaseMixin:
         '''Reindexes this object the catalog. If names of indexes are specified
            in p_indexes, recataloging is limited to those indexes. If p_unindex
            is True, instead of cataloguing the object, it uncatalogs it.'''
-        url = self.absolute_url_path()
+        path = '/'.join(self.getPhysicalPath())
         catalog = self.getPhysicalRoot().catalog
         if unindex:
-            catalog.uncatalog_object(url)
+            catalog.uncatalog_object(path)
         else:
             if indexes:
-                catalog.catalog_object(self, url, idxs=indexes)
+                catalog.catalog_object(self, path, idxs=indexes)
             else:
-                catalog.catalog_object(self, url)
+                catalog.catalog_object(self, path)
 
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
@@ -532,6 +532,11 @@ class BaseMixin:
         refs = getattr(self.aq_base, fieldName, None)
         if not refs: raise IndexError()
         return refs.index(obj.UID())
+
+    def mayAddReference(self, name, folder):
+        '''May the user add references via Ref field named p_name in
+           p_folder?'''
+        return self.getAppyType(name).mayAdd(self, folder)
 
     def isDebug(self):
         '''Are we in debug mode ?'''

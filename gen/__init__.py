@@ -1926,6 +1926,30 @@ class Ref(Type):
         res.select = None # Not callable from tool.
         return res
 
+    def mayAdd(self, obj, folder):
+        '''May the user create a new referred object to p_obj via this Ref,
+           in p_folder?'''
+        # We can't (yet) do that on back references.
+        if self.isBack: return
+        # Check if this Ref is addable
+        if callable(self.add):
+            add = self.callMethod(obj, self.add)
+        else:
+            add = self.add
+        if not add: return
+        # Have we reached the maximum number of referred elements?
+        if self.multiplicity[1] != None:
+            refCount = len(getattr(obj, self.name, ()))
+            if refCount >= self.multiplicity[1]: return
+        # May the user edit this Ref field?
+        if not obj.allows(self.writePermission): return
+        # Have the user the correct add permission on p_folder?
+        tool = obj.getTool()
+        addPermission = '%s: Add %s' % (tool.getAppName(),
+                                        tool.getPortalType(self.klass))
+        if not obj.getUser().has_permission(addPermission, folder): return
+        return True
+
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show='view',

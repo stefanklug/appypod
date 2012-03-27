@@ -88,22 +88,34 @@
 </metal:sortIcons>
 
 <tal:comment replace="nothing">View macro for a Ref.</tal:comment>
-<div metal:define-macro="view"
-     tal:define= "innerRef innerRef|python:False;
-                  ajaxHookId python: contextObj.UID() + name"
-     tal:attributes = "id ajaxHookId">
-  <script name="appyHook" tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
-  </script>
-</div>
+<metal:view metal:define-macro="view"
+            tal:define="singleRef python: widget['multiplicity'][1] == 1">
+  <tal:comment replace="nothing">
+    For performance reasons, multivalued references are called via Ajax, while single-valued aren't.
+  </tal:comment>
+  <tal:ajax condition="not: singleRef">
+   <div tal:define= "innerRef innerRef|python:False;
+                     ajaxHookId python: contextObj.UID() + name"
+        tal:attributes = "id ajaxHookId">
+    <script name="appyHook" tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
+    </script>
+   </div>
+  </tal:ajax>
+  <div tal:condition="singleRef">
+    <tal:request define="dummy python: request.set('fieldName', widget['name'])">
+      <metal:ref use-macro="app/ui/widgets/ref/macros/viewContent"/>
+    </tal:request>
+  </div>
+</metal:view>
 
 <tal:comment replace="nothing">
-   This macro is called by a XmlHttpRequest for displaying the paginated
-   referred objects of a reference field.
+   This macro is called by a XmlHttpRequest (or directly by the macro above)
+   for displaying the referred objects of a reference field.
 </tal:comment>
 <div metal:define-macro="viewContent"
      tal:define="fieldName request/fieldName;
                  appyType python: contextObj.getAppyType(fieldName, asDict=True);
-                 innerRef python: test(request['innerRef']=='True', True, False);
+                 innerRef python: test(request.get('innerRef', False)=='True', True, False);
                  ajaxHookId python: contextObj.UID()+fieldName;
                  startNumber python: int(request.get('%s_startNumber' % ajaxHookId, 0));
                  tool contextObj/getTool;
@@ -114,12 +126,9 @@
                  batchSize refObjects/batchSize;
                  folder python: contextObj.isPrincipiaFolderish and contextObj or contextObj.getParentNode();
                  linkedPortalType python: tool.getPortalType(appyType['klass']);
-                 addPermission python: '%s: Add %s' % (tool.getAppName(), linkedPortalType);
                  canWrite python: not appyType['isBack'] and contextObj.allows(appyType['writePermission']);
-                 multiplicity appyType/multiplicity;
-                 maxReached python:(multiplicity[1] != None) and (len(objs) >= multiplicity[1]);
-                 showPlusIcon python:not appyType['isBack'] and appyType['add'] and not maxReached and user.has_permission(addPermission, folder) and canWrite;
-                 atMostOneRef python: (multiplicity[1] == 1) and (len(objs)&lt;=1);
+                 showPlusIcon python: contextObj.mayAddReference(fieldName, folder);
+                 atMostOneRef python: (appyType['multiplicity'][1] == 1) and (len(objs)&lt;=1);
                  label python: contextObj.translate('label', field=appyType);
                  addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
@@ -162,10 +171,6 @@
            tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
           <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
       </legend>
-
-      <tal:comment replace="nothing">Object description</tal:comment>
-      <p class="discreet"  tal:condition="python: not innerRef and appyType['hasDescr']"
-         tal:content="python: contextObj.translate('descr', field=appyType)"></p>
 
       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
       <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>

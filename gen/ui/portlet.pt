@@ -106,21 +106,20 @@
        tal:condition="python: phases" width="100%">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
-    <tr>
+    <tr tal:define="singlePage python: len(phase['pages']) == 1">
       <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
                       status phase/phaseStatus;
                       phaseCss python: (status == 'Current') and ' phaseSelected' or '';"
           tal:attributes="class python: not singlePhase and 'phase%s' % phaseCss or ''">
        <tal:comment replace="nothing">The title of the phase</tal:comment>
-       <div class="portletGroup" tal:condition="not: singlePhase"
+       <div class="portletGroup" tal:condition="python: not singlePhase and not singlePage"
             tal:content="structure python: _(label)">
        </div>
        <tal:comment replace="nothing">The page(s) within the phase</tal:comment>
-       <table width="100%" cellpadding="0"
-              tal:define="singlePage python: len(phase['pages']) == 1">
+       <table width="100%" cellpadding="0">
         <tal:page repeat="aPage phase/pages">
          <tal:comment replace="nothing">1st line: page name and icons</tal:comment>
-         <tr valign="top" tal:condition="not: singlePage">
+         <tr valign="top" tal:condition="python: not (singlePhase and singlePage)">
           <td tal:attributes="class python: test(aPage == page, 'portletCurrent portletPage', 'portletPage')">
            <a tal:attributes="href python: contextObj.getUrl(page=aPage)"
              tal:content="structure python: _('%s_page_%s' % (contextObj.meta_type, aPage))">
