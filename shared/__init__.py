@@ -16,6 +16,7 @@ mimeTypesExts = {
              'application/pdf'                        : 'pdf',
              'image/png'                              : 'png',
              'image/jpeg'                             : 'jpg',
+             'image/pjpeg'                            : 'jpg',
              'image/gif'                              : 'gif'
              }
 xmlPrologue = '<?xml version="1.0" encoding="utf-8" ?>\n'

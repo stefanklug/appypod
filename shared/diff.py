@@ -245,19 +245,27 @@ class HtmlDiff:
     deleteStyle = 'color: red; text-decoration: line-through; cursor: help'
 
     def __init__(self, old, new,
-                 insertMsg='Inserted text', deleteMsg='Deleted text',
+                 insertMsg=u'Inserted text', deleteMsg=u'Deleted text',
                  insertCss=None, deleteCss=None, insertName='insert',
                  deleteName='delete', diffRatio=0.7):
-        # p_old and p_new are strings containing chunks of HTML.
+        # p_old and p_new are strings containing chunks of HTML. If they are not
+        # unicode strings, we convert them to unicode; this way, every char is
+        # only one char lenght.
         self.old = old.strip()
+        if isinstance(self.old, str): self.old = self.old.decode('utf-8')
         self.new = new.strip()
+        if isinstance(self.new, str): self.new = self.new.decode('utf-8')
         # Every time an "insert" or "delete" difference will be detected from
         # p_old to p_new, the impacted chunk will be surrounded by a tag that
         # will get, respectively, a 'title' attribute filled p_insertMsg or
         # p_deleteMsg. The message will give an explanation about the change
         # (who made it and at what time, for example).
         self.insertMsg = insertMsg
+        if isinstance(self.insertMsg, str):
+            self.insertMsg = self.insertMsg.decode('utf-8')
         self.deleteMsg = deleteMsg
+        if isinstance(self.deleteMsg, str):
+            self.deleteMsg = self.deleteMsg.decode('utf-8')
         # This tag will get a CSS class p_insertCss or p_deleteCss for
         # highlighting the change. If no class is provided, default styles will
         # be used (see HtmlDiff.insertStyle and HtmlDiff.deleteStyle).

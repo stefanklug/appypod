@@ -189,7 +189,8 @@
     <table width="100%" class="summary">
       <tr>
         <tal:comment replace="nothing">Title</tal:comment>
-        <td colspan="2" class="objectTitle" tal:content="contextObj/title_or_id"></td>
+        <td colspan="2" class="objectTitle"
+            tal:content="python: contextObj.getFieldValue('title', layoutType='view')"></td>
       </tr>
       <tr class="underTitle">
         <td colspan="2" class="by">
