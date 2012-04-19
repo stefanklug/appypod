@@ -1334,6 +1334,7 @@ class BaseMixin:
 
     def getUserLanguage(self):
         '''Gets the language (code) of the current user.'''
+        if not hasattr(self, 'REQUEST'): return 'en'
         # Try first the "LANGUAGE" key from the request
         res = self.REQUEST.get('LANGUAGE', None)
         if res: return res
@@ -1427,8 +1428,8 @@ class BaseMixin:
     def download(self, name=None):
         '''Downloads the content of the file that is in the File field whose
            name is in the request. This name can also represent an attribute
-           storing an image within a rich text field. If p_name is not given, it is retrieved
-           from the request.'''
+           storing an image within a rich text field. If p_name is not given, it
+           is retrieved from the request.'''
         name = self.REQUEST.get('name')
         if not name: return
         if '_img_' not in name:

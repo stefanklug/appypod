@@ -2731,7 +2731,8 @@ class WorkflowAnonymous:
     '''One-state workflow allowing anyone to consult and Manager to edit.'''
     mgr = 'Manager'
     o = 'Owner'
-    active = State({r:(mgr, 'Anonymous'), w:(mgr,o), d:(mgr,o)}, initial=True)
+    active = State({r:(mgr, 'Anonymous', 'Authenticated'), w:(mgr,o),d:(mgr,o)},
+                   initial=True)
 WorkflowAnonymous.__instance__ = WorkflowAnonymous()
 
 class WorkflowAuthenticated:
