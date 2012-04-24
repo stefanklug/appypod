@@ -985,7 +985,7 @@ class ToolMixin(BaseMixin):
 
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''
-        name = className.replace('_', '')
+        name = className.split('_')[-1]
         randomNumber = str(random.random()).split('.')[1]
         timestamp = ('%f' % time.time()).replace('.', '')
         return '%s%s%s' % (name, timestamp, randomNumber)

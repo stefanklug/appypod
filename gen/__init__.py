@@ -11,7 +11,7 @@ import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
 from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
-                              FileWrapper, sequenceTypes
+                              cleanXhtml, FileWrapper, sequenceTypes
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -1166,7 +1166,7 @@ class String(Type):
             if self.isSelect: pass
             elif format == String.LINE: self.maxChars = 256
             elif format == String.TEXT: self.maxChars = 9999
-            elif format == String.XHTML: self.maxChars = 9999
+            elif format == String.XHTML: self.maxChars = 99999
             elif format == String.PASSWORD: self.maxChars = 20
         self.filterable = self.indexed and (self.format == String.LINE) and \
                           not self.isSelect
@@ -1203,6 +1203,12 @@ class String(Type):
         elif isinstance(value, tuple):
             value = list(value)
         return value
+
+    def store(self, obj, value):
+        '''When the value is XHTML, we perform some cleanup.'''
+        if (self.format == String.XHTML) and value:
+            value = cleanXhtml(value)
+        Type.store(self, obj, value)
 
     def getFormattedValue(self, obj, value):
         if self.isEmptyValue(value): return ''

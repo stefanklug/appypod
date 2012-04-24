@@ -625,7 +625,9 @@ class XmlMarshaller:
             if fType: res.write(' type="%s"' % fType)
             # Dump other attributes if needed
             if fType in ('list', 'tuple'):
-                res.write(' count="%d"' % len(fieldValue))
+                length = 0
+                if fieldValue: length = len(fieldValue)
+                res.write(' count="%d"' % length)
         if fType == 'file':
             if hasattr(fieldValue, 'content_type'):
                 res.write(' mimeType="%s"' % fieldValue.content_type)

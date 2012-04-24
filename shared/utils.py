@@ -264,6 +264,21 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
     return res
 
 # ------------------------------------------------------------------------------
+xhtmlClassAttr = re.compile('class\s*=\s*".*?"')
+xhtmlStyleAttr = re.compile('style\s*=\s*".*?"')
+xhtmlComment = re.compile('<!--.*?-->', re.S)
+
+def cleanXhtml(s):
+    '''Returns a version of XHTML string p_s where:
+       * attributes "class" and "style" have been removed;
+       * XHTML comments have been removed.
+    '''
+    s = xhtmlClassAttr.sub('', s)
+    s = xhtmlStyleAttr.sub('', s)
+    s = xhtmlComment.sub('', s)
+    return s
+
+# ------------------------------------------------------------------------------
 toLower = {'Ç':'ç','Ù':'ù','Û':'û','Ü':'ü','Î':'î','Ï':'ï','Ô':'ô','Ö':'ö',
            'É':'é','È':'è','Ê':'ê','Ë':'ë','À':'à','Â':'â','Ä':'ä'}
 toUpper = {'ç':'Ç','ù':'Ù','û':'Û','ü':'Ü','î':'Î','ï':'Ï','ô':'Ô','ö':'Ö',
