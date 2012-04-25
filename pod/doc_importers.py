@@ -249,8 +249,12 @@ class ImageImporter(DocImporter):
             # retrieve the object on which the image is stored and get
             # the file to download.
             urlParts = urlparse.urlsplit(at)
-            path = urlParts[2][1:]
-            obj = imageResolver.unrestrictedTraverse(path.split('/')[:-1])
+            path = urlParts[2][1:].split('/')[:-1]
+            try:
+                obj = imageResolver.unrestrictedTraverse(path)
+            except KeyError:
+                # Maybe a rewrite rule as added some prefix to all URLs?
+                obj = imageResolver.unrestrictedTraverse(path[1:])
             zopeFile = getattr(obj, urlParts[3].split('=')[1])
             appyFile = FileWrapper(zopeFile)
             self.format = mimeTypesExts[appyFile.mimeType]

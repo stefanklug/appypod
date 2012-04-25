@@ -59,6 +59,7 @@ def onDelSession(sessionObject, container):
         # The request comes from a guy whose session has expired.
         resp = rq.RESPONSE
         resp.expireCookie('__ac', path='/')
+        resp.setHeader('Content-Type', 'text/html')
         resp.write('<center>For security reasons, your session has ' \
                    'expired.</center>')
 

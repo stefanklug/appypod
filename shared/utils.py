@@ -268,13 +268,15 @@ xhtmlClassAttr = re.compile('class\s*=\s*".*?"')
 xhtmlStyleAttr = re.compile('style\s*=\s*".*?"')
 xhtmlComment = re.compile('<!--.*?-->', re.S)
 
-def cleanXhtml(s):
+def cleanXhtml(s, keepStyles=False):
     '''Returns a version of XHTML string p_s where:
-       * attributes "class" and "style" have been removed;
+       * attributes "class" and "style" have been removed (only if p_keepStyles
+         is False);
        * XHTML comments have been removed.
     '''
-    s = xhtmlClassAttr.sub('', s)
-    s = xhtmlStyleAttr.sub('', s)
+    if not keepStyles:
+        s = xhtmlClassAttr.sub('', s)
+        s = xhtmlStyleAttr.sub('', s)
     s = xhtmlComment.sub('', s)
     return s
 

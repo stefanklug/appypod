@@ -1473,9 +1473,11 @@ class BaseMixin:
         fakeFile.store(self, self.REQUEST['upload'])
         # Return the URL of the image.
         url = '%s/download?name=%s' % (self.absolute_url(), attrName)
+        response = self.REQUEST.RESPONSE
+        response.setHeader('Content-Type', 'text/html')
         resp = "<script type='text/javascript'>window.parent.CKEDITOR.tools" \
                ".callFunction(%s, '%s');</script>" % (ckNum, url)
-        self.REQUEST.RESPONSE.write(resp)
+        response.write(resp)
 
     def allows(self, permission, raiseError=False):
         '''Has the logged user p_permission on p_self ?'''

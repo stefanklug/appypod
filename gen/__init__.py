@@ -316,6 +316,7 @@ class Search:
             # Indeed, for field 'title', Appy has a specific index
             # 'SortableTitle', because index 'Title' is a ZCTextIndex
             # (for searchability) and can't be used for sorting.
+        elif fieldName == 'state': return 'State'
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
     @staticmethod
@@ -1207,7 +1208,10 @@ class String(Type):
     def store(self, obj, value):
         '''When the value is XHTML, we perform some cleanup.'''
         if (self.format == String.XHTML) and value:
-            value = cleanXhtml(value)
+            # When image upload is allowed, ckeditor inserts some "style" attrs
+            # (ie for image size when images are resized). So in this case we
+            # can't remove style-related information.
+            value = cleanXhtml(value, keepStyles=self.allowImageUpload)
         Type.store(self, obj, value)
 
     def getFormattedValue(self, obj, value):
@@ -1397,6 +1401,11 @@ class String(Type):
         res = {'text': text, 'number': number}
         session['captcha'] = res
         return res
+
+    def generatePassword(self):
+        '''Generates a password (we recycle here the captcha challenge
+           generator).'''
+        return self.getCaptchaChallenge({})['text']
 
 class Boolean(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
