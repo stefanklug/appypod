@@ -209,10 +209,10 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showAllStatesInPhase')
-defaultToolFields = ('title', 'users', 'groups', 'translations', 'pages',
-                     'enableNotifications', 'unoEnabledPython','openOfficePort',
-                     'numberOfResultsPerPage', 'listBoxesMaximumWidth',
-                     'appyVersion')
+defaultToolFields = ('title', 'unoEnabledPython','openOfficePort',
+                     'numberOfResultsPerPage', 'mailHost', 'mailEnabled',
+                     'mailFrom', 'appyVersion', 'users', 'groups',
+                     'translations', 'pages')
 
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
@@ -222,11 +222,12 @@ class Tool(ModelClass):
     # Tool attributes
     title = gen.String(show=False, page=gen.Page('main', show=False))
     def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = gen.String(group="connectionToOpenOffice",
-                                  validator=validPythonWithUno)
-    openOfficePort = gen.Integer(default=2002, group="connectionToOpenOffice")
+    unoEnabledPython = gen.String(validator=validPythonWithUno)
+    openOfficePort = gen.Integer(default=2002)
     numberOfResultsPerPage = gen.Integer(default=30)
-    listBoxesMaximumWidth = gen.Integer(default=100)
+    mailHost = gen.String(default='localhost:25')
+    mailEnabled = gen.Boolean(default=False)
+    mailFrom = gen.String(default='info@appyframework.org')
     appyVersion = gen.String(show=False, layouts='f')
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
@@ -246,8 +247,6 @@ class Tool(ModelClass):
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
                     page=gen.Page('pages', show='view'))
-    enableNotifications = gen.Boolean(default=True,
-                                     page=gen.Page('notifications', show=False))
 
     @classmethod
     def _appy_clean(klass):

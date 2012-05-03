@@ -129,7 +129,6 @@
                  canWrite python: not appyType['isBack'] and contextObj.allows(appyType['writePermission']);
                  showPlusIcon python: contextObj.mayAddReference(fieldName, folder);
                  atMostOneRef python: (appyType['multiplicity'][1] == 1) and (len(objs)&lt;=1);
-                 label python: contextObj.translate('label', field=appyType);
                  addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
 
@@ -142,9 +141,6 @@
     <tal:comment replace="nothing">Display a simplified widget if maximum number of
       referenced objects is 1.</tal:comment>
     <table><tr valign="top">
-      <td><span class="appyLabel" tal:condition="python: not innerRef and not appyType['link']"
-                tal:content="structure label"></span></td>
-
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
         <td tal:content="python: _('no_ref')"></td>

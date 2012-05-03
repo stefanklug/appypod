@@ -46,9 +46,7 @@ class AbstractWrapper(object):
         elif name == 'url': return self.o.absolute_url()
         elif name == 'state': return self.o.State()
         elif name == 'stateLabel':
-            o = self.o
-            appName = o.getProductConfig().PROJECTNAME
-            return o.translate(o.getWorkflowLabel(), domain=appName)
+            return self.o.translate(self.o.getWorkflowLabel())
         elif name == 'history':
             o = self.o
             key = o.workflow_history.keys()[0]

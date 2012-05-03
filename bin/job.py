@@ -6,12 +6,13 @@
      <ZopeAdmin> is the userName of the Zope administrator for this instance.
      <PloneInstancePath> is the path, within Zope, to the Plone Site object (if
                          not at the root of the Zope hierarchy, use '/' as
-                         folder separator);
+                         folder separator); leave blank if using appy.gen > 0.8
 
      <ApplicationName> is the name of the Appy application. If it begins with
                        "path=", it does not represent an Appy application, but
                        the path, within <PloneInstancePath>, to any Zope object
-                       (use '/' as folder separator)
+                       (use '/' as folder separator); leave blank if using
+                       appy.gen > 0.8;
 
      <ToolMethodName> is the name of the method to call on the tool in this
                       Appy application, or the method to call on the arbitrary
@@ -21,7 +22,7 @@
             are supported). Several arguments must be separated by '*'.
 
     Note that you can also specify several commands, separated with
-    semicolons (";"). This scripts performes a single commit after all commands
+    semicolons (";"). This scripts performs a single commit after all commands
     have been executed.
 '''
 
@@ -58,18 +59,21 @@ else:
         if not hasattr(user, 'aq_base'):
             user = user.__of__(app.acl_users)
         newSecurityManager(None, user)
-        # Get the Plone site
-        ploneSite = app # Initialised with the Zope root object.
-        for elem in plonePath.split('/'):
-            ploneSite = getattr(ploneSite, elem)
+        # Find the root object.
+        rootObject = app # Initialised with the Zope root object.
+        if plonePath:
+            for elem in plonePath.split('/'):
+                rootObject = getattr(rootObject, elem)
         # If we are in a Appy application, the object on which we will call the
-        # method is the tool within this application.
-        if not appName.startswith('path='):
+        # method is the config object on this root object.
+        if not appName:
+            targetObject = rootObject.data.appy()
+        elif not appName.startswith('path='):
             objectName = 'portal_%s' % appName.lower()
-            targetObject = getattr(ploneSite, objectName).appy()
+            targetObject = getattr(rootObject, objectName).appy()
         else:
-            # It can be any object within the Plone site.
-            targetObject = ploneSite
+            # It can be any object.
+            targetObject = rootObject
             for elem in appName[5:].split('/'):
                 targetObject = getattr(targetObject, elem)
         # Execute the method on the target object

@@ -64,20 +64,20 @@
       <tal:expanded define="group searchOrGroup;
                             expanded python: request.get(group['labelId'], 'collapsed') == 'expanded'">
         <tal:comment replace="nothing">Group name</tal:comment>
-        <dt class="portletAppyItem portletGroup">
-          <img align="left" style="cursor:pointer"
+        <dt class="portletGroup">
+          <img align="left" style="cursor:pointer; margin-right: 3px"
                tal:attributes="id python: '%s_img' % group['labelId'];
                                src python:test(expanded, 'ui/collapse.gif', 'ui/expand.gif');
-                               onClick python:'toggleCookie(\'%s\')' % group['labelId']"/>&nbsp;
+                               onClick python:'toggleCookie(\'%s\')' % group['labelId']"/>
           <span tal:replace="group/label"/>
         </dt>
         <tal:comment replace="nothing">Group searches</tal:comment>
         <span tal:attributes="id group/labelId;
                               style python:test(expanded, 'display:block', 'display:none')">
-          <dt class="portletAppyItem portletSearch portletGroupItem" tal:repeat="search group/searches">
+          <dt class="portletSearch" tal:repeat="search group/searches">
             <a tal:attributes="href python: '%s?className=%s&search=%s' % (queryUrl, rootClass, search['name']);
-                         title search/descr;
-                         class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
+                               title search/descr;
+                               class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
                tal:content="structure search/label"></a>
           </dt>
         </span>

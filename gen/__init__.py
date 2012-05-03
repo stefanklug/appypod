@@ -6,6 +6,7 @@ from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
+from appy.gen.mail import sendNotification
 from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
@@ -1770,7 +1771,7 @@ class Ref(Type):
         if not res: return res
         # We add here specific Ref rules for preventing to show the field under
         # some inappropriate circumstances.
-        if (layoutType == 'edit') and self.add: return False
+        if (layoutType == 'edit') and (self.add or not self.link): return False
         if self.isBack:
             if layoutType == 'edit': return False
             else: return getattr(obj.aq_base, self.name, None)
@@ -1873,7 +1874,15 @@ class Ref(Type):
         # Insert p_value into it.
         uid = value.o.UID()
         if uid not in refs:
-            refs.append(uid)
+            # Where must we insert the object? At the start? At the end?
+            if callable(self.add):
+                add = self.callMethod(obj, self.add)
+            else:
+                add = self.add
+            if add == 'start':
+                refs.insert(0, uid)
+            else:
+                refs.append(uid)
             # Update the back reference
             if not back: self.back.linkObject(value, obj, back=True)
 
@@ -2125,7 +2134,7 @@ class Pod(Type):
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
     def __init__(self, validator=None, index=None, default=None,
-                 optional=False, editDefault=False, show='view',
+                 optional=False, editDefault=False, show=('view', 'result'),
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
@@ -2634,7 +2643,7 @@ class Transition:
            performed before calling this method). If p_doAction is False, the
            action that must normally be executed after the transition has been
            triggered will not be executed. If p_doNotify is False, the
-           notifications (email,...) that must normally be launched after the
+           email notifications that must normally be launched after the
            transition has been triggered will not be launched. If p_doHistory is
            False, there will be no trace from this transition triggering in the
            workflow history. If p_doSay is False, we consider the transition is
@@ -2674,8 +2683,8 @@ class Transition:
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
         # Send notifications if needed
-        if doNotify and self.notify and obj.getTool(True).enableNotifications:
-            notifier.sendMail(obj.appy(), self, transitionName, wf)
+        if doNotify and self.notify and obj.getTool(True).mailEnabled:
+            sendNotification(obj.appy(), self, transitionName, wf)
         # Return a message to the user if needed
         if not doSay or (transitionName == '_init_'): return
         if not msg: msg = 'Changes saved.' # XXX Translate

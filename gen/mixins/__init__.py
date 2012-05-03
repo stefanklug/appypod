@@ -1356,6 +1356,8 @@ class BaseMixin:
         elif format == 'js':
             res = text.replace('\r\n', '').replace('\n', '')
             res = res.replace("'", "\\'")
+        elif format == 'text':
+            res = text.replace('<br/>', '\n')
         else:
             res = text
         return res

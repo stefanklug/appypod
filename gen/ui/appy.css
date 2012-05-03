@@ -60,7 +60,8 @@ img {border: 0}
 .portletSep { border-top: 1px solid #5F7983; margin-top: 2px;}
 .portletPage { font-style: italic; }
 .portletGroup { font-variant: small-caps; font-weight: bold; font-style: normal;
-                margin: 0 0 0.2em 0; }
+                margin-top: 0.1em }
+.portletSearch { font-size: 90%; font-style: italic; padding-left: 1em}
 .phase { border-style: dashed; border-width: thin; padding: 4px 0.6em 5px 1em;}
 .phaseSelected { background-color: #F4F5F6; }
 .content { padding: 14px 14px 9px 15px;}
