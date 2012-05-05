@@ -134,8 +134,8 @@ class ZodbBackuper:
         '''Send content of self.logMem to self.emails.'''
         w = self.log
         subject = 'Backup notification.'
-        msg = 'From: %s\nSubject: %s\n\n%s' % (self.options.fromAddress,
-              subject, self.logMem.getvalue())
+        msg = 'From: %s\nTo: %s\nSubject: %s\n\n%s' % (self.options.fromAddress,
+              self.emails, subject, self.logMem.getvalue())
         try:
             w('> Sending mail notifications to %s...' % self.emails)
             smtpInfo = self.options.smtpServer.split(':', 3)
@@ -151,6 +151,7 @@ class ZodbBackuper:
                 smtpServer.login(login, password)
             res = smtpServer.sendmail(self.options.fromAddress,
                                       self.emails.split(','), msg)
+            smtpServer.quit()
             if res:
                 w('Could not send mail to some recipients. %s' % str(res))
             w('Done.')

@@ -54,7 +54,8 @@ class AbstractWrapper(object):
         elif name == 'user':
             return self.o.getUser()
         elif name == 'appyUser':
-            return self.search1('User', login=self.o.getUser().getId())
+            return self.search1('User', noSecurity=True,
+                                login=self.o.getUser().getId())
         elif name == 'fields': return self.o.getAllAppyTypes()
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)

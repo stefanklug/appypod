@@ -106,8 +106,7 @@ class Debianizer:
 
     def __init__(self, app, out, appVersion='0.1.0',
                  pythonVersions=('2.6',), zopePort=8080,
-                 depends=('zope2.12', 'openoffice.org', 'imagemagick'),
-                 sign=False):
+                 depends=('openoffice.org', 'imagemagick'), sign=False):
         # app is the path to the Python package to Debianize.
         self.app = app
         self.appName = os.path.basename(app)
@@ -262,6 +261,10 @@ class Debianizer:
         # Create postinst, a script that will:
         # - bytecompile Python files after the Debian install
         # - change ownership of some files if required
+        # - [in the case of a app-package] execute:
+        #   apt-get -t squeeze-backports install zope2.12
+        #   (if zope2.12 is defined as a simple dependency in field "Depends:"
+        #   it will fail because it will not be searched in squeeze-backports).
         # - [in the case of an app-package] call update-rc.d for starting it at
         #   boot time.
         f = file('postinst', 'w')
@@ -273,6 +276,8 @@ class Debianizer:
                                                                   self.appName)
             content += 'if [ -e %s ]\nthen\n%sfi\n' % (bin, cmds)
         if self.appName != 'appy':
+            # Install zope2.12 from squeeze-backports
+            content += 'apt-get -t squeeze-backports install zope2.12\n'
             # Allow user "zope", that runs the Zope instance, to write the
             # database and log files.
             content += 'chown -R zope:root /var/lib/%s\n' % self.appNameLower

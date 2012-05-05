@@ -4,7 +4,8 @@
    tal:define="className request/className;
                refInfo request/ref|nothing;
                searchInfo python: tool.getSearchInfo(className, refInfo);
-               cssJs python: tool.getCssJs(searchInfo['fields'], 'edit')">
+               cssJs python: {};
+               dummy python: tool.getCssJs(searchInfo['fields'], 'edit', cssJs)">
 
   <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
   <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"

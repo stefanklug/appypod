@@ -42,7 +42,7 @@
 </tal:comment>
 <table metal:define-macro="widgets"
        tal:attributes="width layout/width">
-  <tr tal:repeat="widget python: contextObj.getGroupedAppyTypes(layoutType, page)">
+  <tr tal:repeat="widget groupedWidgets">
     <td tal:condition="python: widget['type'] == 'group'">
       <metal:call use-macro="app/ui/widgets/show/macros/group"/>
     </td>

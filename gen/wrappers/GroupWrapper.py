@@ -1,8 +1,10 @@
 # ------------------------------------------------------------------------------
+from appy.gen import WorkflowOwner
 from appy.gen.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
 class GroupWrapper(AbstractWrapper):
+    workflow = WorkflowOwner
 
     def showLogin(self):
         '''When must we show the login field?'''

@@ -981,7 +981,8 @@ class ToolMixin(BaseMixin):
         if rolesToShow:
             res.append(', '.join([self.translate('role_%s'%r) \
                                   for r in rolesToShow]))
-        return (' | '.join(res), appyUser.o.getUrl(mode='edit'))
+        return (' | '.join(res), appyUser.o.getUrl(mode='edit', page='main',
+                                                   nav=''))
 
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''

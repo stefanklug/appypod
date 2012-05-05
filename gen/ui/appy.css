@@ -64,7 +64,7 @@ img {border: 0}
 .portletSearch { font-size: 90%; font-style: italic; padding-left: 1em}
 .phase { border-style: dashed; border-width: thin; padding: 4px 0.6em 5px 1em;}
 .phaseSelected { background-color: #F4F5F6; }
-.content { padding: 14px 14px 9px 15px;}
+.content { padding: 14px 14px 9px 15px; }
 .grey { display: none; position: absolute; left: 0px; top: 0px;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
         filter:alpha(Opacity=50);}

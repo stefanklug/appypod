@@ -9,20 +9,22 @@ CKEDITOR.editorConfig = function( config )
   config.toolbar_Appy =
   [
     { name: 'basicstyles', items : [ 'Format', 'Bold', 'Italic', 'Underline',
-                                     'Strike', 'Subscript', 'Superscript', '-',
-                                     'RemoveFormat' ] },
+                                     'Strike', 'Subscript', 'Superscript'] },
     { name: 'paragraph', items : [ 'NumberedList', 'BulletedList', '-',
                                    'Outdent', 'Indent', '-', 'JustifyLeft',
                                    'JustifyCenter', 'JustifyRight',
                                    'JustifyBlock'] },
     { name: 'clipboard', items : [ 'Cut', 'Copy', 'Paste', 'PasteText',
-                                   'PasteFromWord', '-', 'Undo', 'Redo' ] },
+                                   'PasteFromWord', 'Undo', 'Redo']},
     { name: 'editing', items : [ 'Find', 'Replace', '-', 'SelectAll', '-',
                                  'SpellChecker', 'Scayt']},
-    { name: 'insert', items : [ 'Image', 'Table', 'HorizontalRule',
-                                'SpecialChar', 'PageBreak', 'Link', 'Unlink',
-                                '-', 'Maximize']},
+    { name: 'insert', items : [ 'Image', 'Table', 'SpecialChar', 'Link',
+                                'Unlink', 'Source', 'Maximize']},
   ];
+  config.toolbar_AppyRich = config.toolbar_Appy.concat(
+    [{name: 'styles', items: [ 'Font', 'FontSize', 'TextColor', 'BGColor',
+                               'RemoveFormat' ]},]
+  )
   config.format_p =  { element:'p',  attributes:{'style':'margin:0;padding:0'}};
   config.format_h1 = { element:'h1', attributes:{'style':'margin:0;padding:0'}};
   config.format_h2 = { element:'h2', attributes:{'style':'margin:0;padding:0'}};

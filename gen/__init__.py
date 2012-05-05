@@ -356,6 +356,12 @@ class Search:
 # ------------------------------------------------------------------------------
 class Type:
     '''Basic abstract class for defining any appy type.'''
+    # Those attributes can be overridden by subclasses for defining,
+    # respectively, names of CSS and Javascript files that are required by this
+    # field, keyed by layoutType.
+    cssFiles = {}
+    jsFiles = {}
+
     def __init__(self, validator, multiplicity, index, default, optional,
                  editDefault, show, page, group, layouts, move, indexed,
                  searchable, specificReadPermission, specificWritePermission,
@@ -723,13 +729,25 @@ class Type:
             res = copy.deepcopy(defaultFieldLayouts)
         return res
 
-    def getCss(self, layoutType):
-        '''This method returns a list of CSS files that are required for
-           displaying widgets of self's type on a given p_layoutType.'''
+    def getCss(self, layoutType, res):
+        '''This method completes the list p_res with the names of CSS files
+           that are required for displaying widgets of self's type on a given
+           p_layoutType. p_res is not a set because order of inclusion of CSS
+           files may be important and may be loosed by using sets.'''
+        if layoutType in self.cssFiles:
+            for fileName in self.cssFiles[layoutType]:
+                if fileName not in res:
+                    res.append(fileName)
 
-    def getJs(self, layoutType):
-        '''This method returns a list of Javascript files that are required for
-           displaying widgets of self's type on a given p_layoutType.'''
+    def getJs(self, layoutType, res):
+        '''This method completes the list p_res with the names of Javascript
+           files that are required for displaying widgets of self's type on a
+           given p_layoutType. p_res is not a set because order of inclusion of
+           CSS files may be important and may be loosed by using sets.'''
+        if layoutType in self.jsFiles:
+            for fileName in self.jsFiles[layoutType]:
+                if fileName not in res:
+                    res.append(fileName)
 
     def getValue(self, obj):
         '''Gets, on_obj, the value conforming to self's type definition.'''
@@ -1025,6 +1043,9 @@ class Float(Type):
             return self.pythonType(value)
 
 class String(Type):
+    # Javascript files sometimes required by this type
+    jsFiles = {'edit': ('ckeditor/ckeditor.js',)}
+
     # Some predefined regular expressions that may be used as validators
     c = re.compile
     EMAIL = c('[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.' \
@@ -1132,7 +1153,7 @@ class String(Type):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  transform='none', styles=('p','h1','h2','h3','h4'),
-                 allowImageUpload=True):
+                 allowImageUpload=True, richText=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -1141,6 +1162,11 @@ class String(Type):
         # When format is XHTML, the list of styles that the user will be able to
         # select in the styles dropdown is defined hereafter.
         self.styles = styles
+        # When richText is True, we show to the user icons in ckeditor allowing
+        # him to tailor text appearance, color, size, etc. While this may be an
+        # option if the objective is to edit web pages, this may not be desired
+        # for producing standardized, pod-print-ready documents.
+        self.richText = richText
         # When format is XHTML, do we allow the user to upload images in it ?
         self.allowImageUpload = allowImageUpload
         # The following field has a direct impact on the text entered by the
@@ -1212,7 +1238,8 @@ class String(Type):
             # When image upload is allowed, ckeditor inserts some "style" attrs
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
-            value = cleanXhtml(value, keepStyles=self.allowImageUpload)
+            keepStyles = self.allowImageUpload or self.richText
+            value = cleanXhtml(value, keepStyles=keepStyles)
         Type.store(self, obj, value)
 
     def getFormattedValue(self, obj, value):
@@ -1379,9 +1406,8 @@ class String(Type):
             return 'ZCTextIndex'
         return Type.getIndexType(self)
 
-    def getJs(self, layoutType):
-        if (layoutType == 'edit') and (self.format == String.XHTML):
-            return ('ckeditor/ckeditor.js',)
+    def getJs(self, layoutType, res):
+        if self.format == String.XHTML: Type.getJs(self, layoutType, res)
 
     def getCaptchaChallenge(self, session):
         '''Returns a Captcha challenge in the form of a dict. At key "text",
@@ -1445,6 +1471,11 @@ class Boolean(Type):
             return res
 
 class Date(Type):
+    # Required CSS and Javascript files for this type.
+    cssFiles = {'edit': ('jscalendar/calendar-blue.css',)}
+    jsFiles = {'edit': ('jscalendar/calendar.js',
+                        'jscalendar/lang/calendar-en.js',
+                        'jscalendar/calendar-setup.js')}
     # Possible values for "format"
     WITH_HOUR = 0
     WITHOUT_HOUR = 1
@@ -1474,14 +1505,13 @@ class Date(Type):
                       master, masterValue, focus, historized, True, mapping,
                       label)
 
-    def getCss(self, layoutType):
-        if (layoutType == 'edit') and self.calendar:
-            return ('jscalendar/calendar-blue.css',)
+    def getCss(self, layoutType, res):
+        # CSS files are only required if the calendar must be shown.
+        if self.calendar: Type.getCss(self, layoutType, res)
 
-    def getJs(self, layoutType):
-        if (layoutType == 'edit') and self.calendar:
-            return ('jscalendar/calendar.js', 'jscalendar/lang/calendar-en.js',
-                    'jscalendar/calendar-setup.js')
+    def getJs(self, layoutType, res):
+        # Javascript files are only required if the calendar must be shown.
+        if self.calendar: Type.getJs(self, layoutType, res)
 
     def getSelectableYears(self):
         '''Gets the list of years one may select for this field.'''
@@ -2372,21 +2402,15 @@ class List(Type):
         if i >= len(outerValue): return ''
         return getattr(outerValue[i], name, '')
 
-    def getCss(self, layoutType):
+    def getCss(self, layoutType, res):
         '''Gets the CSS required by sub-fields if any.'''
-        res = ()
         for name, field in self.fields:
-            css = field.getCss(layoutType)
-            if css: res += css
-        return res
+            field.getCss(layoutType, res)
 
-    def getJs(self, layoutType):
+    def getJs(self, layoutType, res):
         '''Gets the JS required by sub-fields if any.'''
-        res = ()
         for name, field in self.fields:
-            js = field.getJs(layoutType)
-            if js: res += js
-        return res
+            field.getJs(layoutType, res)
 
 # Workflow-specific types and default workflows --------------------------------
 appyToZopePermissions = {
@@ -2767,6 +2791,14 @@ class WorkflowAuthenticated:
     active = State({r:(mgr, 'Authenticated'), w:(mgr,o), d:(mgr,o)},
                    initial=True)
 WorkflowAuthenticated.__instance__ = WorkflowAuthenticated()
+
+class WorkflowOwner:
+    '''One-state workflow allowing only manager and owner to consult and
+       edit.'''
+    mgr = 'Manager'
+    o = 'Owner'
+    active = State({r:(mgr, o), w:(mgr, o), d:mgr}, initial=True)
+WorkflowOwner.__instance__ = WorkflowOwner()
 
 # ------------------------------------------------------------------------------
 class Selection:

@@ -67,7 +67,7 @@ else:
         # If we are in a Appy application, the object on which we will call the
         # method is the config object on this root object.
         if not appName:
-            targetObject = rootObject.data.appy()
+            targetObject = rootObject.config.appy()
         elif not appName.startswith('path='):
             objectName = 'portal_%s' % appName.lower()
             targetObject = getattr(rootObject, objectName).appy()

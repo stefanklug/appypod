@@ -125,6 +125,8 @@ class ModelClass:
             # Determine page show
             pageShow = page.show
             if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
+            elif callable(pageShow):
+                pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
             res += '"%s":Pge("%s", show=%s),'% (page.name, page.name, pageShow)
         res += '}\n'
         # Secondly, dump every attribute
@@ -194,7 +196,7 @@ class Page(ModelClass):
     _appy_attributes = ['title', 'content', 'pages']
     folder = True
     title = gen.String(show='edit', indexed=True)
-    content = gen.String(format=gen.String.XHTML, layouts='f')
+    content = gen.String(format=gen.String.XHTML, layouts='f', richText=True)
     # Pages can contain other pages.
     def showSubPages(self): pass
     pages = gen.Ref(None, multiplicity=(0,None), add=True, link=False,
@@ -209,10 +211,10 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'enableAdvancedSearch', 'numberOfSearchColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showAllStatesInPhase')
-defaultToolFields = ('title', 'unoEnabledPython','openOfficePort',
-                     'numberOfResultsPerPage', 'mailHost', 'mailEnabled',
-                     'mailFrom', 'appyVersion', 'users', 'groups',
-                     'translations', 'pages')
+defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
+                     'appyVersion', 'users', 'groups', 'translations', 'pages',
+                     'unoEnabledPython','openOfficePort',
+                     'numberOfResultsPerPage')
 
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
@@ -220,33 +222,40 @@ class Tool(ModelClass):
     folder = True
 
     # Tool attributes
+    def isManager(self): pass
     title = gen.String(show=False, page=gen.Page('main', show=False))
-    def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = gen.String(validator=validPythonWithUno)
-    openOfficePort = gen.Integer(default=2002)
-    numberOfResultsPerPage = gen.Integer(default=30)
     mailHost = gen.String(default='localhost:25')
     mailEnabled = gen.Boolean(default=False)
     mailFrom = gen.String(default='info@appyframework.org')
-    appyVersion = gen.String(show=False, layouts='f')
+    appyVersion = gen.String(layouts='f')
+
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
                     back=gen.Ref(attribute='toTool', show=False),
-                    page=gen.Page('users', show='view'),
+                    page=gen.Page('users', show=isManager),
                     queryable=True, queryFields=('title', 'login'),
                     showHeaders=True, shownInfo=('title', 'login', 'roles'))
     groups = gen.Ref(Group, multiplicity=(0,None), add=True, link=False,
                      back=gen.Ref(attribute='toTool2', show=False),
-                     page=gen.Page('groups', show='view'),
+                     page=gen.Page('groups', show=isManager),
                      queryable=True, queryFields=('title', 'login'),
                      showHeaders=True, shownInfo=('title', 'login', 'roles'))
     translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
                            link=False, show='view',
                            back=gen.Ref(attribute='trToTool', show=False),
-                           page=gen.Page('translations', show='view'))
+                           page=gen.Page('translations', show=isManager))
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
-                    page=gen.Page('pages', show='view'))
+                    page=gen.Page('pages', show=isManager))
+
+    # Document generation page
+    dgp = {'page': gen.Page('documentGeneration', show=isManager)}
+    def validPythonWithUno(self, value): pass # Real method in the wrapper
+    unoEnabledPython = gen.String(show=False,validator=validPythonWithUno,**dgp)
+    openOfficePort = gen.Integer(default=2002, show=False, **dgp)
+    # User interface page
+    numberOfResultsPerPage = gen.Integer(default=30,
+                                     page=gen.Page('userInterface', show=False))
 
     @classmethod
     def _appy_clean(klass):

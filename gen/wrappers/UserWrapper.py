@@ -1,13 +1,15 @@
 # ------------------------------------------------------------------------------
+from appy.gen import WorkflowOwner
 from appy.gen.wrappers import AbstractWrapper
 
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):
+    workflow = WorkflowOwner
 
     def showLogin(self):
         '''When must we show the login field?'''
         if self.o.isTemporary(): return 'edit'
-        return 'view'
+        return ('view', 'result')
 
     def showName(self):
         '''Name and first name, by default, are always shown.'''
@@ -29,7 +31,8 @@ class UserWrapper(AbstractWrapper):
         if login == 'admin':
             return 'This username is reserved.' # XXX Translate
         # Check that no user or group already uses this login.
-        if self.count('User', login=login) or self.count('Group', login=login):
+        if self.count('User', noSecurity=True, login=login) or \
+           self.count('Group', noSecurity=True, login=login):
             return 'This login is already in use.' # XXX Translate
         return True
 

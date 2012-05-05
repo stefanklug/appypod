@@ -13,9 +13,13 @@ def sendMail(tool, to, subject, body, attachments=None):
        list of email addresses).'''
     # Just log things if mail is disabled
     fromAddress = tool.mailFrom
-    if not tool.mailEnabled:
-        tool.log('Mail disabled: should send mail from %s to %s.' % \
-                 (fromAddress, str(to)))
+    if not tool.mailEnabled or not tool.mailHost:
+        if not tool.mailHost:
+            msg = ' (no mailhost defined)'
+        else:
+            msg = ''
+        tool.log('Mail disabled%s: should send mail from %s to %s.' % \
+                 (msg, fromAddress, str(to)))
         tool.log('Subject: %s' % subject)
         tool.log('Body: %s' % body)
         if attachments:
@@ -65,11 +69,24 @@ def sendMail(tool, to, subject, body, attachments=None):
             msg.attach(part)
     # Send the email
     try:
-        mh = smtplib.SMTP(tool.mailHost)
-        mh.sendmail(fromAddress, [to], msg.as_string())
-        mh.quit()
+        smtpInfo = tool.mailHost.split(':', 3)
+        login = password = None
+        if len(smtpInfo) == 2:
+            # We simply have server and port
+            server, port = smtpInfo
+        else:
+            # We also have login and password
+            server, port, login, password = smtpInfo
+        smtpServer = smtplib.SMTP(server, port=int(port))
+        if login:
+            smtpServer.login(login, password)
+        res = smtpServer.sendmail(fromAddress, [to], msg.as_string())
+        smtpServer.quit()
+        if res:
+            tool.log('Could not send mail to some recipients. %s' % str(res),
+                     type='warning')
     except smtplib.SMTPException, e:
-        tool.log('Mail sending failed: %s' % str(e))
+        tool.log('Mail sending failed: %s' % str(e), type='error')
 
 # ------------------------------------------------------------------------------
 def sendNotification(obj, transition, transitionName, workflow):

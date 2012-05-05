@@ -589,11 +589,15 @@ class BaseMixin:
             klass = self.getTool().getAppyClass(className, wrapper=True)
         return klass.__fields__
 
-    def getGroupedAppyTypes(self, layoutType, pageName):
+    def getGroupedAppyTypes(self, layoutType, pageName, cssJs=None):
         '''Returns the fields sorted by group. For every field, the appyType
            (dict version) is given.'''
         res = []
         groups = {} # The already encountered groups
+        # If a dict is given in p_cssJs, we must fill it with the CSS and JS
+        # files required for every returned appyType.
+        collectCssJs = isinstance(cssJs, dict)
+        css = js = None
         # If param "refresh" is there, we must reload the Python class
         refresh = ('refresh' in self.REQUEST)
         if refresh:
@@ -602,6 +606,11 @@ class BaseMixin:
             if refresh: appyType = appyType.reload(klass, self)
             if appyType.page.name != pageName: continue
             if not appyType.isShowable(self, layoutType): continue
+            if collectCssJs:
+                if css == None: css = []
+                appyType.getCss(layoutType, css)
+                if js == None: js = []
+                appyType.getJs(layoutType, js)
             if not appyType.group:
                 res.append(appyType.__dict__)
             else:
@@ -610,6 +619,9 @@ class BaseMixin:
                 groupDescr = appyType.group.insertInto(res, groups,
                                                   appyType.page, self.meta_type)
                 GroupDescr.addWidget(groupDescr, appyType.__dict__)
+        if collectCssJs:
+            cssJs['css'] = css
+            cssJs['js'] = js
         return res
 
     def getAppyTypes(self, layoutType, pageName):
@@ -622,23 +634,19 @@ class BaseMixin:
             res.append(appyType)
         return res
 
-    def getCssJs(self, fields, layoutType):
-        '''Gets the list of Javascript and CSS files required by Appy types
-           p_fields when shown on p_layoutType.'''
+    def getCssJs(self, fields, layoutType, res):
+        '''Gets, in p_res ~{'css':[s_css], 'js':[s_js]}~ the lists of
+           Javascript and CSS files required by Appy types p_fields when shown
+           on p_layoutType.'''
         # Lists css and js below are not sets, because order of Javascript
         # inclusion can be important, and this could be losed by using sets.
         css = []
         js = []
         for field in fields:
-            fieldCss = field.getCss(layoutType)
-            if fieldCss:
-                for fcss in fieldCss:
-                    if fcss not in css: css.append(fcss)
-            fieldJs = field.getJs(layoutType)
-            if fieldJs:
-                for fjs in fieldJs:
-                    if fjs not in js: js.append(fjs)
-        return {'css':css, 'js':js}
+            field.getCss(layoutType, css)
+            field.getJs(layoutType, js)
+        res['css'] = css
+        res['js'] = js
 
     def getAppyTypesFromNames(self, fieldNames, asDict=True):
         '''Gets the Appy types named p_fieldNames.'''
@@ -874,7 +882,8 @@ class BaseMixin:
         else:
             appyClass = self.getTool().getAppyClass(className)
         if hasattr(appyClass, 'workflow'): wf = appyClass.workflow
-        else: wf = gen.WorkflowAnonymous
+        else:
+            wf = gen.WorkflowAnonymous
         if not name: return wf
         return WorkflowDescriptor.getWorkflowName(wf)
 
@@ -1495,7 +1504,7 @@ class BaseMixin:
         # Define the attributes that will initialize the ckeditor instance for
         # this field.
         field = self.getAppyType(name)
-        ckAttrs = {'toolbar': 'Appy',
+        ckAttrs = {'toolbar': field.richText and 'AppyRich' or 'Appy',
                    'format_tags': '%s' % ';'.join(field.styles)}
         if field.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % self.absolute_url()

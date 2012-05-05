@@ -30,16 +30,23 @@ class ToolWrapper(AbstractWrapper):
                 return NOT_UNO_ENABLED_PYTHON % value
         return True
 
+    def isManager(self):
+        '''Some pages on the tool can only be accessed by God.'''
+        if self.user.has_role('Manager'): return 'view'
+
     podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
     def getPodOutputFormats(self):
         '''Gets the available output formats for POD documents.'''
         return [(of, self.translate(of)) for of in self.podOutputFormats]
 
-    def getInitiator(self):
+    def getInitiator(self, field=False):
         '''Retrieves the object that triggered the creation of the object
-           being currently created (if any).'''
+           being currently created (if any), or the name of the field in this
+           object if p_field is given.'''
         nav = self.o.REQUEST.get('nav', '')
-        if nav: return self.getObject(nav.split('.')[1])
+        if not nav or not nav.startswith('ref.'): return
+        if not field: return self.getObject(nav.split('.')[1])
+        return nav.split('.')[2].split(':')[0]
 
     def getObject(self, uid):
         '''Allow to retrieve an object from its unique identifier p_uid.'''

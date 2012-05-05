@@ -1,15 +1,16 @@
 <tal:main define="tool context/config">
 <html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
-    tal:define="contextObj   python: context.getParentNode();
-                dummy        python: contextObj.allows('View', raiseError=True);
-                portal_type  python: context.portal_type.lower().replace(' ', '_');
-                errors       python: req.get('errors', {});
-                layoutType   python:'view';
-                layout       python: contextObj.getPageLayout(layoutType);
-                phaseInfo    python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
-                page         req/page|python:'main';
-                phase        phaseInfo/name;"
+    tal:define="contextObj     python: context.getParentNode();
+                dummy          python: contextObj.allows('View', raiseError=True);
+                portal_type    python: context.portal_type.lower().replace(' ', '_');
+                errors         python: req.get('errors', {});
+                layoutType     python:'view';
+                layout         python: contextObj.getPageLayout(layoutType);
+                phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
+                page           req/page|python:'main';
+                phase          phaseInfo/name;
+                groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page);"
     tal:on-error="structure python: tool.manageError(error)">
     <metal:prologue use-macro="context/ui/page/macros/prologue"/>
     <metal:show     use-macro="context/ui/page/macros/show"/>

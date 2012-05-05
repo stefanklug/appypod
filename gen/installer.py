@@ -267,7 +267,7 @@ class ZopeInstaller:
             appyTool.log('Admin user "admin" created.')
 
         # Create group "admins" if it does not exist
-        if not appyTool.count('Group', login='admins'):
+        if not appyTool.count('Group', noSecurity=True, login='admins'):
             appyTool.create('groups', login='admins', title='Administrators',
                             roles=['Manager'])
             appyTool.log('Group "admins" created.')
@@ -275,7 +275,8 @@ class ZopeInstaller:
         # Create a group for every global role defined in the application
         for role in self.config.applicationGlobalRoles:
             relatedGroup = '%s_group' % role
-            if appyTool.count('Group', login=relatedGroup): continue
+            if appyTool.count('Group', noSecurity=True, login=relatedGroup):
+                continue
             appyTool.create('groups', login=relatedGroup, title=relatedGroup,
                             roles=[role])
             appyTool.log('Group "%s", related to global role "%s", was ' \

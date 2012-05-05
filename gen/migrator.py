@@ -43,9 +43,10 @@ class Migrator:
             # Manage groups. Exclude not-used default Plone groups.
             for groupId in user.getGroups():
                 if groupId in self.bypassGroups: continue
-                if tool.count('Group', login=groupId):
+                if tool.count('Group', noSecurity=True, login=groupId):
                     # The Appy group already exists, get it
-                    appyGroup = tool.search('Group', login=groupId)[0]
+                    appyGroup = tool.search('Group', noSecurity=True,
+                                            login=groupId)[0]
                 else:
                     # Create the group. Todo: get Plone group roles and title
                     appyGroup = tool.create('groups', login=groupId,
