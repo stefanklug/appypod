@@ -223,6 +223,7 @@ class Tool(ModelClass):
 
     # Tool attributes
     def isManager(self): pass
+    def isManagerEdit(self): pass
     title = gen.String(show=False, page=gen.Page('main', show=False))
     mailHost = gen.String(default='localhost:25')
     mailEnabled = gen.Boolean(default=False)
@@ -249,7 +250,7 @@ class Tool(ModelClass):
                     page=gen.Page('pages', show=isManager))
 
     # Document generation page
-    dgp = {'page': gen.Page('documentGeneration', show=isManager)}
+    dgp = {'page': gen.Page('documentGeneration', show=isManagerEdit)}
     def validPythonWithUno(self, value): pass # Real method in the wrapper
     unoEnabledPython = gen.String(show=False,validator=validPythonWithUno,**dgp)
     openOfficePort = gen.Integer(default=2002, show=False, **dgp)

@@ -1,3 +1,4 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html metal:define-macro="main"
       tal:define="user tool/getUser;
                   isAnon tool/userIsAnon;
@@ -8,7 +9,7 @@
                   _ python: tool.translate;
                   req python: request;
                   resp req/RESPONSE;
-                  x python: resp.setHeader('Content-Type', 'text/html;;charset=UTF-8');
+                  x python: resp.setHeader('Content-type', 'text/html;;charset=UTF-8');
                   x python: resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
                   x python: resp.setHeader('Content-Language', req.get('language', 'en'))">
 

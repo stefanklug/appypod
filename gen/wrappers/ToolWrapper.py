@@ -34,6 +34,10 @@ class ToolWrapper(AbstractWrapper):
         '''Some pages on the tool can only be accessed by God.'''
         if self.user.has_role('Manager'): return 'view'
 
+    def isManagerEdit(self):
+        '''Some pages on the tool can only be accessed by God, also in edit.'''
+        if self.user.has_role('Manager'): return True
+
     podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
     def getPodOutputFormats(self):
         '''Gets the available output formats for POD documents.'''
@@ -54,7 +58,11 @@ class ToolWrapper(AbstractWrapper):
 
     def getDiskFolder(self):
         '''Returns the disk folder where the Appy application is stored.'''
-        return self.o.getProductConfig().diskFolder
+        return self.o.config.diskFolder
+
+    def getClass(self, zopeName):
+        '''Gets the Appy class corresponding to technical p_zopeName.'''
+        return self.o.getAppyClass(zopeName)
 
     def getAttributeName(self, attributeType, klass, attrName=None):
         '''Some names of Tool attributes are not easy to guess. For example,

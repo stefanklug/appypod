@@ -281,23 +281,20 @@ def cleanXhtml(s, keepStyles=False):
     return s
 
 # ------------------------------------------------------------------------------
-toLower = {'Ç':'ç','Ù':'ù','Û':'û','Ü':'ü','Î':'î','Ï':'ï','Ô':'ô','Ö':'ö',
-           'É':'é','È':'è','Ê':'ê','Ë':'ë','À':'à','Â':'â','Ä':'ä'}
-toUpper = {'ç':'Ç','ù':'Ù','û':'Û','ü':'Ü','î':'Î','ï':'Ï','ô':'Ô','ö':'Ö',
-           'é':'É','è':'È','ê':'Ê','ë':'Ë','à':'À','â':'Â','ä':'Ä'}
-
 def lower(s):
     '''French-accents-aware variant of string.lower.'''
+    isUnicode = isinstance(s, unicode)
+    if not isUnicode: s = s.decode('utf-8')
     res = s.lower()
-    for upp, low in toLower.iteritems():
-        if upp in res: res = res.replace(upp, low)
+    if not isUnicode: res = res.encode('utf-8')
     return res
 
 def upper(s):
     '''French-accents-aware variant of string.upper.'''
+    isUnicode = isinstance(s, unicode)
+    if not isUnicode: s = s.decode('utf-8')
     res = s.upper()
-    for low, upp in toUpper.iteritems():
-        if low in res: res = res.replace(low, upp)
+    if not isUnicode: res = res.encode('utf-8')
     return res
 
 # ------------------------------------------------------------------------------

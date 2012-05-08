@@ -1,5 +1,5 @@
 '''This package contains functions for sending email notifications.'''
-import smtplib
+import smtplib, socket
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
@@ -50,6 +50,8 @@ def sendMail(tool, to, subject, body, attachments=None):
     if attachments:
         for fileName, fileContent in attachments:
             part = MIMEBase('application', 'octet-stream')
+            if fileContent.__class__.__name__ == 'FileWrapper':
+                fileContent = fileContent._zopeFile
             if hasattr(fileContent, 'data'):
                 # It is a File instance coming from the database
                 data = fileContent.data
@@ -87,6 +89,8 @@ def sendMail(tool, to, subject, body, attachments=None):
                      type='warning')
     except smtplib.SMTPException, e:
         tool.log('Mail sending failed: %s' % str(e), type='error')
+    except socket.error, se:
+        tool.log('Mail sending failed: %s' % str(se), type='error')
 
 # ------------------------------------------------------------------------------
 def sendNotification(obj, transition, transitionName, workflow):
