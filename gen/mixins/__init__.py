@@ -340,7 +340,8 @@ class BaseMixin:
             obj = self.getTool().getObject(rq['objectUid'])
         else:
             obj = self
-        return obj.getMethod('on'+action)()
+        if rq.get('appy', None) == '1': obj = obj.appy()
+        return getattr(obj, 'on'+action)()
 
     def rememberPreviousData(self):
         '''This method is called before updating an object and remembers, for

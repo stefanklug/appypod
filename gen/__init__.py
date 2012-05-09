@@ -12,7 +12,7 @@ import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
 from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
-                              cleanXhtml, FileWrapper, sequenceTypes
+                              XhtmlCleaner, FileWrapper, sequenceTypes
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -1239,7 +1239,7 @@ class String(Type):
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
             keepStyles = self.allowImageUpload or self.richText
-            value = cleanXhtml(value, keepStyles=keepStyles)
+            value = XhtmlCleaner.clean(value, keepStyles=keepStyles)
         Type.store(self, obj, value)
 
     def getFormattedValue(self, obj, value):
