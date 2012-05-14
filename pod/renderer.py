@@ -78,7 +78,7 @@ CONTENT_POD_STYLES = f.read()
 f.close()
 
 # Default font added by pod in content.xml
-CONTENT_POD_FONTS = '<@style@:font-face style:name="PodStarSymbol" ' \
+CONTENT_POD_FONTS = '<@style@:font-face @style@:name="PodStarSymbol" ' \
                     '@svg@:font-family="StarSymbol"/>'
 
 # Default text styles added by pod in styles.xml
@@ -213,7 +213,8 @@ class Renderer:
                 nsUris={'style': pe.NS_STYLE, 'svg': pe.NS_SVG}),
             OdInsert(STYLES_POD_STYLES,
                 XmlElement('styles', nsUri=pe.NS_OFFICE),
-                nsUris={'style': pe.NS_STYLE, 'fo': pe.NS_FO}))
+                nsUris={'style': pe.NS_STYLE, 'fo': pe.NS_FO,
+                        'text': pe.NS_TEXT}))
         self.stylesParser = self.createPodParser('styles.xml', context,
                                                  stylesInserts)
         # Stores the styles mapping

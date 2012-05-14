@@ -264,35 +264,6 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
     return res
 
 # ------------------------------------------------------------------------------
-class XhtmlCleaner:
-    # Regular expressions used for cleaning.
-    classAttr = re.compile('class\s*=\s*".*?"')
-    comment = re.compile('<!--.*?-->', re.S)
-
-    '''This class has 2 objectives:
-
-       1. The main objective is to format XHTML p_s to be storable in the ZODB
-          according to Appy rules.
-          a. Every <p> or <li> must be on a single line (ending with a carriage
-             return); else, appy.shared.diff will not be able to compute XHTML
-             diffs;
-          b. Optimize size: HTML comments are removed.
-
-       2. If p_keepStyles (or m_clean) is False, some style-related information
-          will be removed, in order to get a standardized content that can be
-          dumped in an elegant and systematic manner into a POD template.
-    '''
-    @classmethod
-    def clean(klass, s, keepStyles=False):
-        '''Returns the cleaned variant of p_s.'''
-        if not keepStyles:
-            # Format p_s according to objective 2.
-            s = klass.classAttr.sub('', s)
-        # Format p_s according to objective 1.
-        s = klass.comment.sub('', s)
-        return s
-
-# ------------------------------------------------------------------------------
 def lower(s):
     '''French-accents-aware variant of string.lower.'''
     isUnicode = isinstance(s, unicode)

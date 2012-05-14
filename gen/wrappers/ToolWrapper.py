@@ -149,7 +149,7 @@ class ToolWrapper(AbstractWrapper):
         '''Reindex all Appy objects. For some unknown reason, method
            catalog.refreshCatalog is not able to recatalog Appy objects.'''
         if not startObject:
-            # This is a global refresh. Clear the catallog completely, and then
+            # This is a global refresh. Clear the catalog completely, and then
             # reindex all Appy-managed objects, ie those in folders "config"
             # and "data".
             # First, clear the catalog.

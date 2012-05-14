@@ -18,7 +18,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import xml.sax, difflib, types
+import xml.sax, difflib, types, cgi
 from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges,\
                             property_interning_dict
 from xml.sax.xmlreader import InputSource
@@ -887,4 +887,127 @@ class XmlComparator:
             else:
                 lastLinePrinted = False
         return not atLeastOneDiff
+
+# ------------------------------------------------------------------------------
+class XhtmlCleaner(XmlParser):
+
+    # Tags that will not be in the result, content included, if keepStyles is
+    # False.
+    tagsToIgnoreWithContent = ('style', 'colgroup')
+    # Tags that will be removed from the result, but whose content will be kept,
+    # if keepStyles is False.
+    tagsToIgnoreKeepContent= ('x', 'font')
+    # All tags to ignore
+    tagsToIgnore = tagsToIgnoreWithContent + tagsToIgnoreKeepContent
+    # Attributes to ignore, if keepStyles if False.
+    attrsToIgnore = ('align', 'valign', 'cellpadding', 'cellspacing', 'width',
+                     'height', 'bgcolor', 'lang', 'border', 'class')
+    # Attrs to add, if not present, to ensure good formatting, be it at the web
+    # or ODT levels.
+    attrsToAdd = {'table': {'cellspacing':'0', 'cellpadding':'6', 'border':'1'},
+                  'tr':    {'valign': 'top'}}
+
+    # Tags that required a line break to be inserted after them.
+    lineBreakTags = ('p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td')
+    '''This class has 2 objectives:
+
+       1. The main objective is to format XHTML p_s to be storable in the ZODB
+          according to Appy rules.
+          a. Every <p> or <li> must be on a single line (ending with a carriage
+             return); else, appy.shared.diff will not be able to compute XHTML
+             diffs;
+          b. Optimize size: HTML comments are removed.
+
+       2. If p_keepStyles (or m_clean) is False, some style-related information
+          will be removed, in order to get a standardized content that can be
+          dumped in an elegant and systematic manner into a POD template.
+    '''
+    def clean(self, s, keepStyles=True):
+        # Must we keep style-related information or not?
+        self.env.keepStyles = keepStyles
+        self.env.currentContent = ''
+        # The stack of currently parsed elements (will contain only ignored
+        # ones).
+        self.env.currentElems = []
+        # 'ignoreTag' is True if we must ignore the currently walked tag.
+        self.env.ignoreTag = False
+        # 'ignoreContent' is True if, within the currently ignored tag, we must
+        # also ignore its content.
+        self.env.ignoreContent = False
+        return self.parse('<x>%s</x>' % s)
+
+    def startDocument(self):
+        # The result will be cleaned XHTML, joined from self.res.
+        self.res = []
+
+    def endDocument(self):
+        self.res = ''.join(self.res)
+
+    def startElement(self, elem, attrs):
+        e = self.env
+        # Dump any previously gathered content if any
+        if e.currentContent:
+            self.res.append(e.currentContent)
+            e.currentContent = ''
+        if e.ignoreTag and e.ignoreContent: return
+        if not e.keepStyles and (elem in self.tagsToIgnore):
+            e.ignoreTag = True
+            if elem in self.tagsToIgnoreWithContent:
+                e.ignoreContent = True
+            else:
+                e.ignoreContent = False
+            e.currentElems.append( (elem, e.ignoreContent) )
+            return
+        # Add a line break before the start tag if required (ie: xhtml differ
+        # needs to get paragraphs and other elements on separate lines).
+        if (elem in self.lineBreakTags) and self.res and \
+           (self.res[-1][-1] != '\n'):
+            prefix = '\n'
+        else:
+            prefix = ''
+        res = '%s<%s' % (prefix, elem)
+        # Include the found attributes, excepted those that must be ignored.
+        for name, value in attrs.items():
+            if not e.keepStyles and (name in self.attrsToIgnore): continue
+            res += ' %s="%s"' % (name, value)
+        # Include additional attributes if required.
+        if elem in self.attrsToAdd:
+            for name, value in self.attrsToAdd[elem].iteritems():
+                res += ' %s="%s"' % (name, value)
+        self.res.append('%s>' % res)
+
+    def endElement(self, elem):
+        e = self.env
+        if e.ignoreTag and (elem in self.tagsToIgnore):
+            # Pop the currently ignored tag
+            e.currentElems.pop()
+            if e.currentElems:
+                # Keep ignoring tags.
+                e.ignoreContent = e.currentElems[-1][1]
+            else:
+                # Stop ignoring elems
+                e.ignoreTag = e.ignoreContent = False
+        elif e.ignoreTag and e.ignoreContent:
+            # This is the end of a sub-tag within a region that we must ignore.
+            pass
+        else:
+            self.res.append(self.env.currentContent)
+            # Add a line break after the end tag if required (ie: xhtml differ
+            # needs to get paragraphs and other elements on separate lines).
+            if elem in self.lineBreakTags:
+                suffix = '\n'
+            else:
+                suffix = ''
+            self.res.append('</%s>%s' % (elem, suffix))
+            self.env.currentContent = ''
+
+    def characters(self, content):
+        if self.env.ignoreContent: return
+        # Remove blanks that ckeditor may add just after a start tag
+        if not self.env.currentContent or (self.env.currentContent == ' '):
+            toAdd = ' ' + content.lstrip()
+        else:
+            toAdd = content
+        # Re-transform XML special chars to entities.
+        self.env.currentContent += cgi.escape(content)
 # ------------------------------------------------------------------------------

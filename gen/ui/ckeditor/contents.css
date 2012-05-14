@@ -12,3 +12,4 @@ ol,ul,dl {
   padding:0 40px;
 }
 img { margin-right: 5px}
+table { border-collapse: collapse; border-spacing: 0 }
