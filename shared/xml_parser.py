@@ -934,7 +934,7 @@ class XhtmlCleaner(XmlParser):
         # 'ignoreContent' is True if, within the currently ignored tag, we must
         # also ignore its content.
         self.env.ignoreContent = False
-        return self.parse('<x>%s</x>' % s)
+        return self.parse('<x>%s</x>' % s).encode('utf-8')
 
     def startDocument(self):
         # The result will be cleaned XHTML, joined from self.res.

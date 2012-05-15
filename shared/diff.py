@@ -10,6 +10,10 @@ htmlTag = re.compile('<(?P<tag>\w+)( .*?)?>(.*)</(?P=tag)>')
 class Merger:
     '''This class allows to merge 2 lines of text, each containing inserts and
        deletions.'''
+
+    # Exception that may be raised by this class if the merge fails.
+    class MergeError(Exception): pass
+
     def __init__(self, lineA, lineB, previousDiffs, differ):
         # lineA comes "naked": any diff previously found on it was removed from
         # it (ie, deleted text has been completely removed, while inserted text
@@ -148,7 +152,8 @@ class Merger:
                 # Invariant: at this point, we should find what remains in
                 # oldText at self.lineB[self.i:].
                 if not self.lineB[self.i:].startswith(oldText):
-                    raise 'Error!!!!'
+                    raise self.MergeError('An error occurred while computing ' \
+                                          'overlapping diffs.')
                 res += self.differ.getModifiedChunk(oldText, 'insert', '',
                                                     msg=oldDiff.group(2))
                 self.i += len(oldText)
@@ -584,8 +589,15 @@ class HtmlDiff:
                 # Merge potential previous inner diff tags that were found (but
                 # extracted from) lineA.
                 if previousDiffsA:
-                    merger = Merger(lineA, add, previousDiffsA, self)
-                    add = merger.merge()
+                    try:
+                        merger = Merger(lineA, add, previousDiffsA, self)
+                        add = merger.merge()
+                    except Merger.MergeError, e:
+                        # The merge algorithm has made a burn out. Simplify and
+                        # consider lineA has having been completely deleted and
+                        # lineB has completely inserted.
+                        add = self.getModifiedChunk(lineA, 'delete', sep) + \
+                              self.getModifiedChunk(lineB, 'insert', sep)
                 # Rewrap line into outerTagA if lineA was a line tagged as
                 # previously inserted.
                 if outerTagA:
@@ -633,7 +645,15 @@ class HtmlDiff:
                     # Was a deletion, not a replacement
                     add = self.getModifiedChunk(chunkA, 'delete', sep)
                 else: # At least, a true replacement
-                    add = self.getReplacement(chunkA, chunkB, sep)
+                    if (sep == ' ') and (sep not in chunkA) and \
+                       (sep not in chunkB):
+                        # By going here, we avoid infinite loops that may occur
+                        # between m_getHtmlDiff and m_getReplacement
+                        # (called below).
+                        add = self.getModifiedChunk(chunkA, 'delete', sep) + \
+                              self.getModifiedChunk(chunkB, 'insert', sep)
+                    else:
+                        add = self.getReplacement(chunkA, chunkB, sep)
             if add: res += self.getDumpPrefix(res, add, previousAdd, sep) + add
             previousAdd = add
         return res
