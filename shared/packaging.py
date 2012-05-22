@@ -214,6 +214,7 @@ class Debianizer:
             f = file(name, 'w')
             f.write(initScript % ('oo', 'oo', 'Start OpenOffice in server mode',
                                   'startoo', 'startoo', "#Can't stop OO."))
+            f.write('\n')
             f.close()
             os.chmod(name, 0744) # Make it executable by owner.
         # Get the size of the app, in Kb.

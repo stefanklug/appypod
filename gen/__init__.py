@@ -1239,7 +1239,13 @@ class String(Type):
             # When image upload is allowed, ckeditor inserts some "style" attrs
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
-            value = XhtmlCleaner().clean(value, keepStyles=self.richText)
+            try:
+                value = XhtmlCleaner().clean(value, keepStyles=self.richText)
+            except XhtmlCleaner.Error, e:
+                # Errors while parsing p_value can't prevent the user from
+                # storing it.
+                obj.log('Unparsable XHTML content in field "%s".' % self.name,
+                        type='warning')
         Type.store(self, obj, value)
 
     def getFormattedValue(self, obj, value):

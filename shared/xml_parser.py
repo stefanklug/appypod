@@ -22,6 +22,7 @@ import xml.sax, difflib, types, cgi
 from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges,\
                             property_interning_dict
 from xml.sax.xmlreader import InputSource
+from xml.sax import SAXParseException
 from appy.shared import UnicodeBuffer, xmlPrologue
 from appy.shared.errors import AppyError
 from appy.shared.utils import sequenceTypes
@@ -890,13 +891,16 @@ class XmlComparator:
 
 # ------------------------------------------------------------------------------
 class XhtmlCleaner(XmlParser):
+    '''This class cleans XHTML content, so it becomes ready to be stored into a
+       Appy-compliant format.'''
+    class Error(Exception): pass
 
     # Tags that will not be in the result, content included, if keepStyles is
     # False.
     tagsToIgnoreWithContent = ('style', 'colgroup')
     # Tags that will be removed from the result, but whose content will be kept,
     # if keepStyles is False.
-    tagsToIgnoreKeepContent= ('x', 'font')
+    tagsToIgnoreKeepContent= ('x', 'font', 'center')
     # All tags to ignore
     tagsToIgnore = tagsToIgnoreWithContent + tagsToIgnoreKeepContent
     # Attributes to ignore, if keepStyles if False.
@@ -909,20 +913,33 @@ class XhtmlCleaner(XmlParser):
 
     # Tags that required a line break to be inserted after them.
     lineBreakTags = ('p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td')
-    '''This class has 2 objectives:
+    # A pre-cleaning phase consists in performing some replacements before
+    # running the XML SAX parsing. The dict below contains such repls.
+    preCleanRepls = {'&nbsp;': ' '}
 
-       1. The main objective is to format XHTML p_s to be storable in the ZODB
-          according to Appy rules.
-          a. Every <p> or <li> must be on a single line (ending with a carriage
-             return); else, appy.shared.diff will not be able to compute XHTML
-             diffs;
-          b. Optimize size: HTML comments are removed.
+    def preClean(self, s):
+        '''Before true XHTML cleaning, this method performs pre-cleaning by
+           performing, on p_s, replacements as defined in self.preCleanRepls.'''
+        for item, repl in self.preCleanRepls.iteritems():
+            if item in s:
+                s = s.replace(item, repl)
+        return s
 
-       2. If p_keepStyles (or m_clean) is False, some style-related information
-          will be removed, in order to get a standardized content that can be
-          dumped in an elegant and systematic manner into a POD template.
-    '''
     def clean(self, s, keepStyles=True):
+        '''Cleaning XHTML code is done for 2 reasons:
+
+           1. The main objective is to format XHTML p_s to be storable in the
+              ZODB according to Appy rules.
+              a. Every <p> or <li> must be on a single line (ending with a
+                 carriage return); else, appy.shared.diff will not be able to
+                 compute XHTML diffs;
+              b. Optimize size: HTML comments are removed.
+
+           2. If p_keepStyles (or m_clean) is False, some style-related
+              information will be removed, in order to get a standardized
+              content that can be dumped in an elegant and systematic manner
+              into a POD template.
+        '''
         # Must we keep style-related information or not?
         self.env.keepStyles = keepStyles
         self.env.currentContent = ''
@@ -934,7 +951,11 @@ class XhtmlCleaner(XmlParser):
         # 'ignoreContent' is True if, within the currently ignored tag, we must
         # also ignore its content.
         self.env.ignoreContent = False
-        return self.parse('<x>%s</x>' % s).encode('utf-8')
+        try:
+            res = self.parse('<x>%s</x>' % self.preClean(s)).encode('utf-8')
+        except SAXParseException, e:
+            raise self.Error(str(e))
+        return res
 
     def startDocument(self):
         # The result will be cleaned XHTML, joined from self.res.
