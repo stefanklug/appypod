@@ -68,16 +68,17 @@ class DocImporter:
             # We need to dump the file content (in self.content) in a temp file
             # first. self.content may be binary, a file handler or a
             # FileWrapper.
-            if isinstance(self.content, file):
-                fileContent = self.content.read()
-            elif isinstance(self.content, FileWrapper):
-                fileContent = content.content
+            if isinstance(self.content, FileWrapper):
+                self.content.dump(self.importPath)
             else:
-                fileContent = self.content
-            f = file(self.importPath, 'wb')
-            f.write(fileContent)
-            f.close()
-        # ImageImporter adds additional, image-specific attrs, through
+                if isinstance(self.content, file):
+                    fileContent = self.content.read()
+                else:
+                    fileContent = self.content
+                f = file(self.importPath, 'wb')
+                f.write(fileContent)
+                f.close()
+        # ImageImporter adds image-specific attrs, through
         # ImageImporter.setImageInfo.
 
     def getImportFolder(self):
