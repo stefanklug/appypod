@@ -898,15 +898,15 @@ class XhtmlCleaner(XmlParser):
 
     # Tags that will not be in the result, content included, if keepStyles is
     # False.
-    tagsToIgnoreWithContent = ('style', 'colgroup')
+    tagsToIgnoreWithContent = ('style', 'colgroup', 'head')
     # Tags that will be removed from the result, but whose content will be kept,
     # if keepStyles is False.
-    tagsToIgnoreKeepContent= ('x', 'font', 'center')
+    tagsToIgnoreKeepContent= ('x', 'font', 'center', 'html', 'body')
     # All tags to ignore
     tagsToIgnore = tagsToIgnoreWithContent + tagsToIgnoreKeepContent
     # Attributes to ignore, if keepStyles if False.
     attrsToIgnore = ('align', 'valign', 'cellpadding', 'cellspacing', 'width',
-                     'height', 'bgcolor', 'lang', 'border', 'class')
+                     'height', 'bgcolor', 'lang', 'border', 'class', 'rules')
     # CSS attributes to keep, if keepStyles if False. These attributes can be
     # used by appy.pod (to align a paragraph, center/resize an image...).
     cssAttrsToKeep = ('width', 'height', 'float', 'text-align',
