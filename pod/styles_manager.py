@@ -22,6 +22,7 @@ from UserDict import UserDict
 import appy.pod
 from appy.pod import *
 from appy.pod.odf_parser import OdfEnvironment, OdfParser
+from appy.shared.css import parseStyleAttribute
 
 # Possible states for the parser
 READING = 0 # Default state
@@ -329,12 +330,7 @@ class StylesManager:
             else: return
         # If I am here, I have style info. Check if it corresponds to some style
         # in p_styles.
-        infos = attrs['style'].split(';')
-        styleInfo = {}
-        for info in infos:
-            if not info.strip(): continue
-            name, value = info.split(':')
-            styleInfo[name.strip()] = value.strip()
+        styleInfo = parseStyleAttribute(attrs['style'], asDict=True)
         for matchingAttrs, style in styles:
             if self.styleMatch(styleInfo, matchingAttrs):
                 return style

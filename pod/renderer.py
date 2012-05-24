@@ -217,7 +217,7 @@ class Renderer:
                         'text': pe.NS_TEXT}))
         self.stylesParser = self.createPodParser('styles.xml', context,
                                                  stylesInserts)
-        # Stores the styles mapping
+        # Store the styles mapping
         self.setStylesMapping(stylesMapping)
 
     def createPodParser(self, odtFile, context, inserts):
@@ -398,6 +398,12 @@ class Renderer:
            and, on the other hand, ODT styles found into the template.'''
         try:
             stylesMapping = self.stylesManager.checkStylesMapping(stylesMapping)
+            # The predefined styles below are currently ignored, because the
+            # xhtml2odt parser does not take into account span tags.
+            if 'span[font-weight=bold]' not in stylesMapping:
+                stylesMapping['span[font-weight=bold]'] = 'podBold'
+            if 'span[font-style=italic]' not in stylesMapping:
+                stylesMapping['span[font-style=italic]'] = 'podItalic'
             self.stylesManager.stylesMapping = stylesMapping
         except PodError, po:
             self.contentParser.env.currentBuffer.content.close()

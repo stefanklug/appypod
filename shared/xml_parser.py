@@ -26,6 +26,7 @@ from xml.sax import SAXParseException
 from appy.shared import UnicodeBuffer, xmlPrologue
 from appy.shared.errors import AppyError
 from appy.shared.utils import sequenceTypes
+from appy.shared.css import parseStyleAttribute
 
 # Constants --------------------------------------------------------------------
 CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
@@ -906,6 +907,10 @@ class XhtmlCleaner(XmlParser):
     # Attributes to ignore, if keepStyles if False.
     attrsToIgnore = ('align', 'valign', 'cellpadding', 'cellspacing', 'width',
                      'height', 'bgcolor', 'lang', 'border', 'class')
+    # CSS attributes to keep, if keepStyles if False. These attributes can be
+    # used by appy.pod (to align a paragraph, center/resize an image...).
+    cssAttrsToKeep = ('width', 'height', 'float', 'text-align',
+                      'font-style', 'font-weight')
     # Attrs to add, if not present, to ensure good formatting, be it at the web
     # or ODT levels.
     attrsToAdd = {'table': {'cellspacing':'0', 'cellpadding':'6', 'border':'1'},
@@ -957,6 +962,15 @@ class XhtmlCleaner(XmlParser):
             raise self.Error(str(e))
         return res
 
+    def cleanStyleAttribute(self, value):
+        '''p_value contains some CSS attributes from a "style" attribute. We
+           keep those that pod can manage.'''
+        res = []
+        for name, v in parseStyleAttribute(value):
+            if name in self.cssAttrsToKeep:
+                res.append('%s: %s' % (name, v))
+        return '; '.join(res)
+
     def startDocument(self):
         # The result will be cleaned XHTML, joined from self.res.
         self.res = []
@@ -989,7 +1003,11 @@ class XhtmlCleaner(XmlParser):
         res = '%s<%s' % (prefix, elem)
         # Include the found attributes, excepted those that must be ignored.
         for name, value in attrs.items():
-            if not e.keepStyles and (name in self.attrsToIgnore): continue
+            if not e.keepStyles:
+                if name in self.attrsToIgnore: continue
+                elif name == 'style':
+                    value = self.cleanStyleAttribute(value)
+                    if not value: continue
             res += ' %s="%s"' % (name, value)
         # Include additional attributes if required.
         if elem in self.attrsToAdd:
