@@ -288,9 +288,10 @@ class ToolMixin(BaseMixin):
            currently logged user can't see.
 
            The result is sorted according to the potential sort key defined in
-           the Search instance (Search.sortBy). But if parameter p_sortBy is
-           given, it defines or overrides the sort. In this case, p_sortOrder
-           gives the order (*asc*ending or *desc*ending).
+           the Search instance (Search.sortBy, together with Search.sortOrder).
+           But if parameter p_sortBy is given, it defines or overrides the sort.
+           In this case, p_sortOrder gives the order (*asc*ending or
+           *desc*ending).
 
            If p_filterKey is given, it represents an additional search parameter
            to take into account: the corresponding search value is in
@@ -329,6 +330,8 @@ class ToolMixin(BaseMixin):
             sortKey = search.sortBy
             if sortKey:
                 params['sort_on'] = Search.getIndexName(sortKey, usage='sort')
+                if search.sortOrder == 'desc': params['sort_order'] = 'reverse'
+                else:                          params['sort_order'] = None
         # Determine or override sort if specified.
         if sortBy:
             params['sort_on'] = Search.getIndexName(sortBy, usage='sort')
@@ -917,7 +920,8 @@ class ToolMixin(BaseMixin):
                 password = request.get('__ac_password', '')
             elif cookie and (cookie != 'deleted'):
                 cookieValue = base64.decodestring(urllib.unquote(cookie))
-                login, password = cookieValue.split(':')
+                if ':' in cookieValue:
+                    login, password = cookieValue.split(':')
         # Try to authenticate this user
         user = self.authenticate(login, password, request)
         emergency = self._emergency_user

@@ -298,10 +298,12 @@ class Import:
 
 class Search:
     '''Used for specifying a search for a given type.'''
-    def __init__(self, name, group=None, sortBy='', limit=None, **fields):
+    def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
+                 **fields):
         self.name = name
         self.group = group # Searches may be visually grouped in the portlet
         self.sortBy = sortBy
+        self.sortOrder = sortOrder
         self.limit = limit
         # In the dict below, keys are indexed field names and values are
         # search values.
