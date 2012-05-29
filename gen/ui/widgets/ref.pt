@@ -156,76 +156,72 @@
     </tr></table>
   </tal:atMostOneReference>
 
-  <tal:comment replace="nothing">Display a fieldset in all other cases.</tal:comment>
+  <tal:comment replace="nothing">Display a table in all other cases.</tal:comment>
   <tal:anyNumberOfReferences condition="not: atMostOneRef">
-    <fieldset tal:attributes="class python:test(innerRef, 'innerAppyFieldset', '')">
-      <legend tal:condition="python: not innerRef or showPlusIcon">
-        (<span tal:replace="totalNumber"/>)
-        <metal:plusIcon use-macro="app/ui/widgets/ref/macros/plusIcon"/>
-        <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
-        <a tal:condition="python: objs and appyType['queryable']"
-           tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
-          <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
-      </legend>
+  <div tal:condition="python: not innerRef or showPlusIcon">
+     (<span tal:replace="totalNumber"/>)
+     <metal:plusIcon use-macro="app/ui/widgets/ref/macros/plusIcon"/>
+     <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
+     <a tal:condition="python: objs and appyType['queryable']"
+        tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
+     <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
+  </div>
 
-      <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-      <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
+  <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+  <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
 
-      <tal:comment replace="nothing">No object is present</tal:comment>
-      <p tal:condition="not:objs" tal:content="python: _('no_ref')"></p>
+  <tal:comment replace="nothing">No object is present</tal:comment>
+  <p tal:condition="not:objs" tal:content="python: _('no_ref')"></p>
 
-      <table width="100%" tal:condition="python: objs"
-             tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">
-        <tr valign="bottom"><td>
+  <table width="100%" tal:condition="python: objs"
+         tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">
+   <tr valign="bottom"><td>
 
-        <tal:comment replace="nothing">Show forward or backward reference(s)</tal:comment>
-        <table tal:attributes="class python:test(innerRef, '', 'list');
-                               width python:test(innerRef, '100%', appyType['layouts']['view']['width']);">
-          <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
-          <tr tal:condition="appyType/showHeaders">
-            <th tal:repeat="widget widgets">
-              <span tal:content="python: _(widget['labelId'])"></span>
-              <metal:sortIcons use-macro="app/ui/widgets/ref/macros/sortIcons" />
-            </th>
-            <th tal:content="python: _('ref_actions')"></th>
-          </tr>
-          <tal:row repeat="obj objs">
-          <tr valign="middle" tal:define="odd repeat/obj/odd"
-              tal:attributes="class python:test(odd, 'even', 'odd')">
-            <td tal:repeat="widget widgets"
-                tal:attributes="width python: appyType['shownInfoWidths'][repeat['widget'].index]">
-              <tal:title condition="python: widget['name'] == 'title'">
-                <metal:showObjectTitle use-macro="app/ui/widgets/ref/macros/objectTitle"/>
-              </tal:title>
-              <tal:state condition="python: widget['name'] == 'state'"
-                         content="python: _(obj.getWorkflowLabel())">
-              </tal:state>
-              <tal:other condition="python: widget['name'] not in ('title', 'state')">
-                <tal:field define="contextObj python:obj;
-                                   layoutType python: 'cell';
-                                   innerRef python:True">
-                  <metal:field use-macro="app/ui/widgets/show/macros/field" />
-                </tal:field>
-              </tal:other>
-            </td>
-            <tal:comment replace="nothing">Actions</tal:comment>
-            <td align="right">
-              <tal:show condition="obj/mayAct">
-               <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
-              </tal:show>
-            </td>
-          </tr>
-          </tal:row>
-          </tal:widgets>
-        </table>
-        </td></tr>
-      </table>
+    <tal:comment replace="nothing">Show forward or backward reference(s)</tal:comment>
+    <table tal:attributes="class python:test(innerRef, '', 'list');
+                           width python:test(innerRef, '100%', appyType['layouts']['view']['width']);">
+      <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
+      <tr tal:condition="appyType/showHeaders">
+        <th tal:repeat="widget widgets">
+          <span tal:content="python: _(widget['labelId'])"></span>
+          <metal:sortIcons use-macro="app/ui/widgets/ref/macros/sortIcons" />
+        </th>
+        <th tal:content="python: _('ref_actions')"></th>
+      </tr>
+      <tal:row repeat="obj objs">
+       <tr valign="middle" tal:define="odd repeat/obj/odd"
+          tal:attributes="class python:test(odd, 'even', 'odd')">
+        <td tal:repeat="widget widgets"
+            tal:attributes="width python: appyType['shownInfoWidths'][repeat['widget'].index]">
+          <tal:title condition="python: widget['name'] == 'title'">
+            <metal:showObjectTitle use-macro="app/ui/widgets/ref/macros/objectTitle"/>
+          </tal:title>
+          <tal:state condition="python: widget['name'] == 'state'"
+                     content="python: _(obj.getWorkflowLabel())">
+          </tal:state>
+          <tal:other condition="python: widget['name'] not in ('title', 'state')">
+            <tal:field define="contextObj python:obj;
+                               layoutType python: 'cell';
+                               innerRef python:True">
+              <metal:field use-macro="app/ui/widgets/show/macros/field" />
+            </tal:field>
+          </tal:other>
+        </td>
+        <tal:comment replace="nothing">Actions</tal:comment>
+        <td align="right">
+          <tal:show condition="obj/mayAct">
+           <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
+          </tal:show>
+        </td>
+       </tr>
+      </tal:row>
+      </tal:widgets>
+    </table>
+   </td></tr>
+  </table>
 
-      <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-      <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
-
-    </fieldset>
-    <tal:comment replace="nothing">A carriage return needed in some cases.</tal:comment>
+  <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
+  <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
   </tal:anyNumberOfReferences>
 </div>
 

@@ -51,6 +51,27 @@ class UserWrapper(AbstractWrapper):
         # wants to edit information about himself.
         if self.user.has_role('Owner', self): return 'edit'
 
+    def setPassword(self, newPassword=None):
+        '''Sets a p_newPassword for self. If p_newPassword is not given, we
+           generate one. This method returns the generated password (or simply
+           p_newPassword if no generation occurred).'''
+        if newPassword:
+            msgPart = 'changed'
+        else:
+            newPassword = self.getField('password1').generatePassword()
+            msgPart = 'generated'
+        login = self.login
+        zopeUser = self.o.acl_users.getUserById(login)
+        tool = self.tool.o
+        zopeUser.__ = tool._encryptPassword(newPassword)
+        if self.user.getId() == login:
+            # The user for which we change the password is the currently logged
+            # user. So update the authentication cookie, too.
+            tool._updateCookie(login, newPassword)
+        self.log('Password %s by "%s" for "%s".' % \
+                 (msgPart, self.user.getId(), login))
+        return newPassword
+
     def getGrantableRoles(self):
         '''Returns the list of roles that the admin can grant to a user.'''
         res = []
@@ -70,7 +91,7 @@ class UserWrapper(AbstractWrapper):
         return self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
-        self.title = self.firstName + ' ' + self.name
+        self.title = self.login
         aclUsers = self.o.acl_users
         login = self.login
         if created:
@@ -89,11 +110,7 @@ class UserWrapper(AbstractWrapper):
             zopeUser.roles = self.roles
             # Update the password if the user has entered new ones.
             rq = self.request
-            if rq.has_key('password1'):
-                tool = self.tool.o
-                zopeUser.__ = tool._encryptPassword(rq['password1'])
-                # Update the cookie value
-                tool._updateCookie(login, rq['password1'])
+            if rq.has_key('password1'): self.setPassword(rq['password1'])
             self.password1 = self.password2 = ''
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):

@@ -289,7 +289,7 @@
   </tal:edit>
 
   <tal:refresh condition="contextObj/isDebug">
-    <img title="Refresh" style="cursor:pointer"
+    <img title="Refresh" style="cursor:pointer; vertical-align:top"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode=layoutType, page=page, refresh='yes');
                          src string: $appUrl/ui/refresh.png"/>
   </tal:refresh>

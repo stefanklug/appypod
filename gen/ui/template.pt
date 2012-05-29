@@ -39,12 +39,12 @@
      <td align="right" tal:condition="tool/showLanguageSelector">
      <tal:lgs define="languages tool/getLanguages;
                       defaultLanguage python: languages[0];
-                      asLinks python: len(languages) &lt;= 5">
+                      asLinks python: len(languages) &lt;= 8">
       <table tal:condition="asLinks">
        <tr>
         <td tal:repeat="lang languages">
           <a class="lang"
-             tal:attributes="href python: req.get('ACTUAL_URL')+'/switchLanguage?set_language=%s' % lang;
+             tal:attributes="href string: $appUrl/config/changeLanguage?language=$lang;
                              title python: tool.getLanguageName(lang)"
              tal:content="python: lang"></a>
          </td>
@@ -94,7 +94,7 @@
   </div>
   </td>
  </tr>
- <tal:comment replace="nothing">The user data strip</tal:comment>
+ <tal:comment replace="nothing">The user strip</tal:comment>
  <tr>
   <td>
    <table class="userStrip" width="100%">
@@ -103,7 +103,7 @@
       <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
        <table align="center" tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])"
               class="login">
-       <tr><td>
+       <tr><td class="userStripText">
         <form name="loginform" method="post"
               tal:attributes="action python: tool.absolute_url() + '/performLogin'">
 
@@ -141,7 +141,7 @@
           <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
          </a>
         </td>
-        <td align="right" tal:define="userInfo tool/getUserLine">
+        <td align="right" class="userStripText" tal:define="userInfo tool/getUserLine">
           <span tal:content="python: userInfo[0]"></span>
           <a tal:attributes="href python: userInfo[1]">
             <img tal:attributes="src string: $appUrl/ui/edit.gif"/>
@@ -167,6 +167,9 @@
      </tr> 
     </table>
    </td> 
+ </tr>
+ <tr><tal:comment replace="nothing">Footer</tal:comment>
+  <td><metal:call use-macro="app/ui/footer/macros/footer"/></td>
  </tr>
 </table>
 </body>

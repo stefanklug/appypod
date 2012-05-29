@@ -261,8 +261,8 @@ class ZopeInstaller:
             # may still be in the way for migration purposes.
             users = ('admin',) # We suppose there is at least a user.
         if not users:
-            appyTool.create('users', login='admin', firstName='admin',
-                            name='admin', password1='admin', password2='admin',
+            appyTool.create('users', login='admin', password1='admin',
+                            password2='admin',
                             email='admin@appyframework.org', roles=['Manager'])
             appyTool.log('Admin user "admin" created.')
 

@@ -93,7 +93,7 @@ class ModelClass:
             elif callable(value):
                 className = wrapperName
                 if (appyType.type == 'Ref') and appyType.isBack:
-                    className = appyType.back.klass.__name__
+                    className = value.im_class.__name__
                 value = '%s.%s' % (className, value.__name__)
             typeArgs += '%s=%s,' % (name, value)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
@@ -143,10 +143,13 @@ class User(ModelClass):
                         'password2', 'email', 'roles']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = gen.String(show=False, indexed=True)
-    gm = {'group': 'main', 'multiplicity': (1,1), 'width': 25}
+    gm = {'group': 'main', 'width': 25}
     def showName(self): pass
     name = gen.String(show=showName, **gm)
     firstName = gen.String(show=showName, **gm)
+    def showEmail(self): pass
+    email = gen.String(show=showEmail)
+    gm['multiplicity'] = (1,1)
     def showLogin(self): pass
     def validateLogin(self): pass
     login = gen.String(show=showLogin, validator=validateLogin,
@@ -156,8 +159,6 @@ class User(ModelClass):
     password1 = gen.String(format=gen.String.PASSWORD, show=showPassword,
                            validator=validatePassword, **gm)
     password2 = gen.String(format=gen.String.PASSWORD, show=showPassword, **gm)
-    def showEmail(self): pass
-    email = gen.String(show=showEmail, group='main', width=25)
     gm['multiplicity'] = (0, None)
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,

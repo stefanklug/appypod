@@ -121,6 +121,13 @@ class ToolMixin(BaseMixin):
            p_code.'''
         return languages.get(code)[2]
 
+    def changeLanguage(self):
+        '''Sets the language cookie with the new desired language code that is
+           in request["language"].'''
+        rq = self.REQUEST
+        rq.RESPONSE.setCookie('_ZopeLg', rq['language'], path='/')
+        return self.goto(rq['HTTP_REFERER'])
+
     def getGlobalCssJs(self):
         '''Returns the list of CSS and JS files to include in the main template.
            The method ensures that appy.css and appy.js come first.'''
@@ -229,6 +236,12 @@ class ToolMixin(BaseMixin):
             appyObj = context.appy()
             try:
                 res = appyObj.showPortlet()
+            except AttributeError:
+                res = True
+        else:
+            appyObj = self.appy()
+            try:
+                res = appyObj.showPortletAt(context)
             except AttributeError:
                 res = True
         return res
@@ -979,7 +992,7 @@ class ToolMixin(BaseMixin):
            elem is the one-line user info as shown on every page; second line is
            the URL to edit user info.'''
         appyUser = self.appy().appyUser
-        res = [appyUser.title, appyUser.login]
+        res = [appyUser.title]
         rolesToShow = [r for r in appyUser.roles \
                        if r not in ('Authenticated', 'Member')]
         if rolesToShow:
