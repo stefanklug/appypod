@@ -1443,6 +1443,7 @@ class String(Type):
         return self.getCaptchaChallenge({})['text']
 
 class Boolean(Type):
+    
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show=True,
                  page='main', group=None, layouts = None, move=0, indexed=False,
@@ -1458,8 +1459,9 @@ class Boolean(Type):
                       label)
         self.pythonType = bool
 
+    dLayouts = {'view': 'lf', 'edit': Table('flrv;=d', width=None)}
     def getDefaultLayouts(self):
-        return {'view': 'l;f!-', 'edit': Table('f;lrv;=', width=None)}
+        return {'view': 'lf', 'edit': Table('f;lrv;=', width=None)}
 
     def getValue(self, obj):
         '''Never returns "None". Returns always "True" or "False", even if

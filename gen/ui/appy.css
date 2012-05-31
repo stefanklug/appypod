@@ -59,9 +59,10 @@ img { border: 0; vertical-align: middle}
 .buttons { margin-left: 4px;}
 .fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
               padding: 0px 8px 2px; font: italic 92% Helvetica,Arial,sans-serif}
-.message { color: #fd9c03; position: absolute; top: -55px; left: 100px;
-           width: 700px; border: 1px black dashed; padding: 2px 6px;
-           background-color: #f4f5f6}
+.message { position: absolute; top: -40px; left: 150px; font-size: 90%;
+           width: 600px; border: 1px #F0C36D solid; padding: 6px 16px;
+           background-color: #F9EDBE; text-align: center;
+           border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9;}
 .discreet { font-size: 90%; }
 .portlet { width: 150px; border-right: 1px solid #5F7983;}
 .portletContent { margin: 9px; }

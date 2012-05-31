@@ -79,10 +79,15 @@ class AstClass:
 class Ast:
     '''Python AST.'''
     classPattern = (symbol.stmt, symbol.compound_stmt, symbol.classdef)
+    utf8prologue = '# -*- coding: utf-8 -*-'
     def __init__(self, pyFile):
         f = file(pyFile)
         fContent = f.read()
         f.close()
+        # For some unknown reason, when an UTF-8 encoding is declared, parsing
+        # does not work.
+        if fContent.startswith(self.utf8prologue):
+            fContent = fContent[len(self.utf8prologue):]
         fContent = fContent.replace('\r', '')
         ast = parser.suite(fContent).totuple()
         # Get all the classes defined within this module.
