@@ -2791,7 +2791,6 @@ class WorkflowAnonymous:
     o = 'Owner'
     active = State({r:(mgr, 'Anonymous', 'Authenticated'), w:(mgr,o),d:(mgr,o)},
                    initial=True)
-WorkflowAnonymous.__instance__ = WorkflowAnonymous()
 
 class WorkflowAuthenticated:
     '''One-state workflow allowing authenticated users to consult and Manager
@@ -2800,7 +2799,6 @@ class WorkflowAuthenticated:
     o = 'Owner'
     active = State({r:(mgr, 'Authenticated'), w:(mgr,o), d:(mgr,o)},
                    initial=True)
-WorkflowAuthenticated.__instance__ = WorkflowAuthenticated()
 
 class WorkflowOwner:
     '''One-state workflow allowing only manager and owner to consult and
@@ -2808,7 +2806,6 @@ class WorkflowOwner:
     mgr = 'Manager'
     o = 'Owner'
     active = State({r:(mgr, o), w:(mgr, o), d:mgr}, initial=True)
-WorkflowOwner.__instance__ = WorkflowOwner()
 
 # ------------------------------------------------------------------------------
 class Selection:

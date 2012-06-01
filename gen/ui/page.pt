@@ -285,7 +285,7 @@
     <img title="Edit" style="cursor:pointer"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
                          src string: $appUrl/ui/editBig.png"
-         tal:condition="python: contextObj.allows('Modify portal content')"/>
+         tal:condition="contextObj/mayEdit"/>
   </tal:edit>
 
   <tal:refresh condition="contextObj/isDebug">

@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, mimetypes
 import appy.pod
-from appy.gen import Type, Search, Ref, String
+from appy.gen import Type, Search, Ref, String, WorkflowAnonymous
 from appy.gen.utils import createObject
 from appy.shared.utils import getOsTempFolder, executeCommand, \
                               normalizeString, sequenceTypes
@@ -87,6 +87,21 @@ class AbstractWrapper(object):
                 return customUser.__dict__[methodName](self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
+    @classmethod
+    def getWorkflow(klass):
+        '''Returns the workflow tied to p_klass.'''
+        # Browse parent classes of p_klass in reverse order. This way, a
+        # user-defined workflow will override a Appy default workflow.
+        i = len(klass.__bases__)-1
+        res = None
+        while i >= 0:
+            res = getattr(klass.__bases__[i], 'workflow', None)
+            if res: break
+            i -= 1
+        # Return a default workflow if no workflow was found.
+        if not res:
+            res = WorkflowAnonymous
+        return res
 
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one

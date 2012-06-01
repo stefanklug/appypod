@@ -992,14 +992,17 @@ class ToolMixin(BaseMixin):
            elem is the one-line user info as shown on every page; second line is
            the URL to edit user info.'''
         appyUser = self.appy().appyUser
-        res = [appyUser.title]
+        info = [appyUser.title]
         rolesToShow = [r for r in appyUser.roles \
                        if r not in ('Authenticated', 'Member')]
         if rolesToShow:
-            res.append(', '.join([self.translate('role_%s'%r) \
-                                  for r in rolesToShow]))
-        return (' | '.join(res), appyUser.o.getUrl(mode='edit', page='main',
-                                                   nav=''))
+            info.append(', '.join([self.translate('role_%s'%r) \
+                                   for r in rolesToShow]))
+        # Edit URL for the appy user.
+        url = None
+        if appyUser.o.mayEdit():
+            url = appyUser.o.getUrl(mode='edit', page='main', nav='')
+        return (' | '.join(info), url)
 
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''

@@ -368,8 +368,8 @@ class ZopeInstaller:
                 constructors = (ctor,),
                 permission = self.addContentPermissions[name])
             # Create workflow prototypical instances in __instance__ attributes
-            wf = getattr(klass.wrapperClass, 'workflow', None)
-            if wf and not hasattr(wf, '__instance__'): wf.__instance__ = wf()
+            wf = wrapper.getWorkflow()
+            if not hasattr(wf, '__instance__'): wf.__instance__ = wf()
 
     def installAppyTypes(self):
         '''We complete here the initialisation process of every Appy type of

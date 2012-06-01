@@ -879,12 +879,10 @@ class BaseMixin:
         '''Returns the workflow applicable for p_self (or for any instance of
            p_className if given), or its name, if p_name is True.'''
         if not className:
-            appyClass = self.wrapperClass.__bases__[-1]
+            wrapperClass = self.wrapperClass
         else:
-            appyClass = self.getTool().getAppyClass(className)
-        if hasattr(appyClass, 'workflow'): wf = appyClass.workflow
-        else:
-            wf = gen.WorkflowAnonymous
+            wrapperClass = self.getTool().getAppyClass(className, wrapper=True)
+        wf = wrapperClass.getWorkflow()
         if not name: return wf
         return WorkflowDescriptor.getWorkflowName(wf)
 
@@ -957,11 +955,21 @@ class BaseMixin:
         return True
 
     def mayDelete(self):
-        '''May the currently logged user delete this object? This condition
-           comes as an addition/refinement to the corresponding workflow
-           permission.'''
+        '''May the currently logged user delete this object?.'''
+        res = self.allows('Delete objects')
+        if not res: return
+        # An additional, user-defined condition, may refine the base permission.
         appyObj = self.appy()
         if hasattr(appyObj, 'mayDelete'): return appyObj.mayDelete()
+        return True
+
+    def mayEdit(self):
+        '''May the currently logged user edit this object?.'''
+        res = self.allows('Modify portal content')
+        if not res: return
+        # An additional, user-defined condition, may refine the base permission.
+        appyObj = self.appy()
+        if hasattr(appyObj, 'mayEdit'): return appyObj.mayEdit()
         return True
 
     def executeAppyAction(self, actionName, reindex=True):
