@@ -294,7 +294,8 @@ function initSlaves() {
   while (i >= 0) {
     masterName = getSlaveInfo(slaves[i], 'masterName');
     master = document.getElementById(masterName);
-    updateSlaves(master, slaves[i]);
+    // If master is not here, we can't hide its slaves when appropriate.
+    if (master) updateSlaves(master, slaves[i]);
     i -= 1;
   }
 }

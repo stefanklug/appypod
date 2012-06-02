@@ -25,6 +25,20 @@ class BaseMixin:
         return self
     o = property(get_o)
 
+    def getInitiatorInfo(self):
+        '''Gets information about a potential initiator object from the request.
+           Returns a 3-tuple (initiator, pageName, field):
+           * initiator is the initiator (Zope) object;
+           * pageName is the page on the initiator where the origin of the Ref
+             field lies;
+           * field is the Ref instance.
+        '''
+        if not rq.get('nav', '').startswith('ref.'): return (None,)*4
+        splitted = rq['nav'].split('.')
+        initiator = self.tool.getObject(splitted[1])
+        fieldName, page = splitted[2].split(':')
+        return (initiator, page, self.getAppyType(fieldName))
+
     def createOrUpdate(self, created, values,
                        initiator=None, initiatorField=None):
         '''This method creates (if p_created is True) or updates an object.
@@ -43,10 +57,9 @@ class BaseMixin:
             if not initiator:
                 folder = tool.getPath('/data')
             else:
-                if initiator.isPrincipiaFolderish:
-                    folder = initiator
-                else:
-                    folder = initiator.getParentNode()
+                folder = initiator.getCreateFolder()
+                # Check that the user can add objects through this Ref.
+                initiatorField.checkAdd(initiator)
             obj = createObject(folder, id, obj.portal_type, tool.getAppName())
         previousData = None
         if not created: previousData = obj.rememberPreviousData()
@@ -61,7 +74,7 @@ class BaseMixin:
             obj.historizeData(previousData)
 
         # Manage potential link with an initiator object
-        if created and initiator: initiator.appy().link(initiatorField, obj)
+        if created and initiator: initiator.appy().link(initiatorField.name,obj)
 
         # Manage "add" permissions and reindex the object
         obj._appy_managePermissions()
@@ -112,13 +125,16 @@ class BaseMixin:
         # Create the params to add to the URL we will redirect the user to
         # create the object.
         urlParams = {'mode':'edit', 'page':'main', 'nav':''}
-        if rq.get('nav', None):
+        initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
+        if initiator:
             # The object to create will be linked to an initiator object through
-            # a ref field. We create here a new navigation string with one more
+            # a Ref field. We create here a new navigation string with one more
             # item, that will be the currently created item.
             splitted = rq.get('nav').split('.')
             splitted[-1] = splitted[-2] = str(int(splitted[-1])+1)
             urlParams['nav'] = '.'.join(splitted)
+            # Check that the user can add objects through this Ref field
+            initiatiorField.checkAdd(initiator)
         # Create a temp object in /temp_folder
         tool = self.getTool()
         id = tool.generateUid(className)
@@ -188,13 +204,7 @@ class BaseMixin:
         errorMessage = 'Please correct the indicated errors.' # XXX Translate
         isNew = rq.get('is_new') == 'True'
         # If this object is created from an initiator, get info about him.
-        initiator = None
-        initiatorPage = None
-        initiatorField = None
-        if rq.get('nav', '').startswith('ref.'):
-            splitted = rq['nav'].split('.')
-            initiator = tool.getObject(splitted[1])
-            initiatorField, initiatorPage = splitted[2].split(':')
+        initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
         # If the user clicked on 'Cancel', go back to the previous page.
         if rq.get('buttonCancel.x', None):
             if initiator:
@@ -434,6 +444,14 @@ class BaseMixin:
         # broken on returned object.
         return getattr(self, methodName, None)
 
+    def getCreateFolder(self):
+        '''When an object must be created from this one through a Ref field, we
+           must know where to put the newly create object: within this one if it
+           is folderish, besides this one in its parent else.
+        '''
+        if self.isPrincipiaFolderish: return self
+        return self.getParentNode()
+
     def getFieldValue(self, name, onlyIfSync=False, layoutType=None,
                       outerValue=None):
         '''Returns the database value of field named p_name for p_self.
@@ -534,10 +552,10 @@ class BaseMixin:
         if not refs: raise IndexError()
         return refs.index(obj.UID())
 
-    def mayAddReference(self, name, folder):
+    def mayAddReference(self, name):
         '''May the user add references via Ref field named p_name in
            p_folder?'''
-        return self.getAppyType(name).mayAdd(self, folder)
+        return self.getAppyType(name).mayAdd(self)
 
     def isDebug(self):
         '''Are we in debug mode ?'''
@@ -1227,9 +1245,7 @@ class BaseMixin:
            Ref fields; if it is not a folder, we must update permissions on its
            parent folder instead.'''
         # Determine on which folder we need to set "add" permissions
-        folder = self
-        if not self.isPrincipiaFolderish:
-            folder = self.getParentNode()
+        folder = self.getCreateFolder()
         # On this folder, set "add" permissions for every content type that will
         # be created through reference fields
         allCreators = {} # One key for every add permission
@@ -1238,12 +1254,12 @@ class BaseMixin:
             if appyType.type != 'Ref': continue
             if appyType.isBack or appyType.link: continue
             # Indeed, no possibility to create objects with such Refs
-            refType = self.getTool().getPortalType(appyType.klass)
+            tool = self.getTool()
+            refType = tool.getPortalType(appyType.klass)
             if refType not in addPermissions: continue
             # Get roles that may add this content type
-            creators = getattr(appyType.klass, 'creators', None)
-            if not creators:
-                creators = self.getProductConfig().defaultAddRoles
+            appyWrapper = tool.getAppyClass(refType, wrapper=True)
+            creators = appyWrapper.getCreators(self.getProductConfig())
             # Add those creators to the list of creators for this meta_type
             addPermission = addPermissions[refType]
             if addPermission in allCreators:

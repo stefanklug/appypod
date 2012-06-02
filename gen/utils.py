@@ -2,7 +2,7 @@
 import re, os, os.path
 
 # Function for creating a Zope object ------------------------------------------
-def createObject(folder, id, className, appName, wf=True):
+def createObject(folder, id, className, appName, wf=True, noSecurity=False):
     '''Creates, in p_folder, object with some p_id. Object will be an instance
        of p_className from application p_appName. In a very special case (the
        creation of the config object), computing workflow-related info is not
@@ -10,6 +10,24 @@ def createObject(folder, id, className, appName, wf=True):
        p_wf=False.'''
     exec 'from Products.%s.%s import %s as ZopeClass' % (appName, className,
                                                          className)
+    if not noSecurity:
+        # Check that the user can create objects of className
+        if folder.meta_type.endswith('Folder'): # Folder or temp folder.
+            tool = folder.config
+        else:
+            tool = folder.getTool()
+        user = tool.getUser()
+        userRoles = user.getRoles()
+        allowedRoles=ZopeClass.wrapperClass.getCreators(tool.getProductConfig())
+        allowed = False
+        for role in userRoles:
+            if role in allowedRoles:
+                allowed = True
+                break
+        if not allowed:
+            from AccessControl import Unauthorized
+            raise Unauthorized("User can't create instances of %s" % \
+                               ZopeClass.__name__)
     obj = ZopeClass(id)
     folder._objects = folder._objects + \
                       ({'id':id, 'meta_type':className},)

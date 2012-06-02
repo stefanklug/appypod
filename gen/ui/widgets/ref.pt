@@ -124,10 +124,10 @@
                  objs refObjects/objects;
                  totalNumber refObjects/totalNumber;
                  batchSize refObjects/batchSize;
-                 folder python: contextObj.isPrincipiaFolderish and contextObj or contextObj.getParentNode();
+                 folder contextObj/getCreateFolder;
                  linkedPortalType python: tool.getPortalType(appyType['klass']);
                  canWrite python: not appyType['isBack'] and contextObj.allows(appyType['writePermission']);
-                 showPlusIcon python: contextObj.mayAddReference(fieldName, folder);
+                 showPlusIcon python: contextObj.mayAddReference(fieldName);
                  atMostOneRef python: (appyType['multiplicity'][1] == 1) and (len(objs)&lt;=1);
                  addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">

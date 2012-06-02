@@ -1990,9 +1990,8 @@ class Ref(Type):
         res.select = None # Not callable from tool.
         return res
 
-    def mayAdd(self, obj, folder):
-        '''May the user create a new referred object to p_obj via this Ref,
-           in p_folder?'''
+    def mayAdd(self, obj):
+        '''May the user create a new referred object from p_obj via this Ref?'''
         # We can't (yet) do that on back references.
         if self.isBack: return
         # Check if this Ref is addable
@@ -2007,12 +2006,20 @@ class Ref(Type):
             if refCount >= self.multiplicity[1]: return
         # May the user edit this Ref field?
         if not obj.allows(self.writePermission): return
-        # Have the user the correct add permission on p_folder?
+        # Have the user the correct add permission?
         tool = obj.getTool()
         addPermission = '%s: Add %s' % (tool.getAppName(),
                                         tool.getPortalType(self.klass))
+        folder = obj.getCreateFolder()
         if not obj.getUser().has_permission(addPermission, folder): return
         return True
+
+    def checkAdd(self, obj):
+        '''Compute m_mayAdd above, and raise an Unauthorized exception if
+           m_mayAdd returns False.'''
+        if not self.mayAdd(obj):
+            from AccessControl import Unauthorized
+            raise Unauthorized("User can't write Ref field '%s'." % self.name)
 
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,

@@ -214,9 +214,15 @@ class ZopeInstaller:
         zopeContent = self.app.objectIds()
         from OFS.Folder import manage_addFolder
 
+        if 'config' not in zopeContent:
+            toolName = '%sTool' % self.productName
+            createObject(self.app, 'config', toolName, self.productName,
+                         wf=False, noSecurity=True)
+
         if 'data' not in zopeContent:
             manage_addFolder(self.app, 'data')
             data = self.app.data
+            tool = self.app.config
             # Manager has been granted Add permissions for all root classes.
             # This may not be desired, so remove this.
             for className in self.config.rootClasses:
@@ -230,15 +236,12 @@ class ZopeInstaller:
                 if not klass.__dict__.has_key('root') or \
                    not klass.__dict__['root']:
                     continue # It is not a root class
-                creators = getattr(klass, 'creators', None)
-                if not creators: creators = self.config.defaultAddRoles
                 className = self.config.appClassNames[i]
+                wrapperClass = tool.getAppyClass(className, wrapper=True)
+                creators = wrapperClass.getCreators(self.config)
                 permission = self.getAddPermission(className)
                 updateRolesForPermission(permission, tuple(creators), data)
 
-        if 'config' not in zopeContent:
-            toolName = '%sTool' % self.productName
-            createObject(self.app, 'config', toolName,self.productName,wf=False)
         # Remove some default objects created by Zope but not useful to Appy
         for name in ('standard_html_footer', 'standard_html_header',\
                      'standard_template.pt'):
@@ -261,15 +264,15 @@ class ZopeInstaller:
             # may still be in the way for migration purposes.
             users = ('admin',) # We suppose there is at least a user.
         if not users:
-            appyTool.create('users', login='admin', password1='admin',
-                            password2='admin',
+            appyTool.create('users', noSecurity=True, login='admin',
+                            password1='admin', password2='admin',
                             email='admin@appyframework.org', roles=['Manager'])
             appyTool.log('Admin user "admin" created.')
 
         # Create group "admins" if it does not exist
         if not appyTool.count('Group', noSecurity=True, login='admins'):
-            appyTool.create('groups', login='admins', title='Administrators',
-                            roles=['Manager'])
+            appyTool.create('groups', noSecurity=True, login='admins',
+                            title='Administrators', roles=['Manager'])
             appyTool.log('Group "admins" created.')
 
         # Create a group for every global role defined in the application
@@ -277,8 +280,8 @@ class ZopeInstaller:
             relatedGroup = '%s_group' % role
             if appyTool.count('Group', noSecurity=True, login=relatedGroup):
                 continue
-            appyTool.create('groups', login=relatedGroup, title=relatedGroup,
-                            roles=[role])
+            appyTool.create('groups', noSecurity=True, login=relatedGroup,
+                            title=relatedGroup, roles=[role])
             appyTool.log('Group "%s", related to global role "%s", was ' \
                          'created.' % (relatedGroup, role))
 
@@ -320,7 +323,8 @@ class ZopeInstaller:
                 title = '%s (%s)' % (langEn, langNat)
             else:
                 title = langEn
-            appyTool.create('translations', id=language, title=title)
+            appyTool.create('translations', noSecurity=True,
+                            id=language, title=title)
             appyTool.log('Translation object created for "%s".' % language)
         # Now, we synchronise every Translation object with the corresponding
         # "po" file on disk.

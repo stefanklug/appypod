@@ -22,8 +22,46 @@ FREEZE_FATAL_ERROR = 'A server error occurred. Please contact the system ' \
 
 # ------------------------------------------------------------------------------
 class AbstractWrapper(object):
-    '''Any real Zope object has a companion object that is an instance of this
-       class.'''
+    '''Any real Appy-managed Zope object has a companion object that is an
+       instance of this class.'''
+
+    # --------------------------------------------------------------------------
+    # Class methods
+    # --------------------------------------------------------------------------
+    @classmethod
+    def _getParentAttr(klass, attr):
+        '''Gets value of p_attr on p_klass base classes (if this attr exists).
+           Scan base classes in the reverse order as Python does. Used by
+           classmethods m_getWorkflow and m_getCreators below. Scanning base
+           classes in reverse order allows user-defined elements to override
+           default Appy elements.'''
+        i = len(klass.__bases__) - 1
+        res = None
+        while i >= 0:
+            res = getattr(klass.__bases__[i], attr, None)
+            if res: return res
+            i -= 1
+
+    @classmethod
+    def getWorkflow(klass):
+        '''Returns the workflow tied to p_klass.'''
+        res = klass._getParentAttr('workflow')
+        # Return a default workflow if no workflow was found.
+        if not res: res = WorkflowAnonymous
+        return res
+
+    @classmethod
+    def getCreators(klass, cfg):
+        '''Returns the roles that are allowed to create instances of p_klass.
+           p_cfg is the product config that holds the default value.'''
+        res = klass._getParentAttr('creators')
+        # Return default creators if no creators was found.
+        if not res: res = cfg.defaultAddRoles
+        return res
+
+    # --------------------------------------------------------------------------
+    # Instance methods
+    # --------------------------------------------------------------------------
     def __init__(self, o): self.__dict__['o'] = o
     def appy(self): return self
 
@@ -87,21 +125,6 @@ class AbstractWrapper(object):
                 return customUser.__dict__[methodName](self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
-    @classmethod
-    def getWorkflow(klass):
-        '''Returns the workflow tied to p_klass.'''
-        # Browse parent classes of p_klass in reverse order. This way, a
-        # user-defined workflow will override a Appy default workflow.
-        i = len(klass.__bases__)-1
-        res = None
-        while i >= 0:
-            res = getattr(klass.__bases__[i], 'workflow', None)
-            if res: break
-            i -= 1
-        # Return a default workflow if no workflow was found.
-        if not res:
-            res = WorkflowAnonymous
-        return res
 
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one
@@ -124,7 +147,7 @@ class AbstractWrapper(object):
                                   getattr(tool.getObject(y), sortKey)))
         if reverse: refs.reverse()
 
-    def create(self, fieldNameOrClass, **kwargs):
+    def create(self, fieldNameOrClass, noSecurity=False, **kwargs):
         '''If p_fieldNameOrClass is the name of a field, this method allows to
            create an object and link it to the current one (self) through
            reference field named p_fieldName.
@@ -156,12 +179,13 @@ class AbstractWrapper(object):
         if not isField:
             folder = tool.getPath('/data')
         else:
-            if hasattr(self, 'folder') and self.folder:
-                folder = self.o
-            else:
-                folder = self.o.getParentNode()
+            folder = self.o.getCreateFolder()
+            if not noSecurity:
+                # Check that the user can edit this field.
+                appyType.checkAdd(self.o)
         # Create the object
-        zopeObj = createObject(folder, objId,portalType, tool.getAppName())
+        zopeObj = createObject(folder, objId, portalType, tool.getAppName(),
+                               noSecurity=noSecurity)
         appyObj = zopeObj.appy()
         # Set object attributes
         for attrName, attrValue in kwargs.iteritems():

@@ -216,7 +216,8 @@ class XmlUnmarshaller(XmlParser):
        If "object" is specified, it means that the tag contains sub-tags, each
        one corresponding to the value of an attribute for this object.
        if "tuple" is specified, it will be converted to a list.'''
-    def __init__(self, classes={}, tagTypes={}, conversionFunctions={}):
+    def __init__(self, classes={}, tagTypes={}, conversionFunctions={},
+                 utf8=True):
         XmlParser.__init__(self)
         # self.classes below is a dict whose keys are tag names and values are
         # Python classes. During the unmarshalling process, when an object is
@@ -253,6 +254,7 @@ class XmlUnmarshaller(XmlParser):
         # for example convert strings that have specific values (in this case,
         # knowing that the value is a 'string' is not sufficient).        
         self.conversionFunctions = conversionFunctions
+        self.utf8 = utf8
 
     def convertAttrs(self, attrs):
         '''Converts XML attrs to a dict.'''
@@ -360,6 +362,8 @@ class XmlUnmarshaller(XmlParser):
                 setattr(currentContainer, name, attrValue)
 
     def characters(self, content):
+        if not self.utf8:
+            content = content.encode('utf-8')
         e = XmlParser.characters(self, content)
         if e.currentBasicType:
             e.currentContent += content

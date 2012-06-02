@@ -1,14 +1,14 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys
+try:
+    from AccessControl.SecurityManagement import \
+         newSecurityManager, noSecurityManager
+except ImportError:
+    pass
 
 # ------------------------------------------------------------------------------
 class TestMixin:
     '''This class is mixed in with any ZopeTestCase.'''
-    def createUser(self, userId, roles):
-        '''Creates a user with id p_userId with some p_roles.'''
-        self.acl_users.addMember(userId, 'password', [], [])
-        self.setRoles(roles, name=userId)
-
     def changeUser(self, userId):
         '''Logs out currently logged user and logs in p_loginName.'''
         self.logout()
@@ -55,6 +55,16 @@ class TestMixin:
                 return arg[10:].strip(']')
         return None
 
+    def login(self, name='admin'):
+        user = self.app.acl_users.getUserById(name)
+        newSecurityManager(None, user)
+
+    def logout(self):
+        '''Logs out.'''
+        noSecurityManager()
+
+    def _setup(self): pass
+
 # Functions executed before and after every test -------------------------------
 def beforeTest(test):
     '''Is executed before every test.'''
@@ -64,7 +74,6 @@ def beforeTest(test):
     g['appFolder'] = cfg.diskFolder
     moduleOrClassName = g['test'].name # Not used yet.
     # Initialize the test
-    test.createUser('admin', ('Member','Manager'))
     test.login('admin')
     g['t'] = g['test']
 

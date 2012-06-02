@@ -9,7 +9,7 @@ from appy.gen.mixins.TestMixin import TestMixin, beforeTest, afterTest
 # Initialize the Zope test system ----------------------------------------------
 ZopeTestCase.installProduct('<!applicationName!>')
 
-class Test(ZopeTestCase.ZopeTestCase, TestMixin):
+class Test(TestMixin, ZopeTestCase.ZopeTestCase):
     '''Base test class for <!applicationName!> test cases.'''
 
 # Data needed for defining the tests -------------------------------------------

@@ -898,11 +898,16 @@ class ToolMixin(BaseMixin):
         userId = self.getUser().getId()
         # Perform the logout in acl_users
         rq.RESPONSE.expireCookie('__ac', path='/')
-        # Invalidate existing sessions.
-        sdm = self.session_data_manager
-        session = sdm.getSessionData(create=0)
-        if session is not None:
-            session.invalidate()
+        # Invalidate session.
+        try:
+            sdm = self.session_data_manager
+        except AttributeError, ae:
+            # When ran in test mode, session_data_manager is not there.
+            sdm = None
+        if sdm:
+            session = sdm.getSessionData(create=0)
+            if session is not None:
+                session.invalidate()
         self.log('User "%s" has been logged out.' % userId)
         # Remove user from variable "loggedUsers"
         from appy.gen.installer import loggedUsers
