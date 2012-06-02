@@ -91,7 +91,7 @@
       <td id="field_title"
           tal:condition="python: widget['name'] == 'title'">
         <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-           tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page='main')"></a>
+           tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
       </td>
 
       <tal:comment replace="nothing">Workflow state</tal:comment>
@@ -123,7 +123,7 @@
             <tal:comment replace="nothing">Edit the element</tal:comment>
             <td>
               <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-                 tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)"
+                 tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
                  tal:condition="obj/mayEdit">
                 <img title="Edit" tal:attributes="src string: $appUrl/ui/edit.gif"/>
             </a></td>

@@ -33,11 +33,12 @@ class BaseMixin:
              field lies;
            * field is the Ref instance.
         '''
-        if not rq.get('nav', '').startswith('ref.'): return (None,)*4
+        rq = self.REQUEST
+        if not rq.get('nav', '').startswith('ref.'): return None, None, None
         splitted = rq['nav'].split('.')
-        initiator = self.tool.getObject(splitted[1])
+        initiator = self.getTool().getObject(splitted[1])
         fieldName, page = splitted[2].split(':')
-        return (initiator, page, self.getAppyType(fieldName))
+        return initiator, page, initiator.getAppyType(fieldName)
 
     def createOrUpdate(self, created, values,
                        initiator=None, initiatorField=None):
@@ -134,7 +135,7 @@ class BaseMixin:
             splitted[-1] = splitted[-2] = str(int(splitted[-1])+1)
             urlParams['nav'] = '.'.join(splitted)
             # Check that the user can add objects through this Ref field
-            initiatiorField.checkAdd(initiator)
+            initiatorField.checkAdd(initiator)
         # Create a temp object in /temp_folder
         tool = self.getTool()
         id = tool.generateUid(className)
@@ -783,12 +784,15 @@ class BaseMixin:
         # Restrict the result to the current phase if required
         if currentOnly:
             rq = self.REQUEST
-            page = rq.get('page', 'main')
+            page = rq.get('page', None)
+            if not page:
+                if layoutType == 'edit': page = self.getDefaultEditPage()
+                else:                    page = self.getDefaultViewPage()
             for phaseInfo in res:
                 if page in phaseInfo['pages']:
                     return phaseInfo
             # If I am here, it means that the page as defined in the request,
-            # or 'main' by default, is not existing nor visible in any phase.
+            # or the default page, is not existing nor visible in any phase.
             # In this case I find the first visible page among all phases.
             viewAttr = 'showOn%s' % layoutType.capitalize()
             for phase in res:
@@ -962,6 +966,20 @@ class BaseMixin:
         appyObj = self.appy()
         if hasattr(appyObj, 'mayNavigate'): return appyObj.mayNavigate()
         return True
+
+    def getDefaultViewPage(self):
+        '''Which view page must be shown by default?'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'getDefaultViewPage'):
+            return appyObj.getDefaultViewPage()
+        return 'main'
+
+    def getDefaultEditPage(self):
+        '''Which edit page must be shown by default?'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'getDefaultEditPage'):
+            return appyObj.getDefaultEditPage()
+        return 'main'
 
     def mayAct(self):
         '''May the currently logged user see column "actions" for this

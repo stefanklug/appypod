@@ -3,13 +3,12 @@
  <metal:fill fill-slot="content"
     tal:define="contextObj     python: context.getParentNode();
                 dummy          python: contextObj.allows('View', raiseError=True);
-                portal_type    python: context.portal_type.lower().replace(' ', '_');
                 errors         python: req.get('errors', {});
                 layoutType     python:'view';
                 layout         python: contextObj.getPageLayout(layoutType);
                 phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
-                page           req/page|python:'main';
                 phase          phaseInfo/name;
+                page           req/page|python:contextObj.getDefaultViewPage();
                 groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page);"
     tal:on-error="structure python: tool.manageError(error)">
     <metal:prologue use-macro="context/ui/page/macros/prologue"/>
