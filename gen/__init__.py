@@ -681,8 +681,8 @@ class Type:
         layouts['cell'].addCssClasses('noStyle')
         if self.focus:
             # We need to make it flashy
-            layouts['view'].addCssClasses('appyFocus')
-            layouts['edit'].addCssClasses('appyFocus')
+            layouts['view'].addCssClasses('focus')
+            layouts['edit'].addCssClasses('focus')
         # If layouts are the default ones, set width=None instead of width=100%
         # for the field if it is not in a group.
         if areDefault and not self.group:

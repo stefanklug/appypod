@@ -63,6 +63,9 @@ img { border: 0; vertical-align: middle}
            width: 600px; border: 1px #F0C36D solid; padding: 6px 16px;
            background-color: #F9EDBE; text-align: center;
            border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9;}
+.focus { font-size: 90%; padding: 6px 16px; background-color: #d7dee4;
+         border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9;}
+.focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; }
 .portlet { width: 150px; border-right: 1px solid #5F7983;}
 .portletContent { margin: 9px; }

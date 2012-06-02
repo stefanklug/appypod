@@ -110,8 +110,9 @@ class UserWrapper(AbstractWrapper):
             zopeUser.roles = self.roles
             # Update the password if the user has entered new ones.
             rq = self.request
-            if rq.has_key('password1'): self.setPassword(rq['password1'])
-            self.password1 = self.password2 = ''
+            if rq.has_key('password1'):
+                self.setPassword(rq['password1'])
+                self.password1 = self.password2 = ''
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))
