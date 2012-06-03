@@ -326,22 +326,25 @@ class ZopeInstaller:
             appyTool.create('translations', noSecurity=True,
                             id=language, title=title)
             appyTool.log('Translation object created for "%s".' % language)
-        # Now, we synchronise every Translation object with the corresponding
-        # "po" file on disk.
-        appFolder = self.config.diskFolder
-        appName = self.config.PROJECTNAME
-        i18nFolder = os.path.join(appFolder, 'tr')
-        for translation in appyTool.translations:
-            # Get the "po" file
-            poName = '%s-%s.po' % (appName, translation.id)
-            poFile = PoParser(os.path.join(i18nFolder, poName)).parse()
-            for message in poFile.messages:
-                setattr(translation, message.id, message.getMessage())
-            appyTool.log('Translation "%s" updated from "%s".' % \
-                         (translation.id, poName))
 
         # Execute custom installation code if any
         if hasattr(appyTool, 'onInstall'): appyTool.onInstall()
+
+        # Now, if required, we synchronise every Translation object with the
+        # corresponding "po" file on disk.
+        if appyTool.loadTranslationsAtStartup:
+            appFolder = self.config.diskFolder
+            appName = self.config.PROJECTNAME
+            i18nFolder = os.path.join(appFolder, 'tr')
+            for translation in appyTool.translations:
+                # Get the "po" file
+                poName = '%s-%s.po' % (appName, translation.id)
+                poFile = PoParser(os.path.join(i18nFolder, poName)).parse()
+                for message in poFile.messages:
+                    setattr(translation, message.id, message.getMessage())
+                appyTool.log('Translation "%s" updated from "%s".' % \
+                             (translation.id, poName))
+
 
     def configureSessions(self):
         '''Configure the session machinery.'''

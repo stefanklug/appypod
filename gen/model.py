@@ -213,9 +213,9 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showAllStatesInPhase')
 defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
-                     'appyVersion', 'users', 'groups', 'translations', 'pages',
-                     'unoEnabledPython','openOfficePort',
-                     'numberOfResultsPerPage')
+                     'appyVersion', 'users', 'groups', 'translations',
+                     'loadTranslationsAtStartup', 'pages', 'unoEnabledPython',
+                     'openOfficePort', 'numberOfResultsPerPage')
 
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
@@ -242,10 +242,11 @@ class Tool(ModelClass):
                      page=gen.Page('groups', show=isManager),
                      queryable=True, queryFields=('title', 'login'),
                      showHeaders=True, shownInfo=('title', 'login', 'roles'))
+    pt = gen.Page('translations', show=isManager)
     translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
-                           link=False, show='view',
-                           back=gen.Ref(attribute='trToTool', show=False),
-                           page=gen.Page('translations', show=isManager))
+                           link=False, show='view', page=pt, 
+                           back=gen.Ref(attribute='trToTool', show=False))
+    loadTranslationsAtStartup = gen.Boolean(default=True, show=False, page=pt)
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
                     page=gen.Page('pages', show=isManager))
