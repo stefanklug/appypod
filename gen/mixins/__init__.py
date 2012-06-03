@@ -202,7 +202,7 @@ class BaseMixin:
            fields in the database.'''
         rq = self.REQUEST
         tool = self.getTool()
-        errorMessage = 'Please correct the indicated errors.' # XXX Translate
+        errorMessage = self.translate('validation_error')
         isNew = rq.get('is_new') == 'True'
         # If this object is created from an initiator, get info about him.
         initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
@@ -217,7 +217,7 @@ class BaseMixin:
                    urlBack = tool.getSiteUrl()
                 else:
                    urlBack = self.getUrl()
-            self.say('Changes canceled.') # XXX Translate
+            self.say(self.translate('object_canceled'))
             return self.goto(urlBack)
 
         # Object for storing validation errors
@@ -253,12 +253,11 @@ class BaseMixin:
         obj, msg = self.createOrUpdate(isNew, values, initiator, initiatorField)
 
         # Redirect the user to the appropriate page
-        if not msg: msg = 'Changes saved.' # XXX Translate
+        if not msg: msg = self.translate('object_saved')
         # If the object has already been deleted (ie, it is a kind of transient
         # object like a one-shot form and has already been deleted in method
         # onEdit), redirect to the main site page.
         if not getattr(obj.getParentNode().aq_base, obj.id, None):
-            obj.unindex()
             return self.goto(tool.getSiteUrl(), msg)
         # If the user can't access the object anymore, redirect him to the
         # main site page.

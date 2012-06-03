@@ -83,7 +83,7 @@
 
 <tal:comment replace="nothing">Search macro for a String.</tal:comment>
 <metal:search define-macro="search">
-  <label tal:attributes="for widgetName" tal:content="python: tool.translate(widget['labelId'])"></label><br>&nbsp;&nbsp;
+  <label tal:attributes="for widgetName" tal:content="python: _(widget['labelId'])"></label><br>&nbsp;&nbsp;
   <tal:comment replace="nothing">Show a simple search field for most String fields.</tal:comment>
   <tal:simpleSearch condition="not: widget/isSelect">
     <input type="text" tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')"
@@ -100,9 +100,9 @@
                           andName  python: '%s_and' % operName;"
                   condition="python: widget['multiplicity'][1]!=1">
     <input type="radio" tal:attributes="name operName; id orName" checked="checked" value="or"/>
-    <label tal:attributes="for orName" tal:content="python: tool.translate('search_or')"></label>
+    <label tal:attributes="for orName" tal:content="python: _('search_or')"></label>
     <input type="radio" tal:attributes="name operName; id andName" value="and"/>
-    <label tal:attributes="for andName" tal:content="python: tool.translate('search_and')"></label><br/>
+    <label tal:attributes="for andName" tal:content="python: _('search_and')"></label><br/>
     </tal:operator>
     <tal:comment replace="nothing">The list of values</tal:comment>
     <select tal:attributes="name widgetName; size widget/height" multiple="multiple">

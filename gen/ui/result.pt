@@ -1,37 +1,38 @@
 <metal:queryResults define-macro="queryResult"
-   tal:define="className    request/className;
-               refInfo       tool/getRefInfo;
-               refObject     python: refInfo[0];
-               refField      python: refInfo[1];
-               refUrlPart    python: refObject and ('&ref=%s:%s' % (refObject.UID(), refField))  or '';
-               startNumber   request/startNumber|python:'0';
-               startNumber   python: int(startNumber);
-               searchName    request/search;
-               labelId       python: searchName and ('%s_search_%s' % (className, searchName)) or '';
-               labelId       python: (searchName == '_advanced') and 'search_results' or labelId;
-               searchLabel   python: labelId and tool.translate(labelId) or '';
-               severalTypes  python: className and (className.find(',') != -1);
-               sortKey       request/sortKey| python:'';
-               sortOrder     request/sortOrder| python:'asc';
-               filterKey     request/filterKey| python:'';
-               filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(className, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
-               objs          queryResult/objects;
-               totalNumber   queryResult/totalNumber;
-               batchSize     queryResult/batchSize;
-               ajaxHookId    python:'queryResult';
-               navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
-               newSearchUrl  python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart)">
+   tal:define="_            python: tool.translate;
+               className    request/className;
+               refInfo      tool/getRefInfo;
+               refObject    python: refInfo[0];
+               refField     python: refInfo[1];
+               refUrlPart   python: refObject and ('&ref=%s:%s' % (refObject.UID(), refField))  or '';
+               startNumber  request/startNumber|python:'0';
+               startNumber  python: int(startNumber);
+               searchName   request/search;
+               labelId      python: searchName and ('%s_search_%s' % (className, searchName)) or '';
+               labelId      python: (searchName == '_advanced') and 'search_results' or labelId;
+               searchLabel  python: labelId and _(labelId) or '';
+               severalTypes python: className and (className.find(',') != -1);
+               sortKey      request/sortKey| python:'';
+               sortOrder    request/sortOrder| python:'asc';
+               filterKey    request/filterKey| python:'';
+               filterValue  request/filterValue | python:'';
+               queryResult  python: tool.executeQuery(className, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
+               objs         queryResult/objects;
+               totalNumber  queryResult/totalNumber;
+               batchSize    queryResult/batchSize;
+               ajaxHookId   python:'queryResult';
+               navBaseCall  python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
+               newSearchUrl python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart)">
 
   <tal:result condition="objs">
 
   <fieldset>
     <legend>
-      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, tool.translate(tool.getAppName()), tool.translate('%s_plural' % className)))"/>
+      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, _(tool.getAppName()), _('%s_plural' % className)))"/>
       (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
-        tal:content="python: tool.translate('search_new')"></a></i>
+        tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
     </legend>
 
@@ -49,7 +50,7 @@
     <table width="100%">
      <tr>
       <tal:descr condition="searchName">
-      <td tal:define="descr python: tool.translate('%s_descr' % labelId)"
+      <td tal:define="descr python: _('%s_descr' % labelId)"
           tal:condition="descr/strip">
        <span class="discreet" tal:content="descr"></span><br/><br/>
       </td>
@@ -69,16 +70,16 @@
       <tal:header repeat="widget widgets">
        <th tal:define="sortable   python: tool.isSortable(widget['name'], className, 'search');
                        filterable widget/filterable|nothing;">
-        <span tal:replace="structure python: tool.truncateText(tool.translate(widget['labelId']))"/>
+        <span tal:replace="structure python: tool.truncateText(_(widget['labelId']))"/>
         <metal:icons use-macro="context/ui/navigate/macros/sortAndFilter"/>
        </th>
       </tal:header>
       <tal:comment replace="nothing">Object type, shown if instances of several types are shown</tal:comment>
       <th tal:condition="severalTypes">
-        <span tal:replace="python: tool.translate('root_type')"></span>
+        <span tal:replace="python: _('root_type')"></span>
       </th>
       <tal:comment replace="nothing">Actions</tal:comment>
-      <th tal:content="python: tool.translate('ref_actions')"></th>
+      <th tal:content="python: _('ref_actions')"></th>
     </tr>
 
     <tal:comment replace="nothing">Results</tal:comment>
@@ -97,7 +98,7 @@
       <tal:comment replace="nothing">Workflow state</tal:comment>
       <td id="field_workflow_state"
           tal:condition="python: widget['name'] == 'state'"
-          tal:content="python: tool.translate(obj.getWorkflowLabel())">
+          tal:content="python: _(obj.getWorkflowLabel())">
       </td>
 
       <tal:comment replace="nothing">Any other field</tal:comment>
@@ -114,7 +115,7 @@
 
       <tal:comment replace="nothing">Column "Object type", shown if instances of several types are shown</tal:comment>
       <td tal:condition="severalTypes" id="field_root_type"
-          tal:content="python: tool.translate(obj.portal_type)"></td>
+          tal:content="python: _(obj.portal_type)"></td>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
       <td align="right">
@@ -125,13 +126,14 @@
               <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
                  tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
                  tal:condition="obj/mayEdit">
-                <img title="Edit" tal:attributes="src string: $appUrl/ui/edit.gif"/>
+                <img tal:attributes="src string: $appUrl/ui/edit.gif;
+                                     title python: _('object_edit')"/>
             </a></td>
             <tal:comment replace="nothing">Delete the element</tal:comment>
             <td>
-              <img tal:condition="obj/mayDelete"
-                   title="Delete" style="cursor:pointer"
+              <img tal:condition="obj/mayDelete" style="cursor:pointer"
                    tal:attributes="src string: $appUrl/ui/delete.png;
+                                   title python: _('object_delete');
                                    onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
             </td>
           </tr>
@@ -147,10 +149,10 @@
   </tal:result>
 
   <tal:noResult condition="not: objs">
-    <span tal:replace="python: tool.translate('query_no_result')"/>
+    <span tal:replace="python: _('query_no_result')"/>
     <tal:newSearch condition="python: searchName == '_advanced'">
         <br/><i class="discreet"><a tal:attributes="href newSearchUrl"
-        tal:content="python: tool.translate('search_new')"></a></i>
+        tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
   </tal:noResult>
 

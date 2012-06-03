@@ -876,7 +876,7 @@ class ToolMixin(BaseMixin):
         urlBack = rq['HTTP_REFERER']
 
         if jsEnabled and not cookiesEnabled:
-            msg = 'You must enable cookies before you can log in.' # XXX transl.
+            msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
         # Perform the Zope-level authentication
         login = rq.get('__ac_name', '')
@@ -884,11 +884,11 @@ class ToolMixin(BaseMixin):
         user = self.acl_users.validate(rq)
         if self.userIsAnon():
             rq.RESPONSE.expireCookie('__ac', path='/')
-            msg = 'Login failed.' # XXX to translate
+            msg = self.translate('login_ko')
             logMsg = 'Authentication failed (tried with login "%s").' % login
         else:
-            msg = 'Welcome! You are now logged in.' # XXX to translate
-            logMsg = 'User "%s" has been logged in.' % login
+            msg = self.translate('login_ok')
+            logMsg = 'User "%s" logged in.' % login
         self.log(logMsg)
         return self.goto(self.getApp().absolute_url(), msg)
 

@@ -78,7 +78,7 @@
 <tal:comment replace="nothing">Search macro for an Date.</tal:comment>
 <metal:search define-macro="search"
               tal:define="years python:range(widget['startYear'], widget['endYear']+1)">
-  <label tal:content="python: tool.translate(widget['labelId'])"></label>
+  <label tal:content="python: _(widget['labelId'])"></label>
   <table>
     <tal:comment replace="nothing">From</tal:comment>
     <tr tal:define="fromName      python: '%s_from' % name;
@@ -87,7 +87,7 @@
                     yearFromName  python: '%s*date' % widgetName">
       <td width="10px">&nbsp;</td>
       <td>
-        <label tal:content="python: tool.translate('search_from')"></label>
+        <label tal:content="python: _('search_from')"></label>
       </td>
       <td>
         
@@ -119,7 +119,7 @@
                     yearToName  python: '%s_to_year' % name">
       <td></td>
       <td>
-        <label tal:content="python: tool.translate('search_to')"></label>&nbsp;&nbsp;&nbsp;&nbsp;
+        <label tal:content="python: _('search_to')"></label>&nbsp;&nbsp;&nbsp;&nbsp;
       </td>
       <td height="20px;">
         <select tal:attributes="id dayToName; name dayToName">

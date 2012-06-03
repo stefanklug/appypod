@@ -28,19 +28,18 @@ class UserWrapper(AbstractWrapper):
     def validateLogin(self, login):
         '''Is this p_login valid?'''
         # The login can't be the id of the whole site or "admin"
-        if login == 'admin':
-            return 'This username is reserved.' # XXX Translate
+        if login == 'admin': return self.translate('login_reserved')
         # Check that no user or group already uses this login.
         if self.count('User', noSecurity=True, login=login) or \
            self.count('Group', noSecurity=True, login=login):
-            return 'This login is already in use.' # XXX Translate
+            self.translate('login_in_use')
         return True
 
     def validatePassword(self, password):
         '''Is this p_password valid?'''
         # Password must be at least 5 chars length
         if len(password) < 5:
-            return 'Passwords must contain at least 5 letters.' # XXX Translate
+            return self.translate('password_too_short', mapping={'nb':5})
         return True
 
     def showPassword(self):
@@ -84,8 +83,7 @@ class UserWrapper(AbstractWrapper):
         page = self.request.get('page', 'main')
         if page == 'main':
             if hasattr(new, 'password1') and (new.password1 != new.password2):
-                # XXX Translate
-                msg = 'Passwords do not match.'
+                msg = self.translate('passwords_mismatch')
                 errors.password1 = msg
                 errors.password2 = msg
         return self._callCustom('validate', new, errors)

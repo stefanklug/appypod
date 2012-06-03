@@ -80,7 +80,7 @@
       <input type="hidden" name="actionType"/>
       <input type="hidden" name="action"/>
       <div id="commentArea" align="left"><br/>
-        <span tal:content="python: tool.translate('workflow_comment')" class="discreet"></span>
+        <span tal:content="python: _('workflow_comment')" class="discreet"></span>
         <textarea name="comment" cols="30" rows="3"></textarea>
         <br/>
       </div>
@@ -112,12 +112,12 @@
          <input type="hidden" name="login_name" id="login_name" value=""/>
          <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
 
-         <span>Login</span>&nbsp;
+         <span tal:replace="python: _('app_login')"/>&nbsp;
          <input type="text" size="25" name="__ac_name" id="__ac_name" value=""/>&nbsp;
-         <span>Password</span>&nbsp;
+         <span tal:replace="python: _('app_password')"/>&nbsp;
          <input type="password" size="25" name="__ac_password" id="__ac_password"/>
          <input type="submit" name="submit" onclick="setLoginVars()"
-                tal:define="label python: _('Login');" tal:attributes="value label; alt label;"/>
+                tal:define="label python: _('app_connect')" tal:attributes="value label; alt label;"/>
         </form>
        </td></tr>
       </table>
@@ -126,7 +126,7 @@
        <tr>
         <td>
          <!-- Go home -->
-         <a tal:attributes="href appUrl; title python: _('home')">
+         <a tal:attributes="href appUrl; title python: _('app_home')">
           <img tal:attributes="src string: $appUrl/ui/home.gif"/>
          </a>
          <!-- Config -->
@@ -135,9 +135,11 @@
                             title python: _('%sTool' % appName)">
           <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
          </a>
+         <tal:comment replace="nothing">Additional icons can be added here by redefining icons.pt</tal:comment>
+         <metal:call use-macro="app/ui/icons/macros/icons"/>
          <!-- Logout -->
          <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
-                            title python: _('logout')">
+                            title python: _('app_logout')">
           <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
          </a>
         </td>

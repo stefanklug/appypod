@@ -191,7 +191,7 @@ class NewScript:
     def patchPlone3x(self):
         '''Auto-proclaimed ugly code in z3c forces us to patch some files
            in Products.CMFPlone because these guys make the assumption that
-           "plone.xxx" packages are within eggs when they've implemented their
+           "plone.*" packages are within eggs when they've implemented their
            ZCML directives "includePlugins" and "includePluginsOverrides".
            So in this method, I remove every call to those directives in
            CMFPlone files. It does not seem to affect Plone behaviour. Indeed,

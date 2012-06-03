@@ -12,13 +12,13 @@
       <tal:comment replace="nothing">Go to the first page</tal:comment>
       <td tal:condition="python: (startNumber != 0) and (startNumber != batchSize)"><img style="cursor:pointer"
           tal:attributes="src string: $appUrl/ui/arrowLeftDouble.png;
-                        title python: tool.translate('goto_first');
+                        title python: _('goto_first');
                         onClick python: navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
       <tal:comment replace="nothing">Go to the previous page</tal:comment>
       <td tal:define="sNumber python: startNumber - batchSize"
           tal:condition="python: startNumber != 0"><img style="cursor:pointer"
           tal:attributes="src string: $appUrl/ui/arrowLeftSimple.png;
-                          title python: tool.translate('goto_previous');
+                          title python: _('goto_previous');
                           onClick python: navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/></td>
       <tal:comment replace="nothing">Explain which elements are currently shown</tal:comment>
       <td class="discreet">&nbsp;
@@ -31,7 +31,7 @@
       <td tal:define="sNumber python: startNumber + batchSize"
           tal:condition="python: sNumber &lt; totalNumber"><img style="cursor:pointer"
           tal:attributes="src string: $appUrl/ui/arrowRightSimple.png;
-                          title python: tool.translate('goto_next');
+                          title python: _('goto_next');
                           onClick python: navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/></td>
       <tal:comment replace="nothing">Go to the last page</tal:comment>
       <td tal:define="lastPageIsIncomplete python: totalNumber % batchSize;
@@ -40,7 +40,7 @@
                     sNumber python: (nbOfCountedPages*batchSize)"
           tal:condition="python: (startNumber != sNumber) and (startNumber != sNumber-batchSize)"><img style="cursor:pointer"
           tal:attributes="src string: $appUrl/ui/arrowRightDouble.png;
-                          title python: tool.translate('goto_last');
+                          title python: _('goto_last');
                           onClick python: navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/></td>
     </tr>
   </table>
@@ -65,15 +65,15 @@
       <tal:comment replace="nothing">Go to the source URL (search or referred object)</tal:comment>
       <td tal:condition="sourceUrl"><a tal:attributes="href sourceUrl"><img
           tal:attributes="src string: $appUrl/ui/gotoSource.png;
-                          title python: backText + ' : ' + tool.translate('goto_source')"/></a></td>
+                          title python: backText + ' : ' + _('goto_source')"/></a></td>
       <tal:comment replace="nothing">Go to the first page</tal:comment>
       <td tal:condition="firstUrl"><a tal:attributes="href firstUrl"><img
           tal:attributes="src string: $appUrl/ui/arrowLeftDouble.png;
-                          title python: tool.translate('goto_first')"/></a></td>
+                          title python: _('goto_first')"/></a></td>
       <tal:comment replace="nothing">Go to the previous page</tal:comment>
       <td tal:condition="previousUrl"><a tal:attributes="href previousUrl"><img
           tal:attributes="src string: $appUrl/ui/arrowLeftSimple.png;
-                          title python: tool.translate('goto_previous')"/></a></td>
+                          title python: _('goto_previous')"/></a></td>
       <tal:comment replace="nothing">Explain which element is currently shown</tal:comment>
       <td class="discreet">&nbsp;
         <span tal:replace="python: currentNumber"/>&nbsp;<b>//</b>
@@ -82,11 +82,11 @@
       <tal:comment replace="nothing">Go to the next page</tal:comment>
       <td tal:condition="python: nextUrl"><a tal:attributes="href nextUrl"><img
           tal:attributes="src string: $appUrl/ui/arrowRightSimple.png;
-                          title python: tool.translate('goto_next')"/></a></td>
+                          title python: _('goto_next')"/></a></td>
       <tal:comment replace="nothing">Go to the last page</tal:comment>
       <td tal:condition="lastUrl"><a tal:attributes="href lastUrl"><img
           tal:attributes="src string: $appUrl/ui/arrowRightDouble.png;
-                          title python: tool.translate('goto_last')"/></a></td>
+                          title python: _('goto_last')"/></a></td>
     </tr>
   </table>
 </div>

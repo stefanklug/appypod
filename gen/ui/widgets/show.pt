@@ -117,7 +117,7 @@
           <td tal:attributes="style python:'background-image: url(%s/ui/tabBg.png)' % appUrl;
                               id tabId">
             <a style="cursor:pointer"
-               tal:content="python: tool.translate('%s_col%d' % (widget['labelId'], repeat['widgetRow'].number()))"
+               tal:content="python: _('%s_col%d' % (widget['labelId'], repeat['widgetRow'].number()))"
                tal:attributes="onClick python: 'showTab(\'%s_%d_%d\')' % (widget['name'], repeat['widgetRow'].number(), len(widget['widgets']))"></a>
           </td>
           <td><img tal:attributes="src string: $appUrl/ui/tabRight.png;

@@ -14,8 +14,8 @@
           tal:attributes="src string:$appUrl/ui/$jsFile"></script>
 
   <tal:comment replace="nothing">Search title</tal:comment>  
-  <h1><span tal:replace="python: tool.translate('%s_plural' % className)"/> —
-      <span tal:replace="python: tool.translate('search_title')"/></h1><br/>
+  <h1><span tal:replace="python: _('%s_plural' % className)"/> —
+      <span tal:replace="python: _('search_title')"/></h1><br/>
 
   <tal:comment replace="nothing">Form for searching objects of request/className.</tal:comment>
   <form name="search" tal:attributes="action python: tool.absolute_url()+'/do'" method="post">
@@ -40,7 +40,7 @@
 
   <tal:comment replace="nothing">Submit button</tal:comment>
   <p align="right"><br/>
-    <input type="submit" tal:attributes="value python:tool.translate('search_button')"/>
+    <input type="submit" tal:attributes="value python: _('search_button')"/>
   </p>
   </form>
  </metal:fill>
