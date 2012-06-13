@@ -125,6 +125,14 @@ class AbstractWrapper(object):
                 return customUser.__dict__[methodName](self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
+    def isEmpty(self, name):
+        '''Returns True if value of field p_name is considered as being
+           empty.'''
+        obj = self.o
+        if hasattr(obj.aq_base, name):
+            field = obj.getAppyType(name)
+            return field.isEmptyValue(getattr(obj, name))
+        return True
 
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one

@@ -178,7 +178,8 @@ class Group(ModelClass):
     roles = gen.String(validator=gen.Selection('getGrantableRoles'),
                        multiplicity=(0,None), **m)
     users = gen.Ref(User, multiplicity=(0,None), add=False, link=True,
-                    back=gen.Ref(attribute='groups', show=User.showRoles),
+                    back=gen.Ref(attribute='groups', show=User.showRoles,
+                                 multiplicity=(0,None)),
                     showHeaders=True, shownInfo=('title', 'login'))
 
 # The Translation class --------------------------------------------------------
