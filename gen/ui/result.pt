@@ -24,45 +24,45 @@
                navBaseCall  python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
                newSearchUrl python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart)">
 
-  <tal:result condition="objs">
+ <tal:result condition="objs">
 
-  <fieldset>
-    <legend>
-      <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, _(tool.getAppName()), _('%s_plural' % className)))"/>
-      (<span tal:replace="totalNumber"/>)
+  <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
+  <table align="right"
+         tal:define="widgets python: tool.getResultPodFields(className);
+                     layoutType python:'view'"
+         tal:condition="python: objs and widgets">
+   <tr>
+    <td tal:define="contextObj python: objs[0]" tal:repeat="widget widgets">
+       <metal:pod use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;
+    </td>
+   </tr>
+  </table>
+
+  <tal:comment replace="nothing">The title of the search.</tal:comment>
+  <p>
+   <span tal:replace="structure python: test(searchName, searchLabel, test(severalTypes, _(tool.getAppName()), _('%s_plural' % className)))"/>
+    (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
-    </legend>
+  </p>
+  <table width="100%">
+   <tr>
+    <tal:descr condition="searchName">
+    <td tal:define="descr python: _('%s_descr' % labelId)"
+        tal:condition="descr/strip">
+     <span class="discreet" tal:content="descr"></span><br/>
+    </td>
+    </tal:descr>
+    <td align="right" width="25%">
+     <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
+     <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
+    </td>
+   </tr>
+  </table>
 
-    <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
-    <table align="right"
-           tal:define="widgets python: tool.getResultPodFields(className);
-                       layoutType python:'view'"
-           tal:condition="python: objs and widgets">
-      <tr><td tal:define="contextObj python: objs[0]"
-              tal:repeat="widget widgets">
-          <metal:pod use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;
-      </td></tr>
-    </table>
-
-    <table width="100%">
-     <tr>
-      <tal:descr condition="searchName">
-      <td tal:define="descr python: _('%s_descr' % labelId)"
-          tal:condition="descr/strip">
-       <span class="discreet" tal:content="descr"></span><br/><br/>
-      </td>
-      </tal:descr>
-      <td align="right" width="25%">
-       <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
-       <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
-      </td>
-     </tr>
-    </table>
-
-    <table tal:define="fieldNames python: tool.getResultColumnsNames(className, refInfo);
+  <table tal:define="fieldNames python: tool.getResultColumnsNames(className, refInfo);
                        widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
            class="list" width="100%">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
@@ -141,11 +141,10 @@
       </td>
     </tr>
     </tal:row>
-    </table>
+  </table>
 
-    <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
-    <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
-  </fieldset>
+  <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
+  <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
   </tal:result>
 
   <tal:noResult condition="not: objs">
@@ -155,5 +154,4 @@
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
   </tal:noResult>
-
 </metal:queryResults>
