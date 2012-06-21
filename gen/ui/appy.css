@@ -102,8 +102,8 @@ img { border: 0; vertical-align: middle}
 .section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.2em 0;
             border-bottom: 2px solid grey; }
 .section3 { font-size: 100%; font-style: italic; font-weight: bold;
-            margin: 0.45em 0em 0.1em 0; background-color: #F4F5F6;
-            text-align: center; color: grey; }
+            margin: 0.45em 0em 0.1em 0; background-color: #95a1b3;
+            text-align: center; color: white; }
 .odd { background-color: white; }
 .even { background-color: #F4F5F6; }
 .summary {margin-bottom: 5px;}

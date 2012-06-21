@@ -1993,33 +1993,36 @@ class Ref(Type):
     def mayAdd(self, obj):
         '''May the user create a new referred object from p_obj via this Ref?'''
         # We can't (yet) do that on back references.
-        if self.isBack: return
+        if self.isBack: return No('is_back')
         # Check if this Ref is addable
         if callable(self.add):
             add = self.callMethod(obj, self.add)
         else:
             add = self.add
-        if not add: return
+        if not add: return No('no_add')
         # Have we reached the maximum number of referred elements?
         if self.multiplicity[1] != None:
             refCount = len(getattr(obj, self.name, ()))
-            if refCount >= self.multiplicity[1]: return
+            if refCount >= self.multiplicity[1]: return No('max_reached')
         # May the user edit this Ref field?
-        if not obj.allows(self.writePermission): return
+        if not obj.allows(self.writePermission): return No('no_write_perm')
         # Have the user the correct add permission?
         tool = obj.getTool()
         addPermission = '%s: Add %s' % (tool.getAppName(),
                                         tool.getPortalType(self.klass))
         folder = obj.getCreateFolder()
-        if not obj.getUser().has_permission(addPermission, folder): return
+        if not obj.getUser().has_permission(addPermission, folder):
+            return No('no_add_perm')
         return True
 
     def checkAdd(self, obj):
         '''Compute m_mayAdd above, and raise an Unauthorized exception if
            m_mayAdd returns False.'''
-        if not self.mayAdd(obj):
+        may = self.mayAdd(obj)
+        if not may:
             from AccessControl import Unauthorized
-            raise Unauthorized("User can't write Ref field '%s'." % self.name)
+            raise Unauthorized("User can't write Ref field '%s' (%s)." % \
+                               (self.name, may.msg))
 
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
