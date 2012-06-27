@@ -208,7 +208,7 @@
           </tal:other>
         </td>
         <tal:comment replace="nothing">Actions</tal:comment>
-        <td align="right">
+        <td tal:attributes="align dright">
           <tal:show condition="obj/mayAct">
            <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
           </tal:show>

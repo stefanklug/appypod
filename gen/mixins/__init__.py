@@ -10,6 +10,7 @@ from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared.utils import sequenceTypes
+from appy.shared.data import rtlLanguages
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -1403,6 +1404,11 @@ class BaseMixin:
         if ',' in res: res = res[:res.find(',')]
         if '-' in res: res = res[:res.find('-')]
         return res
+
+    def getLanguageDirection(self, lang):
+        '''Determines if p_lang is a LTR or RTL language.'''
+        if lang in rtlLanguages: return 'rtl'
+        return 'ltr'
 
     def formatText(self, text, format='html'):
         '''Produces a representation of p_text into the desired p_format, which

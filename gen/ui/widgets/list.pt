@@ -9,7 +9,8 @@
     </tal:show>
   </td>
   <tal:comment replace="nothing">Icon for removing the row</tal:comment>
-  <td align="right" tal:condition="python: layoutType=='edit'">
+  <td tal:condition="python: layoutType=='edit'"
+      tal:attributes="align dright">
    <img style="cursor:pointer"
         tal:attributes="src string:$appUrl/ui/delete.png;
                         title python: 'Delete';

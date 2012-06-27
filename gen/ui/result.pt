@@ -27,10 +27,10 @@
  <tal:result condition="objs">
 
   <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
-  <table align="right"
-         tal:define="widgets python: tool.getResultPodFields(className);
+  <table tal:define="widgets python: tool.getResultPodFields(className);
                      layoutType python:'view'"
-         tal:condition="python: objs and widgets">
+         tal:condition="python: objs and widgets"
+         tal:attributes="align dright">
    <tr>
     <td tal:define="contextObj python: objs[0]" tal:repeat="widget widgets">
        <metal:pod use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;
@@ -55,7 +55,7 @@
      <span class="discreet" tal:content="descr"></span><br/>
     </td>
     </tal:descr>
-    <td align="right" width="25%">
+    <td tal:attributes="align dright" width="25%">
      <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
      <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
     </td>
@@ -118,7 +118,7 @@
           tal:content="python: _(obj.portal_type)"></td>
 
       <tal:comment replace="nothing">Column "Actions"</tal:comment>
-      <td align="right">
+      <td tal:attributes="align dright">
         <table class="noStyle" tal:condition="obj/mayAct">
           <tr>
             <tal:comment replace="nothing">Edit the element</tal:comment>

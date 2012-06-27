@@ -1,4 +1,4 @@
-<div metal:define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize" align="right">
+<div metal:define-macro="appyNavigate" tal:condition="python: totalNumber &gt; batchSize" tal:attributes="align dright">
   <tal:comment replace="nothing">
      Buttons for navigating among a list of elements (next, back, first, last, etc).
   </tal:comment>

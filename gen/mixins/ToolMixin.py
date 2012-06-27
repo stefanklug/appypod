@@ -110,7 +110,7 @@ class ToolMixin(BaseMixin):
         if not cfg.languageSelector: return
         if len(cfg.languages) < 2: return
         page = self.REQUEST.get('ACTUAL_URL').split('/')[-1]
-        return page not in ('edit', 'query', 'search')
+        return page not in ('edit', 'query', 'search', 'do')
 
     def getLanguages(self):
         '''Returns the supported languages. First one is the default.'''
@@ -128,11 +128,21 @@ class ToolMixin(BaseMixin):
         rq.RESPONSE.setCookie('_ZopeLg', rq['language'], path='/')
         return self.goto(rq['HTTP_REFERER'])
 
+    def flipLanguageDirection(self, align, dir):
+        '''According to language direction p_dir ('ltr' or 'rtl'), this method
+           turns p_align from 'left' to 'right' (or the inverse) when
+           required.'''
+        if dir == 'ltr': return align
+        if align == 'left': return 'right'
+        if align == 'right': return 'left'
+        return align
+
     def getGlobalCssJs(self):
         '''Returns the list of CSS and JS files to include in the main template.
            The method ensures that appy.css and appy.js come first.'''
         names = self.getPhysicalRoot().ui.objectIds('File')
         names.remove('appy.js'); names.insert(0, 'appy.js')
+        names.remove('appyrtl.css'); names.insert(0, 'appyrtl.css')
         names.remove('appy.css'); names.insert(0, 'appy.css')
         return names
 

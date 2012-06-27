@@ -92,6 +92,7 @@ img { border: 0; vertical-align: middle}
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 2px solid grey; padding: 2px 2px;}
 .grid td { padding-right: 5px; }
+.cellGap { padding-right: 0.4em; }
 .noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important; }
 .noStyle td { border:0 !important; padding:0 !important; margin:0 !important; }
 .translationLabel { background-color: #EAEAEA; border-bottom: 1px dashed grey;

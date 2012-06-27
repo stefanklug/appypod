@@ -72,10 +72,10 @@
   <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
   <table width="100%" class="history">
     <tr>
-      <th align="left">Action</th>
-      <th align="left">By</th>
-      <th align="left">Date</th>
-      <th align="left">Comment</th>
+      <th tal:attributes="align dleft">Action</th>
+      <th tal:attributes="align dleft">By</th>
+      <th tal:attributes="align dleft">Date</th>
+      <th tal:attributes="align dleft">Comment</th>
     </tr>
     <tal:event repeat="event objs">
     <tr tal:define="odd repeat/event/odd;
@@ -98,8 +98,8 @@
           Display the previous values of the fields whose value were modified in this change.</tal:comment>
         <table class="appyChanges" width="100%">
           <tr>
-            <th align="left" width="30%" tal:content="python: _('modified_field')"></th>
-            <th align="left" width="70%" tal:content="python: _('previous_value')"></th>
+            <th tal:attributes="align dleft" width="30%" tal:content="python: _('modified_field')"></th>
+            <th tal:attributes="align dleft" width="70%" tal:content="python: _('previous_value')"></th>
           </tr>
           <tr tal:repeat="change event/changes/items" valign="top">
             <tal:change define="appyType python:contextObj.getAppyType(change[0], asDict=True);">
@@ -157,7 +157,7 @@
         <tal:comment replace="nothing">Input field for storing comment</tal:comment>
         <textarea id="comment" name="comment" cols="30" rows="3" style="display:none"></textarea>
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
-        <td align="right" tal:repeat="transition transitions">
+        <td tal:attributes="align dright" tal:repeat="transition transitions">
           <tal:comment replace="nothing">Real button</tal:comment>
           <input type="button" tal:condition="transition/may_trigger"
                  tal:attributes="value transition/title;
@@ -198,8 +198,9 @@
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
-            <img align="left" style="cursor:pointer" onClick="toggleCookie('appyHistory')"
-                 tal:attributes="src python:test(historyExpanded, 'ui/collapse.gif', 'ui/expand.gif');"
+            <img style="cursor:pointer" onClick="toggleCookie('appyHistory')"
+                 tal:attributes="src python:test(historyExpanded, 'ui/collapse.gif', 'ui/expand.gif');
+                                 align dleft"
                  id="appyHistory_img"/>&nbsp;
             <span>History</span> ||&nbsp;
             </tal:accessHistory>
@@ -233,7 +234,7 @@
           <table width="100%">
             <tr>
               <td><metal:states use-macro="here/ui/page/macros/states"/></td>
-              <td align="right"><metal:states use-macro="here/ui/page/macros/transitions"/></td>
+              <td tal:attributes="align dright"><metal:states use-macro="here/ui/page/macros/transitions"/></td>
             </tr>
           </table>
         </td>

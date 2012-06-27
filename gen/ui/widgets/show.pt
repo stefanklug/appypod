@@ -22,7 +22,7 @@
  <table tal:attributes="cellpadding  layout/cellpadding;
                         cellspacing  layout/cellspacing;
                         width        layout/width;
-                        align        layout/align;
+                        align        python: tool.flipLanguageDirection(layout['align'], dir);
                         class        python: tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or layoutCss;
                         style        layout/style;
                         id           tagId;
@@ -30,14 +30,16 @@
    <tal:comment replace="nothing">The table header row</tal:comment>
    <tr tal:condition="layout/headerRow" tal:attributes="valign layout/headerRow/valign">
      <th tal:repeat="cell layout/headerRow/cells"
-         tal:attributes="align cell/align; width cell/width;">
+         tal:attributes="align python: tool.flipLanguageDirection(cell['align'], dir);
+                         width cell/width;">
      </th>
    </tr>
    <tal:comment replace="nothing">The table content</tal:comment>
    <tr tal:repeat="row layout/rows" tal:attributes="valign row/valign">
      <td tal:repeat="cell row/cells"
-         tal:attributes="align cell/align; colspan cell/colspan;
-                         style python: test(repeat['cell'].end, '', 'padding-right: 0.4em')"><tal:content repeat="elem cell/content"><tal:field condition="python: elem == '?'"><metal:call use-macro="python: getattr(contextMacro, widget['type'].lower()).macros[layoutType]"/></tal:field><tal:other condition="python: elem != '?'"><metal:call use-macro="python: getattr(contextMacro, elem[0]).macros[elem[1]]"/></tal:other><img tal:condition="not: repeat/elem/end" tal:attributes="src string: $appUrl/ui/space.gif"/></tal:content>
+         tal:attributes="align python: tool.flipLanguageDirection(cell['align'], dir);
+                         colspan cell/colspan;
+                         class python: test(repeat['cell'].end, '', 'cellGap')"><tal:content repeat="elem cell/content"><tal:field condition="python: elem == '?'"><metal:call use-macro="python: getattr(contextMacro, widget['type'].lower()).macros[layoutType]"/></tal:field><tal:other condition="python: elem != '?'"><metal:call use-macro="python: getattr(contextMacro, elem[0]).macros[elem[1]]"/></tal:other><img tal:condition="not: repeat/elem/end" tal:attributes="src string: $appUrl/ui/space.gif"/></tal:content>
      </td>
    </tr>
  </table>
@@ -153,7 +155,7 @@
 <table metal:define-macro="groupContent"
        tal:define="cellgap widget/cellgap"
        tal:attributes="width widget/wide;
-                       align widget/align;
+                       align python: tool.flipLanguageDirection(widget['align'], dir);
                        class groupCss;
                        cellspacing widget/cellspacing;
                        cellpadding widget/cellpadding;
@@ -161,7 +163,8 @@
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);
-                        class widget/style" align="left">
+                        class widget/style;
+                        align dleft">
       <span tal:replace="structure python: contextObj.translate(widget['labelId'])"/>
       <tal:help condition="widget/hasHelp">
         <metal:call use-macro="app/ui/widgets/show/macros/help"/>
@@ -176,7 +179,7 @@
   <tr> <tal:comment replace="nothing">The column headers</tal:comment>
     <th tal:repeat="colNb python:range(len(widget['columnsWidths']))"
         tal:attributes="width python:widget['columnsWidths'][colNb];
-                        align python:widget['columnsAligns'][colNb]"
+                        align python: tool.flipLanguageDirection(widget['columnsAligns'][colNb], dir)"
         tal:content="structure python: widget['hasHeaders'] and contextObj.translate('%s_col%d' % (widget['labelId'], colNb+1)) or ''">
     </th>
   </tr>

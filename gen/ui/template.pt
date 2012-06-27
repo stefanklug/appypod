@@ -9,14 +9,19 @@
                   _ python: tool.translate;
                   req python: request;
                   resp req/RESPONSE;
+                  lang tool/getUserLanguage;
+                  dir python: tool.getLanguageDirection(lang);
+                  dleft python: (dir == 'ltr') and 'left' or 'right';
+                  dright python: (dir == 'ltr') and 'right' or 'left';
                   x python: resp.setHeader('Content-type', 'text/html;;charset=UTF-8');
                   x python: resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
-                  x python: resp.setHeader('Content-Language', req.get('language', 'en'))">
+                  x python: resp.setHeader('Content-Language', lang)"
+      tal:attributes="dir python: tool.getLanguageDirection(lang)">
 
 <head>
   <title tal:content="tool/getAppName"></title>
   <tal:link repeat="name tool/getGlobalCssJs">
-    <link tal:condition="python: name.endswith('.css')"
+    <link tal:condition="python: name.endswith('.css') and not ((dir == 'ltr') and (name == 'appyrtl.css'))"
           rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>
     <script tal:condition="python: name.endswith('.js')"
           type="text/javascript" tal:attributes="src string:$appUrl/ui/$name"></script>
@@ -27,16 +32,16 @@
 <table class="main" align="center" cellpadding="0">
  <tal:comment replace="nothing">Top banner</tal:comment>
  <tr class="top" metal:define-slot="top">
-  <td tal:attributes="style python: 'background-image: url(%s/ui/banner.jpg)' % appUrl">
+  <td tal:define="bannerName python: (dir == 'ltr') and 'banner' or 'bannerrtl'"
+      tal:attributes="style python: 'background-image: url(%s/ui/%s.jpg)' % (appUrl, bannerName)">
    <table width="100%">
-    <tr valign="top">
+    <tr valign="top" tal:define="pages tool/getMainPages">
      <tal:comment replace="nothing">Links to main pages</tal:comment>
-     <td>
-      <a tal:repeat="page tool/getMainPages" class="pageLink"
+     <td tal:condition="pages"><a tal:repeat="page pages" class="pageLink"
          tal:content="page/title" tal:attributes="href page/absolute_url"></a>
      </td>
      <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
-     <td align="right" tal:condition="tool/showLanguageSelector">
+     <td tal:condition="tool/showLanguageSelector" tal:attributes="align dright">
      <tal:lgs define="languages tool/getLanguages;
                       defaultLanguage python: languages[0];
                       asLinks python: len(languages) &lt;= 8">
@@ -51,7 +56,7 @@
         </tr>
       </table>
       <select tal:condition="not: asLinks"
-              tal:attributes="onchange string:window.location='${context/absolute_url}/switchLanguage?set_language=' + this.options[this.selectedIndex].value">
+              tal:attributes="onchange string:window.location='$appUrl/config/changeLanguage?language=' + this.options[this.selectedIndex].value">
        <option tal:repeat="lang languages"
                tal:content="python: tool.getLanguageName(lang)"
                tal:attributes="selected python:defaultLanguage == lang; value lang">
@@ -79,7 +84,7 @@
       <p id="appyConfirmText"></p>
       <input type="hidden" name="actionType"/>
       <input type="hidden" name="action"/>
-      <div id="commentArea" align="left"><br/>
+      <div id="commentArea" tal:attributes="align dleft"><br/>
         <span tal:content="python: _('workflow_comment')" class="discreet"></span>
         <textarea name="comment" cols="30" rows="3"></textarea>
         <br/>
@@ -143,7 +148,7 @@
           <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
          </a>
         </td>
-        <td align="right" class="userStripText" tal:define="userInfo tool/getUserLine">
+        <td class="userStripText" tal:define="userInfo tool/getUserLine" tal:attributes="align dright">
           <span tal:content="python: userInfo[0]"></span>
           <a tal:condition="python: userInfo[1]"
              tal:attributes="href python: userInfo[1]">

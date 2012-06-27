@@ -1,0 +1,7 @@
+ul { margin: 0 0.6em 0.2em 0 }
+ul li { background-image: url("ui/lirtl.gif");
+        background-position: right center;
+        padding-right: 15px; padding-left: 0px}
+.portlet { border-right: none; border-left: 1px solid #5F7983 }
+.lang { margin-right: 0px; margin-left: 6px; }
+.cellGap { padding-left: 0.4em; }

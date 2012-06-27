@@ -62,10 +62,11 @@
                             expanded python: request.get(group['labelId'], 'collapsed') == 'expanded'">
         <tal:comment replace="nothing">Group name</tal:comment>
         <div class="portletGroup">
-          <img align="left" style="cursor:pointer; margin-right: 3px"
+          <img style="cursor:pointer; margin-right: 3px"
                tal:attributes="id python: '%s_img' % group['labelId'];
                                src python:test(expanded, 'ui/collapse.gif', 'ui/expand.gif');
-                               onClick python:'toggleCookie(\'%s\')' % group['labelId']"/>
+                               onClick python:'toggleCookie(\'%s\')' % group['labelId'];
+                               align dleft"/>
           <span tal:replace="group/label"/>
         </div>
         <tal:comment replace="nothing">Group searches</tal:comment>

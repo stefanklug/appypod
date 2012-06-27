@@ -39,7 +39,7 @@
     </table>
 
   <tal:comment replace="nothing">Submit button</tal:comment>
-  <p align="right"><br/>
+  <p tal:attributes="align dright"><br/>
     <input type="submit" tal:attributes="value python: _('search_button')"/>
   </p>
   </form>
