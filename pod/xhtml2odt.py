@@ -147,8 +147,15 @@ class HtmlElement:
                         self.elem, classValue=self.classAttr)
                     if odtStyle and (odtStyle.name == 'podItemKeepWithNext'):
                         itemStyle += '_kwn'
-                env.dumpString(' %s:style-name="%s"' % (env.textNs,
-                    env.itemStyles[itemStyle]))
+                    styleName = env.itemStyles[itemStyle]
+                else:
+                    # Check if a style must be applied on 'p' tags
+                    odtStyle = env.parser.caller.findStyle('p')
+                    if odtStyle:
+                        styleName = odtStyle.name
+                    else:
+                        styleName = env.itemStyles[itemStyle]
+                env.dumpString(' %s:style-name="%s"' % (env.textNs, styleName))
             env.dumpString('>')
             self.tagsToClose.append(HtmlElement('p',{}))
 

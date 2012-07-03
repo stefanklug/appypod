@@ -6,6 +6,10 @@
                       contextObj python: options['contextObj'];
                       tool       contextObj/getTool;
                       layoutType python:'view';
+                      lang tool/getUserLanguage;
+                      dir python: tool.getLanguageDirection(lang);
+                      dleft python: (dir == 'ltr') and 'left' or 'right';
+                      dright python: (dir == 'ltr') and 'right' or 'left';
                       phaseInfo  python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
                       phase      phaseInfo/name;">
   <metal:callMacro use-macro="python: page.macros[macroName]"/>
