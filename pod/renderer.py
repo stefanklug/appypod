@@ -219,6 +219,10 @@ class Renderer:
                                                  stylesInserts)
         # Store the styles mapping
         self.setStylesMapping(stylesMapping)
+        # While working, POD may identify "dynamic styles" to insert into
+        # the "automatic styles" section of content.xml, like the column styles
+        # of tables generated from XHTML tables via xhtml2odt.py.
+        self.dynamicStyles = []
 
     def createPodParser(self, odtFile, context, inserts):
         '''Creates the parser with its environment for parsing the given
@@ -475,11 +479,22 @@ class Renderer:
         for odtFile in ('content.xml', 'styles.xml'):
             shutil.copy(os.path.join(self.tempFolder, odtFile),
                         os.path.join(self.unzipFolder, odtFile))
+        # Insert dynamic styles
+        contentXml = os.path.join(self.unzipFolder, 'content.xml')
+        f = file(contentXml)
+        dynamicStyles = ''.join(self.dynamicStyles)
+        content = f.read().replace('<!DYNAMIC_STYLES!>', dynamicStyles)
+        f.close()
+        f = file(contentXml, 'w')
+        f.write(content)
+        f.close()
+        # Call the user-defined "finalize" function when present.
         if self.finalizeFunction:
             try:
                 self.finalizeFunction(self.unzipFolder)
             except Exception, e:
                 print WARNING_FINALIZE_ERROR % str(e)
+        # Re-zip the result.
         resultOdtName = os.path.join(self.tempFolder, 'result.odt')
         try:
             resultOdt = zipfile.ZipFile(resultOdtName,'w', zipfile.ZIP_DEFLATED)

@@ -9,7 +9,7 @@
 # underline.
 
 # ------------------------------------------------------------------------------
-import xml.sax
+import xml.sax, time, random
 from appy.shared.xml_parser import XmlEnvironment, XmlParser
 from appy.pod.odf_parser import OdfEnvironment
 from appy.pod import *
@@ -205,7 +205,10 @@ class HtmlTable:
        of the HTML table, we will dump the result of this sub-buffer into
        the parent buffer, which may be the global buffer or another table
        buffer.'''
-    def __init__(self):
+    def __init__(self, env):
+        elems = str(time.time()).split('.')
+        self.name= 'AppyTable%s%s%d' % (elems[0],elems[1],random.randint(1,100))
+        self.styleNs = env.ns[OdfEnvironment.NS_STYLE]
         self.res = u'' # The sub-buffer.
         self.tempRes = u'' # The temporary sub-buffer, into which we will
         # dump all table sub-elements, until we encounter the end of the first
@@ -214,6 +217,42 @@ class HtmlTable:
         # into self.res.
         self.firstRowParsed = False # Was the first table row completely parsed?
         self.nbOfColumns = 0
+        # The following list stores, for every column, the size of the biggest
+        # content of all its cells.
+        self.columnContentSizes = []
+
+    def computeColumnStyles(self, renderer):
+        '''Once the table has been completely parsed, self.columnContentSizes
+           should be correctly filled. Based on this, we can deduce the width
+           of every column and create the corresponding style declarations, in
+           p_renderer.dynamicStyles.'''
+        total = 65000.0 # A number representing the total width of the table
+        # Ensure first that self.columnContentSizes is correct
+        if (len(self.columnContentSizes) != self.nbOfColumns) or \
+           (None in self.columnContentSizes):
+            print 'PROBLEM'
+            # There was a problem while parsing the table. Set every column
+            # with the same width.
+            widths = [int(total/self.nbOfColumns)] * self.nbOfColumns
+        else:
+            widths = []
+            # Compute the sum of all column content sizes
+            contentTotal = 0
+            for size in self.columnContentSizes: contentTotal += size
+            contentTotal = float(contentTotal)
+            for size in self.columnContentSizes:
+                width = int((size/contentTotal) * total)
+                widths.append(width)
+        # Compute style declatation corresponding to every column.
+        s = self.styleNs
+        i = 0
+        for width in widths:
+            i += 1
+            # Compute the width of this column, relative to "total".
+            decl = '<%s:style %s:name="%s.%d" %s:family="table-column">' \
+                   '<%s:table-column-properties %s:rel-column-width="%d*"' \
+                   '/></%s:style>' % (s, s, self.name, i, s, s, s, width, s)
+            renderer.dynamicStyles.append(decl.encode('utf-8'))
 
 # ------------------------------------------------------------------------------
 class XhtmlEnvironment(XmlEnvironment):
@@ -233,8 +272,17 @@ class XhtmlEnvironment(XmlEnvironment):
         self.textNs = self.ns[OdfEnvironment.NS_TEXT]
         self.linkNs = self.ns[OdfEnvironment.NS_XLINK]
         self.tableNs = self.ns[OdfEnvironment.NS_TABLE]
-        self.ignore = False # Will be True when parsing parts of the XHTML that
+        # The following attr will be True when parsing parts of the XHTML that
         # must be ignored.
+        self.ignore = False
+        # Are we currently within a table cell? Instead of a boolean, the field
+        # stores an integer. The integer is > 1 if the cell spans more than one
+        # column.
+        self.inCell = 0
+        # The index, within the current row, of the current cell
+        self.cellIndex = -1
+        # The size of the content of the currently parsed table cell
+        self.cellContentSize = 0
 
     def getCurrentElement(self, isList=False):
         '''Gets the element that is on the top of self.currentElements or
@@ -259,13 +307,16 @@ class XhtmlEnvironment(XmlEnvironment):
     def dumpCurrentContent(self):
         '''Dumps content that was temporarily stored in self.currentContent
            into the result.'''
+        contentSize = 0
         if self.currentContent.strip():
             # Manage missing elements
             currentElem = self.getCurrentElement()
             if self.anElementIsMissing(currentElem, None):
                 currentElem.addInnerParagraph(self)
             # Dump and reinitialize the current content
-            for c in self.currentContent.strip('\n'):
+            content = self.currentContent.strip('\n')
+            contentSize = len(content)
+            for c in content:
                 # We remove leading and trailing carriage returns, but not
                 # whitespace because whitespace may be part of the text to dump.
                 if XML_SPECIAL_CHARS.has_key(c):
@@ -273,6 +324,8 @@ class XhtmlEnvironment(XmlEnvironment):
                 else:
                     self.dumpString(c)
             self.currentContent = u''
+        # If we are within a table cell, update the total size of cell content.
+        if self.inCell: self.cellContentSize += contentSize
 
     def getOdtAttributes(self, htmlElem, htmlAttrs={}):
         '''Gets the ODT attributes to dump for p_currentElem. p_htmlAttrs are
@@ -364,15 +417,17 @@ class XhtmlEnvironment(XmlEnvironment):
             self.currentLists.append(currentElem)
         elif elem == 'table':
             # Update stack of current tables
-            self.currentTables.append(HtmlTable())
+            self.currentTables.append(HtmlTable(self))
         elif elem in TABLE_CELL_TAGS:
+            # Determine colspan
+            colspan = 1
+            if attrs.has_key('colspan'): colspan = int(attrs['colspan'])
+            self.inCell = colspan
+            self.cellIndex += colspan
             # If we are in the first row of a table, update columns count
             currentTable = self.currentTables[-1]
             if not currentTable.firstRowParsed:
-                nbOfCols = 1
-                if attrs.has_key('colspan'):
-                    nbOfCols = int(attrs['colspan'])
-                currentTable.nbOfColumns += nbOfCols
+                currentTable.nbOfColumns += colspan
         return currentElem
 
     def onElementEnd(self, elem):
@@ -383,18 +438,35 @@ class XhtmlEnvironment(XmlEnvironment):
             self.currentLists.pop()
         elif elem == 'table':
             lastTable = self.currentTables.pop()
+            # Computes the column styles required by the table
+            lastTable.computeColumnStyles(self.parser.caller.renderer)
             # Dumps the content of the last parsed table into the parent buffer
             self.dumpString(lastTable.res)
         elif elem == 'tr':
+            self.cellIndex = -1
             lastTable = self.currentTables[-1]
             if not lastTable.firstRowParsed:
                 lastTable.firstRowParsed = True
                 # First row is parsed. I know the number of columns in the
                 # table: I can dump the columns declarations.
-                lastTable.res += ('<%s:table-column/>' % self.tableNs) * \
-                                 lastTable.nbOfColumns
+                for i in range(1, lastTable.nbOfColumns + 1):
+                    lastTable.res+= '<%s:table-column %s:style-name=' \
+                                    '"%s.%d"/>' % (self.tableNs, self.tableNs,
+                                                   lastTable.name, i)
                 lastTable.res += lastTable.tempRes
                 lastTable.tempRes = u''
+        elif elem in TABLE_CELL_TAGS:
+            # Update attr "columnContentSizes" of the currently parsed table,
+            # excepted if the cell spans several columns.
+            if self.inCell == 1:
+                lastTable = self.currentTables[-1]
+                sizes = lastTable.columnContentSizes
+                # Insert None values if the list is too small
+                while (len(sizes)-1) < self.cellIndex: sizes.append(None)
+                sizes[self.cellIndex] = max(sizes[self.cellIndex],
+                                            self.cellContentSize)
+            self.inCell = 0
+            self.cellContentSize = 0
         if currentElem.tagsToClose:
             self.closeConflictualElements(currentElem.tagsToClose)
         if currentElem.tagsToReopen:
@@ -446,7 +518,9 @@ class XhtmlParser(XmlParser):
             e.dumpString('<%s>' % odfTag)
         elif elem == 'table':
             # Here we must call "dumpString" only once
-            e.dumpString('<%s %s:style-name="podTable">' % (odfTag, e.tableNs))
+            table = e.currentTables[-1]
+            e.dumpString('<%s %s:name="%s" %s:style-name="podTable">' % \
+                         (odfTag, e.tableNs, table.name, e.tableNs))
         elif elem in TABLE_CELL_TAGS:
             e.dumpString('<%s %s:style-name="%s"' % \
                 (odfTag, e.tableNs, DEFAULT_ODT_STYLES[elem]))
