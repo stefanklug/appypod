@@ -4,11 +4,12 @@ from appy.shared import mimeTypes
 from appy.shared.utils import getOsTempFolder, sequenceTypes
 from appy.shared.data import languages
 import appy.gen
-from appy.gen import Type, Search, Selection
+from appy.gen import Type, Search, Selection, String
 from appy.gen.utils import SomeObjects, getClassName
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
+from appy.gen.mail import sendMail
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -1042,4 +1043,68 @@ class ToolMixin(BaseMixin):
         if hasattr(self.o.aq_base, 'pages') and self.o.pages:
             return [self.getObject(uid) for uid in self.o.pages ]
         return ()
+
+    def askPasswordReinit(self):
+        '''A user (anonymmous) does not remember its password. Here we will
+           send him a mail containing a link that will trigger password
+           re-initialisation.'''
+        login = self.REQUEST.get('login').strip()
+        appyTool = self.appy()
+        user = appyTool.search1('User', login=login, noSecurity=True)
+        msg = self.translate('reinit_mail_sent')
+        backUrl = self.REQUEST['HTTP_REFERER']
+        if not user:
+            # Return the message nevertheless. This way, malicious users can't
+            # deduce information about existing users.
+            return self.goto(backUrl, msg)
+        # If login is an email, use it. Else, use user.email instead.
+        email = user.login
+        if not String.EMAIL.match(email):
+            email = user.email
+        if not email:
+            # Impossible to re-initialise the password.
+            return self.goto(backUrl, msg)
+        # Create a temporary file whose name is the user login and whose
+        # content is a generated token.
+        f = file(os.path.join(getOsTempFolder(), login), 'w')
+        token = String().generatePassword()
+        f.write(token)
+        f.close()
+        # Send an email
+        initUrl = '%s/doPasswordReinit?login=%s&token=%s' % \
+                  (self.absolute_url(), login, token)
+        subject = self.translate('reinit_password')
+        map = {'url':initUrl, 'siteUrl':self.getSiteUrl()}
+        body= self.translate('reinit_password_body', mapping=map, format='text')
+        sendMail(appyTool, email, subject, body)
+        return self.goto(backUrl, msg)
+
+    def doPasswordReinit(self):
+        '''Performs the password re-initialisation.'''
+        rq = self.REQUEST
+        login = rq['login']
+        token = rq['token']
+        # Check if such token exists in temp folder
+        tokenFile = os.path.join(getOsTempFolder(), login)
+        if os.path.exists(tokenFile):
+            f = file(tokenFile)
+            storedToken = f.read()
+            f.close()
+            if storedToken == token:
+                # Generate a new password for this user
+                appyTool = self.appy()
+                user = appyTool.search1('User', login=login, noSecurity=True)
+                newPassword = user.setPassword()
+                # Send the new password by email
+                email = login
+                if not String.EMAIL.match(email):
+                    email = user.email
+                subject = self.translate('new_password')
+                siteUrl = self.getSiteUrl()
+                map = {'password': newPassword, 'siteUrl': siteUrl}
+                body = self.translate('new_password_body', mapping=map,
+                                      format='text')
+                sendMail(appyTool, email, subject, body)
+                os.remove(tokenFile)
+                return self.goto(siteUrl, self.translate('new_password_sent'))
 # ------------------------------------------------------------------------------

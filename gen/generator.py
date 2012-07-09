@@ -487,6 +487,14 @@ class ZopeGenerator(Generator):
             msg('enable_cookies',       '', msg.ENABLE_COOKIES),
             msg('page_previous',        '', msg.PAGE_PREVIOUS),
             msg('page_next',            '', msg.PAGE_NEXT),
+            msg('forgot_password',      '', msg.FORGOT_PASSWORD),
+            msg('ask_password_reinit',  '', msg.ASK_PASSWORD_REINIT),
+            msg('reinit_mail_sent',     '', msg.REINIT_MAIL_SENT),
+            msg('reinit_password',      '', msg.REINIT_PASSWORD),
+            msg('reinit_password_body', '', msg.REINIT_PASSWORD_BODY),
+            msg('new_password',         '', msg.NEW_PASSWORD),
+            msg('new_password_body',    '', msg.NEW_PASSWORD_BODY),
+            msg('new_password_sent',    '', msg.NEW_PASSWORD_SENT),
         ]
         # Create a label for every role added by this application
         for role in self.getAllUsedRoles():

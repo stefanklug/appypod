@@ -67,6 +67,7 @@ img { border: 0; vertical-align: middle}
          border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9;}
 .focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; }
+.lostPassword a { font-size: 90%; color: white; padding-left: 1em;}
 .portlet { width: 150px; border-right: 1px solid #5F7983;}
 .portletContent { margin: 9px; }
 .portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px;}

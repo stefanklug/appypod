@@ -451,6 +451,19 @@ function doConfirm() {
   }
 }
 
+var wrongTextInput = '#ff934a none';
+// Function triggered when the user ask password reinitialisation
+function doAskPasswordReinit() {
+  // Check that the user has typed a login
+  var theForm = document.getElementById('askPasswordReinitForm');
+  var login = theForm.login.value.replace(' ', '');
+  if (!login) { theForm.login.style.background = wrongTextInput; }
+  else {
+    closePopup('askPasswordReinitPopup');
+    theForm.submit();
+  }
+}
+
 // Function that finally posts the edit form after the user has confirmed that
 // she really wants to post it.
 function postConfirmedEditForm() {

@@ -136,6 +136,21 @@ class PoMessage:
     ENABLE_COOKIES = 'You must enable cookies before you can log in.'
     PAGE_PREVIOUS = 'Previous page'
     PAGE_NEXT = 'Next page'
+    FORGOT_PASSWORD = 'Forgot password?'
+    ASK_PASSWORD_REINIT = 'Ask new password'
+    REINIT_MAIL_SENT = 'A mail has been sent to you. Please follow the ' \
+                       'instructions from this email.'
+    REINIT_PASSWORD = 'Password re-initialisation'
+    REINIT_PASSWORD_BODY = 'Hello,<br/><br/>A password re-initialisation ' \
+        'has been requested, tied to this email address, for the website ' \
+        '${siteUrl}. If you are not at the origin of this request, please ' \
+        'ignore this email. Else, click on the link below to receive a new ' \
+        'password.<br/><br/>${url}'
+    NEW_PASSWORD = 'Your new password'
+    NEW_PASSWORD_BODY = 'Hello,<br/><br/>The new password you have ' \
+                        'requested for website ${siteUrl} is ${password}<br/>' \
+                        '<br/>Best regards.'
+    NEW_PASSWORD_SENT = 'Your new password has been sent to you by email.'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):
