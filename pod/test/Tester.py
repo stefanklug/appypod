@@ -177,7 +177,8 @@ class Test(appy.shared.test.Test):
                 areXml=True, xmlTagsToIgnore=(
                    (OdfEnvironment.NS_DC, 'date'),
                    (OdfEnvironment.NS_STYLE, 'style')),
-                xmlAttrsToIgnore=('draw:name','text:name','text:bullet-char'),
+                xmlAttrsToIgnore=('draw:name','text:name','text:bullet-char',
+                                  'table:name', 'table:style-name'),
                 encoding='utf-8')
             if diffOccurred:
                 res = True

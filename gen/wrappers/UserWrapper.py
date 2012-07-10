@@ -9,6 +9,8 @@ class UserWrapper(AbstractWrapper):
     def showLogin(self):
         '''When must we show the login field?'''
         if self.o.isTemporary(): return 'edit'
+        # The manager has the possibility to change the login itself.
+        if self.user.has_role('Manager'): return True
         return ('view', 'result')
 
     def showName(self):
@@ -27,12 +29,17 @@ class UserWrapper(AbstractWrapper):
 
     def validateLogin(self, login):
         '''Is this p_login valid?'''
-        # The login can't be the id of the whole site or "admin"
-        if login == 'admin': return self.translate('login_reserved')
-        # Check that no user or group already uses this login.
-        if self.count('User', noSecurity=True, login=login) or \
-           self.count('Group', noSecurity=True, login=login):
-            self.translate('login_in_use')
+        # 2 cases: (1) The user is being created and has no login yet, or
+        #          (2) The user is being edited and has already a login, that
+        #              can potentially be changed.
+        if not self.login or (login != self.login):
+            # A new p_login is requested. Check if it is valid and free.
+            # Firstly, the login can't be the id of the whole site or "admin".
+            if login == 'admin': return self.translate('login_reserved')
+            # Check that no user or group already uses this login.
+            if self.count('User', noSecurity=True, login=login) or \
+               self.count('Group', noSecurity=True, login=login):
+                return self.translate('login_in_use')
         return True
 
     def validatePassword(self, password):
@@ -46,9 +53,9 @@ class UserWrapper(AbstractWrapper):
         '''When must we show the 2 fields for entering a password ?'''
         # When someone creates the user
         if self.o.isTemporary(): return 'edit'
-        # When the user itself (which is Owner of the object representing him)
-        # wants to edit information about himself.
-        if self.user.has_role('Owner', self): return 'edit'
+        # When the user itself (we don't check role Owner because a Manager can
+        # also own a User instance) wants to edit information about himself.
+        if self.user.getId() == self.login: return 'edit'
 
     def setPassword(self, newPassword=None):
         '''Sets a p_newPassword for self. If p_newPassword is not given, we
@@ -81,11 +88,14 @@ class UserWrapper(AbstractWrapper):
     def validate(self, new, errors):
         '''Inter-field validation.'''
         page = self.request.get('page', 'main')
+        self.o._oldLogin = None
         if page == 'main':
             if hasattr(new, 'password1') and (new.password1 != new.password2):
                 msg = self.translate('passwords_mismatch')
                 errors.password1 = msg
                 errors.password2 = msg
+            # Remember the previous login
+            if self.login: self.o._oldLogin = self.login
         return self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
@@ -103,6 +113,18 @@ class UserWrapper(AbstractWrapper):
             # granted to it.
             zopeUser.groups = PersistentMapping()
         else:
+            # Update the login itself if the user has changed it.
+            oldLogin = self.o._oldLogin
+            if oldLogin and (oldLogin != login):
+                zopeUser = aclUsers.getUserById(oldLogin)
+                zopeUser.name = login
+                del aclUsers.data[oldLogin]
+                aclUsers.data[login] = zopeUser
+                # Update the email if the email corresponds to the login.
+                email = self.email
+                if email == oldLogin:
+                    self.email = login
+            del self.o._oldLogin
             # Update roles at the Zope level.
             zopeUser = aclUsers.getUserById(login)
             zopeUser.roles = self.roles

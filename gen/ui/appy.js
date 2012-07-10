@@ -451,7 +451,7 @@ function doConfirm() {
   }
 }
 
-var wrongTextInput = '#ff934a none';
+var wrongTextInput = '#F0C36D none';
 // Function triggered when the user ask password reinitialisation
 function doAskPasswordReinit() {
   // Check that the user has typed a login
