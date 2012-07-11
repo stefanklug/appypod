@@ -939,6 +939,19 @@ class BaseMixin:
             self.reindex()
         return updated
 
+    def applyUserIdChange(self, oldId, newId):
+        '''A user whose ID was p_oldId has now p_newId. If the old ID was
+           mentioned in self's local roles, update it to the new ID. This
+           method returns 1 if a change occurred, 0 else.'''
+        if oldId in self.__ac_local_roles__:
+            localRoles = self.__ac_local_roles__.copy()
+            localRoles[newId] = localRoles[oldId]
+            del localRoles[oldId]
+            self.__ac_local_roles__ = localRoles
+            self.reindex()
+            return 1
+        return 0
+
     def hasHistory(self):
         '''Has this object an history?'''
         if hasattr(self.aq_base, 'workflow_history') and self.workflow_history:

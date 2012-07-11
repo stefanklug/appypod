@@ -78,6 +78,33 @@ class UserWrapper(AbstractWrapper):
                  (msgPart, self.user.getId(), login))
         return newPassword
 
+    def setLogin(self, oldLogin, newLogin):
+        '''Changes the login of this user from p_oldLogin to p_newLogin.'''
+        self.login = newLogin
+        # Update the corresponding Zope-level user
+        aclUsers = self.o.acl_users
+        zopeUser = aclUsers.getUserById(oldLogin)
+        zopeUser.name = newLogin
+        del aclUsers.data[oldLogin]
+        aclUsers.data[newLogin] = zopeUser
+        # Update the email if the email corresponds to the login.
+        email = self.email
+        if email == oldLogin:
+            self.email = newLogin
+        # Update the title, which is the login
+        self.title = newLogin
+        # Browse all objects of the database and update potential local roles
+        # that referred to the old login.
+        context = {'nb': 0, 'old': oldLogin, 'new': newLogin}
+        for className in self.o.getProductConfig().allClassNames:
+            self.compute(className, context=context, noSecurity=True,
+                         expression="ctx['nb'] += obj.o.applyUserIdChange(" \
+                                    "ctx['old'], ctx['new'])")
+        self.log("Login '%s' renamed to '%s' by '%s'." % \
+                 (oldLogin, newLogin, self.user.getId()))
+        self.log('Login change: local roles updated in %d object(s).' % \
+                 context['nb'])
+
     def getGrantableRoles(self):
         '''Returns the list of roles that the admin can grant to a user.'''
         res = []
@@ -116,14 +143,7 @@ class UserWrapper(AbstractWrapper):
             # Update the login itself if the user has changed it.
             oldLogin = self.o._oldLogin
             if oldLogin and (oldLogin != login):
-                zopeUser = aclUsers.getUserById(oldLogin)
-                zopeUser.name = login
-                del aclUsers.data[oldLogin]
-                aclUsers.data[login] = zopeUser
-                # Update the email if the email corresponds to the login.
-                email = self.email
-                if email == oldLogin:
-                    self.email = login
+                self.setLogin(oldLogin, login)
             del self.o._oldLogin
             # Update roles at the Zope level.
             zopeUser = aclUsers.getUserById(login)
