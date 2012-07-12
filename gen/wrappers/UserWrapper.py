@@ -78,6 +78,13 @@ class UserWrapper(AbstractWrapper):
                  (msgPart, self.user.getId(), login))
         return newPassword
 
+    def checkPassword(self, clearPassword):
+        '''Returns True if p_clearPassword is the correct password for this
+           user.'''
+        encryptedPassword = self.getZopeUser()._getPassword()
+        from AccessControl.AuthEncoding import pw_validate
+        return pw_validate(encryptedPassword, clearPassword)
+
     def setLogin(self, oldLogin, newLogin):
         '''Changes the login of this user from p_oldLogin to p_newLogin.'''
         self.login = newLogin
