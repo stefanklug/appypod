@@ -151,6 +151,14 @@ class PoMessage:
                         'requested for website ${siteUrl} is ${password}<br/>' \
                         '<br/>Best regards.'
     NEW_PASSWORD_SENT = 'Your new password has been sent to you by email.'
+    LAST_USER_ACCESS = 'Last access'
+    OBJECT_HISTORY = 'History'
+    OBJECT_CREATED_BY = 'By'
+    OBJECT_CREATED_ON = 'On'
+    OBJECT_ACTION = 'Action'
+    OBJECT_AUTHOR = 'Author'
+    ACTION_DATE = 'Date'
+    ACTION_COMMENT = 'Comment'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):

@@ -1,8 +1,9 @@
 # ------------------------------------------------------------------------------
-import os.path
+import os.path, time
 import appy
 from appy.shared.utils import executeCommand
 from appy.gen.wrappers import AbstractWrapper
+from appy.gen.installer import loggedUsers
 
 # ------------------------------------------------------------------------------
 _PY = 'Please specify a file corresponding to a Python interpreter ' \
@@ -37,6 +38,20 @@ class ToolWrapper(AbstractWrapper):
     def isManagerEdit(self):
         '''Some pages on the tool can only be accessed by God, also in edit.'''
         if self.user.has_role('Manager'): return True
+
+    def computeConnectedUsers(self):
+        '''Computes a table showing users that are currently connected.'''
+        res = '<table cellpadding="0" cellspacing="0" class="list"><tr>' \
+              '<th></th><th>%s</th></tr>' % self.translate('last_user_access')
+        rows = []
+        for userId, lastAccess in loggedUsers.items():
+            user = self.search1('User', noSecurity=True, login=userId)
+            if not user: continue # Could have been deleted in the meanwhile
+            fmt = '%s (%s)' % (self.dateFormat, self.hourFormat)
+            access = time.strftime(fmt, time.localtime(lastAccess))
+            rows.append('<tr><td><a href="%s">%s</a></td><td>%s</td></tr>' % \
+                        (user.o.absolute_url(), user.title,access))
+        return res + '\n'.join(rows) + '</table>'
 
     podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
     def getPodOutputFormats(self):

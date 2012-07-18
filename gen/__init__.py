@@ -786,6 +786,10 @@ class Type:
     def getIndexType(self):
         '''Returns the name of the technical, Zope-level index type for this
            field.'''
+        # Normally, self.indexed contains a Boolean. If a string value is given,
+        # we consider it to be an index type. It allows to bypass the standard
+        # way to decide what index type must be used.
+        if isinstance(self.indexed, str): return self.indexed
         return 'FieldIndex'
 
     def getIndexValue(self, obj, forSearch=False):
@@ -2153,6 +2157,8 @@ class Action(Type):
         except Exception, e:
             res = (False, 'An error occurred. %s' % str(e))
             obj.log(Traceback.get(), type='error')
+            #import transaction
+            #transaction.abort()
         return res
 
     def isShowable(self, obj, layoutType):

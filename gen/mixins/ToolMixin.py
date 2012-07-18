@@ -1020,6 +1020,30 @@ class ToolMixin(BaseMixin):
             url = appyUser.o.getUrl(mode='edit', page='main', nav='')
         return (' | '.join(info), url)
 
+    def getUserName(self, login):
+        '''Gets the user name corresponding to p_login, or the p_login itself
+           if the user does not exist anymore.'''
+        user = self.appy().search1('User', noSecurity=True, login=login)
+        if not user: return login
+        firstName = user.firstName
+        name = user.name
+        res = ''
+        if firstName: res += firstName
+        if name:
+            if res: res += ' ' + name
+            else: res = name
+        if not res: res = login
+        return res
+
+    def formatDate(self, aDate, withHour=True):
+        '''Returns aDate formatted as specified by tool.dateFormat.
+           If p_withHour is True, hour is appended, with a format specified
+           in tool.hourFormat.'''
+        tool = self.appy()
+        res = aDate.strftime(tool.dateFormat)
+        if withHour: res += ' (%s)' % aDate.strftime(tool.hourFormat)
+        return res
+
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''
         name = className.split('_')[-1]

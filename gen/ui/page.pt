@@ -72,10 +72,10 @@
   <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
   <table width="100%" class="history">
     <tr>
-      <th tal:attributes="align dleft">Action</th>
-      <th tal:attributes="align dleft">By</th>
-      <th tal:attributes="align dleft">Date</th>
-      <th tal:attributes="align dleft">Comment</th>
+      <th tal:attributes="align dleft" tal:content="python: _('object_action')"></th>
+      <th tal:attributes="align dleft" tal:content="python: _('object_author')"></th>
+      <th tal:attributes="align dleft" tal:content="python: _('action_date')"></th>
+      <th tal:attributes="align dleft" tal:content="python: _('action_comment')"></th>
     </tr>
     <tal:event repeat="event objs">
     <tr tal:define="odd repeat/event/odd;
@@ -86,7 +86,8 @@
       <td tal:condition="isDataChange" tal:content="python: _('data_change')"></td>
       <td tal:condition="not: isDataChange"
           tal:content="python: _(contextObj.getWorkflowLabel(event['action']))"/>
-      <td tal:define="actorid python:event.get('actor');" tal:content="actorid"/>
+      <td tal:define="actorid python:event.get('actor')"
+          tal:content="python: tool.getUserName(actorid)"/>
       <td tal:content="event/time"/>
       <td tal:condition="not: isDataChange">
         <tal:c condition="rhComments"
@@ -202,17 +203,17 @@
                  tal:attributes="src python:test(historyExpanded, 'ui/collapse.gif', 'ui/expand.gif');
                                  align dleft"
                  id="appyHistory_img"/>&nbsp;
-            <span>History</span> ||&nbsp;
+            <span tal:replace="python: _('object_history')"></span> ||&nbsp;
             </tal:accessHistory>
 
             <tal:comment replace="nothing">Show document creator</tal:comment>
-            <span class="by" tal:condition="creator">
-             <span>by <span tal:replace="creator"/>
-             &mdash;
-             </span>
+            <span class="by" tal:condition="python: creator != 'Anonymous User'">
+             <tal:by replace="python: _('object_created_by')"/>
+             <tal:creator replace="python: tool.getUserName(creator)"/> &mdash;
             </span>
             <tal:comment replace="nothing">Show creation date</tal:comment>
-            <span tal:replace="python:contextObj.created"></span>
+            <tal:by replace="python: _('object_created_on')"/>
+            <span tal:replace="python: tool.formatDate(contextObj.created, withHour=True)"></span>
         </td>
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>

@@ -495,6 +495,14 @@ class ZopeGenerator(Generator):
             msg('new_password',         '', msg.NEW_PASSWORD),
             msg('new_password_body',    '', msg.NEW_PASSWORD_BODY),
             msg('new_password_sent',    '', msg.NEW_PASSWORD_SENT),
+            msg('last_user_access',     '', msg.LAST_USER_ACCESS),
+            msg('object_history',       '', msg.OBJECT_HISTORY),
+            msg('object_created_by',    '', msg.OBJECT_CREATED_BY),
+            msg('object_created_on',    '', msg.OBJECT_CREATED_ON),
+            msg('object_action',        '', msg.OBJECT_ACTION),
+            msg('object_author',        '', msg.OBJECT_AUTHOR),
+            msg('action_date',          '', msg.ACTION_DATE),
+            msg('action_comment',       '', msg.ACTION_COMMENT),
         ]
         # Create a label for every role added by this application
         for role in self.getAllUsedRoles():

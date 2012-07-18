@@ -34,4 +34,9 @@
 </metal:cell>
 
 <tal:comment replace="nothing">Search macro for a Computed.</tal:comment>
-<metal:search define-macro="search"></metal:search>
+<metal:search define-macro="search">
+ <label tal:attributes="for widgetName" tal:content="python: _(widget['labelId'])"></label><br>&nbsp;&nbsp;
+ <input type="text" tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')"
+                    tal:attributes="name python: '%s*string' % widgetName;
+                                    maxlength maxChars"/>
+</metal:search>

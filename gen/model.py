@@ -214,7 +214,8 @@ toolFieldPrefixes = ('defaultValue', 'podTemplate', 'formats', 'resultColumns',
                      'searchFields', 'optionalFields', 'showWorkflow',
                      'showAllStatesInPhase')
 defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
-                     'appyVersion', 'users', 'groups', 'translations',
+                     'appyVersion', 'dateFormat', 'hourFormat', 'users',
+                     'connectedUsers', 'groups', 'translations',
                      'loadTranslationsAtStartup', 'pages', 'unoEnabledPython',
                      'openOfficePort', 'numberOfResultsPerPage')
 
@@ -226,18 +227,24 @@ class Tool(ModelClass):
     # Tool attributes
     def isManager(self): pass
     def isManagerEdit(self): pass
-    title = gen.String(show=False, page=gen.Page('main', show=False))
-    mailHost = gen.String(default='localhost:25')
-    mailEnabled = gen.Boolean(default=False)
-    mailFrom = gen.String(default='info@appyframework.org')
-    appyVersion = gen.String(layouts='f')
+    lf = {'layouts':'f'}
+    title = gen.String(show=False, page=gen.Page('main', show=False), **lf)
+    mailHost = gen.String(default='localhost:25', **lf)
+    mailEnabled = gen.Boolean(default=False, **lf)
+    mailFrom = gen.String(default='info@appyframework.org', **lf)
+    appyVersion = gen.String(**lf)
+    dateFormat = gen.String(default='%d/%m/%Y', **lf)
+    hourFormat = gen.String(default='%H:%M', **lf)
 
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
+    userPage = gen.Page('users', show=isManager)
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
-                    back=gen.Ref(attribute='toTool', show=False),
-                    page=gen.Page('users', show=isManager),
+                    back=gen.Ref(attribute='toTool', show=False), page=userPage,
                     queryable=True, queryFields=('title', 'login'),
                     showHeaders=True, shownInfo=('title', 'login', 'roles'))
+    def computeConnectedUsers(self): pass
+    connectedUsers = gen.Computed(method=computeConnectedUsers, page=userPage,
+                                  plainText=False)
     groups = gen.Ref(Group, multiplicity=(0,None), add=True, link=False,
                      back=gen.Ref(attribute='toTool2', show=False),
                      page=gen.Page('groups', show=isManager),
