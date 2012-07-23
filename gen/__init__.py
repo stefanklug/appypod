@@ -2631,7 +2631,7 @@ class Transition:
                     break
         return res
 
-    def isTriggerable(self, obj, wf):
+    def isTriggerable(self, obj, wf, noSecurity=False):
         '''Can this transition be triggered on p_obj?'''
         wf = wf.__instance__ # We need the prototypical instance here.
         # Checks that the current state of the object is a start state for this
@@ -2651,6 +2651,7 @@ class Transition:
         if isinstance(self.condition, Role):
             # Condition is a role. Transition may be triggered if the user has
             # this role.
+            if noSecurity: return True
             return user.has_role(self.condition.name, obj)
         elif type(self.condition) == types.FunctionType:
             return self.condition(wf, obj.appy())
@@ -2663,7 +2664,7 @@ class Transition:
                 if isinstance(roleOrFunction, basestring):
                     if hasRole == None:
                         hasRole = False
-                    if user.has_role(roleOrFunction, obj):
+                    if user.has_role(roleOrFunction, obj) or noSecurity:
                         hasRole = True
                 elif type(roleOrFunction) == types.FunctionType:
                     if not roleOrFunction(wf, obj.appy()):

@@ -1071,7 +1071,7 @@ class BaseMixin:
             return self.goto(msg)
 
     def trigger(self, transitionName, comment='', doAction=True, doNotify=True,
-                doHistory=True, doSay=True):
+                doHistory=True, doSay=True, noSecurity=False):
         '''Triggers transition named p_transitionName.'''
         # Check that this transition exists.
         wf = self.getWorkflow()
@@ -1080,7 +1080,7 @@ class BaseMixin:
             raise 'Transition "%s" was not found.' % transitionName
         # Is this transition triggerable?
         transition = getattr(wf, transitionName)
-        if not transition.isTriggerable(self, wf):
+        if not transition.isTriggerable(self, wf, noSecurity=noSecurity):
             raise 'Transition "%s" can\'t be triggered.' % transitionName
         # Trigger the transition
         transition.trigger(transitionName, self, wf, comment, doAction=doAction,

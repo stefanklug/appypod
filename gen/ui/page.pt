@@ -86,9 +86,9 @@
       <td tal:condition="isDataChange" tal:content="python: _('data_change')"></td>
       <td tal:condition="not: isDataChange"
           tal:content="python: _(contextObj.getWorkflowLabel(event['action']))"/>
-      <td tal:define="actorid python:event.get('actor')"
-          tal:content="python: tool.getUserName(actorid)"/>
-      <td tal:content="event/time"/>
+      <td tal:define="actorId python:event.get('actor')"
+          tal:content="python: tool.getUserName(actorId)"/>
+      <td tal:content="python: tool.formatDate(event['time'], withHour=True)"/>
       <td tal:condition="not: isDataChange">
         <tal:c condition="rhComments"
                content="structure python: contextObj.formatText(rhComments)"/>

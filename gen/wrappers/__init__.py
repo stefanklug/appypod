@@ -255,11 +255,12 @@ class AbstractWrapper(object):
                                 format=format)
 
     def do(self, transition, comment='', doAction=True, doNotify=True,
-           doHistory=True):
+           doHistory=True, noSecurity=False):
         '''This method allows to trigger on p_self a workflow p_transition
            programmatically. See doc in self.o.do.'''
         return self.o.trigger(transition, comment, doAction=doAction,
-                            doNotify=doNotify, doHistory=doHistory, doSay=False)
+                              doNotify=doNotify, doHistory=doHistory,
+                              doSay=False, noSecurity=noSecurity)
 
     def log(self, message, type='info'): return self.o.log(message, type)
     def say(self, message, type='info'): return self.o.say(message, type)
