@@ -1,0 +1,27 @@
+<tal:comment replace="nothing">View macro</tal:comment>
+<metal:view define-macro="view">
+  <tal:comment replace="nothing">var "value" is misused and contains the contact params for Ogone.</tal:comment>
+  <tal:comment replace="nothing">The form for sending the payment request to Ogone.</tal:comment>
+  <form method="post" id="form1" name="form1"
+        tal:define="env value/env"
+        tal:attributes="action string: https://secure.ogone.com/ncol/$env/orderstandard.asp">
+    <tal:fields repeat="item value/items">
+     <input type="hidden" tal:condition="python: item[0] != 'env'"
+            tal:attributes="id python: item[0]; name python: item[0]; value python: item[1]"/>
+    </tal:fields>
+    <tal:comment replace="nothing">Submit image</tal:comment>
+    <input type="image" id="submit2" name="submit2"
+           tal:attributes="src string: $appUrl/ui/ogone.gif; title python: _('custom_pay')"/>
+  </form>
+</metal:view>
+
+<tal:comment replace="nothing">Edit macro (none)</tal:comment>
+<metal:edit define-macro="edit"></metal:edit>
+
+<tal:comment replace="nothing">Cell macro (=view)</tal:comment>
+<metal:cell define-macro="cell">
+  <metal:call use-macro="app/ui/widgets/ogone/macros/view"/>
+</metal:cell>
+
+<tal:comment replace="nothing">Search macro (none)</tal:comment>
+<metal:search define-macro="search"></metal:search>

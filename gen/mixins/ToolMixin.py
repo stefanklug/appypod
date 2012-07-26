@@ -1020,10 +1020,13 @@ class ToolMixin(BaseMixin):
             url = appyUser.o.getUrl(mode='edit', page='main', nav='')
         return (' | '.join(info), url)
 
-    def getUserName(self, login):
-        '''Gets the user name corresponding to p_login, or the p_login itself
-           if the user does not exist anymore.'''
-        user = self.appy().search1('User', noSecurity=True, login=login)
+    def getUserName(self, login=None):
+        '''Gets the user name corresponding to p_login (or the currently logged
+           login if None), or the p_login itself if the user does not exist
+           anymore.'''
+        tool = self.appy()
+        if not login: login = tool.user.getId()
+        user = tool.search1('User', noSecurity=True, login=login)
         if not user: return login
         firstName = user.firstName
         name = user.name

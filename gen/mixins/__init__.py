@@ -1594,4 +1594,9 @@ class BaseMixin:
         if not parent: # Is propably being created through code
             return False
         return parent.getId() == 'temp_folder'
+
+    def onProcess(self):
+        '''This method is a general hook for transfering processing of a request
+           to a given field, whose name must be in the request.'''
+        return self.getAppyType(self.REQUEST['name']).process(self)
 # ------------------------------------------------------------------------------

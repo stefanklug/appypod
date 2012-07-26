@@ -263,7 +263,7 @@
   <br/>
   <tal:previous condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
-      <input type="image" class="imageInput" style="cursor:pointer" name="buttonPrevious"
+      <input type="image" name="buttonPrevious"
              tal:attributes="src string:$appUrl/ui/previous.png;
                              title python: _('page_previous')"/>
       <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
@@ -277,13 +277,13 @@
   </tal:previous>
 
   <tal:save condition="python: isEdit and pageInfo['showSave']">
-    <input type="image" class="imageInput" style="cursor:pointer" name="buttonOk"
+    <input type="image" name="buttonOk"
            tal:attributes="src string:$appUrl/ui/save.png;
                            title python: _('object_save')"/>
   </tal:save>
 
   <tal:cancel condition="python: isEdit and pageInfo['showCancel']">
-    <input type="image" class="imageInput" style="cursor:pointer" name="buttonCancel"
+    <input type="image" name="buttonCancel"
            tal:attributes="src string:$appUrl/ui/cancel.png;
                            title python: _('object_cancel')"/>
   </tal:cancel>
@@ -304,7 +304,7 @@
 
   <tal:next condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
-      <input type="image" class="imageInput" style="cursor:pointer" name="buttonNext"
+      <input type="image" name="buttonNext"
              tal:attributes="src string:$appUrl/ui/next.png;
                              title python: _('page_next')"/>
       <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>

@@ -862,8 +862,8 @@ class Type:
         # Search Javascript code in the value (prevent XSS attacks).
         if '<script' in value:
             obj.log('Detected Javascript in user input.', type='error')
-            raise 'Your behaviour is considered a security attack. System ' \
-                  'administrator has been warned.'
+            raise Exception('Your behaviour is considered a security ' \
+                            'attack. System administrator has been warned.')
 
     def validate(self, obj, value):
         '''This method checks that p_value, coming from the request (p_obj is
@@ -967,6 +967,12 @@ class Type:
             obj.log(Traceback.get(), type='error')
             if raiseOnError: raise e
             else: return str(e)
+
+    def process(self, obj):
+        '''This method is a general hook allowing a field to perform some
+           processing after an URL on an object has been called, of the form
+           <objUrl>/onProcess.'''
+        return obj.goto(obj.absolute_url())
 
 class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
@@ -2888,4 +2894,7 @@ class Config:
         # Language that will be used as a basis for translating to other
         # languages.
         self.sourceLanguage = 'en'
+        # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
+        # the field below.
+        self.ogone = None
 # ------------------------------------------------------------------------------

@@ -47,6 +47,7 @@ grantableRoles = [<!grRoles!>]
 languages = [<!languages!>]
 languageSelector = <!languageSelector!>
 sourceLanguage = '<!sourceLanguage!>'
+ogone = <!ogone!>
 
 # When Zope is starting or runs in test mode, there is no request object. We
 # create here a fake one for storing Appy wrappers.

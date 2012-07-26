@@ -16,7 +16,7 @@ form { margin: 0; padding: 0;}
 p { margin: 0;}
 acronym {cursor: help;}
 input { font: 92% Helvetica,Arial,sans-serif }
-input[type=image] { border: 0; background: none; }
+input[type=image] { border: 0; background: none; cursor: pointer; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
 input[type=radio] { border: 0; background: none; cursor: pointer;}
 input[type=file] { border: 0px solid #D7DEE4;
@@ -122,6 +122,7 @@ img { border: 0; vertical-align: middle}
 .history td { border-top: 1px solid grey;}
 .history th { font-style: italic; text-align; left;}
 .topSpace { margin-top: 15px;}
+.bottomSpace { margin-bottom: 15px;}
 .discreet { color: grey}
 .pageLink { padding-left: 6px; font-style: italic}
 .footer { font-size: 95% }
