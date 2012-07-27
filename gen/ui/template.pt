@@ -97,8 +97,8 @@
      </div>
     </form>
    </div>
-   <tal:comment replace="nothing">Popup for reinitialing the password</tal:comment>
-   <div id="askPasswordReinitPopup" class="popup" tal:condition="isAnon">
+   <tal:comment replace="nothing">Popup for reinitializing the password</tal:comment>
+   <div id="askPasswordReinitPopup" class="popup" tal:condition="python: isAnon and tool.showForgotPassword()">
     <form id="askPasswordReinitForm" method="post"
           tal:attributes="action python: tool.absolute_url() + '/askPasswordReinit'">
      <div align="center">
@@ -141,7 +141,7 @@
                  tal:define="label python: _('app_connect')" tal:attributes="value label; alt label;"/>
          </form>
        </td>
-       <td class="lostPassword">
+       <td class="lostPassword" tal:condition="tool/showForgotPassword">
         <a href="javascript: openPopup('askPasswordReinitPopup')"
            tal:content="python: _('forgot_password')"></a></td>
       </tr>

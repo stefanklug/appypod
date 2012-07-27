@@ -728,6 +728,7 @@ class ZopeGenerator(Generator):
         repls['languageSelector'] = self.config.languageSelector
         repls['sourceLanguage'] = self.config.sourceLanguage
         repls['ogone'] = repr(self.config.ogone)
+        repls['activateForgotPassword'] = self.config.activateForgotPassword
         self.copyFile('config.pyt', repls, destName='config.py')
 
     def generateInit(self):

@@ -2894,6 +2894,8 @@ class Config:
         # Language that will be used as a basis for translating to other
         # languages.
         self.sourceLanguage = 'en'
+        # Activate or not the button on home page for asking a new password
+        self.activateForgotPassword = True
         # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
         # the field below.
         self.ogone = None

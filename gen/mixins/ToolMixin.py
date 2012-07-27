@@ -113,6 +113,10 @@ class ToolMixin(BaseMixin):
         page = self.REQUEST.get('ACTUAL_URL').split('/')[-1]
         return page not in ('edit', 'query', 'search', 'do')
 
+    def showForgotPassword(self):
+        '''We must show link "forgot password?" when the app requires it.'''
+        return self.getProductConfig().activateForgotPassword
+
     def getLanguages(self):
         '''Returns the supported languages. First one is the default.'''
         return self.getProductConfig().languages
