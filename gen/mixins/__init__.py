@@ -930,7 +930,7 @@ class BaseMixin:
             stateName = self.State(name=True, initial=True)
             self.addHistoryEvent(None, review_state=stateName)
             state = self.State(name=False, initial=True)
-            self.log('Wrong workflow info for a "%s"; is not in state "%s".' % \
+            self.log('Wrong workflow info for a "%s"; is now in state "%s".' % \
                      (self.meta_type, stateName))
         # Update permission attributes on the object if required
         updated = state.updatePermissions(wf, self)

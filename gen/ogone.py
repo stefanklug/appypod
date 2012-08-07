@@ -46,13 +46,15 @@ class Ogone(Type):
         #   * amount    An integer representing the price for this order,
         #               multiplied by 100 (no floating point value, no commas
         #               are tolerated. Dont't forget to multiply the amount by
-        #               100 !!
+        #               100!
         self.orderMethod = orderMethod
         # responseMethod must contain a method accepting one param, let's call
         # it "response". The response method will be called when we will get
         # Ogone's response about the status of the payment. Param "response" is
         # an object whose attributes correspond to all parameters that you have
-        # chosen to receive in your Ogone merchant account.
+        # chosen to receive in your Ogone merchant account. After the payment,
+        # the user will be redirected to the object's view page, excepted if
+        # your method returns an alternatve URL.
         self.responseMethod = responseMethod
 
     noShaInKeys = ('env',)
@@ -74,7 +76,6 @@ class Ogone(Type):
             shaList.append('%s=%s' % (k, shaRes[k]))
         shaObject = sha.new(passphrase.join(shaList) + passphrase)
         res = shaObject.hexdigest()
-        print 'DIGEST', res
         return res
 
     def getValue(self, obj):
@@ -121,19 +122,24 @@ class Ogone(Type):
         shaKey = obj.getProductConfig().ogone['shaOutKey']
         digest = self.createShaDigest(response, shaKey,
                                       keysToIgnore=self.noShaOutKeys)
-        return digest.lower() != response['SHASIGN'].lower()
+        return digest.lower() == response['SHASIGN'].lower()
 
     def process(self, obj):
         '''Processes a response from Ogone.'''
         # Call the response method defined in this Ogone field.
         if not self.ogoneResponseOk(obj):
-            obj.log('Ogone response SHA failed. REQUEST: ' % \
+            obj.log('Ogone response SHA failed. REQUEST: %s' % \
                     str(obj.REQUEST.form))
             raise Exception('Failure, possible fraud detection, an ' \
                             'administrator has been contacted.')
         # Create a nice object from the form.
         response = Object()
-        for k, v in obj.REQUEST.form.iterkeys():
+        for k, v in obj.REQUEST.form.iteritems():
             setattr(response, k, v)
-        self.responseMethod(obj.appy(), response)
+        # Call the field method that handles the response received from Ogone.
+        url = self.responseMethod(obj.appy(), response)
+        # Redirect the user to the correct page. If the field method returns
+        # some URL, use it. Else, use the view page of p_obj.
+        if not url: url = obj.absolute_url()
+        obj.goto(url)
 # ------------------------------------------------------------------------------
