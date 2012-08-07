@@ -957,12 +957,14 @@ class Type:
         except TypeError, te:
             # Try a version of the method that would accept self as an
             # additional parameter.
+            tb = Traceback.get()
             try:
                 return method(obj, self)
             except Exception, e:
-                obj.log(Traceback.get(), type='error')
-                if raiseOnError: raise e
-                else: return str(e)
+                # Log the initial error.
+                obj.log(tb, type='error')
+                if raiseOnError: raise te
+                else: return str(te)
         except Exception, e:
             obj.log(Traceback.get(), type='error')
             if raiseOnError: raise e
