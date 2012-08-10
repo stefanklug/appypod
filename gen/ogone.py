@@ -41,8 +41,10 @@ class Ogone(Type):
                       master, masterValue, focus, False, True, mapping, label)
         # orderMethod must contain a method returning a dict containing info
         # about the order. Following keys are mandatory:
-        #   * orderID   An identifier for the order. Tip: use the object uid,
-        #               but the numeric part only, else, it could be too long.
+        #   * orderID   An identifier for the order. Don't use the object UID
+        #               for this, use a random number, because if the payment
+        #               is canceled, Ogone will not allow you to reuse the same
+        #               orderID for the next tentative.
         #   * amount    An integer representing the price for this order,
         #               multiplied by 100 (no floating point value, no commas
         #               are tolerated. Dont't forget to multiply the amount by
@@ -67,6 +69,8 @@ class Ogone(Type):
         shaRes = {}
         for k, v in values.iteritems():
             if k in keysToIgnore: continue
+            # Ogone: we must not include empty values.
+            if (v == None) or (v == ''): continue
             shaRes[k.upper()] = v
         # Create a sorted list of keys
         keys = shaRes.keys()
@@ -85,7 +89,7 @@ class Ogone(Type):
         # Basic Ogone parameters were generated in the app config module.
         res = obj.getProductConfig().ogone.copy()
         shaKey = res['shaInKey']
-        # Remove elements from the Ogone configu that we must not send in the
+        # Remove elements from the Ogone config that we must not send in the
         # payment request.
         del res['shaInKey']
         del res['shaOutKey']
