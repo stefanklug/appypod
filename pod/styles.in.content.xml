@@ -29,6 +29,9 @@
 <@style@:style @style@:name="podSub" @style@:family="text">
   <@style@:text-properties @style@:text-position="sub 58%"/>
 </@style@:style>
+<@style@:style @style@:name="podPageBreak" @style@:family="paragraph">
+  <@style@:paragraph-properties @fo@:break-before="page"/>
+</@style@:style>
 <@style@:style @style@:name="podBulletItem" @style@:family="paragraph" @style@:list-style-name="podBulletedList"/>
 <@style@:style @style@:name="podNumberItem" @style@:family="paragraph" @style@:list-style-name="podNumberedList"/>
 <@style@:style @style@:name="podBulletItemKeepWithNext" @style@:family="paragraph"

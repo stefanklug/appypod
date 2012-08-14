@@ -943,10 +943,11 @@ class ZopeGenerator(Generator):
         for name in dir(wfDescr.klass):
             transition = getattr(wfDescr.klass, name)
             if not isinstance(transition, gen.Transition): continue
-            poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
-            poMsg.produceNiceDefault()
-            self.labels.append(poMsg)
-            if transition.confirm:
+            if transition.show:
+                poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
+                poMsg.produceNiceDefault()
+                self.labels.append(poMsg)
+            if transition.show and transition.confirm:
                 # We need to generate a label for the message that will be shown
                 # in the confirm popup.
                 label = '%s_%s_confirm' % (wfName, name)

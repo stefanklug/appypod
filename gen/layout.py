@@ -214,9 +214,15 @@ class Table(LayoutElement):
                 if macroToRemove in cell['content']:
                     cell['content'].remove(macroToRemove)
 
-# ------------------------------------------------------------------------------
+# Some base layouts to use, for fields and pages -------------------------------
+# The default layouts for pages
 defaultPageLayouts  = {
     'view': Table('n!-w|-b|', align="center"),
     'edit': Table('w|-b|', width=None)}
+# A layout for pages, containing the page summary.
+summaryPageLayouts = {'view': Table('s-n!-w|-b|', align="center"),
+                      'edit': Table('w|-b|', width=None)}
+# The default layout for fields. Alternative layouts may exist and are declared
+# as static attributes of the concerned Type subclass.
 defaultFieldLayouts = {'edit': 'lrv-f'}
 # ------------------------------------------------------------------------------
