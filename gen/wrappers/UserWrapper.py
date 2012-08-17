@@ -169,6 +169,9 @@ class UserWrapper(AbstractWrapper):
             del self.o.__ac_local_roles__[None]
         return self._callCustom('onEdit', created)
 
+    def mayEdit(self): return self._callCustom('mayEdit')
+    def mayDelete(self): return self._callCustom('mayDelete')
+
     def getZopeUser(self):
         '''Gets the Zope user corresponding to this user.'''
         return self.o.acl_users.getUser(self.login)
@@ -179,6 +182,12 @@ class UserWrapper(AbstractWrapper):
         self.log('User "%s" deleted.' % self.login)
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
+
+    # Methods that are defined on the Zope user class, wrapped on this class.
+    def has_role(self, role, obj=None):
+        user = self.user
+        if obj: return user.has_role(role, obj)
+        return user.has_role(role)
 
 # ------------------------------------------------------------------------------
 try:

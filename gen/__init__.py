@@ -1823,7 +1823,8 @@ class Ref(Type):
         if not res: return res
         # We add here specific Ref rules for preventing to show the field under
         # some inappropriate circumstances.
-        if (layoutType == 'edit') and (self.add or not self.link): return False
+        if (layoutType == 'edit') and \
+           (self.mayAdd(obj) or not self.link): return False
         if self.isBack:
             if layoutType == 'edit': return False
             else: return getattr(obj.aq_base, self.name, None)
