@@ -1729,6 +1729,12 @@ class File(Type):
             else: setattr(obj, self.name, None)
 
 class Ref(Type):
+    # Some default layouts. "w" stands for "wide": those layouts produce tables
+    # of Ref objects whose width is 100%.
+    wLayouts = Table('lrv-f', width='100%')
+    # "d" stands for "description": a description label is added.
+    wdLayouts = {'view': Table('l-d-f', width='100%')}
+
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), index=None, default=None, optional=False,
                  editDefault=False, add=False, addConfirm=False, noForm=False,
@@ -2037,6 +2043,26 @@ class Ref(Type):
             raise Unauthorized("User can't write Ref field '%s' (%s)." % \
                                (self.name, may.msg))
 
+def autoref(klass, field):
+    '''klass.field is a Ref to p_klass. This kind of auto-reference can't be
+       declared in the "normal" way, like this:
+
+       class A:
+           attr1 = Ref(A)
+
+       because at the time Python encounters the static declaration
+       "attr1 = Ref(A)", class A is not completely defined yet.
+
+       This method allows to overcome this problem. You can write such
+       auto-reference like this:
+
+       class A:
+           attr1 = Ref(None)
+       autoref(A, A.attr1)
+    '''
+    field.klass = klass
+    setattr(klass, field.back.attribute, field.back)
+
 class Computed(Type):
     def __init__(self, validator=None, multiplicity=(0,1), index=None,
                  default=None, optional=False, editDefault=False, show='view',
@@ -2139,35 +2165,29 @@ class Action(Type):
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
     def __call__(self, obj):
         '''Calls the action on p_obj.'''
-        try:
-            if type(self.action) in sequenceTypes:
-                # There are multiple Python methods
-                res = [True, '']
-                for act in self.action:
-                    actRes = act(obj)
-                    if type(actRes) in sequenceTypes:
-                        res[0] = res[0] and actRes[0]
-                        if self.result.startswith('file'):
-                            res[1] = res[1] + actRes[1]
-                        else:
-                            res[1] = res[1] + '\n' + actRes[1]
-                    else:
-                        res[0] = res[0] and actRes
-            else:
-                # There is only one Python method
-                actRes = self.action(obj)
+        if type(self.action) in sequenceTypes:
+            # There are multiple Python methods
+            res = [True, '']
+            for act in self.action:
+                actRes = act(obj)
                 if type(actRes) in sequenceTypes:
-                    res = list(actRes)
+                    res[0] = res[0] and actRes[0]
+                    if self.result.startswith('file'):
+                        res[1] = res[1] + actRes[1]
+                    else:
+                        res[1] = res[1] + '\n' + actRes[1]
                 else:
-                    res = [actRes, '']
-            # If res is None (ie the user-defined action did not return
-            # anything), we consider the action as successfull.
-            if res[0] == None: res[0] = True
-        except Exception, e:
-            res = (False, 'An error occurred. %s' % str(e))
-            obj.log(Traceback.get(), type='error')
-            #import transaction
-            #transaction.abort()
+                    res[0] = res[0] and actRes
+        else:
+            # There is only one Python method
+            actRes = self.action(obj)
+            if type(actRes) in sequenceTypes:
+                res = list(actRes)
+            else:
+                res = [actRes, '']
+        # If res is None (ie the user-defined action did not return anything),
+        # we consider the action as successfull.
+        if res[0] == None: res[0] = True
         return res
 
     def isShowable(self, obj, layoutType):

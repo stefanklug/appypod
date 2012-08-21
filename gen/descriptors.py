@@ -511,7 +511,7 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldName = 'resultColumnsFor%s' % className
         fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
             '_appy_getAllFields*%s' % className), page='userInterface',
-            group=classDescr.klass.__name__)
+            group=classDescr.klass.__name__, default=['title'])
         self.addField(fieldName, fieldType)
 
     def addSearchRelatedFields(self, classDescr):

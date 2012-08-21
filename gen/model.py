@@ -254,7 +254,8 @@ class Tool(ModelClass):
     translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
                            link=False, show='view', page=pt, 
                            back=gen.Ref(attribute='trToTool', show=False))
-    loadTranslationsAtStartup = gen.Boolean(default=True, show=False, page=pt)
+    loadTranslationsAtStartup = gen.Boolean(default=True, show=False, page=pt,
+                                            layouts='f')
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
                     page=gen.Page('pages', show=isManager))

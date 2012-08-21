@@ -17,8 +17,7 @@ tfw = {"edit":"f","cell":"f","view":"f"} # Layout for Translation fields
 <!Group!>
 <!Translation!>
 <!Page!>
-Page.pages.klass = Page
-setattr(Page, Page.pages.back.attribute, Page.pages.back)
+autoref(Page, Page.pages)
 
 <!Tool!>
 <!wrappers!>
