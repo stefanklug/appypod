@@ -55,6 +55,8 @@ img { border: 0; vertical-align: middle}
 .userStrip { background-color: #6282B3; height: 35px;
              border-top: 3px solid #034984; border-bottom: 2px solid #034984; }
 .userStripText { font-size: 110%; padding: 0 0.3em 0 0.3em; color: white }
+.userStrip a { color: #e7e7e7 }
+.userStrip a:visited { color: #e7e7e7 }
 .login { margin-top: 2px; margin-bottom: 2px; color: black;}
 .buttons { margin-left: 4px;}
 .fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
@@ -128,3 +130,8 @@ img { border: 0; vertical-align: middle}
 .footer { font-size: 95% }
 .footer td { background-color: #CBCBC9; border-top: 1px solid grey;
              padding: 0.4em 1em 0.5em }
+.code { font-family: "Lucida Console","Courier New";}
+.codePara { background-color: #EEFFCC; border-color: grey;
+            border-style: solid none; border-width: 1px medium;
+            color: #333333; line-height: 120%;
+            padding: 10px; margin: 10px 0 10px 0}

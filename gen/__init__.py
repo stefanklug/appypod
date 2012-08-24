@@ -1724,7 +1724,9 @@ class File(Type):
         else:
             # I store value "None", excepted if I find in the request the desire
             # to keep the file unchanged.
-            action = obj.REQUEST.get('%s_delete' % self.name, None)
+            action = None
+            rq = getattr(obj, 'REQUEST', None)
+            if rq: action = rq.get('%s_delete' % self.name, None)
             if action == 'nochange': pass
             else: setattr(obj, self.name, None)
 

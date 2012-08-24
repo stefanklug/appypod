@@ -373,20 +373,20 @@ class Publisher:
             res = produceNiceMessage(res[3:])
         return res
 
-    mainToc = re.compile('<span class="doc"(.*?)</span>', re.S)
+    mainToc = re.compile('<span class="doc">(.*?)</span>', re.S)
     tocLink = re.compile('<a href="(.*?)">(.*?)</a>')
     subSection = re.compile('<h1>(.*?)</h1>')
     subSectionContent = re.compile('<a name="(.*?)">.*?</a>(.*)')
     def createDocToc(self):
-        res = '<table width="100%"><tr>'
+        res = '<table width="100%"><tr valign="top">'
         docToc = '%s/docToc.html' % self.genFolder
         # First, parse template.html to get the main TOC structure
         template = file('%s/doc/template.html' % appyPath)
         mainData = self.mainToc.search(template.read()).group(0)
-        links = self.tocLink.findall(mainData)[1:]
+        links = self.tocLink.findall(mainData)
         sectionNb = 0
         for url, title in links:
-            if title in ('gen', 'pod'):
+            if title in ('appy.gen', 'appy.pod'):
                 tag = 'h1'
                 indent = 0
                 styleBegin = ''
@@ -433,6 +433,14 @@ class Publisher:
         if os.path.exists(self.genFolder):
             FolderDeleter.delete(self.genFolder)
         shutil.copytree('%s/doc' % appyPath, self.genFolder)
+        # Copy appy.css from gen, with minor updates.
+        f = file('%s/gen/ui/appy.css' % appyPath)
+        css = f.read().replace('ui/li.gif', 'img/li.gif')
+        f.close()
+        f = file('%s/appy.css' % self.genFolder, 'w')
+        f.write(css)
+        f.close()
+        shutil.copy('%s/gen/ui/li.gif' % appyPath, '%s/img' % self.genFolder)
         # Create a temp clean copy of appy sources (without .svn folders, etc)
         genSrcFolder = '%s/appy' % self.genFolder
         os.mkdir(genSrcFolder)
