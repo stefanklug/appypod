@@ -4,7 +4,8 @@
 # ------------------------------------------------------------------------------
 import os, os.path, mimetypes
 import appy.pod
-from appy.gen import Type, Search, Ref, String, WorkflowAnonymous
+from appy.gen import Type, Search, Ref, String, WorkflowAnonymous, \
+                     defaultIndexes
 from appy.gen.utils import createObject
 from appy.shared.utils import getOsTempFolder, executeCommand, \
                               normalizeString, sequenceTypes
@@ -57,6 +58,24 @@ class AbstractWrapper(object):
         res = klass._getParentAttr('creators')
         # Return default creators if no creators was found.
         if not res: res = cfg.defaultAddRoles
+        return res
+
+    @classmethod
+    def getIndexes(klass, includeDefaults=True):
+        '''Returns a dict whose keys are the names of the indexes that are
+           applicable to instances of this class, and whose values are the
+           (Zope) types of those indexes.'''
+        # Start with the standard indexes applicable for any Appy class.
+        if includeDefaults:
+            res = defaultIndexes.copy()
+        else:
+            res = {}
+        # Add the indexed fields found on this class
+        for field in klass.__fields__:
+            if not field.indexed or (field.name == 'title'): continue
+            n = field.name
+            indexName = 'get%s%s' % (n[0].upper(), n[1:])
+            res[indexName] = field.getIndexType()
         return res
 
     # --------------------------------------------------------------------------

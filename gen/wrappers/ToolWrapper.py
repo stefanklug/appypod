@@ -168,20 +168,41 @@ class ToolWrapper(AbstractWrapper):
             # reindex all Appy-managed objects, ie those in folders "config"
             # and "data".
             # First, clear the catalog.
+            self.log('Recomputing the whole catalog...')
             app = self.o.getParentNode()
             app.catalog._catalog.clear()
-            app.config.reindex()
             nb = 1
+            failed = []
             for obj in app.config.objectValues():
-                nb += self.refreshCatalog(startObject=obj)
+                subNb, subFailed = self.refreshCatalog(startObject=obj)
+                nb += subNb
+                failed += subFailed
+            try:
+                app.config.reindex()
+            except:
+                failed.append(app.config)
             # Then, refresh objects in the "data" folder.
             for obj in app.data.objectValues():
-                nb += self.refreshCatalog(startObject=obj)
-            print '%d object(s) were reindexed.' % nb
+                subNb, subFailed = self.refreshCatalog(startObject=obj)
+                nb += subNb
+                failed += subFailed
+            # Re-try to index all objects for which reindexation has failed.
+            for obj in failed: obj.reindex()
+            if failed:
+                failMsg = ' (%d retried)' % len(failed)
+            else:
+                failMsg = ''
+            self.log('%d object(s) were reindexed%s.' % (nb, failMsg))
         else:
-            startObject.reindex()
             nb = 1
+            failed = []
             for obj in startObject.objectValues():
-                nb += self.refreshCatalog(startObject=obj)
-            return nb
+                subNb, subFailed = self.refreshCatalog(startObject=obj)
+                nb += subNb
+                failed += subFailed
+            try:
+                startObject.reindex()
+            except Exception, e:
+                failed.append(startObject)
+            return nb, failed
 # ------------------------------------------------------------------------------

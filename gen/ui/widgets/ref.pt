@@ -143,7 +143,7 @@
     <table><tr valign="top">
       <tal:comment replace="nothing">If there is no object...</tal:comment>
       <tal:noObject condition="not:objs">
-        <td tal:content="python: _('no_ref')"></td>
+        <td class="discreet" tal:content="python: _('no_ref')"></td>
         <td><metal:plusIcon use-macro="app/ui/widgets/ref/macros/plusIcon"/></td>
       </tal:noObject>
 
@@ -171,7 +171,7 @@
   <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
 
   <tal:comment replace="nothing">No object is present</tal:comment>
-  <p tal:condition="not:objs" tal:content="python: _('no_ref')"></p>
+  <p class="discreet" tal:condition="not:objs" tal:content="python: _('no_ref')"></p>
 
   <table width="100%" tal:condition="python: objs"
          tal:attributes="class python:test(innerRef, 'innerAppyTable', '')">

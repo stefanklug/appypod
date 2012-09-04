@@ -163,10 +163,10 @@ class ZopeInstaller:
                     catalog.addIndex(indexName, indexType)
                 else:
                     catalog.addIndex(indexName, indexType,extra=ZCTextIndexInfo)
+                # Indexing database content based on this index.
                 catalog.reindexIndex(indexName, self.app.REQUEST)
                 logger.info('Created index "%s" of type "%s"...' % \
                             (indexName, indexType))
-                            # Indexing database content based on this index.
 
     lexiconInfos = [
         appy.Object(group='Case Normalizer', name='Case Normalizer'),
@@ -188,19 +188,11 @@ class ZopeInstaller:
                               elements=self.lexiconInfos)
 
         # Create or update Appy-wide indexes and field-related indexes
-        indexInfo = {'State': 'FieldIndex', 'UID': 'FieldIndex',
-                     'Title': 'ZCTextIndex', 'SortableTitle': 'FieldIndex',
-                     'SearchableText': 'ZCTextIndex', 'Creator': 'FieldIndex',
-                     'Created': 'DateIndex', 'ClassName': 'FieldIndex',
-                     'Allowed': 'KeywordIndex'}
+        indexInfo = gen.defaultIndexes.copy()
         tool = self.app.config
         for className in self.config.attributes.iterkeys():
             wrapperClass = tool.getAppyClass(className, wrapper=True)
-            for appyType in wrapperClass.__fields__:
-                if not appyType.indexed or (appyType.name == 'title'): continue
-                n = appyType.name
-                indexName = 'get%s%s' % (n[0].upper(), n[1:])
-                indexInfo[indexName] = appyType.getIndexType()
+            indexInfo.update(wrapperClass.getIndexes(includeDefaults=False))
         self.installIndexes(indexInfo)
 
     def getAddPermission(self, className):
@@ -344,7 +336,6 @@ class ZopeInstaller:
                     setattr(translation, message.id, message.getMessage())
                 appyTool.log('Translation "%s" updated from "%s".' % \
                              (translation.id, poName))
-
 
     def configureSessions(self):
         '''Configure the session machinery.'''

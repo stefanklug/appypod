@@ -321,7 +321,11 @@ class BaseMixin:
             if indexes:
                 catalog.catalog_object(self, path, idxs=indexes)
             else:
-                catalog.catalog_object(self, path)
+                # Get the list of indexes that apply on this object. Else, Zope
+                # will reindex all indexes defined in the catalog, and through
+                # acquisition, wrong methods can be called on wrong objects.
+                iNames = self.wrapperClass.getIndexes().keys()
+                catalog.catalog_object(self, path, idxs=iNames)
 
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",

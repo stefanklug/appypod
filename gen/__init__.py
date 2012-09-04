@@ -33,6 +33,13 @@ def initMasterValue(v):
     else: res = v
     return [str(v) for v in res]
 
+# Default Appy indexes ---------------------------------------------------------
+defaultIndexes = {
+    'State': 'FieldIndex', 'UID': 'FieldIndex', 'Title': 'ZCTextIndex',
+    'SortableTitle': 'FieldIndex', 'SearchableText': 'ZCTextIndex',
+    'Creator': 'FieldIndex', 'Created': 'DateIndex', 'ClassName': 'FieldIndex',
+    'Allowed': 'KeywordIndex'}
+
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
 class Page:
@@ -961,14 +968,17 @@ class Type:
             try:
                 return method(obj, self)
             except Exception, e:
-                # Log the initial error.
-                obj.log(tb, type='error')
-                if raiseOnError: raise te
-                else: return str(te)
+                if raiseOnError:
+                    # Raise the initial error.
+                    raise te
+                else:
+                    obj.log(tb, type='error')
+                    return str(te)
         except Exception, e:
-            obj.log(Traceback.get(), type='error')
             if raiseOnError: raise e
-            else: return str(e)
+            else:
+                obj.log(Traceback.get(), type='error')
+                return str(e)
 
     def process(self, obj):
         '''This method is a general hook allowing a field to perform some
@@ -2122,7 +2132,7 @@ class Computed(Type):
             return self.callMacro(obj, self.method)
         else:
             # self.method is a method that will return the field value
-            return self.callMethod(obj, self.method, raiseOnError=False)
+            return self.callMethod(obj, self.method, raiseOnError=True)
 
     def getFormattedValue(self, obj, value):
         if not isinstance(value, basestring): return str(value)
