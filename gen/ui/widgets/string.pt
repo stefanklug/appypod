@@ -64,7 +64,7 @@
                               class python: (fmt==2) and ('rich_%s' % name) or ''"
               tal:content="python: test(inRequest, requestValue, value)">
     </textarea>
-    <script tal:condition="python: fmt == 2"
+    <script type="text/javascript" tal:condition="python: fmt == 2"
             tal:content="python: contextObj.getEditorInit(name)">
     </script>
   </tal:textarea>

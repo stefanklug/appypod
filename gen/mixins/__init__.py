@@ -1576,13 +1576,16 @@ class BaseMixin:
         # this field.
         field = self.getAppyType(name)
         ckAttrs = {'toolbar': field.richText and 'AppyRich' or 'Appy',
-                   'format_tags': '%s' % ';'.join(field.styles)}
+                   'format_tags': '%s' % ';'.join(field.styles),
+                   'width': field.width}
         if field.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % self.absolute_url()
-        ck = ''
+        ck = []
         for k, v in ckAttrs.iteritems():
-            ck += "%s: '%s'," % (k, v)
-        res = "CKEDITOR.replace('%s', {%s})" % (name, ck)
+            if isinstance(v, int): sv = str(v)
+            else: sv = '"%s"' % v
+            ck.append('%s: %s' % (k, sv))
+        res = 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
         return res
 
     def getCalendarInit(self, name, years):

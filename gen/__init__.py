@@ -968,16 +968,17 @@ class Type:
             try:
                 return method(obj, self)
             except Exception, e:
+                obj.log(tb, type='error')
                 if raiseOnError:
                     # Raise the initial error.
                     raise te
                 else:
-                    obj.log(tb, type='error')
                     return str(te)
         except Exception, e:
-            if raiseOnError: raise e
+            obj.log(Traceback.get(), type='error')
+            if raiseOnError:
+                raise e
             else:
-                obj.log(Traceback.get(), type='error')
                 return str(e)
 
     def process(self, obj):
@@ -1209,8 +1210,11 @@ class String(Type):
         self.isSelect = self.isSelection()
         # Default width, height and maxChars vary according to String format
         if width == None:
-            if format == String.TEXT: self.width  = 60
-            else:                     self.width  = 30
+            if format == String.TEXT:  self.width  = 60
+            # This width corresponds to the standard width of an Appy page,
+            # minus the portlet.
+            if format == String.XHTML: self.width  = 750
+            else:                      self.width  = 30
         if height == None:
             if format == String.TEXT: self.height = 5
             elif self.isSelect:       self.height = 4
