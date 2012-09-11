@@ -1,11 +1,11 @@
 body { font: 75% Helvetica,Arial,sans-serif; background-color: #EAEAEA;
        margin-top: 18px}
 pre { font: 100% Helvetica,Arial,sans-serif; margin: 0}
-h1 { font-size: 14pt; margin-bottom:4px;}
-h2 { font-size: 13pt; margin-bottom:4px; font-style: italic;
-     font-weight: normal; background-color: #d7dee4}
-h3 { font-size: 12pt; margin-bottom:4px; font-weight: bold;}
-h4 { font-size: 11pt; margin-bottom:4px;}
+h1 { font-size: 14pt; margin:6px 0 6px 0}
+h2 { font-size: 13pt; margin:6px 0 6px 0; font-style: italic;
+     font-weight: normal}
+h3 { font-size: 12pt; margin:4px 0 4px 0; font-weight: bold;}
+h4 { font-size: 11pt; margin:4px 0 4px 0}
 h5 { font-size: 10pt; margin:0; font-style: italic; font-weight: normal;
      background-color: #d7dee4}
 h6 { font-size: 9pt; margin:0; font-weight: bold;}
@@ -135,3 +135,5 @@ img { border: 0; vertical-align: middle}
             border-style: solid none; border-width: 1px medium;
             color: #333333; line-height: 120%;
             padding: 10px; margin: 10px 0 10px 0}
+.homeTable { background-color: #f2f5f8; border-top: 2px solid grey}
+.homeTable td { padding: 10px 5px 10px 10px}

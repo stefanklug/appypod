@@ -354,9 +354,15 @@ class Publisher:
                 pageFile = file(pageFileName)
                 pageContent = pageFile.read()
                 pageFile.close()
-                # Extract the page title
-                i, j = pageContent.find('<title>'), pageContent.find('</title>')
-                pageTitle = pageContent[i+7:j]
+                # Extract the page title (excepted for the main page, we don't
+                # need this title, to save space.
+                pageTitle = ''
+                if pageName != 'index.html':
+                    i, j = pageContent.find('<title>'), \
+                           pageContent.find('</title>')
+                    pageTitle = '<tr><td align="center" style="padding: 10px; '\
+                                'font-size:150%%; border-bottom: 1px black ' \
+                                'dashed">%s</td></tr>' % pageContent[i+7:j]
                 # Extract the body tag content from the page
                 pageContent = self.pageBody.search(pageContent).group(1)
                 pageFile = open(pageFileName, 'w')
@@ -489,7 +495,7 @@ class Publisher:
             self.uploadOnPypi(tarball)
         if self.askQuestion('Publish on appyframework.org?', default='no'):
             AppySite().publish()
-        if self.askQuestion('Delete locally generated site ?', default='yes'):
+        if self.askQuestion('Delete locally generated site ?', default='no'):
             FolderDeleter.delete(self.genFolder)
 
 # ------------------------------------------------------------------------------

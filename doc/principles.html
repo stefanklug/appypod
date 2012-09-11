@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <title>Principles behind Appy</title>
+    <link rel="stylesheet" href="appy.css" type="text/css">
+  </head>
+  <body>
+    <h1>Developers, too, have the right to (h)appyness !</h1>
+
+    <p>Developers are often guys that live on another planet. Some think this is because software development is so exciting that everything else is poorly considered. We are deeply convinced that most developers do not enjoy themselves. They spend their lives together with complex problems that never go away from their minds. Nobody understands them. Their family? Their managers? Their clients? Their friends? No. Nobody. Nobody is able to imagine how huge and complex their tasks are. Consequently, what they do is underestimated. Worst: they can't communicate. Don't believe this is due to some intrinseque geek attitude. Their geekness results from the global incapacity to apprehend the very nature of their abilities. So they are forced to work harder while experiencing the true impossibility to share their permanent software experience. Of course, it may lead to social disasters.</p><br/>
+
+    <p class="focus" align="center">By publishing this high-level, easy-to-use Python-based software construction kit, our crazy hope is to empower developers in such a way that they can leave more often their software prison and spend more time to discover real life.</p><br/>
+
+    <p>But (h)appyness has a price. Appy developers themselves accepted to pay. They have dealed their social life for one of the highest forms of social denial (we can't reveal their working conditions), hoping their sacrifice will free the users of their work. If, one day, you meet one of them, please be gentle and patient. But they will probably not discuss with you.</p><br/>
+
+    <h1>The null-IT principle</h1>
+
+    <p>Our action is guided by the following principle.</p>
+
+    <p class="focus" align="center" style="margin: 10px">Information Technology (IT) should be as transparent and invisible as possible.</p>
+
+    <p>While this may seem obvious, this principle is largely ridiculed by a great number of widespread technologies. I will mention here JEE and XSL-FO which were taken as counter-examples while developing <a href="pod.html">pod</a>. In the Python world, Zope 3, now renamed BlueBream, by trying to mimick the JEE component-model where code is viciously chopped into undersized chunks interconnected by obscure XML declarations, falls into this category as well. It is time to fight against the generalized Balkanization attitude that undermine IT innovation!</p><br/>
+
+    <h1>Some (counter-)principles that underlie gen</h1>
+
+    <p><a href="gen.html">gen</a> is the largest part of Appy and allows to build web apps. The idea is to generate, from a set of simple Python classes, a complete web app, from the web user interface to the database. Integration with appy.pod allows to generate documents from the web app. gen currently generates web apps for the Zope web application server. We had the following ideas in mind while developing it.</p><br/>
+    
+    <ul>
+    <li><b>The code-centric but conceptual approach</b>. appy.gen works at a higher level of abstraction than most other frameworks or approaches. With gen, you are not going to write a function that returns dynamic HTML when some URL is hit. You are going to define classes and relationships, and methods will be like hooks that will react when some events occur (an object is created, edited, deleted, etc). You don't have to write a single line of HTML, CSS or Javascript to write basic Appy applications. Only pure Python. This is what I call <i>conceptual</i>. But unlike most conceptual approaches, you will not draw any diagram or anything that is not Python code. Pure Python, pure simplicity, no repetition, no transformation: optimal efficiency, optimal maintainability. Other conceptual approaches like the idea of starting from some abstract vision like a (graphical) model (boxes, arrows...); from it, tools generate code skeletons that need to be completed in a subsequent "development" phase. Such "transformational" approaches (I vaguely know some buzzwords for it: MDA, MDD I think) may even count more than two phases and manipulate different models at different abstraction levels before producing code (this is what I have learned at the university). Such approaches spread the information in several places, because every model or representation has limited expressivity. In my opinion, it produces redundancy and eventually leads to maintenance problems. It violates the <a href="http://c2.com/cgi/wiki?DontRepeatYourself" target="_blank">DRY principle</a>, which is closely related to our Null-IT principle (see above) On the contrary, gen knows only about code. The "model" you write is a Python package. Being written in a high-level programming language, it does not constrain your expressivity in any way. More important: this code <i>is</i> the running code, and thus the only place where you describe your software. Simply, "wrappers" are added to it in order to plug him into the low-level Zope machinery. A gen-powered Python program acts like a comedian manipulating a tuned marionette: simple moves from the comedian produce complex, cascading and funny behaviours at the puppet level. Moreover, a code-based approach has the following benefits:</li><br/>
+    <ul>
+      <li>when using a graphical model, you are emprisoned into a poorly expressive notation. Let's take an example. If you express a state machine with a UML state diagram, how will you be able to define another state machine based on the previous one? If you express it with code, it is as simple as using class inheritance. Typically, with appy.gen, you may achieve nice results like workflow inheritance. Of course, using graphical models for communicating or focusing on some parts of your program may be very valuable; this is why we foresee to implement model generation (class diagrams, statecharts, etc) from a appy.gen application. This is our way to see how to use graphical models: as views generated from the code. We don't believe at all in approaches like generating code from models or round-trip engineering.</li>
+      <li>when using some centralized code repository like subversion, a UML model, for example, is typically stored as a binary file. So it is impossible to work concurrently on various parts of it; nor is it possible to view who has changed what in it, etc;</li>
+      <li>factoring similar groups of attributes or doing other intelligent treatment on a graphical model is not possible;</li>
+      <li>there is no need to write and maintain a model parser (like XMI);</li>
+      <li>yes, you can use cut-and-paste with any text editor! If you want to do similar things with a model, you will probably need to buy some expensive UML editor;</li>
+    </ul><br/>
+
+    <li><b>Violating the model-view-controller pattern (and a lot of other patterns, too)</b>. Design patterns are elegant low-level constructs used to overcome the limitations of programming languages (ie statically-typed languages like Java) or frameworks. Using them implies adding classes just for making the plumbery work; it augments code complexity and, again, spreads information at several places. Separating code describing data from code presenting it produces the same problem. appy.gen takes the approach of grouping everything at the same place. For example, information that dictates how a given field will be displayed is part of the field definition.
+    </li><br/>
+
+    <li><b>All-in-one objects</b>. As a consequence of the two previous bullets, gen objects (which are Plain Old Python Objects: you do not even have to inherit from a base gen class!) are self-sufficient. If you want to understand some (group of) functionality within a well-designed gen Python program, you will not loose yourself walking through an intricate web of Python classes and XML definition files.
+    </li><br/>
+
+    <li><b>Building complex and shared web applications</b>. While some out-of-the-box tools like Plone, Joomla or Wordpress are mainly targeted at building websites of specific categories (CMS, blogs, etc), they provide poor support for those who want to build <i>complex</i> and <i>shared</i> web applications.
+    </li>
+      <ul>
+        <li>By <b>"complex"</b>, I mean real "business applications" (or "information systems", like accounting systems, HR systems or online booking systems) whose interfaces are web interfaces; a classical CMS-based website being a particular case whose main purpose is to provide information, with some limited degree of interaction with the user. Web business applications are characterized by (1) a rich conceptual model featuring a complex web of inter-related classes and (2) the need for complex querying and reporting facilities, be it through-the-web or within generated documents.
+        </li>
+        <li>Currently, free software is widespread within the "IT infrastructure" (operating systems, networking components, web servers, application servers...) and contaminates more and more general-purpose software applications, like word processors, spreadsheets or multimedia players. For the most of it, the free movement currently reaches domains where requirements are either perfectly known by the developers themselves, deduced from observing proprietary software or part of some general cultural background. In order to raise freedom at the higher levels of business and innovation, we need new mechanisms allowing to tackle (business-)specific requirements, while maintaining the possibility to spread and <b>share</b> software from one organization to the other. appy.gen was built to cope with this new scale of challenges and proposes a set of built-in constructs for creating generic business kernels implementing common requirements and allowing to tailor it to the specific needs of a given organization. This work results from experience gained from a deep involvement in the <a href="http://plonegov.org" target="_blank">PloneGov community</a>, an international group of public administrations developing and sharing free software for their own needs. It also benefits from a close collaboration with several research initiatives (the <a href="http://www.fundp.ac.be/en/precise/">PRECISE</a> research center and the <a href="http://moves.vub.ac.be/">MoVES</a> project) exploring Software Product Lines Engineering and inventing new ways to manage variability among software systems.
+        </li>
+      </ul>
+    </ul>
+  </body>
+</html>
