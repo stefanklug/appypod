@@ -535,6 +535,7 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldName = 'searchFieldsFor%s' % className
         defaultValue = [a[0] for a in classDescr.getOrderedAppyAttributes(
             condition='attrValue.indexed')]
+        if 'title' not in defaultValue: defaultValue.insert(0, 'title')
         fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
             '_appy_getSearchableFields*%s' % className), default=defaultValue,
             page='userInterface', group=classDescr.klass.__name__)

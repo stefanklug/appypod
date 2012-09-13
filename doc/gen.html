@@ -23,9 +23,9 @@
  ./install.sh
 </p>
       
-<p>Don't be afraid, you just installed a lot of lines of code, but we will only use a very small subset of it: absolutely no line from Plone, and a tiny subset of Zope, and the Python interpreter that was also included.</p>
+<p>Don't be afraid, you just installed a lot of lines of code, but we will only use a very small subset of it: absolutely no line from Plone, a tiny subset of Zope and the Python interpreter that was also included.</p><br/>
 
-<p>Install Appy. Download it <a href="https://launchpad.net/appy">here</a>, unzip it and install it in the Python interpreter previously mentioned. If you have installed Zope in its standard location at <span class="code">/opt/Plone-2.5.5</span>:</li>
+<p>Install Appy. Download it <a href="https://launchpad.net/appy">here</a>, unzip it and install it in the Python interpreter previously mentioned.</p>
 
 <p class="code codePara">
  unzip appy0.8.1.zip<br/>
@@ -36,7 +36,7 @@
 
 <p class="code codePara">ln -s /opt/Plone-2.5.5/Python-2.4.4/bin/python2.4 /usr/bin/python2.4</p>
 
-<p>Create a Zope instance. A Zope instance is a web server that will listen for browser requests on some port. Launch the script named <span class="code">mkzopeinstance.py</span> that ships with Zope. The following lines of code create a Zope instance in <span class="code">/home/gdy/instances/RegInstance</span>.</p>
+<p>Create a Zope instance. A Zope instance is a web server that will listen for browser requests on some port. Launch the script named <span class="code">mkzopeinstance.py</span> that is included with Zope. The following lines of code create a Zope instance in <span class="code">/home/gdy/instances/RegInstance</span>.</p>
 
 <p class="code codePara">
  python2.4 /opt/Plone-2.5.5/bin/mkzopeinstance.py<br/>
@@ -51,9 +51,9 @@
 
 <h1>Create a webapp</h1>
 
-<p>Now, we need to write a webapp and install it into this instance. We will create a small webapp, called Registration, that will allow anonymous people to register to some event through the net. The administrator of the event will be able to consult and search registrations. He will also be able to retrieve a PDF version of every registration.</p>
+<p>Now, we need to write a webapp and install it into this instance. We will create a small webapp, called Registration, that will allow anonymous people to register to the Appy webapp awards and propose a webapp. The administrator of the awards will be able to consult and search registrations.</p><br/>
 
-<p>A Appy webapp is simply a Python package. So create a Python package, for example in <span class="code">/home/gdy/projets/Registration</span>.</p>
+<p>An Appy webapp is simply a Python package. So create a Python package, for example in <span class="code">/home/gdy/projets/Registration</span>.</p>
 
 <p class="code codePara">
  cd /home/gdy/projets<br/>
@@ -63,7 +63,7 @@
  touch Registration.py<br/>
 </p>
 
-<p>File <span class="code">__init__.py</span> is required by Python, to tranform folder Registration into a Python package. File <span class="code">Registration.py</span> will contain the definition of the class Registration: one instance of this class will be created and stored in the database every time a user registers itself though the web.</p>
+<p>File <span class="code">__init__.py</span> is required by Python, to tranform folder <span class="code">Registration</span> into a Python package. File <span class="code">Registration.py</span> will contain the definition of the class Registration: one instance of this class will be created and stored in the database every time a user registers itself though the web.</p>
 
 <p class="code codePara">
 # ------------------------------------------------------------------------------<br/>
@@ -85,3 +85,88 @@
 </p>
 </body>
 </html>
+
+<p>This class is declared as <span class="code">root</span>: for the moment, just remember that it gives it a special, first-class status. One line below, we define the roles that are allowed to create instances of this class. <span class="code">Anonymous</span> and <span class="code">Manager</span> are 2 standard Appy roles. The remaining lines define the attributes of every registration. Dict <span class="code"><i>p</i></span> is simply a shorthand for specifying the same (group of) attribute(s) to several methods.</p><br/>
+
+<p>Now that we have developed a complete webapp (yes, it is already over! Be patient, in a second iteration we will improve it), we need to plug it into the Zope instance.</p>
+
+<h1>Plug the webapp into the Zope instance</h1>
+
+<p>Zope requires a bit more than our 11-lines file to consider it to be a serious webapp. So gen includes a script that will generate a so-called "Zope product". Create, in your app, a file named <span class="code">generate.sh</span> with the following content.</p>
+
+<p class="code codePara">
+ #!/bin/sh<br/>
+ python2.4 /opt/Plone-2.5.5/Python-2.4.4/lib/python2.4/site-packages/appy/bin/generate.py . -s<br/>
+</p>
+
+<p>Make it executable and execute it (ensure you are in folder <span class="code">Registration</span>).</p>
+<p class="code codePara">
+ chmod a+x generate.sh<br/>
+ ./generate.sh
+</p>
+
+<p>You should get something like this.</p>
+<p class="code codePara">
+ Appy version: 0.8.1<br/>
+ Generating Zope product in /home/gdy/projets/Registration/zope...<br/>
+ Generating Registration.Registration.Registration (gen-class)...<br/>
+ Done.<br/>
+ Python: 2 files, 16 lines (19% comments, 12% blank)<br/>
+</p>
+
+<p>Now, in your webapp, you have 2 more folders: <span class="code">zope</span> and <span class="code">tr</span>. Folder <span class="code">zope</span> contains the "product" as required by Zope, while <span class="code">tr</span> contains i18n (internationalization) files: forget about it for the moment. We can now link the webapp to the Zope instance by creating 2 symbolic links.</p>
+
+<p class="code codePara">
+  cd /home/gdy/instances/RegInstance/lib/python<br/>
+  ln -s /home/gdy/projets/Registration .<br/>
+  cd /home/gdy/instances/RegInstance/Products<br/>
+  ln -s /home/gdy/projets/Registration/zope/Registration .<br/>
+</p>
+
+<p>The first link allows the Zope instance to import your Python package, while the second one allows Zope to realize that he must take care about a third-party plug-in.</p>
+
+<h1>Play with the webapp</h1>
+
+<p>Launch now your Zope instance:</p>
+
+<p class="code codePara">
+ cd /home/gdy/instances/RegInstance/bin
+ ./zopectl fg
+</p>
+
+<p>You should get something like this (with additional lines if it is the first time you launch the instance).</p>
+<p class="code codePara">
+ /home/gdy/instances/RegInstance/bin/runzope -X debug-mode=on<br/>
+ 2012-09-13 16:07:58 INFO ZServer HTTP server started at Thu Sep 13 16:07:58 2012<br/>
+ &nbsp;&nbsp;Hostname: 0.0.0.0<br/>
+ &nbsp;&nbsp;Port: 8080<br/>
+ 2012-09-13 16:07:59 INFO Registration is being installed...<br/>
+ 2012-09-13 16:07:59 INFO Registration Appy version is "0.8.1".<br/>
+ 2012-09-13 16:07:59 INFO Registration Translation "en" updated from "Registration-en.po".<br/>
+ 2012-09-13 16:08:01 INFO Zope Ready to handle requests<br/>
+</p>
+
+<p>Open a browser and go to http://localhost:8080. You should something similar to this.</p>
+
+<p align="center"><img src="img/welcome.png"/></p><br/>
+
+<p>Congratulations! Now, let's create a new registration by clicking on the "plus" icon. You should get this form:</p>
+
+<p align="center"><img src="img/newRegistration1.png"/></p>
+<p align="center">...</p>
+<p align="center"><img src="img/newRegistration2.png"/></p><br/>
+
+<p>Of course, it was deduced from our class <span class="code">Registration</span>. Notice that an additional field, named <span class="code">title</span>, has been automatically added. Indeed, this field is of special importance to Appy, so is added if not explicitly defined. Of course, we will see that it is possible to hide it and compute it automatically, or simply to label it differently, but for the moment we will simply consider that it corresponds to the name of the webapp proposed by the user. Fields defined as <span class="code">String</span>s with <span class="code">format=String.XHTML</span> are rendered with ckeditor, an popular on-line editor integrated within Appy.</p><br/>
+
+<p>If you do not complete the form correctly, you will get validation errors.</p>
+
+<p align="center"><img src="img/validationErrors.png"/></p><br/>
+
+<p>In this example, I have entered an email with a wrong format (remember, a validator <span class="code">String.EMAIL</span> was defined) and I entered no value for a mandatory field. <span class="code">multiplicity=(1,1)</span> means: at least and at most one value is required.</p><br/>
+
+<p>Once validation succeeds, the registration is stored in the database and the user can visualize it:</p>
+
+<p align="center"><img src="img/viewRegistration.png"/></p><br/>
+
+
+
