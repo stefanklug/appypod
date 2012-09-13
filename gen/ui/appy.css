@@ -19,21 +19,21 @@ input { font: 92% Helvetica,Arial,sans-serif }
 input[type=image] { border: 0; background: none; cursor: pointer; }
 input[type=checkbox] { border: 0; background: none; cursor: pointer;}
 input[type=radio] { border: 0; background: none; cursor: pointer;}
-input[type=file] { border: 0px solid #D7DEE4;
+input[type=file] { border: 0px solid #d0d0d0;
                    background-color: #f8f8f8; cursor: pointer;}
-input[type=button] { border: 1px solid #D7DEE4;
+input[type=button] { border: 1px solid #d0d0d0;
                      background-color: #f8f8f8; cursor: pointer;}
-input[type=submit] { border: 1px solid #D7DEE4; background-color: #f8f8f8;
+input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer; }
-input[type=password] { border: 1px solid #D7DEE4; background-color: #f8f8f8;
+input[type=password] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                        font-family: Helvetica,Arial,sans-serif;}
-input[type=text] { border: 1px solid #D7DEE4; background-color: #f8f8f8;
+input[type=text] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                    font-family: Helvetica,Arial,sans-serif;
                    margin-bottom: 1px}
-select { border: 1px solid #D7DEE4; background-color: #f8f8f8;}
+select { border: 1px solid #d0d0d0; background-color: #f8f8f8;}
 
 textarea { width: 99%; font: 100% Helvetica,Arial,sans-serif;
-           border: 1px solid #a79e9e; background-color: #f8f8f8;}
+           border: 1px solid #d0d0d0; background-color: #f8f8f8;}
 label { font-weight: 600; font-style: italic; line-height: 1.4em;}
 legend { padding-bottom: 2px; padding-right: 3px; color: black;}
 ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
@@ -50,7 +50,7 @@ img { border: 0; vertical-align: middle}
 
 .main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
         border-style: solid; border-width: 1px; border-color: grey}
-.top { height: 75px; margin-left: 3em; vertical-align: top;}
+.top { height: 89px; margin-left: 3em; vertical-align: top;}
 .lang { margin-right: 6px; }
 .userStrip { background-color: #6282B3; height: 35px;
              border-top: 3px solid #034984; border-bottom: 2px solid #034984; }
@@ -70,7 +70,8 @@ img { border: 0; vertical-align: middle}
 .focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; }
 .lostPassword a { font-size: 90%; color: white; padding-left: 1em;}
-.portlet { width: 150px; border-right: 1px solid #5F7983;}
+.portlet { width: 150px; border-right: 1px solid #5F7983;
+           background-color: #ededed}
 .portletContent { margin: 9px; }
 .portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px;}
 .portletCurrent { font-weight: bold; }
@@ -81,7 +82,7 @@ img { border: 0; vertical-align: middle}
 .portletSearch { font-size: 90%; font-style: italic; padding-left: 1em}
 .phase { border-style: dashed; border-width: thin; padding: 4px 0.6em 5px 1em;}
 .phaseSelected { background-color: #F4F5F6; }
-.content { padding: 14px 14px 9px 15px; }
+.content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
 .grey { display: none; position: absolute; left: 0px; top: 0px;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
         filter:alpha(Opacity=50);}
@@ -135,5 +136,5 @@ img { border: 0; vertical-align: middle}
             border-style: solid none; border-width: 1px medium;
             color: #333333; line-height: 120%;
             padding: 10px; margin: 10px 0 10px 0}
-.homeTable { background-color: #f2f5f8; border-top: 2px solid grey}
+.homeTable { background-color: #E3E3E3; border-top: 1px solid grey}
 .homeTable td { padding: 10px 5px 10px 10px}

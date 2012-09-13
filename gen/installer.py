@@ -248,14 +248,9 @@ class ZopeInstaller:
         appyTool = tool.appy()
         appyTool.log('Appy version is "%s".' % appy.version.short)
 
-        # Create the admin user if no user exists.
-        try:
-            users = self.app.acl_users.getUsers()
-        except:
-            # When Plone has installed PAS in acl_users this may fail. Plone
-            # may still be in the way for migration purposes.
-            users = ('admin',) # We suppose there is at least a user.
-        if not users:
+        # Create the admin user if it does not exist.
+        if not appyTool.count('User', noSecurity=True, login='admin'):
+            print 'No admin!'
             appyTool.create('users', noSecurity=True, login='admin',
                             password1='admin', password2='admin',
                             email='admin@appyframework.org', roles=['Manager'])

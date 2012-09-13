@@ -492,7 +492,7 @@ class ToolClassDescriptor(ClassDescriptor):
         '''Adds the fields needed in the Tool for configuring a Pod field.'''
         className = fieldDescr.classDescr.name
         # On what page and group to display those fields ?
-        pg = {'page': 'documentGeneration',
+        pg = {'page': 'documents',
               'group':gen.Group(fieldDescr.classDescr.klass.__name__,['50%']*2)}
         # Add the field that will store the pod template.
         fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)

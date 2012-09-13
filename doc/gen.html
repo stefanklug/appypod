@@ -1,140 +1,87 @@
 <html>
-  <head>
-    <title>An introduction to <b>gen</b></title>
-    <link rel="stylesheet" href="appy.css" type="text/css">
-  </head>
-  <body>
-    <h1>What is gen ?</h1>
+ <head>
+  <title><b>gen</b> - Getting started</title>
+  <link rel="stylesheet" href="appy.css" type="text/css">
+ </head>
 
-    <p><b>gen</b> is a code <b>gen</b>erator that allows you write web applications without having to face and understand the plumbery of a given web framework. <b>gen</b> protects you. Concentrate on functionalities that need to be implemented: <b>gen</b> will fight for you, by itself, against the low-level twisted machineries and will let you evolve in your pure, elegant and minimalistic Python world.</p>
+<body>
+<h1>What is gen ?</h1>
 
-    <h1>OK, but concretely, on what technologies is <b>gen</b> built upon?</h1>
+<p><b>gen</b> is a code <b>gen</b>erator that allows you write web apps without having to face and understand the plumbery of a given web framework. <b>gen</b> protects you. Concentrate on functionalities that need to be implemented: <b>gen</b> will fight for you against the low-level twisted machineries and will let you evolve in your pure, elegant and minimalistic Python world.</p>
 
-    <p><b>gen</b> generates code that will run on <a href="http://plone.org" target="_blank">Plone 2.5</a>. Soon, the code will also be compatible with the latest Plone version. In my point of view, Plone 2.5 has reached the maximum level of complexity a Python developer may tolerate. Plone 2.5 heavily relies on Zope 2. While Plone 3 still runs on Zope 2, it has become heavily based on Zope 3 through the use of the "Five" product (=Zope 2 + Zope 3), that allows to use Zope 3 functionalities within Zope 2. Some people began to be angry about how complex certain tasks (like creating a portlet) became with Plone 3 (consult <a href="http://www.upfrontsystems.co.za/Members/roche/where-im-calling-from/meeting-plone-3" target="_blank">this</a>, for instance.) In order to fight against this trend, we decided to create a new code generator (a kind of concurrent to ArchGenXML so) that already makes sense for Plone 2.5 and will be more and more relevant for the current and future Plone versions, as the Plone community took the debatable decision to move to Zope 3.</p>
+<h1>Download and install</h1>
 
-    <h1>Getting started with gen</h1>
+<p>As a prerequisite, your machine must be able to compile. If it is not the case, install the necessary packages. On Ubuntu, for example:</p>
 
-    <p>Read only this if you want to run a "Hello world" gen application on your machine. This section is dedicated to Joel, a tremedous application and framework tester that ignores the essence of his gift.</p>
+<p class="code codePara">sudo apt-get install build-essential</p>
 
-    <h2>Note for Windows users</h2>
+<p>Install Zope 2.9. On Unix/Linux, the easiest way to do that is to download the <a href="https://launchpad.net/plone/2.5/2.5.5/+download/Plone-2.5.5-UnifiedInstaller.tgz">Plone unified installer</a>, that includes Zope.</p>
 
-    <p>I've never installed or tested gen on Windows. Feedback is welcome!</p>
+<p class="code codePara">
+ tar xvfz Plone-2.5.5-UnifiedInstaller.tgz<br/>
+ cd Plone-2.5.5-UnifiedInstaller<br/>
+ ./install.sh
+</p>
+      
+<p>Don't be afraid, you just installed a lot of lines of code, but we will only use a very small subset of it: absolutely no line from Plone, and a tiny subset of Zope, and the Python interpreter that was also included.</p>
 
-    <h2>First step: download and install Plone</h2>
+<p>Install Appy. Download it <a href="https://launchpad.net/appy">here</a>, unzip it and install it in the Python interpreter previously mentioned. If you have installed Zope in its standard location at <span class="code">/opt/Plone-2.5.5</span>:</li>
 
-    <p>You need to get Plone 2.5.5 installed on your system. The simplest way to do it is run the unified installer available <a href="http://plone.org/products/plone/releases/2.5.5" target="_blank">here</a>. If a message warns you that the release is not supported anymore, please send a mail to plone.org asking them why the official Plone site still uses a dangerous unsupported Plone version (at this time of writing, December 8th 2008).</p>
+<p class="code codePara">
+ unzip appy0.8.1.zip<br/>
+ mv appy /opt/Plone-2.5.5/Python-2.4.4/lib/python2.4/site-packages
+</p>
 
-    <p>Let's suppose you have Plone, Zope and Python now installed in /opt/Plone-2.5.5. The unifier installed created a ZEO cluster in /opt/Plone-2.5.5/zeocluster. A ZEO cluster is a kind of load balancer that runs in front of several Zope servers, also called Zope "instances" (and also called "ZEO clients" in this context). For developement, a ZEO cluster is not needed; it is preferable to start from a fresh Zope server (from now on I will use the term "Zope instance") that you will install somewhere in your home folder.</p>
+<p>Create a symbolic link, in /usr/bin, of your Python interpreter.</p>
 
-    <p>Create a new Zope instance by typing <span class="code">/opt/Plone-2.5.5/Python-2.4.4/bin/python /opt/Plone-2.5.5/bin/mkzopeinstance.py</span>. This is important to run this Python script with the Python interpreter that will run your Zope instance, ie the one installed in /opt/Plone-2.5.5/Python2.4.4. I will suppose you have created it in <span class="code">[myZopeInstance]</span>. You will use the username and password asked by the script for connecting to the Zope instance as administrator. A Zope instance has the following structure:
-    <table class="appyTable">
-      <tr>
-        <td class="code">bin</td>
-        <td>contains the script for starting/stopping the Zope instance. Go to this folder and type <span class="code">./zopectl fg</span>. It will start Zope in debug mode, in 'foreground' in your shell, by default on port 8080. If you want to start and stop the instance normally, (without being tied to your shell) use <span class="code">./zopectl start</span> and <span class="code">./zopectl stop</span>.</td>
-      </tr>
-      <tr>
-        <td class="code">etc</td>
-        <td>contains <span class="code">zope.conf</span>, the configuration file of your Zope instance. Every time you modify this file you will need to restart the server. It is well documented; edit this if, for example, you need to change the port on which the instance listens.</td>
-      </tr>
-      <tr>
-        <td class="code">Extensions</td>
-        <td>I don't care about this.</td>
-      </tr>
-      <tr>
-        <td class="code">import</td>
-        <td>I don't care about this.</td>
-      </tr>
-      <tr>
-        <td class="code">lib</td>
-        <td>, and more specifically <span class="code">lib/python</span>, is the folder where additional Python packages used by your Zope instance will lie. As gen-applications are standard Python packages, this is the typical place where you will store them.</td>
-      </tr>
-      <tr>
-        <td class="code">log</td>
-        <td>contains the log files of your instance: <span class="code">Z2.log</span> is the web server log (every HTTP request dumps a line into it); <span class="code">event.log</span> contains more relevant, "application-level" information (debug info, warnings, infos, etc). When running the instance in foreground, events dumped in event.log will also show up in your shell.</td>
-      </tr>
-      <tr>
-        <td class="code">Products</td>
-        <td>is the folder where Zope "add-ons" will reside. Although a Zope "product" is also a Python package, it contains additional ugly code that transforms it into a real Zope add-on. For every gen-application that you will create or sim-link in <span class="code">lib/python</span>, gen will create and maintain for you the corresponding Zope Product in <span class="code">Products</span>. There is a 1-1 relationship between a gen-application and the generated Zope product.</td>
-      </tr>
-      <tr>
-        <td class="code">var</td>
-        <td>is where Zope stores its database (DB) and related files. Unlike other DB technologies, there is no separate process that controls the DB and that needs to be called by the web/application server for reading or writing into the DB. Here, the Zope instance itself is directly connected to the DB, which is a single file named <span class="code">Data.fs</span>. The DB technology used by Zope is named ZODB (which stands for Zope Object DataBase).</td>
-      </tr>
-    </table>
-    <p>But what about Plone, huh? Plone is simply a bunch of Zope Products that add plenty of nice predefined functionalities and pages to Zope which is a bit arid as-is. So let's take a look at the <span class="code">Products</span> folder of your Zope instance. It is empty! For transforming it into a Plone-ready Zope instance, simply copy the Plone products from /opt/Plone-2.5.5/zeocluster/Products. Go to <span class="code">[myZopeInstance]/Products</span> and type <span class="code">cp -R /opt/Plone-2.5.5/zeocluster/Products/* .</span></p>
+<p class="code codePara">ln -s /opt/Plone-2.5.5/Python-2.4.4/bin/python2.4 /usr/bin/python2.4</p>
 
-    <p>Your Zope instance is now ready-to-use. Start it and go to <span class="code">http://localhost:8080/manage</span> with a web browser. Type the username and password you have entered while creating the instance and you will arrive in the ZMI (the Zope Management Interface). You may see the ZMI as a database viewer that shows you the content of Data.fs. You may also see it as an admin interface allowing you to trigger administrative functions. Because the ZODB is an object-oriented database, both visions are merged: functions and data are bundled into objects that are organized into a hierarchy (and more). The figure below shows the ZMI.</p>
+<p>Create a Zope instance. A Zope instance is a web server that will listen for browser requests on some port. Launch the script named <span class="code">mkzopeinstance.py</span> that ships with Zope. The following lines of code create a Zope instance in <span class="code">/home/gdy/instances/RegInstance</span>.</p>
 
-    <p align="center"><img src="img/zmi.png" align="center"/></p>
+<p class="code codePara">
+ python2.4 /opt/Plone-2.5.5/bin/mkzopeinstance.py<br/>
+ [answer script's questions:]<br/>
+ Directory: /home/gdy/instances/RegInstance<br/>
+ [also: username and password of the admin]
+</p>
 
-    <p>You will notice that an empty Zope database still contains some predefined objects and folders: a "control panel", a folder (acl_users) where users are stored (it contains currently only one user), a web page "index_html" that is shown if you go to http://localhost:8080, etc. Everything is an object there, even the main error_log which is a nice way to browse through-the-web the log entries also dumped on the file system in <span class="code">[myZopeInstance]/log/event.log</span>.</p>
+<p>Type anything as username and password: Appy will ignore it and create user <span class="code">admin</span>, password <span class="code">admin</span>.</p>
 
-    <p>A Plone site is simply one more object to create within the Zope hierarchy of objects. In the ZMI, select, in the listbox at the right-top corner, "Plone site" and click on the "Add" button. Choose "Appy" as Id and "Hello world" as Title and click on "Add Plone Site". You have now created a Plone site! If you want to access a given object through-the-web, you simply have to type the "path" of the object within the Zope hierarchy. So now, go to <span class="code">http://localhost:8080/Appy</span> and you will see the main page of your Plone site, like shown below.</p>
+<p>Your instance is ready! It will run on port 8080 by default.</p>
 
-    <p align="center"><img src="img/plone.png" align="center"/></p>
+<h1>Create a webapp</h1>
 
-    <h2>Second step: download and install Appy</h2>
+<p>Now, we need to write a webapp and install it into this instance. We will create a small webapp, called Registration, that will allow anonymous people to register to some event through the net. The administrator of the event will be able to consult and search registrations. He will also be able to retrieve a PDF version of every registration.</p>
 
-    <p>The underlying technologies required by gen are now up-and-running. Let's install gen. gen is a simple Python package available as a zip file (and more) <a href="version.html">here</a>. For example, you may unzip it in <span class="code">[myZopeInstance]/lib/python</span> or in <span class="code">/opt/Plone-2.5.5/Python-2.4.4/lib/python2.4/site-packages</span>. If you put it in the latter place, it will be enabled for all future Zope instances you may use or create (including the ZEO cluster in /opt/Plone-2.5.5/zeocluster).</p>
+<p>A Appy webapp is simply a Python package. So create a Python package, for example in <span class="code">/home/gdy/projets/Registration</span>.</p>
 
-    <h2>Third step: develop the "Hello world" application</h2>
+<p class="code codePara">
+ cd /home/gdy/projets<br/>
+ mkdir Registration<br/>
+ cd Registration<br/>
+ touch __init__.py<br/>
+ touch Registration.py<br/>
+</p>
 
-    <p>We are ready to create our first gen-application. Imagine we are a software company that creates components using Zope 3. The company is a start-up, but after a few months, it has already developed hundreds of Zope 3 components (indeed, every single web page is considered a component). The company decides to create a simple tool for managing those small pieces of code. Let's create a simple gen-application for this, in a file named <span class="code">ZopeComponent.py</span>:</p>
+<p>File <span class="code">__init__.py</span> is required by Python, to tranform folder Registration into a Python package. File <span class="code">Registration.py</span> will contain the definition of the class Registration: one instance of this class will be created and stored in the database every time a user registers itself though the web.</p>
 
-    <p class="code">
-    01&nbsp;<b>from</b> appy.gen <b>import</b> *<br/>
-    02&nbsp;<br/>
-    03&nbsp;<b>class</b> ZopeComponent:<br/>
-    04&nbsp;&nbsp;&nbsp;root = True<br/>
-    05&nbsp;&nbsp;&nbsp;description = String()<br/>
-    06&nbsp;&nbsp;&nbsp;technicalDescription = String(format=String.XHTML)<br/>
-    07&nbsp;&nbsp;&nbsp;status = String(validator=['underDevelopement', 'stillSomeWorkToPerform',<br/>
-    08&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'weAreAlmostFinished', 'alphaReleaseIsBugged', 'whereIsTheClient'])<br/>
-    09&nbsp;&nbsp;&nbsp;funeralDate = Date()<br/>
-    </p>
-
-    <p>9 lines of code (with a blank one; please note that I'm obsessed by lines that do not span more than 80 characters): yes, you are done. Every Zope component will be described by this bunch of attributes. Specifying the class as <span class="code">root</span> makes it a class of special importance to gen; it will be treated with some honors. We will see how in a moment.</p>
-
-    <h2>Fourth step: generate the Zope/Plone product</h2>
-
-    <p>Please put <span class="code">ZopeComponent.py</span> in <span class="code">[myZopeInstance]/lib/python</span>, cd into this folder and type the following line.</p>
-
-    <p class="code">python [whereYouInstalledAppy]/appy/gen/generator.py ZopeComponent.py plone25 ../../Products</p>
-
-    <p>You will get an output similar to this:</p>
-
-    <p class="code">
-    Generating product in /home/gde/ZopeInstance2/Products...<br/>
-    Generating class ZopeComponent.ZopeComponent...<br/>
-    Done.<br/>
-    </p>
-
-    <p>If you are familiar with Zope/Plone products, you may take a look to the one gen has generated in <span class="code">[myZopeInstance]/Products/ZopeComponent</span>.</p>
-
-    <h2>Fifth step: admire the result</h2>
-
-    <p>Restart your Zope instance, go to <span class="code">http://localhost:8080/Appy</span>, log in with your Zope admin password and click on the link "site setup" in the top-right corner: you arrive in the Plone configuration panel. Click on "Add/Remove products". Among the "products available for install" you will find <span class="code">ZopeComponent</span>:select it and install it. Right. Click now on the Plone logo to come back to the main page, and see what's new. On the left, you see a new "portlet" entitled "zope component": this is the main entry point for your application. gen generates a portlet for every gen-application. The link "Zope component" allows you to access a kind of "dashboard" displaying all Zope components. The page is empty for the moment: no component was created yet:</p>
-
-    <p align="center"><img src="img/emptyQuery.png" align="center"/></p>
-
-    <p>Click on the "plus" sign for creating your first Zope component. A form allows you to enter information according to your Python class definition in ZopeComponent.py.</p>
-
-    <p align="center"><img src="img/zopeComponentEdit.png" align="center"/></p>
-
-    <p>Note that the order of the widgets correspond to the order of the fields in the Python class definition. Clicking on "Save" creates your first Zope 3 component, and brings you to the "view" page for your component. Clicking again on the portlet link will show you this:</p>
-
-    <p align="center"><img src="img/filledQuery.png" align="center"/></p>
-
-    <p>On this screen, every Python class you declare as "root" in your gen-application will get a tab allowing you to view instances of this class or add new ones. If you've defined more than one root class, a global tab will precede all others and display all instances of all root classes. Table columns are all sortable; they also contain special fields used for filtering rows according to type entered. Actions the user may trigger on Zope components are available in the last column. Clicking on the component title will bring you back to the "view" page for it.</p>
-
-    <p>Besides the view/edit pages and this dashboard, gen also generates a configuration panel for your application. It is directly accessible through the portlet by clicking on the hammer.</p>
-
-    <p align="center"><img src="img/tool.png" align="center"/></p>
-
-    <p>This configuration panel is called a "tool". By default, the ZopeComponent tool defines one "flavour" named "ZopeComponent". A flavour is a particular set of configuration options that may apply only to a subset of your application objects. The concept of flavour allows you to get, in a single web application, several variants of it running concurrently, all with distinct configuration options. If, for example, you create a software for managing the agenda and decisions of a company's meetings, you may need to create one flavour for each meeting type (IT department meetings, HR department meetings, board of directors, etc): every meeting type will get its own configuration options. In the application portlet, one link is created for every flavour defined in the tool. If you have only one flavour, it makes sense to rename it with something like "All components". You may do it by clicking on the pen besides the flavour name. This way, the application portlet will look like this:</p>
-
-    <p align="center"><img src="img/portlet.png" align="center"/></p>
-
-    <p>A the tool level, some general configuration options are defined (they apply to all defined flavours), like the way Plone will contact OpenOffice in server mode for producing documents (document-generation through <a href="pod.html">appy.pod</a> is built-in for every gen-app) or the number of elements to display per page on the dashboard. If you click on the flavour title, you will discover some configuration options that you may customize at the flavour level (the whole set of options in the flavour depends on options specified in your Python classes). For example, clicking on the pen within the "user interface" tab allows you to customize the columns shown in the dashboard for objects corresponding to this flavour. Select one or more columns here (keep the "control" key pressed if you want to select several columns), save the result and see how the dashboard evolves accordingly.</p>
-  </body>
+<p class="code codePara">
+# ------------------------------------------------------------------------------<br/>
+<b>from</b> appy.gen <b>import</b> *<br/>
+<br/>
+# ------------------------------------------------------------------------------<br/>
+<b>class</b> Registration:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;root = True<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;creators = ['Anonymous', 'Manager']<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;p = {'multiplicity': (1,1)}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;applicantName = String(**p)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;applicantEmail = String(validator=String.EMAIL, **p)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;companyName = String(**p)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;companyUrl = String(validator=String.URL, **p)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;webappDescription = String(format=String.XHTML, **p)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;companyDescription = String(format=String.XHTML, **p)<br/>
+# ------------------------------------------------------------------------------<br/>
+</p>
+</body>
 </html>

@@ -261,7 +261,7 @@ class Tool(ModelClass):
                     page=gen.Page('pages', show=isManager))
 
     # Document generation page
-    dgp = {'page': gen.Page('documentGeneration', show=isManagerEdit)}
+    dgp = {'page': gen.Page('documents', show=isManagerEdit)}
     def validPythonWithUno(self, value): pass # Real method in the wrapper
     unoEnabledPython = gen.String(show=False,validator=validPythonWithUno,**dgp)
     openOfficePort = gen.Integer(default=2002, show=False, **dgp)
