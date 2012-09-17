@@ -1138,4 +1138,13 @@ class ToolMixin(BaseMixin):
                 sendMail(appyTool, email, subject, body)
                 os.remove(tokenFile)
                 return self.goto(siteUrl, self.translate('new_password_sent'))
+
+    def getSearchValues(self, name, className):
+        '''Gets the possible values for selecting a value for searching field
+           p_name belonging to class p_className.'''
+        klass = self.getAppyClass(className, wrapper=True)
+        method = getattr(klass, name).searchSelect
+        tool = self.appy()
+        objects = method.__get__(tool)(tool)
+        return [(o.uid, o) for o in objects]
 # ------------------------------------------------------------------------------

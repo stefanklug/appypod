@@ -132,16 +132,21 @@ class AbstractWrapper(object):
         if other: return cmp(self.o, other.o)
         return 1
 
+    def _getCustomMethod(self, methodName):
+        '''See docstring of _callCustom below.'''
+        if len(self.__class__.__bases__) > 1:
+            # There is a custom user class
+            custom = self.__class__.__bases__[-1]
+            if custom.__dict__.has_key(methodName):
+                return custom.__dict__[methodName]
+
     def _callCustom(self, methodName, *args, **kwargs):
         '''This wrapper implements some methods like "validate" and "onEdit".
            If the user has defined its own wrapper, its methods will not be
            called. So this method allows, from the methods here, to call the
            user versions.'''
-        if len(self.__class__.__bases__) > 1:
-            # There is a custom user class
-            customUser = self.__class__.__bases__[-1]
-            if customUser.__dict__.has_key(methodName):
-                return customUser.__dict__[methodName](self, *args, **kwargs)
+        custom = self._getCustomMethod(methodName)
+        if custom: return custom(self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
     def isEmpty(self, name):

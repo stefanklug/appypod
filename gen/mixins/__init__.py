@@ -518,17 +518,14 @@ class BaseMixin:
             return appyType.select(self.appy())
 
     xhtmlToText = re.compile('<.*?>', re.S)
-    def getReferenceLabel(self, name, refObject):
+    def getReferenceLabel(self, name, refObject, className=None):
         '''p_name is the name of a Ref field with link=True. I need to display,
            on an edit view, the p_refObject in the listbox that will allow
            the user to choose which object(s) to link through the Ref.
            The information to display may only be the object title or more if
            field.shownInfo is used.'''
-        appyType = self.getAppyType(name)
-        res = refObject.title
-        if 'title' in appyType.shownInfo:
-            # We may place it at another place
-            res = ''
+        appyType = self.getAppyType(name, className=className)
+        res = ''
         for fieldName in appyType.shownInfo:
             refType = refObject.o.getAppyType(fieldName)
             value = getattr(refObject, fieldName)

@@ -1762,7 +1762,7 @@ class Ref(Type):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False):
+                 navigable=False, searchSelect=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1830,6 +1830,11 @@ class Ref(Type):
         self.queryNbCols = queryNbCols
         # Within the portlet, will referred elements appear ?
         self.navigable = navigable
+        # The search select method is used if self.indexed is True. In this
+        # case, we need to know among which values we can search on this field,
+        # in the search screen. Those values are returned by self.searchSelect,
+        # which must be a static method accepting the tool as single arg.
+        self.searchSelect = searchSelect
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
@@ -1910,6 +1915,23 @@ class Ref(Type):
 
     def getFormattedValue(self, obj, value):
         return value
+
+    def getIndexType(self): return 'ZCTextIndex'
+
+    def getIndexValue(self, obj, forSearch=False):
+        '''Value for indexing is the list of UIDs of linked objects. If
+           p_forSearch is True, it will return a "string" version made of the
+           titles of linked objects.'''
+        if not forSearch:
+            res = getattr(obj.aq_base, self.name, '')
+            if res: res = ' '.join(res)
+            return res
+        else:
+            # For the global search: concatenate titles of linked objects
+            titles = []
+            for obj in self.getValue(type='objects'):
+                titles.append(obj.title)
+            return ' '.join(titles)
 
     def validateValue(self, obj, value):
         if not self.link: return None

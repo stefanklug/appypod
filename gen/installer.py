@@ -250,7 +250,6 @@ class ZopeInstaller:
 
         # Create the admin user if it does not exist.
         if not appyTool.count('User', noSecurity=True, login='admin'):
-            print 'No admin!'
             appyTool.create('users', noSecurity=True, login='admin',
                             password1='admin', password2='admin',
                             email='admin@appyframework.org', roles=['Manager'])

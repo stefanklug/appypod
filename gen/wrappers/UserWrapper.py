@@ -169,8 +169,15 @@ class UserWrapper(AbstractWrapper):
             del self.o.__ac_local_roles__[None]
         return self._callCustom('onEdit', created)
 
-    def mayEdit(self): return self._callCustom('mayEdit')
-    def mayDelete(self): return self._callCustom('mayDelete')
+    def mayEdit(self):
+        custom = self._getCustomMethod('mayEdit')
+        if custom: return self._callCustom('mayEdit')
+        else:      return True
+
+    def mayDelete(self):
+        custom = self._getCustomMethod('mayDelete')
+        if custom: return self._callCustom('mayDelete')
+        else:      return True
 
     def getZopeUser(self):
         '''Gets the Zope user corresponding to this user.'''
