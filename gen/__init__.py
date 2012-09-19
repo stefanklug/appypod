@@ -328,6 +328,7 @@ class Search:
             # 'SortableTitle', because index 'Title' is a ZCTextIndex
             # (for searchability) and can't be used for sorting.
         elif fieldName == 'state': return 'State'
+        elif fieldName in defaultIndexes: return fieldName
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
     @staticmethod

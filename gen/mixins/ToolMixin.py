@@ -481,7 +481,7 @@ class ToolMixin(BaseMixin):
            can be a Zope content type or a Appy class) can be created
            (via a web form, by importing external data, etc). Result is a
            dict whose keys are strings (ie "form", "import"...) and whose
-           values are additional data bout the particular mean.'''
+           values are additional data about the particular mean.'''
         pythonClass = contentTypeOrAppyClass
         if isinstance(contentTypeOrAppyClass, basestring):
             pythonClass = self.getAppyClass(pythonClass)
