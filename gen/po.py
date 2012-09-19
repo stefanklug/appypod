@@ -138,6 +138,15 @@ class PoMessage:
     PAGE_NEXT = 'Next page'
     FORGOT_PASSWORD = 'Forgot password?'
     ASK_PASSWORD_REINIT = 'Ask new password'
+    WRONG_PASSWORD_REINIT = 'Something went wrong. First possibility: you ' \
+        'have already clicked on the link (maybe have you double-clicked?) ' \
+        'and your password has already been re-initialized. Please check ' \
+        'that you haven\'t received your new password in another email. ' \
+        'Second possibility: the link that you received in your mailer was ' \
+        'splitted on several lines. In this case, please re-type the link in ' \
+        'one single line and retry. Third possibility: you have waited too ' \
+        'long and your request has expired, or a technical error occurred. ' \
+        'In this case, please try again to ask a new password from the start.'
     REINIT_MAIL_SENT = 'A mail has been sent to you. Please follow the ' \
                        'instructions from this email.'
     REINIT_PASSWORD = 'Password re-initialisation'

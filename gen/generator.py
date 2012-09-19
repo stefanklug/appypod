@@ -489,6 +489,7 @@ class ZopeGenerator(Generator):
             msg('page_next',            '', msg.PAGE_NEXT),
             msg('forgot_password',      '', msg.FORGOT_PASSWORD),
             msg('ask_password_reinit',  '', msg.ASK_PASSWORD_REINIT),
+            msg('wrong_password_reinit','', msg.WRONG_PASSWORD_REINIT),
             msg('reinit_mail_sent',     '', msg.REINIT_MAIL_SENT),
             msg('reinit_password',      '', msg.REINIT_PASSWORD),
             msg('reinit_password_body', '', msg.REINIT_PASSWORD_BODY),

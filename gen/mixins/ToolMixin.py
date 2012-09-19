@@ -1116,6 +1116,8 @@ class ToolMixin(BaseMixin):
         login = rq['login']
         token = rq['token']
         # Check if such token exists in temp folder
+        res = None
+        siteUrl = self.getSiteUrl()
         tokenFile = os.path.join(getOsTempFolder(), login)
         if os.path.exists(tokenFile):
             f = file(tokenFile)
@@ -1131,13 +1133,15 @@ class ToolMixin(BaseMixin):
                 if not String.EMAIL.match(email):
                     email = user.email
                 subject = self.translate('new_password')
-                siteUrl = self.getSiteUrl()
                 map = {'password': newPassword, 'siteUrl': siteUrl}
                 body = self.translate('new_password_body', mapping=map,
                                       format='text')
                 sendMail(appyTool, email, subject, body)
                 os.remove(tokenFile)
-                return self.goto(siteUrl, self.translate('new_password_sent'))
+                res = self.goto(siteUrl, self.translate('new_password_sent'))
+        if not res:
+            res = self.goto(siteUrl, self.translate('wrong_password_reinit'))
+        return res
 
     def getSearchValues(self, name, className):
         '''Gets the possible values for selecting a value for searching field
