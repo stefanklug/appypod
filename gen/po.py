@@ -26,6 +26,7 @@ fallbacks = {'en': 'en-us en-ca',
 class PoMessage:
     '''Represents a i18n message (po format).'''
     CONFIG = "Configuration panel for product '%s'"
+    APP_NAME = "Appy"
     # The following messages (starting with MSG_) correspond to tool
     # attributes added for every gen-class (warning: the message IDs correspond
     # to MSG_<attributePrefix>).

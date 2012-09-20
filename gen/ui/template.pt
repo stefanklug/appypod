@@ -19,7 +19,8 @@
       tal:attributes="dir python: tool.getLanguageDirection(lang)">
 
 <head>
-  <title tal:content="tool/getAppName"></title>
+  <title tal:content="python: _('app_name')"></title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
   <tal:link repeat="name tool/getGlobalCssJs">
     <link tal:condition="python: name.endswith('.css') and not ((dir == 'ltr') and (name == 'appyrtl.css'))"
           rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>

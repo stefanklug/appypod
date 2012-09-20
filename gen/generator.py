@@ -397,6 +397,7 @@ class ZopeGenerator(Generator):
         # Some global i18n messages
         poMsg = msg(app, '', app); poMsg.produceNiceDefault()
         self.labels += [poMsg,
+            msg('app_name',             '', msg.APP_NAME),
             msg('workflow_state',       '', msg.WORKFLOW_STATE),
             msg('appy_title',           '', msg.APPY_TITLE),
             msg('data_change',          '', msg.DATA_CHANGE),

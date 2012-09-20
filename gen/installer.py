@@ -124,7 +124,11 @@ class ZopeInstaller:
                         zopeName = name
                     if hasattr(zopeFolder.aq_base, zopeName): continue
                     f = file(j(root, name))
-                    if ext in gen.File.imageExts:
+                    if zopeName == 'favicon.ico':
+                        if not hasattr(self.app, zopeName):
+                            # Copy it at the root. Else, IE won't notice it.
+                            manage_addImage(self.app, zopeName, f)
+                    elif ext in gen.File.imageExts:
                         manage_addImage(zopeFolder, zopeName, f)
                     elif ext == '.pt':
                         manage_addPageTemplate(zopeFolder,zopeName,'',f.read())
