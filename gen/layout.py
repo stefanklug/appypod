@@ -222,6 +222,10 @@ defaultPageLayouts  = {
 # A layout for pages, containing the page summary.
 summaryPageLayouts = {'view': Table('s-n!-w|-b|', align="center"),
                       'edit': Table('w|-b|', width=None)}
+widePageLayouts = {
+    'view': Table('n!-w|-b|', align="center"),
+    'edit': Table('w|-b|')
+}
 # The default layout for fields. Alternative layouts may exist and are declared
 # as static attributes of the concerned Type subclass.
 defaultFieldLayouts = {'edit': 'lrv-f'}

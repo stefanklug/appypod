@@ -372,6 +372,7 @@ class Type:
     # field, keyed by layoutType.
     cssFiles = {}
     jsFiles = {}
+    dLayouts = 'lrv-d-f'
 
     def __init__(self, validator, multiplicity, index, default, optional,
                  editDefault, show, page, group, layouts, move, indexed,
