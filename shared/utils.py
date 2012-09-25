@@ -206,6 +206,9 @@ def normalizeString(s, usage='fileName'):
     # We work in unicode. Convert p_s to unicode if not unicode.
     if isinstance(s, str):           s = s.decode('utf-8')
     elif not isinstance(s, unicode): s = unicode(s)
+    if usage == 'extractedText':
+        # Replace single quotes with blanks.
+        s = s.replace("'", " ").replace(u'’', ' ')
     # Remove any special char like accents.
     s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
     # Remove any other char, depending on p_usage.

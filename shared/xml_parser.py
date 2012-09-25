@@ -19,8 +19,7 @@
 
 # ------------------------------------------------------------------------------
 import xml.sax, difflib, types, cgi
-from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges,\
-                            property_interning_dict
+from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges
 from xml.sax.xmlreader import InputSource
 from xml.sax import SAXParseException
 from appy.shared import UnicodeBuffer, xmlPrologue
@@ -169,6 +168,13 @@ class XmlParser(ContentHandler, ErrorHandler):
         else:
             # Put a question mark instead of raising an exception.
             self.characters('?')
+
+    # ErrorHandler methods ---------------------------------------------------
+    # Define methods below in your subclass if you want error handling that
+    # does not raise exceptions, but produces a partial result instead.
+    #def error(self, error): pass
+    #def fatalError(self, error): pass
+    #def warning(self, error): pass
 
     def parse(self, xml, source='string'):
         '''Parses a XML stream.
