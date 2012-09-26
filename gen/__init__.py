@@ -1916,22 +1916,21 @@ class Ref(Type):
     def getFormattedValue(self, obj, value):
         return value
 
-    def getIndexType(self): return 'TextIndex'
+    def getIndexType(self): return 'ListIndex'
 
     def getIndexValue(self, obj, forSearch=False):
         '''Value for indexing is the list of UIDs of linked objects. If
-           p_forSearch is True, it will return a "string" version made of the
-           titles of linked objects.'''
+           p_forSearch is True, it will return a list of the linked objects'
+           titles instead.'''
         if not forSearch:
-            res = getattr(obj.aq_base, self.name, '')
-            if res: res = ' '.join(res)
+            res = getattr(obj.aq_base, self.name, [])
+            if res:
+                # The index does not like persistent lists.
+                res = list(res)
             return res
         else:
-            # For the global search: concatenate titles of linked objects
-            titles = []
-            for obj in self.getValue(type='objects'):
-                titles.append(obj.title)
-            return ' '.join(titles)
+            # For the global search: return linked objects' titles.
+            return [o.title for o in self.getValue(type='objects')]
 
     def validateValue(self, obj, value):
         if not self.link: return None
