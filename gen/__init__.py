@@ -7,6 +7,7 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.mail import sendNotification
+from appy.gen.indexer import defaultIndexes
 from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
@@ -32,13 +33,6 @@ def initMasterValue(v):
     elif type(v) not in sequenceTypes: res = [v]
     else: res = v
     return [str(v) for v in res]
-
-# Default Appy indexes ---------------------------------------------------------
-defaultIndexes = {
-    'State': 'FieldIndex', 'UID': 'FieldIndex', 'Title': 'ZCTextIndex',
-    'SortableTitle': 'FieldIndex', 'SearchableText': 'ZCTextIndex',
-    'Creator': 'FieldIndex', 'Created': 'DateIndex', 'ClassName': 'FieldIndex',
-    'Allowed': 'KeywordIndex'}
 
 # Descriptor classes used for refining descriptions of elements in types
 # (pages, groups,...) ----------------------------------------------------------
@@ -325,7 +319,7 @@ class Search:
             if usage == 'search':  return 'Title'
             else:                  return 'SortableTitle'
             # Indeed, for field 'title', Appy has a specific index
-            # 'SortableTitle', because index 'Title' is a ZCTextIndex
+            # 'SortableTitle', because index 'Title' is a TextIndex
             # (for searchability) and can't be used for sorting.
         elif fieldName == 'state': return 'State'
         elif fieldName in defaultIndexes: return fieldName
@@ -337,8 +331,8 @@ class Search:
            value as required for searching in the index corresponding to
            p_fieldName.'''
         if fieldName == 'title':
-            # Title is a ZCTextIndex. We must split p_fieldValue into keywords.
-            res = Keywords(fieldValue.decode('utf-8')).get()
+            # Title is a TextIndex. We must split p_fieldValue into keywords.
+            res = Keywords(fieldValue).get()
         elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
             v = fieldValue[:-1]
             # Warning: 'z' is higher than 'Z'!
@@ -1436,10 +1430,14 @@ class String(Type):
 
     def getIndexType(self):
         '''Index type varies depending on String parameters.'''
-        # If String.isSelect, be it multivalued or not, we define a ZCTextIndex:
+        # If String.isSelect, be it multivalued or not, we define a ListIndex:
         # this way we can use AND/OR operator.
-        if self.isSelect or (self.format in (String.TEXT, String.XHTML)):
-            return 'ZCTextIndex'
+        if self.isSelect:
+            return 'ListIndex'
+        elif self.format == String.TEXT:
+            return 'TextIndex'
+        elif self.format == String.XHTML:
+            return 'XhtmlIndex'
         return Type.getIndexType(self)
 
     def getJs(self, layoutType, res):
@@ -1918,7 +1916,7 @@ class Ref(Type):
     def getFormattedValue(self, obj, value):
         return value
 
-    def getIndexType(self): return 'ZCTextIndex'
+    def getIndexType(self): return 'TextIndex'
 
     def getIndexValue(self, obj, forSearch=False):
         '''Value for indexing is the list of UIDs of linked objects. If

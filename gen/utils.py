@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path
+from appy.shared.utils import normalizeText
 
 # Function for creating a Zope object ------------------------------------------
 def createObject(folder, id, className, appName, wf=True, noSecurity=False):
@@ -243,12 +244,12 @@ class SomeObjects:
 # ------------------------------------------------------------------------------
 class Keywords:
     '''This class allows to handle keywords that a user enters and that will be
-       used as basis for performing requests in a Zope ZCTextIndex.'''
+       used as basis for performing requests in a TextIndex/XhtmlIndex.'''
 
     toRemove = '?-+*()'
     def __init__(self, keywords, operator='AND'):
         # Clean the p_keywords that the user has entered.
-        words = keywords.strip()
+        words = normalizeText(keywords)
         if words == '*': words = ''
         for c in self.toRemove: words = words.replace(c, ' ')
         self.keywords = words.split()
@@ -267,7 +268,7 @@ class Keywords:
                     self.keywords.insert(0, word)
 
     def get(self):
-        '''Returns the keywords as needed by the ZCTextIndex.'''
+        '''Returns the keywords as needed by the TextIndex.'''
         if self.keywords:
             op = ' %s ' % self.operator
             return op.join(self.keywords)+'*'

@@ -8,6 +8,7 @@ import appy.version
 import appy.gen as gen
 from appy.gen.po import PoParser
 from appy.gen.utils import updateRolesForPermission, createObject
+from appy.gen.indexer import defaultIndexes, updateIndexes
 from appy.gen.migrator import Migrator
 from appy.shared.data import languages
 
@@ -62,11 +63,6 @@ def onDelSession(sessionObject, container):
         resp.setHeader('Content-Type', 'text/html')
         resp.write('<center>For security reasons, your session has ' \
                    'expired.</center>')
-
-class ZCTextIndexInfo:
-    '''Silly class used for storing information about a ZCTextIndex.'''
-    lexicon_id = "lexicon"
-    index_type = 'Okapi BM25 Rank'
 
 # ------------------------------------------------------------------------------
 class ZopeInstaller:
@@ -148,35 +144,6 @@ class ZopeInstaller:
             self.app.manage_delObjects(['standard_error_message'])
         manage_addPageTemplate(self.app, 'standard_error_message', '',errorPage)
 
-    def installIndexes(self, indexInfo):
-        '''Updates indexes in the catalog.'''
-        catalog = self.app.catalog
-        logger = self.logger
-        for indexName, indexType in indexInfo.iteritems():
-            # If this index already exists but with a different type, remove it.
-            if indexName in catalog.indexes():
-                oldType = catalog.Indexes[indexName].__class__.__name__
-                if oldType != indexType:
-                    catalog.delIndex(indexName)
-                    logger.info('Existing index "%s" of type "%s" was removed:'\
-                                ' we need to recreate it with type "%s".' % \
-                                (indexName, oldType, indexType))
-            if indexName not in catalog.indexes():
-                # We need to create this index
-                if indexType != 'ZCTextIndex':
-                    catalog.addIndex(indexName, indexType)
-                else:
-                    catalog.addIndex(indexName, indexType,extra=ZCTextIndexInfo)
-                # Indexing database content based on this index.
-                catalog.reindexIndex(indexName, self.app.REQUEST)
-                logger.info('Created index "%s" of type "%s"...' % \
-                            (indexName, indexType))
-
-    lexiconInfos = [
-        appy.Object(group='Case Normalizer', name='Case Normalizer'),
-        appy.Object(group='Stop Words', name=" Don't remove stop words"),
-        appy.Object(group='Word Splitter', name='Whitespace splitter')
-    ]
     def installCatalog(self):
         '''Create the catalog at the root of Zope if id does not exist.'''
         if 'catalog' not in self.app.objectIds():
@@ -185,19 +152,30 @@ class ZopeInstaller:
             manage_addZCatalog(self.app, 'catalog', '')
             self.logger.info('Appy catalog created.')
 
-        # Create a lexicon for ZCTextIndexes
-        if 'lexicon' not in self.app.catalog.objectIds():
-            from Products.ZCTextIndex.ZCTextIndex import manage_addLexicon
-            manage_addLexicon(self.app.catalog, 'lexicon',
-                              elements=self.lexiconInfos)
+        # Create lexicons for ZCTextIndexes
+        catalog = self.app.catalog
+        lexicons = catalog.objectIds()
+        from Products.ZCTextIndex.ZCTextIndex import manage_addLexicon
+        if 'xhtml_lexicon' not in lexicons:
+            lex = appy.Object(group='XHTML indexer', name='XHTML indexer')
+            manage_addLexicon(catalog, 'xhtml_lexicon', elements=[lex])
+        if 'text_lexicon' not in lexicons:
+            lex = appy.Object(group='Text indexer', name='Text indexer')
+            manage_addLexicon(catalog, 'text_lexicon', elements=[lex])
+        if 'list_lexicon' not in lexicons:
+            lex = appy.Object(group='List indexer', name='List indexer')
+            manage_addLexicon(catalog, 'list_lexicon', elements=[lex])
+
+        # Delete the deprecated one if it exists
+        if 'lexicon' in lexicons: catalog.manage_delObjects(['lexicon'])
 
         # Create or update Appy-wide indexes and field-related indexes
-        indexInfo = gen.defaultIndexes.copy()
+        indexInfo = defaultIndexes.copy()
         tool = self.app.config
         for className in self.config.attributes.iterkeys():
             wrapperClass = tool.getAppyClass(className, wrapper=True)
             indexInfo.update(wrapperClass.getIndexes(includeDefaults=False))
-        self.installIndexes(indexInfo)
+        updateIndexes(self, indexInfo)
 
     def getAddPermission(self, className):
         '''What is the name of the permission allowing to create instances of

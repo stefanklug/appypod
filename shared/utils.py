@@ -227,6 +227,13 @@ def normalizeString(s, usage='fileName'):
         res = s
     return res
 
+# ------------------------------------------------------------------------------
+def normalizeText(s):
+    '''Normalizes p_s: remove special chars, lowerizes it, etc, for indexing
+       purposes.'''
+    return normalizeString(s, usage='extractedText').strip().lower()
+
+# ------------------------------------------------------------------------------
 def formatNumber(n, sep=',', precision=2, tsep=' '):
     '''Returns a string representation of number p_n, which can be a float
        or integer. p_sep is the decimal separator to use. p_precision is the

@@ -125,7 +125,7 @@ class XmlParser(ContentHandler, ErrorHandler):
       - remembering the currently parsed element;
       - managing namespace declarations.
       This parser also knows about HTML entities.'''
-    def __init__(self, env=None, caller=None):
+    def __init__(self, env=None, caller=None, raiseOnError=True):
         '''p_env should be an instance of a class that inherits from
            XmlEnvironment: it specifies the environment to use for this SAX
            parser.'''
@@ -136,6 +136,8 @@ class XmlParser(ContentHandler, ErrorHandler):
         self.caller = caller # The class calling this parser
         self.parser = xml.sax.make_parser() # Fast, standard expat parser
         self.res = None # The result of parsing.
+        # Raise or not an error when a parsing error is encountered.
+        self.raiseOnError = raiseOnError
 
     # ContentHandler methods ---------------------------------------------------
     def startDocument(self):
@@ -170,11 +172,13 @@ class XmlParser(ContentHandler, ErrorHandler):
             self.characters('?')
 
     # ErrorHandler methods ---------------------------------------------------
-    # Define methods below in your subclass if you want error handling that
-    # does not raise exceptions, but produces a partial result instead.
-    #def error(self, error): pass
-    #def fatalError(self, error): pass
-    #def warning(self, error): pass
+    def error(self, error):
+        if self.raiseOnError: raise error
+        else: print 'SAX error', error
+    def fatalError(self, error):
+        if self.raiseOnError: raise error
+        else: print 'SAX fatal error', error
+    def warning(self, error): pass
 
     def parse(self, xml, source='string'):
         '''Parses a XML stream.

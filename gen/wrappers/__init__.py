@@ -4,8 +4,8 @@
 # ------------------------------------------------------------------------------
 import os, os.path, mimetypes
 import appy.pod
-from appy.gen import Type, Search, Ref, String, WorkflowAnonymous, \
-                     defaultIndexes
+from appy.gen import Type, Search, Ref, String, WorkflowAnonymous
+from appy.gen.indexer import defaultIndexes
 from appy.gen.utils import createObject
 from appy.shared.utils import getOsTempFolder, executeCommand, \
                               normalizeString, sequenceTypes
