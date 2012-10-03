@@ -378,6 +378,14 @@ class FieldDescriptor:
             msg.produceNiceDefault()
             self.generator.labels.append(msg)
 
+    def walkCalendar(self):
+        # Add i18n-specific messages
+        for et in self.appyType.eventTypes:
+            label = '%s_%s_event_%s' % (self.classDescr.name,self.fieldName,et)
+            msg = PoMessage(label, '', et)
+            msg.produceNiceDefault()
+            self.generator.labels.append(msg)
+
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
            i18n labels.'''
@@ -435,6 +443,8 @@ class FieldDescriptor:
         elif self.appyType.type == 'Pod': self.walkPod()
         # Manage things which are specific to List types
         elif self.appyType.type == 'List': self.walkList()
+        # Manage things which are specific to Calendar types
+        elif self.appyType.type == 'Calendar': self.walkCalendar()
 
     def generate(self):
         '''Generates the i18n labels for this type.'''

@@ -612,7 +612,8 @@ class BaseMixin:
 
     def getGroupedAppyTypes(self, layoutType, pageName, cssJs=None):
         '''Returns the fields sorted by group. For every field, the appyType
-           (dict version) is given.'''
+           (dict version) is given. If a dict is given in p_cssJs, we will add
+           it in the css and js files required by the fields.'''
         res = []
         groups = {} # The already encountered groups
         # If a dict is given in p_cssJs, we must fill it with the CSS and JS
@@ -1603,4 +1604,11 @@ class BaseMixin:
         '''This method is a general hook for transfering processing of a request
            to a given field, whose name must be in the request.'''
         return self.getAppyType(self.REQUEST['name']).process(self)
+
+    def callField(self, name, method, *args, **kwargs):
+        '''This method i a general hook for calling a p_method defined on a
+           field named p_name.'''
+        field = self.getAppyType(name)
+        exec 'res = field.%s(*args, **kwargs)' % method
+        return res
 # ------------------------------------------------------------------------------

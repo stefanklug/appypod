@@ -8,12 +8,14 @@
                 layout         python: contextObj.getPageLayout(layoutType);
                 phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
                 phase          phaseInfo/name;
+                cssJs          python: {};
                 page           req/page|python:contextObj.getDefaultViewPage();
-                groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page);"
+                groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page, cssJs=cssJs);"
     tal:on-error="structure python: tool.manageError(error)">
-    <metal:prologue use-macro="context/ui/page/macros/prologue"/>
-    <metal:show     use-macro="context/ui/page/macros/show"/>
-    <metal:footer   use-macro="context/ui/page/macros/footer"/>
-   </metal:fill>
+
+  <metal:prologue use-macro="context/ui/page/macros/prologue"/>
+  <metal:show use-macro="context/ui/page/macros/show"/>
+  <metal:footer use-macro="context/ui/page/macros/footer"/>
+ </metal:fill>
 </html>
 </tal:main>

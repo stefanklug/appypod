@@ -19,8 +19,7 @@ msgstr ""
 
 '''
 fallbacks = {'en': 'en-us en-ca',
-             'fr': 'fr-be fr-ca fr-lu fr-mc fr-ch fr-fr'
-            }
+             'fr': 'fr-be fr-ca fr-lu fr-mc fr-ch fr-fr'}
 
 # ------------------------------------------------------------------------------
 class PoMessage:
@@ -169,6 +168,51 @@ class PoMessage:
     OBJECT_AUTHOR = 'Author'
     ACTION_DATE = 'Date'
     ACTION_COMMENT = 'Comment'
+    DAY_MON_SHORT = 'Mon'
+    DAY_TUE_SHORT = 'Tue'
+    DAY_WED_SHORT = 'Wed'
+    DAY_THU_SHORT = 'Thu'
+    DAY_FRI_SHORT = 'Fri'
+    DAY_SAT_SHORT = 'Sat'
+    DAY_SUN_SHORT = 'Sun'
+    DAY_MON = 'Monday'
+    DAY_TUE = 'Tuesday'
+    DAY_WED = 'Wednesday'
+    DAY_THU = 'Thursday'
+    DAY_FRI = 'Friday'
+    DAY_SAT = 'Saturday'
+    DAY_SUN = 'Sunday'
+    AMPM_AM = 'AM'
+    AMPM_PM = 'PM'
+    MONTH_JAN_SHORT = 'Jan'
+    MONTH_FEB_SHORT = 'Feb'
+    MONTH_MAR_SHORT = 'Mar'
+    MONTH_APR_SHORT = 'Apr'
+    MONTH_MAY_SHORT = 'May'
+    MONTH_JUN_SHORT = 'Jun'
+    MONTH_JUL_SHORT = 'Jul'
+    MONTH_AUG_SHORT = 'Aug'
+    MONTH_SEP_SHORT = 'Sep'
+    MONTH_OCT_SHORT = 'Oct'
+    MONTH_NOV_SHORT = 'Nov'
+    MONTH_DEC_SHORT = 'Dec'
+    MONTH_JAN = 'January'
+    MONTH_FEB = 'February'
+    MONTH_MAR = 'March'
+    MONTH_APR = 'April'
+    MONTH_MAY = 'May'
+    MONTH_JUN = 'June'
+    MONTH_JUL = 'July'
+    MONTH_AUG = 'Augustus'
+    MONTH_SEP = 'September'
+    MONTH_OCT = 'October'
+    MONTH_NOV = 'November'
+    MONTH_DEC = 'December'
+    TODAY = 'Today'
+    WHICH_EVENT = 'Which event type would you like to create?'
+    EVENT_SPAN = 'Extend the event on the following number of days (leave ' \
+                 'blank to create an event on the current day only):'
+    DEL_NEXT_EVENTS = 'Also delete successive events of the same type.'
 
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):

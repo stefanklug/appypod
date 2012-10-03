@@ -14,11 +14,6 @@
                 groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page, cssJs=cssJs);"
     tal:on-error="structure python: tool.manageError(error)">
 
-  <tal:comment replace="nothing">Include type-specific CSS and JS.</tal:comment>
-  <link tal:repeat="cssFile cssJs/css" rel="stylesheet" type="text/css"
-        tal:attributes="href string:$appUrl/ui/$cssFile"/>
-  <script tal:repeat="jsFile cssJs/js" type="text/javascript"
-          tal:attributes="src string:$appUrl/ui/$jsFile"></script>
   <metal:prologue use-macro="context/ui/page/macros/prologue"/>
   <form id="appyEditForm" name="appyEditForm" method="post" enctype="multipart/form-data"
         tal:attributes="action python: contextObj.absolute_url()+'/do';

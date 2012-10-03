@@ -183,7 +183,7 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
   if (actionParams) {
     for (key in actionParams) { params[key] = actionParams[key]; };
   }
-  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/ref', 'viewContent',params);
+  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/ref', 'viewContent', params);
 }
 
 function askComputedField(hookId, objectUrl, fieldName) {
@@ -384,8 +384,10 @@ function generatePodDocument(contextUid, fieldName, podFormat, queryData) {
 // Functions for opening and closing a popup
 function openPopup(popupId, msg) {
   // Put the message into the popup
-  var confirmElem = document.getElementById('appyConfirmText');
-  confirmElem.innerHTML = msg;
+  if (msg) {
+    var confirmElem = document.getElementById('appyConfirmText');
+    confirmElem.innerHTML = msg;
+  }
   // Open the popup
   var popup = document.getElementById(popupId);
   // Put it at the right place on the screen
@@ -451,8 +453,8 @@ function doConfirm() {
   }
 }
 
-var wrongTextInput = '#F0C36D none';
-// Function triggered when the user ask password reinitialisation
+var wrongTextInput = '#F9EDBE none';
+// Function triggered when the user asks password reinitialisation
 function doAskPasswordReinit() {
   // Check that the user has typed a login
   var theForm = document.getElementById('askPasswordReinitForm');

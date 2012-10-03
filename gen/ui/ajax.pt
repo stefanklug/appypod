@@ -6,6 +6,7 @@
 </tal:comment>
 <tal:ajax define="contextObj context/getParentNode;
                   tool contextObj/getTool;
+                  _ python: contextObj.translate;
                   req python: request;
                   resp req/RESPONSE;
                   page req/page;
