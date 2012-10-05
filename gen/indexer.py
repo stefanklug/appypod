@@ -8,7 +8,7 @@ from appy.shared.utils import normalizeText
 # Default Appy indexes ---------------------------------------------------------
 defaultIndexes = {
     'State': 'FieldIndex', 'UID': 'FieldIndex', 'Title': 'TextIndex',
-    'SortableTitle': 'FieldIndex', 'SearchableText': 'XhtmlIndex',
+    'SortableTitle': 'FieldIndex', 'SearchableText': 'TextIndex',
     'Creator': 'FieldIndex', 'Created': 'DateIndex', 'ClassName': 'FieldIndex',
     'Allowed': 'KeywordIndex'}
 

@@ -7,7 +7,7 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.po import PoMessage
 from appy.gen.mail import sendNotification
-from appy.gen.indexer import defaultIndexes
+from appy.gen.indexer import defaultIndexes, XhtmlTextExtractor
 from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
 import appy.pod
 from appy.pod.renderer import Renderer
@@ -1304,6 +1304,10 @@ class String(Type):
         res = Type.getIndexValue(self, obj, forSearch)
         if isinstance(res, unicode):
             res = res.encode('utf-8')
+        if res and forSearch and (self.format == String.XHTML):
+            # Convert the value to simple text.
+            extractor = XhtmlTextExtractor(raiseOnError=False)
+            res = extractor.parse('<p>%s</p>' % res)
         # Ugly catalog: if I give an empty tuple as index value, it keeps the
         # previous value. If I give him a tuple containing an empty string, it
         # is ok.
