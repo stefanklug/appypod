@@ -11,7 +11,8 @@
                  nextMonth python: contextObj.callField(fieldName, 'getSiblingMonth', month, 'next');
                  widget python: contextObj.getAppyType(fieldName, asDict=True);
                  mayEdit python: contextObj.allows(widget['writePermission']);
-                 objUrl contextObj/absolute_url"
+                 objUrl contextObj/absolute_url;
+                 otherCalendars python: contextObj.callField(fieldName, 'getOtherCalendars', contextObj);"
      tal:attributes="id ajaxHookId">
 
 <script type="text/javascript"
@@ -73,6 +74,14 @@
               tal:content="python: _('%s_event_%s' % (widget['labelId'], eventType))"></span>
        </div>
      </tal:events>
+     <tal:comment replace="nothing">Events from other calendars</tal:comment>
+     <tal:others condition="otherCalendars">
+      <tal:e define="otherEvents python: contextObj.callField(fieldName,'getOtherEventsAt',contextObj,date,otherCalendars)"
+             condition="otherEvents">
+       <div tal:repeat="event otherEvents" tal:content="event/name"
+            tal:attributes="style python: 'color: %s;; font-style: italic' % event['color']"></div>
+      </tal:e>
+     </tal:others>
     </tal:day>
    </td>
    </tal:cell>

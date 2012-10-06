@@ -15,7 +15,7 @@ class Calendar(Type):
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=300, colspan=1, master=None,
                  masterValue=None, focus=False, mapping=None, label=None,
-                 maxEventLength=50):
+                 maxEventLength=50, otherCalendars=None):
         Type.__init__(self, validator, (0,1), None, default, False, False,
                       show, page, group, layouts, move, False, False,
                       specificReadPermission, specificWritePermission,
@@ -27,6 +27,18 @@ class Calendar(Type):
         # It is not possible to create events that span more days than
         # maxEventLength.
         self.maxEventLength = maxEventLength
+        # If a method is specified in the following parameters, it must return
+        # a list of calendars whose events must be shown within this agenda.
+        # Every element in this list must be a sub-list [object, name, color]
+        # (not a tuple):
+        # - object must refer to the other object on which the other calendar
+        #   field is defined;
+        # - name is the name of the field on this object that stores the
+        #   calendar;
+        # - color must be a string containing the HTML color (including the
+        #   leading "#" when relevant) into which events of the calendar must
+        #   appear.
+        self.otherCalendars = otherCalendars
 
     def getSiblingMonth(self, month, prevNext):
         '''Gets the next or previous month (depending of p_prevNext) relative
@@ -83,6 +95,16 @@ class Calendar(Type):
                 currentDay = currentDay + 1
         return res
 
+    def getOtherCalendars(self, obj):
+        '''Returns the list of other calendars whose events must also be shown
+           on this calendar.'''
+        if self.otherCalendars:
+            res = self.callMethod(obj, self.otherCalendars)
+            # Replace field names with field objects
+            for i in range(len(res)):
+                res[i][1] = res[i][0].getField(res[i][1])
+            return res
+
     def getEventsAt(self, obj, date, asDict=True):
         '''Returns the list of events that exist at some p_date (=day).'''
         if not hasattr(obj, self.name): return
@@ -108,6 +130,18 @@ class Calendar(Type):
         events = self.getEventsAt(obj, date, asDict=False)
         if not events: return False
         return events[0].eventType == otherEvents[0]['eventType']
+
+    def getOtherEventsAt(self, obj, date, otherCalendars):
+        '''Gets events that are defined in p_otherCalendars at some p_date.'''
+        res = []
+        for o, field, color in otherCalendars:
+            events = field.getEventsAt(o.o, date, asDict=False)
+            if events:
+                eventType = events[0].eventType
+                label = '%s_event_%s' % (field.labelId, eventType)
+                info = Object(name=obj.translate(label), color=color)
+                res.append(info.__dict__)
+        return res
 
     def createEvent(self, obj, date, handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day). If
