@@ -23,7 +23,7 @@ function openEventPopup(action, fieldName, day, spansDays) {
   openPopup(prefix + 'Popup');
 }
 
-function triggerCalendarEvent(action, hookId, fieldName, objectUrl) {
+function triggerCalendarEvent(action, hookId, fieldName, objectUrl, maxEventLength) {
   /* Sends an Ajax request for triggering a calendar event (create or delete an
      event) and refreshing the view month. */
   var prefix = fieldName + '_' + action + 'Event';
@@ -32,7 +32,8 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl) {
     // Check that eventSpan is empty or contains a valid number
     var spanNumber = f.eventSpan.value.replace(' ', '');
     if (spanNumber) {
-      if (isNaN(parseInt(spanNumber))) {
+      spanNumber = parseInt(spanNumber);
+      if (isNaN(spanNumber) || (spanNumber > maxEventLength)) {
         f.eventSpan.style.background = wrongTextInput;
         return;
       }

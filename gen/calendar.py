@@ -141,7 +141,7 @@ class Calendar(Type):
             events.append(event)
         # Span the event on the successive days if required
         if handleEventSpan and rq['eventSpan']:
-            nbOfDays = int(rq['eventSpan'])
+            nbOfDays = min(int(rq['eventSpan']), self.maxEventLength)
             for i in range(nbOfDays):
                 date = date + 1
                 self.createEvent(obj, date, handleEventSpan=False)
