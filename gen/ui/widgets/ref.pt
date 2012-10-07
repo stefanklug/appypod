@@ -22,7 +22,7 @@
   <table class="noStyle">
     <tr>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and context.allows('Modify portal content')">
+    <td tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and changeOrder and context.allows('Modify portal content')">
       <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
                            ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
       <tal:comment replace="nothing">Move up</tal:comment>
@@ -80,7 +80,7 @@
 </tal:comment>
 <metal:sortIcons define-macro="sortIcons"
     tal:define="ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'SortReference\', {\'sortKey\':\'%s\', \'reverse\':\'**v**\'}' % (startNumber, widget['name']))"
-    tal:condition="python: canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
+    tal:condition="python: changeOrder and canWrite and tool.isSortable(widget['name'], objs[0].meta_type, 'ref')">
   <img style="cursor:pointer"
        tal:attributes="src string:$appUrl/ui/sortAsc.png;
                        onClick python: ajaxBaseCall.replace('**v**', 'False')"/>
@@ -90,24 +90,9 @@
 </metal:sortIcons>
 
 <tal:comment replace="nothing">View macro for a Ref.</tal:comment>
-<metal:view metal:define-macro="view"
-            tal:define="singleRef python: widget['multiplicity'][1] == 1">
-  <tal:comment replace="nothing">
-    For performance reasons, multivalued references are called via Ajax, while single-valued aren't.
-  </tal:comment>
-  <tal:ajax condition="not: singleRef">
-   <div tal:define= "innerRef innerRef|python:False;
-                     ajaxHookId python: contextObj.UID() + name"
-        tal:attributes = "id ajaxHookId">
-    <script name="appyHook" tal:content="python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',0)' % (ajaxHookId, contextObj.absolute_url(), name, innerRef)">
-    </script>
-   </div>
-  </tal:ajax>
-  <div tal:condition="singleRef">
-    <tal:request define="dummy python: request.set('fieldName', widget['name'])">
-      <metal:ref use-macro="app/ui/widgets/ref/macros/viewContent"/>
-    </tal:request>
-  </div>
+<metal:view define-macro="view"
+            tal:define="dummy python: request.set('fieldName', widget['name'])">
+  <metal:ref use-macro="app/ui/widgets/ref/macros/viewContent"/>
 </metal:view>
 
 <tal:comment replace="nothing">
@@ -132,7 +117,9 @@
                  showPlusIcon python: contextObj.mayAddReference(fieldName);
                  atMostOneRef python: (appyType['multiplicity'][1] == 1) and (len(objs)&lt;=1);
                  addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
-                 navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef)">
+                 navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef);
+                 changeOrder python: contextObj.callField(fieldName, 'changeOrderEnabled', contextObj)"
+    tal:attributes="id ajaxHookId">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "view" page.
 

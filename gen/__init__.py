@@ -1766,7 +1766,7 @@ class Ref(Type):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False, searchSelect=None):
+                 navigable=False, searchSelect=None, changeOrder=True):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1839,6 +1839,9 @@ class Ref(Type):
         # in the search screen. Those values are returned by self.searchSelect,
         # which must be a static method accepting the tool as single arg.
         self.searchSelect = searchSelect
+        # If changeOrder is False, it even if the user has the right to modify
+        # the field, it will not be possible to move objects or sort them.
+        self.changeOrder = changeOrder
         Type.__init__(self, validator, multiplicity, index, default, optional,
                       editDefault, show, page, group, layouts, move, indexed,
                       False, specificReadPermission, specificWritePermission,
@@ -2083,6 +2086,13 @@ class Ref(Type):
             from AccessControl import Unauthorized
             raise Unauthorized("User can't write Ref field '%s' (%s)." % \
                                (self.name, may.msg))
+
+    def changeOrderEnabled(self, obj):
+        '''Is changeOrder enabled?'''
+        if isinstance(self.changeOrder, bool):
+            return self.changeOrder
+        else:
+            return self.callMethod(obj, self.changeOrder)
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be
