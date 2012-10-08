@@ -1757,11 +1757,11 @@ class Ref(Type):
 
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), index=None, default=None, optional=False,
-                 editDefault=False, add=False, addConfirm=False, noForm=False,
-                 link=True, unlink=False, back=None, show=True, page='main',
-                 group=None, layouts=None, showHeaders=False, shownInfo=(),
-                 select=None, maxPerPage=30, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+                 editDefault=False, add=False, addConfirm=False, delete=None,
+                 noForm=False, link=True, unlink=None, back=None, show=True,
+                 page='main', group=None, layouts=None, showHeaders=False,
+                 shownInfo=(), select=None, maxPerPage=30, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
@@ -1773,6 +1773,12 @@ class Ref(Type):
         self.add = add
         # When the user adds a new object, must a confirmation popup be shown?
         self.addConfirm = addConfirm
+        # May the user delete objects via this Ref?
+        self.delete = delete
+        if delete == None:
+            # By default, one may delete objects via a Ref for which one can
+            # add objects.
+            self.delete = bool(self.add)
         # If noForm is True, when clicking to create an object through this ref,
         # the object will be created automatically, and no creation form will
         # be presented to the user.
@@ -1781,6 +1787,10 @@ class Ref(Type):
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
+        if unlink == None:
+            # By default, one may unlink objects via a Ref for which one can
+            # link objects.
+            self.unlink = bool(self.link)
         self.back = None
         if back:
             # It is a forward reference

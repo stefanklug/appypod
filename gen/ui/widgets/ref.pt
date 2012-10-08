@@ -19,10 +19,11 @@
 <metal:objectActions define-macro="objectActions">
   <tal:comment replace="nothing">Displays icons for triggering actions on a given
     referenced object (edit, delete, etc).</tal:comment>
-  <table class="noStyle">
-    <tr>
+  <table class="noStyle"
+         tal:define="isBack appyType/isBack">
+   <tr>
     <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td tal:condition="python: not appyType['isBack'] and (len(objs)&gt;1) and changeOrder and context.allows('Modify portal content')">
+    <td tal:condition="python: not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
       <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
                            ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
       <tal:comment replace="nothing">Move up</tal:comment>
@@ -39,23 +40,29 @@
         style="cursor:pointer"/>
       </tal:moveRef>
     </td>
-    <tal:comment replace="nothing">Edit the element</tal:comment>
-    <td tal:condition="python: not appyType['noForm'] and obj.mayEdit()">
+    <tal:comment replace="nothing">Edit</tal:comment>
+    <td tal:condition="python: not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
           tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
         <img tal:attributes="src string: $appUrl/ui/edit.gif;
                              title python: _('object_edit')"/>
        </a>
     </td>
-    <tal:comment replace="nothing">Delete the element</tal:comment>
-    <td>
+    <tal:comment replace="nothing">Delete</tal:comment>
+    <td tal:condition="python: not isBack and appyType['delete'] and canWrite and obj.mayDelete()">
       <img style="cursor:pointer"
-           tal:condition="python: not appyType['isBack'] and obj.mayDelete()"
            tal:attributes="src string: $appUrl/ui/delete.png;
                            onClick python:'onDeleteObject(\'%s\')' % obj.UID();
                            title python: _('object_delete')"/>
     </td>
-    </tr>
+    <tal:comment replace="nothing">Unlink</tal:comment>
+    <td tal:condition="python: not isBack and appyType['unlink'] and canWrite">
+      <img style="cursor:pointer"
+           tal:attributes="src string: $appUrl/ui/unlink.png;
+                           onClick python:'onUnlinkObject(\'%s\',\'%s\',\'%s\')' % (contextObj.UID(), appyType['name'], obj.UID());
+                           title python: _('object_unlink')"/>
+    </td>
+   </tr>
   </table>
 </metal:objectActions>
 

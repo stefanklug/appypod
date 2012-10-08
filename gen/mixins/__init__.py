@@ -106,6 +106,7 @@ class BaseMixin:
         self.getParentNode().manage_delObjects([self.id])
 
     def onDelete(self):
+        '''Called when an object deletion is triggered from the ui.'''
         rq = self.REQUEST
         self.delete()
         if self.getUrl(rq['HTTP_REFERER'],mode='raw') ==self.getUrl(mode='raw'):
@@ -115,6 +116,18 @@ class BaseMixin:
         else:
             urlBack = self.getUrl(rq['HTTP_REFERER'])
         self.say(self.translate('delete_done'))
+        self.goto(urlBack)
+
+    def onUnlink(self):
+        '''Called when an object unlinking is triggered from the ui.'''
+        rq = self.REQUEST
+        tool = self.getTool()
+        sourceObject = tool.getObject(rq['sourceUid'])
+        targetObject = tool.getObject(rq['targetUid'])
+        field = sourceObject.getAppyType(rq['fieldName'])
+        field.unlinkObject(sourceObject, targetObject)
+        urlBack = self.getUrl(rq['HTTP_REFERER'])
+        self.say(self.translate('unlink_done'))
         self.goto(urlBack)
 
     def onCreate(self):
@@ -1006,7 +1019,7 @@ class BaseMixin:
         return True
 
     def mayDelete(self):
-        '''May the currently logged user delete this object?.'''
+        '''May the currently logged user delete this object?'''
         res = self.allows('Delete objects')
         if not res: return
         # An additional, user-defined condition, may refine the base permission.
@@ -1014,9 +1027,10 @@ class BaseMixin:
         if hasattr(appyObj, 'mayDelete'): return appyObj.mayDelete()
         return True
 
-    def mayEdit(self):
-        '''May the currently logged user edit this object?.'''
-        res = self.allows('Modify portal content')
+    def mayEdit(self, permission='Modify portal content'):
+        '''May the currently logged user edit this object? p_perm can be a
+           field-specific permission.'''
+        res = self.allows(permission)
         if not res: return
         # An additional, user-defined condition, may refine the base permission.
         appyObj = self.appy()

@@ -318,6 +318,14 @@ function onDeleteObject(objectUid) {
   askConfirm('form', 'deleteForm', delete_confirm);
 }
 
+function onUnlinkObject(sourceUid, fieldName, targetUid) {
+  f = document.getElementById('unlinkForm');
+  f.sourceUid.value = sourceUid;
+  f.fieldName.value = fieldName;
+  f.targetUid.value = targetUid;
+  askConfirm('form', 'unlinkForm', unlink_confirm);
+}
+
 function createCookie(name, value, days) {
   if (days) {
     var date = new Date();

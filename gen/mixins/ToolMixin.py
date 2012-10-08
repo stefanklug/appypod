@@ -16,7 +16,7 @@ except ImportError:
     _noroles = []
 
 # Errors -----------------------------------------------------------------------
-jsMessages = ('no_elem_selected', 'delete_confirm')
+jsMessages = ('no_elem_selected', 'delete_confirm', 'unlink_confirm')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):
