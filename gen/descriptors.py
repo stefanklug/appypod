@@ -380,6 +380,8 @@ class FieldDescriptor:
 
     def walkCalendar(self):
         # Add i18n-specific messages
+        eTypes = self.appyType.eventTypes
+        if not isinstance(eTypes, list) and not isinstance(eTypes, tuple):return
         for et in self.appyType.eventTypes:
             label = '%s_%s_event_%s' % (self.classDescr.name,self.fieldName,et)
             msg = PoMessage(label, '', et)

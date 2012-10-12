@@ -1,4 +1,5 @@
 # ------------------------------------------------------------------------------
+import types
 from appy import Object
 from appy.gen import Type
 from DateTime import DateTime
@@ -10,20 +11,31 @@ class Calendar(Type):
     '''This field allows to produce an agenda and view/edit events on it.'''
     jsFiles = {'view': ('widgets/calendar.js',)}
 
-    def __init__(self, eventTypes, validator=None, default=None, show='view',
-                 page='main', group=None, layouts=None, move=0,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=300, colspan=1, master=None,
-                 masterValue=None, focus=False, mapping=None, label=None,
-                 maxEventLength=50, otherCalendars=None):
+    def __init__(self, eventTypes, eventNameMethod=None, validator=None,
+                 default=None, show='view', page='main', group=None,
+                 layouts=None, move=0, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=300,
+                 colspan=1, master=None, masterValue=None, focus=False,
+                 mapping=None, label=None, maxEventLength=50,
+                 otherCalendars=None):
         Type.__init__(self, validator, (0,1), None, default, False, False,
                       show, page, group, layouts, move, False, False,
                       specificReadPermission, specificWritePermission,
                       width, height, None, colspan, master, masterValue, focus,
                       False, True, mapping, label)
-        # eventTypes is a list of strings that identify the types of events
-        # that are supported by this calendar.
+        # eventTypes can be a "static" list or tuple of strings that identify
+        # the types of events that are supported by this calendar. It can also
+        # be a method that computes such a "dynamic" list or tuple. When
+        # specifying a static list, an i18n label will be generated for every
+        # event type of the list. When specifying a dynamic list, you must also
+        # give, in p_eventNameMethod, a method that will accept a single arg
+        # (=one of the event types from your dynamic list) and return the "name"
+        # of this event as it must be shown to the user.
         self.eventTypes = eventTypes
+        self.eventNameMethod = eventNameMethod
+        if (type(eventTypes) == types.FunctionType) and not eventNameMethod:
+            raise Exception("When param 'eventTypes' is a method, you must " \
+                            "give another method in param 'eventNameMethod'.")
         # It is not possible to create events that span more days than
         # maxEventLength.
         self.maxEventLength = maxEventLength
@@ -105,6 +117,14 @@ class Calendar(Type):
                 res[i][1] = res[i][0].getField(res[i][1])
             return res
 
+    def getEventTypes(self, obj):
+        '''Returns the (dynamic or static) event types as defined in
+           self.eventTypes.'''
+        if type(self.eventTypes) == types.FunctionType:
+            return self.eventTypes(obj.appy())
+        else:
+            return self.eventTypes
+
     def getEventsAt(self, obj, date, asDict=True):
         '''Returns the list of events that exist at some p_date (=day).'''
         if not hasattr(obj, self.name): return
@@ -138,10 +158,18 @@ class Calendar(Type):
             events = field.getEventsAt(o.o, date, asDict=False)
             if events:
                 eventType = events[0].eventType
-                label = '%s_event_%s' % (field.labelId, eventType)
-                info = Object(name=obj.translate(label), color=color)
+                eventName = field.getEventName(o.o, eventType)
+                info = Object(name=eventName, color=color)
                 res.append(info.__dict__)
         return res
+
+    def getEventName(self, obj, eventType):
+        '''Gets the name of the event corresponding to p_eventType as it must
+           appear to the user.'''
+        if self.eventNameMethod:
+            return self.eventNameMethod(obj.appy(), eventType)
+        else:
+            return obj.translate('%s_event_%s' % (self.labelId, eventType))
 
     def createEvent(self, obj, date, handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day). If

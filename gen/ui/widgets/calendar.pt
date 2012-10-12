@@ -71,7 +71,7 @@
        <tal:comment replace="nothing">A single event is allowed for the moment</tal:comment>
        <div tal:define="eventType python: events[0]['eventType']">
         <span style="color: grey"
-              tal:content="python: _('%s_event_%s' % (widget['labelId'], eventType))"></span>
+              tal:content="python: contextObj.callField(fieldName, 'getEventName', contextObj, eventType)"></span>
        </div>
      </tal:events>
      <tal:comment replace="nothing">Events from other calendars</tal:comment>
@@ -102,8 +102,8 @@
 
   <div align="center" style="margin-bottom: 3px" tal:content="python: _('which_event')"></div>
   <select name="eventType">
-   <option tal:repeat="eventType widget/eventTypes"
-           tal:content="python: _('%s_event_%s' % (widget['labelId'], eventType))"
+   <option tal:repeat="eventType python: contextObj.callField(fieldName, 'getEventTypes', contextObj)"
+           tal:content="python: contextObj.callField(fieldName, 'getEventName', contextObj, eventType)"
            tal:attributes="value eventType">
    </option>
   </select><br/><br/>
