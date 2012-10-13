@@ -17,7 +17,8 @@ class Calendar(Type):
                  specificWritePermission=False, width=None, height=300,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50,
-                 otherCalendars=None):
+                 otherCalendars=None, startDate=None, endDate=None,
+                 defaultDate=None):
         Type.__init__(self, validator, (0,1), None, default, False, False,
                       show, page, group, layouts, move, False, False,
                       specificReadPermission, specificWritePermission,
@@ -51,6 +52,19 @@ class Calendar(Type):
         #   leading "#" when relevant) into which events of the calendar must
         #   appear.
         self.otherCalendars = otherCalendars
+        # One may limit event encoding and viewing to a limited period of time,
+        # via p_startDate and p_endDate. Those parameters, if given, must hold
+        # methods accepting no arg and returning a Zope DateTime instance.
+        self.startDate = startDate
+        # Beware: specify an end date with an hour like
+        # DateTime('2012/10/13 23:59:59') to avoid surprises.
+        self.endDate = endDate
+        # If a default date is specified, it must be a method accepting no arg
+        # and returning a DateTime instance. As soon as the calendar is shown,
+        # the month where this date is included will be shown. If not default
+        # date is specified, it will be 'now' at the moment the calendar is
+        # shown.
+        self.defaultDate = defaultDate
 
     def getSiblingMonth(self, month, prevNext):
         '''Gets the next or previous month (depending of p_prevNext) relative
@@ -170,6 +184,22 @@ class Calendar(Type):
             return self.eventNameMethod(obj.appy(), eventType)
         else:
             return obj.translate('%s_event_%s' % (self.labelId, eventType))
+
+    def getStartDate(self, obj):
+        '''Get the start date for this calendar if defined.'''
+        if self.startDate: return self.startDate(obj.appy())
+
+    def getEndDate(self, obj):
+        '''Get the end date for this calendar if defined.'''
+        if self.endDate: return self.endDate(obj.appy())
+
+    def getDefaultDate(self, obj):
+        '''Get the default date that must appear as soon as the calendar is
+           shown.'''
+        if self.defaultDate:
+            return self.defaultDate(obj.appy())
+        else:
+            return DateTime() # Now
 
     def createEvent(self, obj, date, handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day). If
