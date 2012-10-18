@@ -94,7 +94,9 @@ class AbstractWrapper(object):
         '''Gets the attribute named p_name. Lot of cheating here.'''
         if name == 'o': return object.__getattribute__(self, name)
         elif name == 'tool': return self.o.getTool().appy()
-        elif name == 'request': return self.o.REQUEST
+        elif name == 'request':
+            # The request may not be present, ie if we are at Zope startup.
+            return getattr(self.o, 'REQUEST', None)
         elif name == 'session': return self.o.REQUEST.SESSION
         elif name == 'typeName': return self.__class__.__bases__[-1].__name__
         elif name == 'id': return self.o.id

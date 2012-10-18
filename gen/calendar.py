@@ -141,6 +141,7 @@ class Calendar(Type):
 
     def getEventsAt(self, obj, date, asDict=True):
         '''Returns the list of events that exist at some p_date (=day).'''
+        obj = obj.o # Ensure p_obj is not a wrapper.
         if not hasattr(obj, self.name): return
         years = getattr(obj, self.name)
         year = date.year()
@@ -267,4 +268,18 @@ class Calendar(Type):
             return self.createEvent(obj, DateTime(rq['day']))
         elif action == 'deleteEvent':
             return self.deleteEvent(obj, DateTime(rq['day']))
+
+    def getCellStyle(self, obj, date, today):
+        '''What CSS classes must apply to the table cell representing p_date
+           in the calendar?'''
+        res = []
+        # We must distinguish between past and future dates.
+        if date < today:
+            res.append('even')
+        else:
+            res.append('odd')
+        # Week-end days must have a specific style.
+        if date.aDay() in ('Sat', 'Sun'):
+            res.append('cellDashed')
+        return ' '.join(res)
 # ------------------------------------------------------------------------------

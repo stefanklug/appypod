@@ -570,11 +570,8 @@ class ToolClassDescriptor(ClassDescriptor):
         groupName = classDescr.klass.__name__
         # Adds a field allowing to show/hide completely any workflow-related
         # information for a given class.
-        defaultValue = False
-        if classDescr.isRoot() or issubclass(classDescr.klass, ModelClass):
-            defaultValue = True
         fieldName = 'showWorkflowFor%s' % className
-        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
+        fieldType = gen.Boolean(default=True, page='userInterface',
                                 group=groupName)
         self.addField(fieldName, fieldType)
         # Adds the boolean field for showing all states in current state or not.

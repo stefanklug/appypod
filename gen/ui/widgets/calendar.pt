@@ -61,10 +61,10 @@
    <tal:cell repeat="date row">
     <tal:cel define="tooEarly python: startDate and (date &lt; startDate);
                      tooLate python: endDate and not tooEarly and (date &gt; endDate);
-                     inRange python: not tooEarly and not tooLate">
+                     inRange python: not tooEarly and not tooLate;
+                     cssClasses python: contextObj.callField(fieldName, 'getCellStyle', contextObj, date, today)">
      <tal:comment replace="nothing">Dump an empty cell if we are out of the supported date range</tal:comment>
-     <td tal:condition="not: inRange"
-         tal:attributes="class python: test(date &lt; today, 'even', 'odd');">
+     <td tal:condition="not: inRange" tal:attributes="class cssClasses">
      </td>
      <tal:comment replace="nothing">Dump a normal cell if we are in range</tal:comment>
      <tal:td condition="inRange">
@@ -73,7 +73,7 @@
                      mayCreate python: mayEdit and not events;
                      mayDelete python: mayEdit and events;"
          tal:attributes="style python: test(date.isCurrentDay(), 'font-weight:bold', 'font-weight:normal');
-                         class python: test(date &lt; today, 'even', 'odd');
+                         class cssClasses;
                          onmouseover python: test(mayEdit, 'this.getElementsByTagName(\'img\')[0].style.visibility=\'visible\'', '');
                          onmouseout python: test(mayEdit, 'this.getElementsByTagName(\'img\')[0].style.visibility=\'hidden\'', '')">
       <tal:day define="day date/day;

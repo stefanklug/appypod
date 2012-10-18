@@ -9,7 +9,7 @@ import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
-from appy.shared.utils import sequenceTypes
+from appy.shared.utils import sequenceTypes, normalizeText
 from appy.shared.data import rtlLanguages
 
 # ------------------------------------------------------------------------------
@@ -1215,7 +1215,7 @@ class BaseMixin:
 
     def SortableTitle(self):
         '''Returns the title as must be stored in index "SortableTitle".'''
-        return self.Title()
+        return normalizeText(self.Title())
 
     def SearchableText(self):
         '''This method concatenates the content of every field with
