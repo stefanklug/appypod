@@ -21,9 +21,9 @@ import os, os.path, sys, zipfile, re, shutil
 import appy.shared.test
 from appy.shared.test import TesterError
 from appy.shared.utils import FolderDeleter
+from appy.shared.xml_parser import escapeXml
 from appy.pod.odf_parser import OdfEnvironment, OdfParser
 from appy.pod.renderer import Renderer
-from appy.pod import XML_SPECIAL_CHARS
 
 # TesterError-related constants ------------------------------------------------
 TEMPLATE_NOT_FOUND = 'Template file "%s" was not found.'
@@ -70,12 +70,7 @@ class AnnotationsRemover(OdfParser):
             self.res += '</%s>' % elem
     def characters(self, content):
         e = OdfParser.characters(self, content)
-        if not self.ignore:
-            for c in content:
-                if XML_SPECIAL_CHARS.has_key(c):
-                    self.res += XML_SPECIAL_CHARS[c]
-                else:
-                    self.res += c
+        if not self.ignore: self.res += escapeXml(content)
     def getResult(self):
         return self.res
 

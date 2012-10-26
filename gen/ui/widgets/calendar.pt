@@ -104,6 +104,9 @@
               tal:attributes="style python: 'color: %s;; font-style: italic' % event['color']"></div>
         </tal:e>
        </tal:others>
+       <tal:comment replace="nothing">Additional info</tal:comment>
+       <tal:info define="info python: contextObj.callField(fieldName,'getAdditionalInfoAt', contextObj, date)"
+                 condition="info" replace="structure info"/>
       </tal:day>
      </td>
      </tal:td>

@@ -10,8 +10,9 @@ class OdtTable:
     tns = 'table:'
     txns = 'text:'
 
-    def __init__(self, name, paraStyle, cellStyle, nbOfCols,
-                 paraHeaderStyle=None, cellHeaderStyle=None, html=False):
+    def __init__(self, name, paraStyle='podTablePara', cellStyle='podTableCell',
+                 nbOfCols=1, paraHeaderStyle=None, cellHeaderStyle=None,
+                 html=False):
         # An ODT table must have a name. In the case of an HTML table, p_name
         # represents the CSS class for the whole table.
         self.name = name
@@ -24,7 +25,7 @@ class OdtTable:
         # The default style of every paragraph within a header cell
         self.paraHeaderStyle = paraHeaderStyle or paraStyle
         # The default style of every header cell
-        self.cellHeaderStyle = cellHeaderStyle or cellStyle
+        self.cellHeaderStyle = cellHeaderStyle or 'podTableHeaderCell'
         # The buffer where the resulting table will be rendered
         self.res = ''
         # Do we need to generate an HTML table instead of an ODT table ?

@@ -56,6 +56,9 @@ else:
         # Log as Zope admin
         from AccessControl.SecurityManagement import newSecurityManager
         user = app.acl_users.getUserById(zopeUser)
+        if not user:
+            # Try with user "admin"
+            user = app.acl_users.getUserById('admin')
         if not hasattr(user, 'aq_base'):
             user = user.__of__(app.acl_users)
         newSecurityManager(None, user)

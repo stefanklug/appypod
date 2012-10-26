@@ -17,8 +17,8 @@ class Calendar(Type):
                  specificWritePermission=False, width=None, height=300,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50,
-                 otherCalendars=None, startDate=None, endDate=None,
-                 defaultDate=None):
+                 otherCalendars=None, additionalInfo=None, startDate=None,
+                 endDate=None, defaultDate=None):
         Type.__init__(self, validator, (0,1), None, default, False, False,
                       show, page, group, layouts, move, False, False,
                       specificReadPermission, specificWritePermission,
@@ -52,6 +52,12 @@ class Calendar(Type):
         #   leading "#" when relevant) into which events of the calendar must
         #   appear.
         self.otherCalendars = otherCalendars
+        # One may want to add custom information in the calendar. When a method
+        # is given in p_additionalInfo, for every cell of the month view, this
+        # method will be called with a single arg (the cell's date). The
+        # method's result (a string that can hold text or a chunk of XHTML) will
+        # be inserted in the cell.
+        self.additionalInfo = additionalInfo
         # One may limit event encoding and viewing to a limited period of time,
         # via p_startDate and p_endDate. Those parameters, if given, must hold
         # methods accepting no arg and returning a Zope DateTime instance.
@@ -131,6 +137,13 @@ class Calendar(Type):
                 res[i][1] = res[i][0].getField(res[i][1])
             return res
 
+    def getAdditionalInfoAt(self, obj, date):
+        '''If the user has specified a method in self.additionalInfo, we call
+           it for displaying this additional info in the calendar, at some
+           p_date.'''
+        if not self.additionalInfo: return
+        return self.additionalInfo(obj.appy(), date)
+
     def getEventTypes(self, obj):
         '''Returns the (dynamic or static) event types as defined in
            self.eventTypes.'''
@@ -157,6 +170,13 @@ class Calendar(Type):
         else:
             res = days[day]
         return res
+
+    def getEventTypeAt(self, obj, date):
+        '''Returns the event type of the first event defined at p_day, or None
+           if unspecified.'''
+        events = self.getEventsAt(obj, date, asDict=False)
+        if not events: return
+        return events[0].eventType
 
     def hasEventsAt(self, obj, date, otherEvents):
         '''Returns True if, at p_date, an event is found of the same type as
@@ -202,11 +222,20 @@ class Calendar(Type):
         else:
             return DateTime() # Now
 
-    def createEvent(self, obj, date, handleEventSpan=True):
-        '''Create a new event in the calendar, at some p_date (day). If
-           p_handleEventSpan is True, we will use rq["eventSpan"] and also
+    def createEvent(self, obj, date, eventType=None, eventSpan=None,
+                    handleEventSpan=True):
+        '''Create a new event in the calendar, at some p_date (day).
+           If p_eventType is given, it is used; else, rq['eventType'] is used.
+           If p_handleEventSpan is True, we will use p_eventSpan (or
+           rq["eventSpan"] if p_eventSpan is not given) and also
            create the same event for successive days.'''
+        obj = obj.o # Ensure p_obj is not a wrapper.
         rq = obj.REQUEST
+        # Get values from parameters
+        if not eventType: eventType = rq['eventType']
+        if handleEventSpan and not eventSpan:
+            eventSpan = rq.get('eventSpan', None)
+        # Split the p_date into separate parts
         year, month, day = date.year(), date.month(), date.day()
         # Check that the "preferences" dict exists or not.
         if not hasattr(obj.aq_base, self.name):
@@ -230,11 +259,11 @@ class Calendar(Type):
             daysDict[day] = events = PersistentList()
         # Create and store the event, excepted if an event already exists.
         if not events:
-            event = Object(eventType=rq['eventType'])
+            event = Object(eventType=eventType)
             events.append(event)
         # Span the event on the successive days if required
-        if handleEventSpan and rq['eventSpan']:
-            nbOfDays = min(int(rq['eventSpan']), self.maxEventLength)
+        if handleEventSpan and eventSpan:
+            nbOfDays = min(int(eventSpan), self.maxEventLength)
             for i in range(nbOfDays):
                 date = date + 1
                 self.createEvent(obj, date, handleEventSpan=False)
@@ -243,6 +272,7 @@ class Calendar(Type):
         '''Deletes an event. It actually deletes all events at rq['day'].
            If p_handleEventSpan is True, we will use rq["deleteNext"] to
            delete successive events, too.'''
+        obj = obj.o # Ensure p_obj is not a wrapper.
         rq = obj.REQUEST
         if not self.getEventsAt(obj, date): return
         daysDict = getattr(obj, self.name)[date.year()][date.month()]

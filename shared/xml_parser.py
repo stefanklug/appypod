@@ -22,16 +22,19 @@ import xml.sax, difflib, types, cgi
 from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges
 from xml.sax.xmlreader import InputSource
 from xml.sax import SAXParseException
-from appy.shared import UnicodeBuffer, xmlPrologue
+from appy.shared import UnicodeBuffer
 from appy.shared.errors import AppyError
 from appy.shared.utils import sequenceTypes
 from appy.shared.css import parseStyleAttribute
 
 # Constants --------------------------------------------------------------------
+xmlPrologue = '<?xml version="1.0" encoding="utf-8" ?>\n'
 CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
                    'unmarshaller.'
 CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \
                           'error while converting value "%s". %s'
+XML_SPECIAL_CHARS = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
+                     "'": '&apos;'}
 XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': "'", 'apos': "'"}
 HTML_ENTITIES = {
         'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
@@ -59,6 +62,38 @@ import htmlentitydefs
 for k, v in htmlentitydefs.entitydefs.iteritems():
     if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
         HTML_ENTITIES[k] = ''
+
+def escapeXml(s):
+    '''Returns p_s, whose XML special chars have been replaced with escaped XML
+       entities.'''
+    if isinstance(s, unicode):
+        res = u''
+    else:
+        res = ''
+    for c in s:
+        if XML_SPECIAL_CHARS.has_key(c):
+            res += XML_SPECIAL_CHARS[c]
+        else:
+            res += c
+    return res
+
+def escapeXhtml(s):
+    '''Return p_s, whose XHTML special chars and carriage return chars have
+       been replaced with corresponding XHTML entities.'''
+    if isinstance(s, unicode):
+        res = u''
+    else:
+        res = ''
+    for c in s:
+        if XML_SPECIAL_CHARS.has_key(c):
+            res += XML_SPECIAL_CHARS[c]
+        elif c == '\n':
+            res += '<br/>'
+        elif c == '\r':
+            pass
+        else:
+            res += c
+    return res
 
 # ------------------------------------------------------------------------------
 class XmlElement:

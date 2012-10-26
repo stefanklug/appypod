@@ -10,7 +10,7 @@
 
 # ------------------------------------------------------------------------------
 import xml.sax, time, random
-from appy.shared.xml_parser import XmlEnvironment, XmlParser
+from appy.shared.xml_parser import XmlEnvironment, XmlParser, escapeXml
 from appy.pod.odf_parser import OdfEnvironment
 from appy.pod.styles_manager import Style
 from appy.pod import *
@@ -235,6 +235,10 @@ class HtmlTable:
         # The following list stores, for every column, the size of the biggest
         # content of all its cells.
         self.columnContentSizes = []
+        # The following list stores, for every column, its width, if specified.
+        # If widths are found, self.columnContentSizes will not be used:
+        # self.columnWidths will be used instead.
+        self.columnWidths = []
 
     def computeColumnStyles(self, renderer):
         '''Once the table has been completely parsed, self.columnContentSizes
@@ -242,22 +246,34 @@ class HtmlTable:
            of every column and create the corresponding style declarations, in
            p_renderer.dynamicStyles.'''
         total = 65000.0 # A number representing the total width of the table
-        # Ensure first that self.columnContentSizes is correct
-        if (len(self.columnContentSizes) != self.nbOfColumns) or \
-           (None in self.columnContentSizes):
-            # There was a problem while parsing the table. Set every column
-            # with the same width.
-            widths = [int(total/self.nbOfColumns)] * self.nbOfColumns
+        # Use (a) self.columnWidths if complete, or
+        #     (b) self.columnContentSizes if complete, or
+        #     (c) a fixed width else.
+        if self.columnWidths and (len(self.columnWidths) == self.nbOfColumns) \
+           and (None not in self.columnWidths):
+            # Use self.columnWidths
+            toUse = self.columnWidths
+        # Use self.columnContentSizes if complete
+        elif (len(self.columnContentSizes) == self.nbOfColumns) and \
+           (None not in self.columnContentSizes):
+            # Use self.columnContentSizes
+            toUse = self.columnContentSizes
         else:
+            toUse = None
+        if toUse:
             widths = []
             # Compute the sum of all column content sizes
             contentTotal = 0
-            for size in self.columnContentSizes: contentTotal += size
+            for size in toUse: contentTotal += size
             contentTotal = float(contentTotal)
-            for size in self.columnContentSizes:
+            for size in toUse:
                 width = int((size/contentTotal) * total)
                 widths.append(width)
-        # Compute style declatation corresponding to every column.
+        else:
+            # There was a problem while parsing the table. Set every column
+            # with the same width.
+            widths = [int(total/self.nbOfColumns)] * self.nbOfColumns
+        # Compute style declaration corresponding to every column.
         s = self.styleNs
         i = 0
         for width in widths:
@@ -321,14 +337,10 @@ class XhtmlEnvironment(XmlEnvironment):
                 currentElem.addInnerParagraph(self)
             # Dump and reinitialize the current content
             content = self.currentContent.strip('\n\t')
+            # We remove leading and trailing carriage returns, but not
+            # whitespace because whitespace may be part of the text to dump.
             contentSize = len(content)
-            for c in content:
-                # We remove leading and trailing carriage returns, but not
-                # whitespace because whitespace may be part of the text to dump.
-                if XML_SPECIAL_CHARS.has_key(c):
-                    self.dumpString(XML_SPECIAL_CHARS[c])
-                else:
-                    self.dumpString(c)
+            self.dumpString(escapeXml(content))
             self.currentContent = u''
         # If we are within a table cell, update the total size of cell content.
         if self.currentTables and self.currentTables[-1].inCell:
@@ -444,6 +456,16 @@ class XhtmlEnvironment(XmlEnvironment):
             # If we are in the first row of a table, update columns count
             if not table.firstRowParsed:
                 table.nbOfColumns += colspan
+            if attrs.has_key('width') and (colspan == 1):
+                # Get the width, keep figures only.
+                width = ''
+                for c in attrs['width']:
+                    if c.isdigit(): width += c
+                width = int(width)
+                # Ensure self.columnWidths is long enough
+                while (len(table.columnWidths)-1) < table.cellIndex:
+                    table.columnWidths.append(None)
+                table.columnWidths[table.cellIndex] = width
         return currentElem
 
     def onElementEnd(self, elem):
@@ -525,7 +547,8 @@ class XhtmlParser(XmlParser):
         elif elem == 'a':
             e.dumpString('<%s %s:type="simple"' % (odfTag, e.linkNs))
             if attrs.has_key('href'):
-                e.dumpString(' %s:href="%s"' % (e.linkNs, attrs['href']))
+                e.dumpString(' %s:href="%s"' % (e.linkNs,
+                                                escapeXml(attrs['href'])))
             e.dumpString('>')
         elif elem in XHTML_LISTS:
             prologue = ''
