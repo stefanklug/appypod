@@ -8,7 +8,8 @@ from persistent.list import PersistentList
 
 # ------------------------------------------------------------------------------
 class Calendar(Type):
-    '''This field allows to produce an agenda and view/edit events on it.'''
+    '''This field allows to produce an agenda (monthly view) and view/edit
+       events on it.'''
     jsFiles = {'view': ('widgets/calendar.js',)}
 
     def __init__(self, eventTypes, eventNameMethod=None, validator=None,
@@ -18,7 +19,8 @@ class Calendar(Type):
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50,
                  otherCalendars=None, additionalInfo=None, startDate=None,
-                 endDate=None, defaultDate=None):
+                 endDate=None, defaultDate=None, preCompute=None,
+                 applicableEvents=None):
         Type.__init__(self, validator, (0,1), None, default, False, False,
                       show, page, group, layouts, move, False, False,
                       specificReadPermission, specificWritePermission,
@@ -40,8 +42,23 @@ class Calendar(Type):
         # It is not possible to create events that span more days than
         # maxEventLength.
         self.maxEventLength = maxEventLength
-        # If a method is specified in the following parameters, it must return
-        # a list of calendars whose events must be shown within this agenda.
+        # When displaying a given month for this agenda, one may want to
+        # pre-compute, once for the whole month, some information that will then
+        # be given as arg for other methods specified in subsequent parameters.
+        # This mechanism exists for performance reasons, to avoid recomputing
+        # this global information several times. If you specify a method in
+        # p_preCompute, it will be called every time a given month is shown, and
+        # will receive 2 args: the first day of the currently shown month (as a
+        # DateTime instance) and the grid of all shown dates (as a list of lists
+        # of DateTime instances, one sub-list by row in the month view). This
+        # grid may hold a little more than dates of the current month.
+        # Subsequently, the return of your method will be given as arg to other
+        # methods that you may specify as args of other parameters of this
+        # Calendar class (see comments below).
+        self.preCompute = preCompute
+        # If a method is specified in the following parameters, it must accept
+        # a single arg (the result of self.preCompute) and must return a list of
+        # calendars whose events must be shown within this agenda.
         # Every element in this list must be a sub-list [object, name, color]
         # (not a tuple):
         # - object must refer to the other object on which the other calendar
@@ -52,11 +69,11 @@ class Calendar(Type):
         #   leading "#" when relevant) into which events of the calendar must
         #   appear.
         self.otherCalendars = otherCalendars
-        # One may want to add custom information in the calendar. When a method
-        # is given in p_additionalInfo, for every cell of the month view, this
-        # method will be called with a single arg (the cell's date). The
-        # method's result (a string that can hold text or a chunk of XHTML) will
-        # be inserted in the cell.
+        # One may want to add, day by day, custom information in the calendar.
+        # When a method is given in p_additionalInfo, for every cell of the
+        # month view, this method will be called with 2 args: the cell's date
+        # and the result of self.preCompute. The method's result (a string that
+        # can hold text or a chunk of XHTML) will be inserted in the cell.
         self.additionalInfo = additionalInfo
         # One may limit event encoding and viewing to a limited period of time,
         # via p_startDate and p_endDate. Those parameters, if given, must hold
@@ -71,6 +88,23 @@ class Calendar(Type):
         # date is specified, it will be 'now' at the moment the calendar is
         # shown.
         self.defaultDate = defaultDate
+        # For a specific day, all event types may not be applicable. If this is
+        # the case, one may specify here a method that defines, for a given day,
+        # a sub-set of all event types. This method must accept 3 args: the day
+        # in question (as a DateTime instance), the list of all event types,
+        # which is a copy of the (possibly computed) self.eventTypes) and
+        # the result of calling self.preCompute. The method must modify
+        # the 2nd arg and remove from it potentially not applicable events.
+        # This method can also return a message, that will be shown to the user
+        # for explaining him why he can, for this day, only create events of a
+        # sub-set of the possible event types (or even no event at all).
+        self.applicableEvents = applicableEvents
+
+    def getPreComputedInfo(self, obj, monthDayOne, grid):
+        '''Returns the result of calling self.preComputed, or None if no such
+           method exists.'''
+        if self.preCompute:
+            return self.preCompute(obj.appy(), monthDayOne, grid)
 
     def getSiblingMonth(self, month, prevNext):
         '''Gets the next or previous month (depending of p_prevNext) relative
@@ -127,22 +161,22 @@ class Calendar(Type):
                 currentDay = currentDay + 1
         return res
 
-    def getOtherCalendars(self, obj):
+    def getOtherCalendars(self, obj, preComputed):
         '''Returns the list of other calendars whose events must also be shown
            on this calendar.'''
         if self.otherCalendars:
-            res = self.callMethod(obj, self.otherCalendars)
+            res = self.callMethod(obj, self.otherCalendars, preComputed)
             # Replace field names with field objects
             for i in range(len(res)):
                 res[i][1] = res[i][0].getField(res[i][1])
             return res
 
-    def getAdditionalInfoAt(self, obj, date):
+    def getAdditionalInfoAt(self, obj, date, preComputed):
         '''If the user has specified a method in self.additionalInfo, we call
            it for displaying this additional info in the calendar, at some
            p_date.'''
         if not self.additionalInfo: return
-        return self.additionalInfo(obj.appy(), date)
+        return self.additionalInfo(obj.appy(), date, preComputed)
 
     def getEventTypes(self, obj):
         '''Returns the (dynamic or static) event types as defined in
@@ -151,6 +185,32 @@ class Calendar(Type):
             return self.eventTypes(obj.appy())
         else:
             return self.eventTypes
+
+    def getApplicableEventsTypesAt(self, obj, date, allEventTypes, preComputed,
+                                   forBrowser=False):
+        '''Returns the event types that are applicable at a given p_date. More
+           precisely, it returns an object with 2 attributes:
+           * "events" is the list of applicable event types;
+           * "message", not empty if some event types are not applicable,
+                        contains a message explaining those event types are
+                        not applicable.
+        '''
+        if not self.applicableEvents:
+            eventTypes = allEventTypes
+            message = None
+        else:
+            eventTypes = allEventTypes[:]
+            message = self.applicableEvents(obj.appy(), date, eventTypes,
+                                            preComputed)
+        res = Object(eventTypes=eventTypes, message=message)
+        if forBrowser:
+            res.eventTypes = ','.join(res.eventTypes)
+            if not res.message:
+                res.message = ''
+            else:
+                res.message = obj.formatText(res.message, format='js')
+            return res.__dict__
+        return res
 
     def getEventsAt(self, obj, date, asDict=True):
         '''Returns the list of events that exist at some p_date (=day).'''

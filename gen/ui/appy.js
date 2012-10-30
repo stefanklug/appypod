@@ -217,12 +217,14 @@ function getSlaveInfo(slave, infoType) {
 
 function getMasterValues(master) {
   // Returns the list of values that p_master currently has.
+  var res = null;
   if ((master.tagName == 'INPUT') && (master.type != 'checkbox')) {
     res = master.value;
-    if ((res[0] == '(') || (res[0] == '[')) {
+    if ((res.charAt(0) == '(') || (res.charAt(0) == '[')) {
       // There are multiple values, split it
       values = res.substring(1, res.length-1).split(',');
       res = [];
+      var v = null;
       for (var i=0; i < values.length; i++){
         v = values[i].replace(' ', '');
         res.push(v.substring(1, v.length-1));

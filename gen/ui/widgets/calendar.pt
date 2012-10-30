@@ -5,9 +5,11 @@
                  month request/month;
                  monthDayOne python: DateTime('%s/01' % month);
                  today python: DateTime('00:00');
+                 grid python: contextObj.callField(fieldName, 'getMonthGrid', month);
+                 allEventTypes python: contextObj.callField(fieldName, 'getEventTypes', contextObj);
+                 preComputed python: contextObj.callField(fieldName, 'getPreComputedInfo', contextObj, monthDayOne, grid);
                  defaultDate python: contextObj.callField(fieldName, 'getDefaultDate', contextObj);
                  defaultDateMonth python: defaultDate.strftime('%Y/%m');
-                 grid python: contextObj.callField(fieldName, 'getMonthGrid', month);
                  previousMonth python: contextObj.callField(fieldName, 'getSiblingMonth', month, 'previous');
                  nextMonth python: contextObj.callField(fieldName, 'getSiblingMonth', month, 'next');
                  widget python: contextObj.getAppyType(fieldName, asDict=True);
@@ -15,7 +17,7 @@
                  objUrl contextObj/absolute_url;
                  startDate python: contextObj.callField(fieldName, 'getStartDate', contextObj);
                  endDate python: contextObj.callField(fieldName, 'getEndDate', contextObj);
-                 otherCalendars python: contextObj.callField(fieldName, 'getOtherCalendars', contextObj);"
+                 otherCalendars python: contextObj.callField(fieldName, 'getOtherCalendars', contextObj, preComputed);"
      tal:attributes="id ajaxHookId">
 
 <script type="text/javascript"
@@ -82,13 +84,17 @@
        <span tal:condition="python: day == 1"
              tal:content="python: _('month_%s_short' % date.aMonth())"></span>
        <tal:comment replace="nothing">Icon for adding an event</tal:comment>
-       <img tal:condition="mayCreate" style="visibility:hidden; cursor:pointer"
-            tal:attributes="src string: $appUrl/ui/plus.png;
-                          onclick python: 'openEventPopup(\'new\',\'%s\',\'%s\')' % (fieldName, dayString)"/>
+       <tal:create condition="mayCreate">
+        <img style="visibility:hidden; cursor:pointer"
+             tal:define="info python: contextObj.callField(fieldName, 'getApplicableEventsTypesAt', contextObj, date, allEventTypes, preComputed, True)"
+             tal:condition="info/eventTypes"
+             tal:attributes="src string: $appUrl/ui/plus.png;
+                             onclick python: 'openEventPopup(\'new\',\'%s\',\'%s\',null,\'%s\',\'%s\')' % (fieldName, dayString, info['eventTypes'], info['message'])"/>
+       </tal:create>
        <tal:comment replace="nothing">Icon for deleting an event</tal:comment>
        <img tal:condition="mayDelete" style="visibility:hidden; cursor:pointer"
             tal:attributes="src string: $appUrl/ui/delete.png;
-                          onclick python: 'openEventPopup(\'del\',\'%s\',\'%s\',\'%s\')' % (fieldName, dayString, str(spansDays))"/>
+                          onclick python: 'openEventPopup(\'del\',\'%s\',\'%s\',\'%s\',null,null)' % (fieldName, dayString, str(spansDays))"/>
        <tal:events condition="events">
        <tal:comment replace="nothing">A single event is allowed for the moment</tal:comment>
        <div tal:define="eventType python: events[0]['eventType']">
@@ -105,7 +111,7 @@
         </tal:e>
        </tal:others>
        <tal:comment replace="nothing">Additional info</tal:comment>
-       <tal:info define="info python: contextObj.callField(fieldName,'getAdditionalInfoAt', contextObj, date)"
+       <tal:info define="info python: contextObj.callField(fieldName,'getAdditionalInfoAt', contextObj, date, preComputed)"
                  condition="info" replace="structure info"/>
       </tal:day>
      </td>
@@ -127,9 +133,11 @@
   <input type="hidden" name="actionType" value="createEvent"/>
   <input type="hidden" name="day"/>
 
+  <tal:comment replace="nothing">Choose an event type</tal:comment>
   <div align="center" style="margin-bottom: 3px" tal:content="python: _('which_event')"></div>
   <select name="eventType">
-   <option tal:repeat="eventType python: contextObj.callField(fieldName, 'getEventTypes', contextObj)"
+   <option value="" tal:content="python: _('choose_a_value')"></option>
+   <option tal:repeat="eventType allEventTypes"
            tal:content="python: contextObj.callField(fieldName, 'getEventName', contextObj, eventType)"
            tal:attributes="value eventType">
    </option>
