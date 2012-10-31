@@ -1,8 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, re, time, random, types, base64, urllib
-from appy.shared import mimeTypes
-from appy.shared.utils import getOsTempFolder, sequenceTypes
-from appy.shared.data import languages
+from appy import Object
 import appy.gen
 from appy.gen import Type, Search, Selection, String
 from appy.gen.utils import SomeObjects, getClassName
@@ -10,6 +8,9 @@ from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
 from appy.gen.mail import sendMail
+from appy.shared import mimeTypes
+from appy.shared.utils import getOsTempFolder, sequenceTypes
+from appy.shared.data import languages
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -681,11 +682,15 @@ class ToolMixin(BaseMixin):
         return obj, fieldName
 
     def getSearches(self, contentType):
-        '''Returns the list of searches that are defined for p_contentType.
-           Every list item is a dict that contains info about a search or about
-           a group of searches.'''
+        '''Returns an object with 2 attributes:
+           * "searches" stores the searches that are defined for p_contentType;
+           * "default" stores the search defined as default one.
+           Every item representing a search is a dict containing info about a
+           search or about a group of searches.
+        '''
         appyClass = self.getAppyClass(contentType)
-        res = []
+        searches = []
+        default = None # Also retrieve the default one here.
         visitedGroups = {} # Names of already visited search groups
         for search in ClassDescriptor.getSearches(appyClass):
             # Determine first group label, we will need it.
@@ -699,7 +704,7 @@ class ToolMixin(BaseMixin):
                          'label': self.translate(groupLabel),
                          'descr': self.translate('%s_descr' % groupLabel),
                 }
-                res.append(group)
+                searches.append(group)
                 visitedGroups[search.group] = group
             # Add the search itself
             searchLabel = '%s_search_%s' % (contentType, search.name)
@@ -709,8 +714,10 @@ class ToolMixin(BaseMixin):
             if search.group:
                 visitedGroups[search.group]['searches'].append(dSearch)
             else:
-                res.append(dSearch)
-        return res
+                searches.append(dSearch)
+            if search.default:
+                default = dSearch
+        return Object(searches=searches, default=default).__dict__
 
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)

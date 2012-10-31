@@ -29,14 +29,12 @@ class PoMessage:
     # The following messages (starting with MSG_) correspond to tool
     # attributes added for every gen-class (warning: the message IDs correspond
     # to MSG_<attributePrefix>).
-    MSG_defaultValue = "Default value for field '%s'"
     MSG_podTemplate = "POD template for field '%s'"
     MSG_formats = "Output format(s) for field '%s'"
     MSG_resultColumns = "Columns to display while showing query results"
     MSG_enableAdvancedSearch = "Enable advanced search"
     MSG_numberOfSearchColumns = "Number of search columns"
     MSG_searchFields = "Search fields"
-    MSG_optionalFields = 'Optional fields'
     MSG_showWorkflow = 'Show workflow-related information'
     MSG_showAllStatesInPhase = 'Show all states in phase'
     POD_ASKACTION = 'Trigger related action'

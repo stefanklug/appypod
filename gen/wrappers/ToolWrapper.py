@@ -83,16 +83,9 @@ class ToolWrapper(AbstractWrapper):
         '''Some names of Tool attributes are not easy to guess. For example,
            the attribute that stores the names of the columns to display in
            query results for class A that is in package x.y is
-           "tool.resultColumnsForx_y_A". Other example: the attribute that
-           stores the editable default value of field "f1" of class x.y.A is
-           "tool.defaultValueForx_y_A_f1". This method generates the attribute
+           "tool.resultColumnsForx_y_A". This method generates the attribute
            name based on p_attributeType, a p_klass from the application, and a
-           p_attrName (given only if needed, for example if p_attributeType is
-           "defaultValue"). p_attributeType may be:
-
-           "defaultValue"
-               Stores the editable default value for a given p_attrName of a
-               given p_klass.
+           p_attrName (given only if needed). p_attributeType may be:
 
            "podTemplate"
                Stores the pod template for p_attrName.
@@ -116,10 +109,6 @@ class ToolWrapper(AbstractWrapper):
            "searchFields"
                Determines, among all indexed fields for p_klass, which one will
                really be used in the search screen.
-
-           "optionalFields"
-               Stores the list of optional attributes that are in use in the
-               tool for the given p_klass.
 
            "showWorkflow"
                Stores the boolean field indicating if we must show workflow-

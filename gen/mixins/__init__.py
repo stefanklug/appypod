@@ -1285,6 +1285,15 @@ class BaseMixin:
             return stateShow(workflow, self.appy())
         else: return stateShow
 
+    def _appy_listStates(self):
+        '''Lists the possible states for this object.'''
+        res = []
+        workflow = self.getWorkflow()
+        for elem in dir(workflow):
+            if getattr(workflow, elem).__class__.__name__ != 'State': continue
+            res.append((elem, self.translate(self.getWorkflowLabel(elem))))
+        return res
+
     def _appy_managePermissions(self):
         '''When an object is created or updated, we must update "add"
            permissions accordingly: if the object is a folder, we must set on

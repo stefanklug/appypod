@@ -300,12 +300,15 @@ class Import:
 class Search:
     '''Used for specifying a search for a given type.'''
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
-                 **fields):
+                 default=False, **fields):
         self.name = name
         self.group = group # Searches may be visually grouped in the portlet
         self.sortBy = sortBy
         self.sortOrder = sortOrder
         self.limit = limit
+        # If this search is the default one, it will be triggered by clicking
+        # on main link.
+        self.default = default
         # In the dict below, keys are indexed field names and values are
         # search values.
         self.fields = fields
@@ -368,46 +371,32 @@ class Type:
     jsFiles = {}
     dLayouts = 'lrv-d-f'
 
-    def __init__(self, validator, multiplicity, index, default, optional,
-                 editDefault, show, page, group, layouts, move, indexed,
-                 searchable, specificReadPermission, specificWritePermission,
-                 width, height, maxChars, colspan, master, masterValue, focus,
-                 historized, sync, mapping, label):
+    def __init__(self, validator, multiplicity, default, show, page, group,
+                 layouts, move, indexed, searchable, specificReadPermission,
+                 specificWritePermission, width, height, maxChars, colspan,
+                 master, masterValue, focus, historized, sync, mapping, label,
+                 defaultForSearch):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
         self.validator = validator
-        # Multiplicity is a tuple indicating the minimum and maximum
+        # Multiplicity is a 2-tuple indicating the minimum and maximum
         # occurrences of values.
         self.multiplicity = multiplicity
-        # Type of the index on the values. If you want to represent a simple
-        # (ordered) list of values, specify None. If you want to
-        # index your values with unordered integers or with other types like
-        # strings (thus creating a dictionary of values instead of a list),
-        # specify a type specification for the index, like Integer() or
-        # String(). Note that this concept of "index" has nothing to do with
-        # the concept of "database index" (see fields "indexed" and
-        # "searchable" below). self.index is not yet used.
-        self.index = index
-        # Default value
-        self.default = default
-        # Is the field optional or not ?
-        self.optional = optional
         # Is the field required or not ? (derived from multiplicity)
         self.required = self.multiplicity[0] > 0
-        # May the user configure a default value ?
-        self.editDefault = editDefault
+        # Default value
+        self.default = default
         # Must the field be visible or not?
         self.show = show
         # When displaying/editing the whole object, on what page and phase must
         # this field value appear?
         self.page = Page.get(page)
         self.pageName = self.page.name
-        # Within self.page, in what group of fields must this field value
-        # appear?
+        # Within self.page, in what group of fields must this one appear?
         self.group = Group.get(group)
         # The following attribute allows to move a field back to a previous
-        # position (useful for content types that inherit from others).
+        # position (useful for moving fields above predefined ones).
         self.move = move
         # If indexed is True, a database index will be set on the field for
         # fast access.
@@ -448,8 +437,7 @@ class Type:
         self.slaves = []
         # The behaviour of this field may depend on another, "master" field
         self.master = master
-        if master:
-            self.master.slaves.append(self)
+        if master: self.master.slaves.append(self)
         # When master has some value(s), there is impact on this field.
         self.masterValue = initMasterValue(masterValue)
         # If a field must retain attention in a particular way, set focus=True.
@@ -481,6 +469,10 @@ class Type:
         # prefix and another name. If you want to specify a new name only, and
         # not a prefix, write (None, newName).
         self.label = label
+        # When you specify a default value "for search", on a search screen, in
+        # the search field corresponding to this field, this default value will
+        # be present.
+        self.defaultForSearch = defaultForSearch
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
@@ -569,13 +561,6 @@ class Type:
     def isShowable(self, obj, layoutType):
         '''When displaying p_obj on a given p_layoutType, must we show this
            field?'''
-        # Do not show field if it is optional and not selected in tool
-        if self.optional:
-            tool = obj.getTool().appy()
-            fieldName = 'optionalFieldsFor%s' % obj.meta_type
-            fieldValue = getattr(tool, fieldName, ())
-            if self.name not in fieldValue:
-                return False
         # Check if the user has the permission to view or edit the field
         if layoutType == 'edit': perm = self.writePermission
         else:                    perm = self.readPermission
@@ -759,24 +744,19 @@ class Type:
         '''Gets, on_obj, the value conforming to self's type definition.'''
         value = getattr(obj.aq_base, self.name, None)
         if self.isEmptyValue(value):
-            # If there is no value, get the default value if any
-            if not self.editDefault:
-                # Return self.default, of self.default() if it is a method
-                if callable(self.default):
-                    try:
-                        return self.callMethod(obj, self.default)
-                    except Exception, e:
-                        # Already logged. Here I do not raise the exception,
-                        # because it can be raised as the result of reindexing
-                        # the object in situations that are not foreseen by
-                        # method in self.default.
-                        return None
-                else:
-                    return self.default
-            # If value is editable, get the default value from the tool
-            portalTypeName = obj._appy_getPortalType(obj.REQUEST)
-            tool = obj.getTool().appy()
-            return getattr(tool, 'defaultValueFor%s' % self.labelId)
+            # If there is no value, get the default value if any: return
+            # self.default, of self.default() if it is a method.
+            if callable(self.default):
+                try:
+                    return self.callMethod(obj, self.default)
+                except Exception, e:
+                    # Already logged. Here I do not raise the exception,
+                    # because it can be raised as the result of reindexing
+                    # the object in situations that are not foreseen by
+                    # method in self.default.
+                    return None
+            else:
+                return self.default
         return value
 
     def getFormattedValue(self, obj, value):
@@ -932,10 +912,6 @@ class Type:
         res.group = copy.copy(self.group)
         res.page = copy.copy(self.page)
         if not forTool: return res
-        # A field added to the tool can't have parameters that would lead to the
-        # creation of new fields in the tool.
-        res.editDefault = False
-        res.optional = False
         res.show = True
         # Set default layouts for all Tool fields
         res.layouts = res.formatLayouts(None)
@@ -984,19 +960,18 @@ class Type:
         return obj.goto(obj.absolute_url())
 
 class Integer(Type):
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      searchable, specificReadPermission,
+                 focus=False, historized=False, mapping=None, label=None,
+                 defaultForSearch=('','')):
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label)
+                      label, defaultForSearch)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -1015,14 +990,14 @@ class Integer(Type):
 class Float(Type):
     allowedDecimalSeps = (',', '.')
     allowedThousandsSeps = (' ', '')
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 precision=None, sep=(',', '.'), tsep=' '):
+                 defaultForSearch=('',''), precision=None, sep=(',', '.'),
+                 tsep=' '):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -1036,13 +1011,14 @@ class Float(Type):
         # Check that the separator(s) are among allowed decimal separators
         for sep in self.sep:
             if sep not in Float.allowedDecimalSeps:
-                raise 'Char "%s" is not allowed as decimal separator.' % sep
+                raise Exception('Char "%s" is not allowed as decimal ' \
+                                'separator.' % sep)
         self.tsep = tsep
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      False, specificReadPermission, specificWritePermission,
-                      width, height, maxChars, colspan, master, masterValue,
-                      focus, historized, True, mapping, label)
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, maxChars, colspan,
+                      master, masterValue, focus, historized, True, mapping,
+                      label, defaultForSearch)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -1167,15 +1143,15 @@ class String(Type):
     XHTML = 2
     PASSWORD = 3
     CAPTCHA = 4
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, format=LINE,
-                 show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 transform='none', styles=('p','h1','h2','h3','h4'),
-                 allowImageUpload=True, richText=False):
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 format=LINE, show=True, page='main', group=None, layouts=None,
+                 move=0, indexed=False, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, defaultForSearch='', transform='none',
+                 styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
+                 richText=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -1197,13 +1173,15 @@ class String(Type):
         # CSS property: "none" (default), "uppercase", "capitalize" or
         # "lowercase".
         self.transform = transform
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      searchable, specificReadPermission,
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label)
+                      label, defaultForSearch)
         self.isSelect = self.isSelection()
+        # If self.isSelect, self.defaultForSearch must be a list of value(s).
+        if self.isSelect and not defaultForSearch:
+            self.defaultForSearch = []
         # Default width, height and maxChars vary according to String format
         if width == None:
             if format == String.TEXT:  self.width  = 60
@@ -1473,20 +1451,19 @@ class String(Type):
         return self.getCaptchaChallenge({})['text']
 
 class Boolean(Type):
-    
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts = None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    '''Field for storing boolean values.'''
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 show=True, page='main', group=None, layouts = None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      searchable, specificReadPermission,
+                 focus=False, historized=False, mapping=None, label=None,
+                 defaultForSearch=False):
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label)
+                      label, defaultForSearch)
         self.pythonType = bool
 
     dLayouts = {'view': 'lf', 'edit': Table('flrv;=d', width=None)}
@@ -1521,8 +1498,7 @@ class Date(Type):
     WITHOUT_HOUR = 1
     dateParts = ('year', 'month', 'day')
     hourParts = ('hour', 'minute')
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False,
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  format=WITH_HOUR, calendar=True,
                  startYear=time.localtime()[0]-10,
                  endYear=time.localtime()[0]+10, reverseYears=False,
@@ -1530,7 +1506,8 @@ class Date(Type):
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None):
+                 focus=False, historized=False, mapping=None, label=None,
+                 defaultForSearch=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1538,12 +1515,11 @@ class Date(Type):
         # If reverseYears is True, in the selection box, available years, from
         # self.startYear to self.endYear will be listed in reverse order.
         self.reverseYears = reverseYears
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      searchable, specificReadPermission,
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label)
+                      label, defaultForSearch)
 
     def getCss(self, layoutType, res):
         # CSS files are only required if the calendar must be shown.
@@ -1598,20 +1574,19 @@ class Date(Type):
             return DateTime.DateTime(value)
 
 class File(Type):
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 isImage=False):
+                 isImage=False, defaultForSearch=''):
         self.isImage = isImage
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      False, specificReadPermission, specificWritePermission,
-                      width, height, None, colspan, master, masterValue, focus,
-                      historized, True, mapping, label)
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, True, mapping,
+                      label, defaultForSearch)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):
@@ -1756,17 +1731,17 @@ class Ref(Type):
     wdLayouts = {'view': Table('l-d-f', width='100%')}
 
     def __init__(self, klass=None, attribute=None, validator=None,
-                 multiplicity=(0,1), index=None, default=None, optional=False,
-                 editDefault=False, add=False, addConfirm=False, delete=None,
-                 noForm=False, link=True, unlink=None, back=None, show=True,
-                 page='main', group=None, layouts=None, showHeaders=False,
-                 shownInfo=(), select=None, maxPerPage=30, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=5,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False, searchSelect=None, changeOrder=True):
+                 multiplicity=(0,1), default=None, add=False, addConfirm=False,
+                 delete=None, noForm=False, link=True, unlink=None, back=None,
+                 show=True, page='main', group=None, layouts=None,
+                 showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
+                 move=0, indexed=False, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=5, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, queryable=False, queryFields=None, queryNbCols=1,
+                 navigable=False, searchSelect=None, changeOrder=True,
+                 defaultForSearch=''):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1852,11 +1827,11 @@ class Ref(Type):
         # If changeOrder is False, it even if the user has the right to modify
         # the field, it will not be possible to move objects or sort them.
         self.changeOrder = changeOrder
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      False, specificReadPermission, specificWritePermission,
-                      width, height, None, colspan, master, masterValue, focus,
-                      historized, sync, mapping, label)
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, sync, mapping,
+                      label, defaultForSearch)
         self.validable = self.link
 
     def getDefaultLayouts(self):
@@ -2125,14 +2100,14 @@ def autoref(klass, field):
     setattr(klass, field.back.attribute, field.back)
 
 class Computed(Type):
-    def __init__(self, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show='view',
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(0,1), default=None,
+                 show='view', page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, method=None, plainText=True,
                  master=None, masterValue=None, focus=False, historized=False,
-                 sync=True, mapping=None, label=None, context={}):
+                 sync=True, mapping=None, label=None, defaultForSearch='',
+                 context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -2145,11 +2120,11 @@ class Computed(Type):
         # to the macro specified in self.method. If the dict contains key
         # "someKey", it will be available to the macro as "options/someKey".
         self.context = context
-        Type.__init__(self, None, multiplicity, index, default, optional,
-                      False, show, page, group, layouts, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, None, colspan, master, masterValue, focus,
-                      historized, sync, mapping, label)
+        Type.__init__(self, None, multiplicity, default, show, page, group,
+                      layouts, move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, sync, mapping,
+                      label, defaultForSearch)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -2192,10 +2167,9 @@ class Action(Type):
        by the user on a given gen-class. For example, the custom installation
        procedure of a gen-application is implemented by an action on the custom
        tool class. An action is rendered as a button.'''
-    def __init__(self, validator=None, multiplicity=(1,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(1,1), default=None,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, action=None, result='computation',
                  confirm=False, master=None, masterValue=None, focus=False,
@@ -2216,11 +2190,11 @@ class Action(Type):
         # If following field "confirm" is True, a popup will ask the user if
         # she is really sure about triggering this action.
         self.confirm = confirm
-        Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, layouts, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, None, colspan, master, masterValue, focus,
-                      historized, False, mapping, label)
+        Type.__init__(self, None, (0,1), default, show, page, group, layouts,
+                      move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, False, mapping,
+                      label, None)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -2258,18 +2232,17 @@ class Action(Type):
 class Info(Type):
     '''An info is a field whose purpose is to present information
        (text, html...) to the user.'''
-    def __init__(self, validator=None, multiplicity=(1,1), index=None,
-                 default=None, optional=False, editDefault=False, show='view',
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, validator=None, multiplicity=(1,1), default=None,
+                 show='view', page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None):
-        Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, layouts, move, indexed, False,
-                      specificReadPermission, specificWritePermission, width,
-                      height, None, colspan, master, masterValue, focus,
-                      historized, False, mapping, label)
+        Type.__init__(self, None, (0,1), default, show, page, group, layouts,
+                      move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, False, mapping,
+                      label, None)
         self.validable = False
 
 class Pod(Type):
@@ -2279,8 +2252,7 @@ class Pod(Type):
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
-    def __init__(self, validator=None, index=None, default=None,
-                 optional=False, editDefault=False, show=('view', 'result'),
+    def __init__(self, validator=None, default=None, show=('view', 'result'),
                  page='main', group=None, layouts=None, move=0, indexed=False,
                  searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
@@ -2303,12 +2275,11 @@ class Pod(Type):
         self.stylesMapping = stylesMapping
         # Freeze format is by PDF by default
         self.freezeFormat = freezeFormat
-        Type.__init__(self, None, (0,1), index, default, optional,
-                      False, show, page, group, layouts, move, indexed,
-                      searchable, specificReadPermission,
+        Type.__init__(self, None, (0,1), default, show, page, group, layouts,
+                      move, indexed, searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label)
+                      label, None)
         self.validable = False
 
     def isFrozen(self, obj):
@@ -2441,19 +2412,18 @@ class Pod(Type):
 
 class List(Type):
     '''A list.'''
-    def __init__(self, fields, validator=None, multiplicity=(0,1), index=None,
-                 default=None, optional=False, editDefault=False, show=True,
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
+    def __init__(self, fields, validator=None, multiplicity=(0,1), default=None,
+                 show=True, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  subLayouts=Table('fv', width=None)):
-        Type.__init__(self, validator, multiplicity, index, default, optional,
-                      editDefault, show, page, group, layouts, move, indexed,
-                      False, specificReadPermission, specificWritePermission,
-                      width, height, None, colspan, master, masterValue, focus,
-                      historized, True, mapping, label)
+        Type.__init__(self, validator, multiplicity, default, show, page, group,
+                      layouts, move, indexed, False, specificReadPermission,
+                      specificWritePermission, width, height, None, colspan,
+                      master, masterValue, focus, historized, True, mapping,
+                      label, None)
         self.validable = True
         # Tuples of (names, Type instances) determining the format of every
         # element in the list.
@@ -2941,8 +2911,7 @@ class Selection:
 # ------------------------------------------------------------------------------
 class Model: pass
 class Tool(Model):
-    '''If you want so define a custom tool class, she must inherit from this
-       class.'''
+    '''If you want to extend or modify the Tool class, subclass me.'''
 class User(Model):
     '''If you want to extend or modify the User class, subclass me.'''
 

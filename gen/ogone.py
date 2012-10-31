@@ -35,10 +35,11 @@ class Ogone(Type):
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None):
-        Type.__init__(self, None, (0,1), None, None, False, False, show, page,
-                      group, layouts, move, False, False,specificReadPermission,
+        Type.__init__(self, None, (0,1), None, show, page, group, layouts, move,
+                      False, False,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, False, True, mapping, label)
+                      master, masterValue, focus, False, True, mapping, label,
+                      None)
         # orderMethod must contain a method returning a dict containing info
         # about the order. Following keys are mandatory:
         #   * orderID   An identifier for the order. Don't use the object UID

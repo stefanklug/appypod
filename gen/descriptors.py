@@ -131,22 +131,15 @@ class ClassDescriptor(Descriptor):
                     parentWrapper = '%s_Wrapper' % k.name
         return (parentWrapper, parentClass)
 
-    def generateSchema(self, configClass=False):
-        '''Generates i18n and other related stuff for this class. If this class
-           is in the configuration (tool, user, etc) we must avoid having
-           attributes that rely on the configuration (ie attributes that are
-           optional, with editDefault=True, etc).'''
+    def generateSchema(self):
+        '''Generates i18n and other related stuff for this class.'''
         for attrName in self.orderedAttributes:
             try:
                 attrValue = getattr(self.klass, attrName)
             except AttributeError:
                 attrValue = getattr(self.modelClass, attrName)
-            if isinstance(attrValue, gen.Type):
-                if configClass:
-                    attrValue = copy.copy(attrValue)
-                    attrValue.optional = False
-                    attrValue.editDefault = False
-                FieldDescriptor(attrName, attrValue, self).generate()
+            if not isinstance(attrValue, gen.Type): continue
+            FieldDescriptor(attrName, attrValue, self).generate()
 
     def isAbstract(self):
         '''Is self.klass abstract?'''
@@ -392,13 +385,7 @@ class FieldDescriptor:
         '''Walks into the Appy type definition and gathers data about the
            i18n labels.'''
         # Manage things common to all Appy types
-        # - optional ?
-        if self.appyType.optional:
-            self.generator.tool.addOptionalField(self)
-        # - edit default value ?
-        if self.appyType.editDefault:
-            self.generator.tool.addDefaultField(self)
-        # - put an index on this field?
+        # Put an index on this field?
         if self.appyType.indexed and (self.fieldName != 'title'):
             self.classDescr.addIndexMethod(self)
         # i18n labels
@@ -477,28 +464,6 @@ class ToolClassDescriptor(ClassDescriptor):
 
     def isFolder(self, klass=None): return True
     def isRoot(self): return False
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
-
-    def addOptionalField(self, fieldDescr):
-        className = fieldDescr.classDescr.name
-        fieldName = 'optionalFieldsFor%s' % className
-        fieldType = getattr(self.modelClass, fieldName, None)
-        if not fieldType:
-            fieldType = String(multiplicity=(0,None))
-            fieldType.validator = []
-            self.addField(fieldName, fieldType)
-        fieldType.validator.append(fieldDescr.fieldName)
-        fieldType.page.name = 'data'
-        fieldType.group = gen.Group(fieldDescr.classDescr.klass.__name__)
-
-    def addDefaultField(self, fieldDescr):
-        className = fieldDescr.classDescr.name
-        fieldName = 'defaultValueFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = fieldDescr.appyType.clone()
-        self.addField(fieldName, fieldType)
-        fieldType.page.name = 'data'
-        fieldType.group = gen.Group(fieldDescr.classDescr.klass.__name__)
 
     def addPodRelatedFields(self, fieldDescr):
         '''Adds the fields needed in the Tool for configuring a Pod field.'''
@@ -607,8 +572,6 @@ class UserClassDescriptor(ClassDescriptor):
         self.klass = klass
         self.customized = True
     def isFolder(self, klass=None): return False
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
 
 class GroupClassDescriptor(ClassDescriptor):
     '''Represents the class that corresponds to the Group for the generated
@@ -634,8 +597,6 @@ class GroupClassDescriptor(ClassDescriptor):
         self.klass = klass
         self.customized = True
     def isFolder(self, klass=None): return False
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
 
 class TranslationClassDescriptor(ClassDescriptor):
     '''Represents the set of translation ids for a gen-application.'''
@@ -648,8 +609,6 @@ class TranslationClassDescriptor(ClassDescriptor):
 
     def getParents(self, allClasses=()): return ('Translation',)
     def isFolder(self, klass=None): return False
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
 
     def addLabelField(self, messageId, page):
         '''Adds a Computed field that will display, in the source language, the
@@ -714,6 +673,4 @@ class PageClassDescriptor(ClassDescriptor):
         self.klass = klass
         self.customized = True
     def isFolder(self, klass=None): return True
-    def generateSchema(self):
-        ClassDescriptor.generateSchema(self, configClass=True)
 # ------------------------------------------------------------------------------

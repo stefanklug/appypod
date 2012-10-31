@@ -762,6 +762,8 @@ class ZopeGenerator(Generator):
             if classDescr.name in self.referers:
                 for field in self.referers[classDescr.name]:
                     names.append(field.appyType.back.attribute)
+            # Add the 'state' attribute
+            names.append('state')
             qNames = ['"%s"' % name for name in names]
             attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
         repls['attributes'] = ',\n    '.join(attributes)
