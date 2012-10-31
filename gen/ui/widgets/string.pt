@@ -1,13 +1,19 @@
 <tal:comment replace="nothing">View macro for a String.</tal:comment>
 <metal:view define-macro="view"
-       tal:define="fmt widget/format">
+       tal:define="fmt widget/format; isUrl widget/isUrl">
   <span tal:condition="python: fmt in (0, 3)">
     <ul tal:condition="python: value and isMultiple">
       <li tal:repeat="sv value"><i tal:content="structure sv"></i></li>
     </ul>
     <tal:singleValue condition="python: value and not isMultiple">
-      <span tal:condition="python: fmt != 3" tal:replace="structure value"/>
+      <tal:comment replace="nothing">A password</tal:comment>
       <span tal:condition="python: fmt == 3">********</span>
+      <tal:comment replace="nothing">A URL</tal:comment>
+      <a tal:condition="python: (fmt != 3) and isUrl" target="_blank"
+         tal:attributes="href value" tal:content="value"></a>
+      <tal:comment replace="nothing">Any other value</tal:comment>
+      <span tal:condition="python: (fmt != 3) and not isUrl"
+            tal:replace="structure value"/>
     </tal:singleValue>
   </span>
   <tal:comment replace="nothing">Text</tal:comment>

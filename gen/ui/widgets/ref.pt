@@ -8,6 +8,7 @@
     allows to reach the correct page where the forward reference is defined. If we are
     on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
     from one object to the next/previous on ui/view.</tal:comment>
+  <tal:icons replace="structure obj/getIcons"/>
   <a tal:define="includeShownInfo includeShownInfo | python:False;
                  navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);
                  navInfo python: test(appyType['isBack'], '', navInfo);
@@ -22,24 +23,6 @@
   <table class="noStyle"
          tal:define="isBack appyType/isBack">
    <tr>
-    <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
-    <td tal:condition="python: not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
-      <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
-                           ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
-      <tal:comment replace="nothing">Move up</tal:comment>
-      <img tal:condition="python: objectIndex &gt; 0"
-        tal:attributes="src string: $appUrl/ui/arrowUp.png;
-                        title python: _('move_up');
-                        onClick python: ajaxBaseCall.replace('**v**', 'up')"
-        style="cursor:pointer"/>
-      <tal:comment replace="nothing">Move down</tal:comment>
-      <img tal:condition="python: objectIndex &lt; (totalNumber-1)"
-        tal:attributes="src string: $appUrl/ui/arrowDown.png;
-                        title python: _('move_down');
-                        onClick python: ajaxBaseCall.replace('**v**', 'down')"
-        style="cursor:pointer"/>
-      </tal:moveRef>
-    </td>
     <tal:comment replace="nothing">Edit</tal:comment>
     <td tal:condition="python: not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
@@ -61,6 +44,20 @@
            tal:attributes="src string: $appUrl/ui/unlink.png;
                            onClick python:'onUnlinkObject(\'%s\',\'%s\',\'%s\')' % (contextObj.UID(), appyType['name'], obj.UID());
                            title python: _('object_unlink')"/>
+    </td>
+    <tal:comment replace="nothing">Arrows for moving objects up or down</tal:comment>
+    <td tal:condition="python: not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
+      <tal:moveRef define="objectIndex  python: contextObj.getAppyRefIndex(fieldName, obj);
+                           ajaxBaseCall python: navBaseCall.replace('**v**', '\'%s\',\'ChangeRefOrder\', {\'refObjectUid\':\'%s\', \'move\':\'**v**\'}' % (startNumber, obj.UID()))">
+       <img tal:condition="python: objectIndex &gt; 0" style="cursor:pointer"
+            tal:attributes="src string: $appUrl/ui/arrowUp.png;
+                            title python: _('move_up');
+                            onClick python: ajaxBaseCall.replace('**v**', 'up')"/><img style="cursor:pointer"
+            tal:condition="python: objectIndex &lt; (totalNumber-1)"
+            tal:attributes="src string: $appUrl/ui/arrowDown.png;
+                            title python: _('move_down');
+                            onClick python: ajaxBaseCall.replace('**v**', 'down')"/>
+      </tal:moveRef>
     </td>
    </tr>
   </table>
@@ -125,7 +122,8 @@
                  atMostOneRef python: (appyType['multiplicity'][1] == 1) and (len(objs)&lt;=1);
                  addConfirmMsg python: appyType['addConfirm'] and _('%s_addConfirm' % appyType['labelId']) or '';
                  navBaseCall python: 'askRefField(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, contextObj.absolute_url(), fieldName, innerRef);
-                 changeOrder python: contextObj.callField(fieldName, 'changeOrderEnabled', contextObj)"
+                 changeOrder python: contextObj.callField(fieldName, 'changeOrderEnabled', contextObj);
+                 showSubTitles python: request.get('showSubTitles', 'true') == 'true'"
     tal:attributes="id ajaxHookId">
 
   <tal:comment replace="nothing">This macro displays the Reference widget on a "view" page.
@@ -181,33 +179,31 @@
         <th tal:repeat="widget widgets">
           <span tal:content="python: _(widget['labelId'])"></span>
           <metal:sortIcons use-macro="app/ui/widgets/ref/macros/sortIcons" />
+          <tal:sd define="className linkedPortalType">
+           <metal:details use-macro="context/ui/navigate/macros/showDetails"/>
+          </tal:sd>
         </th>
-        <th tal:content="python: _('ref_actions')"></th>
       </tr>
       <tal:row repeat="obj objs">
-       <tr valign="middle" tal:define="odd repeat/obj/odd"
+       <tr valign="top" tal:define="odd repeat/obj/odd"
           tal:attributes="class python:test(odd, 'even', 'odd')">
         <td tal:repeat="widget widgets"
             tal:attributes="width python: appyType['shownInfoWidths'][repeat['widget'].index]">
           <tal:title condition="python: widget['name'] == 'title'">
             <metal:showObjectTitle use-macro="app/ui/widgets/ref/macros/objectTitle"/>
+            <div name="subTitle" tal:content="structure obj/getSubTitle"
+                 tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
+            <div tal:attributes="align dright" tal:condition="obj/mayAct">
+             <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
+            </div>
           </tal:title>
-          <tal:state condition="python: widget['name'] == 'state'"
-                     content="python: _(obj.getWorkflowLabel())">
-          </tal:state>
-          <tal:other condition="python: widget['name'] not in ('title', 'state')">
+          <tal:other condition="python: widget['name'] != 'title'">
             <tal:field define="contextObj python:obj;
                                layoutType python: 'cell';
                                innerRef python:True">
               <metal:field use-macro="app/ui/widgets/show/macros/field" />
             </tal:field>
           </tal:other>
-        </td>
-        <tal:comment replace="nothing">Actions</tal:comment>
-        <td tal:attributes="align dright">
-          <tal:show condition="obj/mayAct">
-           <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
-          </tal:show>
         </td>
        </tr>
       </tal:row>

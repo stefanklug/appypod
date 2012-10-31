@@ -115,3 +115,9 @@
          style="cursor:pointer"/>
   </tal:filter>
 </metal:sortAndFilter>
+
+<tal:comment replace="nothing">Icon for hiding/showing details below the title</tal:comment>
+<metal:details define-macro="showDetails" tal:condition="python: tool.subTitleIsUsed(className)">
+  <img tal:condition="python: widget['name'] == 'title'" style="cursor:pointer"
+       tal:attributes="src string: $appUrl/ui/toggleDetails.png" onClick="toggleSubTitles()"/>
+</metal:details>

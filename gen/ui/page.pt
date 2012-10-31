@@ -206,8 +206,10 @@
     <table width="100%" class="summary">
       <tr>
         <tal:comment replace="nothing">Title</tal:comment>
-        <td colspan="2" class="objectTitle"
-            tal:content="python: contextObj.getFieldValue('title', layoutType='view')"></td>
+        <td colspan="2" class="objectTitle">
+         <tal:icons replace="structure contextObj/getIcons"/>
+         <span tal:content="python: contextObj.getFieldValue('title', layoutType='view')"></span>
+        </td>
       </tr>
       <tr class="underTitle">
         <td colspan="2" class="by">

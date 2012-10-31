@@ -687,17 +687,11 @@ class BaseMixin:
         '''Gets the Appy types named p_fieldNames.'''
         res = []
         for name in fieldNames:
-            if name == 'state':
-                # We do not return a appyType if the attribute is not a *real*
-                # attribute, but the workfow state.
-                res.append({'name': name, 'labelId': 'workflow_state',
-                            'filterable': False})
+            appyType = self.getAppyType(name, asDict)
+            if appyType: res.append(appyType)
             else:
-                appyType = self.getAppyType(name, asDict)
-                if appyType: res.append(appyType)
-                else:
-                    self.log('Field "%s", used as shownInfo in a Ref, ' \
-                             'was not found.' % name, type='warning')
+                self.log('Field "%s", used as shownInfo in a Ref, ' \
+                         'was not found.' % name, type='warning')
         return res
 
     def getAppyStates(self, phase, currentOnly=False):
@@ -819,6 +813,18 @@ class BaseMixin:
             return phase
         else:
             return res
+
+    def getIcons(self):
+        '''Gets the icons that can be shown besides the title of an object.'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'getIcons'): return appyObj.getIcons()
+        return ''
+
+    def getSubTitle(self):
+        '''Gets the content that must appear below the title of an object.'''
+        appyObj = self.appy()
+        if hasattr(appyObj, 'getSubTitle'): return appyObj.getSubTitle()
+        return ''
 
     def getPreviousPage(self, phase, page):
         '''Returns the page that precedes p_page which is in p_phase.'''

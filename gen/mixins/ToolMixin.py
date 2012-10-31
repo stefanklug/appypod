@@ -545,6 +545,11 @@ class ToolMixin(BaseMixin):
         appyType = self.getAppyType(name, className=className)
         if appyType: return appyType.isSortable(usage=usage)
 
+    def subTitleIsUsed(self, className):
+        '''Does class named p_className define a method "getSubTitle"?'''
+        klass = self.getAppyClass(className)
+        return hasattr(klass, 'getSubTitle')
+
     def _searchValueIsEmpty(self, key):
         '''Returns True if request value in key p_key can be considered as
            empty.'''

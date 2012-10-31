@@ -1157,6 +1157,7 @@ class String(Type):
         # field of format CAPTCHA by page, because the captcha challenge is
         # stored in the session at some global key.
         self.format = format
+        self.isUrl = validator == String.URL
         # When format is XHTML, the list of styles that the user will be able to
         # select in the styles dropdown is defined hereafter.
         self.styles = styles
@@ -1225,6 +1226,8 @@ class String(Type):
             return {'view': 'l-f', 'edit': 'lrv-f'}
 
     def getValue(self, obj):
+        # Cheat if this field represents p_obj's state
+        if self.name == 'state': return obj.State()
         value = Type.getValue(self, obj)
         if not value:
             if self.isMultiValued(): return emptyTuple

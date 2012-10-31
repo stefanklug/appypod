@@ -70,11 +70,11 @@
              style="cursor:pointer" onClick="toggleViewableElements()" align="left" />
         <span tal:replace="columnHeader"/>
       </th>
-      <th tal:content="python: _('ref_actions')"></th>
+      <th></th>
       <th width="20px"><img
         tal:attributes="src string: $appUrl/ui/select_elems.png;
                         title python: _('select_delesect')"
-        onClick="toggleCheckboxes()" style="cursor:pointer"/>
+        onClick="toggleCheckboxes()" style="cursor:pointer"></th>
     </tr>
     <tal:row repeat="row python: importElems[1]">
     <tr tal:define="alreadyImported python: tool.isAlreadyImported(className, row[0]);

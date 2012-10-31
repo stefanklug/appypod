@@ -92,11 +92,12 @@ img { border: 0; vertical-align: middle}
 .list { border: 1px solid grey; margin-bottom: 3px;}
 .list td, .list th { border: 1px solid grey;
                      padding-left: 5px; padding-right: 5px; padding-top: 3px;}
-.list th { background-color: #d7dee4; font-style: italic; font-weight: normal;}
+.list th { background-color: #d7dee4; font-style: italic; font-weight: normal;
+           text-align: left }
 .grid th { font-style: italic; font-weight: normal;
-           border-bottom: 2px solid grey; padding: 2px 2px;}
-.grid td { padding-right: 5px; }
-.cellGap { padding-right: 0.4em; }
+           border-bottom: 2px solid grey; padding: 2px 2px }
+.grid td { padding-right: 5px }
+.cellGap { padding-right: 0.4em }
 .cellDashed { border: 1px dashed grey !important }
 .noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important; }
 .noStyle td { border:0 !important; padding:0 !important; margin:0 !important; }

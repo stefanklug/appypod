@@ -200,6 +200,26 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   else hidden.value = 'False';
 }
 
+// Function that sets a value for showing/hiding sub-titles.
+function setSubTitles(value) {
+  createCookie('showSubTitles', value);
+  // Get the sub-titles
+  var subTitles = document.getElementsByName('subTitle');
+  if (subTitles.length == 0) return;
+  for (var i=0; i < subTitles.length; i++) {
+    if (value == 'true') subTitles[i].style.display = 'block';
+    else subTitles[i].style.display = 'none';
+  }
+}
+
+// Function that toggles the value for showing/hiding sub-titles.
+function toggleSubTitles() {
+  var value = readCookie('showSubTitles');
+  var newValue = 'true';
+  if (value == 'true') newValue = 'false';
+  setSubTitles(newValue);
+}
+
 // Functions used for master/slave relationships between widgets
 function getSlaveInfo(slave, infoType) {
   // Returns the appropriate info about slavery, depending on p_infoType.
