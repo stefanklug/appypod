@@ -13,16 +13,19 @@
                        a.o. for master/slave relationships).
     tagCss             Some additional CSS class for the main tag
                        (ie, the CSS class for a slave).
+  Note: if layoutType is "cell", alignment and width are not taken into account:
+        we use the alignment of the column specification instead.
 </tal:comment>
 <metal:show define-macro="layout"
             tal:define="contextMacro contextMacro| python: app.ui;
                         tagId        tagId|python:'';
                         tagCss       tagCss|python:'';
-                        layoutCss    layout/css_class;">
+                        layoutCss    layout/css_class;
+                        isCell       python: layoutType == 'cell'">
  <table tal:attributes="cellpadding  layout/cellpadding;
                         cellspacing  layout/cellspacing;
-                        width        layout/width;
-                        align        python: tool.flipLanguageDirection(layout['align'], dir);
+                        width        python: not isCell and layout['width'] or '';
+                        align        python: not isCell and tool.flipLanguageDirection(layout['align'], dir) or '';
                         class        python: tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or layoutCss;
                         style        layout/style;
                         id           tagId;

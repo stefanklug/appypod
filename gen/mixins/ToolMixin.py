@@ -406,28 +406,14 @@ class ToolMixin(BaseMixin):
             self.REQUEST.SESSION['search_%s' % searchName] = uids
         return res.__dict__
 
-    def getResultColumnsNames(self, contentType, refInfo):
-        contentTypes = contentType.strip(',').split(',')
-        resSet = None # Temporary set for computing intersections.
-        res = [] # Final, sorted result.
-        fieldNames = None
-        appyTool = self.appy()
-        refField = None
-        if refInfo[0]: refField = refInfo[0].getAppyType(refInfo[1])
-        for cType in contentTypes:
-            if refField:
-                fieldNames = refField.shownInfo
-            else:
-                fieldNames = getattr(appyTool, 'resultColumnsFor%s' % cType)
-            if not resSet:
-                resSet = set(fieldNames)
-            else:
-                resSet = resSet.intersection(fieldNames)
-        # By converting to set, we've lost order. Let's put things in the right
-        # order.
-        for fieldName in fieldNames:
-            if fieldName in resSet:
-                res.append(fieldName)
+    def getResultColumnsLayouts(self, contentType, refInfo):
+        '''Returns the column layouts for displaying objects of
+           p_contentType.'''
+        if refInfo[0]:
+            res = refInfo[0].getAppyType(refInfo[1]).shownInfo
+        else:
+            toolFieldName = 'resultColumnsFor%s' % contentType
+            res = getattr(self.appy(), toolFieldName)
         return res
 
     def truncateValue(self, value, appyType):

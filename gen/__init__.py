@@ -1794,16 +1794,6 @@ class Ref(Type):
         # other fields whose names are listed in the following attribute.
         self.shownInfo = list(shownInfo)
         if not self.shownInfo: self.shownInfo.append('title')
-        self.shownInfoWidths = []
-        for i in range(len(self.shownInfo)):
-            if '*' in self.shownInfo[i]:
-                # The width is also specified
-                info, width = self.shownInfo[i].split('*',1)
-                self.shownInfo[i] = info
-                self.shownInfoWidths.append(width)
-            else:
-                # No width is specified
-                self.shownInfoWidths.append('')
         # If a method is defined in this field "select", it will be used to
         # filter the list of available tied objects.
         self.select = select

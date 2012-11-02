@@ -92,8 +92,7 @@ img { border: 0; vertical-align: middle}
 .list { border: 1px solid grey; margin-bottom: 3px;}
 .list td, .list th { border: 1px solid grey;
                      padding-left: 5px; padding-right: 5px; padding-top: 3px;}
-.list th { background-color: #d7dee4; font-style: italic; font-weight: normal;
-           text-align: left }
+.list th { background-color: #d7dee4; font-style: italic; font-weight: normal }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 2px solid grey; padding: 2px 2px }
 .grid td { padding-right: 5px }

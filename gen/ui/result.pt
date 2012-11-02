@@ -61,19 +61,21 @@
    </tr>
   </table>
 
-  <table tal:define="fieldNames python: tool.getResultColumnsNames(className, refInfo);
-                       widgets python: objs[0].getAppyTypesFromNames(fieldNames);"
-           class="list" width="100%">
+  <table tal:define="columnLayouts python: tool.getResultColumnsLayouts(className, refInfo);
+                     columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir)"
+         class="list" width="100%">
     <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
     <tr>
-      <tal:header repeat="widget widgets">
-       <th tal:define="sortable   python: tool.isSortable(widget['name'], className, 'search');
-                       filterable widget/filterable|nothing;">
+     <tal:header repeat="column columns">
+      <th tal:define="widget column/field;
+                      sortable python: tool.isSortable(widget['name'], className, 'search');
+                      filterable widget/filterable|nothing"
+          tal:attributes="width column/width; align column/align">
         <span tal:replace="structure python: tool.truncateText(_(widget['labelId']))"/>
         <metal:icons use-macro="context/ui/navigate/macros/sortAndFilter"/>
         <metal:details use-macro="context/ui/navigate/macros/showDetails"/>
-       </th>
-      </tal:header>
+      </th>
+     </tal:header>
     </tr>
 
     <tal:comment replace="nothing">Results</tal:comment>
@@ -81,10 +83,12 @@
     <tr id="query_row" valign="top" tal:define="odd repeat/obj/odd"
         tal:attributes="class python:test(odd, 'even', 'odd')">
 
-      <tal:fields repeat="widget widgets">
-      <tal:comment replace="nothing">Title</tal:comment>
-      <td id="field_title"
-          tal:condition="python: widget['name'] == 'title'">
+     <tal:fields repeat="column columns">
+      <td tal:define="widget column/field"
+          tal:attributes="id python:'field_%s' % widget['name'];
+                          width column/width; align column/align">
+       <tal:comment replace="nothing">Title</tal:comment>
+       <tal:title condition="python: widget['name'] == 'title'">
         <tal:icons replace="structure obj/getIcons"/>
         <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
            tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
@@ -103,19 +107,19 @@
                             title python: _('object_delete');
                             onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
         </div>
-      </td>
+       </tal:title>
 
-      <tal:comment replace="nothing">Any other field</tal:comment>
-      <td tal:condition="python: widget['name'] != 'title'"
-          tal:attributes="id python:'field_%s' % widget['name']">
+       <tal:comment replace="nothing">Any other field</tal:comment>
+       <tal:other condition="python: widget['name'] != 'title'">
         <tal:field define="contextObj python:obj;
                            layoutType python:'cell';
                            innerRef python:True"
                    condition="python: contextObj.showField(widget['name'], 'result')">
-           <metal:field use-macro="context/ui/widgets/show/macros/field"/>
-         </tal:field>
+         <metal:field use-macro="context/ui/widgets/show/macros/field"/>
+        </tal:field>
+       </tal:other>
       </td>
-      </tal:fields>
+     </tal:fields>
     </tr>
     </tal:row>
   </table>

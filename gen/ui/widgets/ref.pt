@@ -174,21 +174,25 @@
     <tal:comment replace="nothing">Show forward or backward reference(s)</tal:comment>
     <table tal:attributes="class python:test(innerRef, '', 'list');
                            width python:test(innerRef, '100%', appyType['layouts']['view']['width']);">
-      <tal:widgets define="widgets python: objs[0].getAppyTypesFromNames(appyType['shownInfo'])">
+      <tal:infos define="columns python: objs[0].getColumnsSpecifiers(appyType['shownInfo'], dir)">
       <tr tal:condition="appyType/showHeaders">
-        <th tal:repeat="widget widgets">
+        <th tal:repeat="column columns"
+            tal:attributes="width column/width; align column/align">
+         <tal:def define="widget column/field">
           <span tal:content="python: _(widget['labelId'])"></span>
           <metal:sortIcons use-macro="app/ui/widgets/ref/macros/sortIcons" />
           <tal:sd define="className linkedPortalType">
            <metal:details use-macro="context/ui/navigate/macros/showDetails"/>
           </tal:sd>
+         </tal:def>
         </th>
       </tr>
       <tal:row repeat="obj objs">
        <tr valign="top" tal:define="odd repeat/obj/odd"
-          tal:attributes="class python:test(odd, 'even', 'odd')">
-        <td tal:repeat="widget widgets"
-            tal:attributes="width python: appyType['shownInfoWidths'][repeat['widget'].index]">
+           tal:attributes="class python:test(odd, 'even', 'odd')">
+        <td tal:repeat="column columns"
+            tal:attributes="width column/width; align column/align">
+         <tal:def define="widget column/field">
           <tal:title condition="python: widget['name'] == 'title'">
             <metal:showObjectTitle use-macro="app/ui/widgets/ref/macros/objectTitle"/>
             <div name="subTitle" tal:content="structure obj/getSubTitle"
@@ -204,10 +208,11 @@
               <metal:field use-macro="app/ui/widgets/show/macros/field" />
             </tal:field>
           </tal:other>
+         </tal:def> 
         </td>
        </tr>
       </tal:row>
-      </tal:widgets>
+      </tal:infos>
     </table>
    </td></tr>
   </table>

@@ -7,7 +7,7 @@ import os, os.path, sys, types, mimetypes, urllib, cgi
 from appy import Object
 import appy.gen as gen
 from appy.gen.utils import *
-from appy.gen.layout import Table, defaultPageLayouts
+from appy.gen.layout import Table, defaultPageLayouts, ColumnLayout
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared.utils import sequenceTypes, normalizeText
 from appy.shared.data import rtlLanguages
@@ -683,15 +683,21 @@ class BaseMixin:
         res['css'] = css
         res['js'] = js
 
-    def getAppyTypesFromNames(self, fieldNames, asDict=True):
-        '''Gets the Appy types named p_fieldNames.'''
+    def getColumnsSpecifiers(self, columnLayouts, dir):
+        '''Extracts and returns, from a list of p_columnLayouts, the information
+           that is necessary for displaying a column in a result screen or for
+           a Ref field.'''
         res = []
-        for name in fieldNames:
-            appyType = self.getAppyType(name, asDict)
-            if appyType: res.append(appyType)
+        tool = self.getTool()
+        for info in columnLayouts:
+            fieldName, width, align = ColumnLayout(info).get()
+            align = tool.flipLanguageDirection(align, dir)
+            field = self.getAppyType(fieldName, asDict=True)
+            if not field:
+                self.log('Field "%s", used in a column specifier, was not ' \
+                         'found.' % fieldName, type='warning')
             else:
-                self.log('Field "%s", used as shownInfo in a Ref, ' \
-                         'was not found.' % name, type='warning')
+                res.append({'field':field, 'width':width, 'align': align})
         return res
 
     def getAppyStates(self, phase, currentOnly=False):

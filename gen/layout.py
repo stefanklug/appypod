@@ -229,4 +229,35 @@ widePageLayouts = {
 # The default layout for fields. Alternative layouts may exist and are declared
 # as static attributes of the concerned Type subclass.
 defaultFieldLayouts = {'edit': 'lrv-f'}
+
+# ------------------------------------------------------------------------------
+class ColumnLayout:
+    '''A "column layout" dictates the way a table column must be rendered. Such
+       a layout is of the form: <name>[*width][,|!|`|`]
+       * "name"   is the name of the field whose content must be shown in
+                  column's cells;
+       * "width"  is the width of the column. Any valid value for the "width"
+                  attribute of the "td" HTML tag is accepted;
+       * , | or ! indicates column alignment: respectively, left, centered or
+                  right.
+    '''
+    def __init__(self, layoutString):
+        self.layoutString = layoutString
+    def get(self):
+        '''Returns a list containing the separate elements that are within
+           self.layoutString.'''
+        consumed = self.layoutString
+        # Determine column alignment
+        align = 'left'
+        lastChar = consumed[-1]
+        if lastChar in cellDelimiters:
+            align = cellDelimiters[lastChar]
+            consumed = consumed[:-1]
+        # Determine name and width
+        if '*' in consumed:
+            name, width = consumed.rsplit('*', 1)
+        else:
+            name = consumed
+            width = ''
+        return name, width, align
 # ------------------------------------------------------------------------------
