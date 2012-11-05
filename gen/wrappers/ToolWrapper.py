@@ -109,10 +109,6 @@ class ToolWrapper(AbstractWrapper):
            "searchFields"
                Determines, among all indexed fields for p_klass, which one will
                really be used in the search screen.
-
-           "showWorkflow"
-               Stores the boolean field indicating if we must show workflow-
-               related information for p_klass or not.
         '''
         fullClassName = self.o.getPortalType(klass)
         res = '%sFor%s' % (attributeType, fullClassName)

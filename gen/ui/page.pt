@@ -173,8 +173,7 @@
    workflow-related info, object history, etc.
 </tal:comment>
 <div metal:define-macro="header"
-     tal:define="showWorkflow python: tool.getAttr('showWorkflowFor' + contextObj.meta_type);
-                 hasHistory contextObj/hasHistory;
+     tal:define="hasHistory contextObj/hasHistory;
                  historyMaxPerPage options/maxPerPage|python: 5;
                  historyExpanded python: request.get('appyHistory', 'collapsed') == 'expanded';
                  _ python: tool.translate;
@@ -238,12 +237,6 @@
           </span>
         </td>
       </tr>
-      <tal:comment replace="nothing">Possible transitions</tal:comment>
-      <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()" class="workflow">
-        <td colspan="2" tal:attributes="align dright">
-          <metal:states use-macro="here/ui/page/macros/transitions"/>
-        </td>
-      </tr>
     </table>
 </div>
 
@@ -257,15 +250,16 @@
 </metal:footer>
 
 <tal:comment replace="nothing">
-  This macro shows the range of buttons (next, previous, save,...).
+  This macro shows the range of buttons (next, previous, save,...) and the workflow transitions.
 </tal:comment>
-<div metal:define-macro="buttons"
-     tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page)[0];
+<table metal:define-macro="buttons" cellpadding="2" cellspacing="0" style="margin-top: 7px"
+       tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page)[0];
                  nextPage       python: contextObj.getNextPage(phaseInfo, page)[0];
                  isEdit         python: layoutType == 'edit';
                  pageInfo       python: phaseInfo['pagesInfo'][page]">
-  <br/>
-  <tal:previous condition="python: previousPage and pageInfo['showPrevious']">
+ <tr>
+  <tal:comment replace="nothing">Previous</tal:comment> 
+  <td tal:condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
       <input type="image" name="buttonPrevious"
              tal:attributes="src string:$appUrl/ui/previous.png;
@@ -278,35 +272,40 @@
                              title python: _('page_previous')"/>
       </a>
     </tal:link>
-  </tal:previous>
+  </td>
 
-  <tal:save condition="python: isEdit and pageInfo['showSave']">
+  <tal:comment replace="nothing">Save</tal:comment>
+  <td tal:condition="python: isEdit and pageInfo['showSave']">
     <input type="image" name="buttonOk"
            tal:attributes="src string:$appUrl/ui/save.png;
                            title python: _('object_save')"/>
-  </tal:save>
+  </td>
 
-  <tal:cancel condition="python: isEdit and pageInfo['showCancel']">
+  <tal:comment replace="nothing">Cancel</tal:comment>
+  <td tal:condition="python: isEdit and pageInfo['showCancel']">
     <input type="image" name="buttonCancel"
            tal:attributes="src string:$appUrl/ui/cancel.png;
                            title python: _('object_cancel')"/>
-  </tal:cancel>
+  </td>
 
-  <tal:edit condition="python: not isEdit and pageInfo['showOnEdit']">
-    <img style="cursor:pointer"
-         tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
-                         title python: _('object_edit');
-                         src string: $appUrl/ui/editBig.png"
-         tal:condition="contextObj/mayEdit"/>
-  </tal:edit>
+  <tal:comment replace="nothing">Edit</tal:comment>
+  <td tal:condition="python: not isEdit and pageInfo['showOnEdit']">
+   <img style="cursor:pointer"
+        tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
+                        title python: _('object_edit');
+                        src string: $appUrl/ui/editBig.png"
+        tal:condition="contextObj/mayEdit"/>
+  </td>
 
-  <tal:refresh condition="contextObj/isDebug">
+  <tal:comment replace="nothing">Refresh</tal:comment>
+  <td tal:condition="contextObj/isDebug">
     <img title="Refresh" style="cursor:pointer; vertical-align:top"
          tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode=layoutType, page=page, refresh='yes');
                          src string: $appUrl/ui/refresh.png"/>
-  </tal:refresh>
+  </td>
 
-  <tal:next condition="python: nextPage and pageInfo['showNext']">
+  <tal:comment replace="nothing">Next</tal:comment> 
+  <td tal:condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
       <input type="image" name="buttonNext"
              tal:attributes="src string:$appUrl/ui/next.png;
@@ -319,8 +318,13 @@
                              title python: _('page_next')"/>
       </a>
     </tal:link>
-  </tal:next>
-</div>
+  </td>
+  <tal:comment replace="nothing">Workflow transitions</tal:comment>
+  <td tal:condition="python: layoutType in ('view', 'result')">
+   <metal:transitions use-macro="app/ui/page/macros/transitions"/>
+  </td>
+ </tr>
+</table>
 
 <tal:comment replace="nothing">
   This macro displays the global message on the page.

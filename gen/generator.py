@@ -919,7 +919,6 @@ class ZopeGenerator(Generator):
                 importMean = classDescr.getCreateMean('Import')
                 if importMean:
                     self.tool.addImportRelatedFields(classDescr)
-        self.tool.addWorkflowFields(self.user)
         self.tool.generateSchema()
 
         # Generate the Tool class
@@ -935,8 +934,6 @@ class ZopeGenerator(Generator):
            generating the corresponding Archetype class.'''
         k = classDescr.klass
         print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
-        if not classDescr.isAbstract():
-            self.tool.addWorkflowFields(classDescr)
         # Determine base Zope class
         isFolder = classDescr.isFolder()
         baseClass = isFolder and 'Folder' or 'SimpleItem'

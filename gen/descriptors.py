@@ -529,17 +529,6 @@ class ToolClassDescriptor(ClassDescriptor):
                                default=defValue,group=classDescr.klass.__name__)
         self.addField(fieldName, fieldType)
 
-    def addWorkflowFields(self, classDescr):
-        '''Adds, for a given p_classDescr, the workflow-related fields.'''
-        className = classDescr.name
-        groupName = classDescr.klass.__name__
-        # Adds a field allowing to show/hide completely any workflow-related
-        # information for a given class.
-        fieldName = 'showWorkflowFor%s' % className
-        fieldType = gen.Boolean(default=True, page='userInterface',
-                                group=groupName)
-        self.addField(fieldName, fieldType)
-
 class UserClassDescriptor(ClassDescriptor):
     '''Appy-specific class for representing a user.'''
     def __init__(self, klass, generator):

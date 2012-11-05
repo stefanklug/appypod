@@ -35,7 +35,6 @@ class PoMessage:
     MSG_enableAdvancedSearch = "Enable advanced search"
     MSG_numberOfSearchColumns = "Number of search columns"
     MSG_searchFields = "Search fields"
-    MSG_showWorkflow = 'Show workflow-related information'
     POD_ASKACTION = 'Trigger related action'
     REF_NO = 'No object.'
     REF_ADD = 'Add a new one'
