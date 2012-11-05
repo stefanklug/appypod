@@ -36,7 +36,6 @@ class PoMessage:
     MSG_numberOfSearchColumns = "Number of search columns"
     MSG_searchFields = "Search fields"
     MSG_showWorkflow = 'Show workflow-related information'
-    MSG_showAllStatesInPhase = 'Show all states in phase'
     POD_ASKACTION = 'Trigger related action'
     REF_NO = 'No object.'
     REF_ADD = 'Add a new one'
@@ -163,6 +162,7 @@ class PoMessage:
     OBJECT_HISTORY = 'History'
     OBJECT_CREATED_BY = 'By'
     OBJECT_CREATED_ON = 'On'
+    OBJECT_MODIFIED_ON = 'Last updated on'
     OBJECT_ACTION = 'Action'
     OBJECT_AUTHOR = 'Author'
     ACTION_DATE = 'Date'

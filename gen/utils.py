@@ -48,6 +48,7 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
     obj.creator = userId or 'Anonymous User'
     from DateTime import DateTime
     obj.created = DateTime()
+    obj.modified = obj.created
     obj.__ac_local_roles__ = { userId: ['Owner'] } # userId can be None (anon).
     if wf: obj.notifyWorkflowCreated()
     return obj
@@ -115,9 +116,8 @@ class GroupDescr(Descr):
             groupDict['widgets'].append(newRow)
 
 class PhaseDescr(Descr):
-    def __init__(self, name, states, obj):
+    def __init__(self, name, obj):
         self.name = name
-        self.states = states
         self.obj = obj
         self.phaseStatus = None
         # The list of names of pages in this phase
@@ -163,41 +163,25 @@ class PhaseDescr(Descr):
             self.hiddenPages.append(appyType.page.name)
 
     def computeStatus(self, allPhases):
-        '''Compute status of whole phase based on individual status of states
-           in this phase. If this phase includes no state, the concept of phase
-           is simply used as a tab, and its status depends on the page currently
+        '''Compute status of this phase, which depends on the page currently
            shown. This method also fills fields "previousPhase" and "nextPhase"
            if relevant, based on list of p_allPhases.'''
         res = 'Current'
-        if self.states:
-            # Compute status base on states
-            res = self.states[0]['stateStatus']
-            if len(self.states) > 1:
-                for state in self.states[1:]:
-                    if res != state['stateStatus']:
-                        res = 'Current'
-                        break
+        # Compute status based on current page
+        page = self.obj.REQUEST.get('page', 'main')
+        if page in self.pages:
+            res = 'Current'
         else:
-            # Compute status based on current page
-            page = self.obj.REQUEST.get('page', 'main')
-            if page in self.pages:
-                res = 'Current'
-            else:
-                res = 'Deselected'
-            # Identify previous and next phases
-            for phaseInfo in allPhases:
-                if phaseInfo['name'] == self.name:
-                    i = allPhases.index(phaseInfo)
-                    if i > 0:
-                        self.previousPhase = allPhases[i-1]
-                    if i < (len(allPhases)-1):
-                        self.nextPhase = allPhases[i+1]
+            res = 'Deselected'
+        # Identify previous and next phases
+        for phaseInfo in allPhases:
+            if phaseInfo['name'] == self.name:
+                i = allPhases.index(phaseInfo)
+                if i > 0:
+                    self.previousPhase = allPhases[i-1]
+                if i < (len(allPhases)-1):
+                    self.nextPhase = allPhases[i+1]
         self.phaseStatus = res
-
-class StateDescr(Descr):
-    def __init__(self, name, stateStatus):
-        self.name = name
-        self.stateStatus = stateStatus.capitalize()
 
 # ------------------------------------------------------------------------------
 upperLetter = re.compile('[A-Z]')

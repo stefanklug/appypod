@@ -138,27 +138,6 @@
 </metal:history>
 
 <tal:comment replace="nothing">
-  This macro displays an object's state(s). It is used by macro "header" below.
-</tal:comment>
-<metal:states define-macro="states"
-              tal:define="showAllStatesInPhase python: tool.getAttr('showAllStatesInPhaseFor' + contextObj.meta_type);
-                          states python: contextObj.getAppyStates(phase, currentOnly=not showAllStatesInPhase)"
-              tal:condition="python: test(showAllStatesInPhase, len(states)&gt;1, True)">
-  <table>
-    <tr>
-      <tal:state repeat="stateInfo states">
-        <td class="state"
-            tal:content="python: _(contextObj.getWorkflowLabel(stateInfo['name']))">
-        </td>
-        <td tal:condition="python: stateInfo['name'] != states[-1]['name']">
-          <img tal:attributes="src string: $appUrl/ui/nextState.png"/>
-        </td>
-      </tal:state>
-    </tr>
-  </table>
-</metal:states>
-
-<tal:comment replace="nothing">
   This macro displays an object's transitions(s). It is used by macro "header" below.
 </tal:comment>
 <metal:transitions define-macro="transitions"
@@ -223,15 +202,28 @@
             <span tal:replace="python: _('object_history')"></span> ||&nbsp;
             </tal:accessHistory>
 
-            <tal:comment replace="nothing">Show document creator</tal:comment>
-            <span class="by" tal:condition="python: creator != 'Anonymous User'">
+            <tal:comment replace="nothing">Document creator</tal:comment>
+            <tal:creator condition="python: creator != 'Anonymous User'">
              <tal:by replace="python: _('object_created_by')"/>
-             <tal:creator replace="python: tool.getUserName(creator)"/> &mdash;
-            </span>
-            <tal:comment replace="nothing">Show creation date</tal:comment>
+             <tal:creator replace="python: tool.getUserName(creator)"/>
+            </tal:creator>
+            <tal:comment replace="nothing">Creation and last modification dates</tal:comment>
             <tal:by replace="python: _('object_created_on')"/>
-            <span tal:replace="python: tool.formatDate(contextObj.created, withHour=True)"></span>
-        </td>
+            <tal:dates define="creationDate contextObj/Created;
+                               modificationDate contextObj/Modified">
+             <tal:date replace="python: tool.formatDate(creationDate, withHour=True)"/>
+             <tal:modified condition="python: modificationDate != creationDate">&mdash;
+              <tal:by replace="python: _('object_modified_on')"/>
+              <tal:date replace="python: tool.formatDate(modificationDate, withHour=True)"/>
+             </tal:modified>
+            </tal:dates>
+            <tal:comment replace="nothing">State</tal:comment>
+            <tal:state condition="contextObj/showState">
+             &mdash;
+             <tal:label replace="python: _('workflow_state')"/>:
+             <b tal:content="python: _(contextObj.getWorkflowLabel())"></b>
+            </tal:state>
+        </td>   
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
       <tr tal:condition="hasHistory" class="underTitle">
@@ -246,15 +238,10 @@
           </span>
         </td>
       </tr>
-      <tal:comment replace="nothing">Workflow-related information and actions</tal:comment>
+      <tal:comment replace="nothing">Possible transitions</tal:comment>
       <tr tal:condition="python: showWorkflow and contextObj.getWorkflowLabel()" class="workflow">
-        <td colspan="2">
-          <table width="100%">
-            <tr>
-              <td><metal:states use-macro="here/ui/page/macros/states"/></td>
-              <td tal:attributes="align dright"><metal:states use-macro="here/ui/page/macros/transitions"/></td>
-            </tr>
-          </table>
+        <td colspan="2" tal:attributes="align dright">
+          <metal:states use-macro="here/ui/page/macros/transitions"/>
         </td>
       </tr>
     </table>

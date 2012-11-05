@@ -1547,9 +1547,15 @@ class Date(Type):
 
     def getFormattedValue(self, obj, value):
         if self.isEmptyValue(value): return ''
-        res = value.strftime('%d/%m/') + str(value.year())
+        tool = obj.getTool().appy()
+        # A problem may occur with some extreme year values. Replace the "year"
+        # part "by hand".
+        dateFormat = tool.dateFormat
+        if '%Y' in dateFormat:
+            dateFormat = dateFormat.replace('%Y', str(value.year()))
+        res = value.strftime(dateFormat)
         if self.format == Date.WITH_HOUR:
-            res += ' %s' % value.strftime('%H:%M')
+            res += ' %s' % value.strftime(tool.hourFormat)
         return res
 
     def getRequestValue(self, request, requestName=None):

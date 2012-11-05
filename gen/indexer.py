@@ -9,8 +9,8 @@ from appy.shared.utils import normalizeText
 defaultIndexes = {
     'State': 'ListIndex', 'UID': 'FieldIndex', 'Title': 'TextIndex',
     'SortableTitle': 'FieldIndex', 'SearchableText': 'TextIndex',
-    'Creator': 'FieldIndex', 'Created': 'DateIndex', 'ClassName': 'FieldIndex',
-    'Allowed': 'KeywordIndex'}
+    'Creator': 'FieldIndex', 'Created': 'DateIndex', 'Modified': 'DateIndex',
+    'ClassName': 'FieldIndex', 'Allowed': 'KeywordIndex'}
 
 # Stuff for creating or updating the indexes -----------------------------------
 class TextIndexInfo:

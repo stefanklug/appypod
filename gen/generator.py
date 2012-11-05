@@ -502,6 +502,7 @@ class ZopeGenerator(Generator):
             msg('object_history',       '', msg.OBJECT_HISTORY),
             msg('object_created_by',    '', msg.OBJECT_CREATED_BY),
             msg('object_created_on',    '', msg.OBJECT_CREATED_ON),
+            msg('object_modified_on',   '', msg.OBJECT_MODIFIED_ON),
             msg('object_action',        '', msg.OBJECT_ACTION),
             msg('object_author',        '', msg.OBJECT_AUTHOR),
             msg('action_date',          '', msg.ACTION_DATE),

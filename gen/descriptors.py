@@ -539,18 +539,6 @@ class ToolClassDescriptor(ClassDescriptor):
         fieldType = gen.Boolean(default=True, page='userInterface',
                                 group=groupName)
         self.addField(fieldName, fieldType)
-        # Adds the boolean field for showing all states in current state or not.
-        # If this boolean is True but the current phase counts only one state,
-        # we will not show the state at all: the fact of knowing in what phase
-        # we are is sufficient. If this boolean is False, we simply show the
-        # current state.
-        defaultValue = False
-        if len(classDescr.getPhases()) > 1:
-            defaultValue = True
-        fieldName = 'showAllStatesInPhaseFor%s' % className
-        fieldType = gen.Boolean(default=defaultValue, page='userInterface',
-                                group=groupName)
-        self.addField(fieldName, fieldType)
 
 class UserClassDescriptor(ClassDescriptor):
     '''Appy-specific class for representing a user.'''

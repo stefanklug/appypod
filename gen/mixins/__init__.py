@@ -87,6 +87,10 @@ class BaseMixin:
             appyObject = obj.appy()
             if hasattr(appyObject, 'onEdit'):
                 msg = appyObject.onEdit(created)
+        # Update last modification date
+        if not created:
+            from DateTime import DateTime
+            obj.modified = DateTime()
         obj.reindex()
         return obj, msg
 
@@ -700,29 +704,6 @@ class BaseMixin:
                 res.append({'field':field, 'width':width, 'align': align})
         return res
 
-    def getAppyStates(self, phase, currentOnly=False):
-        '''Returns information about the states that are related to p_phase.
-           If p_currentOnly is True, we return the current state, even if not
-           related to p_phase.'''
-        currentState = self.State()
-        if currentOnly:
-            return [StateDescr(currentState, 'current').get()]
-        res = []
-        workflow = self.getWorkflow()
-        stateStatus = 'done'
-        for stateName in dir(workflow):
-            if getattr(workflow, stateName).__class__.__name__ != 'State':
-                continue
-            if stateName == currentState:
-                stateStatus = 'current'
-            elif stateStatus != 'done':
-                stateStatus = 'future'
-            state = getattr(workflow, stateName)
-            if (state.phase == phase) and \
-               (self._appy_showState(workflow, state.show)):
-                res.append(StateDescr(stateName, stateStatus).get())
-        return res
-
     def getAppyTransitions(self, includeFake=True, includeNotShowable=False):
         '''This method returns info about transitions that one can trigger from
            the user interface.
@@ -778,8 +759,7 @@ class BaseMixin:
         for appyType in self.getAllAppyTypes():
             typePhase = appyType.page.phase
             if typePhase not in phases:
-                states = self.getAppyStates(typePhase)
-                phase = PhaseDescr(typePhase, states, self)
+                phase = PhaseDescr(typePhase, self)
                 res.append(phase.__dict__)
                 phases[typePhase] = phase
             else:
@@ -1213,7 +1193,7 @@ class BaseMixin:
         return wrapper
 
     # --------------------------------------------------------------------------
-    # Standard methods for computing values of standard Appy indexes
+    # Methods for computing values of standard Appy indexes
     # --------------------------------------------------------------------------
     def UID(self):
         '''Returns the unique identifier for this object.'''
@@ -1244,6 +1224,11 @@ class BaseMixin:
 
     def Created(self):
         '''When was this object created ?'''
+        return self.created
+
+    def Modified(self):
+        '''When was this object last modified ?'''
+        if hasattr(self.aq_base, 'modified'): return self.modified
         return self.created
 
     def State(self, name=True, initial=False):
@@ -1291,11 +1276,12 @@ class BaseMixin:
                     res.add('user:%s' % id)
         return list(res)
 
-    def _appy_showState(self, workflow, stateShow):
-        '''Must I show a state whose "show value" is p_stateShow?'''
+    def showState(self):
+        '''Must I show self's current state ?'''
+        stateShow = self.State(name=False).show
         if callable(stateShow):
-            return stateShow(workflow, self.appy())
-        else: return stateShow
+            return stateShow(self.getWorkflow(), self.appy())
+        return stateShow
 
     def _appy_listStates(self):
         '''Lists the possible states for this object.'''

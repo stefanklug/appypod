@@ -113,12 +113,6 @@ class ToolWrapper(AbstractWrapper):
            "showWorkflow"
                Stores the boolean field indicating if we must show workflow-
                related information for p_klass or not.
-
-           "showAllStatesInPhase"
-               Stores the boolean field indicating if we must show all states
-               linked to the current phase or not. If this field is False, we
-               simply show the current state, be it linked to the current phase
-               or not.
         '''
         fullClassName = self.o.getPortalType(klass)
         res = '%sFor%s' % (attributeType, fullClassName)
