@@ -127,7 +127,7 @@ class Table(LayoutElement):
             # We need to create a Table instance from another Table instance,
             # given in p_other. In this case, we ignore previous params.
             if derivedType != None:
-                # We will not simply clone p_other. If p_derivedType is:
+                # We will not simply mimic p_other. If p_derivedType is:
                 # - "view", p_derivedFrom is an "edit" layout, and we must
                 #           create the corresponding "view" layout;
                 # - "cell", p_derivedFrom is a "view" layout, and we must

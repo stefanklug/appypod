@@ -21,197 +21,204 @@ msgstr ""
 fallbacks = {'en': 'en-us en-ca',
              'fr': 'fr-be fr-ca fr-lu fr-mc fr-ch fr-fr'}
 
+# Standard Appy labels with their default value in english ---------------------
+appyLabels = [
+ ('app_name', 'Appy'),
+ ('workflow_state', 'state'),
+ ('workflow_comment', 'Optional comment'),
+ ('appy_title', 'Title'),
+ ('data_change', 'Data change'),
+ ('modified_field', 'Modified field'),
+ ('previous_value', 'Previous value'),
+ ('phase', 'phase'),
+ ('choose_a_value', ' - '),
+ ('choose_a_doc', '[ Documents ]'),
+ ('min_ref_violated', 'You must choose more elements here.'),
+ ('max_ref_violated', 'Too much elements are selected here.'),
+ ('no_ref', 'No object.'),
+ ('add_ref', 'Add a new one'),
+ ('action_ok', 'The action has been successfully executed.'),
+ ('action_ko', 'A problem occurred while executing the action.'),
+ ('move_up', 'Move up'),
+ ('move_down', 'Move down'),
+ ('query_create', 'create'),
+ ('query_import', 'import'),
+ ('query_no_result', 'Nothing to see for the moment.'),
+ ('query_consult_all', 'consult all'),
+ ('import_title', 'Importing data into your application'),
+ ('import_show_hide', 'Show / hide alreadly imported elements.'),
+ ('import_already', 'Already imported.'),
+ ('import_many', 'Import selected elements'),
+ ('import_done', 'Import terminated successfully.'),
+ ('search_title', 'Advanced search'),
+ ('search_button', 'Search'),
+ ('search_objects', 'Search objects of this type.'),
+ ('search_results', 'Search results'),
+ ('search_results_descr', ' '),
+ ('search_new', 'New search'),
+ ('search_from', 'From'),
+ ('search_to', 'to'),
+ ('search_or', 'or'),
+ ('search_and', 'and'),
+ ('ref_invalid_index', 'No move occurred: please specify a valid number.'),
+ ('bad_long', 'An integer value is expected; do not enter any space.'),
+ ('bad_float', 'A floating-point number is expected; use the dot as decimal ' \
+               'separator, not a comma; do not enter any space.'),
+ ('bad_date', 'Please specify a valid date.'),
+ ('bad_email', 'Please enter a valid email.'),
+ ('bad_url', 'Please enter a valid URL.'),
+ ('bad_alphanumeric', 'Please enter a valid alphanumeric value.'),
+ ('bad_select_value', 'The value is not among possible values for this field.'),
+ ('select_delesect', '(Un)select all'),
+ ('no_elem_selected', 'You must select at least one element.'),
+ ('object_edit', 'Edit'),
+ ('object_delete', 'Delete'),
+ ('object_unlink', 'Unlink'),
+ ('delete_confirm', 'Are you sure you want to delete this element?'),
+ ('unlink_confirm', 'Are you sure you want to unlink this element?'),
+ ('delete_done', 'The element has been deleted.'),
+ ('unlink_done', 'The element has been unlinked.'),
+ ('goto_first', 'Go to top'),
+ ('goto_previous', 'Go to previous'),
+ ('goto_next', 'Go to next'),
+ ('goto_last', 'Go to end'),
+ ('goto_source', 'Go back'),
+ ('whatever', 'Whatever'),
+ ('yes', 'Yes'),
+ ('no', 'No'),
+ ('field_required', 'Please fill this field.'),
+ ('field_invalid', 'Please fill or correct this.'),
+ ('file_required', 'Please select a file.'),
+ ('image_required', 'The uploaded file must be an image.'),
+ ('odt', 'ODT'),
+ ('pdf', 'PDF'),
+ ('doc', 'DOC'),
+ ('rtf', 'RTF'),
+ ('front_page_text', 'Welcome to this Appy-powered site.'),
+ ('captcha_text', 'Please type "${text}" (without the double quotes) in the ' \
+                  'field besides, but without the character at position ' \
+                  '${number}.'),
+ ('bad_captcha', 'The code was not correct. Please try again.'),
+ ('app_login', 'Login'),
+ ('app_connect', 'Log in'),
+ ('app_logout', 'Logout'),
+ ('app_password', 'Password'),
+ ('app_home', 'Home'),
+ ('login_reserved', 'This login is reserved.'),
+ ('login_in_use', 'This login is already in use.'),
+ ('login_ko', 'Welcome! You are now logged in.'),
+ ('login_ok', 'Login failed.'),
+ ('password_too_short', 'Passwords must contain at least ${nb} characters.'),
+ ('passwords_mismatch', 'Passwords do not match.'),
+ ('object_save', 'Save'),
+ ('object_saved', 'Changes saved.'),
+ ('validation_error', 'Please correct the indicated errors.'),
+ ('object_cancel', 'Cancel'),
+ ('object_canceled', 'Changes canceled.'),
+ ('enable_cookies', 'You must enable cookies before you can log in.'),
+ ('page_previous', 'Previous page'),
+ ('page_next', 'Next page'),
+ ('forgot_password', 'Forgot password?'),
+ ('ask_password_reinit', 'Ask new password'),
+ ('wrong_password_reinit', 'Something went wrong. First possibility: you ' \
+    'have already clicked on the link (maybe have you double-clicked?) ' \
+    'and your password has already been re-initialized. Please check ' \
+    'that you haven\'t received your new password in another email. ' \
+    'Second possibility: the link that you received in your mailer was ' \
+    'splitted on several lines. In this case, please re-type the link in ' \
+    'one single line and retry. Third possibility: you have waited too ' \
+    'long and your request has expired, or a technical error occurred. ' \
+    'In this case, please try again to ask a new password from the start.'),
+ ('reinit_mail_sent', 'A mail has been sent to you. Please follow the ' \
+                      'instructions from this email.'),
+ ('reinit_password', 'Password re-initialisation'),
+ ('reinit_password_body', 'Hello,<br/><br/>A password re-initialisation ' \
+    'has been requested, tied to this email address, for the website ' \
+    '${siteUrl}. If you are not at the origin of this request, please ' \
+    'ignore this email. Else, click on the link below to receive a new ' \
+    'password.<br/><br/>${url}'),
+ ('new_password', 'Your new password'),
+ ('new_password_body', 'Hello,<br/><br/>The new password you have ' \
+                       'requested for website ${siteUrl} is ${password}<br/>' \
+                       '<br/>Best regards.'),
+ ('new_password_sent', 'Your new password has been sent to you by email.'),
+ ('last_user_access', 'Last access'),
+ ('object_history', 'History'),
+ ('object_created_by', 'By'),
+ ('object_created_on', 'On'),
+ ('object_modified_on', 'Last updated on'),
+ ('object_action', 'Action'),
+ ('object_author', 'Author'),
+ ('action_date', 'Date'),
+ ('action_comment', 'Comment'),
+ ('day_Mon_short', 'Mon'),
+ ('day_Tue_short', 'Tue'),
+ ('day_Wed_short', 'Wed'),
+ ('day_Thu_short', 'Thu'),
+ ('day_Fri_short', 'Fri'),
+ ('day_Sat_short', 'Sat'),
+ ('day_Sun_short', 'Sun'),
+ ('day_Mon', 'Monday'),
+ ('day_Tue', 'Tuesday'),
+ ('day_Wed', 'Wednesday'),
+ ('day_Thu', 'Thursday'),
+ ('day_Fri', 'Friday'),
+ ('day_Sat', 'Saturday'),
+ ('day_Sun', 'Sunday'),
+ ('ampm_am', 'AM'),
+ ('ampm_pm', 'PM'),
+ ('month_Jan_short', 'Jan'),
+ ('month_Feb_short', 'Feb'),
+ ('month_Mar_short', 'Mar'),
+ ('month_Apr_short', 'Apr'),
+ ('month_May_short', 'May'),
+ ('month_Jun_short', 'Jun'),
+ ('month_Jul_short', 'Jul'),
+ ('month_Aug_short', 'Aug'),
+ ('month_Sep_short', 'Sep'),
+ ('month_Oct_short', 'Oct'),
+ ('month_Nov_short', 'Nov'),
+ ('month_Dec_short', 'Dec'),
+ ('month_Jan', 'January'),
+ ('month_Feb', 'February'),
+ ('month_Mar', 'March'),
+ ('month_Apr', 'April'),
+ ('month_May', 'May'),
+ ('month_Jun', 'June'),
+ ('month_Jul', 'July'),
+ ('month_Aug', 'Augustus'),
+ ('month_Sep', 'September'),
+ ('month_Oct', 'October'),
+ ('month_Nov', 'November'),
+ ('month_Dec', 'December'),
+ ('today', 'Today'),
+ ('which_event', 'Which event type would you like to create?'),
+ ('event_span', 'Extend the event on the following number of days (leave ' \
+                'blank to create an event on the current day only):'),
+ ('del_next_events', 'Also delete successive events of the same type.'),
+]
+
+# Some default values for labels whose ids are not fixed (so they can't be
+# included in the previous variable).
+CONFIG = "Configuration panel for product '%s'"
+# The following messages (starting with MSG_) correspond to tool
+# attributes added for every gen-class (warning: the message IDs correspond
+# to MSG_<attributePrefix>).
+MSG_podTemplate = "POD template for field '%s'"
+MSG_formats = "Output format(s) for field '%s'"
+MSG_resultColumns = "Columns to display while showing query results"
+MSG_enableAdvancedSearch = "Enable advanced search"
+MSG_numberOfSearchColumns = "Number of search columns"
+MSG_searchFields = "Search fields"
+POD_ASKACTION = 'Trigger related action'
+EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
+                'performed on element entitled \\"${objectTitle}\\".'
+EMAIL_BODY = 'You can consult this element at ${objectUrl}.'
+CONFIRM = 'Are you sure ?'
+
 # ------------------------------------------------------------------------------
 class PoMessage:
     '''Represents a i18n message (po format).'''
-    CONFIG = "Configuration panel for product '%s'"
-    APP_NAME = "Appy"
-    # The following messages (starting with MSG_) correspond to tool
-    # attributes added for every gen-class (warning: the message IDs correspond
-    # to MSG_<attributePrefix>).
-    MSG_podTemplate = "POD template for field '%s'"
-    MSG_formats = "Output format(s) for field '%s'"
-    MSG_resultColumns = "Columns to display while showing query results"
-    MSG_enableAdvancedSearch = "Enable advanced search"
-    MSG_numberOfSearchColumns = "Number of search columns"
-    MSG_searchFields = "Search fields"
-    POD_ASKACTION = 'Trigger related action'
-    REF_NO = 'No object.'
-    REF_ADD = 'Add a new one'
-    REF_MOVE_UP = 'Move up'
-    REF_MOVE_DOWN = 'Move down'
-    REF_INVALID_INDEX = 'No move occurred: please specify a valid number.'
-    QUERY_CREATE = 'create'
-    QUERY_IMPORT = 'import'
-    QUERY_CONSULT_ALL = 'consult all'
-    QUERY_NO_RESULT = 'Nothing to see for the moment.'
-    IMPORT_TITLE = 'Importing data into your application'
-    IMPORT_SHOW_HIDE = 'Show / hide alreadly imported elements.'
-    IMPORT_ALREADY = 'Already imported.'
-    IMPORT_MANY = 'Import selected elements'
-    IMPORT_DONE = 'Import terminated successfully.'
-    SEARCH_TITLE = 'Advanced search'
-    SEARCH_BUTTON = 'Search'
-    SEARCH_OBJECTS = 'Search objects of this type.'
-    SEARCH_RESULTS = 'Search results'
-    SEARCH_NEW = 'New search'
-    SEARCH_FROM = 'From'
-    SEARCH_TO = 'to'
-    SEARCH_OR = 'or'
-    SEARCH_AND = 'and'
-    WORKFLOW_COMMENT = 'Optional comment'
-    WORKFLOW_STATE = 'state'
-    APPY_TITLE = 'Title'
-    DATA_CHANGE = 'Data change'
-    MODIFIED_FIELD = 'Modified field'
-    PREVIOUS_VALUE = 'Previous value'
-    PHASE = 'phase'
-    CHOOSE_A_VALUE = ' - '
-    CHOOSE_A_DOC = '[ Documents ]'
-    MIN_REF_VIOLATED = 'You must choose more elements here.'
-    MAX_REF_VIOLATED = 'Too much elements are selected here.'
-    BAD_LONG = 'An integer value is expected; do not enter any space.'
-    BAD_FLOAT = 'A floating-point number is expected; use the dot as decimal ' \
-                'separator, not a comma; do not enter any space.'
-    BAD_DATE = 'Please specify a valid date.'
-    BAD_EMAIL = 'Please enter a valid email.'
-    BAD_URL = 'Please enter a valid URL.'
-    BAD_ALPHANUMERIC = 'Please enter a valid alphanumeric value.'
-    BAD_SELECT_VALUE = 'The value is not among possible values for this field.'
-    ACTION_OK = 'The action has been successfully executed.'
-    ACTION_KO = 'A problem occurred while executing the action.'
-    FRONT_PAGE_TEXT = 'Welcome to this Appy-powered site.'
-    EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
-                    'performed on element entitled \\"${objectTitle}\\".'
-    EMAIL_BODY = 'You can consult this element at ${objectUrl}.'
-    SELECT_DESELECT = '(Un)select all'
-    NO_SELECTION = 'You must select at least one element.'
-    EDIT = 'Edit'
-    DELETE = 'Delete'
-    UNLINK = 'Unlink'
-    DELETE_CONFIRM = 'Are you sure you want to delete this element?'
-    UNLINK_CONFIRM = 'Are you sure you want to unlink this element?'
-    DELETE_DONE = 'The element has been deleted.'
-    UNLINK_DONE = 'The element has been unlinked.'
-    GOTO_FIRST = 'Go to top'
-    GOTO_PREVIOUS = 'Go to previous'
-    GOTO_NEXT = 'Go to next'
-    GOTO_LAST = 'Go to end'
-    GOTO_SOURCE = 'Go back'
-    WHATEVER = 'Whatever'
-    CONFIRM = 'Are you sure ?'
-    YES = 'Yes'
-    NO = 'No'
-    FIELD_REQUIRED = 'Please fill this field.'
-    FILE_REQUIRED = 'Please select a file.'
-    FIELD_INVALID = 'Please fill or correct this.'
-    IMAGE_REQUIRED = 'The uploaded file must be an image.'
-    FORMAT_ODT = 'ODT'
-    FORMAT_PDF = 'PDF'
-    FORMAT_DOC = 'DOC'
-    FORMAT_RTF = 'RTF'
-    CAPTCHA_TEXT = 'Please type "${text}" (without the double quotes) in the ' \
-                   'field besides, but without the character at position ' \
-                   '${number}.'
-    BAD_CAPTCHA = 'The code was not correct. Please try again.'
-    LOGIN = 'Login'
-    CONNECT = 'Log in'
-    PASSWORD = 'Password'
-    LOGOUT = 'Logout'
-    HOME = 'Home'
-    LOGIN_RESERVED = 'This login is reserved.'
-    LOGIN_IN_USE = 'This login is already in use.'
-    LOGIN_OK = 'Welcome! You are now logged in.'
-    LOGIN_KO = 'Login failed.'
-    PASSWORD_TOO_SHORT = 'Passwords must contain at least ${nb} characters.'
-    PASSWORDS_MISMATCH = 'Passwords do not match.'
-    SAVE = 'Save'
-    SAVED = 'Changes saved.'
-    ERROR = 'Please correct the indicated errors.'
-    CANCEL = 'Cancel'
-    CANCELED = 'Changes canceled.'
-    ENABLE_COOKIES = 'You must enable cookies before you can log in.'
-    PAGE_PREVIOUS = 'Previous page'
-    PAGE_NEXT = 'Next page'
-    FORGOT_PASSWORD = 'Forgot password?'
-    ASK_PASSWORD_REINIT = 'Ask new password'
-    WRONG_PASSWORD_REINIT = 'Something went wrong. First possibility: you ' \
-        'have already clicked on the link (maybe have you double-clicked?) ' \
-        'and your password has already been re-initialized. Please check ' \
-        'that you haven\'t received your new password in another email. ' \
-        'Second possibility: the link that you received in your mailer was ' \
-        'splitted on several lines. In this case, please re-type the link in ' \
-        'one single line and retry. Third possibility: you have waited too ' \
-        'long and your request has expired, or a technical error occurred. ' \
-        'In this case, please try again to ask a new password from the start.'
-    REINIT_MAIL_SENT = 'A mail has been sent to you. Please follow the ' \
-                       'instructions from this email.'
-    REINIT_PASSWORD = 'Password re-initialisation'
-    REINIT_PASSWORD_BODY = 'Hello,<br/><br/>A password re-initialisation ' \
-        'has been requested, tied to this email address, for the website ' \
-        '${siteUrl}. If you are not at the origin of this request, please ' \
-        'ignore this email. Else, click on the link below to receive a new ' \
-        'password.<br/><br/>${url}'
-    NEW_PASSWORD = 'Your new password'
-    NEW_PASSWORD_BODY = 'Hello,<br/><br/>The new password you have ' \
-                        'requested for website ${siteUrl} is ${password}<br/>' \
-                        '<br/>Best regards.'
-    NEW_PASSWORD_SENT = 'Your new password has been sent to you by email.'
-    LAST_USER_ACCESS = 'Last access'
-    OBJECT_HISTORY = 'History'
-    OBJECT_CREATED_BY = 'By'
-    OBJECT_CREATED_ON = 'On'
-    OBJECT_MODIFIED_ON = 'Last updated on'
-    OBJECT_ACTION = 'Action'
-    OBJECT_AUTHOR = 'Author'
-    ACTION_DATE = 'Date'
-    ACTION_COMMENT = 'Comment'
-    DAY_MON_SHORT = 'Mon'
-    DAY_TUE_SHORT = 'Tue'
-    DAY_WED_SHORT = 'Wed'
-    DAY_THU_SHORT = 'Thu'
-    DAY_FRI_SHORT = 'Fri'
-    DAY_SAT_SHORT = 'Sat'
-    DAY_SUN_SHORT = 'Sun'
-    DAY_MON = 'Monday'
-    DAY_TUE = 'Tuesday'
-    DAY_WED = 'Wednesday'
-    DAY_THU = 'Thursday'
-    DAY_FRI = 'Friday'
-    DAY_SAT = 'Saturday'
-    DAY_SUN = 'Sunday'
-    AMPM_AM = 'AM'
-    AMPM_PM = 'PM'
-    MONTH_JAN_SHORT = 'Jan'
-    MONTH_FEB_SHORT = 'Feb'
-    MONTH_MAR_SHORT = 'Mar'
-    MONTH_APR_SHORT = 'Apr'
-    MONTH_MAY_SHORT = 'May'
-    MONTH_JUN_SHORT = 'Jun'
-    MONTH_JUL_SHORT = 'Jul'
-    MONTH_AUG_SHORT = 'Aug'
-    MONTH_SEP_SHORT = 'Sep'
-    MONTH_OCT_SHORT = 'Oct'
-    MONTH_NOV_SHORT = 'Nov'
-    MONTH_DEC_SHORT = 'Dec'
-    MONTH_JAN = 'January'
-    MONTH_FEB = 'February'
-    MONTH_MAR = 'March'
-    MONTH_APR = 'April'
-    MONTH_MAY = 'May'
-    MONTH_JUN = 'June'
-    MONTH_JUL = 'July'
-    MONTH_AUG = 'Augustus'
-    MONTH_SEP = 'September'
-    MONTH_OCT = 'October'
-    MONTH_NOV = 'November'
-    MONTH_DEC = 'December'
-    TODAY = 'Today'
-    WHICH_EVENT = 'Which event type would you like to create?'
-    EVENT_SPAN = 'Extend the event on the following number of days (leave ' \
-                 'blank to create an event on the current day only):'
-    DEL_NEXT_EVENTS = 'Also delete successive events of the same type.'
-
     def __init__(self, id, msg, default, fuzzy=False, comments=[],
                  niceDefault=False):
         self.id = id
@@ -290,21 +297,29 @@ class PoMessage:
         return '<i18n msg id="%s", msg="%s", default="%s">' % \
                (self.id, self.msg, self.default)
 
-    def __cmp__(self, other):
-        return cmp(self.id, other.id)
-
-    def clone(self, oldPrefix, newPrefix):
-        '''This returns a cloned version of myself. The clone has another id
-           that includes p_newPrefix.'''
-        if self.id.startswith(oldPrefix):
-            newId = newPrefix + self.id[len(oldPrefix):]
-        else:
-            newId = '%s_%s' % (newPrefix, self.id.split('_', 1)[1])
-        return PoMessage(newId, self.msg, self.default, comments=self.comments)
-
     def getMessage(self):
         '''Returns self.msg, but with some replacements.'''
         return self.msg.replace('<br/>', '\n').replace('\\"', '"')
+
+class PoMessages:
+    '''A list of po messages under construction.'''
+    def __init__(self):
+        # The list of messages
+        self.messages = []
+        # A dict of message ids, useful for efficiently checking if an id is
+        # already in the list or not.
+        self.ids = {}
+
+    def append(self, id, default, nice=True):
+        '''Creates a new PoMessage and adds it to self.messages. If p_nice is
+           True, it produces a nice default value for the message.'''
+        # Avoir creating duplicate ids
+        if id in self.ids: return
+        message = PoMessage(id, '', default, niceDefault=nice)
+        self.messages.append(message)
+        self.ids[id] = True
+
+    def get(self): return self.messages
 
 class PoHeader:
     def __init__(self, name, value):

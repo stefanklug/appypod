@@ -5,7 +5,6 @@ import re, time, copy, sys, types, os, os.path, mimetypes, string, StringIO, \
 from appy import Object
 from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
-from appy.gen.po import PoMessage
 from appy.gen.mail import sendNotification
 from appy.gen.indexer import defaultIndexes, XhtmlTextExtractor
 from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
@@ -191,7 +190,6 @@ class Group:
             # (b) groupData is of the form <groupName>_<numberOfColumns>.
             groupElems = groupData.rsplit('_', 1)
             if len(groupElems) == 1:
-                # We have case (a)
                 res = Group(groupElems[0])
             else:
                 try:
@@ -208,36 +206,29 @@ class Group:
         if self.master: return (self.master, self.masterValue)
         if self.group: return self.group.getMasterData()
 
-    def generateLabels(self, messages, classDescr, walkedGroups):
+    def generateLabels(self, messages, classDescr, walkedGroups,
+                       forSearch=False):
         '''This method allows to generate all the needed i18n labels related to
-           this group. p_messages is the list of i18n p_messages that we are
-           currently building; p_classDescr is the descriptor of the class where
-           this group is defined.'''
+           this group. p_messages is the list of i18n p_messages (a PoMessages
+           instance) that we are currently building; p_classDescr is the
+           descriptor of the class where this group is defined. If p_forSearch
+           is True, this group is used for grouping searches, and not fields.'''
+        # A part of the group label depends on p_forSearch.
+        if forSearch: gp = 'searchgroup'
+        else:         gp = 'group'
         if self.hasLabel:
-            msgId = '%s_group_%s' % (classDescr.name, self.name)
-            poMsg = PoMessage(msgId, '', self.name, niceDefault=True)
-            if poMsg not in messages:
-                messages.append(poMsg)
-                classDescr.labelsToPropagate.append(poMsg)
+            msgId = '%s_%s_%s' % (classDescr.name, gp, self.name)
+            messages.append(msgId, self.name)
         if self.hasDescr:
-            msgId = '%s_group_%s_descr' % (classDescr.name, self.name)
-            poMsg = PoMessage(msgId, '', ' ')
-            if poMsg not in messages:
-                messages.append(poMsg)
-                classDescr.labelsToPropagate.append(poMsg)
+            msgId = '%s_%s_%s_descr' % (classDescr.name, gp, self.name)
+            messages.append(msgId, ' ', nice=False)
         if self.hasHelp:
-            msgId = '%s_group_%s_help' % (classDescr.name, self.name)
-            poMsg = PoMessage(msgId, '', ' ')
-            if poMsg not in messages:
-                messages.append(poMsg)
-                classDescr.labelsToPropagate.append(poMsg)
+            msgId = '%s_%s_%s_help' % (classDescr.name, gp, self.name)
+            messages.append(msgId, ' ', nice=False)
         if self.hasHeaders:
             for i in range(self.nbOfHeaders):
-                msgId = '%s_group_%s_col%d' % (classDescr.name, self.name, i+1)
-                poMsg = PoMessage(msgId, '', ' ')
-                if poMsg not in messages:
-                    messages.append(poMsg)
-                    classDescr.labelsToPropagate.append(poMsg)
+                msgId = '%s_%s_%s_col%d' % (classDescr.name, gp, self.name, i+1)
+                messages.append(msgId, ' ', nice=False)
         walkedGroups.add(self)
         if self.group and (self.group not in walkedGroups) and \
            not self.group.label:
@@ -302,7 +293,8 @@ class Search:
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
                  default=False, **fields):
         self.name = name
-        self.group = group # Searches may be visually grouped in the portlet
+        # Searches may be visually grouped in the portlet.
+        self.group = Group.get(group)
         self.sortBy = sortBy
         self.sortOrder = sortOrder
         self.limit = limit
@@ -904,24 +896,6 @@ class Type:
         '''Stores the p_value (produced by m_getStorableValue) that complies to
            p_self type definition on p_obj.'''
         setattr(obj, self.name, value)
-
-    def clone(self, forTool=True):
-        '''Returns a clone of myself. If p_forTool is True, the clone will be
-           adapted to its life into the tool.'''
-        res = copy.copy(self)
-        res.group = copy.copy(self.group)
-        res.page = copy.copy(self.page)
-        if not forTool: return res
-        res.show = True
-        # Set default layouts for all Tool fields
-        res.layouts = res.formatLayouts(None)
-        res.specificReadPermission = False
-        res.specificWritePermission = False
-        res.multiplicity = (0, self.multiplicity[1])
-        if callable(res.validator):
-            # We will not be able to call this function from the tool.
-            res.validator = None
-        return res
 
     def callMethod(self, obj, method, raiseOnError=True):
         '''This method is used to call a p_method on p_obj. p_method is part of
@@ -2024,18 +1998,6 @@ class Ref(Type):
         # Link new objects
         if objects:
             self.linkObject(obj, objects)
-
-    def clone(self, forTool=True):
-        '''Produces a clone of myself.'''
-        res = Type.clone(self, forTool)
-        res.back = copy.copy(self.back)
-        if not forTool: return res
-        res.link = True
-        res.add = False
-        res.back.attribute += 'DefaultValue'
-        res.back.show = False
-        res.select = None # Not callable from tool.
-        return res
 
     def mayAdd(self, obj):
         '''May the user create a new referred object from p_obj via this Ref?'''

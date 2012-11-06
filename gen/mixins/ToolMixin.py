@@ -675,7 +675,7 @@ class ToolMixin(BaseMixin):
     def getSearches(self, contentType):
         '''Returns an object with 2 attributes:
            * "searches" stores the searches that are defined for p_contentType;
-           * "default" stores the search defined as default one.
+           * "default" stores the search defined as the default one.
            Every item representing a search is a dict containing info about a
            search or about a group of searches.
         '''
@@ -685,25 +685,27 @@ class ToolMixin(BaseMixin):
         visitedGroups = {} # Names of already visited search groups
         for search in ClassDescriptor.getSearches(appyClass):
             # Determine first group label, we will need it.
-            groupLabel = ''
+            groupLabel = None
+            groupName = None
             if search.group:
-                groupLabel = '%s_searchgroup_%s' % (contentType, search.group)
+                groupName = search.group.name
+                groupLabel = '%s_searchgroup_%s' % (contentType, groupName)
             # Add an item representing the search group if relevant
-            if search.group and (search.group not in visitedGroups):
-                group = {'name': search.group, 'isGroup': True,
+            if groupName and (groupName not in visitedGroups):
+                group = {'name': groupName, 'isGroup': True,
                          'labelId': groupLabel, 'searches': [],
                          'label': self.translate(groupLabel),
                          'descr': self.translate('%s_descr' % groupLabel),
                 }
                 searches.append(group)
-                visitedGroups[search.group] = group
+                visitedGroups[groupName] = group
             # Add the search itself
             searchLabel = '%s_search_%s' % (contentType, search.name)
             dSearch = {'name': search.name, 'isGroup': False,
                        'label': self.translate(searchLabel),
                        'descr': self.translate('%s_descr' % searchLabel)}
-            if search.group:
-                visitedGroups[search.group]['searches'].append(dSearch)
+            if groupName:
+                visitedGroups[groupName]['searches'].append(dSearch)
             else:
                 searches.append(dSearch)
             if search.default:

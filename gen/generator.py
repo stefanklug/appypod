@@ -3,9 +3,9 @@ import os, os.path, re, sys, parser, symbol, token, types
 import appy.pod, appy.pod.renderer
 from appy.shared.utils import FolderDeleter
 import appy.gen as gen
-from po import PoMessage, PoFile, PoParser
+import po
 from descriptors import *
-from utils import produceNiceMessage, getClassName
+from utils import getClassName
 from model import ModelClass, User, Group, Tool, Translation, Page
 
 # ------------------------------------------------------------------------------
@@ -365,8 +365,12 @@ class ZopeGenerator(Generator):
         self.translation = TranslationClassDescriptor(Translation, self)
         self.page = PageClassDescriptor(Page, self)
         # i18n labels to generate
-        self.labels = [] # i18n labels
+        self.labels = po.PoMessages()
         self.referers = {}
+
+    def i18n(self, id, default, nice=True):
+        '''Shorthand for adding a new message into self.labels.'''
+        self.labels.append(id, default, nice=nice)
 
     versionRex = re.compile('(.*?\s+build)\s+(\d+)')
     def initialize(self):
@@ -387,175 +391,20 @@ class ZopeGenerator(Generator):
             for fileName in os.listdir(i18nFolder):
                 name, ext = os.path.splitext(fileName)
                 if ext in self.poExtensions:
-                    poParser = PoParser(os.path.join(i18nFolder, fileName))
+                    poParser = po.PoParser(os.path.join(i18nFolder, fileName))
                     self.i18nFiles[fileName] = poParser.parse()
 
     def finalize(self):
-        # Some useful aliases
-        msg = PoMessage
-        app = self.applicationName
-        # Some global i18n messages
-        poMsg = msg(app, '', app); poMsg.produceNiceDefault()
-        self.labels += [poMsg,
-            msg('app_name',             '', msg.APP_NAME),
-            msg('workflow_state',       '', msg.WORKFLOW_STATE),
-            msg('appy_title',           '', msg.APPY_TITLE),
-            msg('data_change',          '', msg.DATA_CHANGE),
-            msg('modified_field',       '', msg.MODIFIED_FIELD),
-            msg('previous_value',       '', msg.PREVIOUS_VALUE),
-            msg('phase',                '', msg.PHASE),
-            msg('workflow_comment',     '', msg.WORKFLOW_COMMENT),
-            msg('choose_a_value',       '', msg.CHOOSE_A_VALUE),
-            msg('choose_a_doc',         '', msg.CHOOSE_A_DOC),
-            msg('min_ref_violated',     '', msg.MIN_REF_VIOLATED),
-            msg('max_ref_violated',     '', msg.MAX_REF_VIOLATED),
-            msg('no_ref',               '', msg.REF_NO),
-            msg('add_ref',              '', msg.REF_ADD),
-            msg('action_ok',            '', msg.ACTION_OK),
-            msg('action_ko',            '', msg.ACTION_KO),
-            msg('move_up',              '', msg.REF_MOVE_UP),
-            msg('move_down',            '', msg.REF_MOVE_DOWN),
-            msg('query_create',         '', msg.QUERY_CREATE),
-            msg('query_import',         '', msg.QUERY_IMPORT),
-            msg('query_no_result',      '', msg.QUERY_NO_RESULT),
-            msg('query_consult_all',    '', msg.QUERY_CONSULT_ALL),
-            msg('import_title',         '', msg.IMPORT_TITLE),
-            msg('import_show_hide',     '', msg.IMPORT_SHOW_HIDE),
-            msg('import_already',       '', msg.IMPORT_ALREADY),
-            msg('import_many',          '', msg.IMPORT_MANY),
-            msg('import_done',          '', msg.IMPORT_DONE),
-            msg('search_title',         '', msg.SEARCH_TITLE),
-            msg('search_button',        '', msg.SEARCH_BUTTON),
-            msg('search_objects',       '', msg.SEARCH_OBJECTS),
-            msg('search_results',       '', msg.SEARCH_RESULTS),
-            msg('search_results_descr', '', ' '),
-            msg('search_new',           '', msg.SEARCH_NEW),
-            msg('search_from',          '', msg.SEARCH_FROM),
-            msg('search_to',            '', msg.SEARCH_TO),
-            msg('search_or',            '', msg.SEARCH_OR),
-            msg('search_and',           '', msg.SEARCH_AND),
-            msg('ref_invalid_index',    '', msg.REF_INVALID_INDEX),
-            msg('bad_long',             '', msg.BAD_LONG),
-            msg('bad_float',            '', msg.BAD_FLOAT),
-            msg('bad_date',             '', msg.BAD_DATE),
-            msg('bad_email',            '', msg.BAD_EMAIL),
-            msg('bad_url',              '', msg.BAD_URL),
-            msg('bad_alphanumeric',     '', msg.BAD_ALPHANUMERIC),
-            msg('bad_select_value',     '', msg.BAD_SELECT_VALUE),
-            msg('select_delesect',      '', msg.SELECT_DESELECT),
-            msg('no_elem_selected',     '', msg.NO_SELECTION),
-            msg('object_edit',          '', msg.EDIT),
-            msg('object_delete',        '', msg.DELETE),
-            msg('object_unlink',        '', msg.UNLINK),
-            msg('delete_confirm',       '', msg.DELETE_CONFIRM),
-            msg('unlink_confirm',       '', msg.UNLINK_CONFIRM),
-            msg('delete_done',          '', msg.DELETE_DONE),
-            msg('unlink_done',          '', msg.UNLINK_DONE),
-            msg('goto_first',           '', msg.GOTO_FIRST),
-            msg('goto_previous',        '', msg.GOTO_PREVIOUS),
-            msg('goto_next',            '', msg.GOTO_NEXT),
-            msg('goto_last',            '', msg.GOTO_LAST),
-            msg('goto_source',          '', msg.GOTO_SOURCE),
-            msg('whatever',             '', msg.WHATEVER),
-            msg('yes',                  '', msg.YES),
-            msg('no',                   '', msg.NO),
-            msg('field_required',       '', msg.FIELD_REQUIRED),
-            msg('field_invalid',        '', msg.FIELD_INVALID),
-            msg('file_required',        '', msg.FILE_REQUIRED),
-            msg('image_required',       '', msg.IMAGE_REQUIRED),
-            msg('odt',                  '', msg.FORMAT_ODT),
-            msg('pdf',                  '', msg.FORMAT_PDF),
-            msg('doc',                  '', msg.FORMAT_DOC),
-            msg('rtf',                  '', msg.FORMAT_RTF),
-            msg('front_page_text',      '', msg.FRONT_PAGE_TEXT),
-            msg('captcha_text',         '', msg.CAPTCHA_TEXT),
-            msg('bad_captcha',          '', msg.BAD_CAPTCHA),
-            msg('app_login',            '', msg.LOGIN),
-            msg('app_connect',          '', msg.CONNECT),
-            msg('app_logout',           '', msg.LOGOUT),
-            msg('app_password',         '', msg.PASSWORD),
-            msg('app_home',             '', msg.HOME),
-            msg('login_reserved',       '', msg.LOGIN_RESERVED),
-            msg('login_in_use',         '', msg.LOGIN_IN_USE),
-            msg('login_ko',             '', msg.LOGIN_KO),
-            msg('login_ok',             '', msg.LOGIN_OK),
-            msg('password_too_short',   '', msg.PASSWORD_TOO_SHORT),
-            msg('passwords_mismatch',   '', msg.PASSWORDS_MISMATCH),
-            msg('object_save',          '', msg.SAVE),
-            msg('object_saved',         '', msg.SAVED),
-            msg('validation_error',     '', msg.ERROR),
-            msg('object_cancel',        '', msg.CANCEL),
-            msg('object_canceled',      '', msg.CANCELED),
-            msg('enable_cookies',       '', msg.ENABLE_COOKIES),
-            msg('page_previous',        '', msg.PAGE_PREVIOUS),
-            msg('page_next',            '', msg.PAGE_NEXT),
-            msg('forgot_password',      '', msg.FORGOT_PASSWORD),
-            msg('ask_password_reinit',  '', msg.ASK_PASSWORD_REINIT),
-            msg('wrong_password_reinit','', msg.WRONG_PASSWORD_REINIT),
-            msg('reinit_mail_sent',     '', msg.REINIT_MAIL_SENT),
-            msg('reinit_password',      '', msg.REINIT_PASSWORD),
-            msg('reinit_password_body', '', msg.REINIT_PASSWORD_BODY),
-            msg('new_password',         '', msg.NEW_PASSWORD),
-            msg('new_password_body',    '', msg.NEW_PASSWORD_BODY),
-            msg('new_password_sent',    '', msg.NEW_PASSWORD_SENT),
-            msg('last_user_access',     '', msg.LAST_USER_ACCESS),
-            msg('object_history',       '', msg.OBJECT_HISTORY),
-            msg('object_created_by',    '', msg.OBJECT_CREATED_BY),
-            msg('object_created_on',    '', msg.OBJECT_CREATED_ON),
-            msg('object_modified_on',   '', msg.OBJECT_MODIFIED_ON),
-            msg('object_action',        '', msg.OBJECT_ACTION),
-            msg('object_author',        '', msg.OBJECT_AUTHOR),
-            msg('action_date',          '', msg.ACTION_DATE),
-            msg('action_comment',       '', msg.ACTION_COMMENT),
-            msg('day_Mon_short',        '', msg.DAY_MON_SHORT),
-            msg('day_Tue_short',        '', msg.DAY_TUE_SHORT),
-            msg('day_Wed_short',        '', msg.DAY_WED_SHORT),
-            msg('day_Thu_short',        '', msg.DAY_THU_SHORT),
-            msg('day_Fri_short',        '', msg.DAY_FRI_SHORT),
-            msg('day_Sat_short',        '', msg.DAY_SAT_SHORT),
-            msg('day_Sun_short',        '', msg.DAY_SUN_SHORT),
-            msg('day_Mon',              '', msg.DAY_MON),
-            msg('day_Tue',              '', msg.DAY_TUE),
-            msg('day_Wed',              '', msg.DAY_WED),
-            msg('day_Thu',              '', msg.DAY_THU),
-            msg('day_Fri',              '', msg.DAY_FRI),
-            msg('day_Sat',              '', msg.DAY_SAT),
-            msg('day_Sun',              '', msg.DAY_SUN),
-            msg('ampm_am',              '', msg.AMPM_AM),
-            msg('ampm_pm',              '', msg.AMPM_PM),
-            msg('month_Jan_short',      '', msg.MONTH_JAN_SHORT),
-            msg('month_Feb_short',      '', msg.MONTH_FEB_SHORT),
-            msg('month_Mar_short',      '', msg.MONTH_MAR_SHORT),
-            msg('month_Apr_short',      '', msg.MONTH_APR_SHORT),
-            msg('month_May_short',      '', msg.MONTH_MAY_SHORT),
-            msg('month_Jun_short',      '', msg.MONTH_JUN_SHORT),
-            msg('month_Jul_short',      '', msg.MONTH_JUL_SHORT),
-            msg('month_Aug_short',      '', msg.MONTH_AUG_SHORT),
-            msg('month_Sep_short',      '', msg.MONTH_SEP_SHORT),
-            msg('month_Oct_short',      '', msg.MONTH_OCT_SHORT),
-            msg('month_Nov_short',      '', msg.MONTH_NOV_SHORT),
-            msg('month_Dec_short',      '', msg.MONTH_DEC_SHORT),
-            msg('month_Jan',            '', msg.MONTH_JAN),
-            msg('month_Feb',            '', msg.MONTH_FEB),
-            msg('month_Mar',            '', msg.MONTH_MAR),
-            msg('month_Apr',            '', msg.MONTH_APR),
-            msg('month_May',            '', msg.MONTH_MAY),
-            msg('month_Jun',            '', msg.MONTH_JUN),
-            msg('month_Jul',            '', msg.MONTH_JUL),
-            msg('month_Aug',            '', msg.MONTH_AUG),
-            msg('month_Sep',            '', msg.MONTH_SEP),
-            msg('month_Oct',            '', msg.MONTH_OCT),
-            msg('month_Nov',            '', msg.MONTH_NOV),
-            msg('month_Dec',            '', msg.MONTH_DEC),
-            msg('today',                '', msg.TODAY),
-            msg('which_event',          '', msg.WHICH_EVENT),
-            msg('event_span',           '', msg.EVENT_SPAN),
-            msg('del_next_events',      '', msg.DEL_NEXT_EVENTS),
-        ]
-        # Create a label for every role added by this application
+        # Add a label for the application name
+        self.i18n(self.applicationName, self.applicationName)
+        # Add default Appy i18n messages
+        for id, default in po.appyLabels:
+            self.i18n(id, default, nice=False)
+        # Add a label for every role added by this application (we ensure role
+        # 'Manager' was added even if not mentioned anywhere).
+        self.i18n('role_Manager', 'Manager')
         for role in self.getAllUsedRoles():
-            self.labels.append(msg('role_%s' % role.name,'', role.name,
-                                   niceDefault=True))
+            self.i18n('role_%s' % role.name, role.name)
         # Create basic files (config.py, etc)
         self.generateTool()
         self.generateInit()
@@ -570,23 +419,16 @@ class ZopeGenerator(Generator):
             f = open(initFile, 'w')
             f.write('')
             f.close()
-        # Decline i18n labels into versions for child classes
-        for classDescr in self.classes:
-            for poMsg in classDescr.labelsToPropagate:
-                for childDescr in classDescr.getChildren():
-                    childMsg = poMsg.clone(classDescr.name, childDescr.name)
-                    if childMsg not in self.labels:
-                        self.labels.append(childMsg)
         # Generate i18n pot file
         potFileName = '%s.pot' % self.applicationName
         if self.i18nFiles.has_key(potFileName):
             potFile = self.i18nFiles[potFileName]
         else:
             fullName = os.path.join(self.application, 'tr', potFileName)
-            potFile = PoFile(fullName)
+            potFile = po.PoFile(fullName)
             self.i18nFiles[potFileName] = potFile
         # We update the POT file with our list of automatically managed labels.
-        removedLabels = potFile.update(self.labels, self.options.i18nClean,
+        removedLabels = potFile.update(self.labels.get(),self.options.i18nClean,
                                        not self.options.i18nSort)
         if removedLabels:
             print 'Warning: %d messages were removed from translation ' \
@@ -599,7 +441,7 @@ class ZopeGenerator(Generator):
         nbOfPages = int(len(potFile.messages)/self.config.translationsPerPage)+1
         for i in range(nbOfPages):
             msgId = '%s_page_%d' % (self.translation.name, i+2)
-            pageLabels.append(msg(msgId, '', 'Page %d' % (i+2)))
+            pageLabels.append(po.PoMessage(msgId, '', 'Page %d' % (i+2)))
         potFile.update(pageLabels, keepExistingOrder=False)
         potFile.generate()
         # Generate i18n po files
@@ -611,7 +453,7 @@ class ZopeGenerator(Generator):
                 poFile = self.i18nFiles[poFileName]
             else:
                 fullName = os.path.join(self.application, 'tr', poFileName)
-                poFile = PoFile(fullName)
+                poFile = po.PoFile(fullName)
                 self.i18nFiles[poFileName] = poFile
             poFile.update(potFile.messages, self.options.i18nClean,
                           not self.options.i18nSort)
@@ -874,11 +716,8 @@ class ZopeGenerator(Generator):
 
     def generateTool(self):
         '''Generates the tool that corresponds to this application.'''
-        Msg = PoMessage
         # Create Tool-related i18n-related messages
-        msg = Msg(self.tool.name, '', Msg.CONFIG % self.applicationName)
-        self.labels.append(msg)
-
+        self.i18n(self.tool.name, po.CONFIG % self.applicationName, nice=False)
         # Tune the Ref field between Tool->User and Group->User
         Tool.users.klass = User
         if self.user.customized:
@@ -889,8 +728,8 @@ class ZopeGenerator(Generator):
         for klass in (self.user, self.group, self.translation, self.page):
             klassType = klass.name[len(self.applicationName):]
             klass.generateSchema()
-            self.labels += [ Msg(klass.name, '', klassType),
-                             Msg('%s_plural' % klass.name,'', klass.name+'s')]
+            self.i18n(klass.name, klassType, nice=False)
+            self.i18n('%s_plural' % klass.name, klass.name+'s', nice=False)
             repls = self.repls.copy()
             if klass.isFolder():
                 parents = 'BaseMixin, Folder'
@@ -904,21 +743,16 @@ class ZopeGenerator(Generator):
             self.copyFile('Class.pyt', repls, destName='%s.py' % klass.name)
 
         # Before generating the Tool class, finalize it with query result
-        # columns, with fields to propagate, workflow-related fields.
+        # columns, search-related and import-related fields.
         for classDescr in self.getClasses(include='allButTool'):
-            for fieldName, fieldType in classDescr.toolFieldsToPropagate:
-                for childDescr in classDescr.getChildren():
-                    childFieldName = fieldName % childDescr.name
-                    fieldType.group = childDescr.klass.__name__
-                    self.tool.addField(childFieldName, fieldType)
-            if classDescr.isRoot():
-                # We must be able to configure query results from the tool.
-                self.tool.addQueryResultColumns(classDescr)
-                # Add the search-related fields.
-                self.tool.addSearchRelatedFields(classDescr)
-                importMean = classDescr.getCreateMean('Import')
-                if importMean:
-                    self.tool.addImportRelatedFields(classDescr)
+            if not classDescr.isRoot(): continue
+            # We must be able to configure query results from the tool.
+            self.tool.addQueryResultColumns(classDescr)
+            # Add the search-related fields.
+            self.tool.addSearchRelatedFields(classDescr)
+            importMean = classDescr.getCreateMean('Import')
+            if importMean:
+                self.tool.addImportRelatedFields(classDescr)
         self.tool.generateSchema()
 
         # Generate the Tool class
@@ -939,37 +773,27 @@ class ZopeGenerator(Generator):
         baseClass = isFolder and 'Folder' or 'SimpleItem'
         icon = isFolder and 'folder.gif' or 'object.gif'
         parents = 'BaseMixin, %s' % baseClass
-        classDoc = classDescr.klass.__doc__ or 'Appy class.'
+        classDoc = k.__doc__ or 'Appy class.'
         repls = self.repls.copy()
         classDescr.generateSchema()
         repls.update({
-          'parents': parents, 'className': classDescr.klass.__name__,
+          'parents': parents, 'className': k.__name__,
           'genClassName': classDescr.name, 'baseMixin':'BaseMixin',
           'classDoc': classDoc, 'applicationName': self.applicationName,
           'methods': classDescr.methods, 'icon':icon})
         fileName = '%s.py' % classDescr.name
         # Create i18n labels (class name and plural form)
-        poMsg = PoMessage(classDescr.name, '', classDescr.klass.__name__)
-        poMsg.produceNiceDefault()
-        self.labels.append(poMsg)
-        poMsgPl = PoMessage('%s_plural' % classDescr.name, '',
-            classDescr.klass.__name__+'s')
-        poMsgPl.produceNiceDefault()
-        self.labels.append(poMsgPl)
+        self.i18n(classDescr.name, k.__name__)
+        self.i18n('%s_plural' % classDescr.name, k.__name__+'s')
         # Create i18n labels for searches
-        for search in classDescr.getSearches(classDescr.klass):
-            searchLabel = '%s_search_%s' % (classDescr.name, search.name)
-            labels = [searchLabel, '%s_descr' % searchLabel]
-            if search.group:
-                grpLabel = '%s_searchgroup_%s' % (classDescr.name, search.group)
-                labels += [grpLabel, '%s_descr' % grpLabel]
-            for label in labels:
-                default = ' '
-                if label == searchLabel: default = search.name
-                poMsg = PoMessage(label, '', default)
-                poMsg.produceNiceDefault()
-                if poMsg not in self.labels:
-                    self.labels.append(poMsg)
+        for search in classDescr.getSearches(k):
+            label = '%s_search_%s' % (classDescr.name, search.name)
+            self.i18n(label, search.name)
+            self.i18n('%s_descr' % label, ' ', nice=False)
+            # Generate labels for groups of searches
+            if search.group and not search.group.label:
+                search.group.generateLabels(self.labels, classDescr, set(),
+                                            forSearch=True)
         # Generate the resulting Zope class.
         self.copyFile('Class.pyt', repls, destName=fileName)
 
@@ -983,31 +807,23 @@ class ZopeGenerator(Generator):
         # Add i18n messages for states
         for name in dir(wfDescr.klass):
             if not isinstance(getattr(wfDescr.klass, name), gen.State): continue
-            poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
-            poMsg.produceNiceDefault()
-            self.labels.append(poMsg)
+            self.i18n('%s_%s' % (wfName, name), name)
         # Add i18n messages for transitions
         for name in dir(wfDescr.klass):
             transition = getattr(wfDescr.klass, name)
             if not isinstance(transition, gen.Transition): continue
             if transition.show:
-                poMsg = PoMessage('%s_%s' % (wfName, name), '', name)
-                poMsg.produceNiceDefault()
-                self.labels.append(poMsg)
+                self.i18n('%s_%s' % (wfName, name), name)
             if transition.show and transition.confirm:
                 # We need to generate a label for the message that will be shown
                 # in the confirm popup.
-                label = '%s_%s_confirm' % (wfName, name)
-                poMsg = PoMessage(label, '', PoMessage.CONFIRM)
-                self.labels.append(poMsg)
+                self.i18n('%s_%s_confirm'%(wfName, name),po.CONFIRM, nice=False)
             if transition.notify:
                 # Appy will send a mail when this transition is triggered.
                 # So we need 2 i18n labels: one for the mail subject and one for
                 # the mail body.
-                subjectLabel = '%s_%s_mail_subject' % (wfName, name)
-                poMsg = PoMessage(subjectLabel, '', PoMessage.EMAIL_SUBJECT)
-                self.labels.append(poMsg)
-                bodyLabel = '%s_%s_mail_body' % (wfName, name)
-                poMsg = PoMessage(bodyLabel, '', PoMessage.EMAIL_BODY)
-                self.labels.append(poMsg)
+                self.i18n('%s_%s_mail_subject' % (wfName, name),
+                          po.EMAIL_SUBJECT, nice=False)
+                self.i18n('%s_%s_mail_body' % (wfName, name),
+                          po.EMAIL_BODY, nice=False)
 # ------------------------------------------------------------------------------

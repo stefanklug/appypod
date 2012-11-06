@@ -5,7 +5,7 @@
 # ------------------------------------------------------------------------------
 import types, copy
 import appy.gen as gen
-from po import PoMessage
+import po
 from model import ModelClass, toolFieldPrefixes
 from utils import produceNiceMessage, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
@@ -29,20 +29,6 @@ class ClassDescriptor(Descriptor):
     def __init__(self, klass, orderedAttributes, generator):
         Descriptor.__init__(self, klass, orderedAttributes, generator)
         self.methods = '' # Needed method definitions will be generated here
-        # We remember here encountered pages and groups defined in the Appy
-        # type. Indeed, after having parsed all application classes, we will
-        # need to generate i18n labels for every child class of the class
-        # that declared pages and groups.
-        self.labelsToPropagate = [] #~[PoMessage]~ Some labels (like page,
-        # group or action names) need to be propagated in children classes
-        # (because they contain the class name). But at this time we don't know
-        # yet every sub-class. So we store those labels here; the Generator
-        # will propagate them later.
-        self.toolFieldsToPropagate = [] # For this class, some fields have
-        # been defined on the Tool class. Those fields need to be defined
-        # for child classes of this class as well, but at this time we don't
-        # know yet every sub-class. So we store field definitions here; the
-        # Generator will propagate them later.
         self.name = getClassName(self.klass, generator.applicationName)
         self.predefined = False
         self.customized = False
@@ -280,6 +266,10 @@ class FieldDescriptor:
         self.fieldType = None
         self.widgetType = None
 
+    def i18n(self, id, default, nice=True):
+        '''Shorthand for adding a new message into self.generator.labels.'''
+        self.generator.labels.append(id, default, nice=nice)
+
     def __repr__(self):
         return '<Field %s, %s>' % (self.fieldName, self.classDescr)
 
@@ -291,7 +281,7 @@ class FieldDescriptor:
             fullPrefix = prefix + 'For'
             if fieldName.startswith(fullPrefix):
                 messageId = 'MSG_%s' % prefix
-                res = getattr(PoMessage, messageId)
+                res = getattr(po, messageId)
                 if res.find('%s') != -1:
                     # I must complete the message with the field name.
                     res = res % fieldName.split('_')[-1]
@@ -302,18 +292,15 @@ class FieldDescriptor:
         '''Gets the default label, description or help (depending on p_msgType)
            for i18n message p_msgId.'''
         default = ' '
-        produceNice = False
+        niceDefault = False
         if isLabel:
-            produceNice = True
+            niceDefault = True
             default = self.fieldName
             # Some attributes need a specific predefined message
             if isinstance(self.classDescr, ToolClassDescriptor):
                 default = self.getToolFieldMessage(self.fieldName)
-                if default != self.fieldName: produceNice = False
-        msg = PoMessage(msgId, '', default)
-        if produceNice:
-            msg.produceNiceDefault()
-        return msg
+                if default != self.fieldName: niceDefault = False
+        return msgId, default, niceDefault
 
     def walkString(self):
         '''How to generate an Appy String?'''
@@ -322,18 +309,15 @@ class FieldDescriptor:
             # Generate i18n messages for every possible value if the list
             # of values is fixed.
             for value in self.appyType.validator:
-                msgLabel = '%s_%s_list_%s' % (self.classDescr.name,
-                    self.fieldName, value)
-                poMsg = PoMessage(msgLabel, '', value)
-                poMsg.produceNiceDefault()
-                self.generator.labels.append(poMsg)
+                label = '%s_%s_list_%s' % (self.classDescr.name,
+                                           self.fieldName, value)
+                self.i18n(label, value)
 
     def walkAction(self):
         '''Generates the i18n-related label.'''
         if self.appyType.confirm:
             label = '%s_%s_confirm' % (self.classDescr.name, self.fieldName)
-            msg = PoMessage(label, '', PoMessage.CONFIRM)
-            self.generator.labels.append(msg)
+            self.i18n(label, po.CONFIRM, nice=False)
 
     def walkRef(self):
         '''How to generate a Ref?'''
@@ -343,23 +327,18 @@ class FieldDescriptor:
         back = self.appyType.back
         refClassName = getClassName(self.appyType.klass, self.applicationName)
         if back.hasLabel:
-            backLabel = "%s_%s" % (refClassName, self.appyType.back.attribute)
-            poMsg = PoMessage(backLabel, '', self.appyType.back.attribute)
-            poMsg.produceNiceDefault()
-            self.generator.labels.append(poMsg)
+            backName = self.appyType.back.attribute
+            self.i18n('%s_%s' % (refClassName, backName), backName)
         # Add the label for the confirm message if relevant
         if self.appyType.addConfirm:
             label = '%s_%s_addConfirm' % (self.classDescr.name, self.fieldName)
-            msg = PoMessage(label, '', PoMessage.CONFIRM)
-            self.generator.labels.append(msg)
+            self.i18n(label, po.CONFIRM, nice=False)
 
     def walkPod(self):
         # Add i18n-specific messages
         if self.appyType.askAction:
             label = '%s_%s_askaction' % (self.classDescr.name, self.fieldName)
-            msg = PoMessage(label, '', PoMessage.POD_ASKACTION)
-            self.generator.labels.append(msg)
-            self.classDescr.labelsToPropagate.append(msg)
+            self.i18n(label, po.POD_ASKACTION, nice=False)
         # Add the POD-related fields on the Tool
         self.generator.tool.addPodRelatedFields(self)
 
@@ -367,9 +346,7 @@ class FieldDescriptor:
         # Add i18n-specific messages
         for name, field in self.appyType.fields:
             label = '%s_%s_%s' % (self.classDescr.name, self.fieldName, name)
-            msg = PoMessage(label, '', name)
-            msg.produceNiceDefault()
-            self.generator.labels.append(msg)
+            self.i18n(label, name)
 
     def walkCalendar(self):
         # Add i18n-specific messages
@@ -377,9 +354,7 @@ class FieldDescriptor:
         if not isinstance(eTypes, list) and not isinstance(eTypes, tuple):return
         for et in self.appyType.eventTypes:
             label = '%s_%s_event_%s' % (self.classDescr.name,self.fieldName,et)
-            msg = PoMessage(label, '', et)
-            msg.produceNiceDefault()
-            self.generator.labels.append(msg)
+            self.i18n(label, et)
 
     def walkAppyType(self):
         '''Walks into the Appy type definition and gathers data about the
@@ -389,39 +364,33 @@ class FieldDescriptor:
         if self.appyType.indexed and (self.fieldName != 'title'):
             self.classDescr.addIndexMethod(self)
         # i18n labels
-        messages = self.generator.labels
         if not self.appyType.label:
             # Create labels for generating them in i18n files, only if required.
-            i18nPrefix = "%s_%s" % (self.classDescr.name, self.fieldName)
+            i18nPrefix = '%s_%s' % (self.classDescr.name, self.fieldName)
             if self.appyType.hasLabel:
-                messages.append(self.produceMessage(i18nPrefix))
+                self.i18n(*self.produceMessage(i18nPrefix))
             if self.appyType.hasDescr:
                 descrId = i18nPrefix + '_descr'
-                messages.append(self.produceMessage(descrId,isLabel=False))
+                self.i18n(*self.produceMessage(descrId,isLabel=False))
             if self.appyType.hasHelp:
                 helpId = i18nPrefix + '_help'
-                messages.append(self.produceMessage(helpId, isLabel=False))
+                self.i18n(*self.produceMessage(helpId, isLabel=False))
         # Create i18n messages linked to pages and phases, only if there is more
         # than one page/phase for the class.
-        ppMsgs = []
         if len(self.classDescr.getPhases()) > 1:
             # Create the message for the name of the phase
             phaseName = self.appyType.page.phase
             msgId = '%s_phase_%s' % (self.classDescr.name, phaseName)
-            ppMsgs.append(PoMessage(msgId, '', produceNiceMessage(phaseName)))
+            self.i18n(msgId, phaseName)
         if len(self.classDescr.getPages()) > 1:
             # Create the message for the name of the page
             pageName = self.appyType.page.name
             msgId = '%s_page_%s' % (self.classDescr.name, pageName)
-            ppMsgs.append(PoMessage(msgId, '', produceNiceMessage(pageName)))
-        for poMsg in ppMsgs:
-            if poMsg not in messages:
-                messages.append(poMsg)
-                self.classDescr.labelsToPropagate.append(poMsg)
+            self.i18n(msgId, pageName)
         # Create i18n messages linked to groups
         group = self.appyType.group
         if group and not group.label:
-            group.generateLabels(messages, self.classDescr, set())
+            group.generateLabels(self.generator.labels, self.classDescr, set())
         # Manage things which are specific to String types
         if self.appyType.type == 'String': self.walkString()
         # Manage things which are specific to Actions
