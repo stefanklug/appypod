@@ -233,24 +233,26 @@ class Group:
         if self.group and (self.group not in walkedGroups) and \
            not self.group.label:
             # We remember walked groups for avoiding infinite recursion.
-            self.group.generateLabels(messages, classDescr, walkedGroups)
+            self.group.generateLabels(messages, classDescr, walkedGroups,
+                                      forSearch=forSearch)
 
-    def insertInto(self, widgets, groupDescrs, page, metaType):
+    def insertInto(self, widgets, groupDescrs, page, metaType, forSearch=False):
         '''Inserts the GroupDescr instance corresponding to this Group instance
            into p_widgets, the recursive structure used for displaying all
-           widgets in a given p_page, and returns this GroupDescr instance.'''
+           widgets in a given p_page (or all searches), and returns this
+           GroupDescr instance.'''
         # First, create the corresponding GroupDescr if not already in
         # p_groupDescrs.
         if self.name not in groupDescrs:
-            groupDescr = groupDescrs[self.name] = GroupDescr(self, page,
-                                                             metaType).get()
+            groupDescr = groupDescrs[self.name] = \
+                GroupDescr(self, page, metaType, forSearch=forSearch).get()
             # Insert the group at the higher level (ie, directly in p_widgets)
             # if the group is not itself in a group.
             if not self.group:
                 widgets.append(groupDescr)
             else:
                 outerGroupDescr = self.group.insertInto(widgets, groupDescrs,
-                                                        page, metaType)
+                                            page, metaType, forSearch=forSearch)
                 GroupDescr.addWidget(outerGroupDescr, groupDescr)
         else:
             groupDescr = groupDescrs[self.name]
@@ -291,7 +293,7 @@ class Import:
 class Search:
     '''Used for specifying a search for a given type.'''
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
-                 default=False, **fields):
+                 default=False, colspan=1, **fields):
         self.name = name
         # Searches may be visually grouped in the portlet.
         self.group = Group.get(group)
@@ -301,6 +303,7 @@ class Search:
         # If this search is the default one, it will be triggered by clicking
         # on main link.
         self.default = default
+        self.colspan = colspan
         # In the dict below, keys are indexed field names and values are
         # search values.
         self.fields = fields

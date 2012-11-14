@@ -2,8 +2,8 @@
 import os, os.path, sys, re, time, random, types, base64, urllib
 from appy import Object
 import appy.gen
-from appy.gen import Type, Search, Selection, String
-from appy.gen.utils import SomeObjects, getClassName
+from appy.gen import Type, Search, Selection, String, Page
+from appy.gen.utils import SomeObjects, getClassName, GroupDescr
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
@@ -672,7 +672,7 @@ class ToolMixin(BaseMixin):
         obj = self.getObject(objectUid)
         return obj, fieldName
 
-    def getSearches(self, contentType):
+    def getGroupedSearches(self, contentType):
         '''Returns an object with 2 attributes:
            * "searches" stores the searches that are defined for p_contentType;
            * "default" stores the search defined as the default one.
@@ -680,37 +680,27 @@ class ToolMixin(BaseMixin):
            search or about a group of searches.
         '''
         appyClass = self.getAppyClass(contentType)
-        searches = []
+        res = []
         default = None # Also retrieve the default one here.
-        visitedGroups = {} # Names of already visited search groups
+        groups = {} # The already encountered groups
+        page = Page('main') # A dummy page required by class GroupDescr
         for search in ClassDescriptor.getSearches(appyClass):
-            # Determine first group label, we will need it.
-            groupLabel = None
-            groupName = None
-            if search.group:
-                groupName = search.group.name
-                groupLabel = '%s_searchgroup_%s' % (contentType, groupName)
-            # Add an item representing the search group if relevant
-            if groupName and (groupName not in visitedGroups):
-                group = {'name': groupName, 'isGroup': True,
-                         'labelId': groupLabel, 'searches': [],
-                         'label': self.translate(groupLabel),
-                         'descr': self.translate('%s_descr' % groupLabel),
-                }
-                searches.append(group)
-                visitedGroups[groupName] = group
-            # Add the search itself
+            # Compute the dict representing this search
             searchLabel = '%s_search_%s' % (contentType, search.name)
-            dSearch = {'name': search.name, 'isGroup': False,
+            dSearch = {'name': search.name, 'type': 'search',
+                       'colspan': search.colspan,
                        'label': self.translate(searchLabel),
                        'descr': self.translate('%s_descr' % searchLabel)}
-            if groupName:
-                visitedGroups[groupName]['searches'].append(dSearch)
+            if not search.group:
+                # Insert the search at the highest level, not in any group.
+                res.append(dSearch)
             else:
-                searches.append(dSearch)
-            if search.default:
-                default = dSearch
-        return Object(searches=searches, default=default).__dict__
+                groupDescr = search.group.insertInto(res, groups, page,
+                                                    contentType, forSearch=True)
+                GroupDescr.addWidget(groupDescr, dSearch)
+            # Is this search the default search?
+            if search.default: default = dSearch
+        return Object(searches=res, default=default).__dict__
 
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)

@@ -80,7 +80,7 @@ img { border: 0; vertical-align: middle}
 .portletPage { font-style: italic; }
 .portletGroup { font-variant: small-caps; font-weight: bold; font-style: normal;
                 margin-top: 0.1em }
-.portletSearch { font-size: 90%; font-style: italic; padding-left: 1em}
+.portletSearch { font-size: 90%; font-style: italic }
 .phase { border-style: dashed; border-width: thin; padding: 4px 0.6em 5px 1em;}
 .phaseSelected { background-color: #F4F5F6; }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }

@@ -59,8 +59,8 @@ class Descr:
     def get(self): return self.__dict__
 
 class GroupDescr(Descr):
-    def __init__(self, group, page, metaType):
-        '''Creates the data structure manipulated in ZPTs from p_group, the
+    def __init__(self, group, page, metaType, forSearch=False):
+        '''Creates the data structure manipulated in ZPTs for p_group, the
            Group instance used in the field definition.'''
         self.type = 'group'
         # All p_group attributes become self attributes.
@@ -77,7 +77,9 @@ class GroupDescr(Descr):
             else: # It is a tuple (metaType, name)
                 if group.label[1]: labelName = group.label[1]
                 if group.label[0]: prefix = group.label[0]
-        self.labelId = '%s_group_%s' % (prefix, labelName)
+        if forSearch: gp = 'searchgroup'
+        else:         gp = 'group'
+        self.labelId = '%s_%s_%s' % (prefix, gp, labelName)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # The name of the page where the group lies
