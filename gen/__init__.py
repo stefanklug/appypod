@@ -106,7 +106,8 @@ class Group:
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
                  valign='top', css_class='', master=None, masterValue=None,
-                 cellpadding=1, cellspacing=1, cellgap='0.6em', label=None):
+                 cellpadding=1, cellspacing=1, cellgap='0.6em', label=None,
+                 translated=None):
         self.name = name
         # In its simpler form, field "columns" below can hold a list or tuple
         # of column widths expressed as strings, that will be given as is in
@@ -168,6 +169,9 @@ class Group:
         self.masterValue = initMasterValue(masterValue)
         if master: master.slaves.append(self)
         self.label = label # See similar attr of Type class.
+        # If a translated name is already given here, we will use it instead of
+        # trying to translate the group label.
+        self.translated = translated
 
     def _setColumns(self):
         '''Standardizes field "columns" as a list of Column instances. Indeed,
@@ -293,7 +297,8 @@ class Import:
 class Search:
     '''Used for specifying a search for a given type.'''
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
-                 default=False, colspan=1, **fields):
+                 default=False, colspan=1, translated=None,
+                 translatedDescr=None, **fields):
         self.name = name
         # Searches may be visually grouped in the portlet.
         self.group = Group.get(group)
@@ -304,6 +309,10 @@ class Search:
         # on main link.
         self.default = default
         self.colspan = colspan
+        # If a translated name or description is already given here, we will
+        # use it instead of trying to translate from labels.
+        self.translated = translated
+        self.translatedDescr = translatedDescr
         # In the dict below, keys are indexed field names and values are
         # search values.
         self.fields = fields

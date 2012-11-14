@@ -64,8 +64,9 @@
     <tr valign="middle">
       <tal:comment replace="nothing">Go to the source URL (search or referred object)</tal:comment>
       <td tal:condition="sourceUrl"><a tal:attributes="href sourceUrl"><img
-          tal:attributes="src string: $appUrl/ui/gotoSource.png;
-                          title python: backText + ' : ' + _('goto_source')"/></a></td>
+          tal:define="gotoSource python: _('goto_source');
+                      goBack python: backText and ('%s - %s' % (backText, gotoSource)) or gotoSource"
+          tal:attributes="src string: $appUrl/ui/gotoSource.png; title goBack"/></a></td>
       <tal:comment replace="nothing">Go to the first page</tal:comment>
       <td tal:condition="firstUrl"><a tal:attributes="href firstUrl"><img
           tal:attributes="src string: $appUrl/ui/arrowLeftDouble.png;

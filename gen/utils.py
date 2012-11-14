@@ -185,6 +185,32 @@ class PhaseDescr(Descr):
                     self.nextPhase = allPhases[i+1]
         self.phaseStatus = res
 
+class SearchDescr(Descr):
+    '''Describes a Search.'''
+    def __init__(self, search, className, tool):
+        self.search = search
+        self.name = search.name
+        self.type = 'search'
+        self.colspan = search.colspan
+        if search.translated:
+            self.translated = search.translated
+            self.translatedDescr = search.translatedDescr
+        else:
+            # The label may be specific in some special cases.
+            labelDescr = ''
+            if search.name == 'allSearch':
+                label = '%s_plural' % className
+            elif search.name == 'customSearch':
+                label = 'search_results'
+            else:
+                label = '%s_search_%s' % (className, search.name)
+                labelDescr = label + '_descr'
+            self.translated = tool.translate(label)
+            if labelDescr:
+                self.translatedDescr = tool.translate(labelDescr)
+            else:
+                self.translatedDescr = ''
+
 # ------------------------------------------------------------------------------
 upperLetter = re.compile('[A-Z]')
 def produceNiceMessage(msg):

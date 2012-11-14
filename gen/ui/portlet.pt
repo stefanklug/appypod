@@ -1,9 +1,10 @@
 <tal:comment replace="nothing">Macro for displaying a search</tal:comment>
 <div metal:define-macro="search" class="portletSearch">
   <a tal:attributes="href python: '%s?className=%s&search=%s' % (queryUrl, rootClass, search['name']);
-                     title search/descr;
+                     title search/translatedDescr;
                      class python: test(search['name'] == currentSearch, 'portletCurrent', '');"
-     tal:content="structure search/label"></a>
+     tal:content="search/translated">
+  </a>
 </div>
 
 <tal:comment replace="nothing">Macro for displaying a group of searches</tal:comment>
@@ -16,7 +17,8 @@
                         src python:test(expanded, 'ui/collapse.gif', 'ui/expand.gif');
                         onClick python:'toggleCookie(\'%s\')' % widget['labelId'];
                         align dleft"/>
-   <span tal:replace="python: _(widget['labelId'])"/>
+   <span tal:condition="not: widget/translated" tal:replace="python: _(widget['labelId'])"/>
+   <span tal:condition="widget/translated" tal:replace="widget/translated"/>
  </div>
  <tal:comment replace="nothing">Group content</tal:comment>
  <div tal:define="display python:test(expanded, 'display:block', 'display:none')"

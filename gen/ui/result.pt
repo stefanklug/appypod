@@ -7,15 +7,13 @@
                refUrlPart    python: refObject and ('&ref=%s:%s' % (refObject.UID(), refField))  or '';
                startNumber   request/startNumber|python:'0';
                startNumber   python: int(startNumber);
-               searchName    request/search;
-               labelId       python: searchName and ('%s_search_%s' % (className, searchName)) or '';
-               labelId       python: (searchName == '_advanced') and 'search_results' or labelId;
-               searchLabel   python: labelId and _(labelId) or '';
+               searchName    request/search|python:'';
+               searchDescr   python: tool.getSearch(className, searchName, descr=True);
                sortKey       request/sortKey| python:'';
                sortOrder     request/sortOrder| python:'asc';
                filterKey     request/filterKey| python:'';
                filterValue   request/filterValue | python:'';
-               queryResult   python: tool.executeQuery(className, searchName, startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
+               queryResult   python: tool.executeQuery(className, search=searchDescr['search'], startNumber=startNumber, remember=True, sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey, filterValue=filterValue, refObject=refObject, refField=refField);
                objs          queryResult/objects;
                totalNumber   queryResult/totalNumber;
                batchSize     queryResult/batchSize;
@@ -39,7 +37,7 @@
 
   <tal:comment replace="nothing">The title of the search.</tal:comment>
   <p>
-   <span tal:replace="structure python: test(searchName, searchLabel, _('%s_plural' % className))"/>
+   <span tal:replace="searchDescr/translated"/>
     (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: searchName == '_advanced'">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
@@ -48,19 +46,16 @@
   </p>
   <table width="100%">
    <tr>
-    <tal:descr condition="searchName">
-    <td tal:define="descr python: _('%s_descr' % labelId)"
-        tal:condition="descr/strip">
-     <span class="discreet" tal:content="descr"></span><br/>
+    <tal:comment replace="nothing">Search description</tal:comment>
+    <td tal:condition="searchDescr/translatedDescr">
+     <span class="discreet" tal:content="searchDescr/translatedDescr"></span><br/>
     </td>
-    </tal:descr>
     <td tal:attributes="align dright" width="25%">
      <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
      <metal:nav use-macro="context/ui/navigate/macros/appyNavigate"/>
     </td>
    </tr>
   </table>
-
   <table tal:define="columnLayouts python: tool.getResultColumnsLayouts(className, refInfo);
                      columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir)"
          class="list" width="100%">

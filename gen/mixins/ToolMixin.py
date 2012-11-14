@@ -3,7 +3,7 @@ import os, os.path, sys, re, time, random, types, base64, urllib
 from appy import Object
 import appy.gen
 from appy.gen import Type, Search, Selection, String, Page
-from appy.gen.utils import SomeObjects, getClassName, GroupDescr
+from appy.gen.utils import SomeObjects, getClassName, GroupDescr, SearchDescr
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
@@ -288,9 +288,8 @@ class ToolMixin(BaseMixin):
                      maxResults=None, noSecurity=False, sortBy=None,
                      sortOrder='asc', filterKey=None, filterValue=None,
                      refObject=None, refField=None):
-        '''Executes a query on instances of a given p_className (or several,
-           separated with commas) in the catalog. If p_searchName is specified,
-           it corresponds to:
+        '''Executes a query on instances of a given p_className in the catalog.
+           If p_searchName is specified, it corresponds to:
              1) a search defined on p_className: additional search criteria
                 will be added to the query, or;
              2) "_advanced": in this case, additional search criteria will also
@@ -328,22 +327,10 @@ class ToolMixin(BaseMixin):
 
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
-        # Is there one or several content types ?
-        if className.find(',') != -1:
-            classNames = className.split(',')
-        else:
-            classNames = className
-        params = {'ClassName': classNames}
+        params = {'ClassName': className}
         if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
-        if searchName:
-            # In this case, className must contain a single content type.
-            appyClass = self.getAppyClass(className)
-            if searchName != '_advanced':
-                search = ClassDescriptor.getSearch(appyClass, searchName)
-            else:
-                fields = self.REQUEST.SESSION['searchCriteria']
-                search = Search('customSearch', **fields)
+        if searchName: search = self.getSearch(className, searchName)
         if search:
             # Add additional search criteria
             for fieldName, fieldValue in search.fields.iteritems():
@@ -672,35 +659,60 @@ class ToolMixin(BaseMixin):
         obj = self.getObject(objectUid)
         return obj, fieldName
 
-    def getGroupedSearches(self, contentType):
+    def getGroupedSearches(self, className):
         '''Returns an object with 2 attributes:
-           * "searches" stores the searches that are defined for p_contentType;
+           * "searches" stores the searches that are defined for p_className;
            * "default" stores the search defined as the default one.
            Every item representing a search is a dict containing info about a
            search or about a group of searches.
         '''
-        appyClass = self.getAppyClass(contentType)
+        appyClass = self.getAppyClass(className)
         res = []
         default = None # Also retrieve the default one here.
         groups = {} # The already encountered groups
         page = Page('main') # A dummy page required by class GroupDescr
-        for search in ClassDescriptor.getSearches(appyClass):
-            # Compute the dict representing this search
-            searchLabel = '%s_search_%s' % (contentType, search.name)
-            dSearch = {'name': search.name, 'type': 'search',
-                       'colspan': search.colspan,
-                       'label': self.translate(searchLabel),
-                       'descr': self.translate('%s_descr' % searchLabel)}
+        searches = ClassDescriptor.getSearches(appyClass)
+        # Add dynamic searches if defined on p_appyClass
+        if hasattr(appyClass, 'getDynamicSearches'):
+            searches += appyClass.getDynamicSearches(self.appy())
+        for search in searches:
+            # Create the search descriptor
+            searchDescr = SearchDescr(search, className, self).get()
             if not search.group:
                 # Insert the search at the highest level, not in any group.
-                res.append(dSearch)
+                res.append(searchDescr)
             else:
                 groupDescr = search.group.insertInto(res, groups, page,
-                                                    contentType, forSearch=True)
-                GroupDescr.addWidget(groupDescr, dSearch)
+                                                     className, forSearch=True)
+                GroupDescr.addWidget(groupDescr, searchDescr)
             # Is this search the default search?
-            if search.default: default = dSearch
+            if search.default: default = searchDescr
         return Object(searches=res, default=default).__dict__
+
+    def getSearch(self, className, name, descr=False):
+        '''Gets the Search instance (or a SearchDescr instance if p_descr is
+           True) corresponding to the search named p_name, on class
+           p_className.'''
+        if name == '_advanced':
+            # It is an advanced search whose parameters are in the session.
+            fields = self.REQUEST.SESSION['searchCriteria']
+            res = Search('customSearch', **fields)
+        elif name:
+            appyClass = self.getAppyClass(className)
+            # Search among static searches
+            res = ClassDescriptor.getSearch(appyClass, name)
+            if not res and hasattr(appyClass, 'getDynamicSearches'):
+                # Search among dynamic searches
+                for search in appyClass.getDynamicSearches(self.appy()):
+                    if search.name == name:
+                        res = search
+                        break
+        else:
+            # It is the search for every instance of p_className
+            res = Search('allSearch')
+        # Return a SearchDescr if required.
+        if descr: res = SearchDescr(res, className, self).get()
+        return res
 
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)
@@ -753,11 +765,13 @@ class ToolMixin(BaseMixin):
                 # This is a named, predefined search.
                 label = '%s_search_%s' % (d1.split(':')[0], searchName)
             res['backText'] = self.translate(label)
+            # If it is a dynamic search this label does not exist.
+            if ('_' in res['backText']): res['backText'] = ''
         else:
             fieldName, pageName = d2.split(':')
             sourceObj = self.getObject(d1)
             label = '%s_%s' % (sourceObj.meta_type, fieldName)
-            res['backText'] = '%s : %s' % (sourceObj.Title(),
+            res['backText'] = '%s - %s' % (sourceObj.Title(),
                                            self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
         # Among, first, previous, next and last, which one do I need?
