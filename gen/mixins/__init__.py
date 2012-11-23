@@ -9,8 +9,9 @@ import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts, ColumnLayout
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
-from appy.shared.utils import sequenceTypes, normalizeText
+from appy.shared.utils import sequenceTypes, normalizeText, Traceback
 from appy.shared.data import rtlLanguages
+from appy.shared.xml_parser import XmlMarshaller
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -344,6 +345,27 @@ class BaseMixin:
                 iNames = self.wrapperClass.getIndexes().keys()
                 catalog.catalog_object(self, path, idxs=iNames)
 
+    def xml(self, action=None):
+        '''If no p_action is defined, this method returns the XML version of
+           this object. Else, it calls method named p_action on the
+           corresponding Appy wrapper and returns, as XML, the its result.'''
+        self.REQUEST.RESPONSE.setHeader('Content-Type','text/xml;charset=utf-8')
+        # Check if the user is allowed to consult this object
+        if not self.allows('View'):
+            return XmlMarshaller().marshall('Unauthorized')
+        if not action:
+            marshaller = XmlMarshaller(rootTag=self.getClass().__name__,
+                                       dumpUnicode=True)
+            res = marshaller.marshall(self, objectType='appy')
+        else:
+            appyObj = self.appy()
+            try:
+                methodRes = getattr(appyObj, action)()
+                res = XmlMarshaller().marshall(methodRes)
+            except Exception, e:
+                res = XmlMarshaller().marshall(Traceback.get())
+        return res
+
     def say(self, msg, type='info'):
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
            "warning" or "error".'''
@@ -664,13 +686,14 @@ class BaseMixin:
         return res
 
     def getAppyTypes(self, layoutType, pageName):
-        '''Returns the list of appyTypes that belong to a given p_page, for a
-           given p_layoutType.'''
+        '''Returns the list of fields that belong to a given page (p_pageName)
+           for a given p_layoutType. If p_pageName is None, fields of all pages
+           are returned.'''
         res = []
-        for appyType in self.getAllAppyTypes():
-            if appyType.page.name != pageName: continue
-            if not appyType.isShowable(self, layoutType): continue
-            res.append(appyType)
+        for field in self.getAllAppyTypes():
+            if pageName and (field.page.name != pageName): continue
+            if not field.isShowable(self, layoutType): continue
+            res.append(field)
         return res
 
     def getCssJs(self, fields, layoutType, res):
@@ -1413,8 +1436,15 @@ class BaseMixin:
         if parent.meta_type != 'Folder': return parent
 
     def index_html(self):
-       '''Redirects to /ui.'''
-       return self.REQUEST.RESPONSE.redirect(self.getUrl())
+        '''Redirects to /ui.'''
+        rq = self.REQUEST
+        if rq.has_key('do'):
+            # The user wants to call a method on this object and get its result
+            # as XML.
+            return self.xml(action=rq['do'])
+        else:
+            # The user wants to consult the view page for this object
+            return rq.RESPONSE.redirect(self.getUrl())
 
     def userIsAnon(self):
         '''Is the currently logged user anonymous ?'''

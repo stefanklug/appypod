@@ -622,11 +622,15 @@ class XmlMarshaller:
         elif fieldType == 'dict': self.dumpDict(res, value)
         elif isRef:
             if value:
+                if self.objectType == 'appy':
+                    suffix = '/xml'
+                else:
+                    suffix = ''
                 if type(value) in sequenceTypes:
                     for elem in value:
-                        self.dumpField(res, 'url', elem.absolute_url())
+                        self.dumpField(res, 'url', elem.absolute_url()+suffix)
                 else:
-                    self.dumpField(res, 'url', value.absolute_url())
+                    self.dumpField(res, 'url', value.absolute_url()+suffix)
         elif fieldType in ('list', 'tuple'):
             # The previous condition must be checked before this one because
             # referred objects may be stored in lists or tuples, too.
@@ -751,33 +755,40 @@ class XmlMarshaller:
                         self.dumpField(res, field.getName(),field.get(instance),
                                        fieldType=fieldType)
             elif objectType == 'appy':
-                for field in instance.getAllAppyTypes():
+                for field in instance.getAppyTypes('view', None):
                     # Dump only needed fields
+                    if (field.type == 'Computed') and not field.plainText:
+                        # Ignore fields used for producing custom chunks of HTML
+                        # within the web UI.
+                        continue
                     if field.name in self.fieldsToExclude: continue
-                    if (field.type == 'Ref') and field.isBack: continue
                     if (type(self.fieldsToMarshall) in sequenceTypes) \
                         and (field.name not in self.fieldsToMarshall): continue
-                    # Determine field type
+                    # Determine field type and value
                     fieldType = 'basic'
                     if field.type == 'File':
                         fieldType = 'file'
+                        v = field.getValue(instance)
+                        if v: v = v._zopeFile
                     elif field.type == 'Ref':
                         fieldType = 'ref'
-                    self.dumpField(res, field.name,field.getValue(instance),
-                                   fieldType=fieldType)
+                        v = field.getValue(instance, type='zobjects')
+                    else:
+                        v = field.getValue(instance)
+                    self.dumpField(res, field.name, v, fieldType=fieldType)
                 # Dump the object history.
-                histTag = self.getTagName('history')
-                eventTag = self.getTagName('event')
-                res.write('<%s type="list">' % histTag)
-                wfInfo = instance.portal_workflow.getWorkflowsFor(instance)
-                if wfInfo:
-                    history = instance.workflow_history[wfInfo[0].id]
+                if hasattr(instance.aq_base, 'workflow_history'):
+                    histTag = self.getTagName('history')
+                    eventTag = self.getTagName('event')
+                    res.write('<%s type="list">' % histTag)
+                    key = instance.workflow_history.keys()[0]
+                    history = instance.workflow_history[key]
                     for event in history:
                         res.write('<%s type="object">' % eventTag)
                         for k, v in event.iteritems():
                             self.dumpField(res, k, v)
                         res.write('</%s>' % eventTag)
-                res.write('</%s>' % histTag)
+                    res.write('</%s>' % histTag)
             self.marshallSpecificElements(instance, res)
             res.write('</'); res.write(rootTagName); res.write('>')
         else:
