@@ -2222,6 +2222,8 @@ class Pod(Type):
     '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
        from data contained in Appy class and linked objects or anything you
        want to put in it. It uses appy.pod.'''
+    # Layout for rendering a POD field for exporting query results.
+    rLayouts = {'view': Table('fl', width=None)}
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'

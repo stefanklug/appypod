@@ -361,9 +361,10 @@ class BaseMixin:
             appyObj = self.appy()
             try:
                 methodRes = getattr(appyObj, action)()
-                res = XmlMarshaller().marshall(methodRes)
+                res = XmlMarshaller().marshall(methodRes, objectType='appy')
             except Exception, e:
-                res = XmlMarshaller().marshall(Traceback.get())
+                tb = Traceback.get()
+                res = XmlMarshaller().marshall(tb, objectType='appy')
         return res
 
     def say(self, msg, type='info'):

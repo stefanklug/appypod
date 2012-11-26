@@ -32,11 +32,12 @@ class ToolWrapper(AbstractWrapper):
         return True
 
     def isManager(self):
-        '''Some pages on the tool can only be accessed by God.'''
+        '''Some pages on the tool can only be accessed by managers.'''
         if self.user.has_role('Manager'): return 'view'
 
     def isManagerEdit(self):
-        '''Some pages on the tool can only be accessed by God, also in edit.'''
+        '''Some pages on the tool can only be accessed by managers, also in
+           edit mode.'''
         if self.user.has_role('Manager'): return True
 
     def computeConnectedUsers(self):

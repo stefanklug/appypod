@@ -316,7 +316,7 @@ class ZopeInstaller:
     def configureSessions(self):
         '''Configure the session machinery.'''
         # Register a function warning us when a session object is deleted. When
-        # launching Zope, the temp folder does not exist.
+        # launching Zope in test mode, the temp folder does not exist.
         if not hasattr(self.app, 'temp_folder'): return
         self.app.temp_folder.session_data.setDelNotificationTarget(onDelSession)
 
