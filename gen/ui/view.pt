@@ -1,10 +1,8 @@
 <tal:main define="tool context/config">
 <html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
-    tal:define="contextObj     python: context.getParentNode();
-                dummy          python: contextObj.allows('View', raiseError=True);
+    tal:define="dummy          python: contextObj.allows('View', raiseError=True);
                 errors         python: req.get('errors', {});
-                layoutType     python:'view';
                 layout         python: contextObj.getPageLayout(layoutType);
                 phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType='view');
                 phase          phaseInfo/name;

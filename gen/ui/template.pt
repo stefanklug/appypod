@@ -10,6 +10,8 @@
                   req python: request;
                   resp req/RESPONSE;
                   lang tool/getUserLanguage;
+                  layoutType tool/getLayoutType;
+                  contextObj python: tool.getPublishedObject(layoutType);
                   dir python: tool.getLanguageDirection(lang);
                   dleft python: (dir == 'ltr') and 'left' or 'right';
                   dright python: (dir == 'ltr') and 'right' or 'left';
@@ -35,7 +37,7 @@
  <tr class="top" metal:define-slot="top">
   <td tal:define="bannerName python: (dir == 'ltr') and 'banner' or 'bannerrtl'"
       tal:attributes="style python: 'background-image: url(%s/ui/%s.jpg)' % (appUrl, bannerName)">
-   <table width="100%">
+   <table width="100%" style="margin-top: 4px">
     <tr valign="top" tal:define="pages tool/getMainPages">
      <tal:comment replace="nothing">Links to main pages</tal:comment>
      <td tal:condition="pages"><a tal:repeat="page pages" class="pageLink"
@@ -183,12 +185,16 @@
    </table>
   </td>
  </tr>
+ <tal:comment replace="nothing">The navigation strip</tal:comment>
+ <tr tal:condition="python: contextObj and (layoutType == 'view')">
+  <td><metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/></td>
+ </tr>
  <tr>
   <td>
     <table width="100%" cellpadding="0" cellspacing="0">
      <tr valign="top">
       <tal:comment replace="nothing">Portlet</tal:comment>
-      <td tal:condition="python: tool.showPortlet(context)" class="portlet">
+      <td tal:condition="python: tool.showPortlet(context, layoutType)" class="portlet">
         <metal:portlet use-macro="app/ui/portlet/macros/portlet"/>
       </td>
       <tal:comment replace="nothing">Page content</tal:comment>

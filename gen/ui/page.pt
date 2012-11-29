@@ -183,14 +183,8 @@
     <tal:comment replace="nothing">Information that is common to all tabs (object title, state, etc)</tal:comment>
     <table width="100%" class="summary">
       <tr>
-        <tal:comment replace="nothing">Title</tal:comment>
-        <td colspan="2" class="objectTitle">
-         <tal:icons replace="structure contextObj/getIcons"/>
-         <span tal:content="python: contextObj.getFieldValue('title', layoutType='view')"></span>
-        </td>
-      </tr>
-      <tr class="underTitle">
         <td colspan="2" class="by">
+          <tal:icons replace="structure contextObj/getIcons"/>
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">
@@ -225,7 +219,7 @@
         </td>   
       </tr>
       <tal:comment replace="nothing">Object history</tal:comment>
-      <tr tal:condition="hasHistory" class="underTitle">
+      <tr tal:condition="hasHistory">
         <td colspan="2">
           <span id="appyHistory"
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">

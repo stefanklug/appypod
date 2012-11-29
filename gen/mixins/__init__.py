@@ -822,6 +822,11 @@ class BaseMixin:
                         break
             return phase
         else:
+            # Return an empty list if we have a single, link-free page within
+            # a single phase.
+            if (len(res) == 1) and (len(res[0]['pages']) == 1) and \
+               not res[0]['pagesInfo'][res[0]['pages'][0]].get('links'):
+                return None
             return res
 
     def getIcons(self):
@@ -1434,7 +1439,16 @@ class BaseMixin:
         # Not-Managers can't navigate back to the tool
         if (parent.id == 'config') and not self.getUser().has_role('Manager'):
             return False
-        if parent.meta_type != 'Folder': return parent
+        if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
+
+    def getBreadCrumb(self):
+        '''Gets breadcrumb info about this object and its parents.'''
+        res = [{'url': self.absolute_url(),
+                'title': self.getFieldValue('title', layoutType='view')}]
+        parent = self.getParent()
+        if parent:
+            res = parent.getBreadCrumb() + res
+        return res
 
     def index_html(self):
         '''Redirects to /ui.'''

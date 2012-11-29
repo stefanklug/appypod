@@ -217,13 +217,13 @@ class Table(LayoutElement):
 # Some base layouts to use, for fields and pages -------------------------------
 # The default layouts for pages
 defaultPageLayouts  = {
-    'view': Table('n!-w|-b|', align="center"),
+    'view': Table('w|-b|', align="center"),
     'edit': Table('w|-b|', width=None)}
 # A layout for pages, containing the page summary.
-summaryPageLayouts = {'view': Table('s-n!-w|-b|', align="center"),
+summaryPageLayouts = {'view': Table('s-w|-b|', align="center"),
                       'edit': Table('w|-b|', width=None)}
 widePageLayouts = {
-    'view': Table('n!-w|-b|', align="center"),
+    'view': Table('w|-b|', align="center"),
     'edit': Table('w|-b|')
 }
 # The default layout for fields. Alternative layouts may exist and are declared

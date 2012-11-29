@@ -1,10 +1,8 @@
 <tal:main define="tool context/getTool">
 <html metal:use-macro="context/ui/template/macros/main">
  <metal:fill fill-slot="content"
-    tal:define="contextObj     context/getParentNode;
-                dummy          python: contextObj.allows('Modify portal content', raiseError=True);
+    tal:define="dummy          python: contextObj.allows('Modify portal content', raiseError=True);
                 errors         request/errors | python:{};
-                layoutType     python:'edit';
                 layout         python: contextObj.getPageLayout(layoutType);
                 cssJs          python: {};
                 phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);

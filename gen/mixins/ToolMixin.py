@@ -245,7 +245,10 @@ class ToolMixin(BaseMixin):
             elems = sortMethod(elems)
         return [importParams['headers'], elems]
 
-    def showPortlet(self, context):
+    def showPortlet(self, context, layoutType):
+        '''When must the portlet be shown?'''
+        # Not on 'edit' pages.
+        if layoutType == 'edit': return
         if context.id == 'ui': context = context.getParentNode()
         res = True
         if hasattr(context.aq_base, 'appy'):
@@ -424,17 +427,29 @@ class ToolMixin(BaseMixin):
         return '<acronym title="%s">%s</acronym>' % \
                (text, uText[:width].encode('utf-8') + '...')
 
-    def getPublishedObject(self):
+    def getLayoutType(self):
+        '''Guess the current layout type, according to actual URL.'''
+        actualUrl = self.REQUEST['ACTUAL_URL']
+        res = ''
+        if actualUrl.endswith('/ui/view'):
+            res = 'view'
+        elif actualUrl.endswith('/ui/edit') or actualUrl.endswith('/do'):
+            res = 'edit'
+        return res
+
+    def getPublishedObject(self, layoutType):
         '''Gets the currently published object, if its meta_class is among
            application classes.'''
-        req = self.REQUEST
-        # If we are querying object, there is no published object (the truth is:
-        # the tool is the currently published object but we don't want to
-        # consider it this way).
-        if not req['ACTUAL_URL'].endswith('/ui/view'): return
+        # In some situations (ie, we are querying objects), the published object
+        # according to Zope is the tool, but we don't want to consider it that
+        # way.
+        if layoutType not in ('edit', 'view'): return
         obj = self.REQUEST['PUBLISHED']
-        parent = obj.getParentNode()
-        if parent.id == 'ui': obj = parent.getParentNode()
+        # If URL is a /do, published object is the "do" method.
+        if type(obj) == types.MethodType: obj = obj.im_self
+        else:
+            parent = obj.getParentNode()
+            if parent.id == 'ui': obj = parent.getParentNode()
         if obj.meta_type in self.getProductConfig().attributes: return obj
 
     def getZopeClass(self, name):

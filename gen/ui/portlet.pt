@@ -50,25 +50,19 @@
                appUrl             app/absolute_url;
                currentSearch      req/search|nothing;
                currentClass       req/className|nothing;
-               contextObj         tool/getPublishedObject;
-               rootClasses        tool/getRootClasses">
+               rootClasses        tool/getRootClasses;
+               phases             python: contextObj and contextObj.getAppyPhases() or None">
 
- <div class="portletContent" tal:condition="python: contextObj and contextObj.mayNavigate()">
-  <div class="portletTitle" tal:define="parent contextObj/getParent">
-    <span tal:replace="contextObj/Title"></span>
-     <a tal:condition="python: parent" tal:attributes="href parent/absolute_url">
-       <img tal:attributes="src string: $appUrl/ui/gotoSource.png"/>
-     </a>
-  </div>
+ <tal:phases condition="python: contextObj and phases and contextObj.mayNavigate()">
   <metal:phases use-macro="app/ui/portlet/macros/phases"/>
- </div>
+ </tal:phases>
 
  <tal:comment replace="nothing">One section for every searchable root class.</tal:comment>
  <tal:section repeat="rootClass python: [rc for rc in rootClasses if tool.userMaySearch(rc)]">
 
   <tal:comment replace="nothing">A separator if required</tal:comment>
   <div class="portletSep" tal:define="nb repeat/rootClass/number"
-                          tal:condition="python: (nb == 1 and contextObj) or (nb != 1)"></div>  
+                          tal:condition="python: (nb != 1) or ((nb == 1) and phases)"></div>
 
   <div class="portletContent" tal:define="searchInfo python: tool.getGroupedSearches(rootClass)">
    <tal:comment replace="nothing">Section title (link triggers the default search), with action icons</tal:comment>
@@ -119,9 +113,8 @@
    This macro displays, within the portlet, the navigation tree for the
    currently shown object, made of phases and contained pages.
 </tal:comment>
-<table metal:define-macro="phases"
-       tal:define="phases contextObj/getAppyPhases;
-                   singlePhase python: len(phases) == 1;
+<table metal:define-macro="phases" class="portletContent"
+       tal:define="singlePhase python: phases and (len(phases) == 1);
                    page python: req.get('page', 'main')">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
