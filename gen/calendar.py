@@ -215,7 +215,7 @@ class Calendar(Type):
     def getEventsAt(self, obj, date, asDict=True):
         '''Returns the list of events that exist at some p_date (=day).'''
         obj = obj.o # Ensure p_obj is not a wrapper.
-        if not hasattr(obj, self.name): return
+        if not hasattr(obj.aq_base, self.name): return
         years = getattr(obj, self.name)
         year = date.year()
         if year not in years: return
