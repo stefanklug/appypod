@@ -104,8 +104,8 @@ class Renderer:
         from the p_context.
 
          - If p_result does not end with .odt, the Renderer
-           will call OpenOffice to perform a conversion. If p_forceOoCall is
-           True, even if p_result ends with .odt, OpenOffice will be called, not
+           will call LibreOffice to perform a conversion. If p_forceOoCall is
+           True, even if p_result ends with .odt, LibreOffice will be called, not
            for performing a conversion, but for updating some elements like
            indexes (table of contents, etc) and sections containing links to
            external files (which is the case, for example, if you use the
@@ -114,8 +114,8 @@ class Renderer:
          - If the Python interpreter which runs the current script is not
            UNO-enabled, this script will run, in another process, a UNO-enabled
            Python interpreter (whose path is p_pythonWithUnoPath) which will
-           call OpenOffice. In both cases, we will try to connect to OpenOffice
-           in server mode on port p_ooPort.
+           call LibreOffice. In both cases, we will try to connect to
+           LibreOffice in server mode on port p_ooPort.
 
          - If you plan to make "XHTML to OpenDocument" conversions, you may
            specify a styles mapping in p_stylesMapping.

@@ -4,6 +4,9 @@
     <link rel="stylesheet" href="appy.css" type="text/css">
   </head>
   <body>
+
+    <div class="focus">Historically, defining Python expressions with pod was done via text inserted in 'track changes' mode (with LibreOffice, in the Edit menu, enable/disable this mode by clicking on Modifications->Record). This page still shows examples with track-changed text, although conditional fields (as explained <a href="pod.html">here</a>) have become the preferred way to insert Python expressions.</div>
+
     <h1><a name="fromClause"></a>Inserting arbitrary content: the <span class="code">from</span> clause</h1>
 
     <p>In the section <a href="podWritingTemplates.html">"Writing templates"</a>, you've learned how to write pod statements (<span class="code">if</span>, <span class="code">for</span>). Every pod statement is linked to a given part of the pod template (a text paragraph, a title, a table, a table row, etc) and conditions how this part is rendered in the result (the <span class="code">if</span> statement, for example, renders the part only if the related condition is <span class="code">True</span>). This way to work has its limits. Indeed, you can't insert what you want into the result: you are forced to use the part of the document that is the target of the statement. Of course, in this part, you can still write funny things like Python expressions and statements, but it may not be sufficient.</p>
@@ -12,19 +15,19 @@
 
     <p>In the example below, the statement has a <span class="code">from</span> clause that produces a simple paragraph containing 'Hello'.</p>
 
-    <p><img src="img/SimpleFrom.png"/></p>
+    <p align="center" class="by"><img src="img/SimpleFrom.png"/></p>
 
     <p>In the result, the targeted paragraph has been replaced by the chunk of odt content specified in the <span class="code">from</span> expression. Note that the <span class="code">from</span> clause MUST start on a new line in the note. Else, it will be considered as part of statement and will probably produce an error.</p>
 
-    <p><img src="img/SimpleFrom.res.png"/></p>
+    <p align="center" class="by"><img src="img/SimpleFrom.res.png"/></p>
 
     <p>Surprise! This statement is neither a 'if' not a 'for' statement... It is a "null" statement whose sole objective is to replace the target by the content of the <span class="code">from</span> expression. But you can also add <span class="code">from</span> clauses to 'if' and 'for' statements. Here is an example with a 'for' statement.</p>
 
-    <p><img src="img/FromWithFor.png"/></p>
+    <p align="center" class="by"><img src="img/FromWithFor.png"/></p>
 
     <p>Here's the result. Note that within the <span class="code">from</span> clause you may use the iterator variable (<span class="code">i</span>, in this case) defined by the <span class="code">for</span> statement.</p>
 
-    <p><img src="img/FromWithFor.res.png"/></p>
+    <p align="center" class="by"><img src="img/FromWithFor.res.png"/></p>
 
     <p>Actually, when you don't specify a <span class="code">from</span> clause in a statement, pod generates an implicit <span class="code">from</span> clause whose result comes from the odt chunk that is the target of the statement.</p>
 
@@ -37,7 +40,7 @@
     <p>One of these functions is the <span class="code">xhtml</span> function, that allows to convert chunks of XHTML documents (given as strings in the context) into chunks of OpenDocument within the resulting OpenDocument. This functionality is useful, for example, when using pod with systems like Plone, that maintain a part of their data in XHTML format (Kupu fields, for example).</p>
 
     <p>Suppose you want to render this chunk of XHTML code at some place in your pod result:</p>
-    <table align="center">
+    <br/><table align="center" class="list">
       <tr>
         <th>XHTML code</th>
         <th>XHTML rendering (Plone)</th>
@@ -67,10 +70,11 @@
         </td>
       </tr>
     </table>
+    <br/>
 
     <p>pod comes with a function named <span class="code">xhtml</span> that you may use within your pod templates, like this:</p>
 
-    <p align="center"><img src="img/xhtmlTemplate.png"/></p>
+    <p align="center" class="by"><img src="img/xhtmlTemplate.png"/></p>
 
     <p>In this example, the name <span class="code">dummy</span> is available in the context, and <span class="code">dummy.getAt1()</span> produces a Python string that contains the XHTML chunk shown above. This string is given as paremeter of the built-in pod <span class="code">xhtml</span> function.</p>
 
@@ -78,7 +82,7 @@
 
     <p>The rendering produces this document:</p>
 
-    <p align="center"><img src="img/xhtmlResult.png"/></p>
+    <p align="center" class="by"><img src="img/xhtmlResult.png"/></p>
 
     <p>The OpenDocument rendering is a bit different than the XHTML rendering shown above. This is because pod uses the styles found in the pod template and tries to make a correspondence between style information in the XHTML chunk and styles present in the pod template. By default, when pod encounters a XHTML element:</p>
     <ul>
@@ -101,7 +105,7 @@
 
     <p>Second, each time you invoke the <span class="code">xhtml</span> function in a pod template, you may specify a local styles mapping in the parameter named <span class="code">stylesMapping</span>, like shown below.</p>
 
-    <p align="center"><img src="img/xhtmlStylesMapping.png"/></p>
+    <p align="center" class="by"><img src="img/xhtmlStylesMapping.png"/></p>
 
     <p>Local styles mappings override what you have (potentially) defined in the global styles mapping.</p>
 
@@ -116,7 +120,7 @@
 
     <p>This can be problematic if, for instance, you want to use special style-related attributes, specially for <span class="code">li</span> elements that correspond to paragraphs. This is why any pod template includes some predefined styles that may apply to these elements. The following table shows them, grouped by element type.</p>
 
-    <table>
+    <br/><table class="list" align="center">
      <tr>
        <th>Element</th>
        <th>Available style(s)</th>
@@ -143,6 +147,7 @@
        <td>No pod-specific style is proposed at present. The unique default pod style of this element will be used.</td>
      </tr>
     </table>
+    <br/>
 
     <p>In order to use one of those styles, you can specify its name in the "class" attribute of the target element, or you can go through a global or local styles mapping. For example, if you need a <span class="code">li</span> element that will always stay on the same page as the paragraph below him, you can write <span class="code">&lt;li class="podItemKeepWithNext"&gt;&lt;/li&gt;</span>.</p>
 
@@ -156,7 +161,7 @@
 
     <p class="code">document(content=None, at=None, format=None, anchor='as-char')</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>Parameter</th>
         <th>Description</th>
@@ -228,18 +233,19 @@
         </td>
       </tr>
     </table>
+    <br/>
 
     <p>The following example shows a POD template part that integrates a PNG image from disk.</p>
 
-    <p align="center"><img src="img/documentFunction1.png"/></p>
+    <p align="center" class="by"><img src="img/documentFunction1.png"/></p>
 
     <p>(Note that the <span class="code">from</span> clause must be on a single line.). This could be rendered this way for example:</p>
 
-    <p align="center"><img src="img/documentFunction2.png"/></p>
+    <p align="center" class="by"><img src="img/documentFunction2.png"/></p>
 
     <p>The following ODT template part reads PDF and ODT files from a database (The ZODB; it is a Plone site) and integrates them in the pod result.</p>
 
-    <p align="center"><img src="img/documentFunction3.png"/></p>
+    <p align="center" class="by"><img src="img/documentFunction3.png"/></p>
 
     <p>For those who know Plone, <span class="code">annex</span> is an instance of <span class="code">ATFile</span>: <span class="code">annex.data</span> returns its binary content, while <span class="code">annex.getContentType()</span> returns is MIME type.</p>
 
@@ -255,11 +261,11 @@
 
     <p>Pod built-in functions are designed to be used within pod statements (<span class="code">from</span> clauses). If you try to use them in pod expressions, you will get strange results. The example below uses the <span class="code">xhtml</span> function in a pod expression.</p>
 
-    <p align="center"><img src="img/builtinFunctionInPodExpression.png"/></p>
+    <p align="center" class="by"><img src="img/builtinFunctionInPodExpression.png"/></p>
 
     <p>If <span class="code">dummy.getAt1()</span> produces the XHTML chunk <span class="code">&lt;p&gt;Test1&lt;br/&gt;&lt;/p&gt;</span>, the result will look like this:</p>
 
-    <p align="center"><img src="img/builtinFunctionInPodExpression.res.png"/></p>
+    <p align="center" class="by"><img src="img/builtinFunctionInPodExpression.res.png"/></p>
 
   </body>
 </html>

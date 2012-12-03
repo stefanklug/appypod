@@ -4,11 +4,13 @@
     <link rel="stylesheet" href="appy.css" type="text/css">
   </head>
   <body>
+    <div class="focus" align="center">This section contains some deprecated information. Documentation is currently being rewritten and will soon be available.</div>
+
     <h1><a name="classInheritance"></a>Class inheritance</h1>
 
     <p>A gen-class may inherit from another gen-class. Suppose you work as director of human resources in a company and you need to measure employee productivity. Incredible but true: you are also a Python programmer. So you start developing a small application for managing employees. Although you are a director, you have reached a high level of wisdom (maybe due to the fact that you program in Python). So you know that there are two kinds of employees: those that work and those that don't. You decide to create 2 different classes to reflect this:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Person:<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;title = String(show=False)<br/>
@@ -36,7 +38,7 @@
 
     <p>After a while, you become anxious about having 95% of the data in your database (=<span class="code">Person</span> instances) serving absolutely no purpose. Logically, you decide to register the hair color for every non-worker. You realize that you need to change your model to be able to do this:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Person:</br>
     &nbsp;&nbsp;abstract = True</br>
     &nbsp;&nbsp;title = String(show=False)</br>
@@ -64,7 +66,7 @@
 
     <p>After a while, you become so excited about encoding hair colors that you would like to encode it even before encoding a parasite's name and first name. You have noticed that with gen, order of fields within the "edit" and "consult" views follows order of field declarations in the corresponding gen-classes; furthermore, fields defined in child classes appear after the fields defined in parent classes. Fortunately, the "move" parameter allows to change this default setting. Changing the <span class="code">Parasite</span> class this way produces the desired result:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Parasite(Person):<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;hairColor= String(move=-2)<br/>
@@ -76,7 +78,7 @@
 
     <p>When defining a gen-class, some method names are reserved. Until now, we have already encountered the method <b class="code">onEdit</b>, like in this example:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Person:</br>
     &nbsp;&nbsp;abstract = True</br>
     &nbsp;&nbsp;title = String(show=False)</br>
@@ -90,7 +92,7 @@
 
     <p>Another special method is named <b class="code">validate</b>. While the field-specific <span class="code">validators</span> are used for validating field values individually, the <span class="code">validate</span> method allows to perform "inter-field" validation when all individual field validations have succeeded. Consider this extension of class <span class="code">Parasite</span>:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Parasite(Person):<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;hairColor= String(move=-2)<br/>
@@ -162,7 +164,7 @@
 
     <p>What you need to know when using pod with gen is the exact <i>pod context</i> (ie the set of Python objects, variables, modules, etc) that is given by gen to your pod template. The table below presents all entries included in it.</p>
 
-    <table>
+   <br/><table class="list">
       <tr>
         <th>Entry</th>
         <th>Description</th>
@@ -185,6 +187,7 @@
         <td>A string containing the absolute path of the folder where your gen-application resides on disk. If your gen-application is a folder hierarchy, <span class="code">projectFolder</span> is the root folder of it.</td>
       </tr>
     </table>
+    <br/>
 
     <p>In the previous examples, we have always rendered documents in <span class="code">Odt</span> format. When generating ODT, gen and pod do not need any other piece of software. If you configure a template for generating documents in <b>Adobe PDF (<span class="code">Pdf</span>)</b>, <b>Rich Text Format (<span class="code">Rtf</span>)</b> or <b>Microsoft Word (<span class="code">Doc</span>)</b>, you will need to run OpenOffice in server mode. Indeed, for producing any of these formats, pod will generate, from your POD template, an ODT file and will ask OpenOffice to convert it into PDF, DOC or RTF. Suppose you modify the ODT template named "Gossips" for producing documents in PDF instead of ODT (in the config, default flavour, tab "document generation", edit the template named "gossips" and choose "Pdf" as "Pod format"). If now you go back to the consult view for a parasite, the PDF icon will show up for the template "Gossips":</p>
 
@@ -214,7 +217,7 @@
 
     <p>Let's consider the following example. It is an improved version of the Human Resources software developed by yourself several minutes ago (see above). I have added more fields in order to illustrate how to layout fields into pages and groups.</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Person:<br/>
     &nbsp;&nbsp;abstract = True<br/>
     &nbsp;&nbsp;pod = True<br/>
@@ -393,14 +396,14 @@
 
     <p>Let's illustrate it first by defining a custom <span class="code">Tool</span>. We will use our <span class="code">ZopeComponent</span> example. Suppose that the company that creates those components is organized into bunches of geeks. Every component is developed under the responsibility of a bunch. We first need a class for defining bunches:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> BunchOfGeek:<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
     </p>
 
     <p>Creating a custom tool is as simple as inheriting from class <spanc class="code">appy.gen.Tool</span>:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> ZopeComponentTool(Tool):<br/>
     &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
     &nbsp;&nbsp;bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,<br/>
@@ -412,7 +415,7 @@
 
     <p>Now please modify class <span class="code">ZopeComponent</span> by adding a <span class="code">Ref</span> attribute that will allow to assign the component to a given bunch:</p>
 
-    <p class="code">
+    <p class="code codePara">
     &nbsp;&nbsp;responsibleBunch = Ref(BunchOfGeek, multiplicity=(1,1), add=False,<br/>
     &nbsp;&nbsp;&nbsp;&nbsp;link=True, back=Ref(attribute='components'))<br/>
     </p>
@@ -433,7 +436,7 @@
 
     <p>We will now transform our example in order to define bunches of geeks at the flavour level. First, delete from your tool the 3 bunches you have created. Then, move attribute <span class="code">bunchesOfGeeks</span> from your custom tool to a new custom Flavour:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> ZopeComponentTool(Tool):<br/>
     &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
     <br/>
@@ -452,7 +455,7 @@
 
     <p>As you may have noticed, the default <span class="code">Tool</span> class defines only one page (the <span class="code">main</span> page). Feel free to add pages to your custom tool. The default <span class="code">Flavour</span> class defines the following pages; within your custom flavour, you may either add fields to those existing pages (like in the previous example) or add your own pages.</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>Page name</th>
         <th>Description</th>
@@ -474,6 +477,7 @@
         <td>Configuration options related to the way your gen-application looks. Columns displayed in the dashboards are configured here for example.</td>
       </tr>
     </table>
+    <br/>
 
     <p>When defining fields on custom tools and flavours, some parameters have no sense. This is the case for all parameters enabling "configurability", like <span class="code">editDefault</span>, <span class="code">optional</span>, etc: you can't meta-configure (=configure the configuration). If you try to use those parameters on fields defined on custom tools and flavour they will be ignored by gen.</p>
 
@@ -495,7 +499,7 @@
 
     <p>Pragmatically, what you need to know is the following. For every Appy field defined in a gen-class, the corresponding wrapper class contains a Python <i>property</i> (more info <a href="http://docs.python.org/library/functions.html?highlight=property#property" target="_blank">here</a>) that has the same name, for which a <i>getter</i> function is defined. Every time you write a thing like:</p>
 
-    <p class="code">self.bunchesOfGeeks</p>
+    <p class="code codePara">self.bunchesOfGeeks</p>
 
     <p>The getter function is triggered behind the scenes and queries the real Zope object for getting the expected result. After it, the function may potentialy adapt the result before giving it to you. In this example, every "Zope" bunch of geeks is wrapped and you get a list of <span class="code">BunchOfGeek</span> wrappers. This way, you always manipulate wrappers and you may forget everything about the cruel Zope world.</p>
 
@@ -515,7 +519,7 @@
 
     <p>Beyond getters and setters, Appy wrappers give you plenty of nice attributes and methods for manipulating your objects. The following table shows you available attributes (or Python properties).</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>field name</th>
         <th>writable?</th>
@@ -557,10 +561,11 @@
         <td>The Python class (=gen-class) related to this class. Indeed, because the instances you manipulate in the code inherit from special wrappers, writing <span class="code">self.__class__</span> will give you a wrapper class. So write <span class="code">self.klass</span> instead.</td>
       </tr>
     </table>
+    <br/>
 
     <p>The following table shows you available methods.</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>method name</th>
         <th>parameters</th>
@@ -570,7 +575,7 @@
         <td class="code">create</td>
         <td class="code">fieldName, **kwargs</td>
         <td>Creates a new object and links it to this one through <span class="code">Ref</span> field having name <span class="code">fieldName</span>. Remaining parameters <span class="code">**kwargs</span> are used for initialising fields of the newly created object. Here is an example, inspired from the one described above. Suppose that, in every flavour, a bunch of geeks called "Escadron de la mort" must absolutely be present: it includes the best geeks that you use for debugging the most critical Zope components. So every time you create or edit a flavour, you need to ensure that this bunch is there. If not, you will create it automatically. Code for class <span class="code">ZopeComponentFlavour</span> must evolve this way:
-          <p class="code">
+          <p class="code codePara">
           <b>class</b> ZopeComponentFlavour(Flavour):<br/>
           &nbsp;&nbsp;anIntegerOption = Integer()<br/>
           &nbsp;&nbsp;bunchesOfGeeks = Ref(BunchOfGeek, multiplicity=(0,None), add=True,<br/>
@@ -590,6 +595,7 @@
         <td>Links the existing object <span  class="code">obj</span> to the current one through <span  class="code">Ref</span> field <span  class="code">fieldName</span>. Already linked objects are not unlinked. This method is used by method <span class="code">create</span> but may also be used independently.</td>
       </tr>
     </table>
+    <br/>
 
     <p>For setting <span class="code">Ref</span> fields, please use the <span class="code">create</span> and <span class="code">link</span> methods instead of the predefined setters which may not work as expected.</p>
 
@@ -597,7 +603,7 @@
 
     <p><span class="code">Tool</span> and <span class="code">Flavour</span> objects, be they customized or not, adopt the same "wrapper" mechanism as described above. In this section, we will simply explain how to get/set programmatically the predefined fields that gen generates automatically on tools and flavours. The following table presents the names of the predefined attributes defined on any <span class="code">Tool</span>:</p>
 
-    <table>
+   <br/><table class="list" align="center">
       <tr>
         <th>field name</th>
         <th>description</th>
@@ -627,10 +633,11 @@
         <td>The boolean indicating if the field for entering comments when triggering a worflow transition must be shown or not.</td>
       </tr>
     </table>
+    <br/>
 
     <p>For flavours, things are a little more complex. Imagine we have, throughout our gen-application, 25 fields parameterized with <span class="code">editDefault=True</span> in 6 classes. The corresponding attributes that hold the default values in the flavours have an ugly name that includes the full package name of the class. Instead of forcing you to remember this obscure naming convention, a nice method defined on the <span class="code">Flavour</span> class allows to retrieve this attribute name:</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>method name</th>
         <th>parameters</th>
@@ -669,10 +676,11 @@
         </td>
       </tr>
     </table>
+    <br/>
 
     <p>Besides flavour attributes having oscure names, some attributes have a normal name:</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>field name</th>
         <th>writable?</th>
@@ -684,6 +692,7 @@
         <td>The flavour number.</td>
       </tr>
     </table>
+    <br/>
 
     <p>When choosing field and method names for your gen-classes, try to avoid using names corresponding to fields or methods from base Appy classes (wrappers, tool, flavours).</p>
 
@@ -691,7 +700,7 @@
 
     <p>When (re-)installing your gen-application, you may want to initialize it with some data or configuration options. You do this by specifying a special <a href="genCreatingBasicClasses.html#actions">action</a> named <span class="code">install</span> on your customized tool, like in the example below (the <span class="code">ZopeComponent</span> application).</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> ZopeComponentTool(Tool):<br/>
     &nbsp;&nbsp;someUsefulConfigurationOption = String()<br/>
     &nbsp;&nbsp;<b>def</b> onInstall(self):<br/>
@@ -715,7 +724,7 @@
 
     <p>gen-applications benefit from an automated support for i18n. How does it work? First of all, you need to declare what language(s) need to be supported in your gen-application. This is done through the creation, anywhere in your gen-application, of an instance of class <span class="code">appy.gen.Config</span>:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>from</b> appy.gen <b>import</b> Config<br/>
     c = Config()<br/>
     c.languages = ('en', 'fr')<br/>
@@ -725,7 +734,7 @@
 
     <p>Every time you (re-)generate your gen-application, i18n files are created or updated in the corresponding generated Plone product. With the above settings, gen will generate the following files, in <span class="code">[yourZopeInstance]/Products/[yourApplication]/i18n</span> (the product here is named <span class="code">ZopeComponent</span>):</p>
 
-    <p class="code">
+    <p class="code codePara">
     ZopeComponent.pot<br/>
     ZopeComponent-en.po<br/>
     ZopeComponent-fr.po<br/>
@@ -735,7 +744,7 @@
 
     <p>The format of these files is quite standard in the i18n world. Le'ts take a look to the beginning of <span class="code">ZopeComponent.pot</span>:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>msgid</b> ""<br/>
     <b>msgstr</b> ""<br/>
     "Project-Id-Version: ZopeComponent\n"<br/>
@@ -754,7 +763,7 @@
 
     <p>After this header, you will find a list of <i>labels</i>. In the <span class="code">pot</span> file, every label is defined like this one:</p>
 
-    <p class="code">
+    <p class="code codePara">
     #. Default: "Funeral date"<br/>
     <b>msgid</b> "ZopeComponent_ZopeComponent_funeralDate"<br/>
     <b>msgstr</b> ""<br/>
@@ -768,7 +777,7 @@
 
     <p>Now, you need to know the meaning of every label gen creates and maintains in the po(t) file(s), and at what place(s) they are used within the generated edit and consult views (or in the dashboards, etc). The following table explains this. Dynamic parts used in labels (like <span class="code">[className]</span>) are explained in yet another table below. For every label, the default value is specified. For the majority of labels, gen proposes a "nice" default value. For example, field <span class="code">responsibleBunch</span> will have default value <span class="code">Responsible bunch</span>; class <span class="code">BunchOfGeeks</span> will have default value <span class="code">Bunch of geeks</span>. The "nice" algorithm tries simply to recognize camel-cased words and separates them.</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>label "pattern"</th>
         <th>usage</th>
@@ -949,10 +958,11 @@
         <td>"Please enter a valid alphanumeric value."</td>
       </tr>
     </table>
+    <br/>
 
     <p>As already mentioned, in the table below, some label "parts" are explained.</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>label part</th>
         <th>description</th>
@@ -974,12 +984,13 @@
         <td>Refers to the name of an Appy field, declared as a static attribute in a gen-class. For example, attribute <span class="code">responsibleBunch</span> of class <span class="code">ZopeComponent</span> will have <span class="code">fieldName</span> "responsibleBunch".</td>
       </tr>
     </table>
+    <br/>
 
     <h2>Creating and using new i18n labels</h2>
 
     <p>Although gen tries to manage automatically the whole i18n thing, in some cases you may need to create and use specific labels. You create new labels by adding them "by hand" in the pot file. For example, edit ZopeComponent.pot and add the following label:</p>
 
-    <p class="code">
+    <p class="code codePara">
     #. Default: "Please be honest and do not pretend there is any kind of simplicity in your Zope 3 component."<br/>
     <b>msgid</b> "zope_3_is_not_simple"<br/>
     <b>msgstr</b> ""
@@ -989,7 +1000,7 @@
 
     <p>In the following example, we use the new label for producing a translated validation message on a given field.</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> ZopeComponent:
     &nbsp;&nbsp;...<br/>
     &nbsp;&nbsp;<b>def</b> validateDescription(self, value):<br/>
@@ -1005,7 +1016,7 @@
 
     <p>Now imagine you need to change the default value for this label in ZopeComponent.pot. It means that your translations in ZopeComponent-fr.po and ZopeComponent-en.po need a potential revision. Edit the default value and re-generate your product. The labels in the po files will be flagged as "fuzzy":</p>
 
-    <p class="code">
+    <p class="code codePara">
     #. Default: "Please be honest and do not pretend there is any kind of simplicity in your Zope 3 component. I changed the default value."<br/>
     #, fuzzy<br/>
     <b>msgid</b> "zope_3_is_not_simple"<br/>
@@ -1018,7 +1029,7 @@
 
     <p>It is possible to make your gen pages more dynamic by defining relationships between fields belonging to the same page. For example, by selecting a given item in a list (on a <i>master</i> field), another (<i>slave</i>) field may become visible. This is achieved by using parameters <span class="code">master</span> and <span class="code">masterValue</span>. Let's try it on an example. Remember that, in our HR system, we have added the ability to associate a "parasite index" to a parasite. Suppose that in some cases, the parasite is so weird that you are unable to give him a parasite index. Among the values for field <span class="code">parasiteIndex</span>, we add the value <span class="code">unquantifiable</span>; but in this case, you must give, in another field, details about why you can't quantify its parasiteness:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Parasite(Person):<br/>
     &nbsp;&nbsp;...<br/>
     &nbsp;&nbsp;parasiteIndex = String(validator=['low', 'medium', 'high', 'unquantifiable'],<br/>
@@ -1060,7 +1071,7 @@
 
     <p>As already mentioned, a series of configuration options for your gen-application may be defined in an instance of class <span class="code">appy.gen.Config</span>. There must be only one such instance by gen-application. The following table describes the available options defined as <span class="code">Config</span> attributes.</p>
 
-    <table>
+    <br/><table class="list" align="center">
       <tr>
         <th>Attribute</th>
         <th>Default value</th>
@@ -1082,10 +1093,11 @@
         <td>If <span class="code">True</span>, this flag will produce a minimalist Plone, where some user interface elements, like actions, portlets or other stuff less relevant for building web applications, are removed or hidden. Using this produces effects on your whole Plone site! This can be interesting on development machines: less visual gadgets make geeks more productive.</td>
       </tr>
     </table>
+    <br/>
 
     <p>Here is an example of a <span class="code">Config</span> instance:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>from</b> appy.gen <b>import</b> Config<br/>
     c = Config()<br/>
     c.languages = ('en', 'fr')<br/>

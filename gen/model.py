@@ -226,7 +226,8 @@ class Tool(ModelClass):
     def isManager(self): pass
     def isManagerEdit(self): pass
     lf = {'layouts':'f'}
-    title = gen.String(show=False, page=gen.Page('main', show=False), **lf)
+    title = gen.String(show=False, page=gen.Page('main', show=False),
+                       default='Configuration', **lf)
     mailHost = gen.String(default='localhost:25', **lf)
     mailEnabled = gen.Boolean(default=False, **lf)
     mailFrom = gen.String(default='info@appyframework.org', **lf)

@@ -9,38 +9,88 @@
     <p>In order to render a pod template, the first thing to do is to create a renderer (create a <span class="code">appy.pod.Renderer</span> instance). The constructor for this class looks like this:</p>
 
     <p class="code codePara">
-        <b>def</b> __init__(self, template, context, result, pythonWithUnoPath=None, ooPort=2002, stylesMapping={}, forceOoCall=False):<br>
-        &nbsp;&nbsp;'''This Python Open Document Renderer (PodRenderer) loads a document<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;template (p_template) which is a OpenDocument file with some elements<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;written in Python. Based on this template and some Python objects<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defined in p_context, the renderer generates an OpenDocument file<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(p_result) that instantiates the p_template and fills it with objects<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from the p_context. If p_result does not end with .odt, the Renderer<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;will call OpenOffice to perform a conversion. If p_forceOoCall is True,<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;even if p_result ends with .odt, OpenOffice will be called, not for<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;performing a conversion, but for updating some elements like indexes<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(table of contents, etc) and sections containing links to external<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;files (which is the case, for example, if you use the default function<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"document"). If the Python interpreter<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;which runs the current script is not UNO-enabled, this script will<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;run, in another process, a UNO-enabled Python interpreter (whose path<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is p_pythonWithUnoPath) which will call OpenOffice. In both cases, we<br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;will try to connect to OpenOffice in server mode on port p_ooPort. <br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If you plan to make "XHTML to OpenDocument" conversions, you may specify <br/>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a styles mapping in p_stylesMapping.'''
+    <b>class</b> Renderer:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>def</b> __init__(self, template, context, result, pythonWithUnoPath=None,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    ooPort=2002, stylesMapping={}, forceOoCall=False,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    finalizeFunction=None, overwriteExisting=False,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    imageResolver=None):<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'''This Python Open Document Renderer (PodRenderer) loads a document<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;template (p_template) which is an ODT file with some elements<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;written in Python. Based on this template and some Python objects<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;defined in p_context, the renderer generates an ODT file<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(p_result) that instantiates the p_template and fills it with objects<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from the p_context.<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- If p_result does not end with .odt, the Renderer<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    will call LibreOffice to perform a conversion. If p_forceOoCall is<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    True, even if p_result ends with .odt, LibreOffice will be called, not<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    for performing a conversion, but for updating some elements like<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    indexes (table of contents, etc) and sections containing links to<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    external files (which is the case, for example, if you use the<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    default function "document").<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- If the Python interpreter which runs the current script is not<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    UNO-enabled, this script will run, in another process, a UNO-enabled<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Python interpreter (whose path is p_pythonWithUnoPath) which will<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    call LibreOffice. In both cases, we will try to connect to LibreOffice<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    in server mode on port p_ooPort.<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- If you plan to make "XHTML to OpenDocument" conversions, you may<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    specify a styles mapping in p_stylesMapping.<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- If you specify a function in p_finalizeFunction, this function will<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    be called by the renderer before re-zipping the ODT result. This way,<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    you can still perform some actions on the content of the ODT file<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    before it is zipped and potentially converted. This function must<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    accept one arg: the absolute path to the temporary folder containing<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    the un-zipped content of the ODT result.<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- If you set p_overwriteExisting to True, the renderer will overwrite<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    the result file. Else, an exception will be thrown if the result file<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    already exists.<br/>
+<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- p_imageResolver allows POD to retrieve images, from "img" tags within<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    XHTML content. Indeed, POD may not be able (ie, may not have the<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    permission to) perform a HTTP GET on those images. Currently, the<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    resolver can only be a Zope application object.<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'''<br/>
     </p>
 
     <p>For the <span class="code">template</span> and the <span class="code">result</span>, you can specify absolute or relative paths. I guess it is better to always specify absolute paths.</p>
 
-    <p>The <span class="code">context</span> may be either a dict, UserDict, or an instance. If it is an instance, its <span class="code">__dict__ </span>attribute is used. For example, <span class="code">context</span> may be the result of calling <span class="code">globals()</span> or <span class="code">locals()</span>. Every (key, value) pair defined in the context corresponds to a name (the key) that you can use within your template within pod statements or expressions. Those names may refer to any Python object: a function, a variable, an object, a module, etc.</p>
+    <p><br/>The <span class="code">context</span> may be either a dict, UserDict, or an instance. If it is an instance, its <span class="code">__dict__ </span>attribute is used. For example, <span class="code">context</span> may be the result of calling <span class="code">globals()</span> or <span class="code">locals()</span>. Every (key, value) pair defined in the context corresponds to a name (the key) that you can use within your template within pod statements or expressions. Those names may refer to any Python object: a function, a variable, an object, a module, etc.</p>
 
     <p>Once you have the <span class="code">Renderer</span> instance, simply call its <span class="code">run</span> method. This method may raise a <span class="code">appy.pod.PodError</span> exception.</p>
 
-    <p>Since pod 0.0.2, you may put a XHTML document somewhere in the context and ask pod to convert it as a chunk of OpenDocument into the resulting OpenDocument. You may want to customize the mapping between XHTML and OpenDocument styles. This can be done through the <span class="code">stylesMapping</span> parameter. A detailed explanation about the "XHTML to OpenDocument" abilities of pod may be found <a href="podWritingAdvancedTemplates.html#xhtml">here</a>.</p>
+    <p><br/>Since pod 0.0.2, you may put a XHTML document somewhere in the context and ask pod to convert it as a chunk of OpenDocument into the resulting OpenDocument. You may want to customize the mapping between XHTML and OpenDocument styles. This can be done through the <span class="code">stylesMapping</span> parameter. A detailed explanation about the "XHTML to OpenDocument" abilities of pod may be found <a href="podWritingAdvancedTemplates.html#xhtml">here</a>.</p>
 
     <h1><a name="resultFormats"></a>Result formats</h1>
 
-    <p>If <span class="code">result</span> ends with <span class="code">.odt</span>, OpenOffice will NOT be called (unless <span class="code">forceOoCall</span> is <span class="code">True</span>). pod does not need OpenOffice to generate a result in ODT format, excepted in the following cases:</p>
+    <p>If <span class="code">result</span> ends with <span class="code">.odt</span>, LibreOffice will NOT be called (unless <span class="code">forceOoCall</span> is <span class="code">True</span>). pod does not need LibreOffice to generate a result in ODT format, excepted in the following cases:</p>
 
     <ul>
       <li>you need to update fields in the result (ie a table of contents);</li>
@@ -56,129 +106,20 @@
       <li><span class="code">.txt</span>,</li>
     </ul>
 
-    <p>OpenOffice will be called in order to convert a temporary ODT file rendered by pod into the desired format. This will work only if your Python interpreter knows about the Python UNO bindings. UNO is the OpenOffice API. If typing <span class="code">import uno</span> at the interpreter prompt does not produce an error, your interpreter is UNO-enabled. If not, there is probably a UNO-enabled Python interpreter within your OpenOffice copy (in &lt;OpenOfficePath&gt;/program). In this case you can specify this path in the <span class="code">pythonWithUnoPath</span> parameter of the <span class="code">Renderer</span> constructor. Note that when using a UNO-disabled interpreter, there will be one additional process fork for launching a Python-enabled interpreter.</p>
+    <p>LibreOffice will be called in order to convert a temporary ODT file rendered by pod into the desired format. This will work only if your Python interpreter knows about the Python UNO bindings. UNO is the OpenOffice API. If typing <span class="code">import uno</span> at the interpreter prompt does not produce an error, your interpreter is UNO-enabled. If not, there is probably a UNO-enabled Python interpreter within your LibreOffice copy (in &lt;LibreOfficePath&gt;/program). In this case you can specify this path in the <span class="code">pythonWithUnoPath</span> parameter of the <span class="code">Renderer</span> constructor. Note that when using a UNO-disabled interpreter, there will be one additional process fork for launching a Python-enabled interpreter.</p>
 
     <p>During rendering, pod uses a temp folder located at <span class="code">&lt;result&gt;.temp</span>.</p>
 
-    <h1><a name="ooInServerMode"></a>Launching OpenOffice in server mode</h1>
+    <h1><a name="ooInServerMode"></a>Launching LibreOffice in server mode</h1>
 
-    <p>You launch OpenOffice in server mode by running the command:</p>
+    <p>You launch LibreOffice in server mode by running the command (under Linux):</p>
 
-    <p>(under Windows: ) <span class="code">call "[path_to_oo]\program\soffice" "-accept=socket,host=localhost,port=2002;urp;"&amp;</span> (put this command in .bat file, for example)</p>
+    <p class="code codePara">soffice -invisible -headless "-accept=socket,host=localhost,port=2002;urp;"</p>
 
-    <p>Under Windows you may also need to define this environment variable (with OpenOffice 3.x) (here it is done in Python):</p>
+    <p>Under Windows it may look like:</p>
 
-    <p class="code">os.environ['URE_BOOTSTRAP']='file:///C:/Program%20Files/OpenOffice.org%203/program/fundamental.ini'</p>
-
-    <p>(under Linux: ) <span class="code">soffice "-accept=socket,host=localhost,port=2002;urp;"</span></p>
+    <p class="code codePara">"[path_to_lo]\program\soffice" -invisible -headless "-accept=socket,host=localhost,port=2002;urp;"</p>
 
     <p>Of course, use any port number you prefer.</p>
-
-    <p>Unfortunately, OpenOffice, even when launched in server mode, needs a Windowing system. So if your server runs Linux you will need to run a X server on it. If you want to avoid windows being shown on your server, you may launch a VNC server and define the variable DISPLAY=:1. If you run Ubuntu server and if you install package "openoffice.org-headless" you will not need a X server. On other Linux flavours you may also investigate the use of xvfb.</p>
-
-    <h1><a name="exampleDjango"></a>Rendering a pod template with Django</h1>
-
-    <p>pod can be called from any Python program. Here is an example of integration of pod with Django for producing a PDF through the web. In the first code excerpt below, in a Django view I launch a pod Renderer and I give him a mix of Python objects and functions coming from various places (the Django session, other Python modules, etc).</p>
-
-    <p class="code">
-    01 gotTheLock = Lock.acquire(10)<br>
-    02 if gotTheLock:<br>
-    03&nbsp;&nbsp;&nbsp;&nbsp;template = '%s/pages/resultEpmDetails.odt' % os.path.dirname(faitesletest.__file__)<br>
-    04&nbsp;&nbsp;&nbsp;&nbsp;params = self.getParameters()<br>
-    05&nbsp;&nbsp;&nbsp;&nbsp;# Add 'time' package to renderer context<br>
-    06&nbsp;&nbsp;&nbsp;&nbsp;import time<br>
-    07&nbsp;&nbsp;&nbsp;&nbsp;params['time'] = time<br>
-    08&nbsp;&nbsp;&nbsp;&nbsp;params['i18n'] = i21c(self.session['language'])<br>
-    09&nbsp;&nbsp;&nbsp;&nbsp;params['floatToString'] = Converter.floatToString<br>
-    10&nbsp;&nbsp;&nbsp;&nbsp;tmpFolder = os.path.join(os.path.dirname(faitesletest.__file__), 'temp')<br>
-    11&nbsp;&nbsp;&nbsp;&nbsp;resultFile = os.path.join(tmpFolder, '%s_%f.%s' % (self.session.session_key, time.time(), self.docFormat))<br>
-    12&nbsp;&nbsp;&nbsp;&nbsp;try:<br>
-    13&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderer = appy.pod.renderer.Renderer(template, params, resultFile, coOpenOfficePath)<br>
-    14&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderer.run()<br>
-    15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lock.release()<br>
-    16&nbsp;&nbsp;&nbsp;&nbsp;except PodError, pe:<br>
-    17&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lock.release()<br>
-    18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;raise pe<br>
-    19&nbsp;&nbsp;&nbsp;&nbsp;docFile = open(resultFile, 'rb')<br>
-    20&nbsp;&nbsp;&nbsp;&nbsp;self.session['doc'] = docFile.read()<br>
-    21&nbsp;&nbsp;&nbsp;&nbsp;self.session['docFormat'] = self.docFormat<br>
-    22&nbsp;&nbsp;&nbsp;&nbsp;docFile.close()<br>
-    23&nbsp;&nbsp;&nbsp;&nbsp;os.remove(resultFile)<br>
-    24 else:<br>
-    25&nbsp;&nbsp;&nbsp;&nbsp;raise ViaActionError('docError')<br>
-    </p>
-
-    <p>When I wrote this, I was told of some unstabilities of OpenOffice in server mode (! this info is probably outdated, it was written in 2007). So I decided to send to OpenOffice one request at a time through a Locking system (lines 1 and 2). My site did not need to produce a lot of PDFs, but it may not be what you need for your site.</p>
-
-    <p>Line 11, I use the Django session id and current time to produce in a temp folder a unique name for dumping the PDF on disk. Let's assume that <span class="code">self.docFormat</span> is <span class="code">pdf</span>. Then, line 20, I read the content of this file into the Django session. I can then remove the temporary file (line 23). Finally, the chunk of code below is executed and a <span class="code">HttpResponse</span> instance is returned.</p>
-
-    <p class="code">
-    01 from django.http import HttpResponse<br>
-    02 ...<br>
-    03&nbsp;&nbsp;&nbsp;&nbsp;# I am within a Django view<br>
-    04&nbsp;&nbsp;&nbsp;&nbsp;res = HttpResponse(mimetype=self.getDocMimeType()) # Returns "application/pdf" for a PDF and "application/vnd.oasis.opendocument.text" for an ODT<br>
-    05&nbsp;&nbsp;&nbsp;&nbsp;res['Content-Disposition'] = 'attachment; filename=%s.%s' % (<br>
-    06&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.getDocName(), self.extensions[self.getDocMimeType()])<br>
-    07&nbsp;&nbsp;&nbsp;&nbsp;res.write(self.getDocContent())<br>
-    08&nbsp;&nbsp;&nbsp;&nbsp;# Clean session<br>
-    09&nbsp;&nbsp;&nbsp;&nbsp;self.session['doc'] = None<br>
-    10&nbsp;&nbsp;&nbsp;&nbsp;self.session['docFormat'] = None<br>
-    11&nbsp;&nbsp;&nbsp;&nbsp;return res<br>
-    </p>
-
-    <p>Line 7, <span class="code">self.getDocContent()</span> returns the content of the PDF file, that we stored in <span class="code">self.session['doc']</span> (line 20 of previous code chunk). Line 5, by specifying <span class="code">attachment</span> we force the browser to show a popup that asks the user if he wants to store the file on disk or open it with a given program. You can also specify <span class="code">inline</span>. In this case the browser will try to open the file within its own window (potentially with the help of a plugin).</p>
-
-    <h1><a name="examplePlone"></a>Rendering a pod template with Plone</h1>
-
-    <p>The following code excerpt shows how to render the "ODT view" of a Plone object. Here, we start from an Archetypes class that was generated with ArchGenXML. It is a class named <span class="code">Avis</span> that is part of a Zope/Plone product named <span class="code">Products.Avis</span>. While "Avis" content type instances can be created, deleted, edited, etc, as any Plone object, it can also be rendered as ODT (and in any other format supported by pod/OpenOffice). As shown below we have added a method <span class="code">generateOdt</span> to the Avis class, that calls a private method that does the job.</p>
-
-    <p class="code">
-    01 import appy.pod.renderer<br>
-    02 import Products.Avis<br>
-    03 ...<br>
-    04&nbsp;&nbsp;&nbsp;&nbsp;# We are in the Avis class<br>
-    05&nbsp;&nbsp;&nbsp;&nbsp;security.declarePublic('generateOdt')<br>
-    06&nbsp;&nbsp;&nbsp;&nbsp;def generateOdt(self, RESPONSE):<br>
-    07&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'''Generates the ODT version of this advice.'''<br>
-    08&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return self._generate(RESPONSE, 'odt')<br>
-    09<br>
-    10&nbsp;&nbsp;&nbsp;&nbsp;# Manually created methods<br>
-    11<br>
-    12&nbsp;&nbsp;&nbsp;&nbsp;def _generate(self, response, fileType):<br>
-    13&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'''Generates a document that represents this advice.<br>
-    14&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The document format is specified by p_fileType.'''<br>
-    15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# First, generate the ODT in a temp file<br>
-    16&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tempFileName = '/tmp/%s.%f.%s' % (self._at_uid, time.time(), fileType)<br>
-    17&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderer = appy.pod.renderer.Renderer('%s/Avis.odt' % os.path.dirname(Products.Avis.__file__), {'avis': self}, tempFileName)<br>
-    18&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderer.run()<br>
-    19&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Tell the browser that the resulting page contains ODT<br>
-    20&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response.setHeader('Content-type', 'application/%s' % fileType)<br>
-    21&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response.setHeader('Content-disposition', 'inline;filename="%s.%s"' % (self.id, fileType))<br>
-    22&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Returns the doc and removes the temp file<br>
-    23&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f = open(tempFileName, 'rb')<br>
-    24&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc = f.read()<br>
-    25&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;f.close()<br>
-    26&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;os.remove(tempFileName)<br>
-    27&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return doc<br>
-    </p>
-
-    <p>First, I plan to create the ODT file on disk, in a temp folder. Line 16, I use a combination of the attribute <span class="code">self._at_uid</span> of the Zope/Plone object and the current time to produce a unique name for the temp file. Then (lines 17 and 18) I create and call a pod renderer. I give him a pod template which is located in the Products folder (Avis subfolder) of my Zope instance. Lines 20 and 21, I manipulate the Zope object that represents the HTTP <span class="code">response</span> to tell Zope that the resulting page will be an ODT document. Finally, the method returns the content of the temp file (line 27) that is deleted (line 26). In order to trigger the ODT generation from the "view" page of the Avis content type, I have overridden the <span class="code">header</span> macro in Products/Avis/skins/Avis/avis_view.pt:</p>
-
-    <p class="code">
-    &lt;html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US" i18n:domain="plone"&gt;<br>
-    &lt;body&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;div metal:define-macro="header"&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;div class="documentActions"&gt;&lt;a href="" tal:attributes="href python:here['id'] + '/generateOdt'"&gt;Generate ODT version&lt;/a&gt;&lt;/div&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;h1 tal:content="here/title"&gt;Advice title&lt;/h1&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;div class="discreet"&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If you want to edit this advice, click on the "edit" tab above.<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;p&gt;&lt;/p&gt;<br>
-    &nbsp;&nbsp;&nbsp;&nbsp;&lt;/div&gt;<br>
-    &lt;/body&gt;<br>
-    &lt;/html&gt;<br>
-    </p>
-
-    <p>Hum... I know there are cleanest ways to achieve this result :-D</p>
   </body>
 </html>

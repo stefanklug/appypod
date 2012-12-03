@@ -6,34 +6,40 @@
   <body>
     <h1>What is pod ?</h1>
 
-    <p><b>pod</b> (<b>p</b>ython <b>o</b>pen <b>d</b>ocument) is a library that allows to easily generate documents whose content is dynamic. The principle is simple: you create an ODF (Open Document Format) text document (with OpenOffice Writer 2.0 or higher for example), you insert some Python code at some places inside it, and from any program written in Python, you can call pod with, as input, the OpenDocument file and a bunch of Python objects. pod generates another ODF text document (ODT) that contains the desired result. If you prefer to get the result in another format, pod can call OpenOffice in server mode to generate the result in PDF, DOC, RTF or TXT format.</p>
+    <p><b>pod</b> (<b>p</b>ython <b>o</b>pen <b>d</b>ocument) is a library that allows to easily generate documents whose content is dynamic. The principle is simple: you create an ODF (Open Document Format) text document (with LibreOffice Writer for example), you insert some Python code at some places inside it, and from any program written in Python, you can call pod with, as input, the OpenDocument file and a bunch of Python objects. pod generates another ODF text document (ODT) that contains the desired result. If you prefer to get the result in another format, pod can call LibreOffice in server mode to generate the result in PDF, DOC, RTF or TXT format.</p>
 
     <h1>Getting started with pod</h1>
 
-    <p><img src="img/SimpleTest.png" align="right"/>First, create a pod template, like the one besides this text. A pod template is an ODT document where:</p>
+    <p>First, create a pod template, like the one below.</p>
+
+    <br/><p align="center"><img src="img/SimpleTest.png"/></p><br/>
+
+    <p>A pod template is an ODT document where:</p>
 
     <ul>
-      <li>text inserted when editing the document in "track changes" mode is used for writing Python expressions;</li>
+      <li>Python expressions are inserted into fields;</li>
       <li>notes are used for writing special Python-based statements that allow to conditionally include or repeat a portion of the document.</li>
     </ul>
 
-    <p>In this template, I wrote the Python expression <span class="code">IWillTellYouWhatInAMoment</span> while being in "track changes" mode (with OpenOffice, in the Edit menu, choose Modifications->Record). I've also added 2 notes (with OpenOffice, in the Insert menu, choose Note). The first (before "It just claims...") contains the statement <span class="code">do text for i in range(3)</span>. The second contains <span class="code">do text if (not beingPaidForIt)</span>. Click <a href="podWritingTemplates.html">here</a> if you want to learn more about creating pod templates.</p>
+    <p><br/>In this template, I wrote the Python expression <span class="code">commercial</span> in a conditional field. With LibreOffice, click on [Ctrl]-F2 to create a field. Choose field type 'conditional text', write <span class="code">true</span> as condition, write <span class="code">commercial</span> in the <span class="code">then</span> expression and write nothing in the <span class="code">else</span> expression. Another expression ("<span class="code">i</span>") in the next line has been defined similarly. 2 notes were also added. With LibreOffice, in the Insert menu, choose Note). Click <a href="podWritingTemplates.html">here</a> if you want to learn more about creating pod templates.</p>
 
-    <p>Here is the code for calling pod for generating a result in ODT format.</p>
+    <p><br/>Here is the code for calling pod for generating a result in ODT format.</p>
 
-    <p class="code">
-      01&nbsp;&nbsp;from appy.pod.renderer import Renderer<br>
-      02&nbsp;&nbsp;<br>
-      03&nbsp;&nbsp;IWillTellYouWhatInAMoment = 'return'<br>
-      04&nbsp;&nbsp;beingPaidForIt = True<br>
-      05&nbsp;&nbsp;renderer = Renderer('SimpleTest.odt', globals(), 'result.odt')<br>
-      06&nbsp;&nbsp;renderer.run()<br><br>
+    <p class="code codePara">
+      01&nbsp;&nbsp;<b>from</b> appy.pod.renderer <b>import</b> Renderer<br/>
+      02&nbsp;&nbsp;<br/>
+      03&nbsp;&nbsp;commercial = 'creative'<br/>
+      04&nbsp;&nbsp;beingPaidForIt = True<br/>
+      05&nbsp;&nbsp;renderer = Renderer('SimpleTest.odt', globals(), 'result.odt')<br/>
+      06&nbsp;&nbsp;renderer.run()<br/>
     </p>
 
-    <p>First we need to import the Renderer class. Then we define some Python variables. We must then create an instance of the Renderer (line 5), with, as parameters, the name of the pod template (we assume here that the pod template shown above is called SimpleTest.odt and lies in the current folder), a dictionary of named Python objects (here we simply take the global environment) and the name of the result file. The script will generate it, with, as content, what is shown in the image below.</p>
+    <p>First we need to import class <span class="code">Renderer</span>. Then we define some Python variables. We must then create an instance of the <span class="code">Renderer</span> (line 5), with, as parameters, the name of the pod template (we assume here that the pod template shown above is called SimpleTest.odt and lies in the current folder), a dictionary of named Python objects (here we simply take the global environment) and the name of the result file. The script will generate it, with, as content, what is shown in the image below.</p>
 
-    <p><img src="img/SimpleTest.res.png" align="left"/>The second line of the template is repeated 3 times. It is the effect of the <span class="code">for</span> loop in the first note. All text insertions in "track changes" mode were replaced by the results of evaluating them as Python expressions, thanks to the context given to the Renderer as second parameter of its constructor. Note that within a loop, a new name (the iterator variable, <span class="code">i</span> in this case) is added in the context and can be used within the document part that is impacted by the for loop. The last line of the template was not rendered because the condition of the second note evaluated to <span class="code">False</span>.</p>
+    <p align="center"><br/><img src="img/SimpleTest.res.png"/></p>
 
-    <p>Click <a href="podRenderingTemplates.html">here</a> if you want to learn more about rendering pod templates.</p>
+    <p><br/>The second line of the template is repeated 3 times. It is the effect of the <span class="code">for</span> loop in the first note. Content of every field was replaced by the result of evaluating it as a Python expression, thanks to the context given to the <span class="code">Renderer</span> as second parameter of its constructor. Note that within a loop, a new name (the iterator variable, <span class="code">i</span> in this case) is added in the context and can be used within the document part that is impacted by the <span class="code">for</span> loop. The last line of the template was not rendered because the condition of the second note evaluated to <span class="code">False</span>.</p>
+
+    <p><br/>Click <a href="podRenderingTemplates.html">here</a> if you want to learn more about rendering pod templates.</p>
   </body>
 </html>

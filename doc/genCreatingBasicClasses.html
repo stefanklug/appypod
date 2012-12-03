@@ -4,6 +4,8 @@
     <link rel="stylesheet" href="appy.css" type="text/css">
   </head>
   <body>
+    <div class="focus" align="center">This section contains some deprecated information. Documentation is currently being rewritten and will soon be available.</div>
+
     <h1><a name="genApplications"></a>Gen-applications</h1>
 
     <p>A gen-application is a simple Python module (a single Python file) or package (a hierarchy of folders where every (sub-)folder contains a file named __init__.py). In the <a href="gen.html">main gen presentation page</a>, we've created a simple application in the form of a Python module, we've run it by installing Zope and Plone and by generating a Plone product. Working with a Python package instead of a Python module is quite easy: instead of creating MyModule.py in <a class="code">[myZopeInstance]/lib/python</a> you simply create a folder "MyPackage" at the same place.</p>
@@ -16,7 +18,7 @@
 
     <p>The code below shows an example of a gen-class.</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>from</b> appy.gen <b>import</b> *<br/>
     <b>class</b> A:<br/>
     &nbsp;&nbsp;at1 = String()<br/>
@@ -28,9 +30,9 @@
     &nbsp;&nbsp;&nbsp;&nbsp;<b>print</b> self.at5 + str(self.at2)<br/>
     </p>
 
-    <p><span class="code">String</span>, <span class="code">Integer</span>, <span class="code">Float</span> and <span class="code">Date</span> all inherit from <span class="code">appy.gen.Type</span>. You may still define standard Python attributes like <span class="code">at5</span> and methods like <span class="code">sayHello</span>. The list of basic types provided by gen is shown below.</p>
+    <p><br/><span class="code">String</span>, <span class="code">Integer</span>, <span class="code">Float</span> and <span class="code">Date</span> all inherit from <span class="code">appy.gen.Type</span>. You may still define standard Python attributes like <span class="code">at5</span> and methods like <span class="code">sayHello</span>. The list of basic types provided by gen is shown below.</p>
 
-    <table class="appyTable">
+   <br/><table class="list" align="center">
       <tr>
         <td class="code">Integer&nbsp;</td>
         <td>Holds an integer value.</td>
@@ -68,9 +70,10 @@
         <td>Holds nothing; the field represents a button or icon that triggers a function specified as a Python method.</td>
       </tr>
     </table>
+    <br/>
 
     <p>When defining instances of those types, you will typically give some parameters to it. Below is the list of parameters that are common to all types. In the next sections, we will see into more detail every type with its specificities.</p>
-    <table class="appyTable">
+    <br/><table class="list" align="center">
       <tr>
         <th>parameter</th>
         <th>default value</th>
@@ -198,7 +201,7 @@
 
     <p>Integers and floats have no additional parameters. In this section, we will simply illustrate, on Integers and Floats, some parameters defined in the previous section. Let's consider the following class:</p>
 
-    <p class="code"><b>from</b> appy.gen <b>import</b> *<br/>
+    <p class="code codePara"><b>from</b> appy.gen <b>import</b> *<br/>
     <b>class</b> Zzz:<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;<b>def</b> show_f1(self): <b>return</b> True<br/>
@@ -236,9 +239,9 @@
 
     <h1><a name="strings"></a>Strings</h1>
 
-    <p>Strings have an additional attribute named <span class="code">format</span> which may take the following values:</p>
+    <p>Strings have an additional attribute named <span class="code">format</span> which may take the following values</p>
 
-    <table class="appyTable">
+    <br/><table class="list" align="center">
       <tr>
         <th>value</th>
         <th>default?</th>
@@ -268,10 +271,11 @@
         <td><img src="img/strings6.png"></td>
       </tr>
     </table>
+    <br/>
 
     <p>With <span class="code">String</span>s, adequate use of arguments <span class="code">validator</span> and <span class="code">multiplicity</span> may produce more widgets and/or behaviours. Consider the following class:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> SeveralStrings:<br/>
     &nbsp;&nbsp;root=True<br/>
     &nbsp;&nbsp;anEmail = String(validator=String.EMAIL)<br/>
@@ -311,7 +315,7 @@
 
     <p>Dates have an additional attribute named <span class="code">format</span> which may take the following values:</p>
 
-    <table class="appyTable">
+    <table class="list" align="center">
       <tr>
         <th>value</th>
         <th>default?</th>
@@ -371,7 +375,7 @@
 
     <p>The corresponding gen model looks like this:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Order:<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
     <br/>
@@ -415,7 +419,7 @@
 
     <p>Besides the "add" functionality, association ends may also provide the "link" functionality. This produces another widget that allows you to link an object to existing ones instead of creating + linking them. Suppose you extend you model with the concept of <span class="code">Product</span>: an order may now specify one or several products. The model would include the new <span class="code">Product</span> class and the <span class="code">Order</span> class would get an additional <span class="code">Ref</span> field:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Product:<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
@@ -452,7 +456,7 @@
 
     <p>For references, 2 more parameters allow to customize the way they are rendered: the boolean <span class="code">showHeaders</span> and <span class="code">shownInfo</span>. Let's consider again the consult view for a client (5 pictures above: gold client "Gaetan Delannay"). Beyond order's titles, I would like to display their description, too, in another column. But If I have several columns, it would be nice to get some columns headers. You may achieve the desired result by changing the definition of the field <span class="code">orders</span> this way:</p>
 
-    <p class="code">
+    <p class="code codePara">
     &nbsp;&nbsp;orders = Ref(Order, add=True, link=False, multiplicity=(0,None),<br/>
     &nbsp;&nbsp;&nbsp;&nbsp;back=Ref(attribute='client'), showHeaders=True,<br/>
     &nbsp;&nbsp;&nbsp;&nbsp;shownInfo=('description',))<br/>
@@ -476,7 +480,7 @@
 
     <p>When using <span class="code">shownInfo</span>, you may specify any field name, including <span class="code">Ref</span> fields. If you specify <span class="code">shownInfo=('description', 'products')</span> for the field <span class="code">orders</span> of class <span class="code">Client</span> and modify rendering of field <span class="code">products</span> from class <span class="code">Order</span> this way:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Order:<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
     &nbsp;&nbsp;products = Ref(Product, add=False, link=True, multiplicity=(1,None),<br/>
@@ -498,7 +502,7 @@
 
     <p>You may want to filter only some products instead of gathering all defined products. The <span class="code">select</span> parameter may be used for this. Here is an example:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Order:<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
     &nbsp;&nbsp;<b>def</b> filterProducts(self, allProducts):<br/>
@@ -527,7 +531,7 @@
 
     <p>Let's try it on our example. Suppose we want to produce nice references for orders, based on some random number (yes, it would have been better to use some incremental number: it it really easy to do this with gen, but you need to know how to customize the configuration panel, which is explained later). We need to define a field <span class="code">number</span> that will hold the order number and will be invisible. Then, we will define a <span class="code">Computed</span> field named <span class="code">reference</span> that will produce the reference based on some prefix and the order number. Class <span class="code">Order</span> need to be updated like this:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Order:<br/>
     &nbsp;&nbsp;...<br/>
     &nbsp;&nbsp;number = Float(show=False)<br/>
@@ -551,7 +555,7 @@
 
     <p>Like any other field, <span class="code">Computed</span> fields may appear on <span class="code">Ref</span> fields or on dashboards. For example, if we change the definition of <span class="code">Ref</span> field <span class="code">orders</span> on class <span class="code">Client</span> this way:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Client:<br/>
     &nbsp;&nbsp;...<br/>
     &nbsp;&nbsp;orders = Ref(Order, add=True, link=False, multiplicity=(0,None),<br/>
@@ -569,7 +573,7 @@
 
     <p>Actions are special fields that allow to trigger functions. For the moment, they are represented as buttons and are shown only on consult views (not on edit views). Let's take an example. Suppose we modify class <span class="code">Product</span> this way:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Product:<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;description = String(format=String.TEXT)<br/>
@@ -623,7 +627,7 @@
 
     <p>This screenshot shows the ZMI (Zope Management Interface) available at http://localhost:8080/manage. You see that within the <span class="code">Appy</span> object (which is a Plone site) you have, among some predefined Plone objects like <span class="code">MailHost</span> or <span class="code">Members</span>, 2 folders named <span class="code">ZopeComponent</span> and <span class="code">Zzz</span>. Each of these 2 folders correspond to a gen-application that has the same name. Those folders are an Appy adaptation of the Plone standard content type named "Large Plone Folder", which is used for storing a large number of objects. If you click on this folder you will see its content (=all objects created through the corresponding gen-application). For several reasons, you may want to put more structure among this folder. Firstly, if you reach a large number of objects, it could lead to performance problems. Secondly, if you use the standard Plone "navigation" portlet, you will see in it all your objects in a single long and unstructured list under a single folder entry named according to your application. The solution is to tell gen that some classes are "folderish". You simply tell this by specifying <span class="code">folder=True</span> on your class. Suppose you do this on class <span class="code">Client</span>:</p>
 
-    <p class="code">
+    <p class="code codePara">
     <b>class</b> Client:<br/>
     &nbsp;&nbsp;root = True<br/>
     &nbsp;&nbsp;folder = True<br/>

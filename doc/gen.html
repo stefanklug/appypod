@@ -7,7 +7,7 @@
 <body>
 <h1>What is gen ?</h1>
 
-<p><b>gen</b> is a code <b>gen</b>erator that allows you write web apps without having to face and understand the plumbery of a given web framework. <b>gen</b> protects you. Concentrate on functionalities that need to be implemented: <b>gen</b> will fight for you against the low-level twisted machineries and will let you evolve in your pure, elegant and minimalistic Python world.</p>
+<p><b>gen</b> is a code <b>gen</b>erator that allows you write web apps without having to face and understand the plumbery of a given web framework. Concentrate on functionalities that need to be implemented: <b>gen</b> protects you from the complexity of low-level twisted machineries and will let you evolve in your pure, elegant and minimalistic Python world.</p>
 
 <h1>Download and install</h1>
 
@@ -23,7 +23,7 @@
  ./install.sh
 </p>
       
-<p>Don't be afraid, you just installed a lot of lines of code, but we will only use a very small subset of it: absolutely no line from Plone, a tiny subset of Zope and the Python interpreter that was also included.</p><br/>
+<p>You just installed a lot of (deprecated) lines of code, but we will only use a very small subset of it: absolutely no line from Plone, a tiny subset of Zope and the Python interpreter that was also included.</p><br/>
 
 <p>Install Appy. Download it <a href="https://launchpad.net/appy">here</a>, unzip it and install it in the Python interpreter previously mentioned.</p>
 
@@ -83,12 +83,10 @@
 &nbsp;&nbsp;&nbsp;&nbsp;companyDescription = String(format=String.XHTML, **p)<br/>
 # ------------------------------------------------------------------------------<br/>
 </p>
-</body>
-</html>
 
 <p>This class is declared as <span class="code">root</span>: for the moment, just remember that it gives it a special, first-class status. One line below, we define the roles that are allowed to create instances of this class. <span class="code">Anonymous</span> and <span class="code">Manager</span> are 2 standard Appy roles. The remaining lines define the attributes of every registration. Dict <span class="code"><i>p</i></span> is simply a shorthand for specifying the same (group of) attribute(s) to several methods.</p><br/>
 
-<p>Now that we have developed a complete webapp (yes, it is already over! Be patient, in a second iteration we will improve it), we need to plug it into the Zope instance.</p>
+<p>Now that we have developed a complete webapp, we need to plug it into the Zope instance.</p>
 
 <h1>Plug the webapp into the Zope instance</h1>
 
@@ -150,7 +148,7 @@
 
 <p align="center"><img src="img/welcome.png"/></p><br/>
 
-<p>Congratulations! Now, let's create a new registration by clicking on the "plus" icon. You should get this form:</p>
+<p>Congratulations! Now, without logging in (as anonymous user), let's create a new registration by clicking on the "plus" icon. You should get this form:</p>
 
 <p align="center"><img src="img/newRegistration1.png"/></p>
 <p align="center">...</p>
@@ -164,9 +162,10 @@
 
 <p>In this example, I have entered an email with a wrong format (remember, a validator <span class="code">String.EMAIL</span> was defined) and I entered no value for a mandatory field. <span class="code">multiplicity=(1,1)</span> means: at least and at most one value is required.</p><br/>
 
-<p>Once validation succeeds, the registration is stored in the database and the user can visualize it:</p>
+<p>Once validation succeeds, the registration is stored in the database and the user can visualize it.</p>
 
 <p align="center"><img src="img/viewRegistration.png"/></p><br/>
 
-
-
+<p>You can also log in as admin (password: admin) to discover the standard screens that are available, in your app, for an administrator.</p>
+</body>
+</html>
