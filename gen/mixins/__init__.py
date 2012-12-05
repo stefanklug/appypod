@@ -480,7 +480,6 @@ class BaseMixin:
 
     def showField(self, name, layoutType='view'):
         '''Must I show field named p_name on this p_layoutType ?'''
-        if name == 'state': return False
         return self.getAppyType(name).isShowable(self, layoutType)
 
     def getMethod(self, methodName):
