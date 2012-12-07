@@ -325,8 +325,8 @@
 </tal:comment>
 <metal:message define-macro="message" tal:define="messages tool/consumeMessages" tal:condition="messages">
   <div class="message">
-   <span tal:replace="structure messages"></span>
    <img tal:attributes="src python: '%s/ui/close.png' % appUrl"
         align="right" style="cursor:pointer" onClick="this.parentNode.style.display='none'"/>
+   <span tal:replace="structure messages"></span>
   </div>
 </metal:message>

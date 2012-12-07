@@ -121,7 +121,6 @@ class PhaseDescr(Descr):
     def __init__(self, name, obj):
         self.name = name
         self.obj = obj
-        self.phaseStatus = None
         # The list of names of pages in this phase
         self.pages = []
         # The list of hidden pages in this phase
@@ -164,17 +163,9 @@ class PhaseDescr(Descr):
         else:
             self.hiddenPages.append(appyType.page.name)
 
-    def computeStatus(self, allPhases):
-        '''Compute status of this phase, which depends on the page currently
-           shown. This method also fills fields "previousPhase" and "nextPhase"
+    def computeNextPrevious(self, allPhases):
+        '''This method also fills fields "previousPhase" and "nextPhase"
            if relevant, based on list of p_allPhases.'''
-        res = 'Current'
-        # Compute status based on current page
-        page = self.obj.REQUEST.get('page', 'main')
-        if page in self.pages:
-            res = 'Current'
-        else:
-            res = 'Deselected'
         # Identify previous and next phases
         for phaseInfo in allPhases:
             if phaseInfo['name'] == self.name:
@@ -183,7 +174,6 @@ class PhaseDescr(Descr):
                     self.previousPhase = allPhases[i-1]
                 if i < (len(allPhases)-1):
                     self.nextPhase = allPhases[i+1]
-        self.phaseStatus = res
 
 class SearchDescr(Descr):
     '''Describes a Search.'''

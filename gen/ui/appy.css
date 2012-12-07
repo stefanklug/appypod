@@ -80,12 +80,10 @@ img { border: 0; vertical-align: middle}
 .portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px;}
 .portletCurrent { font-weight: bold; }
 .portletSep { border-top: 1px solid #5F7983; margin-top: 2px;}
-.portletPage { font-style: italic; }
-.portletGroup { font-variant: small-caps; font-weight: bold; font-style: normal;
-                margin-top: 0.1em }
+.portletPage { font-style: italic }
+.portletGroup { font-variant: small-caps; font-weight: bold; font-size: 105%;
+                margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey}
 .portletSearch { font-size: 90%; font-style: italic }
-.phase { border-style: dashed; border-width: thin; padding: 4px 0.6em 5px 1em;}
-.phaseSelected { background-color: #F4F5F6; }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
 .grey { display: none; position: absolute; left: 0px; top: 0px;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;

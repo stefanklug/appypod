@@ -795,9 +795,9 @@ class BaseMixin:
             if not res[i]['pages']:
                 del phases[res[i]['name']]
                 del res[i]
-        # Then, compute status of phases
+        # Compute next/previous phases of every phase
         for ph in phases.itervalues():
-            ph.computeStatus(res)
+            ph.computeNextPrevious(res)
             ph.totalNbOfPhases = len(res)
         # Restrict the result to the current phase if required
         if currentOnly:

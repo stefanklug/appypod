@@ -119,10 +119,7 @@
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
     <tr tal:define="singlePage python: len(phase['pages']) == 1">
-      <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name']);
-                      status phase/phaseStatus;
-                      phaseCss python: (status == 'Current') and ' phaseSelected' or '';"
-          tal:attributes="class python: not singlePhase and 'phase%s' % phaseCss or ''">
+      <td tal:define="label python:'%s_phase_%s' % (contextObj.meta_type, phase['name'])">
        <tal:comment replace="nothing">The title of the phase</tal:comment>
        <div class="portletGroup" tal:condition="python: not singlePhase and not singlePage"
             tal:content="structure python: _(label)">
@@ -148,10 +145,6 @@
         </tal:links>
        </tal:page>
       </td>
-    </tr>
-    <tal:comment replace="nothing">The down arrow pointing to the next phase (if any)</tal:comment>
-    <tr tal:condition="python: phase['name'] != phases[-1]['name']">
-      <td>&nbsp;&nbsp;<img tal:attributes="src string: $appUrl/ui/nextPhase.png"/></td>
     </tr>
   </tal:phase>
 </table>

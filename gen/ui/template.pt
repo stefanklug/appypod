@@ -72,7 +72,7 @@
   </td>
  </tr>
  <tal:comment replace="nothing">The message strip</tal:comment>
- <tr>
+ <tr valign="top">
   <td>
    <div style="position: relative">
     <metal:msg use-macro="app/ui/page/macros/message"/>
