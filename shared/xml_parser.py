@@ -19,9 +19,11 @@
 
 # ------------------------------------------------------------------------------
 import xml.sax, difflib, types, cgi
+from xml.parsers.expat import XML_PARAM_ENTITY_PARSING_NEVER
 from xml.sax.handler import ContentHandler, ErrorHandler, feature_external_ges
 from xml.sax.xmlreader import InputSource
 from xml.sax import SAXParseException
+
 from appy.shared import UnicodeBuffer
 from appy.shared.errors import AppyError
 from appy.shared.utils import sequenceTypes
@@ -176,7 +178,9 @@ class XmlParser(ContentHandler, ErrorHandler):
 
     # ContentHandler methods ---------------------------------------------------
     def startDocument(self):
-        self.parser._parser.UseForeignDTD(True)
+        parser = self.parser._parser
+        parser.UseForeignDTD(True)
+        parser.SetParamEntityParsing(XML_PARAM_ENTITY_PARSING_NEVER)
     def setDocumentLocator(self, locator):
         self.locator = locator
         return self.env
@@ -311,6 +315,7 @@ class XmlUnmarshaller(XmlParser):
         return res
 
     def startDocument(self):
+        XmlParser.startDocument(self)
         self.res = None # The resulting web of Python objects (Object instances)
         self.env.containerStack = [] # The stack of current "containers" where
         # to store the next parsed element. A container can be a list, a tuple,
@@ -978,17 +983,6 @@ class XhtmlCleaner(XmlParser):
 
     # Tags that required a line break to be inserted after them.
     lineBreakTags = ('p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td')
-    # A pre-cleaning phase consists in performing some replacements before
-    # running the XML SAX parsing. The dict below contains such repls.
-    preCleanRepls = {'&nbsp;': ' '}
-
-    def preClean(self, s):
-        '''Before true XHTML cleaning, this method performs pre-cleaning by
-           performing, on p_s, replacements as defined in self.preCleanRepls.'''
-        for item, repl in self.preCleanRepls.iteritems():
-            if item in s:
-                s = s.replace(item, repl)
-        return s
 
     def clean(self, s, keepStyles=True):
         '''Cleaning XHTML code is done for 2 reasons:
@@ -1017,7 +1011,7 @@ class XhtmlCleaner(XmlParser):
         # also ignore its content.
         self.env.ignoreContent = False
         try:
-            res = self.parse('<x>%s</x>' % self.preClean(s)).encode('utf-8')
+            res = self.parse('<x>%s</x>' % s).encode('utf-8')
         except SAXParseException, e:
             raise self.Error(str(e))
         return res
@@ -1033,6 +1027,7 @@ class XhtmlCleaner(XmlParser):
 
     def startDocument(self):
         # The result will be cleaned XHTML, joined from self.res.
+        XmlParser.startDocument(self)
         self.res = []
 
     def endDocument(self):
