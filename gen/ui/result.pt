@@ -39,7 +39,7 @@
   <p>
    <span tal:replace="searchDescr/translated"/>
     (<span tal:replace="totalNumber"/>)
-      <tal:newSearch condition="python: searchName == '_advanced'">
+      <tal:newSearch condition="python: searchName == 'customSearch'">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
@@ -125,7 +125,7 @@
 
   <tal:noResult condition="not: objs">
     <span tal:replace="python: _('query_no_result')"/>
-    <tal:newSearch condition="python: searchName == '_advanced'">
+    <tal:newSearch condition="python: searchName == 'customSearch'">
         <br/><i class="discreet"><a tal:attributes="href newSearchUrl"
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>

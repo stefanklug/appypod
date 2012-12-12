@@ -295,9 +295,10 @@ class ToolMixin(BaseMixin):
            If p_searchName is specified, it corresponds to:
              1) a search defined on p_className: additional search criteria
                 will be added to the query, or;
-             2) "_advanced": in this case, additional search criteria will also
-                be added to the query, but those criteria come from the session
-                (in key "searchCriteria") and were created from search.pt.
+             2) "customSearch": in this case, additional search criteria will
+                also be added to the query, but those criteria come from the
+                session (in key "searchCriteria") and were created from
+                search.pt.
 
            We will retrieve objects from p_startNumber. If p_search is defined,
            it corresponds to a custom Search instance (instead of a predefined
@@ -386,8 +387,10 @@ class ToolMixin(BaseMixin):
         # time a page for an element is consulted.
         if remember:
             if not searchName:
-                # It is the global search for all objects pf p_className
-                searchName = className
+                if not search or (search.name == 'allSearch'):
+                    searchName = className
+                else:
+                    searchName = search.name
             uids = {}
             i = -1
             for obj in res.objects:
@@ -649,7 +652,7 @@ class ToolMixin(BaseMixin):
         if refInfo: criteria['_ref'] = refInfo
         rq.SESSION['searchCriteria'] = criteria
         # Go to the screen that displays search results
-        backUrl = '%s/ui/query?className=%s&&search=_advanced' % \
+        backUrl = '%s/ui/query?className=%s&&search=customSearch' % \
                   (self.absolute_url(), rq['className'])
         return self.goto(backUrl)
 
@@ -666,7 +669,7 @@ class ToolMixin(BaseMixin):
            field, this method returns information about this reference: the
            source content type and the Ref field (Appy type). If p_refInfo is
            not given, we search it among search criteria in the session.'''
-        if not refInfo and (self.REQUEST.get('search', None) == '_advanced'):
+        if not refInfo and (self.REQUEST.get('search', None) == 'customSearch'):
             criteria = self.REQUEST.SESSION.get('searchCriteria', None)
             if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
         if not refInfo: return (None, None)
@@ -708,8 +711,8 @@ class ToolMixin(BaseMixin):
         '''Gets the Search instance (or a SearchDescr instance if p_descr is
            True) corresponding to the search named p_name, on class
            p_className.'''
-        if name == '_advanced':
-            # It is an advanced search whose parameters are in the session.
+        if name == 'customSearch':
+            # It is a custom search whose parameters are in the session.
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
         elif name:
@@ -773,7 +776,7 @@ class ToolMixin(BaseMixin):
             if not searchName:
                 # We search all objects of a given type.
                 label = '%s_plural' % d1.split(':')[0]
-            elif searchName == '_advanced':
+            elif searchName == 'customSearch':
                 # This is an advanced, custom search.
                 label = 'search_results'
             else:
