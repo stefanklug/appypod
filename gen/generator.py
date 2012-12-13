@@ -190,86 +190,69 @@ class Generator:
                     self.totalNumberOfTests += 1
         return res
 
-    IMPORT_ERROR = 'Warning: error while importing module %s (%s)'
-    SYNTAX_ERROR = 'Warning: error while parsing module %s (%s)'
-    noVisit = ('tr', 'zope')
-    def walkModule(self, moduleName):
-        '''Visits a given (sub-*)module into the application.'''
-        # Some sub-modules must not be visited
-        for nv in self.noVisit:
-            nvName = '%s.%s' % (self.applicationName, nv)
-            if moduleName == nvName: return
-        try:
-            exec 'import %s' % moduleName
-            exec 'moduleObj = %s' % moduleName
-            moduleFile = moduleObj.__file__
-            if moduleFile.endswith('.pyc'):
-                moduleFile = moduleFile[:-1]
-            astClasses = Ast(moduleFile).classes
-        except ImportError, ie:
-            # True import error or, simply, this is a simple folder within
-            # the application, not a sub-module.
-            print self.IMPORT_ERROR % (moduleName, str(ie))
-            return
-        except SyntaxError, se:
-            print self.SYNTAX_ERROR % (moduleName, str(se))
-            return
-        if self.containsTests(moduleObj):
-            self.modulesWithTests.add(moduleObj.__name__)
+    def walkModule(self, moduleName, module):
+        '''Visits a given module of the application.'''
+        # Create the AST for this module. Producing an AST allows us to retrieve
+        # class attributes in the order of their definition, which is not
+        # possible by introspecting dict-based class objects.
+        moduleFile = module.__file__
+        if moduleFile.endswith('.pyc'):
+            moduleFile = moduleFile[:-1]
+        astClasses = Ast(moduleFile).classes
+        # Check if tests are present in this module
+        if self.containsTests(module):
+            self.modulesWithTests.add(module.__name__)
         classType = type(Generator)
         # Find all classes in this module
-        for moduleElemName in moduleObj.__dict__.keys():
-            exec 'moduleElem = moduleObj.%s' % moduleElemName
+        for name in module.__dict__.keys():
+            exec 'moduleElem = module.%s' % name
             if (type(moduleElem) == classType) and \
-               (moduleElem.__module__ == moduleObj.__name__):
+               (moduleElem.__module__ == module.__name__):
                 # We have found a Python class definition in this module.
                 appyType = self.determineAppyType(moduleElem)
-                if appyType != 'none':
-                    # Produce a list of static class attributes (in the order
-                    # of their definition).
-                    attrs = astClasses[moduleElem.__name__].attributes
-                    if appyType == 'class':
-                        # Determine the class type (standard, tool, user...)
-                        if issubclass(moduleElem, gen.Tool):
-                            if not self.tool:
-                                klass = self.descriptorClasses['tool']
-                                self.tool = klass(moduleElem, attrs, self)
-                            else:
-                                self.tool.update(moduleElem, attrs)
-                        elif issubclass(moduleElem, gen.User):
-                            if not self.user:
-                                klass = self.descriptorClasses['user']
-                                self.user = klass(moduleElem, attrs, self)
-                            else:
-                                self.user.update(moduleElem, attrs)
+                if appyType == 'none': continue
+                # Produce a list of static class attributes (in the order
+                # of their definition).
+                attrs = astClasses[moduleElem.__name__].attributes
+                # Collect non-parsable attrs = back references added
+                # programmatically
+                moreAttrs = []
+                for eName, eValue in moduleElem.__dict__.iteritems():
+                    if isinstance(eValue, gen.Type) and (eName not in attrs):
+                        moreAttrs.append(eName)
+                # Sort them in alphabetical order: else, order would be random
+                moreAttrs.sort()
+                if moreAttrs: attrs += moreAttrs
+                # Add attributes added as back references
+                if appyType == 'class':
+                    # Determine the class type (standard, tool, user...)
+                    if issubclass(moduleElem, gen.Tool):
+                        if not self.tool:
+                            klass = self.descriptorClasses['tool']
+                            self.tool = klass(moduleElem, attrs, self)
                         else:
-                            descriptorClass = self.descriptorClasses['class']
-                            descriptor = descriptorClass(moduleElem,attrs, self)
-                            self.classes.append(descriptor)
-                        # Manage classes containing tests
-                        if self.containsTests(moduleElem):
-                            self.modulesWithTests.add(moduleObj.__name__)
-                    elif appyType == 'workflow':
-                        descriptorClass = self.descriptorClasses['workflow']
-                        descriptor = descriptorClass(moduleElem, attrs, self)
-                        self.workflows.append(descriptor)
-                        if self.containsTests(moduleElem):
-                            self.modulesWithTests.add(moduleObj.__name__)
+                            self.tool.update(moduleElem, attrs)
+                    elif issubclass(moduleElem, gen.User):
+                        if not self.user:
+                            klass = self.descriptorClasses['user']
+                            self.user = klass(moduleElem, attrs, self)
+                        else:
+                            self.user.update(moduleElem, attrs)
+                    else:
+                        descriptorClass = self.descriptorClasses['class']
+                        descriptor = descriptorClass(moduleElem,attrs, self)
+                        self.classes.append(descriptor)
+                    # Manage classes containing tests
+                    if self.containsTests(moduleElem):
+                        self.modulesWithTests.add(module.__name__)
+                elif appyType == 'workflow':
+                    descriptorClass = self.descriptorClasses['workflow']
+                    descriptor = descriptorClass(moduleElem, attrs, self)
+                    self.workflows.append(descriptor)
+                    if self.containsTests(moduleElem):
+                        self.modulesWithTests.add(module.__name__)
             elif isinstance(moduleElem, gen.Config):
                 self.config = moduleElem
-
-        # Walk potential sub-modules
-        if moduleFile.find('__init__.py') != -1:
-            # Potentially, sub-modules exist
-            moduleFolder = os.path.dirname(moduleFile)
-            for elem in os.listdir(moduleFolder):
-                if elem.startswith('.'): continue
-                subModuleName, ext = os.path.splitext(elem)
-                if ((ext == '.py') and (subModuleName != '__init__')) or \
-                   os.path.isdir(os.path.join(moduleFolder, subModuleName)):
-                    # Submodules may be sub-folders or Python files
-                    subModuleName = '%s.%s' % (moduleName, subModuleName)
-                    self.walkModule(subModuleName)
 
     def walkApplication(self):
         '''This method walks into the application and creates the corresponding
@@ -279,7 +262,21 @@ class Generator:
         sys.path.append(containingFolder)
         # What is the name of the application ?
         appName = os.path.basename(self.application)
-        self.walkModule(appName)
+        # Collect modules (only a the first level) in this application. Import
+        # them all, to be sure class definitions are complete (ie, back
+        # references are set from one class to the other). Moreover, potential
+        # syntax or import errors will raise an exception and abort the
+        # generation process before we do any undoable action.
+        modules = []
+        for fileName in os.listdir(self.application):
+            # Ignore non Python files
+            if not fileName.endswith('.py'): continue
+            moduleName = '%s.%s' % (appName, os.path.splitext(fileName)[0])
+            exec 'import %s' % moduleName
+            modules.append(eval(moduleName))
+        # Parse imported modules
+        for module in modules:
+            self.walkModule(moduleName, module)
         sys.path.pop()
 
     def generateClass(self, classDescr):
@@ -366,7 +363,6 @@ class ZopeGenerator(Generator):
         self.page = PageClassDescriptor(Page, self)
         # i18n labels to generate
         self.labels = po.PoMessages()
-        self.referers = {}
 
     def i18n(self, id, default, nice=True):
         '''Shorthand for adding a new message into self.labels.'''
@@ -514,14 +510,6 @@ class ZopeGenerator(Generator):
                 res = [r for r in res if eval('r.%s == %s' % (p, p))]
         return res
 
-    def addReferer(self, fieldDescr):
-        '''p_fieldDescr is a Ref type definition.'''
-        k = fieldDescr.appyType.klass
-        refClassName = getClassName(k, self.applicationName)
-        if not self.referers.has_key(refClassName):
-            self.referers[refClassName] = []
-        self.referers[refClassName].append(fieldDescr)
-
     def getAppyTypePath(self, name, appyType, klass, isBack=False):
         '''Gets the path to the p_appyType when a direct reference to an
            appyType must be generated in a Python file.'''
@@ -599,10 +587,6 @@ class ZopeGenerator(Generator):
                 if name == 'title': titleFound = True
             # Add the "title" mandatory field if not found
             if not titleFound: names.insert(0, 'title')
-            # Any backward attributes to append?
-            if classDescr.name in self.referers:
-                for field in self.referers[classDescr.name]:
-                    names.append(field.appyType.back.attribute)
             # Add the 'state' attribute
             names.append('state')
             qNames = ['"%s"' % name for name in names]

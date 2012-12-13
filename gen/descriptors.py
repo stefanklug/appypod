@@ -250,11 +250,6 @@ class FieldDescriptor:
     '''This class gathers information about a specific typed attribute defined
        in a gen-class.'''
 
-    # Although Appy allows to specify a multiplicity[0]>1 for those types, it is
-    # not currently. So we will always generate single-valued type definitions
-    # for them.
-    singleValuedTypes = ('Integer', 'Float', 'Boolean', 'Date', 'File')
-
     def __init__(self, fieldName, appyType, classDescriptor):
         self.appyType = appyType
         self.classDescr = classDescriptor
@@ -321,14 +316,6 @@ class FieldDescriptor:
 
     def walkRef(self):
         '''How to generate a Ref?'''
-        # Update the list of referers
-        self.generator.addReferer(self)
-        # Add the widget label for the back reference
-        back = self.appyType.back
-        refClassName = getClassName(self.appyType.klass, self.applicationName)
-        if back.hasLabel:
-            backName = self.appyType.back.attribute
-            self.i18n('%s_%s' % (refClassName, backName), backName)
         # Add the label for the confirm message if relevant
         if self.appyType.addConfirm:
             label = '%s_%s_addConfirm' % (self.classDescr.name, self.fieldName)
