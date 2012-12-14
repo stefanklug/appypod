@@ -230,6 +230,8 @@ class Countries:
        (first line has been removed).'''
 
     def __init__(self):
+        # This file has been downloaded from
+        # http://www.iso.org/iso/country_codes.htm and converted to utf-8.
         self.fileName = os.path.dirname(__file__) + '/CountryCodesIso3166.1.txt'
         self.countryCodes = []
         # Names of countries in English
