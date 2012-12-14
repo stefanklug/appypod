@@ -870,21 +870,35 @@ class ToolMixin(BaseMixin):
                                           page=self.REQUEST.get('page', 'main'))
         return res
 
-    def tabularize(self, data, numberOfRows):
-        '''This method transforms p_data, which must be a "flat" list or tuple,
-           into a list of lists, where every sub-list has length p_numberOfRows.
-           This method is typically used for rendering elements in a table of
-           p_numberOfRows rows.'''
+    def getGroupedSearchFields(self, searchInfo):
+        '''This method transforms p_searchInfo['fieldDicts'], which is a "flat"
+           list of fields, into a list of lists, where every sub-list having
+           length p_searchInfo['nbOfColumns']. For every field, scolspan
+           (=colspan "for search") is taken into account.'''
         res = []
         row = []
-        for elem in data:
-            row.append(elem)
-            if len(row) == numberOfRows:
+        rowLength = 0
+        for field in searchInfo['fieldDicts']:
+            # Can I insert this field in the current row?
+            remaining = searchInfo['nbOfColumns'] - rowLength
+            if field['scolspan'] <= remaining:
+                # Yes.
+                row.append(field)
+                rowLength += field['scolspan']
+            else:
+                # We must put the field on a new line. Complete the current one
+                # if not complete.
+                while rowLength < searchInfo['nbOfColumns']:
+                    row.append(None)
+                    rowLength += 1
                 res.append(row)
-                row = []
+                row = [field]
+                rowLength = field['scolspan']
         # Complete the last unfinished line if required.
         if row:
-            while len(row) < numberOfRows: row.append(None)
+            while rowLength < searchInfo['nbOfColumns']:
+                row.append(None)
+                rowLength += 1
             res.append(row)
         return res
 
@@ -1171,6 +1185,9 @@ class ToolMixin(BaseMixin):
         klass = self.getAppyClass(className, wrapper=True)
         method = getattr(klass, name).searchSelect
         tool = self.appy()
-        objects = method.__get__(tool)(tool)
+        if method.__class__.__name__ == 'function':
+            objects = method(tool)
+        else:
+            objects = method.__get__(tool)(tool)
         return [(o.uid, o) for o in objects]
 # ------------------------------------------------------------------------------

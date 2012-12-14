@@ -24,17 +24,21 @@
     <input tal:condition="refInfo" type="hidden" name="ref" tal:attributes="value refInfo"/>
 
     <table width="100%">
-      <tr tal:repeat="searchRow python: tool.tabularize(searchInfo['fieldDicts'], searchInfo['nbOfColumns'])"
+      <tr tal:repeat="searchRow python: tool.getGroupedSearchFields(searchInfo)"
           valign="top">
-        <td tal:repeat="widget searchRow" tal:attributes="width python:'%d%%' % (100/searchInfo['nbOfColumns'])">
-          <tal:field condition="widget">
+        <tal:widgets repeat="widget searchRow">
+         <td tal:define="scolspan widget/scolspan|python: 1"
+             tal:attributes="width python:'%d%%' % ((100/searchInfo['nbOfColumns'])*scolspan);
+                             colspan scolspan">
+           <tal:field condition="widget">
             <tal:show define="name widget/name;
                                    widgetName python: 'w_%s' % name;
                                    macroPage python: widget['type'].lower()">
               <metal:call use-macro="python: getattr(appFolder.ui.widgets, macroPage).macros['search']"/>
             </tal:show>
           </tal:field><br class="discreet"/>
-        </td>
+         </td>
+        </tal:widgets>
       </tr>
     </table>
 

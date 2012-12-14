@@ -94,9 +94,9 @@
   <tal:simpleSearch condition="not: widget/isSelect">
     <input type="text" tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')"
                        tal:attributes="name python: '%s*string-%s' % (widgetName, widget['transform']);
-                                       maxlength maxChars;
+                                       maxlength maxChars; size widget/width;
                                        style python: 'text-transform:%s' % widget['transform'];
-                                       value widget/defaultForSearch"/>
+                                       value widget/sdefault"/>
   </tal:simpleSearch>
   <tal:comment replace="nothing">Show a multi-selection box for fields whose
     validator defines a list of values, with a "AND/OR" checkbox.</tal:comment>
@@ -112,7 +112,7 @@
     <label tal:attributes="for andName" tal:content="python: _('search_and')"></label><br/>
     </tal:operator>
     <tal:comment replace="nothing">The list of values</tal:comment>
-    <select tal:define="preSelected widget/defaultForSearch"
+    <select tal:define="preSelected widget/sdefault"
             tal:attributes="name widgetName; size widget/height" multiple="multiple">
       <option tal:repeat="v python:tool.getPossibleValues(name, withTranslations=True, withBlankValue=False, className=className)"
               tal:attributes="value python:v[0]; title python: v[1];

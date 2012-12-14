@@ -379,7 +379,7 @@ class Type:
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
                  master, masterValue, focus, historized, sync, mapping, label,
-                 defaultForSearch):
+                 sdefault, scolspan):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -473,10 +473,12 @@ class Type:
         # prefix and another name. If you want to specify a new name only, and
         # not a prefix, write (None, newName).
         self.label = label
-        # When you specify a default value "for search", on a search screen, in
-        # the search field corresponding to this field, this default value will
-        # be present.
-        self.defaultForSearch = defaultForSearch
+        # When you specify a default value "for search" (= "sdefault"), on a
+        # search screen, in the search field corresponding to this field, this
+        # default value will be present.
+        self.sdefault = sdefault
+        # Colspan for rendering the search widget corresponding to this field.
+        self.scolspan = scolspan
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
@@ -952,12 +954,12 @@ class Integer(Type):
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 defaultForSearch=('','')):
+                 sdefault=('',''), scolspan=1):
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -982,7 +984,7 @@ class Float(Type):
                  specificWritePermission=False, width=6, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 defaultForSearch=('',''), precision=None, sep=(',', '.'),
+                 sdefault=('',''), scolspan=1, precision=None, sep=(',', '.'),
                  tsep=' '):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
@@ -1004,7 +1006,7 @@ class Float(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value):
@@ -1135,9 +1137,9 @@ class String(Type):
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, defaultForSearch='', transform='none',
-                 styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
-                 richText=False):
+                 label=None, sdefault='', scolspan=1,
+                 transform='none', styles=('p','h1','h2','h3','h4'),
+                 allowImageUpload=True, richText=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -1164,11 +1166,11 @@ class String(Type):
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.isSelect = self.isSelection()
-        # If self.isSelect, self.defaultForSearch must be a list of value(s).
-        if self.isSelect and not defaultForSearch:
-            self.defaultForSearch = []
+        # If self.isSelect, self.sdefault must be a list of value(s).
+        if self.isSelect and not sdefault:
+            self.sdefault = []
         # Default width, height and maxChars vary according to String format
         if width == None:
             if format == String.TEXT:  self.width  = 60
@@ -1446,12 +1448,12 @@ class Boolean(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 defaultForSearch=False):
+                 sdefault=False, scolspan=1):
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.pythonType = bool
 
     dLayouts = {'view': 'lf', 'edit': Table('flrv;=d', width=None)}
@@ -1495,7 +1497,7 @@ class Date(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 defaultForSearch=None):
+                 sdefault=None, scolspan=1):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1507,7 +1509,7 @@ class Date(Type):
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
 
     def getCss(self, layoutType, res):
         # CSS files are only required if the calendar must be shown.
@@ -1574,13 +1576,13 @@ class File(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 isImage=False, defaultForSearch=''):
+                 isImage=False, sdefault='', scolspan=1):
         self.isImage = isImage
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):
@@ -1735,7 +1737,7 @@ class Ref(Type):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, searchSelect=None, changeOrder=True,
-                 defaultForSearch=''):
+                 sdefault='', scolspan=1):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1815,7 +1817,7 @@ class Ref(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, sync, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.validable = self.link
 
     def getDefaultLayouts(self):
@@ -2078,7 +2080,7 @@ class Computed(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, method=None, plainText=True,
                  master=None, masterValue=None, focus=False, historized=False,
-                 sync=True, mapping=None, label=None, defaultForSearch='',
+                 sync=True, mapping=None, label=None, sdefault='', scolspan=1,
                  context={}):
         # The Python method used for computing the field value
         self.method = method
@@ -2096,7 +2098,7 @@ class Computed(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, sync, mapping,
-                      label, defaultForSearch)
+                      label, sdefault, scolspan)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -2166,7 +2168,7 @@ class Action(Type):
                       move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None)
+                      label, None, None)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -2214,7 +2216,7 @@ class Info(Type):
                       move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None)
+                      label, None, None)
         self.validable = False
 
 class Pod(Type):
@@ -2253,7 +2255,7 @@ class Pod(Type):
                       move, indexed, searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None)
+                      label, None, None)
         self.validable = False
 
     def isFrozen(self, obj):
@@ -2397,7 +2399,7 @@ class List(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, None)
+                      label, None, None)
         self.validable = True
         # Tuples of (names, Type instances) determining the format of every
         # element in the list.

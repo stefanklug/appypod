@@ -39,7 +39,7 @@ class Ogone(Type):
                       False, False,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, False, True, mapping, label,
-                      None)
+                      None, None)
         # orderMethod must contain a method returning a dict containing info
         # about the order. Following keys are mandatory:
         #   * orderID   An identifier for the order. Don't use the object UID
