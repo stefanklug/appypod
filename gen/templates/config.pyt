@@ -48,6 +48,7 @@ languages = [<!languages!>]
 languageSelector = <!languageSelector!>
 sourceLanguage = '<!sourceLanguage!>'
 activateForgotPassword = <!activateForgotPassword!>
+enableSessionTimeout = <!enableSessionTimeout!>
 ogone = <!ogone!>
 
 # When Zope is starting or runs in test mode, there is no request object. We

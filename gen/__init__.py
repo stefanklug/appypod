@@ -1456,7 +1456,11 @@ class Boolean(Type):
                       label, sdefault, scolspan)
         self.pythonType = bool
 
+    # Layout including a description
     dLayouts = {'view': 'lf', 'edit': Table('flrv;=d', width=None)}
+    # Centered layout, no description
+    cLayouts = {'view': 'lf|', 'edit': 'flrv|'}
+
     def getDefaultLayouts(self):
         return {'view': 'lf', 'edit': Table('f;lrv;=', width=None)}
 
@@ -2925,6 +2929,8 @@ class Config:
         self.sourceLanguage = 'en'
         # Activate or not the button on home page for asking a new password
         self.activateForgotPassword = True
+        # Enable session timeout?
+        self.enableSessionTimeout = False
         # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
         # the field below.
         self.ogone = None

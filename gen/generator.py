@@ -603,6 +603,7 @@ class ZopeGenerator(Generator):
         repls['languages'] = ','.join('"%s"' % l for l in self.config.languages)
         repls['languageSelector'] = self.config.languageSelector
         repls['sourceLanguage'] = self.config.sourceLanguage
+        repls['enableSessionTimeout'] = self.config.enableSessionTimeout
         repls['ogone'] = repr(self.config.ogone)
         repls['activateForgotPassword'] = self.config.activateForgotPassword
         self.copyFile('config.pyt', repls, destName='config.py')

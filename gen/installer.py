@@ -318,7 +318,11 @@ class ZopeInstaller:
         # Register a function warning us when a session object is deleted. When
         # launching Zope in test mode, the temp folder does not exist.
         if not hasattr(self.app, 'temp_folder'): return
-        self.app.temp_folder.session_data.setDelNotificationTarget(onDelSession)
+        sessionData = self.app.temp_folder.session_data
+        if self.config.enableSessionTimeout:
+            sessionData.setDelNotificationTarget(onDelSession)
+        else:
+            sessionData.setDelNotificationTarget(None)
 
     def enableUserTracking(self):
         '''Enables the machinery allowing to know who is currently logged in.
