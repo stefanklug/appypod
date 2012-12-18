@@ -3,13 +3,13 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, types, mimetypes, urllib, cgi
+import os, os.path, sys, types, urllib, cgi
 from appy import Object
 import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts, ColumnLayout
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
-from appy.shared.utils import sequenceTypes, normalizeText, Traceback
+from appy.shared.utils import sequenceTypes,normalizeText,Traceback,getMimeType
 from appy.shared.data import rtlLanguages
 from appy.shared.xml_parser import XmlMarshaller
 
@@ -222,7 +222,7 @@ class BaseMixin:
         rq = self.REQUEST
         tool = self.getTool()
         errorMessage = self.translate('validation_error')
-        isNew = rq.get('is_new') == 'True'
+        isNew = self.isTemporary()
         # If this object is created from an initiator, get info about him.
         initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
         # If the user clicked on 'Cancel', go back to the previous page.
@@ -302,14 +302,17 @@ class BaseMixin:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
                     rq.set('page', pageName)
-                    return obj.gotoEdit()
+                    # I do not use gotoEdit here because I really need to
+                    # redirect the user to the edit page. Indeed, the object
+                    # edit URL may have moved from temp_folder to another place.
+                    return self.goto(obj.getUrl(mode='edit', page=pageName))
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
                 obj.say(msg)
                 return self.goto(obj.getUrl())
         if rq.get('buttonNext.x', None):
-            # Go to the next page for this object
+            # Go to the next page for this object.
             # We remember page name, because the next method may set a new
             # current page if the current one is not visible anymore.
             pageName = rq['page']
@@ -318,8 +321,8 @@ class BaseMixin:
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
-                    rq.set('page', pageName)
-                    return obj.gotoEdit()
+                    # Same remark as above (buttonPrevious).
+                    return self.goto(obj.getUrl(mode='edit', page=pageName))
                 else:
                     return self.goto(obj.getUrl(page=pageName))
             else:
@@ -1085,7 +1088,7 @@ class BaseMixin:
         elif resultType.startswith('file'):
             # msg does not contain a message, but a file instance.
             response = self.REQUEST.RESPONSE
-            response.setHeader('Content-Type',mimetypes.guess_type(msg.name)[0])
+            response.setHeader('Content-Type', getMimeType(msg.name))
             response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
                                os.path.basename(msg.name))
             response.write(msg.read())

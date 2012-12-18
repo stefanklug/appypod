@@ -19,7 +19,6 @@
     <input type="hidden" name="action" value="Update"/>
     <input type="hidden" name="page" tal:attributes="value page"/>
     <input type="hidden" name="nav" tal:attributes="value request/nav|nothing"/>
-    <input type="hidden" name="is_new" tal:attributes="value contextObj/isTemporary"/>
     <input type="hidden" name="confirmed" value="False"/>
     <metal:show use-macro="context/ui/page/macros/show"/>
   </form>
