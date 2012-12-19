@@ -797,8 +797,7 @@ class ZopeGenerator(Generator):
         for name in dir(wfDescr.klass):
             transition = getattr(wfDescr.klass, name)
             if not isinstance(transition, gen.Transition): continue
-            if transition.show:
-                self.i18n('%s_%s' % (wfName, name), name)
+            self.i18n('%s_%s' % (wfName, name), name)
             if transition.show and transition.confirm:
                 # We need to generate a label for the message that will be shown
                 # in the confirm popup.
