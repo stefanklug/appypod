@@ -163,6 +163,11 @@ nativeNames = {
 # List of languages having direction right-to-left (RTL) -----------------------
 rtlLanguages = ('ar', 'he', 'fa')
 
+# Countries of the "euro" zone
+vatEuroCountries = ('AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'GR', 'ES',
+                    'FI', 'FR', 'GB', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT',
+                    'NL', 'PL' 'PT', 'RO', 'SE', 'SI', 'SK')
+
 # ------------------------------------------------------------------------------
 class Languages:
     '''This class gives access to the language codes and names as standardized

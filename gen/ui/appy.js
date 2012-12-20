@@ -214,7 +214,10 @@ function setSubTitles(value) {
 
 // Function that toggles the value for showing/hiding sub-titles.
 function toggleSubTitles() {
+  // Get the current value
   var value = readCookie('showSubTitles');
+  if (value == null) value = 'true';
+  // Toggle the value
   var newValue = 'true';
   if (value == 'true') newValue = 'false';
   setSubTitles(newValue);

@@ -432,13 +432,12 @@ class Renderer:
         ooOutput = ''
         try:
             if (not isinstance(self.ooPort, int)) and \
-            (not isinstance(self.ooPort, long)):
+               (not isinstance(self.ooPort, long)):
                 raise PodError(BAD_OO_PORT % str(self.ooPort))
             try:
                 from appy.pod.converter import Converter, ConverterError
                 try:
-                    Converter(resultOdtName, resultType,
-                                self.ooPort).run()
+                    Converter(resultOdtName, resultType, self.ooPort).run()
                 except ConverterError, ce:
                     raise PodError(CONVERT_ERROR % str(ce))
             except ImportError:
