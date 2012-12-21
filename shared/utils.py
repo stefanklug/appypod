@@ -533,6 +533,10 @@ class FileWrapper:
                 return
         return filePath
 
+    def copy(self):
+        '''Returns a copy of this file.'''
+        return FileWrapper(self._zopeFile._getCopy(self._zopeFile))
+
 # ------------------------------------------------------------------------------
 def getMimeType(fileName):
     '''Tries to guess mime type from p_fileName.'''
