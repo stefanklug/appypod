@@ -204,7 +204,8 @@
           <tal:other condition="python: widget['name'] != 'title'">
             <tal:field define="contextObj python:obj;
                                layoutType python: 'cell';
-                               innerRef python:True">
+                               innerRef python:True"
+                       condition="python: obj.showField(widget['name'], layoutType='result')">
               <metal:field use-macro="app/ui/widgets/show/macros/field" />
             </tal:field>
           </tal:other>

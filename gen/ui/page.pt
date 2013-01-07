@@ -119,14 +119,8 @@
           </tr>
           <tr tal:repeat="change event/changes/items" valign="top">
             <tal:change define="appyType python:contextObj.getAppyType(change[0], asDict=True);">
-            <td tal:content="structure python: _(appyType['labelId'])"></td>
-            <td tal:define="appyValue python: contextObj.getFormattedFieldValue(change[0], change[1][0]);
-                            severalValues python: (appyType['multiplicity'][1] &gt; 1) or (appyType['multiplicity'][1] == None)">
-              <span tal:condition="not: severalValues" tal:replace="appyValue"></span>
-              <ul tal:condition="python: severalValues">
-                <li tal:repeat="av appyValue" tal:content="av"></li>
-              </ul>
-            </td>
+             <td tal:content="structure python: _(appyType['labelId'])"></td>
+             <td tal:content="structure python:change[1][0]"></td>
             </tal:change>
           </tr>
         </table>

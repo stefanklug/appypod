@@ -196,6 +196,8 @@ appyLabels = [
  ('event_span', 'Extend the event on the following number of days (leave ' \
                 'blank to create an event on the current day only):'),
  ('del_next_events', 'Also delete successive events of the same type.'),
+ ('history_insert', 'Inserted by ${userName}'),
+ ('history_delete', 'Deleted by ${userName}'),
 ]
 
 # Some default values for labels whose ids are not fixed (so they can't be

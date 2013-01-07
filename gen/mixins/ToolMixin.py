@@ -9,7 +9,7 @@ from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
 from appy.gen.mail import sendMail
 from appy.shared import mimeTypes
-from appy.shared.utils import getOsTempFolder, sequenceTypes
+from appy.shared.utils import getOsTempFolder, sequenceTypes, normalizeString
 from appy.shared.data import languages
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
@@ -1060,10 +1060,11 @@ class ToolMixin(BaseMixin):
             url = appyUser.o.getUrl(mode='edit', page='main', nav='')
         return (' | '.join(info), url)
 
-    def getUserName(self, login=None):
+    def getUserName(self, login=None, normalized=False):
         '''Gets the user name corresponding to p_login (or the currently logged
            login if None), or the p_login itself if the user does not exist
-           anymore.'''
+           anymore. If p_normalized is True, special chars in the first and last
+           names are normalized.'''
         tool = self.appy()
         if not login: login = tool.user.getId()
         user = tool.search1('User', noSecurity=True, login=login)
@@ -1071,8 +1072,11 @@ class ToolMixin(BaseMixin):
         firstName = user.firstName
         name = user.name
         res = ''
-        if firstName: res += firstName
+        if firstName:
+            if normalized: firstName = normalizeString(firstName)
+            res += firstName
         if name:
+            if normalized: name = normalizeString(name)
             if res: res += ' ' + name
             else: res = name
         if not res: res = login

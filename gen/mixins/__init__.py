@@ -12,6 +12,7 @@ from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared.utils import sequenceTypes,normalizeText,Traceback,getMimeType
 from appy.shared.data import rtlLanguages
 from appy.shared.xml_parser import XmlMarshaller
+from appy.shared.diff import HtmlDiff
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -999,17 +1000,89 @@ class BaseMixin:
                     return True
         return False
 
+    def findNewValue(self, field, history, stopIndex):
+        '''This function tries to find a more recent version of value of p_field
+           on p_self. It first tries to find it in history[:stopIndex+1]. If
+           it does not find it there, it returns the current value on p_obj.'''
+        i = stopIndex + 1
+        while (i-1) >= 0:
+            i -= 1
+            if history[i]['action'] != '_datachange_': continue
+            if field.name not in history[i]['changes']: continue
+            # We have found it!
+            return history[i]['changes'][field.name][0] or ''
+        return field.getValue(self) or ''
+
+    def getHistoryTexts(self, event):
+        '''Returns a tuple (insertText, deleteText) containing texts to show on,
+           respectively, inserted and deleted chunks of text in a XHTML diff.'''
+        tool = self.getTool()
+        userName = tool.getUserName(event['actor'])
+        mapping = {'userName': userName.decode('utf-8')}
+        res = []
+        for type in ('insert', 'delete'):
+            msg = self.translate('history_%s' % type, mapping=mapping)
+            date = tool.formatDate(event['time'], withHour=True)
+            msg = '%s: %s' % (date, msg)
+            res.append(msg.encode('utf-8'))
+        return res
+
     def getHistory(self, startNumber=0, reverse=True, includeInvisible=False,
                    batchSize=5):
         '''Returns the history for this object, sorted in reverse order (most
            recent change first) if p_reverse is True.'''
+        # Get a copy of the history, reversed if needed, whose invisible events
+        # have been removed if needed.
         key = self.workflow_history.keys()[0]
         history = list(self.workflow_history[key][1:])
         if not includeInvisible:
             history = [e for e in history if e['comments'] != '_invisible_']
         if reverse: history.reverse()
-        return {'events': history[startNumber:startNumber+batchSize],
-                'totalNumber': len(history)}
+        # Keep only events which are within the batch.
+        res = []
+        stopIndex = startNumber + batchSize - 1
+        i = -1
+        while (i+1) < len(history):
+            i += 1
+            # Ignore events outside range startNumber:startNumber+batchSize
+            if i < startNumber: continue
+            if i > stopIndex: break
+            if history[i]['action'] == '_datachange_':
+                # Take a copy of the event: we will modify it and replace
+                # fields' old values by their formatted counterparts.
+                event = history[i].copy()
+                event['changes'] = {}
+                for name, oldValue in history[i]['changes'].iteritems():
+                    # oldValue is a tuple (value, fieldName).
+                    field = self.getAppyType(name)
+                    # Field 'name' may not exist, if the history has been
+                    # transferred from another site. In this case we can't show
+                    # this data change.
+                    if not field: continue
+                    if (field.type == 'String') and \
+                       (field.format == gen.String.XHTML):
+                        # For rich text fields, instead of simply showing the
+                        # previous value, we propose a diff with the next
+                        # version.
+                        if field.isEmptyValue(oldValue[0]):
+                            val = '-'
+                        else:
+                            newValue = self.findNewValue(field, history, i-1)
+                            # Compute the diff between oldValue and newValue
+                            iMsg, dMsg = self.getHistoryTexts(event)
+                            comparator= HtmlDiff(oldValue[0],newValue,iMsg,dMsg)
+                            val = comparator.get()
+                        event['changes'][name] = (val, oldValue[1])
+                    else:
+                        val = field.getFormattedValue(self, oldValue[0]) or '-'
+                        if isinstance(val, list) or isinstance(val, tuple):
+                            val = '<ul>%s</ul>' % \
+                                  ''.join(['<li>%s</li>' % v for v in val])
+                        event['changes'][name] = (val, oldValue[1])
+            else:
+                event = history[i]
+            res.append(event)
+        return {'events': res, 'totalNumber': len(history)}
 
     def mayNavigate(self):
         '''May the currently logged user see the navigation panel linked to

@@ -2,7 +2,6 @@
 import sha
 from appy import Object
 from appy.gen import Type
-from appy.shared.utils import normalizeString
 
 # ------------------------------------------------------------------------------
 class OgoneConfig:
@@ -96,7 +95,7 @@ class Ogone(Type):
         del res['shaOutKey']
         res.update(self.callMethod(obj, self.orderMethod))
         # Add user-related information
-        res['CN'] = str(normalizeString(tool.getUserName()))
+        res['CN'] = str(tool.getUserName(normalized=True))
         user = obj.appy().appyUser
         res['EMAIL'] = user.email or user.login
         # Add standard back URLs

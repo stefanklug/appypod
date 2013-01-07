@@ -95,7 +95,7 @@ class DocImporter:
                 format = '' # We will know it only after the HTTP GET.
             else:
                 format = os.path.splitext(at)[1][1:]
-        fileName = 'f.%d.%f.%s' % (random.randint(0,10), time.time(), format)
+        fileName = 'f.%d.%f.%s' % (random.randint(0,1000), time.time(), format)
         return os.path.abspath('%s/%s' % (self.importFolder, fileName))
 
     def moveFile(self, at, importPath):
@@ -288,7 +288,7 @@ class ImageImporter(DocImporter):
         t = self.textNs
         x = self.linkNs
         s = self.svgNs
-        imageName = 'Image%f' % time.time()
+        imageName = 'Image%f.%d' % (time.time(), random.randint(0,1000))
         # Compute path to image
         i = self.importPath.rfind(self.pictFolder)
         imagePath = self.importPath[i+1:].replace('\\', '/')
