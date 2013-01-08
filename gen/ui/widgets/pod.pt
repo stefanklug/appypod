@@ -2,7 +2,7 @@
 <metal:view define-macro="view">
   <tal:askAction condition="widget/askAction"
                  define="doLabel   python:'%s_askaction' % widget['labelId'];
-                         chekboxId python: '%s_%s' % (contextObj.UID(), name)">
+                         chekboxId python: '%s_%s_cb' % (contextObj.UID(), name)">
     <input type="checkbox" tal:attributes="name doLabel; id chekboxId"/>
     <label tal:attributes="for chekboxId" class="discreet"
            tal:content="python: _(doLabel)"></label>

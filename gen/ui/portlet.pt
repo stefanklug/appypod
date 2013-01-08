@@ -66,8 +66,8 @@
 
   <div class="portletContent" tal:define="searchInfo python: tool.getGroupedSearches(rootClass)">
    <tal:comment replace="nothing">Section title (link triggers the default search), with action icons</tal:comment>
-   <a tal:define="queryParam python: searchInfo['default'] and ('&search=%s' % searchInfo['default']['name']) or ''"
-      tal:attributes="href python: '%s?className=%s%s' % (queryUrl, rootClass, queryParam);
+   <a tal:define="queryParam python: searchInfo['default'] and searchInfo['default']['name'] or ''"
+      tal:attributes="href python: '%s?className=%s&search=%s' % (queryUrl, rootClass, queryParam);
                       class python:test(not currentSearch and (currentClass==rootClass), 'portletCurrent', '')"
       tal:content="structure python: _(rootClass + '_plural')">
    </a>

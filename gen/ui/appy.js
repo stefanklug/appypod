@@ -408,7 +408,7 @@ function generatePodDocument(contextUid, fieldName, podFormat, queryData) {
   theForm.podFormat.value = podFormat;
   theForm.askAction.value = "False";
   theForm.queryData.value = queryData;
-  var askActionWidget = document.getElementById(contextUid + '_' + fieldName);
+  var askActionWidget = document.getElementById(contextUid + '_' + fieldName + '_cb');
   if (askActionWidget && askActionWidget.checked) {
       theForm.askAction.value = "True";
   }

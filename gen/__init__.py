@@ -1206,9 +1206,15 @@ class String(Type):
 
     def getDefaultLayouts(self):
         '''Returns the default layouts for this type. Default layouts can vary
-           acccording to format or multiplicity.'''
-        if self.format in (String.TEXT, String.XHTML):
+           acccording to format, multiplicity or history.'''
+        if self.format == String.TEXT:
             return {'view': 'l-f', 'edit': 'lrv-d-f'}
+        elif self.format == String.XHTML:
+            if self.historized:
+                view = 'lc-f'
+            else:
+                view = 'l-f'
+            return {'view': view, 'edit': 'lrv-d-f'}
         elif self.isMultiValued():
             return {'view': 'l-f', 'edit': 'lrv-f'}
 

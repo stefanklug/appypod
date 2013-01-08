@@ -9,7 +9,8 @@
     contextMacro       The base folder containing the macros to call for
                        rendering the elements within the layout.
                        Defaults to app.ui
-    tagId              The name and id of the main tag for this layout (used
+    tagId              The ID of the main tag for this layout.
+    tagName            The name of the main tag for this layout (used
                        a.o. for master/slave relationships).
     tagCss             Some additional CSS class for the main tag
                        (ie, the CSS class for a slave).
@@ -18,7 +19,7 @@
 </tal:comment>
 <metal:show define-macro="layout"
             tal:define="contextMacro contextMacro| python: app.ui;
-                        tagId        tagId|python:'';
+                        tagName      tagName|python:'';
                         tagCss       tagCss|python:'';
                         layoutCss    layout/css_class;
                         isCell       python: layoutType == 'cell'">
@@ -29,7 +30,7 @@
                         class        python: tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or layoutCss;
                         style        layout/style;
                         id           tagId;
-                        name         tagId;">
+                        name         tagName;">
    <tal:comment replace="nothing">The table header row</tal:comment>
    <tr tal:condition="layout/headerRow" tal:attributes="valign layout/headerRow/valign">
      <th tal:repeat="cell layout/headerRow/cells"
@@ -76,7 +77,8 @@
               slaveCss     python: widget['master'] and ('slave_%s_%s' % (widget['masterName'], '_'.join(widget['masterValue']))) or '';
               tagCss       tagCss | python:'';
               tagCss       python: ('%s %s' % (slaveCss, tagCss)).strip();
-              tagId        python: widget['master'] and 'slave' or ''">
+              tagId        python: '%s_%s' % (contextObj.UID(), name);
+              tagName      python: widget['master'] and 'slave' or ''">
   <metal:layout use-macro="context/ui/widgets/show/macros/layout"/>
 </metal:field>
 
@@ -92,7 +94,8 @@
    tal:define="tagCss python: widget['master'] and ('slave_%s_%s' % (widget['masterName'], '_'.join(widget['masterValue']))) or '';
                widgetCss widget/css_class;
                groupCss python: tagCss and ('%s %s' % (tagCss, widgetCss)) or widgetCss;
-               tagId python: widget['master'] and 'slave' or ''">
+               tagName python: widget['master'] and 'slave' or '';
+               tagId   python: '%s_%s' % (contextObj.UID(), widget['name'])">
   <fieldset tal:condition="python: widget['style'] == 'fieldset'">
     <legend tal:condition="widget/hasLabel">
       <i tal:content="structure python: contextObj.translate(widget['labelId'])"></i>
@@ -110,7 +113,7 @@
   <tal:asTabs condition="python: widget['style'] == 'tabs'">
   <table tal:attributes="width widget/wide;
                          class groupCss;
-                         id tagId; name tagId">
+                         id tagId; name tagName">
     <tal:comment replace="nothing">First row: the tabs.</tal:comment>
     <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
       <table style="position:relative; bottom:-2px;" cellpadding="0" cellspacing="0">
@@ -162,7 +165,7 @@
                        class groupCss;
                        cellspacing widget/cellspacing;
                        cellpadding widget/cellpadding;
-                       id tagId; name tagId">
+                       id tagId; name tagName">
   <tal:comment replace="nothing">Display the title of the group if it is not rendered a fieldset.</tal:comment>
   <tr tal:condition="python: (widget['style'] != 'fieldset') and widget['hasLabel']">
     <td tal:attributes="colspan python: len(widget['columnsWidths']);
@@ -218,3 +221,6 @@
 
 <tal:comment replace="nothing">Displays the fact that a field is required.</tal:comment>
 <tal:required metal:define-macro="required"><img tal:attributes="src string: $appUrl/ui/required.gif"/></tal:required>
+
+<tal:comment replace="nothing">Button for showing changes to the field.</tal:comment>
+<tal:changes metal:define-macro="changes"><img tal:attributes="src string: $appUrl/ui/changes.png"/></tal:changes>

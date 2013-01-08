@@ -25,6 +25,7 @@
 #  r -  "required"     The icon that specified that the field is required (if
 #                       relevant; typically only used on "edit" layouts)
 #  f -  "field"        The field value, or input for entering a value.
+#  c -  "changes"      The button for displaying changes to a field
 
 # For every field of a Appy class, you can define, for every layout context,
 # what field-related information will appear, and how it will be rendered.
@@ -48,7 +49,7 @@ macroDict = {
   # Field-related elements
   'l': ('show', 'label'), 'd': ('show', 'description'),
   'h': ('show', 'help'),  'v': ('show', 'validation'),
-  'r': ('show', 'required')
+  'r': ('show', 'required'), 'c': ('show', 'changes'),
 }
 
 # ------------------------------------------------------------------------------
@@ -119,7 +120,7 @@ class Table(LayoutElement):
     '''Represents a table where to dispose graphical elements.'''
     simpleParams = ('style', 'css_class', 'cellpadding', 'cellspacing', 'width',
                     'align')
-    derivedRepls = {'view': 'hrvd', 'cell': 'ld'}
+    derivedRepls = {'view': 'hrvd', 'cell': 'ldc'}
     def __init__(self, layoutString=None, style=None, css_class='',
                  cellpadding=0, cellspacing=0, width='100%', align='left',
                  other=None, derivedType=None):
