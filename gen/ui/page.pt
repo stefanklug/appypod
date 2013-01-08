@@ -73,7 +73,7 @@
 <metal:history define-macro="objectHistory"
       tal:define="startNumber request/startNumber|python:0;
                   startNumber python: int(startNumber);
-                  batchSize   python: int(request.get('maxPerPage'));
+                  batchSize   python: int(request.get('maxPerPage', 5));
                   historyInfo python: contextObj.getHistory(startNumber, batchSize=batchSize);
                   objs        historyInfo/events;
                   totalNumber historyInfo/totalNumber;

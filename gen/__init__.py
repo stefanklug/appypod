@@ -12,6 +12,7 @@ import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
 from appy.shared.xml_parser import XhtmlCleaner
+from appy.shared.diff import HtmlDiff
 from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
                               FileWrapper, sequenceTypes
 
@@ -678,8 +679,9 @@ class Type:
             layouts['view'].addCssClasses('focus')
             layouts['edit'].addCssClasses('focus')
         # If layouts are the default ones, set width=None instead of width=100%
-        # for the field if it is not in a group.
-        if areDefault and not self.group:
+        # for the field if it is not in a group (excepted for rich texts).
+        if areDefault and not self.group and \
+           not ((self.type == 'String') and (self.format == String.XHTML)):
             for layoutType in layouts.iterkeys():
                 layouts[layoutType].width = ''
         # Remove letters "r" from the layouts if the field is not required.
@@ -765,10 +767,12 @@ class Type:
                 return self.default
         return value
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         '''p_value is a real p_obj(ect) value from a field from this type. This
            method returns a pretty, string-formatted version, for displaying
-           purposes. Needs to be overridden by some child classes.'''
+           purposes. Needs to be overridden by some child classes. If
+           p_showChanges is True, the result must also include the changes that
+           occurred on p_value across the ages.'''
         if self.isEmptyValue(value): return ''
         return value
 
@@ -971,7 +975,7 @@ class Integer(Type):
     def getStorableValue(self, value):
         if not self.isEmptyValue(value): return self.pythonType(value)
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         if self.isEmptyValue(value): return ''
         return str(value)
 
@@ -1009,7 +1013,7 @@ class Float(Type):
                       label, sdefault, scolspan)
         self.pythonType = float
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         return formatNumber(value, sep=self.sep[0], precision=self.precision,
                             tsep=self.tsep)
 
@@ -1214,7 +1218,7 @@ class String(Type):
                 view = 'lc-f'
             else:
                 view = 'l-f'
-            return {'view': view, 'edit': 'lrv-d-f'}
+            return {'view': Table(view, width='100%'), 'edit': 'lrv-d-f'}
         elif self.isMultiValued():
             return {'view': 'l-f', 'edit': 'lrv-f'}
 
@@ -1246,7 +1250,31 @@ class String(Type):
                         type='warning')
         Type.store(self, obj, value)
 
-    def getFormattedValue(self, obj, value):
+    def getDiffValue(self, obj, value):
+        '''Returns a version of p_value that includes the cumulative diffs
+           between  successive versions.'''
+        res = None
+        lastEvent = None
+        for event in obj.workflow_history.values()[0]:
+            if event['action'] != '_datachange_': continue
+            if self.name not in event['changes']: continue
+            if res == None:
+                # We have found the first version of the field
+                res = event['changes'][self.name][0] or ''
+            else:
+                # We need to produce the difference between current result and
+                # this version.
+                iMsg, dMsg = obj.getHistoryTexts(lastEvent)
+                thisVersion = event['changes'][self.name][0] or ''
+                comparator = HtmlDiff(res, thisVersion, iMsg, dMsg)
+                res = comparator.get()
+            lastEvent = event
+        # Now we need to compare the result with the current version.
+        iMsg, dMsg = obj.getHistoryTexts(lastEvent)
+        comparator = HtmlDiff(res, value or '', iMsg, dMsg)
+        return comparator.get()
+
+    def getFormattedValue(self, obj, value, showChanges=False):
         if self.isEmptyValue(value): return ''
         res = value
         if self.isSelect:
@@ -1265,6 +1293,9 @@ class String(Type):
                     res = [t('%s_list_%s' % (self.labelId, v)) for v in value]
                 else:
                     res = t('%s_list_%s' % (self.labelId, value))
+        elif (self.format == String.XHTML) and showChanges:
+            # Compute the successive changes that occurred on p_value.
+            res = self.getDiffValue(obj, res)
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
         if isinstance(res, basestring) and \
@@ -1477,7 +1508,7 @@ class Boolean(Type):
         if value == None: return False
         return value
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         if value: res = obj.translate('yes')
         else:     res = obj.translate('no')
         return res
@@ -1542,7 +1573,7 @@ class Date(Type):
         except DateTime.DateError, ValueError:
             return obj.translate('bad_date')
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         if self.isEmptyValue(value): return ''
         tool = obj.getTool().appy()
         # A problem may occur with some extreme year values. Replace the "year"
@@ -1621,7 +1652,7 @@ class File(Type):
         if value: value = FileWrapper(value)
         return value
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         if not value: return value
         return value._zopeFile
 
@@ -1901,7 +1932,7 @@ class Ref(Type):
         if someObjects: return res
         return res.objects
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         return value
 
     def getIndexType(self): return 'ListIndex'
@@ -2142,7 +2173,7 @@ class Computed(Type):
             # self.method is a method that will return the field value
             return self.callMethod(obj, self.method, raiseOnError=True)
 
-    def getFormattedValue(self, obj, value):
+    def getFormattedValue(self, obj, value, showChanges=False):
         if not isinstance(value, basestring): return str(value)
         return value
 

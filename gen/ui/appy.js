@@ -192,6 +192,14 @@ function askComputedField(hookId, objectUrl, fieldName) {
   askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/computed', 'viewContent', params);
 }
 
+function askField(hookId, objectUrl, layoutType, showChanges){
+  // Sends an Ajax request for getting the content of any field.
+  var fieldName = hookId.split('_')[1];
+  var params = {'fieldName': fieldName, 'layoutType': layoutType,
+                'showChanges': showChanges};
+  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/show', 'fieldAjax', params);
+}
+
 // Function used by checkbox widgets for having radio-button-like behaviour
 function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   vis = document.getElementById(visibleCheckbox);

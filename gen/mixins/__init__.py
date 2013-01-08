@@ -514,10 +514,10 @@ class BaseMixin:
             listType = self.getAppyType(listName)
             return listType.getInnerValue(outerValue, name, int(i))
 
-    def getFormattedFieldValue(self, name, value):
+    def getFormattedFieldValue(self, name, value, showChanges):
         '''Gets a nice, string representation of p_value which is a value from
            field named p_name.'''
-        return self.getAppyType(name).getFormattedValue(self, value)
+        return self.getAppyType(name).getFormattedValue(self,value,showChanges)
 
     def getRequestFieldValue(self, name):
         '''Gets the value of field p_name as may be present in the request.'''
@@ -991,15 +991,6 @@ class BaseMixin:
             return 1
         return 0
 
-    def hasHistory(self):
-        '''Has this object an history?'''
-        if hasattr(self.aq_base, 'workflow_history') and self.workflow_history:
-            key = self.workflow_history.keys()[0]
-            for event in self.workflow_history[key]:
-                if event['action'] and (event['comments'] != '_invisible_'):
-                    return True
-        return False
-
     def findNewValue(self, field, history, stopIndex):
         '''This function tries to find a more recent version of value of p_field
            on p_self. It first tries to find it in history[:stopIndex+1]. If
@@ -1026,6 +1017,20 @@ class BaseMixin:
             msg = '%s: %s' % (date, msg)
             res.append(msg.encode('utf-8'))
         return res
+
+    def hasHistory(self, fieldName=None):
+        '''Has this object an history? If p_fieldName is specified, the question
+           becomes: has this object an history for field p_fieldName?'''
+        if hasattr(self.aq_base, 'workflow_history') and self.workflow_history:
+            history = self.workflow_history.values()[0]
+            if not fieldName:
+                for event in history:
+                    if event['action'] and (event['comments'] != '_invisible_'):
+                        return True
+            else:
+                for event in history:
+                    if (event['action'] == '_datachange_') and \
+                       (fieldName in event['changes']): return True
 
     def getHistory(self, startNumber=0, reverse=True, includeInvisible=False,
                    batchSize=5):

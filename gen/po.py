@@ -198,6 +198,8 @@ appyLabels = [
  ('del_next_events', 'Also delete successive events of the same type.'),
  ('history_insert', 'Inserted by ${userName}'),
  ('history_delete', 'Deleted by ${userName}'),
+ ('changes_show', 'Show changes'),
+ ('changes_hide', 'Hide changes'),
 ]
 
 # Some default values for labels whose ids are not fixed (so they can't be
