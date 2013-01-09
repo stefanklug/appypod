@@ -1,7 +1,7 @@
 <tal:comment replace="nothing">View macro for an Action.</tal:comment>
 <metal:view define-macro="view">
   <form name="executeAppyAction"
-        tal:define="formId python: '%s_%s' % (contextObj.UID(), name);
+        tal:define="formId python: '%s_%s_form' % (contextObj.UID(), name);
                     label  python: contextObj.translate(widget['labelId'])"
         tal:attributes="id formId; action python: tool.absolute_url()+'/do'">
     <input type="hidden" name="action" value="ExecuteAppyAction"/>
