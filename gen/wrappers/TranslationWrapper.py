@@ -10,7 +10,11 @@ class TranslationWrapper(AbstractWrapper):
         '''The label for a text to translate displays the text of the
            corresponding message in the source translation.'''
         tool = self.tool
-        sourceLanguage = self.o.getProductConfig().sourceLanguage
+        # Get the source language: either defined on the translation itself,
+        # either from the config object.
+        sourceLanguage = self.sourceLanguage
+        if not sourceLanguage:
+            sourceLanguage = self.o.getProductConfig().sourceLanguage
         sourceTranslation = getattr(tool.o, sourceLanguage).appy()
         # p_field is the Computed field. We need to get the name of the
         # corresponding field holding the translation message.
@@ -28,9 +32,9 @@ class TranslationWrapper(AbstractWrapper):
             if url.endswith('/ui/edit') or url.endswith('/do'):
                 sourceMsg = sourceMsg.replace('<','&lt;').replace('>','&gt;')
             sourceMsg = sourceMsg.replace('\n', '<br/>')
-        return '<div class="translationLabel"><acronym title="%s">' \
-               '<img src="ui/help.png"/></acronym>%s</div>' % \
-               (fieldName, sourceMsg)
+        return '<div class="translationLabel"><acronym title="%s" ' \
+               'style="margin-right: 5px"><img src="ui/help.png"/></acronym>' \
+               '%s</div>' % (fieldName, sourceMsg)
 
     def show(self, field):
         '''We show a field (or its label) only if the corresponding source
@@ -54,7 +58,9 @@ class TranslationWrapper(AbstractWrapper):
                                 '%s-%s.po' % (tool.o.getAppName(), self.id))
         poFile = PoFile(fileName)
         for field in self.fields:
-            if (field.name == 'title') or (field.type != 'String'): continue
+            # Ignore labels and appy-specific fields in page 'actions'.
+            if (field.page.name == 'actions') or (field.type != 'String'):
+                continue
             # Adds the PO message corresponding to this field
             msg = field.getValue(self.o) or ''
             for old, new in self.poReplacements:
