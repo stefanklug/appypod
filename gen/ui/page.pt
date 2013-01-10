@@ -190,7 +190,7 @@
             </tal:accessHistory>
 
             <tal:comment replace="nothing">Document creator</tal:comment>
-            <tal:creator condition="python: creator != 'Anonymous User'">
+            <tal:creator>
              <tal:by replace="python: _('object_created_by')"/>
              <tal:creator replace="python: tool.getUserName(creator)"/>
             </tal:creator>

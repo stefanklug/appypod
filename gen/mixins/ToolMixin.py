@@ -1067,6 +1067,12 @@ class ToolMixin(BaseMixin):
            names are normalized.'''
         tool = self.appy()
         if not login: login = tool.user.getId()
+        # Manage the special case of an anonymous user.
+        if login == 'Anonymous User':
+            name = self.translate('anonymous')
+            if normalized: name = normalizeString(name)
+            return name
+        # Manage the case of a "real" user.
         user = tool.search1('User', noSecurity=True, login=login)
         if not user: return login
         firstName = user.firstName

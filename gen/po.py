@@ -29,7 +29,7 @@ appyLabels = [
  ('appy_title', 'Title'),
  ('data_change', 'Data change'),
  ('modified_field', 'Modified field'),
- ('previous_value', 'Previous value'),
+ ('previous_value', 'Previous value or modification'),
  ('phase', 'phase'),
  ('choose_a_value', ' - '),
  ('choose_a_doc', '[ Documents ]'),
@@ -200,6 +200,7 @@ appyLabels = [
  ('history_delete', 'Deleted by ${userName}'),
  ('changes_show', 'Show changes'),
  ('changes_hide', 'Hide changes'),
+ ('anonymous', 'an anonymous user'),
 ]
 
 # Some default values for labels whose ids are not fixed (so they can't be

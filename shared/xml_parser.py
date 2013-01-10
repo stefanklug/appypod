@@ -1085,10 +1085,12 @@ class XhtmlCleaner(XmlParser):
             # This is the end of a sub-tag within a region that we must ignore.
             pass
         else:
-            self.res.append(self.env.currentContent)
+            if self.env.currentContent:
+                self.res.append(self.env.currentContent)
             # Add a line break after the end tag if required (ie: xhtml differ
             # needs to get paragraphs and other elements on separate lines).
-            if elem in self.lineBreakTags:
+            if (elem in self.lineBreakTags) and self.res and \
+               (self.res[-1][-1] != '\n'):
                 suffix = '\n'
             else:
                 suffix = ''
@@ -1098,10 +1100,11 @@ class XhtmlCleaner(XmlParser):
     def characters(self, content):
         if self.env.ignoreContent: return
         # Remove blanks that ckeditor may add just after a start tag
-        if not self.env.currentContent or (self.env.currentContent == ' '):
-            toAdd = ' ' + content.lstrip()
+        if not self.env.currentContent or \
+           self.env.currentContent[-1] in ('\n', ' '):
+            toAdd = content.lstrip()
         else:
             toAdd = content
         # Re-transform XML special chars to entities.
-        self.env.currentContent += cgi.escape(content)
+        self.env.currentContent += cgi.escape(toAdd)
 # ------------------------------------------------------------------------------
