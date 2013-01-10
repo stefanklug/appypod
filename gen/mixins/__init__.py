@@ -65,14 +65,19 @@ class BaseMixin:
                 # Check that the user can add objects through this Ref.
                 initiatorField.checkAdd(initiator)
             obj = createObject(folder, id, obj.portal_type, tool.getAppName())
+        # Get the fields on the current page
+        fields = None
+        if rq: fields = self.getAppyTypes('edit', rq.get('page'))
+        # Remember the previous values of fields, for potential historization
         previousData = None
-        if not created: previousData = obj.rememberPreviousData()
+        if not created and fields:
+            previousData = obj.rememberPreviousData(fields)
         # Perform the change on the object
-        if rq:
+        if fields:
             # Store in the database the new value coming from the form
-            for appyType in self.getAppyTypes('edit', rq.get('page')):
-                value = getattr(values, appyType.name, None)
-                appyType.store(obj, value)
+            for field in fields:
+                value = getattr(values, field.name, None)
+                field.store(obj, value)
         if previousData:
             # Keep in history potential changes on historized fields
             obj.historizeData(previousData)
@@ -402,14 +407,20 @@ class BaseMixin:
         if rq.get('appy', None) == '1': obj = obj.appy()
         return getattr(obj, 'on'+action)()
 
-    def rememberPreviousData(self):
+    def rememberPreviousData(self, fields):
         '''This method is called before updating an object and remembers, for
            every historized field, the previous value. Result is a dict
            ~{s_fieldName: previousFieldValue}~'''
         res = {}
-        for appyType in self.getAllAppyTypes():
-            if appyType.historized:
-                res[appyType.name] = appyType.getValue(self)
+        for field in fields:
+            if not field.historized: continue
+            # appyType.historized can be a method or a boolean.
+            if callable(field.historized):
+                historized = field.callMethod(self, field.historized)
+            else:
+                historized = field.historized
+            if historized:
+                res[field.name] = field.getValue(self)
         return res
 
     def addHistoryEvent(self, action, **kw):
@@ -514,7 +525,7 @@ class BaseMixin:
             listType = self.getAppyType(listName)
             return listType.getInnerValue(outerValue, name, int(i))
 
-    def getFormattedFieldValue(self, name, value, showChanges):
+    def getFormattedFieldValue(self, name, value, showChanges=False):
         '''Gets a nice, string representation of p_value which is a value from
            field named p_name.'''
         return self.getAppyType(name).getFormattedValue(self,value,showChanges)

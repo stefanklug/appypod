@@ -1215,6 +1215,9 @@ class String(Type):
             return {'view': 'l-f', 'edit': 'lrv-d-f'}
         elif self.format == String.XHTML:
             if self.historized:
+                # self.historized can be a method or a boolean. If it is a
+                # method, it means that under some condition, historization will
+                # be enabled. So we come here also in this case.
                 view = 'lc-f'
             else:
                 view = 'l-f'
