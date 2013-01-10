@@ -1041,7 +1041,8 @@ class BaseMixin:
             else:
                 for event in history:
                     if (event['action'] == '_datachange_') and \
-                       (fieldName in event['changes']): return True
+                       (fieldName in event['changes']) and \
+                       event['changes'][fieldName][0]: return True
 
     def getHistory(self, startNumber=0, reverse=True, includeInvisible=False,
                    batchSize=5):
@@ -1079,7 +1080,7 @@ class BaseMixin:
                        (field.format == gen.String.XHTML):
                         # For rich text fields, instead of simply showing the
                         # previous value, we propose a diff with the next
-                        # version.
+                        # version, excepted if the previous value is empty.
                         if field.isEmptyValue(oldValue[0]):
                             val = '-'
                         else:
