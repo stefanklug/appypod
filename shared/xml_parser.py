@@ -961,19 +961,21 @@ class XhtmlCleaner(XmlParser):
        Appy-compliant format.'''
     class Error(Exception): pass
 
-    # Tags that will not be in the result, content included, if keepStyles is
-    # False.
+    # Tags that will never be in the result, content included.
     tagsToIgnoreWithContent = ('style', 'colgroup', 'head')
     # Tags that will be removed from the result, but whose content will be kept,
-    # if keepStyles is False.
-    tagsToIgnoreKeepContent= ('x', 'font', 'center', 'html', 'body')
-    # All tags to ignore
-    tagsToIgnore = tagsToIgnoreWithContent + tagsToIgnoreKeepContent
+    tagsToIgnoreKeepContent = ('x', 'html', 'body')
+    allTagsToIgnore = tagsToIgnoreWithContent + tagsToIgnoreKeepContent
+    
+    # Additional tags that will be removed, but content kept, if keepStyles is
+    # False.
+    tagsToIgnoreKeepContentDropStyles = ('font', 'center')
+    
     # Attributes to ignore, if keepStyles if False.
     attrsToIgnore = ('align', 'valign', 'cellpadding', 'cellspacing', 'width',
                      'height', 'bgcolor', 'lang', 'border', 'class', 'rules')
-    # CSS attributes to keep, if keepStyles if False. These attributes can be
-    # used by appy.pod (to align a paragraph, center/resize an image...).
+    # CSS attributes to keep even if keepStyles if False. These attributes can
+    # be used by pod (to align a paragraph, center/resize an image...).
     cssAttrsToKeep = ('width', 'height', 'float', 'text-align',
                       'font-style', 'font-weight')
     # Attrs to add, if not present, to ensure good formatting, be it at the web
@@ -981,10 +983,21 @@ class XhtmlCleaner(XmlParser):
     attrsToAdd = {'table': {'cellspacing':'0', 'cellpadding':'6', 'border':'1'},
                   'tr':    {'valign': 'top'}}
 
-    # Tags that required a line break to be inserted after them.
+    # Tags that require a line break to be inserted after them.
     lineBreakTags = ('p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td')
 
-    def clean(self, s, keepStyles=True):
+    # No-end tags
+    noEndTags = ('br', 'img')
+
+    def __init__(self, keepStyles=True):
+        XmlParser.__init__(self)
+        self.keepStyles = keepStyles
+        # Compute tags to ignore, which may vary according to p_keepStyles.
+        self.tagsToIgnore = self.allTagsToIgnore
+        if not keepStyles:
+            self.tagsToIgnore += self.tagsToIgnoreKeepContentDropStyles
+
+    def clean(self, s):
         '''Cleaning XHTML code is done for 2 reasons:
 
            1. The main objective is to format XHTML p_s to be storable in the
@@ -999,8 +1012,6 @@ class XhtmlCleaner(XmlParser):
               content that can be dumped in an elegant and systematic manner
               into a POD template.
         '''
-        # Must we keep style-related information or not?
-        self.env.keepStyles = keepStyles
         self.env.currentContent = ''
         # The stack of currently parsed elements (will contain only ignored
         # ones).
@@ -1040,7 +1051,7 @@ class XhtmlCleaner(XmlParser):
             self.res.append(e.currentContent)
             e.currentContent = ''
         if e.ignoreTag and e.ignoreContent: return
-        if not e.keepStyles and (elem in self.tagsToIgnore):
+        if elem in self.tagsToIgnore:
             e.ignoreTag = True
             if elem in self.tagsToIgnoreWithContent:
                 e.ignoreContent = True
@@ -1058,7 +1069,7 @@ class XhtmlCleaner(XmlParser):
         res = '%s<%s' % (prefix, elem)
         # Include the found attributes, excepted those that must be ignored.
         for name, value in attrs.items():
-            if not e.keepStyles:
+            if not self.keepStyles:
                 if name in self.attrsToIgnore: continue
                 elif name == 'style':
                     value = self.cleanStyleAttribute(value)
@@ -1068,7 +1079,12 @@ class XhtmlCleaner(XmlParser):
         if elem in self.attrsToAdd:
             for name, value in self.attrsToAdd[elem].iteritems():
                 res += ' %s="%s"' % (name, value)
-        self.res.append('%s>' % res)
+        # Close the tag if it is a no-end tag
+        if elem in self.noEndTags:
+            suffix = '/>'
+        else:
+            suffix = '>'
+        self.res.append('%s%s' % (res, suffix))
 
     def endElement(self, elem):
         e = self.env
@@ -1087,14 +1103,17 @@ class XhtmlCleaner(XmlParser):
         else:
             if self.env.currentContent:
                 self.res.append(self.env.currentContent)
-            # Add a line break after the end tag if required (ie: xhtml differ
-            # needs to get paragraphs and other elements on separate lines).
-            if (elem in self.lineBreakTags) and self.res and \
-               (self.res[-1][-1] != '\n'):
-                suffix = '\n'
-            else:
-                suffix = ''
-            self.res.append('</%s>%s' % (elem, suffix))
+            # Close the tag only if it is a no-end tag.
+            if elem not in self.noEndTags:
+                # Add a line break after the end tag if required (ie: xhtml
+                # differ needs to get paragraphs and other elements on separate
+                # lines).
+                if (elem in self.lineBreakTags) and self.res and \
+                   (self.res[-1][-1] != '\n'):
+                    suffix = '\n'
+                else:
+                    suffix = ''
+                self.res.append('</%s>%s' % (elem, suffix))
             self.env.currentContent = ''
 
     def characters(self, content):

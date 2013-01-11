@@ -40,7 +40,9 @@ class ModelClass:
        those classes are part of the Appy machinery and are prefixed with _appy_
        in order to avoid name conflicts with user-defined parts of the
        application model.'''
-    _appy_attributes = [] # We need to keep track of attributes order.
+    # In any ModelClass subclass we need to declare attributes in the following
+    # list (including back attributes), to keep track of attributes order.
+    _appy_attributes = []
     folder = False
     @classmethod
     def _appy_getTypeBody(klass, appyType, wrapperName):
@@ -128,18 +130,18 @@ class ModelClass:
                 pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
             res += '"%s":Pge("%s", show=%s),'% (page.name, page.name, pageShow)
         res += '}\n'
-        # Secondly, dump every attribute
+        # Secondly, dump every (not Ref.isBack) attribute
         for name in klass._appy_attributes:
             exec 'appyType = klass.%s' % name
+            if (appyType.type == 'Ref') and appyType.isBack: continue
             typeBody = klass._appy_getTypeBody(appyType, wrapperName)
             res += '    %s=%s\n' % (name, typeBody)
         return res
 
 # The User class ---------------------------------------------------------------
 class User(ModelClass):
-    # In a ModelClass we need to declare attributes in the following list.
     _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
-                        'password2', 'email', 'roles']
+                        'password2', 'email', 'roles', 'groups', 'toTool']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = gen.String(show=False, indexed=True)
     gm = {'group': 'main', 'width': 25}
@@ -165,8 +167,7 @@ class User(ModelClass):
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):
-    # In a ModelClass we need to declare attributes in the following list.
-    _appy_attributes = ['title', 'login', 'roles', 'users']
+    _appy_attributes = ['title', 'login', 'roles', 'users', 'toTool2']
     # All methods defined below are fake. Real versions are in the wrapper.
     m = {'group': 'main', 'width': 25, 'indexed': True}
     title = gen.String(multiplicity=(1,1), **m)
@@ -183,7 +184,7 @@ class Group(ModelClass):
 
 # The Translation class --------------------------------------------------------
 class Translation(ModelClass):
-    _appy_attributes = ['po', 'title', 'sourceLanguage']
+    _appy_attributes = ['po', 'title', 'sourceLanguage', 'trToTool']
     # All methods defined below are fake. Real versions are in the wrapper.
     actionsPage = gen.Page('actions')
     def getPoFile(self): pass
@@ -195,9 +196,9 @@ class Translation(ModelClass):
 
 # The Page class ---------------------------------------------------------------
 class Page(ModelClass):
-    _appy_attributes = ['title', 'content', 'pages']
+    _appy_attributes = ['title', 'content', 'pages', 'parent', 'toTool3']
     folder = True
-    title = gen.String(show='edit', indexed=True)
+    title = gen.String(show='edit', multiplicity=(1,1), indexed=True)
     content = gen.String(format=gen.String.XHTML, layouts='f', richText=True)
     # Pages can contain other pages.
     def showSubPages(self): pass

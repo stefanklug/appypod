@@ -1245,7 +1245,7 @@ class String(Type):
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
             try:
-                value = XhtmlCleaner().clean(value, keepStyles=self.richText)
+                value = XhtmlCleaner(keepStyles=self.richText).clean(value)
             except XhtmlCleaner.Error, e:
                 # Errors while parsing p_value can't prevent the user from
                 # storing it.

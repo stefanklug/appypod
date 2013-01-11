@@ -50,7 +50,7 @@
     layout             The layout object that will dictate how object content
                        will be rendered.
 </tal:comment>
-<metal:show define-macro="show" tal:define="tagId python: 'content'">
+<metal:show define-macro="show" tal:define="tagId python: 'pageLayout'">
   <metal:layout use-macro="context/ui/widgets/show/macros/layout"/>
 </metal:show>
 
