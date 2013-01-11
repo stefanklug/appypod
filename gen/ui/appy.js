@@ -351,6 +351,13 @@ function onDeleteObject(objectUid) {
   askConfirm('form', 'deleteForm', delete_confirm);
 }
 
+function onDeleteEvent(objectUid, eventTime) {
+  f = document.getElementById('deleteEventForm');
+  f.objectUid.value = objectUid;
+  f.eventTime.value = eventTime;
+  askConfirm('form', 'deleteEventForm', delete_confirm);
+}
+
 function onUnlinkObject(sourceUid, fieldName, targetUid) {
   f = document.getElementById('unlinkForm');
   f.sourceUid.value = sourceUid;

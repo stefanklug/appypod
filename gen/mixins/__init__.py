@@ -102,7 +102,7 @@ class BaseMixin:
         return obj, msg
 
     def delete(self):
-        '''This methods is self's suicide.'''
+        '''This method is self's suicide.'''
         # Call a custom "onDelete" if it exists
         appyObj = self.appy()
         if hasattr(appyObj, 'onDelete'): appyObj.onDelete()
@@ -128,6 +128,26 @@ class BaseMixin:
             urlBack = self.getUrl(rq['HTTP_REFERER'])
         self.say(self.translate('delete_done'))
         self.goto(urlBack)
+
+    def onDeleteEvent(self):
+        '''Called when an event (from object history) deletion is triggered
+           from the ui.'''
+        rq = self.REQUEST
+        # Re-create object history, but without the event corresponding to
+        # rq['eventTime']
+        history = []
+        from DateTime import DateTime
+        eventToDelete = DateTime(rq['eventTime'])
+        key = self.workflow_history.keys()[0]
+        for event in self.workflow_history[key]:
+            if (event['action'] != '_datachange_') or \
+               (event['time'] != eventToDelete):
+                history.append(event)
+        self.workflow_history[key] = tuple(history)
+        appy = self.appy()
+        self.log('Data change event deleted by %s for %s (UID=%s).' % \
+                 (appy.user.getId(), appy.klass.__name__, appy.uid))
+        self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def onUnlink(self):
         '''Called when an object unlinking is triggered from the ui.'''

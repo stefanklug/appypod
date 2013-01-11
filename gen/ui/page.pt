@@ -18,6 +18,12 @@
     <input type="hidden" name="action" value="Delete"/>
     <input type="hidden" name="objectUid"/>
   </form>
+  <tal:comment replace="nothing">Global form for deleting an event from an object's history</tal:comment>
+  <form id="deleteEventForm" method="post" action="do">
+    <input type="hidden" name="action" value="DeleteEvent"/>
+    <input type="hidden" name="objectUid"/>
+    <input type="hidden" name="eventTime"/>
+  </form>
   <tal:comment replace="nothing">Global form for unlinking an object</tal:comment>
   <form id="unlinkForm" method="post" action="do">
     <input type="hidden" name="action" value="Unlink"/>
@@ -98,7 +104,12 @@
                     state event/review_state|nothing;
                     isDataChange python: event['action'] == '_datachange_'"
         tal:attributes="class python:test(odd, 'even', 'odd')" valign="top">
-      <td tal:condition="isDataChange" tal:content="python: _('data_change')"></td>
+      <td tal:condition="isDataChange">
+        <span tal:content="python: _('data_change')"></span>
+        <img tal:condition="python: user.has_role('Manager')" style="cursor:pointer"
+             tal:attributes="src string:$appUrl/ui/delete.png;
+                             onClick python: 'onDeleteEvent(\'%s\', \'%s\')' % (contextObj.UID(), event['time'])"/>
+      </td>
       <td tal:condition="not: isDataChange"
           tal:content="python: _(contextObj.getWorkflowLabel(event['action']))"/>
       <td tal:define="actorId python:event.get('actor')"
