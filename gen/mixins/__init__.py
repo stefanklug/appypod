@@ -98,6 +98,8 @@ class BaseMixin:
         if not created:
             from DateTime import DateTime
             obj.modified = DateTime()
+        # Unlock the currently saved page on the object
+        if rq: self.removeLock(rq['page'])
         obj.reindex()
         return obj, msg
 
@@ -188,6 +190,53 @@ class BaseMixin:
         obj = createObject(tool.getPath('/temp_folder'), id, className, appName)
         return self.goto(obj.getUrl(**urlParams))
 
+    def setLock(self, user, page):
+        '''A p_user edits a given p_page on this object: we will set a lock, to
+           prevent other users to edit this page at the same time.'''
+        if not hasattr(self.aq_base, 'locks'):
+            # Create the persistent mapping that will store the lock
+            # ~{s_page: s_userId}~
+            from persistent.mapping import PersistentMapping
+            self.locks = PersistentMapping()
+        # Raise an error is the page is already locked by someone else. If the
+        # page is already locked by the same user, we don't mind: he could have
+        # used back/forward buttons of its browser...
+        userId = user.getId()
+        if (page in self.locks) and (userId != self.locks[page]):
+            from AccessControl import Unauthorized
+            raise Unauthorized('This page is locked.')
+        # Set the lock
+        self.locks[page] = userId
+
+    def isLocked(self, user, page):
+        '''Is this page locked? If the page is locked by the same user, we don't
+           mind and consider the page as unlocked. If the page is locked, this
+           method returns the id of the user that has locked the page.'''
+        if hasattr(self.aq_base, 'locks') and (page in self.locks):
+            if (user.getId() != self.locks[page]): return self.locks[page]
+
+    def removeLock(self, page):
+        '''Removes the lock on the current page. This happens after the page has
+           been saved: the lock must be released.'''
+        if page not in self.locks: return
+        # Raise an error if the user that saves changes is not the one that
+        # has locked the page.
+        userId = self.getUser().getId()
+        if self.locks[page] != userId:
+            from AccessControl import Unauthorized
+            raise Unauthorized('This page was locked by someone else.')
+        # Remove the lock
+        del self.locks[page]
+
+    def removeMyLock(self, user, page):
+        '''If p_user has set a lock on p_page, this method removes it. This
+           method is called when the user that locked a page consults
+           view.pt for this page. In this case, we consider that the user has
+           left the edit page in an unexpected way and we remove the lock.'''
+        if hasattr(self.aq_base, 'locks') and (page in self.locks) and \
+           (user.getId() == self.locks[page]):
+            del self.locks[page]
+
     def onCreateWithoutForm(self):
         '''This method is called when a user wants to create a object from a
            reference field, automatically (without displaying a form).'''
@@ -263,6 +312,7 @@ class BaseMixin:
                 else:
                    urlBack = self.getUrl()
             self.say(self.translate('object_canceled'))
+            self.removeLock(rq['page'])
             return self.goto(urlBack)
 
         # Object for storing validation errors

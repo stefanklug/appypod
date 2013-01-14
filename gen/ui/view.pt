@@ -8,6 +8,7 @@
                 phase          phaseInfo/name;
                 cssJs          python: {};
                 page           req/page|python:contextObj.getDefaultViewPage();
+                dummy          python: contextObj.removeMyLock(user, page);
                 groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page, cssJs=cssJs);"
     tal:on-error="structure python: tool.manageError(error)">
 

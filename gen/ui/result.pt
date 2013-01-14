@@ -95,7 +95,7 @@
          <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
             tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
             tal:condition="obj/mayEdit">
-          <img tal:attributes="src string: $appUrl/ui/edit.gif;
+          <img tal:attributes="src string: $appUrl/ui/edit.png;
                                title python: _('object_edit')"/></a><img
             tal:condition="obj/mayDelete" style="cursor:pointer"
             tal:attributes="src string: $appUrl/ui/delete.png;

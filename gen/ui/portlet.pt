@@ -115,7 +115,8 @@
 </tal:comment>
 <table metal:define-macro="phases" class="portletContent"
        tal:define="singlePhase python: phases and (len(phases) == 1);
-                   page python: req.get('page', 'main')">
+                   page python: req.get('page', 'main');
+                   mayEdit python: contextObj.allows('Modify portal content')">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
     <tr tal:define="singlePage python: len(phase['pages']) == 1">
@@ -132,10 +133,19 @@
           <a tal:attributes="href python: contextObj.getUrl(page=aPage)"
              tal:content="structure python: _('%s_page_%s' % (contextObj.meta_type, aPage))">
           </a>
-          <a tal:condition="python: contextObj.allows('Modify portal content') and phase['pagesInfo'][aPage]['showOnEdit']"
-             tal:attributes="href python: contextObj.getUrl(mode='edit', page=aPage)">
-           <img title="Edit" tal:attributes="src string: $appUrl/ui/edit.gif"/>
-          </a>
+          <tal:icons define="locked python: contextObj.isLocked(user, aPage);
+                             editable python: mayEdit and phase['pagesInfo'][aPage]['showOnEdit']">
+           <a tal:condition="python: editable and not locked"
+              tal:attributes="href python: contextObj.getUrl(mode='edit', page=aPage)">
+            <img tal:attributes="src string: $appUrl/ui/edit.png;
+                                 title python: _('object_edit')"/>
+           </a>
+           <a tal:condition="python: editable and locked">
+            <img style="cursor: help"
+                 tal:attributes="src string: $appUrl/ui/locked.png;
+                                 title python: _('page_locked', mapping={'user':tool.getUserName(locked)})"/>
+           </a>
+          </tal:icons>
         </div>
         <tal:comment replace="nothing">Next lines: links</tal:comment>
         <tal:links define="links python: phase['pagesInfo'][aPage].get('links')" tal:condition="links">

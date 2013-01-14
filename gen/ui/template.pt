@@ -175,7 +175,7 @@
           <span tal:content="python: userInfo[0]"></span>
           <a tal:condition="python: userInfo[1]"
              tal:attributes="href python: userInfo[1]">
-            <img tal:attributes="src string: $appUrl/ui/edit.gif"/>
+            <img tal:attributes="src string: $appUrl/ui/edit.png"/>
           </a>
         </td>
        </tr>

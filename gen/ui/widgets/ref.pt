@@ -27,7 +27,7 @@
     <td tal:condition="python: not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"
           tal:attributes="href python: obj.getUrl(mode='edit', page='main', nav=navInfo)">
-        <img tal:attributes="src string: $appUrl/ui/edit.gif;
+        <img tal:attributes="src string: $appUrl/ui/edit.png;
                              title python: _('object_edit')"/>
        </a>
     </td>

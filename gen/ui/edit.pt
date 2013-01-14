@@ -8,6 +8,7 @@
                 phaseInfo      python: contextObj.getAppyPhases(currentOnly=True, layoutType=layoutType);
                 phase          phaseInfo/name;
                 page           request/page|python:contextObj.getDefaultEditPage();
+                dummy          python: contextObj.setLock(user, page);
                 confirmMsg     request/confirmMsg | nothing;
                 groupedWidgets python: contextObj.getGroupedAppyTypes(layoutType, page, cssJs=cssJs);"
     tal:on-error="structure python: tool.manageError(error)">
