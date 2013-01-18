@@ -202,7 +202,7 @@ class BaseMixin:
         # page is already locked by the same user, we don't mind: he could have
         # used back/forward buttons of its browser...
         userId = user.getId()
-        if (page in self.locks) and (userId != self.locks[page]):
+        if (page in self.locks) and (userId != self.locks[page][0]):
             from AccessControl import Unauthorized
             raise Unauthorized('This page is locked.')
         # Set the lock
@@ -302,7 +302,8 @@ class BaseMixin:
         # If this object is created from an initiator, get info about him.
         initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
         # If the user clicked on 'Cancel', go back to the previous page.
-        if rq.get('buttonCancel.x', None):
+        buttonClicked = rq.get('button')
+        if buttonClicked == 'cancel':
             if initiator:
                 # Go back to the initiator page.
                 urlBack = initiator.getUrl(page=initiatorPage, nav='')
@@ -359,13 +360,13 @@ class BaseMixin:
         # main site page.
         if not obj.allows('View'):
             return self.goto(tool.getSiteUrl(), msg)
-        if rq.get('buttonOk.x', None) or saveConfirmed:
+        if (buttonClicked == 'save') or saveConfirmed:
             obj.say(msg)
             if isNew and initiator:
                 return self.goto(initiator.getUrl(page=initiatorPage, nav=''))
             else:
                 return self.goto(obj.getUrl())
-        if rq.get('buttonPrevious.x', None):
+        if buttonClicked == 'previous':
             # Go to the previous page for this object.
             # We recompute the list of phases and pages because things
             # may have changed since the object has been updated (ie,
@@ -388,7 +389,7 @@ class BaseMixin:
             else:
                 obj.say(msg)
                 return self.goto(obj.getUrl())
-        if rq.get('buttonNext.x', None):
+        if buttonClicked == 'next':
             # Go to the next page for this object.
             # We remember page name, because the next method may set a new
             # current page if the current one is not visible anymore.
@@ -398,7 +399,7 @@ class BaseMixin:
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo['showOnEdit']:
-                    # Same remark as above (buttonPrevious).
+                    # Same remark as above (click on "previous").
                     return self.goto(obj.getUrl(mode='edit', page=pageName))
                 else:
                     return self.goto(obj.getUrl(page=pageName))

@@ -11,7 +11,7 @@
   </tal:include>
 
   <tal:comment replace="nothing">Javascript messages</tal:comment>
-  <script language="javascript" tal:content="tool/getJavascriptMessages"></script>
+  <script type="text/javascript" tal:content="tool/getJavascriptMessages"></script>
 
   <tal:comment replace="nothing">Global form for deleting an object</tal:comment>
   <form id="deleteForm" method="post" action="do">
@@ -230,7 +230,8 @@
                 tal:attributes="style python:test(historyExpanded, 'display:block', 'display:none')">
           <div tal:define="ajaxHookId python: contextObj.UID() + '_history';"
                tal:attributes="id ajaxHookId">
-             <script tal:content="python: 'askObjectHistory(\'%s\',\'%s\',%d,0)' % (ajaxHookId, contextObj.absolute_url(),historyMaxPerPage)">
+             <script type="text/javascript"
+                     tal:content="python: 'askObjectHistory(\'%s\',\'%s\',%d,0)' % (ajaxHookId, contextObj.absolute_url(),historyMaxPerPage)">
              </script>
           </div>
           </span>
@@ -241,11 +242,7 @@
 
 <tal:comment replace="nothing">The page footer.</tal:comment>
 <metal:footer define-macro="footer">
-<script language="javascript">
-<!--
-  initSlaves();
--->
-</script>
+<script type="text/javascript">initSlaves();</script>
 </metal:footer>
 
 <tal:comment replace="nothing">
@@ -260,31 +257,27 @@
   <tal:comment replace="nothing">Previous</tal:comment> 
   <td tal:condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
-      <input type="image" name="buttonPrevious"
-             tal:attributes="src string:$appUrl/ui/previous.png;
-                             title python: _('page_previous')"/>
-      <input type="hidden" name="previousPage"  tal:attributes="value previousPage"/>
+      <img style="cursor:pointer" onClick="submitAppyForm('previous')"
+           tal:attributes="src string:$appUrl/ui/previous.png; title python: _('page_previous')"/>
+      <input type="hidden" name="previousPage" tal:attributes="value previousPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=previousPage)">
-        <img tal:attributes="src string:$appUrl/ui/previous.png;
-                             title python: _('page_previous')"/>
+        <img tal:attributes="src string:$appUrl/ui/previous.png; title python: _('page_previous')"/>
       </a>
     </tal:link>
   </td>
 
   <tal:comment replace="nothing">Save</tal:comment>
   <td tal:condition="python: isEdit and pageInfo['showSave']">
-    <input type="image" name="buttonOk"
-           tal:attributes="src string:$appUrl/ui/save.png;
-                           title python: _('object_save')"/>
+    <img style="cursor:pointer" onClick="submitAppyForm('save')"
+         tal:attributes="src string:$appUrl/ui/save.png; title python: _('object_save');"/>
   </td>
 
   <tal:comment replace="nothing">Cancel</tal:comment>
   <td tal:condition="python: isEdit and pageInfo['showCancel']">
-    <input type="image" name="buttonCancel"
-           tal:attributes="src string:$appUrl/ui/cancel.png;
-                           title python: _('object_cancel')"/>
+    <img style="cursor:pointer" onClick="submitAppyForm('cancel')"
+         tal:attributes="src string:$appUrl/ui/cancel.png; title python: _('object_cancel')"/>
   </td>
 
   <tal:edit condition="not: isEdit">
@@ -309,18 +302,18 @@
 
   <tal:comment replace="nothing">Refresh</tal:comment>
   <td tal:condition="contextObj/isDebug">
-    <img title="Refresh" style="cursor:pointer; vertical-align:top"
-         tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode=layoutType, page=page, refresh='yes');
-                         src string: $appUrl/ui/refresh.png"/>
+    <a tal:attributes="href python: contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
+     <img title="Refresh" style="vertical-align:top"
+          tal:attributes="src string: $appUrl/ui/refresh.png"/>
+    </a>
   </td>
 
   <tal:comment replace="nothing">Next</tal:comment> 
   <td tal:condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
-      <input type="image" name="buttonNext"
-             tal:attributes="src string:$appUrl/ui/next.png;
-                             title python: _('page_next')"/>
-      <input type="hidden" name="nextPage"  tal:attributes="value nextPage"/>
+      <img style="cursor:pointer" onClick="submitAppyForm('next')"
+           tal:attributes="src string:$appUrl/ui/next.png; title python: _('page_next')"/>
+      <input type="hidden" name="nextPage" tal:attributes="value nextPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
       <a tal:attributes="href python: contextObj.getUrl(page=nextPage)">
@@ -330,7 +323,7 @@
     </tal:link>
   </td>
   <tal:comment replace="nothing">Workflow transitions</tal:comment>
-  <td tal:condition="python: layoutType in ('view', 'result')">
+  <td tal:condition="not: isEdit">
    <metal:transitions use-macro="app/ui/page/macros/transitions"/>
   </td>
  </tr>

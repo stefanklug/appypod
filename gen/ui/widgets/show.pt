@@ -164,7 +164,7 @@
       </td>
     </tr>
   </table>
-  <script language="javascript"
+  <script type="text/javascript"
           tal:content="python: 'initTab(\'tab_%s\', \'%s_1_%d\')' % (widget['name'], widget['name'], len(widget['widgets']))"></script>
   </tal:asTabs>
 </metal:group>

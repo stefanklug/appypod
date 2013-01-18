@@ -202,6 +202,9 @@ appyLabels = [
  ('changes_hide', 'Hide changes'),
  ('anonymous', 'an anonymous user'),
  ('page_locked', '${date} - This page is locked by ${user}.'),
+ ('warn_leave_form', 'In some situations, by leaving this page this way, you ' \
+                     'may lose encoded data or prevent other users from ' \
+                     'editing it afterwards. Please use buttons instead.'),
 ]
 
 # Some default values for labels whose ids are not fixed (so they can't be

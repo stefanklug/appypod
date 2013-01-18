@@ -1,17 +1,17 @@
 <tal:comment replace="nothing">View macro for a Computed.</tal:comment>
 <metal:view define-macro="view">
-  <tal:sync condition="sync">
-    <span tal:condition="widget/plainText" tal:replace="value"/>
-    <span tal:condition="not: widget/plainText" tal:replace="structure value"/>
-  </tal:sync>
-  <tal:async condition="not: sync">
-    <div tal:define= "ajaxHookId python: contextObj.UID() + name"
-         tal:attributes = "id ajaxHookId">
-      <script language="javascript"
-          tal:content="python: 'askComputedField(\'%s\',\'%s\',\'%s\')' % (ajaxHookId, contextObj.absolute_url(), name)">
-      </script>
-    </div>
-  </tal:async>
+ <tal:sync condition="sync">
+  <span tal:condition="widget/plainText" tal:replace="value"/>
+  <span tal:condition="not: widget/plainText" tal:replace="structure value"/>
+ </tal:sync>
+ <tal:async condition="not: sync">
+  <div tal:define= "ajaxHookId python: contextObj.UID() + name"
+       tal:attributes = "id ajaxHookId">
+   <script type="text/javascript"
+           tal:content="python: 'askComputedField(\'%s\',\'%s\',\'%s\')' % (ajaxHookId, contextObj.absolute_url(), name)">
+   </script>
+  </div>
+ </tal:async>
 </metal:view>
 
 <tal:comment replace="nothing">Ajax-called view content of a non sync Computed field.</tal:comment>

@@ -333,6 +333,14 @@ function initSlaves() {
   }
 }
 
+// Function used to submit the appy form on edit.pt
+function submitAppyForm(button) {
+  var theForm = document.getElementById('appyForm');
+  // On which button has the user clicked?
+  theForm.button.value = button;
+  theForm.submit();
+}
+
 // Function used for triggering a workflow transition
 function triggerTransition(transitionId, msg) {
   var theForm = document.getElementById('triggerTransitionForm');
@@ -517,8 +525,9 @@ function doAskPasswordReinit() {
 // Function that finally posts the edit form after the user has confirmed that
 // she really wants to post it.
 function postConfirmedEditForm() {
-  var theForm = document.getElementById('appyEditForm');
+  var theForm = document.getElementById('appyForm');
   theForm.confirmed.value = "True";
+  theForm.button.value = 'save';
   theForm.submit();
 }
 

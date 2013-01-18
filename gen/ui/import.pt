@@ -6,8 +6,7 @@
                 global allAreImported python:True">
 
   <div metal:use-macro="context/ui/page/macros/prologue"/>
-  <script language="javascript">
-  <!--
+  <script type="text/javascript">
   var importedElemsShown = false;
   function toggleViewableElements() {
     var rows = document.getElementsByName('importedElem');
@@ -50,7 +49,6 @@
       f.submit();
     }
   }
-  -->
   </script>
   <tal:comment replace="nothing">Form for importing several meetings at once.</tal:comment>
   <form name="importElements"

@@ -26,8 +26,8 @@
   <tal:link repeat="name tool/getGlobalCssJs">
     <link tal:condition="python: name.endswith('.css') and not ((dir == 'ltr') and (name == 'appyrtl.css'))"
           rel="stylesheet" type="text/css" tal:attributes="href string:$appUrl/ui/$name"/>
-    <script tal:condition="python: name.endswith('.js')"
-          type="text/javascript" tal:attributes="src string:$appUrl/ui/$name"></script>
+    <script tal:condition="python: name.endswith('.js')" type="text/javascript"
+            tal:attributes="src string:$appUrl/ui/$name"></script>
   </tal:link>
 </head>
 
