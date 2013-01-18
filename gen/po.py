@@ -201,7 +201,7 @@ appyLabels = [
  ('changes_show', 'Show changes'),
  ('changes_hide', 'Hide changes'),
  ('anonymous', 'an anonymous user'),
- ('page_locked', 'This page is locked by ${user}.'),
+ ('page_locked', '${date} - This page is locked by ${user}.'),
 ]
 
 # Some default values for labels whose ids are not fixed (so they can't be

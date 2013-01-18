@@ -253,9 +253,9 @@
 </tal:comment>
 <table metal:define-macro="buttons" cellpadding="2" cellspacing="0" style="margin-top: 7px"
        tal:define="previousPage   python: contextObj.getPreviousPage(phaseInfo, page)[0];
-                 nextPage       python: contextObj.getNextPage(phaseInfo, page)[0];
-                 isEdit         python: layoutType == 'edit';
-                 pageInfo       python: phaseInfo['pagesInfo'][page]">
+                   nextPage       python: contextObj.getNextPage(phaseInfo, page)[0];
+                   isEdit         python: layoutType == 'edit';
+                   pageInfo       python: phaseInfo['pagesInfo'][page]">
  <tr>
   <tal:comment replace="nothing">Previous</tal:comment> 
   <td tal:condition="python: previousPage and pageInfo['showPrevious']">
@@ -287,14 +287,25 @@
                            title python: _('object_cancel')"/>
   </td>
 
-  <tal:comment replace="nothing">Edit</tal:comment>
-  <td tal:condition="python: not isEdit and pageInfo['showOnEdit']">
-   <img style="cursor:pointer"
-        tal:attributes="onClick python: 'href: window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page);
-                        title python: _('object_edit');
-                        src string: $appUrl/ui/editBig.png"
-        tal:condition="contextObj/mayEdit"/>
-  </td>
+  <tal:edit condition="not: isEdit">
+   <td tal:define="locked python: contextObj.isLocked(user, page);
+                   editable python: pageInfo['showOnEdit'] and contextObj.mayEdit()">
+
+    <tal:comment replace="nothing">Edit</tal:comment>
+    <a tal:condition="python: editable and not locked"
+       tal:attributes="href python: contextObj.getUrl(mode='edit', page=page)">
+     <img tal:attributes="src string: $appUrl/ui/editBig.png;
+                         title python: _('object_edit')"/>
+    </a>
+    <tal:comment replace="nothing">Locked</tal:comment>
+    <a tal:condition="python: editable and locked">
+     <img style="cursor: help"
+          tal:define="lockDate python: tool.formatDate(locked[1]);
+                      lockMsg python: _('page_locked', mapping={'user':tool.getUserName(locked[0]), 'date': lockDate})"
+          tal:attributes="src string: $appUrl/ui/lockedBig.png; title lockMsg"/>
+    </a>
+   </td>
+  </tal:edit>
 
   <tal:comment replace="nothing">Refresh</tal:comment>
   <td tal:condition="contextObj/isDebug">

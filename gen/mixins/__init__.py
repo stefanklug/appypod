@@ -195,7 +195,7 @@ class BaseMixin:
            prevent other users to edit this page at the same time.'''
         if not hasattr(self.aq_base, 'locks'):
             # Create the persistent mapping that will store the lock
-            # ~{s_page: s_userId}~
+            # ~{s_page: (s_userId, DateTime_lockDate)}~
             from persistent.mapping import PersistentMapping
             self.locks = PersistentMapping()
         # Raise an error is the page is already locked by someone else. If the
@@ -206,14 +206,15 @@ class BaseMixin:
             from AccessControl import Unauthorized
             raise Unauthorized('This page is locked.')
         # Set the lock
-        self.locks[page] = userId
+        from DateTime import DateTime
+        self.locks[page] = (userId, DateTime())
 
     def isLocked(self, user, page):
         '''Is this page locked? If the page is locked by the same user, we don't
            mind and consider the page as unlocked. If the page is locked, this
-           method returns the id of the user that has locked the page.'''
+           method returns the tuple (userId, lockDate).'''
         if hasattr(self.aq_base, 'locks') and (page in self.locks):
-            if (user.getId() != self.locks[page]): return self.locks[page]
+            if (user.getId() != self.locks[page][0]): return self.locks[page]
 
     def removeLock(self, page):
         '''Removes the lock on the current page. This happens after the page has
@@ -222,7 +223,7 @@ class BaseMixin:
         # Raise an error if the user that saves changes is not the one that
         # has locked the page.
         userId = self.getUser().getId()
-        if self.locks[page] != userId:
+        if self.locks[page][0] != userId:
             from AccessControl import Unauthorized
             raise Unauthorized('This page was locked by someone else.')
         # Remove the lock
@@ -234,7 +235,7 @@ class BaseMixin:
            view.pt for this page. In this case, we consider that the user has
            left the edit page in an unexpected way and we remove the lock.'''
         if hasattr(self.aq_base, 'locks') and (page in self.locks) and \
-           (user.getId() == self.locks[page]):
+           (user.getId() == self.locks[page][0]):
             del self.locks[page]
 
     def onCreateWithoutForm(self):
