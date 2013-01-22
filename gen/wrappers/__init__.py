@@ -177,9 +177,8 @@ class AbstractWrapper(object):
         refs = getattr(self.o, fieldName, None)
         if not refs: return
         tool = self.tool
-        refs.sort(lambda x,y: cmp(getattr(tool.getObject(x), sortKey),
-                                  getattr(tool.getObject(y), sortKey)))
-        if reverse: refs.reverse()
+        refs.sort(key=lambda x: getattr(tool.getObject(x), sortKey),
+                  reverse=reverse)
 
     def create(self, fieldNameOrClass, noSecurity=False, **kwargs):
         '''If p_fieldNameOrClass is the name of a field, this method allows to

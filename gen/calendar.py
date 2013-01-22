@@ -302,7 +302,7 @@ class Calendar(Type):
                             singleRes = (date, event)
                         res.append(singleRes)
         # Sort the result if required
-        if sorted: res.sort(lambda x,y: cmp(x[0], y[0]))
+        if sorted: res.sort(key=lambda x: x[0])
         # Group events spanned on several days if required
         if groupSpanned:
             # Browse events in reverse order and merge them when appropriate
