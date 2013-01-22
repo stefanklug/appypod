@@ -499,14 +499,27 @@ class Renderer:
             resultOdt = zipfile.ZipFile(resultOdtName,'w', zipfile.ZIP_DEFLATED)
         except RuntimeError:
             resultOdt = zipfile.ZipFile(resultOdtName,'w')
+        # Insert first the file "mimetype" (uncompressed), in order to be
+        # compliant with the OpenDocument Format specification, section 17.4,
+        # that has a restriction when it comes to zip containers: the file
+        # called "mimetype" must be at the beginning of the zip file, it must be
+        # uncompressed and it must be stored without any additional file
+        # attributes. Else, libraries like "magic", under Linux/Unix, are unable
+        # to detect the correct mimetype for POD results (it simply recognizes
+        # it as a "application/zip" and not a
+        # "application/vnd.oasis.opendocument.text)".
+        resultOdt.write(os.path.join(self.unzipFolder, 'mimetype'),
+                        'mimetype', zipfile.ZIP_STORED)
         for dir, dirnames, filenames in os.walk(self.unzipFolder):
             for f in filenames:
                 folderName = dir[len(self.unzipFolder)+1:]
+                # Ignore file "mimetype" that was already inserted.
+                if (folderName == '') and (f == 'mimetype'): continue
                 resultOdt.write(os.path.join(dir, f),
                                 os.path.join(folderName, f))
             if not dirnames and not filenames:
                 # This is an empty leaf folder. We must create an entry in the
-                # zip for him
+                # zip for him.
                 folderName = dir[len(self.unzipFolder):]
                 zInfo = zipfile.ZipInfo("%s/" % folderName,time.localtime()[:6])
                 zInfo.external_attr = 48
