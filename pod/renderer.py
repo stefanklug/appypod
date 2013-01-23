@@ -501,12 +501,9 @@ class Renderer:
             resultOdt = zipfile.ZipFile(resultOdtName,'w')
         # Insert first the file "mimetype" (uncompressed), in order to be
         # compliant with the OpenDocument Format specification, section 17.4,
-        # that has a restriction when it comes to zip containers: the file
-        # called "mimetype" must be at the beginning of the zip file, it must be
-        # uncompressed and it must be stored without any additional file
-        # attributes. Else, libraries like "magic", under Linux/Unix, are unable
-        # to detect the correct mimetype for POD results (it simply recognizes
-        # it as a "application/zip" and not a
+        # that expresses this restriction. Else, libraries like "magic", under
+        # Linux/Unix, are unable to detect the correct mimetype for a pod result
+        # (it simply recognizes it as a "application/zip" and not a
         # "application/vnd.oasis.opendocument.text)".
         resultOdt.write(os.path.join(self.unzipFolder, 'mimetype'),
                         'mimetype', zipfile.ZIP_STORED)
