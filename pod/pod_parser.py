@@ -108,6 +108,8 @@ class PodEnvironment(OdfEnvironment):
         self.ifActions = []
         # Currently walked named "if" actions
         self.namedIfActions = {} #~{s_statementName: IfAction}~
+        # Currently parsed expression within an ODS template
+        self.currentOdsExpression = None
 
     def getTable(self):
         '''Gets the currently parsed table.'''
@@ -208,14 +210,36 @@ class PodParser(OdfParser):
         ns = e.onStartElement()
         officeNs = ns[e.NS_OFFICE]
         textNs = ns[e.NS_TEXT]
+        tableNs = ns[e.NS_TABLE]
         if elem in e.ignorableElements:
             e.state = e.IGNORING
         elif elem == ('%s:annotation' % officeNs):
+            # Be it in an ODT or ODS template, an annotation is considered to
+            # contain a POD statement.
             e.state = e.READING_STATEMENT
         elif (elem == ('%s:change-start' % textNs)) or \
              (elem == ('%s:conditional-text' % textNs)):
+            # In an ODT template, any text in track-changes or any conditional
+            # field is considered to contain a POD expression.
             e.state = e.READING_EXPRESSION
             e.exprHasStyle = False
+        elif (elem == ('%s:table-cell' % tableNs)) and \
+             attrs.has_key('%s:formula' % tableNs) and \
+             (attrs['%s:value-type' % officeNs] == 'string'):
+            # In an ODS template, any cell containing a formula of type "string"
+            # is considered to contain a POD expression. But here it is a
+            # special case: we need to dump the cell; the expression is not
+            # directly contained within this cell; the expression will be
+            # contained in the next inner paragraph. So we must here dump the
+            # cell, but without some attributes, because the "formula" will be
+            # converted to the result of evaluating the POD expression.
+            if e.mode == e.ADD_IN_SUBBUFFER:
+                e.addSubBuffer()
+            e.currentBuffer.addElement(e.currentElem.name)
+            e.currentBuffer.dumpStartElement(elem, attrs,
+                ignoreAttrs=('%s:formula'%tableNs, '%s:string-value'%officeNs))
+            # We already have the POD expression: remember it on the env.
+            e.currentOdsExpression = attrs['%s:string-value' % officeNs]
         else:
             if e.state == e.IGNORING:
                 pass
@@ -258,6 +282,11 @@ class PodParser(OdfParser):
             if e.state == e.IGNORING:
                 pass
             elif e.state == e.READING_CONTENT:
+                # Dump the ODS POD expression if any
+                if e.currentOdsExpression:
+                    e.currentBuffer.addExpression(e.currentOdsExpression)
+                    e.currentOdsExpression = None
+                # Dump the ending tag
                 e.currentBuffer.dumpEndElement(elem)
                 if elem in e.impactableElements:
                     if isinstance(e.currentBuffer, MemoryBuffer):
@@ -302,7 +331,12 @@ class PodParser(OdfParser):
         if e.state == e.IGNORING:
             pass
         elif e.state == e.READING_CONTENT:
-            e.currentBuffer.dumpContent(content)
+            if e.currentOdsExpression:
+                # Do not write content if we have encountered an ODS expression:
+                # we will replace this content with the expression's result.
+                pass
+            else:
+                e.currentBuffer.dumpContent(content)
         elif e.state == e.READING_STATEMENT:
             if e.currentElem.elem.startswith(e.namespaces[e.NS_TEXT]):
                 e.currentContent += content

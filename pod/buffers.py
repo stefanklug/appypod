@@ -139,9 +139,10 @@ class Buffer:
 
     def getLength(self): pass # To be overridden
 
-    def dumpStartElement(self, elem, attrs={}):
+    def dumpStartElement(self, elem, attrs={}, ignoreAttrs=()):
         self.write('<%s' % elem)
         for name, value in attrs.items():
+            if ignoreAttrs and (name in ignoreAttrs): continue
             self.write(' %s=%s' % (name, quoteattr(value)))
         self.write('>')
 

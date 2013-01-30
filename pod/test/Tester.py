@@ -78,6 +78,7 @@ class AnnotationsRemover(OdfParser):
 class Test(appy.shared.test.Test):
     '''Abstract test class.'''
     interestingOdtContent = ('content.xml', 'styles.xml')
+
     def __init__(self, testData, testDescription, testFolder, config, flavour):
         appy.shared.test.Test.__init__(self, testData, testDescription,
                                        testFolder, config, flavour)
@@ -85,6 +86,7 @@ class Test(appy.shared.test.Test):
         self.contextsFolder = os.path.join(self.testFolder, 'contexts')
         self.resultsFolder = os.path.join(self.testFolder, 'results')
         self.result = None
+
     def getContext(self, contextName):
         '''Gets the objects that are in the context.'''
         contextPy = os.path.join(self.contextsFolder, contextName + '.py')
@@ -98,13 +100,20 @@ class Test(appy.shared.test.Test):
             if not elem.startswith('__'):
                 exec 'res[elem] = %s.%s' % (contextPkg, elem)
         return res
+
     def do(self):
         self.result = os.path.join(
             self.tempFolder, '%s.%s' % (
                 self.data['Name'], self.data['Result']))
         # Get the path to the template to use for this test
+        if self.data['Template'].endswith('.ods'):
+            suffix = ''
+        else:
+            # For ODT, which is the most frequent case, no need to specify the
+            # file extension.
+            suffix = '.odt'
         template = os.path.join(self.templatesFolder,
-                                self.data['Template'] + '.odt')
+                                self.data['Template'] + suffix)
         if not os.path.exists(template):
             raise TesterError(TEMPLATE_NOT_FOUND % template)
         # Get the context
@@ -127,6 +136,7 @@ class Test(appy.shared.test.Test):
         #    os.mkdir(tempFolder2)
         #print 'Result is', self.result, 'temp folder 2 is', tempFolder2
         #shutil.copy(self.result, tempFolder2)
+
     def getOdtContent(self, odtFile):
         '''Creates in the temp folder content.xml and styles.xml extracted
            from p_odtFile.'''
@@ -151,9 +161,13 @@ class Test(appy.shared.test.Test):
                        OdfEnvironment(), self)
                     annotationsRemover.parse(fileContent)
                     fileContent = annotationsRemover.getResult()
-                f.write(fileContent.encode('utf-8'))
+                try:
+                    f.write(fileContent.encode('utf-8'))
+                except UnicodeDecodeError:
+                    f.write(fileContent)
                 f.close()
         zipFile.close()
+
     def checkResult(self):
         '''r_ is False if the test succeeded.'''
         # Get styles.xml and content.xml from the actual result
@@ -161,7 +175,7 @@ class Test(appy.shared.test.Test):
         self.getOdtContent(self.result)
         # Get styles.xml and content.xml from the expected result
         expectedResult = os.path.join(self.resultsFolder,
-                                      self.data['Name'] + '.odt')
+                                  self.data['Name'] + '.' + self.data['Result'])
         if not os.path.exists(expectedResult):
             raise TesterError(EXPECTED_RESULT_NOT_FOUND % expectedResult)
         self.getOdtContent(expectedResult)

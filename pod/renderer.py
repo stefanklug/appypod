@@ -494,7 +494,8 @@ class Renderer:
             except Exception, e:
                 print WARNING_FINALIZE_ERROR % str(e)
         # Re-zip the result.
-        resultOdtName = os.path.join(self.tempFolder, 'result.odt')
+        resExt = os.path.splitext(self.template)[1]
+        resultOdtName = os.path.join(self.tempFolder, 'result%s' % resExt)
         try:
             resultOdt = zipfile.ZipFile(resultOdtName,'w', zipfile.ZIP_DEFLATED)
         except RuntimeError:
