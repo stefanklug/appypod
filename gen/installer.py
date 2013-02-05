@@ -272,6 +272,12 @@ class ZopeInstaller:
                                             appyType.template)
                     if os.path.exists(fileName):
                         setattr(appyTool, attrName, fileName)
+                        # If the template is ods, set the default format to ods
+                        # (because default is odt)
+                        if fileName.endswith('.ods'):
+                            formats = appyTool.getAttributeName('formats',
+                                                       appyClass, appyType.name)
+                            setattr(appyTool, formats, ['ods'])
                         appyTool.log('Imported "%s" in the tool in ' \
                                      'attribute "%s"'% (fileName, attrName))
                     else:

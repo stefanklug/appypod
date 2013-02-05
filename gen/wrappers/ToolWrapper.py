@@ -54,7 +54,7 @@ class ToolWrapper(AbstractWrapper):
                         (user.o.absolute_url(), user.title,access))
         return res + '\n'.join(rows) + '</table>'
 
-    podOutputFormats = ('odt', 'pdf', 'doc', 'rtf')
+    podOutputFormats = ('odt', 'pdf', 'doc', 'rtf', 'ods', 'xls')
     def getPodOutputFormats(self):
         '''Gets the available output formats for POD documents.'''
         return [(of, self.translate(of)) for of in self.podOutputFormats]
@@ -185,4 +185,36 @@ class ToolWrapper(AbstractWrapper):
             except Exception, e:
                 failed.append(startObject)
             return nb, failed
+
+    def validate(self, new, errors):
+        '''Validates that uploaded POD templates and output types are
+           compatible.'''
+        page = self.request.get('page', 'main')
+        if page == 'documents':
+            # Check that uploaded templates and output formats are compatible.
+            for fieldName in dir(new):
+                # Ignore fields which are not POD templates.
+                if not fieldName.startswith('podTemplate'): continue
+                # Get the file name, either from the newly uploaded file or
+                # from the existing file stored in the database.
+                if getattr(new, fieldName):
+                    fileName = getattr(new, fieldName).filename
+                else:
+                    fileName = getattr(self, fieldName).name
+                # Get the extension of the uploaded file.
+                ext = os.path.splitext(fileName)[1][1:]
+                # Get the chosen output formats for this template.
+                formatsFieldName = 'formatsFor%s' % fieldName[14:]
+                formats = getattr(new, formatsFieldName)
+                error = False
+                if ext == 'odt':
+                    error = ('ods' in formats) or ('xls' in formats)
+                elif ext == 'ods':
+                    error = ('odt' in formats) or ('pdf' in formats) or \
+                            ('doc' in formats) or ('rtf' in formats)
+                if error:
+                    msg = 'This (these) format(s) cannot be used with ' \
+                          'this template.'
+                    setattr(errors, formatsFieldName, msg)
+        return self._callCustom('validate', new, errors)
 # ------------------------------------------------------------------------------

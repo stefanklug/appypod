@@ -94,6 +94,8 @@ appyLabels = [
  ('pdf', 'PDF'),
  ('doc', 'DOC'),
  ('rtf', 'RTF'),
+ ('ods', 'ODS'),
+ ('xls', 'XLS'),
  ('front_page_text', 'Welcome to this Appy-powered site.'),
  ('captcha_text', 'Please type "${text}" (without the double quotes) in the ' \
                   'field besides, but without the character at position ' \
