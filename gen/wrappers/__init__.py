@@ -372,14 +372,20 @@ class AbstractWrapper(object):
             exec expression
         return ctx
 
-    def reindex(self):
+    def reindex(self, fields=None, unindex=False):
         '''Asks a direct object reindexing. In most cases you don't have to
            reindex objects "manually" with this method. When an object is
            modified after some user action has been performed, Appy reindexes
            this object automatically. But if your code modifies other objects,
            Appy may not know that they must be reindexed, too. So use this
-           method in those cases.'''
-        self.o.reindex()
+           method in those cases.
+        '''
+        if fields:
+            # Get names of indexes from field names.
+            indexes = [Search.getIndexName(name) for name in fields]
+        else:
+            indexes = None
+        self.o.reindex(indexes=indexes, unindex=unindex)
 
     def export(self, at='string', format='xml', include=None, exclude=None):
         '''Creates an "exportable" version of this object. p_format is "xml" by

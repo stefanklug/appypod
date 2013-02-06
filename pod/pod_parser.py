@@ -110,6 +110,7 @@ class PodEnvironment(OdfEnvironment):
         self.namedIfActions = {} #~{s_statementName: IfAction}~
         # Currently parsed expression within an ODS template
         self.currentOdsExpression = None
+        self.currentOdsHook = None
         # Names of some tags, that we will compute after namespace propagation
         self.tags = None
 
@@ -204,6 +205,7 @@ class PodEnvironment(OdfEnvironment):
           'table-cell': '%s:table-cell' % ns[self.NS_TABLE],
           'formula': '%s:formula' % ns[self.NS_TABLE],
           'value-type': '%s:value-type' % ns[self.NS_OFFICE],
+          'value': '%s:value' % ns[self.NS_OFFICE],
           'string-value': '%s:string-value' % ns[self.NS_OFFICE],
           'span': '%s:span' % ns[self.NS_TEXT],
           'number-columns-spanned': '%s:number-columns-spanned' % \
@@ -246,10 +248,12 @@ class PodParser(OdfParser):
             e.exprHasStyle = False
         elif (elem == e.tags['table-cell']) and \
              attrs.has_key(e.tags['formula']) and \
-             (attrs[e.tags['value-type']] == 'string'):
+             (attrs[e.tags['value-type']] == 'string') and \
+             attrs[e.tags['formula']].startswith('of:="'):
             # In an ODS template, any cell containing a formula of type "string"
-            # is considered to contain a POD expression. But here it is a
-            # special case: we need to dump the cell; the expression is not
+            # and whose content is expressed as a string between double quotes
+            # (="...") is considered to contain a POD expression. But here it
+            # is a special case: we need to dump the cell; the expression is not
             # directly contained within this cell; the expression will be
             # contained in the next inner paragraph. So we must here dump the
             # cell, but without some attributes, because the "formula" will be
@@ -257,10 +261,13 @@ class PodParser(OdfParser):
             if e.mode == e.ADD_IN_SUBBUFFER:
                 e.addSubBuffer()
             e.currentBuffer.addElement(e.currentElem.name)
-            e.currentBuffer.dumpStartElement(elem, attrs,
-                ignoreAttrs=(e.tags['formula'], e.tags['string-value']))
+            hook = e.currentBuffer.dumpStartElement(elem, attrs,
+                     ignoreAttrs=(e.tags['formula'], e.tags['string-value'],
+                                  e.tags['value-type']),
+                     insertAttributesHook=True)
             # We already have the POD expression: remember it on the env.
             e.currentOdsExpression = attrs[e.tags['string-value']]
+            e.currentOdsHook = hook
         else:
             if e.state == e.IGNORING:
                 pass
@@ -304,8 +311,10 @@ class PodParser(OdfParser):
             elif e.state == e.READING_CONTENT:
                 # Dump the ODS POD expression if any
                 if e.currentOdsExpression:
-                    e.currentBuffer.addExpression(e.currentOdsExpression)
+                    e.currentBuffer.addExpression(e.currentOdsExpression,
+                                                  tiedHook=e.currentOdsHook)
                     e.currentOdsExpression = None
+                    e.currentOdsHook = None
                 # Dump the ending tag
                 e.currentBuffer.dumpEndElement(elem)
                 if elem in e.impactableElements:
