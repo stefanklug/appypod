@@ -337,22 +337,8 @@ class ToolMixin(BaseMixin):
         # Manage additional criteria from a search when relevant
         if searchName: search = self.getSearch(className, searchName)
         if search:
-            # Add additional search criteria
-            for fieldName, fieldValue in search.fields.iteritems():
-                # Management of searches restricted to objects linked through a
-                # Ref field: not implemented yet.
-                if fieldName == '_ref': continue
-                # Make the correspondance between the name of the field and the
-                # name of the corresponding index.
-                attrName = Search.getIndexName(fieldName)
-                # Express the field value in the way needed by the index
-                params[attrName] = Search.getSearchValue(fieldName, fieldValue)
-            # Add a sort order if specified
-            sortKey = search.sortBy
-            if sortKey:
-                params['sort_on'] = Search.getIndexName(sortKey, usage='sort')
-                if search.sortOrder == 'desc': params['sort_order'] = 'reverse'
-                else:                          params['sort_order'] = None
+            # Add in params search and sort criteria.
+            search.updateSearchCriteria(params)
         # Determine or override sort if specified.
         if sortBy:
             params['sort_on'] = Search.getIndexName(sortBy, usage='sort')
@@ -587,6 +573,21 @@ class ToolMixin(BaseMixin):
                 day = int(day)-1
         return res
 
+    def _getDefaultSearchCriteria(self):
+        '''We are about to perform an advanced search on instances of a given
+           class. Check, on this class, if in field Class.searchAdvanced, some
+           default criteria (field values, sort filters, etc) exist, and, if
+           yes, return it.'''
+        res = {}
+        rq = self.REQUEST
+        if 'className' not in rq.form: return res
+        klass = self.getAppyClass(rq.form['className'])
+        if not hasattr(klass, 'searchAdvanced'): return res
+        # In this attribute, we have the Search instance representing automatic
+        # advanced search criteria.
+        klass.searchAdvanced.updateSearchCriteria(res, advanced=True)
+        return res
+
     transformMethods = {'uppercase': 'upper', 'lowercase': 'lower',
                         'capitalize': 'capitalize'}
     def onSearchObjects(self):
@@ -594,7 +595,7 @@ class ToolMixin(BaseMixin):
            search.pt.'''
         rq = self.REQUEST
         # Store the search criteria in the session
-        criteria = {}
+        criteria = self._getDefaultSearchCriteria()
         for attrName in rq.form.keys():
             if attrName.startswith('w_') and \
                not self._searchValueIsEmpty(attrName):

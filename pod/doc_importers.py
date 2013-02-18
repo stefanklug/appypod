@@ -174,6 +174,8 @@ pxToCm = 44.173513561
 def getSize(filePath, fileType):
     '''Gets the size of an image by reading first bytes.'''
     x, y = (None, None)
+    # Get fileType from filePath if not given.
+    if not fileType: fileType = os.path.splitext(filePath)[1][1:]
     f = file(filePath, 'rb')
     if fileType in jpgTypes:
         # Dummy read to skip header ID

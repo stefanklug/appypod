@@ -317,6 +317,7 @@ class Search:
         # In the dict below, keys are indexed field names and values are
         # search values.
         self.fields = fields
+
     @staticmethod
     def getIndexName(fieldName, usage='search'):
         '''Gets the name of the technical index that corresponds to field named
@@ -333,13 +334,15 @@ class Search:
         elif fieldName in defaultIndexes: return fieldName
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
+
     @staticmethod
     def getSearchValue(fieldName, fieldValue):
         '''Returns a transformed p_fieldValue for producing a valid search
            value as required for searching in the index corresponding to
            p_fieldName.'''
-        if fieldName == 'title':
-            # Title is a TextIndex. We must split p_fieldValue into keywords.
+        if fieldName in ('title', 'SearchableText'):
+            # Title and SearchableText are TextIndex indexes. We must split
+            # p_fieldValue into keywords.
             res = Keywords(fieldValue).get()
         elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
             v = fieldValue[:-1]
@@ -365,6 +368,38 @@ class Search:
         else:
             res = fieldValue
         return res
+
+    def updateSearchCriteria(self, criteria, advanced=False):
+        '''This method updates dict p_criteria with all the search criteria
+           corresponding to this Search instance. If p_advanced is True,
+           p_criteria correspond to an advanced search, to be stored in the
+           session: in this case we need to keep the Appy names for parameters
+           sortBy and sortOrder (and not "resolve" them to Zope's sort_on and
+           sort_order).'''
+        # Put search criteria in p_criteria
+        for fieldName, fieldValue in self.fields.iteritems():
+            # Management of searches restricted to objects linked through a
+            # Ref field: not implemented yet.
+            if fieldName == '_ref': continue
+            # Make the correspondence between the name of the field and the
+            # name of the corresponding index, excepted if advanced is True: in
+            # that case, the correspondence will be done later.
+            if not advanced:
+                attrName = Search.getIndexName(fieldName)
+                # Express the field value in the way needed by the index
+                criteria[attrName]= Search.getSearchValue(fieldName, fieldValue)
+            else:
+                criteria[fieldName]= fieldValue
+        # Add a sort order if specified
+        if self.sortBy:
+            if not advanced:
+                criteria['sort_on'] = Search.getIndexName(self.sortBy,
+                                                          usage='sort')
+                if self.sortOrder == 'desc': criteria['sort_order'] = 'reverse'
+                else:                        criteria['sort_order'] = None
+            else:
+                criteria['sortBy'] = self.sortBy
+                criteria['sortOrder'] = self.sortOrder
 
 # ------------------------------------------------------------------------------
 class Type:

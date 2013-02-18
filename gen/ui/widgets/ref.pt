@@ -158,7 +158,7 @@
      <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
      <a tal:condition="python: objs and appyType['queryable']"
         tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
-     <img src="search.gif" tal:attributes="title python: _('search_objects')"/></a>
+     <img src="search.gif" tal:attributes="title python: _('search_title')"/></a>
   </div>
 
   <tal:comment replace="nothing">Appy (top) navigation</tal:comment>

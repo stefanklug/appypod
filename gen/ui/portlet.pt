@@ -50,6 +50,7 @@
                appUrl             app/absolute_url;
                currentSearch      req/search|nothing;
                currentClass       req/className|nothing;
+               currentPage        python: req['PATH_INFO'].rsplit('/',1)[-1];
                rootClasses        tool/getRootClasses;
                phases             python: contextObj and contextObj.getAppyPhases() or None">
 
@@ -68,12 +69,12 @@
    <tal:comment replace="nothing">Section title (link triggers the default search), with action icons</tal:comment>
    <a tal:define="queryParam python: searchInfo['default'] and searchInfo['default']['name'] or ''"
       tal:attributes="href python: '%s?className=%s&search=%s' % (queryUrl, rootClass, queryParam);
-                      class python:test(not currentSearch and (currentClass==rootClass), 'portletCurrent', '')"
+                      class python: (not currentSearch and (currentClass==rootClass) and (currentPage=='query')) and 'portletCurrent' or ''"
       tal:content="structure python: _(rootClass + '_plural')">
    </a>
-   <span tal:define="addPermission python: '%s: Add %s' % (appName, rootClass);
-                     userMayAdd python: user.has_permission(addPermission, appFolder);
-                     createMeans python: tool.getCreateMeans(rootClass)">
+   <tal:icons define="addPermission python: '%s: Add %s' % (appName, rootClass);
+                      userMayAdd python: user.has_permission(addPermission, appFolder);
+                      createMeans python: tool.getCreateMeans(rootClass)">
     <tal:comment replace="nothing">Create a new object from a web form</tal:comment>
     <a tal:condition="python: ('form' in createMeans) and userMayAdd"
        tal:attributes="href python: '%s/do?action=Create&className=%s' % (toolUrl, rootClass);
@@ -86,15 +87,33 @@
                        title python: _('query_import')">
      <img tal:attributes="src string: $appUrl/ui/import.png"/>
     </a>
-    <tal:comment replace="nothing">Search objects of this type</tal:comment>
-    <a tal:define="showSearch python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)"
-       tal:condition="showSearch"
-       tal:attributes="href python: '%s/ui/search?className=%s' % (toolUrl, rootClass);
-                       title python: _('search_objects')">
-     <img tal:attributes="src string: $appUrl/ui/search.gif"/>
-    </a>
-   </span>
-   <tal:comment replace="nothing">Searches for this content type</tal:comment>
+   </tal:icons>
+   <br/>
+   
+   <tal:search condition="python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)">
+    <tal:comment replace="nothing">Live search</tal:comment>
+    <form tal:attributes="action string: $appUrl/config/do">
+     <input type="hidden" name="action" value="SearchObjects"/>
+     <input type="hidden" name="className" tal:attributes="value rootClass"/>
+     <table cellpadding="0" cellspacing="0">
+      <tr valign="middle">
+       <td style="padding-right: 3px"><input type="text" size="14" name="w_SearchableText"/></td>
+       <td><input type="image" style="cursor:pointer"
+                  tal:attributes="src string: $appUrl/ui/search.gif;
+                                  title python: _('search_button')"/></td>
+      </tr>
+     </table>
+    </form>
+    <tal:comment replace="nothing">Advanced search</tal:comment>
+    <div tal:define="highlighted python: (currentClass == rootClass) and (currentPage == 'search')"
+         tal:attributes="class python: highlighted and 'portletSearch portletCurrent' or 'portletSearch'">
+     <a tal:define="text python: _('search_title')"
+        tal:attributes="href python: '%s/ui/search?className=%s' % (toolUrl, rootClass); title text">
+      <span tal:replace="text"/>...
+     </a>
+    </div>
+   </tal:search> 
+   <tal:comment replace="nothing">Predefined searches</tal:comment>
    <tal:widget repeat="widget searchInfo/searches">
     <tal:group condition="python: widget['type'] == 'group'">
      <metal:s use-macro="app/ui/portlet/macros/group"/>

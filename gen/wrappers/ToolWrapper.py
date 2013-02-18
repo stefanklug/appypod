@@ -97,7 +97,7 @@ class ToolWrapper(AbstractWrapper):
 
            "resultColumns"
                Stores the list of columns that must be shown when displaying
-               instances of the a given root p_klass.
+               instances of a given root p_klass.
 
            "enableAdvancedSearch"
                Determines if the advanced search screen must be enabled for

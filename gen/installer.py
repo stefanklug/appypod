@@ -176,6 +176,12 @@ class ZopeInstaller:
             wrapperClass = tool.getAppyClass(className, wrapper=True)
             indexInfo.update(wrapperClass.getIndexes(includeDefaults=False))
         updateIndexes(self, indexInfo)
+        # Re-index index "SearchableText", wrongly defined for Appy < 0.8.3.
+        stIndex = catalog.Indexes['SearchableText']
+        if stIndex.indexSize() == 0:
+            self.logger.info('Reindexing SearchableText...')
+            catalog.reindexIndex('SearchableText', self.app.REQUEST)
+            self.logger.info('Done.')
 
     def getAddPermission(self, className):
         '''What is the name of the permission allowing to create instances of
@@ -364,7 +370,8 @@ class ZopeInstaller:
             wrapperClass = klass.wrapperClass
             if not hasattr(wrapperClass, 'title'):
                 # Special field "type" is mandatory for every class.
-                title = gen.String(multiplicity=(1,1),show='edit',indexed=True)
+                title = gen.String(multiplicity=(1,1), show='edit',
+                                   indexed=True, searchable=True)
                 title.init('title', None, 'appy')
                 setattr(wrapperClass, 'title', title)
             # Special field "state" must be added for every class
