@@ -415,7 +415,7 @@ class Type:
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
                  master, masterValue, focus, historized, sync, mapping, label,
-                 sdefault, scolspan):
+                 sdefault, scolspan, swidth, sheight):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -515,6 +515,9 @@ class Type:
         self.sdefault = sdefault
         # Colspan for rendering the search widget corresponding to this field.
         self.scolspan = scolspan
+        # Width and height for the search widget
+        self.swidth = swidth or width
+        self.sheight = sheight or height
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
@@ -990,15 +993,15 @@ class Integer(Type):
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=6, height=None,
+                 specificWritePermission=False, width=5, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=('',''), scolspan=1):
+                 sdefault=('',''), scolspan=1, swidth=None, sheight=None):
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.pythonType = long
 
     def validateValue(self, obj, value):
@@ -1020,11 +1023,11 @@ class Float(Type):
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=6, height=None,
+                 specificWritePermission=False, width=5, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=('',''), scolspan=1, precision=None, sep=(',', '.'),
-                 tsep=' '):
+                 sdefault=('',''), scolspan=1, swidth=None, sheight=None,
+                 precision=None, sep=(',', '.'), tsep=' '):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -1045,7 +1048,7 @@ class Float(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value, showChanges=False):
@@ -1176,7 +1179,7 @@ class String(Type):
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, sdefault='', scolspan=1,
+                 label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  transform='none', styles=('p','h1','h2','h3','h4'),
                  allowImageUpload=True, richText=False):
         # According to format, the widget will be different: input field,
@@ -1205,7 +1208,7 @@ class String(Type):
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, maxChars, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.isSelect = self.isSelection()
         # If self.isSelect, self.sdefault must be a list of value(s).
         if self.isSelect and not sdefault:
@@ -1228,6 +1231,8 @@ class String(Type):
             elif format == String.PASSWORD: self.maxChars = 20
         self.filterable = self.indexed and (self.format == String.LINE) and \
                           not self.isSelect
+        self.swidth = self.swidth or self.width
+        self.sheight = self.sheight or self.height
 
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
@@ -1523,12 +1528,12 @@ class Boolean(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=False, scolspan=1):
+                 sdefault=False, scolspan=1, swidth=None, sheight=None):
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.pythonType = bool
 
     # Layout including a description
@@ -1576,7 +1581,7 @@ class Date(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=None, scolspan=1):
+                 sdefault=None, scolspan=1, swidth=None, sheight=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -1588,7 +1593,7 @@ class Date(Type):
                       layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
 
     def getCss(self, layoutType, res):
         # CSS files are only required if the calendar must be shown.
@@ -1655,13 +1660,14 @@ class File(Type):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 isImage=False, sdefault='', scolspan=1):
+                 isImage=False, sdefault='', scolspan=1, swidth=None,
+                 sheight=None):
         self.isImage = isImage
         Type.__init__(self, validator, multiplicity, default, show, page, group,
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):
@@ -1816,7 +1822,7 @@ class Ref(Type):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, searchSelect=None, changeOrder=True,
-                 sdefault='', scolspan=1):
+                 sdefault='', scolspan=1, swidth=None, sheight=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -1896,7 +1902,7 @@ class Ref(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, sync, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.validable = self.link
 
     def getDefaultLayouts(self):
@@ -2160,7 +2166,7 @@ class Computed(Type):
                  maxChars=None, colspan=1, method=None, plainText=True,
                  master=None, masterValue=None, focus=False, historized=False,
                  sync=True, mapping=None, label=None, sdefault='', scolspan=1,
-                 context={}):
+                 swidth=None, sheight=None, context={}):
         # The Python method used for computing the field value
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -2174,10 +2180,10 @@ class Computed(Type):
         # "someKey", it will be available to the macro as "options/someKey".
         self.context = context
         Type.__init__(self, None, multiplicity, default, show, page, group,
-                      layouts, move, indexed, False, specificReadPermission,
+                      layouts, move, indexed, searchable,specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, sync, mapping,
-                      label, sdefault, scolspan)
+                      label, sdefault, scolspan, swidth, sheight)
         self.validable = False
 
     def callMacro(self, obj, macroPath):
@@ -2247,7 +2253,7 @@ class Action(Type):
                       move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None, None)
+                      label, None, None, None, None)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
@@ -2295,7 +2301,7 @@ class Info(Type):
                       move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None, None)
+                      label, None, None, None, None)
         self.validable = False
 
 class Pod(Type):
@@ -2334,7 +2340,7 @@ class Pod(Type):
                       move, indexed, searchable, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, False, mapping,
-                      label, None, None)
+                      label, None, None, None, None)
         self.validable = False
 
     def isFrozen(self, obj):
@@ -2478,7 +2484,7 @@ class List(Type):
                       layouts, move, indexed, False, specificReadPermission,
                       specificWritePermission, width, height, None, colspan,
                       master, masterValue, focus, historized, True, mapping,
-                      label, None, None)
+                      label, None, None, None, None)
         self.validable = True
         # Tuples of (names, Type instances) determining the format of every
         # element in the list.

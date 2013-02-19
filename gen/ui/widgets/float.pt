@@ -23,14 +23,16 @@
   <label tal:content="python: _(widget['labelId'])"></label><br>&nbsp;&nbsp;
   <tal:from define="fromName python: '%s*float' % widgetName">
     <label tal:attributes="for fromName" tal:content="python: _('search_from')"></label>
-    <input type="text" size="4"
+    <input type="text"
            tal:attributes="name fromName; maxlength maxChars;
-                           value python: widget['sdefault'][0]"/>
+                           value python: widget['sdefault'][0];
+                           size widget/swidth"/>
   </tal:from>
   <tal:to define="toName python: '%s_to' % name">
     <label tal:attributes="for toName" tal:content="python: _('search_to')"></label>
-    <input type="text" size="4"
+    <input type="text"
            tal:attributes="name toName; maxlength maxChars;
-                           value python: widget['sdefault'][1]"/>
+                           value python: widget['sdefault'][1];
+                           size widget/swidth"/>
   </tal:to><br/>
 </metal:search>

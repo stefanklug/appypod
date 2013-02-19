@@ -396,12 +396,11 @@ class ToolMixin(BaseMixin):
             res = getattr(self.appy(), toolFieldName)
         return res
 
-    def truncateValue(self, value, appyType):
-        '''Truncates the p_value according to p_appyType width.'''
-        maxWidth = appyType['width']
+    def truncateValue(self, value, width=15):
+        '''Truncates the p_value according to p_width.'''
         if isinstance(value, str): value = value.decode('utf-8')
-        if len(value) > maxWidth:
-            return value[:maxWidth].encode('utf-8') + '...'
+        if len(value) > width:
+            return value[:width].encode('utf-8') + '...'
         return value.encode('utf-8')
 
     def truncateText(self, text, width=15):

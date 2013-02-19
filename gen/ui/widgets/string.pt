@@ -47,7 +47,7 @@
             tal:attributes="value python: possibleValue[0];
                             selected python:contextObj.fieldValueSelected(name, possibleValue[0], rawValue);
                             title python: possibleValue[1]"
-            tal:content="python:tool.truncateValue(possibleValue[1], widget)"></option>
+            tal:content="python:tool.truncateValue(possibleValue[1], widget['width'])"></option>
   </select>
   </tal:choice>
   <tal:line condition="python: isOneLine and not isSelect">
@@ -94,7 +94,7 @@
   <tal:simpleSearch condition="not: widget/isSelect">
     <input type="text" tal:define="maxChars python: test(widget['maxChars'], widget['maxChars'], '')"
                        tal:attributes="name python: '%s*string-%s' % (widgetName, widget['transform']);
-                                       maxlength maxChars; size widget/width;
+                                       maxlength maxChars; size widget/swidth;
                                        style python: 'text-transform:%s' % widget['transform'];
                                        value widget/sdefault"/>
   </tal:simpleSearch>
@@ -113,11 +113,11 @@
     </tal:operator>
     <tal:comment replace="nothing">The list of values</tal:comment>
     <select tal:define="preSelected widget/sdefault"
-            tal:attributes="name widgetName; size widget/height" multiple="multiple">
+            tal:attributes="name widgetName; size widget/sheight" multiple="multiple">
       <option tal:repeat="v python:tool.getPossibleValues(name, withTranslations=True, withBlankValue=False, className=className)"
               tal:attributes="value python:v[0]; title python: v[1];
                               selected python: v[0] in preSelected"
-              tal:content="python: tool.truncateValue(v[1], widget)">
+              tal:content="python: tool.truncateValue(v[1], widget['swidth'])">
       </option>
     </select>
   </tal:selectSearch><br/>

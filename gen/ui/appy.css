@@ -73,7 +73,7 @@ img { border: 0; vertical-align: middle}
          background-color: #d7dee4; border-radius: 2px 2px 2px 2px;
          box-shadow: 0 2px 4px #A9A9A9 }
 .focus td { padding: 4px 0px 4px 4px }
-.discreet { font-size: 90%; }
+.discreet { font-size: 90%; color: grey }
 .lostPassword a { font-size: 90%; color: white; padding-left: 1em;}
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed}
@@ -127,7 +127,6 @@ img { border: 0; vertical-align: middle}
 .history th { font-style: italic; text-align: left; padding: 0 5px 0 5px }
 .topSpace { margin-top: 15px;}
 .bottomSpace { margin-bottom: 15px;}
-.discreet { color: grey}
 .pageLink { padding-left: 8px }
 .footer { font-size: 95% }
 .footer td { background-color: #CBCBC9; border-top: 1px solid grey;

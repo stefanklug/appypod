@@ -158,7 +158,8 @@
      <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
      <a tal:condition="python: objs and appyType['queryable']"
         tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
-     <img src="search.gif" tal:attributes="title python: _('search_title')"/></a>
+     <img tal:attributes="title python: _('search_title');
+                          src string: $appUrl/ui/search.gif"/></a>
   </div>
 
   <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
@@ -265,12 +266,12 @@
  <label tal:attributes="for andName" tal:content="python: _('search_and')"></label><br/>
  </tal:operator>
  <tal:comment replace="nothing">The list of values</tal:comment>
- <select tal:attributes="name widgetName; size widget/height" multiple="multiple">
+ <select tal:attributes="name widgetName; size widget/sheight" multiple="multiple">
    <tal:option repeat="v python: tool.getSearchValues(name, className)">
     <option tal:define="uid python: v[0];
                         title python: tool.getReferenceLabel(name, v[1], className)"
-           tal:attributes="value uid; title title"
-           tal:content="python: tool.truncateValue(title, widget)">
+            tal:attributes="value uid; title title"
+            tal:content="python: tool.truncateValue(title, widget['swidth'])">
     </option>
    </tal:option> 
  </select>
