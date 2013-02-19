@@ -127,6 +127,12 @@
        <table align="center" tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])"
               class="login">
        <tr>
+        <td>
+          <!-- Go home -->
+         <a tal:attributes="href appUrl; title python: _('app_home')">
+          <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
+         </a>
+        </td>
         <td class="userStripText">
          <form name="loginform" method="post"
               tal:attributes="action python: tool.absolute_url() + '/performLogin'">
@@ -137,9 +143,9 @@
           <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
 
           <span tal:replace="python: _('app_login')"/>&nbsp;
-          <input type="text" size="25" name="__ac_name" id="__ac_name" value=""/>&nbsp;
+          <input type="text" name="__ac_name" id="__ac_name" value="" style="width: 142px"/>&nbsp;
           <span tal:replace="python: _('app_password')"/>&nbsp;
-          <input type="password" size="25" name="__ac_password" id="__ac_password"/>
+          <input type="password" name="__ac_password" id="__ac_password" style="width: 142px"/>
           <input type="submit" name="submit" onclick="setLoginVars()"
                  tal:define="label python: _('app_connect')" tal:attributes="value label; alt label;"/>
          </form>

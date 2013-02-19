@@ -55,7 +55,7 @@ img { border: 0; vertical-align: middle}
 .lang { margin-right: 6px; }
 .userStrip { background-color: #6282B3; height: 35px;
              border-top: 3px solid #034984; border-bottom: 2px solid #034984; }
-.userStripText { font-size: 110%; padding: 0 0.3em 0 0.3em; color: white }
+.userStripText { padding: 0 0.3em 0 0.3em; color: white }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
 .navigate { border-bottom: 1px solid #5F7983;
