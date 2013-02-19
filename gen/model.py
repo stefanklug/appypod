@@ -186,11 +186,11 @@ class Group(ModelClass):
 class Translation(ModelClass):
     _appy_attributes = ['po', 'title', 'sourceLanguage', 'trToTool']
     # All methods defined below are fake. Real versions are in the wrapper.
+    title = gen.String(show=False, indexed=True)
     actionsPage = gen.Page('actions')
     def getPoFile(self): pass
     po = gen.Action(action=getPoFile, page=actionsPage, result='filetmp')
     sourceLanguage = gen.String(page=actionsPage, width=4)
-    title = gen.String(show=False, indexed=True, page=actionsPage)
     def label(self): pass
     def show(self, name): pass
 
