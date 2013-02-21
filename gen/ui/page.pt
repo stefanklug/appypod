@@ -32,7 +32,7 @@
     <input type="hidden" name="targetUid"/>
   </form>
   <tal:comment replace="nothing">Global form for generating a document from a pod template</tal:comment>
-  <form name="podTemplateForm" method="post"
+  <form id="podTemplateForm" name="podTemplateForm" method="post"
         tal:attributes="action python: tool.absolute_url() + '/generateDocument'">
     <input type="hidden" name="objectUid"/>
     <input type="hidden" name="fieldName"/>

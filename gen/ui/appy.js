@@ -32,8 +32,19 @@ function setLoginVars() {
   else emptyPassword.value = '0';
 }
 
-// AJAX machinery
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
+
+function getElementsHavingName(name) {
+  if (!isIe) return document.getElementsByName(name);
+  var tables = document.getElementsByTagName('table');
+  var res = new Array();
+  for (var i=0; i<tables.length; i++) {
+    var nameAttr = tables[i].attributes['name'];
+    if (nameAttr && (nameAttr.value == name)) res.push(tables[i]);
+  }
+  return res;
+}
+
 // AJAX machinery
 var xhrObjects = new Array(); // An array of XMLHttpRequest objects
 function XhrObject() { // Wraps a XmlHttpRequest object
@@ -279,7 +290,7 @@ function getMasterValues(master) {
 
 function getSlaves(master) {
   // Gets all the slaves of master.
-  allSlaves = document.getElementsByName('slave');
+  allSlaves = getElementsHavingName('slave');
   res = [];  
   masterName = master.attributes['name'].value;
   if (master.type == 'checkbox') {
@@ -322,7 +333,7 @@ function updateSlaves(master, slave) {
 function initSlaves() {
   // When the current page is loaded, we must set the correct state for all
   // slave fields.
-  slaves = document.getElementsByName('slave');
+  slaves = getElementsHavingName('slave');
   i = slaves.length -1;
   while (i >= 0) {
     masterName = getSlaveInfo(slaves[i], 'masterName');
@@ -425,7 +436,7 @@ function toggleCookie(cookieId) {
 
 // Function that allows to generate a document from a pod template.
 function generatePodDocument(contextUid, fieldName, podFormat, queryData) {
-  var theForm = document.getElementsByName("podTemplateForm")[0];
+  var theForm = document.getElementById("podTemplateForm");
   theForm.objectUid.value = contextUid;
   theForm.fieldName.value = fieldName;
   theForm.podFormat.value = podFormat;

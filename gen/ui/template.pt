@@ -128,7 +128,7 @@
               class="login">
        <tr>
         <td>
-          <!-- Go home -->
+         <!-- Go home -->
          <a tal:attributes="href appUrl; title python: _('app_home')">
           <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
          </a>
