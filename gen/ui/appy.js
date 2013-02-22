@@ -34,13 +34,13 @@ function setLoginVars() {
 
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
 
-function getElementsHavingName(name) {
+function getElementsHavingName(tag, name) {
   if (!isIe) return document.getElementsByName(name);
-  var tables = document.getElementsByTagName('table');
+  var elems = document.getElementsByTagName(tag);
   var res = new Array();
-  for (var i=0; i<tables.length; i++) {
-    var nameAttr = tables[i].attributes['name'];
-    if (nameAttr && (nameAttr.value == name)) res.push(tables[i]);
+  for (var i=0; i<elems.length; i++) {
+    var nameAttr = elems[i].attributes['name'];
+    if (nameAttr && (nameAttr.value == name)) res.push(elems[i]);
   }
   return res;
 }
@@ -81,7 +81,7 @@ function getAjaxChunk(pos) {
           xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
         }
         // Eval inner scripts if any.
-        var innerScripts = document.getElementsByName("appyHook");
+        var innerScripts = getElementsHavingName('div', 'appyHook');
         for (var i=0; i<innerScripts.length; i++) {
           eval(innerScripts[i].innerHTML);
         }
@@ -223,7 +223,7 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
 function setSubTitles(value) {
   createCookie('showSubTitles', value);
   // Get the sub-titles
-  var subTitles = document.getElementsByName('subTitle');
+  var subTitles = getElementsHavingName('div', 'subTitle');
   if (subTitles.length == 0) return;
   for (var i=0; i < subTitles.length; i++) {
     if (value == 'true') subTitles[i].style.display = 'block';
@@ -290,7 +290,7 @@ function getMasterValues(master) {
 
 function getSlaves(master) {
   // Gets all the slaves of master.
-  allSlaves = getElementsHavingName('slave');
+  allSlaves = getElementsHavingName('table', 'slave');
   res = [];  
   masterName = master.attributes['name'].value;
   if (master.type == 'checkbox') {
@@ -333,7 +333,7 @@ function updateSlaves(master, slave) {
 function initSlaves() {
   // When the current page is loaded, we must set the correct state for all
   // slave fields.
-  slaves = getElementsHavingName('slave');
+  slaves = getElementsHavingName('table', 'slave');
   i = slaves.length -1;
   while (i >= 0) {
     masterName = getSlaveInfo(slaves[i], 'masterName');
