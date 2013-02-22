@@ -8,6 +8,8 @@
 
     <p><b>pod</b> (<b>p</b>ython <b>o</b>pen <b>d</b>ocument) is a library that allows to easily generate documents whose content is dynamic. The principle is simple: you create an ODF (Open Document Format) text document (with LibreOffice Writer for example), you insert some Python code at some places inside it, and from any program written in Python, you can call pod with, as input, the OpenDocument file and a bunch of Python objects. pod generates another ODF text document (ODT) that contains the desired result. If you prefer to get the result in another format, pod can call LibreOffice in server mode to generate the result in PDF, DOC, RTF or TXT format.</p>
 
+    <br/><p>New with Appy 0.8.3: <b>support for spreasheet templates</b>. Appy now allows to generate, from an ODS (Open Document Spreadheet) template, spreadsheets in ODS (natively) or in Excel (by calling LibreOffice in server mode). A first example can be found in the bottom of this page.</p>
+
     <h1>Getting started with pod</h1>
 
     <p>First, create a pod template, like the one below.</p>
@@ -41,5 +43,35 @@
     <p><br/>The second line of the template is repeated 3 times. It is the effect of the <span class="code">for</span> loop in the first note. Content of every field was replaced by the result of evaluating it as a Python expression, thanks to the context given to the <span class="code">Renderer</span> as second parameter of its constructor. Note that within a loop, a new name (the iterator variable, <span class="code">i</span> in this case) is added in the context and can be used within the document part that is impacted by the <span class="code">for</span> loop. The last line of the template was not rendered because the condition of the second note evaluated to <span class="code">False</span>.</p>
 
     <p><br/>Click <a href="podRenderingTemplates.html">here</a> if you want to learn more about rendering pod templates.</p>
+
+    <h1>pod for rendering spreadsheets</h1>
+
+    <p>Suppose you write, with LibreOffice Calc, the following template, named SimpleTestOds.ods.</p>
+
+    <p align="center"><br/><img src="img/SimpleTestOds.png"/></p>
+
+    <p><br/>Here is the way we will call pod for producing an ODS spreadsheet, based on some Python dict containing a bunch of people.</p>
+
+    <p class="code codePara">
+      01&nbsp;&nbsp;<b>from</b> appy.pod.renderer <b>import</b> Renderer<br/>
+      02&nbsp;&nbsp;<br/>
+      03&nbsp;&nbsp;staff = [{'firstName': 'Delannay', 'name': 'Gaetan', 'age': 112},<br/>
+      04&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'firstName': 'Gauthier', 'name': 'Bastien', 'age': 5},<br/>
+      05&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{'firstName': 'Jean-Michel', 'name': 'Abe', 'age': 79}]<br/>
+      06&nbsp;&nbsp;<br/>
+      07&nbsp;&nbsp;renderer = Renderer('SimpleTestOds.ods', globals(), 'result.ods')<br/>
+      08&nbsp;&nbsp;renderer.run()<br/>
+    </p>
+
+    <p><br/>If you execute this code in a Python file located in the same folder as SimpleTestOds.ods, you will get a file named result.ods with the following content.</p>
+
+    <p align="center"><br/><img src="img/SimpleTestOds.res.png"/></p>
+
+    <p><br/>Some remarks now. pod considers that any cell containing something of the form ="..." (= a formula whose result is a string and that is directly expressed as a string literal, surrounded by double quotes) will contain a Python expression, that will be executed according to the current context. pod <i>statements</i> (like the note containing <span class="code">do row for person in staff</span>), allowing to conditionaly or repeatedly include parts of the spreadsheet, are expressed in the same way as in ODT templates (check <a href="podWritingTemplates.html">here</a> for more details).</p>
+
+    <p><br/>Within ODT templates, any Python expression is converted to string, because an ODT is only made of text. Within ODS templates, a Python expression that produces a Python <span class="code">int</span>, <span class="code">long</span> or <span class="code">float</span> will be rendered as a float value within the resulting spreadsheet. In the previous example, cells containing pages are float values.</p>
+
+    <p><br/>Within an ODS spreadsheet, every sheet is internally represented as a table. With statements like <span class="code">do table for...</span> you should be able to repeat a template sheet and produce several sheets in the resulting spreadsheet.</p>
+
   </body>
 </html>
