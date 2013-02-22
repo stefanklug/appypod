@@ -43,6 +43,7 @@ class FtpFolder:
         self.files = []
         self.isComplete = False # Is True if all contained files and direct
         # subFolders were analysed.
+
     def getFullName(self):
         if not self.parent:
             res = '.'
@@ -52,11 +53,13 @@ class FtpFolder:
     def addSubFolder(self, subFolder):
         self.subFolders.append(subFolder)
         subFolder.parent = self
+
     def isFullyComplete(self):
         res = self.isComplete
         for subFolder in self.subFolders:
             res = res and subFolder.isFullyComplete()
         return res
+
     def getIncompleteSubFolders(self):
         res = []
         for subFolder in self.subFolders:
@@ -65,6 +68,7 @@ class FtpFolder:
             elif not subFolder.isFullyComplete():
                 res += subFolder.getIncompleteSubFolders()
         return res
+
     def __str__(self):
         res = 'Folder %s' % self.getFullName()
         if self.files:
@@ -76,9 +80,11 @@ class FtpFolder:
             for subFolder in self.subFolders:
                 res += str(subFolder)
         return res
+
     def clean(self, site):
         '''Cleans this folder'''
         # First, clean subFolders if they exist
+        print 'Cleaning', self.getFullName(), len(self.subFolders), 'subFolders'
         for subFolder in self.subFolders:
             subFolder.clean(site)
             # Remove the subFolder
@@ -87,6 +93,7 @@ class FtpFolder:
         for f in self.files:
             fileName = '%s/%s' % (self.getFullName(), f)
             site.delete(fileName)
+            print fileName, 'removed.'
 
 # ------------------------------------------------------------------------------
 class AppySite:
@@ -104,16 +111,19 @@ class AppySite:
         self.site.login(userId, userPassword)
         self.rootFolder = None # Root folder of appy site ~FtpFolder~
         self.currentFolder = None # Currently visited folder ~FtpFolder~
+
     def analyseFolderEntry(self, folderEntry):
         '''p_line corresponds to a 'ls' entry.'''
         elems = folderEntry.split(' ')
         elemName = elems[len(elems)-1]
-        if (not elemName.startswith('.')) and \
-           (not elemName.startswith('_')):
-            if elems[0].startswith('d'):
-                self.currentFolder.addSubFolder(FtpFolder(elemName))
-            else:
-                self.currentFolder.files.append(elemName)
+        if (elemName.startswith('.') or elemName.startswith('_')) and \
+           (not  elemName.startswith('__init__.py')):
+            return
+        if elems[0].startswith('d'):
+            self.currentFolder.addSubFolder(FtpFolder(elemName))
+        else:
+            self.currentFolder.files.append(elemName)
+
     def createFolderProxies(self):
         '''Creates a representation of the FTP folders of the appy site in the
         form of FtpFolder instances.'''
@@ -128,6 +138,7 @@ class AppySite:
                 self.site.dir(self.currentFolder.getFullName(),
                               self.analyseFolderEntry)
                 self.currentFolder.isComplete = True
+
     def copyFile(self, fileName):
         '''Copies a file on the FTP server.'''
         localFile = file(fileName)
@@ -141,6 +152,7 @@ class AppySite:
             # Make a transfer in binary mode
             print 'Transfer file %s (binary mode)' % fileName
             self.site.storbinary(cmd, localFile)
+
     def publish(self):
         # Delete the existing content of the distant site
         self.createFolderProxies()
@@ -307,17 +319,16 @@ class Publisher:
         name = 'appy-%s.tar.gz' % self.versionShort
         os.rename('%s/dist/%s' % (distFolder, name),
                   '%s/versions/%s' % (appyPath, name))
+        os.rmdir('%s/dist' % distFolder)
+        # Upload the package on Pypi?
+        if self.askQuestion('Upload %s on PyPI?' % name, default='no'):
+            self.executeCommand('python setup.py sdist upload')
         # Clean temp files
         os.chdir(curdir)
         # Keep the Appy source for building the Debian package afterwards
         os.rename(os.path.join(self.genFolder, 'dist', 'appy'), \
                   os.path.join(self.genFolder, 'appy'))
         FolderDeleter.delete(os.path.join(self.genFolder, 'dist'))
-        return name
-
-    def uploadOnPypi(self, name):
-        print 'Uploading %s on PyPI...' % name
-        #self.executeCommand('python setup.py sdist upload')
 
     def createZipRelease(self):
         '''Creates a zip file with the appy sources.'''
@@ -489,10 +500,10 @@ class Publisher:
         self.createDocToc()
         self.applyTemplate()
         self.createZipRelease()
-        tarball = self.createDistRelease()
+        self.createDistRelease()
         self.createDebianRelease()
-        if self.askQuestion('Upload %s on PyPI?' % tarball, default='no'):
-            self.uploadOnPypi(tarball)
+        # Remove folder 'appy', in order to avoid copying it on the website
+        FolderDeleter.delete(os.path.join(self.genFolder, 'appy'))
         if self.askQuestion('Publish on appyframework.org?', default='no'):
             AppySite().publish()
         if self.askQuestion('Delete locally generated site ?', default='no'):
