@@ -69,7 +69,7 @@
 
     <p><br/>Some remarks now. pod considers that any cell containing something of the form ="..." (= a formula whose result is a string and that is directly expressed as a string literal, surrounded by double quotes) will contain a Python expression, that will be executed according to the current context. pod <i>statements</i> (like the note containing <span class="code">do row for person in staff</span>), allowing to conditionaly or repeatedly include parts of the spreadsheet, are expressed in the same way as in ODT templates (check <a href="podWritingTemplates.html">here</a> for more details).</p>
 
-    <p><br/>Within ODT templates, any Python expression is converted to string, because an ODT is only made of text. Within ODS templates, a Python expression that produces a Python <span class="code">int</span>, <span class="code">long</span> or <span class="code">float</span> will be rendered as a float value within the resulting spreadsheet. In the previous example, cells containing pages are float values.</p>
+    <p><br/>Within ODT templates, any Python expression is converted to string, because an ODT is only made of text. Within ODS templates, a Python expression that produces a Python <span class="code">int</span>, <span class="code">long</span> or <span class="code">float</span> will be rendered as a float value within the resulting spreadsheet. In the previous example, cells containing ages are float values.</p>
 
     <p><br/>Within an ODS spreadsheet, every sheet is internally represented as a table. With statements like <span class="code">do table for...</span> you should be able to repeat a template sheet and produce several sheets in the resulting spreadsheet.</p>
 

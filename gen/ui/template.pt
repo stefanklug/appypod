@@ -132,6 +132,8 @@
          <a tal:attributes="href appUrl; title python: _('app_home')">
           <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
          </a>
+         <tal:comment replace="nothing">Additional icons can be added here by redefining icons.pt</tal:comment>
+         <metal:call use-macro="app/ui/icons/macros/icons"/>
         </td>
         <td class="userStripText">
          <form name="loginform" method="post"
