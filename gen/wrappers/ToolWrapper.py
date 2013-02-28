@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
 import os.path, time
 import appy
+from appy.gen.mail import sendMail
 from appy.shared.utils import executeCommand
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.installer import loggedUsers
@@ -129,6 +130,10 @@ class ToolWrapper(AbstractWrapper):
                                       fileName, format, self.openOfficePort)
         self.log('Executing %s...' % cmd)
         return executeCommand(cmd) # The result can contain an error message
+
+    def sendMail(self, to, subject, body, attachments=None):
+        '''Sends a mail. See doc for appy.gen.mail.sendMail.'''
+        sendMail(self, to, subject, body, attachments=attachments)
 
     def refreshSecurity(self):
         '''Refreshes, on every object in the database, security-related,
