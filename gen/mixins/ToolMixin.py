@@ -903,11 +903,6 @@ class ToolMixin(BaseMixin):
             res.append(row)
         return res
 
-    def truncate(self, value, numberOfChars):
-        '''Truncates string p_value to p_numberOfChars.'''
-        if len(value) > numberOfChars: return value[:numberOfChars] + '...'
-        return value
-
     # --------------------------------------------------------------------------
     # Authentication-related methods
     # --------------------------------------------------------------------------

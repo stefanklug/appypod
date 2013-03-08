@@ -12,6 +12,11 @@ class PageWrapper(AbstractWrapper):
         '''Show the sub-pages.'''
         if self.user.has_role('Manager'): return 'view'
 
+    def showPortlet(self):
+        '''Do not show the portlet for a page, unless sub-pages arre defined.'''
+        if self.isEmpty('pages'): return False
+        return True
+
     def onEdit(self, created):
         return self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------
