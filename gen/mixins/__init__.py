@@ -1606,7 +1606,12 @@ class BaseMixin:
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
     def getBreadCrumb(self):
-        '''Gets breadcrumb info about this object and its parents.'''
+        '''Gets breadcrumb info about this object and its parents (if it must
+           be shown).'''
+        # Return an empty breadcrumb if it must not be shown.
+        klass = self.getClass()
+        if hasattr(klass, 'breadcrumb') and not klass.breadcrumb: return ()
+        # Compute the breadcrumb
         res = [{'url': self.absolute_url(),
                 'title': self.getFieldValue('title', layoutType='view')}]
         parent = self.getParent()
@@ -1746,7 +1751,8 @@ class BaseMixin:
             appyType = self.getAppyType(name)
         else:
             appyType = self.getAppyType(name.split('_img_')[0])
-        if not appyType.isShowable(self, 'view'):
+        if (not appyType.isShowable(self, 'view')) and \
+           (not appyType.isShowable(self, 'result')):
             from zExceptions import NotFound
             raise NotFound()
         theFile = getattr(self.aq_base, name, None)

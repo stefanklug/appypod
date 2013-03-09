@@ -9,7 +9,8 @@ from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
 from appy.gen.mail import sendMail
 from appy.shared import mimeTypes
-from appy.shared.utils import getOsTempFolder, sequenceTypes, normalizeString
+from appy.shared.utils import getOsTempFolder, sequenceTypes, normalizeString, \
+                              splitList
 from appy.shared.data import languages
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
@@ -224,6 +225,13 @@ class ToolMixin(BaseMixin):
                             for key in self.queryParamNames])
         return res
 
+    def getResultMode(self, className):
+        '''Must we show, on result.pt, instances of p_className as a list or
+           as a grid?'''
+        klass = self.getAppyClass(className)
+        if hasattr(klass, 'resultMode'): return klass.resultMode
+        return 'list' # The default mode
+
     def getImportElements(self, contentType):
         '''Returns the list of elements that can be imported from p_path for
            p_contentType.'''
@@ -415,6 +423,11 @@ class ToolMixin(BaseMixin):
         if len(uText) <= width: return text
         return '<acronym title="%s">%s</acronym>' % \
                (text, uText[:width].encode('utf-8') + '...')
+
+    def splitList(self, l, sub):
+        '''Returns a list made of the same elements as p_l, but grouped into
+           sub-lists of p_sub elements.'''
+        return splitList(l, sub)
 
     def getLayoutType(self):
         '''Guess the current layout type, according to actual URL.'''

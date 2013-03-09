@@ -1,3 +1,87 @@
+<tal:comment replace="nothing">Show field content of a given object.</tal:comment>
+<metal:field define-macro="field">
+ <tal:comment replace="nothing">Title</tal:comment>
+ <tal:title condition="python: widget['name'] == 'title'">
+  <tal:icons replace="structure obj/getIcons"/>
+  <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+     tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
+  <div name="subTitle" tal:content="structure obj/getSubTitle"
+       tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
+
+  <tal:comment replace="nothing">Actions: edit, delete</tal:comment>
+  <div tal:attributes="align dright" tal:condition="obj/mayAct">
+   <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
+      tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
+      tal:condition="obj/mayEdit">
+    <img tal:attributes="src string: $appUrl/ui/edit.png;
+                         title python: _('object_edit')"/></a><img
+      tal:condition="obj/mayDelete" style="cursor:pointer"
+      tal:attributes="src string: $appUrl/ui/delete.png;
+                      title python: _('object_delete');
+                      onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
+  </div>
+ </tal:title>
+ <tal:comment replace="nothing">Any other field</tal:comment>
+ <tal:other condition="python: widget['name'] != 'title'">
+  <tal:field define="contextObj python:obj;
+                     layoutType python:'cell';
+                     innerRef python:True"
+             condition="python: contextObj.showField(widget['name'], 'result')">
+   <metal:f use-macro="context/ui/widgets/show/macros/field"/>
+  </tal:field>
+ </tal:other>
+</metal:field>
+
+<tal:comment replace="nothing">Show query results as a list.</tal:comment>
+<table metal:define-macro="list" class="list" width="100%">
+ <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
+ <tr>
+  <tal:header repeat="column columns">
+   <th tal:define="widget column/field;
+                   sortable python: tool.isSortable(widget['name'], className, 'search');
+                   filterable widget/filterable|nothing"
+       tal:attributes="width column/width; align column/align">
+     <span tal:replace="structure python: tool.truncateText(_(widget['labelId']))"/>
+     <metal:icons use-macro="context/ui/navigate/macros/sortAndFilter"/>
+     <metal:details use-macro="context/ui/navigate/macros/showDetails"/>
+   </th>
+  </tal:header>
+ </tr>
+
+ <tal:comment replace="nothing">Results</tal:comment>
+ <tal:row repeat="obj objs">
+ <tr id="query_row" valign="top" tal:define="odd repeat/obj/odd"
+     tal:attributes="class python:test(odd, 'even', 'odd')">
+
+  <tal:fields repeat="column columns">
+  <td tal:define="widget column/field"
+      tal:attributes="id python:'field_%s' % widget['name'];
+                      width column/width; align column/align">
+   <metal:f use-macro="context/ui/result/macros/field"/>
+  </td>
+  </tal:fields>
+ </tr>
+ </tal:row>
+</table>
+
+<tal:comment replace="nothing">Show query results as a grid.</tal:comment>
+<table metal:define-macro="grid" width="100%"
+       tal:define="modeElems python: resultMode.split('_');
+                   cols python: (len(modeElems)==2) and int(modeElems[1]) or 4;
+                   rows python: tool.splitList(objs, cols)">
+ <tr tal:repeat="row rows" valign="middle">
+  <td tal:repeat="obj row" tal:attributes="width python: '%d%%'%(100/cols)"
+      align="center" style="padding-top: 8px">
+    <tal:col repeat="column columns">
+     <tal:field define="widget column/field">
+       <metal:f use-macro="context/ui/result/macros/field"/>
+     </tal:field>
+    </tal:col>
+  </td>
+ </tr>
+</table>
+
+<tal:comment replace="nothing">Show paginated query results as a list or grid.</tal:comment>
 <div id="queryResult" metal:define-macro="queryResult"
    tal:define="_             python: tool.translate;
                className     request/className;
@@ -20,7 +104,8 @@
                ajaxHookId    python:'queryResult';
                navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
                newSearchUrl  python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart);
-               showSubTitles python: request.get('showSubTitles', 'true') == 'true'">
+               showSubTitles python: request.get('showSubTitles', 'true') == 'true';
+               resultMode    python: tool.getResultMode(className)">
 
  <tal:result condition="objs">
   <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
@@ -56,68 +141,17 @@
     </td>
    </tr>
   </table>
-  <table tal:define="columnLayouts python: tool.getResultColumnsLayouts(className, refInfo);
-                     columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir)"
-         class="list" width="100%">
-    <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
-    <tr>
-     <tal:header repeat="column columns">
-      <th tal:define="widget column/field;
-                      sortable python: tool.isSortable(widget['name'], className, 'search');
-                      filterable widget/filterable|nothing"
-          tal:attributes="width column/width; align column/align">
-        <span tal:replace="structure python: tool.truncateText(_(widget['labelId']))"/>
-        <metal:icons use-macro="context/ui/navigate/macros/sortAndFilter"/>
-        <metal:details use-macro="context/ui/navigate/macros/showDetails"/>
-      </th>
-     </tal:header>
-    </tr>
 
-    <tal:comment replace="nothing">Results</tal:comment>
-    <tal:row repeat="obj objs">
-    <tr id="query_row" valign="top" tal:define="odd repeat/obj/odd"
-        tal:attributes="class python:test(odd, 'even', 'odd')">
-
-     <tal:fields repeat="column columns">
-      <td tal:define="widget column/field"
-          tal:attributes="id python:'field_%s' % widget['name'];
-                          width column/width; align column/align">
-       <tal:comment replace="nothing">Title</tal:comment>
-       <tal:title condition="python: widget['name'] == 'title'">
-        <tal:icons replace="structure obj/getIcons"/>
-        <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-           tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
-        <div name="subTitle" tal:content="structure obj/getSubTitle"
-             tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
-
-        <tal:comment replace="nothing">Actions: edit, delete</tal:comment>
-        <div tal:attributes="align dright" tal:condition="obj/mayAct">
-         <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-            tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
-            tal:condition="obj/mayEdit">
-          <img tal:attributes="src string: $appUrl/ui/edit.png;
-                               title python: _('object_edit')"/></a><img
-            tal:condition="obj/mayDelete" style="cursor:pointer"
-            tal:attributes="src string: $appUrl/ui/delete.png;
-                            title python: _('object_delete');
-                            onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
-        </div>
-       </tal:title>
-
-       <tal:comment replace="nothing">Any other field</tal:comment>
-       <tal:other condition="python: widget['name'] != 'title'">
-        <tal:field define="contextObj python:obj;
-                           layoutType python:'cell';
-                           innerRef python:True"
-                   condition="python: contextObj.showField(widget['name'], 'result')">
-         <metal:field use-macro="context/ui/widgets/show/macros/field"/>
-        </tal:field>
-       </tal:other>
-      </td>
-     </tal:fields>
-    </tr>
-    </tal:row>
-  </table>
+  <tal:comment replace="nothing">Results, as a list or grid</tal:comment>
+  <tal:res define="columnLayouts python: tool.getResultColumnsLayouts(className, refInfo);
+                   columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir)">
+   <tal:asList condition="python: resultMode == 'list'">
+    <metal:list use-macro="context/ui/result/macros/list"/>
+   </tal:asList>
+   <tal:asGrid condition="python: resultMode != 'list'">
+    <metal:grid use-macro="context/ui/result/macros/grid"/>
+   </tal:asGrid>
+  </tal:res>
 
   <tal:comment replace="nothing">Appy (bottom) navigation</tal:comment>
   <metal:nav use-macro="here/ui/navigate/macros/appyNavigate"/>
