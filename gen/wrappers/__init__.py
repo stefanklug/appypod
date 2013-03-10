@@ -177,8 +177,12 @@ class AbstractWrapper(object):
         refs = getattr(self.o, fieldName, None)
         if not refs: return
         tool = self.tool
-        refs.sort(key=lambda x: getattr(tool.getObject(x), sortKey),
-                  reverse=reverse)
+        # refs is a PersistentList: param "key" is not available. So perform the
+        # sort on the real list and then indicate that the persistent list has
+        # changed (the ZODB way).
+        refs.data.sort(key=lambda x: getattr(tool.getObject(x), sortKey),
+                       reverse=reverse)
+        refs._p_changed = 1
 
     def create(self, fieldNameOrClass, noSecurity=False, **kwargs):
         '''If p_fieldNameOrClass is the name of a field, this method allows to
