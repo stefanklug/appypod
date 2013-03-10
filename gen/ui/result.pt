@@ -2,12 +2,11 @@
 <metal:field define-macro="field">
  <tal:comment replace="nothing">Title</tal:comment>
  <tal:title condition="python: widget['name'] == 'title'">
-  <tal:icons replace="structure obj/getIcons"/>
-  <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
-     tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
+  <tal:nav define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, startNumber+currentNumber, totalNumber)">
+  <tal:icons replace="structure python: obj.getIcons(navInfo)"/>
+  <a tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
   <div name="subTitle" tal:content="structure obj/getSubTitle"
        tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
-
   <tal:comment replace="nothing">Actions: edit, delete</tal:comment>
   <div tal:attributes="align dright" tal:condition="obj/mayAct">
    <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
@@ -20,6 +19,7 @@
                       title python: _('object_delete');
                       onClick python:'onDeleteObject(\'%s\')' % obj.UID()"/>
   </div>
+  </tal:nav>
  </tal:title>
  <tal:comment replace="nothing">Any other field</tal:comment>
  <tal:other condition="python: widget['name'] != 'title'">
@@ -50,7 +50,9 @@
 
  <tal:comment replace="nothing">Results</tal:comment>
  <tal:row repeat="obj objs">
- <tr id="query_row" valign="top" tal:define="odd repeat/obj/odd"
+ <tr id="query_row" valign="top"
+     tal:define="odd repeat/obj/odd;
+                 global currentNumber python: currentNumber + 1"
      tal:attributes="class python:test(odd, 'even', 'odd')">
 
   <tal:fields repeat="column columns">
@@ -71,12 +73,14 @@
                    rows python: tool.splitList(objs, cols)">
  <tr tal:repeat="row rows" valign="middle">
   <td tal:repeat="obj row" tal:attributes="width python: '%d%%'%(100/cols)"
-      align="center" style="padding-top: 8px">
-    <tal:col repeat="column columns">
-     <tal:field define="widget column/field">
-       <metal:f use-macro="context/ui/result/macros/field"/>
-     </tal:field>
-    </tal:col>
+      align="center" style="padding-top: 25px">
+    <tal:def define="global currentNumber python: currentNumber + 1">
+     <tal:col repeat="column columns">
+      <tal:field define="widget column/field">
+        <metal:f use-macro="context/ui/result/macros/field"/>
+      </tal:field>
+     </tal:col>
+    </tal:def>
   </td>
  </tr>
 </table>
@@ -144,7 +148,8 @@
 
   <tal:comment replace="nothing">Results, as a list or grid</tal:comment>
   <tal:res define="columnLayouts python: tool.getResultColumnsLayouts(className, refInfo);
-                   columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir)">
+                   columns python: objs[0].getColumnsSpecifiers(columnLayouts, dir);
+                   global currentNumber python: 0">
    <tal:asList condition="python: resultMode == 'list'">
     <metal:list use-macro="context/ui/result/macros/list"/>
    </tal:asList>

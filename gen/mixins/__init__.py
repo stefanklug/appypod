@@ -915,10 +915,10 @@ class BaseMixin:
                 return None
             return res
 
-    def getIcons(self):
+    def getIcons(self, navInfo=''):
         '''Gets the icons that can be shown besides the title of an object.'''
         appyObj = self.appy()
-        if hasattr(appyObj, 'getIcons'): return appyObj.getIcons()
+        if hasattr(appyObj, 'getIcons'): return appyObj.getIcons(navInfo)
         return ''
 
     def getSubTitle(self):
