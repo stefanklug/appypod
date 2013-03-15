@@ -2,17 +2,6 @@
 import sha
 from appy import Object
 from appy.gen import Type
-from appy.px import Px
-
-view = Px('''
-<p>Hello PX world.</p>
-<x for="x in value.keys()">
-  <div if="len(x) &lt; 5">
-   <x>:x</x> : <x>:value[x]</x>
-  </div>
-  <a href=":'http://www.cetic.be/%s' % value[x]">:x</a>
-</x>
-''')
 
 # ------------------------------------------------------------------------------
 class OgoneConfig:
@@ -157,6 +146,4 @@ class Ogone(Type):
         # some URL, use it. Else, use the view page of p_obj.
         if not url: url = obj.absolute_url()
         obj.goto(url)
-
-    def getPx(self, context): return view(context).encode('utf-8')
 # ------------------------------------------------------------------------------

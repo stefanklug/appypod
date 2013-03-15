@@ -14,9 +14,6 @@
     <input type="image" id="submit2" name="submit2"
            tal:attributes="src string: $appUrl/ui/ogone.gif; title python: _('custom_pay')"/>
   </form>
-  <tal:comment replace="nothing">Ogone PX test</tal:comment>
-  <div>PX</div>
-  <tal:px replace="structure python: contextObj.callField(name, 'getPx', {'obj': contextObj, 'value': value})"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro (none)</tal:comment>
