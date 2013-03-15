@@ -45,7 +45,7 @@ class BufferAction:
         # of the action.
         self.minus = minus # If True, the main buffer element(s) must not be
         # dumped.
-        self.result = self.buffer.getFileBuffer()
+        self.result = self.buffer.getRootBuffer()
         self.source = source # if 'buffer', we must dump the (evaluated) buffer
         # content. If 'from', we must dump what comes from the 'from' part of
         # the action (='fromExpr')

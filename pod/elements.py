@@ -30,11 +30,11 @@ class PodElement:
     POD_ELEMS = ('text', 'title', 'section', 'table', 'row', 'cell')
     MINUS_ELEMS = ('section', 'table') # Elements for which the '-' operator can
     # be applied
+    @staticmethod
     def create(elem):
-        '''Used to create any POD elem that has a equivalent OD element. Not
+        '''Used to create any POD elem that has an equivalent OD element. Not
            for creating expressions, for example.'''
         return eval(PodElement.OD_TO_POD[elem])()
-    create = staticmethod(create)
 
 class Text(PodElement):
     OD = XmlElement('p', nsUri=ns.NS_TEXT)

@@ -207,6 +207,7 @@ class FileBuffer(Buffer):
         pass
 
     def pushSubBuffer(self, subBuffer): pass
+    def getRootBuffer(self): return self
 
 # ------------------------------------------------------------------------------
 class MemoryBuffer(Buffer):
@@ -227,12 +228,11 @@ class MemoryBuffer(Buffer):
                             # the same place within this buffer.
         return sb
 
-    def getFileBuffer(self):
-        if isinstance(self.parent, FileBuffer):
-            res = self.parent
-        else:
-            res = self.parent.getFileBuffer()
-        return res
+    def getRootBuffer(self):
+        '''Returns the root buffer. For POD it is always a FileBuffer. For PX,
+           it is a MemoryBuffer.'''
+        if self.parent: return self.parent.getRootBuffer()
+        return self
 
     def getLength(self): return len(self.content)
 
@@ -253,25 +253,38 @@ class MemoryBuffer(Buffer):
         return res
 
     def isMainElement(self, elem):
-        res = False
+        '''Is p_elem the main elemen within this buffer?'''
         mainElem = self.getMainElement()
-        if mainElem and (elem == mainElem.OD.elem):
-            res = True
-            # Check if this element is not found again within the buffer
-            for index, podElem in self.elements.iteritems():
-                if podElem.OD:
-                    if (podElem.OD.elem == mainElem.OD.elem) and (index != 0):
-                        res = False
-                        break
-        return res
+        if not mainElem: return
+        if hasattr(mainElem, 'OD'): mainElem = mainElem.OD.elem
+        if elem != mainElem: return
+        # elem is the same as the main elem. But is it really the main elem, or
+        # the same elem, found deeper in the buffer?
+        for index, iElem in self.elements.iteritems():
+            foundElem = None
+            if hasattr(iElem, 'OD'):
+                if iElem.OD:
+                    foundElem = iElem.OD.elem
+            else:
+                foundElem = iElem
+            if (foundElem == mainElem) and (index != 0):
+                return
+        return True
 
     def unreferenceElement(self, elem):
         # Find last occurrence of this element
         elemIndex = -1
-        for index, podElem in self.elements.iteritems():
-            if podElem.OD:
-                if (podElem.OD.elem == elem) and (index > elemIndex):
-                    elemIndex = index
+        for index, iElem in self.elements.iteritems():
+            foundElem = None
+            if hasattr(iElem, 'OD'):
+                # A POD element
+                if iElem.OD:
+                    foundElem = iElem.OD.elem
+            else:
+                # A PX elem
+                foundElem = iElem
+            if (foundElem == elem) and (index > elemIndex):
+                elemIndex = index
         del self.elements[elemIndex]
 
     def pushSubBuffer(self, subBuffer):
@@ -310,22 +323,27 @@ class MemoryBuffer(Buffer):
         # Change buffer position wrt parent
         self.parent.pushSubBuffer(self)
 
-    def addElement(self, elem):
-        newElem = PodElement.create(elem)
-        self.elements[self.getLength()] = newElem
-        if isinstance(newElem, Cell) or isinstance(newElem, Table):
-            newElem.tableInfo = self.env.getTable()
-            if isinstance(newElem, Cell):
+    def addElement(self, elem, elemType='pod'):
+        if elemType == 'pod':
+            elem = PodElement.create(elem)
+        self.elements[self.getLength()] = elem
+        if isinstance(elem, Cell) or isinstance(elem, Table):
+            elem.tableInfo = self.env.getTable()
+            if isinstance(elem, Cell):
                 # Remember where this cell is in the table
-                newElem.colIndex = newElem.tableInfo.curColIndex
+                elem.colIndex = elem.tableInfo.curColIndex
+        if elem == 'x':
+            # See comment on similar statement in the following below.
+            self.content += u' '
 
     def addExpression(self, expression, tiedHook=None):
         # Create the POD expression
         expr = Expression(expression)
         if tiedHook: tiedHook.tiedExpression = expr
         self.elements[self.getLength()] = expr
-        self.content += u' '# To be sure that an expr and an elem can't be found
-                            # at the same index in the buffer.
+        # To be sure that an expr and an elem can't be found at the same index
+        # in the buffer.
+        self.content += u' '
 
     def addAttributes(self):
         # Create the Attributes instance
@@ -421,6 +439,20 @@ class MemoryBuffer(Buffer):
             res = indexPodElem
         except ParsingError, ppe:
             PodError.dump(self, ppe, removeFirstLine=True)
+        return res
+
+    def createPxAction(self, elem, actionType, statement):
+        res = 0
+        if actionType == 'for':
+            forRes = MemoryBuffer.forRex.match(statement.strip())
+            if not forRes:
+                raise ParsingError(BAD_FOR_EXPRESSION % statement)
+            iter, subExpr = forRes.groups()
+            self.action = ForAction('for', self, subExpr, elem, False, iter,
+                                    'buffer', None)
+        elif actionType == 'if':
+            self.action = IfAction('if', self, statement, elem, False,
+                                   'buffer', None)
         return res
 
     def cut(self, index, keepFirstPart):
@@ -554,7 +586,7 @@ class MemoryBuffer(Buffer):
     reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
                               '(?P=f)>', re.S)
     def evaluate(self, subElements=True, removeMainElems=False):
-        result = self.getFileBuffer()
+        result = self.getRootBuffer()
         if not subElements:
             # Dump the root tag in this buffer, but not its content.
             res = self.reTagContent.match(self.content.strip())
@@ -585,4 +617,8 @@ class MemoryBuffer(Buffer):
             stopIndex = self.getStopIndex(removeMainElems)
             if currentIndex < (stopIndex-1):
                 result.write(self.content[currentIndex:stopIndex])
+
+    def clean(self):
+        '''Cleans the buffer content.'''
+        self.content = u''
 # ------------------------------------------------------------------------------

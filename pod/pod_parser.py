@@ -320,7 +320,7 @@ class PodParser(OdfParser):
                 if elem in e.impactableElements:
                     if isinstance(e.currentBuffer, MemoryBuffer):
                         isMainElement = e.currentBuffer.isMainElement(elem)
-                        # Unreference the element among the 'elements' attribute
+                        # Unreference the element among buffer.elements
                         e.currentBuffer.unreferenceElement(elem)
                         if isMainElement:
                             parent = e.currentBuffer.parent
