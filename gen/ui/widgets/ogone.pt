@@ -2,6 +2,7 @@
 <metal:view define-macro="view">
   <tal:comment replace="nothing">var "value" is misused and contains the contact params for Ogone.</tal:comment>
   <tal:comment replace="nothing">The form for sending the payment request to Ogone.</tal:comment>
+  <p tal:content="value"></p>
   <form method="post" id="form1" name="form1"
         tal:define="env value/env"
         tal:attributes="action string: https://secure.ogone.com/ncol/$env/orderstandard.asp">
@@ -13,6 +14,9 @@
     <input type="image" id="submit2" name="submit2"
            tal:attributes="src string: $appUrl/ui/ogone.gif; title python: _('custom_pay')"/>
   </form>
+  <tal:comment replace="nothing">Ogone PX test</tal:comment>
+  <div>PX</div>
+  <tal:px replace="structure python: contextObj.callField(name, 'getPx', {'obj': contextObj, 'value': value})"/>
 </metal:view>
 
 <tal:comment replace="nothing">Edit macro (none)</tal:comment>

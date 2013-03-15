@@ -150,7 +150,14 @@ class Buffer:
         self.write('<%s' % elem)
         for name, value in attrs.items():
             if ignoreAttrs and (name in ignoreAttrs): continue
-            self.write(' %s=%s' % (name, quoteattr(value)))
+            # If the value begins with ':', it is a Python expression. Else,
+            # it is a static value.
+            if not value.startswith(':'):
+                self.write(' %s=%s' % (name, quoteattr(value)))
+            else:
+                self.write(' %s="' % name)
+                self.addExpression(value[1:])
+                self.write('"')
         if insertAttributesHook:
             res = self.addAttributes()
         else:
@@ -605,8 +612,11 @@ class MemoryBuffer(Buffer):
                     try:
                         result.dumpContent(evalEntry.evaluate(self.env.context))
                     except Exception, e:
-                        PodError.dump(result, EVAL_EXPR_ERROR % (
-                            evalEntry.expr, e), dumpTb=False)
+                        if self.caller() == 'pod':
+                            PodError.dump(result, EVAL_EXPR_ERROR % (
+                                          evalEntry.expr, e), dumpTb=False)
+                        else: # px
+                            raise Exception(EVAL_EXPR_ERROR %(evalEntry.expr,e))
                 elif isinstance(evalEntry, Attributes):
                     result.write(evalEntry.evaluate(self.env.context))
                 else: # It is a subBuffer
@@ -621,4 +631,9 @@ class MemoryBuffer(Buffer):
     def clean(self):
         '''Cleans the buffer content.'''
         self.content = u''
+
+    def caller(self):
+        '''Returns "pod" if the caller is appy.pod, "px" if it is appy.px.'''
+        if self.env.__class__.__name__ == 'PxEnvironment': return 'px'
+        return 'pod'
 # ------------------------------------------------------------------------------
