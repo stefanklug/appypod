@@ -409,16 +409,16 @@ class Calendar(Type):
                 self.createEvent(obj, date, handleEventSpan=False)
 
     def deleteEvent(self, obj, date, handleEventSpan=True):
-        '''Deletes an event. It actually deletes all events at rq['day'].
+        '''Deletes an event. It actually deletes all events at p_date.
            If p_handleEventSpan is True, we will use rq["deleteNext"] to
            delete successive events, too.'''
         obj = obj.o # Ensure p_obj is not a wrapper.
-        rq = obj.REQUEST
         if not self.getEventsAt(obj, date): return
         daysDict = getattr(obj, self.name)[date.year()][date.month()]
         # Remember events, in case we must delete similar ones for next days.
         events = self.getEventsAt(obj, date)
         del daysDict[date.day()]
+        rq = obj.REQUEST
         if handleEventSpan and rq.has_key('deleteNext') and \
            (rq['deleteNext'] == 'True'):
             while True:

@@ -23,6 +23,12 @@
   <table class="noStyle"
          tal:define="isBack appyType/isBack">
    <tr>
+    <tal:comment replace="nothing">Workflow transitions</tal:comment>
+    <td tal:condition="python: obj.showTransitions('result')">
+     <tal:def define="targetObj python: obj"> 
+      <metal:transitions use-macro="app/ui/page/macros/transitions"/>
+     </tal:def>
+    </td>
     <tal:comment replace="nothing">Edit</tal:comment>
     <td tal:condition="python: not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
        <a tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);"

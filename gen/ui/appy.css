@@ -21,7 +21,7 @@ input[type=checkbox] { border: 0; background: none; cursor: pointer }
 input[type=radio] { border: 0; background: none; cursor: pointer }
 input[type=file] { border: 0px solid #d0d0d0;
                    background-color: #f8f8f8; cursor: pointer }
-input[type=button] { border: 1px solid #d0d0d0;
+input[type=button] { border: 1px solid #d0d0d0; margin: 0 3px;
                      background-color: #f8f8f8; cursor: pointer }
 input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }

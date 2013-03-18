@@ -353,14 +353,14 @@ function submitAppyForm(button) {
 }
 
 // Function used for triggering a workflow transition
-function triggerTransition(transitionId, msg) {
-  var theForm = document.getElementById('triggerTransitionForm');
+function triggerTransition(formId, transitionId, msg) {
+  var theForm = document.getElementById(formId);
   theForm.workflow_action.value = transitionId;
   if (!msg) {
     theForm.submit();
   }
   else { // Ask the user to confirm.
-   askConfirm('form', 'triggerTransitionForm', msg, true);
+   askConfirm('form', formId, msg, true);
   }
 }
 

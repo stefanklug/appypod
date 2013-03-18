@@ -1476,6 +1476,19 @@ class BaseMixin:
             return stateShow(self.getWorkflow(), self.appy())
         return stateShow
 
+    def showTransitions(self, layoutType):
+        '''Must we show the buttons/icons for triggering transitions on
+           p_layoutType?'''
+        # Never show transitions on edit pages.
+        if layoutType == 'edit': return
+        # Use the default value if self's class does not specify it.
+        klass = self.getClass()
+        if not hasattr(klass, 'showTransitions'): return (layoutType=='view')
+        showValue = klass.showTransitions
+        # This value can be a single value or a tuple/list of values.
+        if isinstance(showValue, basestring): return layoutType == showValue
+        return layoutType in showValue
+
     def _appy_listStates(self):
         '''Lists the possible states for this object.'''
         res = []

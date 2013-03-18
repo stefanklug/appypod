@@ -146,10 +146,10 @@
   This macro displays an object's transitions(s). It is used by macro "header" below.
 </tal:comment>
 <metal:transitions define-macro="transitions"
-                   tal:define="transitions contextObj/getAppyTransitions"
+                   tal:define="transitions targetObj/getAppyTransitions"
                    tal:condition="transitions">
-  <form id="triggerTransitionForm" method="post"
-        tal:attributes="action python: contextObj.absolute_url() + '/do'">
+  <form tal:define="formId python: 'trigger_%s' % targetObj.UID()" method="post"
+        tal:attributes="id formId; action python: targetObj.absolute_url() + '/do'">
     <input type="hidden" name="action" value="Trigger"/>
     <input type="hidden" name="workflow_action"/>
     <table>
@@ -161,7 +161,7 @@
           <tal:comment replace="nothing">Real button</tal:comment>
           <input type="button" tal:condition="transition/may_trigger"
                  tal:attributes="value transition/title;
-                                 onClick python: 'triggerTransition(\'%s\',\'%s\')' % (transition['name'],transition['confirm']);"/>
+                                 onClick python: 'triggerTransition(\'%s\',\'%s\',\'%s\')' % (formId,transition['name'],transition['confirm'])"/>
           <tal:comment replace="nothing">Fake button, explaining why the transition can't be triggered</tal:comment>
           <div class="fakeButton" tal:condition="not: transition/may_trigger">
             <acronym tal:content="transition/title"
@@ -323,7 +323,8 @@
     </tal:link>
   </td>
   <tal:comment replace="nothing">Workflow transitions</tal:comment>
-  <td tal:condition="not: isEdit">
+  <td tal:define="targetObj python: contextObj"
+      tal:condition="python: targetObj.showTransitions(layoutType)">
    <metal:transitions use-macro="app/ui/page/macros/transitions"/>
   </td>
  </tr>
