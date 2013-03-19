@@ -56,6 +56,8 @@ class PxEnvironment(XmlEnvironment):
 class PxParser(XmlParser):
     '''PX parser that is specific for parsing PX data.'''
 
+    pxAttributes = ('var', 'for', 'if')
+
     def __init__(self, env, caller=None):
         XmlParser.__init__(self, env, caller)
 
@@ -63,14 +65,14 @@ class PxParser(XmlParser):
         '''A start p_elem with p_attrs is encountered in the PX.'''
         e = self.env
         self.currentElem = elem
-        if attrs.has_key('for'):
-            # Dump the element in a new sub-buffer
-            e.addSubBuffer()
-            # Create the action for this buffer
-            e.currentBuffer.createPxAction(elem, 'for', attrs['for'])
-        elif attrs.has_key('if'):
-            e.addSubBuffer()
-            e.currentBuffer.createPxAction(elem, 'if', attrs['if'])
+        # See if we have a PX attribute among p_attrs.
+        for name in self.pxAttributes:
+            if attrs.has_key(name):
+                # Dump the element in a new sub-buffer
+                e.addSubBuffer()
+                # Create the action for this buffer
+                e.currentBuffer.createPxAction(elem, name, attrs[name])
+                break
         if e.isActionElem(elem):
             # Add a temp element in the buffer (that will be unreferenced
             # later). This way, when encountering the corresponding end element,

@@ -53,28 +53,38 @@ class BufferAction:
         # We store the result of evaluation of expr and fromExpr
         self.exprResult = None
         self.fromExprResult = None
+
     def writeError(self, errorMessage, dumpTb=True):
         # Empty the buffer
         self.buffer.__init__(self.buffer.env, self.buffer.parent)
         PodError.dump(self.buffer, errorMessage, withinElement=self.elem,
                       dumpTb=dumpTb)
         self.buffer.evaluate()
+
+    def evaluateExpression(self, expr):
+        '''Evaluates expression p_expr with the current context. Returns a tuple
+           (result, errorOccurred).'''
+        try:
+            res = eval(expr, self.buffer.env.context)
+            error = False
+        except:
+            res = None
+            self.writeError(EVAL_ERROR % expr)
+            error = True
+        return res, error
+
     def execute(self):
         # Check that if minus is set, we have an element which can accept it
         if self.minus and isinstance(self.elem, Table) and \
            (not self.elem.tableInfo.isOneCell()):
             self.writeError(TABLE_NOT_ONE_CELL % self.expr)
         else:
-            errorOccurred = False
+            error = False
             if self.expr:
-                try:
-                    self.exprResult = eval(self.expr, self.buffer.env.context)
-                except:
-                    self.exprResult = None
-                    self.writeError(EVAL_ERROR % self.expr)
-                    errorOccurred = True
-            if not errorOccurred:
+                self.exprResult, error = self.evaluateExpression(self.expr)
+            if not error:
                 self.do()
+
     def evaluateBuffer(self):
         if self.source == 'buffer':
             self.buffer.evaluate(removeMainElems = self.minus)
@@ -243,27 +253,48 @@ class NullAction(BufferAction):
     def do(self):
         self.evaluateBuffer()
 
-class VariableAction(BufferAction):
-    '''Action that allows to define a variable somewhere in the template.'''
-    def __init__(self, name, buffer, expr, elem, minus, varName, source,
-        fromExpr):
-        BufferAction.__init__(self, name, buffer, expr, elem, minus, source,
+class VariablesAction(BufferAction):
+    '''Action that allows to define a set of variables somewhere in the
+       template.'''
+    def __init__(self, name, buffer, elem, minus, variables, source, fromExpr):
+        # We do not use the default Buffer.expr attribute for storing the Python
+        # expression, because here we will have several expressions, one for
+        # every defined variable.
+        BufferAction.__init__(self, name, buffer, None, elem, minus, source,
                               fromExpr)
-        self.varName = varName # Name of the variable
+        # Definitions of variables: ~{s_name: s_expr}~
+        self.variables = variables
+        # Results of executing the variables: ~{s_name: exprResult}~
+        self.results = {}
+
     def do(self):
         context = self.buffer.env.context
-        # Remember the variable hidden by our variable definition, if any
-        hasHiddenVariable = False
-        if context.has_key(self.varName):
-            hiddenVariable = context[self.varName]
-            hasHiddenVariable = True
-        # Add the variable to the context
-        context[self.varName] = self.exprResult
+        # Evaluate the variables' expressions: because there are several
+        # expressions, we did not use the standard, single-expression-minded
+        # BufferAction code for evaluating the expression.
+        # Also: remember the names and values of the variables that we will hide
+        # in the context: after execution of this buffer we will restore those
+        # values in the context.
+        hidden = None
+        for name, expr in self.variables.iteritems():
+            # Evaluate the expression
+            result, error = self.evaluateExpression(expr)
+            if error: return
+            self.results[name] = result
+            # Remember the variable previous value if already in the context
+            if name in context:
+                if not hidden:
+                    hidden = {name: context[name]}
+                else:
+                    hidden[name] = context[name]
+        # Add our variables to the context
+        context.update(self.results)
         # Evaluate the buffer
         self.evaluateBuffer()
-        # Restore hidden variable if any
-        if hasHiddenVariable:
-            context[self.varName] = hiddenVariable
-        else:
-            del context[self.varName]
+        # Restore hidden variables if any
+        if hidden: context.update(hidden)
+        # Delete not-hidden variables
+        for name in self.variables.iterkeys():
+            if hidden and (name in hidden): continue
+            del context[name]
 # ------------------------------------------------------------------------------

@@ -23,7 +23,7 @@ from xml.sax.saxutils import quoteattr
 from appy.shared.xml_parser import xmlPrologue, escapeXml
 from appy.pod import PodError
 from appy.pod.elements import *
-from appy.pod.actions import IfAction, ElseAction, ForAction, VariableAction, \
+from appy.pod.actions import IfAction, ElseAction, ForAction, VariablesAction, \
                              NullAction
 
 # ------------------------------------------------------------------------------
@@ -359,6 +359,18 @@ class MemoryBuffer(Buffer):
         self.content += u' '
         return attrs
 
+    def _getVariables(self, expr):
+        '''Returns variable definitions in p_expr as a dict
+           ~{s_varName: s_expr}~.'''
+        exprs = expr.strip().split(';')
+        res = {}
+        for sub in exprs:
+            varRes = MemoryBuffer.varRex.match(sub)
+            if not varRes:
+                raise ParsingError(BAD_VAR_EXPRESSION % sub)
+            res[varRes.group(1)] = varRes.group(2)
+        return res
+
     def createAction(self, statementGroup):
         '''Tries to create an action based on p_statementGroup. If the statement
            is not correct, r_ is -1. Else, r_ is the index of the element within
@@ -432,12 +444,9 @@ class MemoryBuffer(Buffer):
                 self.action = ForAction(statementName, self, subExpr, podElem,
                                         minus, iter, source, fromClause)
             elif actionType == 'with':
-                varRes = MemoryBuffer.varRex.match(subExpr.strip())
-                if not varRes:
-                    raise ParsingError(BAD_VAR_EXPRESSION % subExpr)
-                varName, subExpr = varRes.groups()
-                self.action = VariableAction(statementName, self, subExpr,
-                    podElem, minus, varName, source, fromClause)
+                variables = self._getVariables(subExpr)
+                self.action = VariablesAction(statementName, self, podElem,
+                                           minus, variables, source, fromClause)
             else: # null action
                 if not fromClause:
                     raise ParsingError(NULL_ACTION_ERROR)
@@ -460,6 +469,10 @@ class MemoryBuffer(Buffer):
         elif actionType == 'if':
             self.action = IfAction('if', self, statement, elem, False,
                                    'buffer', None)
+        elif actionType == 'var':
+            variables = self._getVariables(statement)
+            self.action = VariablesAction('var', self, elem, False, variables,
+                                          'buffer', None)
         return res
 
     def cut(self, index, keepFirstPart):

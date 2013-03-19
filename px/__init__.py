@@ -3,9 +3,7 @@
    Python and XML.'''
 
 # ------------------------------------------------------------------------------
-from UserDict import UserDict
 from px_parser import PxParser, PxEnvironment
-from appy.pod.renderer import BAD_CONTEXT
 
 # Exception class --------------------------------------------------------------
 class PxError(Exception): pass
@@ -37,16 +35,8 @@ class Px:
         self.parser.parse(self.content)
 
     def __call__(self, context):
-        # Get the context in a standardized form.
-        evalContext = {}
-        if hasattr(context, '__dict__'):
-            evalContext.update(context.__dict__)
-        elif isinstance(context, dict) or isinstance(context, UserDict):
-            evalContext.update(context)
-        else:
-            raise PxError(BAD_CONTEXT)
-        # Store the context on the PX environment
-        self.parser.env.context = evalContext
+        # p_context must be a dict. Store it in the PX environment.
+        self.parser.env.context = context
         # Render the PX result and return it
         env = self.parser.env
         env.ast.evaluate()
