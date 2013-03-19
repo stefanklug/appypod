@@ -77,7 +77,7 @@ class Expression(PodElement):
     OD = None
     def __init__(self, pyExpr):
         # The Python expression
-        self.expr = pyExpr
+        self.expr = pyExpr.strip()
         # We will store here the expression's true result (before being
         # converted to a string)
         self.result = None

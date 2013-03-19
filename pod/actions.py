@@ -22,9 +22,9 @@ from appy.pod import PodError
 from appy.pod.elements import *
 
 # ------------------------------------------------------------------------------
-EVAL_ERROR = 'Error while evaluating expression "%s".'
+EVAL_ERROR = 'Error while evaluating expression "%s". %s'
 FROM_EVAL_ERROR = 'Error while evaluating the expression "%s" defined in the ' \
-                  '"from" part of a statement.'
+                  '"from" part of a statement. %s'
 WRONG_SEQ_TYPE = 'Expression "%s" is not iterable.'
 TABLE_NOT_ONE_CELL = "The table you wanted to populate with '%s' " \
                      "can\'t be dumped with the '-' option because it has " \
@@ -53,8 +53,24 @@ class BufferAction:
         # We store the result of evaluation of expr and fromExpr
         self.exprResult = None
         self.fromExprResult = None
+        # When an error is encountered, must we raise it or write it into the
+        # buffer?
+        self.raiseErrors = self.buffer.caller() == 'px'
+
+    def getExceptionLine(self, e):
+        '''Gets the line describing exception p_e, containing the pathname of
+           the exception class, the exception's message and line number.'''
+        return '%s.%s: %s' % (e.__module__, e.__class__.__name__, str(e))
 
     def writeError(self, errorMessage, dumpTb=True):
+        '''Write the encountered error into the buffer or raise an exception
+           if self.raiseErrors is True.'''
+        if self.raiseErrors:
+            if self.buffer.caller() == 'px':
+                # Add in the error message the line nb where the errors occurs
+                # within the PX.
+                import pdb; pdb.set_trace()
+            raise Exception(errorMessage)
         # Empty the buffer
         self.buffer.__init__(self.buffer.env, self.buffer.parent)
         PodError.dump(self.buffer, errorMessage, withinElement=self.elem,
@@ -67,9 +83,9 @@ class BufferAction:
         try:
             res = eval(expr, self.buffer.env.context)
             error = False
-        except:
+        except Exception, e:
             res = None
-            self.writeError(EVAL_ERROR % expr)
+            self.writeError(EVAL_ERROR % (expr, self.getExceptionLine(e)))
             error = True
         return res, error
 
@@ -91,17 +107,14 @@ class BufferAction:
         else:
             # Evaluate fromExpr
             self.fromExprResult = None
-            errorOccurred = False
+            error = False
             try:
                 self.fromExprResult= eval(self.fromExpr,self.buffer.env.context)
-            except PodError, pe:
-                self.writeError(FROM_EVAL_ERROR % self.fromExpr + ' ' + str(pe),
-                                dumpTb=False)
-                errorOccurred = True
-            except:
-                self.writeError(FROM_EVAL_ERROR % self.fromExpr)
-                errorOccurred = True
-            if not errorOccurred:
+            except Exception, e:
+                msg= FROM_EVAL_ERROR % (self.fromExpr, self.getExceptionLine(e))
+                self.writeError(msg, dumpTb=False)
+                error = True
+            if not error:
                 self.result.write(self.fromExprResult)
 
 class IfAction(BufferAction):
@@ -171,9 +184,8 @@ class ForAction(BufferAction):
         context = self.buffer.env.context
         # Check self.exprResult type
         try:
+            # All "iterable" objects are OK.
             iter(self.exprResult)
-            # All "iterable" objects are OK. Thanks to Bernhard Bender for this
-            # improvement.
         except TypeError:
             self.writeError(WRONG_SEQ_TYPE % self.expr)
             return
@@ -264,31 +276,28 @@ class VariablesAction(BufferAction):
                               fromExpr)
         # Definitions of variables: ~{s_name: s_expr}~
         self.variables = variables
-        # Results of executing the variables: ~{s_name: exprResult}~
-        self.results = {}
 
     def do(self):
         context = self.buffer.env.context
         # Evaluate the variables' expressions: because there are several
         # expressions, we did not use the standard, single-expression-minded
-        # BufferAction code for evaluating the expression.
-        # Also: remember the names and values of the variables that we will hide
-        # in the context: after execution of this buffer we will restore those
-        # values in the context.
+        # BufferAction code for evaluating our expressions.
+        # Also: we remember the names and values of the variables that we will
+        # hide in the context: after execution of this buffer we will restore
+        # those values.
         hidden = None
         for name, expr in self.variables.iteritems():
             # Evaluate the expression
             result, error = self.evaluateExpression(expr)
             if error: return
-            self.results[name] = result
             # Remember the variable previous value if already in the context
             if name in context:
                 if not hidden:
                     hidden = {name: context[name]}
                 else:
                     hidden[name] = context[name]
-        # Add our variables to the context
-        context.update(self.results)
+            # Store the result into the context
+            context[name] = result
         # Evaluate the buffer
         self.evaluateBuffer()
         # Restore hidden variables if any

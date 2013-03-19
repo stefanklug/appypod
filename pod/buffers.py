@@ -459,8 +459,9 @@ class MemoryBuffer(Buffer):
 
     def createPxAction(self, elem, actionType, statement):
         res = 0
+        statement = statement.strip()
         if actionType == 'for':
-            forRes = MemoryBuffer.forRex.match(statement.strip())
+            forRes = MemoryBuffer.forRex.match(statement)
             if not forRes:
                 raise ParsingError(BAD_FOR_EXPRESSION % statement)
             iter, subExpr = forRes.groups()

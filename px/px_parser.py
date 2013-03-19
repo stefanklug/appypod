@@ -5,8 +5,6 @@ from appy.pod.buffers import MemoryBuffer
 # ------------------------------------------------------------------------------
 class PxEnvironment(XmlEnvironment):
     '''Environment for the PX parser.'''
-    # PX-specific attributes must not be dumped into the result.
-    undumpableAttrs = ('for', 'if')
 
     def __init__(self):
         # We try to mimic POD. POD has a root buffer that is a FileBuffer, which
@@ -55,7 +53,6 @@ class PxEnvironment(XmlEnvironment):
 # ------------------------------------------------------------------------------
 class PxParser(XmlParser):
     '''PX parser that is specific for parsing PX data.'''
-
     pxAttributes = ('var', 'for', 'if')
 
     def __init__(self, env, caller=None):
@@ -81,7 +78,7 @@ class PxParser(XmlParser):
             e.currentBuffer.addElement(elem, elemType='px')
         if elem != 'x':
             e.currentBuffer.dumpStartElement(elem, attrs,
-                                             ignoreAttrs=e.undumpableAttrs)
+                                             ignoreAttrs=self.pxAttributes)
 
     def endElement(self, elem):
         e = self.env
