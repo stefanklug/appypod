@@ -54,6 +54,8 @@ class PxEnvironment(XmlEnvironment):
 class PxParser(XmlParser):
     '''PX parser that is specific for parsing PX data.'''
     pxAttributes = ('var', 'for', 'if')
+    # No-end tags
+    noEndTags = ('br', 'img')
 
     def __init__(self, env, caller=None):
         XmlParser.__init__(self, env, caller)
@@ -78,7 +80,7 @@ class PxParser(XmlParser):
             e.currentBuffer.addElement(elem, elemType='px')
         if elem != 'x':
             e.currentBuffer.dumpStartElement(elem, attrs,
-                                             ignoreAttrs=self.pxAttributes)
+                ignoreAttrs=self.pxAttributes, noEndTag=elem in self.noEndTags)
 
     def endElement(self, elem):
         e = self.env
@@ -88,7 +90,8 @@ class PxParser(XmlParser):
             e.currentBuffer.addExpression(e.currentContent)
             e.currentContent = ''
         # Dump the end element into the current buffer
-        if elem != 'x': e.currentBuffer.dumpEndElement(elem)
+        if (elem != 'x') and (elem not in self.noEndTags):
+            e.currentBuffer.dumpEndElement(elem)
         # If this element is the main element of the current buffer, we must
         # pop it and continue to work in the parent buffer.
         if e.isActionElem(elem):

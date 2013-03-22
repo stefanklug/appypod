@@ -89,7 +89,13 @@ class Expression(PodElement):
 
     def evaluate(self, context):
         '''Evaluates the Python expression (self.expr) with a given
-           p_context.'''
+           p_context, and returns the result. More precisely, it returns a
+           tuple (result, escapeXml). Boolean escapeXml indicates if XML chars
+           must be escaped or not. For example, if the expression's result is a
+           PX, the result of evaluating it (a chunk of XHTML) must be inserted
+           as is, unescaped, into the buffer. In most situations, XML escaping
+           will be enabled.'''
+        escapeXml = True
         # Evaluate the expression, or get it from self.result if it has already
         # been computed.
         if self.evaluated:
@@ -103,16 +109,22 @@ class Expression(PodElement):
             # Evaluates the Python expression
             res = self.result = eval(self.expr, context)
         # Converts the expression result to a string that can be inserted into
-        # the POD result.
-        if res == None:
+        # the POD/PX result.
+        resultType = res.__class__.__name__
+        if resultType == 'NoneType':
             res = u''
-        elif isinstance(res, str):
-            res = unicode(res.decode('utf-8'))
-        elif isinstance(res, unicode):
-            pass
+        elif resultType == 'str':
+            res = res.decode('utf-8')
+        elif resultType == 'unicode':
+            pass # Don't perform any conversion, unicode is the target type.
+        elif resultType == 'Px':
+            # A PX that must be called within the current PX. Call it with the
+            # current context.
+            res = res(context)
+            escapeXml = False
         else:
             res = unicode(res)
-        return res
+        return res, escapeXml
 
 class Attributes(PodElement):
     '''Represents a bunch of XML attributes that will be dumped for a given tag

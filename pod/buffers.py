@@ -140,7 +140,7 @@ class Buffer:
     def getLength(self): pass # To be overridden
 
     def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(),
-                         insertAttributesHook=False):
+                         insertAttributesHook=False, noEndTag=False):
         '''Inserts into this buffer the start tag p_elem, with its p_attrs,
            excepted those listed in p_ignoreAttrs. If p_insertAttributesHook
            is True (works only for MemoryBuffers), we will insert an Attributes
@@ -162,7 +162,12 @@ class Buffer:
             res = self.addAttributes()
         else:
             res = None
-        self.write('>')
+        # Close the tag
+        if noEndTag:
+            suffix = '/>'
+        else:
+            suffix = '>'
+        self.write(suffix)
         return res
 
     def dumpEndElement(self, elem):
@@ -201,7 +206,9 @@ class FileBuffer(Buffer):
     def addExpression(self, expression, tiedHook=None):
         # At 2013-02-06, this method was not called within the whole test suite.
         try:
-            self.dumpContent(Expression(expression).evaluate(self.env.context))
+            res, escape = Expression(expression).evaluate(self.env.context)
+            if escape: self.dumpContent(res)
+            else: self.write(res)
         except Exception, e:
             PodError.dump(self, EVAL_EXPR_ERROR % (expression, e), dumpTb=False)
 
@@ -360,15 +367,15 @@ class MemoryBuffer(Buffer):
         return attrs
 
     def _getVariables(self, expr):
-        '''Returns variable definitions in p_expr as a dict
-           ~{s_varName: s_expr}~.'''
+        '''Returns variable definitions in p_expr as a list
+           ~[(s_varName, s_expr)]~.'''
         exprs = expr.strip().split(';')
-        res = {}
+        res = []
         for sub in exprs:
             varRes = MemoryBuffer.varRex.match(sub)
             if not varRes:
                 raise ParsingError(BAD_VAR_EXPRESSION % sub)
-            res[varRes.group(1)] = varRes.group(2)
+            res.append(varRes.groups())
         return res
 
     def createAction(self, statementGroup):
@@ -624,7 +631,9 @@ class MemoryBuffer(Buffer):
                 currentIndex = index + 1
                 if isinstance(evalEntry, Expression):
                     try:
-                        result.dumpContent(evalEntry.evaluate(self.env.context))
+                        res, escape = evalEntry.evaluate(self.env.context)
+                        if escape: result.dumpContent(res)
+                        else: result.write(res)
                     except Exception, e:
                         if self.caller() == 'pod':
                             PodError.dump(result, EVAL_EXPR_ERROR % (

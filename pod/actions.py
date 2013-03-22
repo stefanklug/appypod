@@ -69,7 +69,12 @@ class BufferAction:
             if self.buffer.caller() == 'px':
                 # Add in the error message the line nb where the errors occurs
                 # within the PX.
-                import pdb; pdb.set_trace()
+                locator = self.buffer.env.parser.locator
+                # The column number may not be given.
+                col = locator.getColumnNumber()
+                if col == None: col = ''
+                else: col = ', column %d' % col
+                errorMessage += ' (line %s%s)' % (locator.getLineNumber(), col)
             raise Exception(errorMessage)
         # Empty the buffer
         self.buffer.__init__(self.buffer.env, self.buffer.parent)
@@ -274,7 +279,7 @@ class VariablesAction(BufferAction):
         # every defined variable.
         BufferAction.__init__(self, name, buffer, None, elem, minus, source,
                               fromExpr)
-        # Definitions of variables: ~{s_name: s_expr}~
+        # Definitions of variables: ~[(s_name, s_expr)]~
         self.variables = variables
 
     def do(self):
@@ -286,7 +291,7 @@ class VariablesAction(BufferAction):
         # hide in the context: after execution of this buffer we will restore
         # those values.
         hidden = None
-        for name, expr in self.variables.iteritems():
+        for name, expr in self.variables:
             # Evaluate the expression
             result, error = self.evaluateExpression(expr)
             if error: return
@@ -303,7 +308,7 @@ class VariablesAction(BufferAction):
         # Restore hidden variables if any
         if hidden: context.update(hidden)
         # Delete not-hidden variables
-        for name in self.variables.iterkeys():
+        for name, expr in self.variables:
             if hidden and (name in hidden): continue
             del context[name]
 # ------------------------------------------------------------------------------
