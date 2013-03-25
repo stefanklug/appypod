@@ -1822,7 +1822,7 @@ class BaseMixin:
         # Define the attributes that will initialize the ckeditor instance for
         # this field.
         field = self.getAppyType(name)
-        ckAttrs = {'toolbar': field.richText and 'AppyRich' or 'Appy',
+        ckAttrs = {'toolbar': 'Appy',
                    'format_tags': '%s' % ';'.join(field.styles),
                    'width': field.width}
         if field.allowImageUpload:

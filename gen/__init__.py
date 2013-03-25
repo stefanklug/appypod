@@ -1181,7 +1181,7 @@ class String(Type):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  transform='none', styles=('p','h1','h2','h3','h4'),
-                 allowImageUpload=True, richText=False):
+                 allowImageUpload=True):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -1191,11 +1191,6 @@ class String(Type):
         # When format is XHTML, the list of styles that the user will be able to
         # select in the styles dropdown is defined hereafter.
         self.styles = styles
-        # When richText is True, we show to the user icons in ckeditor allowing
-        # him to tailor text appearance, color, size, etc. While this may be an
-        # option if the objective is to edit web pages, this may not be desired
-        # for producing standardized, pod-print-ready documents.
-        self.richText = richText
         # When format is XHTML, do we allow the user to upload images in it ?
         self.allowImageUpload = allowImageUpload
         # The following field has a direct impact on the text entered by the
@@ -1285,7 +1280,7 @@ class String(Type):
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
             try:
-                value = XhtmlCleaner(keepStyles=self.richText).clean(value)
+                value = XhtmlCleaner(keepStyles=False).clean(value)
             except XhtmlCleaner.Error, e:
                 # Errors while parsing p_value can't prevent the user from
                 # storing it.

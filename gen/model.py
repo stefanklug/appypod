@@ -199,7 +199,7 @@ class Page(ModelClass):
     _appy_attributes = ['title', 'content', 'pages', 'parent', 'toTool3']
     folder = True
     title = gen.String(show='edit', multiplicity=(1,1), indexed=True)
-    content = gen.String(format=gen.String.XHTML, layouts='f', richText=True)
+    content = gen.String(format=gen.String.XHTML, layouts='f')
     # Pages can contain other pages.
     def showSubPages(self): pass
     pages = gen.Ref(None, multiplicity=(0,None), add=True, link=False,
