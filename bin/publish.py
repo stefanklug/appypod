@@ -463,7 +463,7 @@ class Publisher:
         os.mkdir(genSrcFolder)
         for aFile in ('__init__.py',):
             shutil.copy('%s/%s' % (appyPath, aFile), genSrcFolder)
-        for aFolder in ('gen', 'pod', 'shared', 'bin'):
+        for aFolder in ('bin', 'gen', 'pod', 'px', 'shared'):
             shutil.copytree('%s/%s' % (appyPath, aFolder),
                             '%s/%s' % (genSrcFolder, aFolder))
         # Remove some scripts from bin
