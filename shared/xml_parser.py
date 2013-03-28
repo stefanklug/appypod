@@ -974,7 +974,8 @@ class XhtmlCleaner(XmlParser):
     
     # Attributes to ignore, if keepStyles if False.
     attrsToIgnore = ('align', 'valign', 'cellpadding', 'cellspacing', 'width',
-                     'height', 'bgcolor', 'lang', 'border', 'class', 'rules')
+                     'height', 'bgcolor', 'lang', 'border', 'class', 'rules',
+                     'id', 'name')
     # CSS attributes to keep even if keepStyles if False. These attributes can
     # be used by pod (to align a paragraph, center/resize an image...).
     cssAttrsToKeep = ('width', 'height', 'float', 'text-align',
@@ -1119,7 +1120,8 @@ class XhtmlCleaner(XmlParser):
 
     def characters(self, content):
         if self.env.ignoreContent: return
-        # Remove blanks that ckeditor may add just after a start tag
+        # Remove blanks that ckeditor may add just after a start tag or
+        # between tags.
         if not self.env.currentContent or \
            self.env.currentContent[-1] in ('\n', ' '):
             toAdd = content.lstrip()

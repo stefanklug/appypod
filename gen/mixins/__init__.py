@@ -1832,8 +1832,7 @@ class BaseMixin:
             if isinstance(v, int): sv = str(v)
             else: sv = '"%s"' % v
             ck.append('%s: %s' % (k, sv))
-        res = 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
-        return res
+        return 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
 
     def getCalendarInit(self, name, years):
         '''Gets the Javascript init code for displaying a calendar popup for
