@@ -59,6 +59,14 @@ function XhrObject() { // Wraps a XmlHttpRequest object
   this.info = {};  /* An associative array for putting anything else. */
 }
 
+/* When inserting HTML at some DOM node in a page via Ajax, scripts defined in
+   this chunk of HTML are not executed. This function, typically used as "onGet"
+   param for the askAjaxChunk function below, will evaluate those scripts. */
+function evalInnerScripts(xhrObject, hookElem) {
+  var scripts = hookElem.getElementsByTagName('script');
+  for (var i=0; i<scripts.length; i++) { eval(scripts[i].innerHTML) }
+}
+
 function getAjaxChunk(pos) {
   // This function is the callback called by the AJAX machinery (see function
   // askAjaxChunk below) when an Ajax response is available.
@@ -208,7 +216,8 @@ function askField(hookId, objectUrl, layoutType, showChanges){
   var fieldName = hookId.split('_')[1];
   var params = {'fieldName': fieldName, 'layoutType': layoutType,
                 'showChanges': showChanges};
-  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/show', 'fieldAjax', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/show', 'fieldAjax', params,
+               null, evalInnerScripts);
 }
 
 // Function used by checkbox widgets for having radio-button-like behaviour

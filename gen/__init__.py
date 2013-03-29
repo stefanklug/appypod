@@ -1072,7 +1072,8 @@ class Float(Type):
 
 class String(Type):
     # Javascript files sometimes required by this type
-    jsFiles = {'edit': ('ckeditor/ckeditor.js',)}
+    jsFiles = {'edit': ('ckeditor/ckeditor.js',),
+               'view': ('ckeditor/ckeditor.js',)}
 
     # Some predefined regular expressions that may be used as validators
     c = re.compile
@@ -1181,7 +1182,7 @@ class String(Type):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  transform='none', styles=('p','h1','h2','h3','h4'),
-                 allowImageUpload=True):
+                 allowImageUpload=True, inlineEdit=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -1193,6 +1194,8 @@ class String(Type):
         self.styles = styles
         # When format is XHTML, do we allow the user to upload images in it ?
         self.allowImageUpload = allowImageUpload
+        # When format in XHTML, can the field be inline-edited (ckeditor)?
+        self.inlineEdit = inlineEdit
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
         # "text-transform" property. Allowed values are those allowed for the

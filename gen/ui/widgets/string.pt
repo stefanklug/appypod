@@ -1,6 +1,7 @@
 <tal:comment replace="nothing">View macro for a String.</tal:comment>
 <metal:view define-macro="view"
-       tal:define="fmt widget/format; isUrl widget/isUrl">
+       tal:define="fmt widget/format; isUrl widget/isUrl;
+                   mayAjaxEdit python: not showChanges and widget['inlineEdit'] and contextObj.mayEdit(widget['writePermission'])">
   <span tal:condition="python: fmt in (0, 3)">
     <ul tal:condition="python: value and isMultiple">
       <li tal:repeat="sv value"><i tal:content="structure sv"></i></li>
@@ -20,9 +21,16 @@
   <span tal:condition="python: value and (fmt == 1)"
         tal:replace="structure python: contextObj.formatText(value, format='html')"/>
   <tal:comment replace="nothing">XHTML text</tal:comment>
-  <div tal:condition="python: value and (fmt == 2)" class="xhtml">
-    <span tal:replace="structure value"/>
-  </div>
+  <tal:xhtml condition="python: value and (fmt == 2)">
+   <div tal:condition="not: mayAjaxEdit" class="xhtml" tal:content="structure value"></div>
+   <div tal:condition="mayAjaxEdit" class="xhtml" contenteditable="true"
+        tal:attributes="id python: '%s_%s_ck' % (contextObj.UID(), name)"
+        tal:content="structure value">
+   </div>
+   <script tal:condition="mayAjaxEdit"
+           tal:content="python: contextObj.getEditorInlineInit(name)">
+   </script>
+  </tal:xhtml>
   <input type="hidden" tal:condition="masterCss"
          tal:attributes="class masterCss; value rawValue; name name; id name"/>
 </metal:view>

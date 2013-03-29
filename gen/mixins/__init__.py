@@ -103,6 +103,19 @@ class BaseMixin:
         obj.reindex()
         return obj, msg
 
+    def updateField(self, name, value):
+        '''Updates a single field p_name with new p_value.'''
+        field = self.getAppyType(name)
+        # Remember previous value if the field is historized.
+        previousData = self.rememberPreviousData([field])
+        # Store the new value into the database
+        field.store(self, value)
+        # Update the object history when relevant
+        if previousData: self.historizeData(previousData)
+        # Update last modification date
+        from DateTime import DateTime
+        self.modified = DateTime()
+
     def delete(self):
         '''This method is self's suicide.'''
         # Call a custom "onDelete" if it exists
@@ -1833,6 +1846,19 @@ class BaseMixin:
             else: sv = '"%s"' % v
             ck.append('%s: %s' % (k, sv))
         return 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
+
+    def getEditorInlineInit(self, name):
+        '''Gets the Javascript init code for enabling inline edition of a rich
+           field named p_name.'''
+        field = self.getAppyType(name)
+        uid = self.UID()
+        return "CKEDITOR.disableAutoInline = true;\n" \
+               "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
+               "function( event ) { var data = event.editor.getData(); " \
+               "askAjaxChunk('%s_%s','POST','%s','page','saveField', "\
+               "{'fieldName':'%s', 'fieldContent': encodeURIComponent(data)}, "\
+               "null, evalInnerScripts);}}});"% \
+               (uid, name, uid, name, self.absolute_url(), name)
 
     def getCalendarInit(self, name, years):
         '''Gets the Javascript init code for displaying a calendar popup for

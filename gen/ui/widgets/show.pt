@@ -90,7 +90,7 @@
 <tal:comment replace="nothing">Call the previous macro, but from Ajax.</tal:comment>
 <metal:afield define-macro="fieldAjax"
              tal:define="widgetName request/fieldName;
-                         layoutType request/layoutType;
+                         layoutType python: request.get('layoutType', 'view');
                          showChanges python: request.get('showChanges', 'False') == 'True';
                          widget python: contextObj.getAppyType(widgetName, asDict=True);
                          page widget/pageName">

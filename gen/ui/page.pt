@@ -340,3 +340,14 @@
    <span tal:replace="structure messages"></span>
   </div>
 </metal:message>
+
+<tal:comment replace="nothing">
+  Save the content of a rich field and return its consult view.
+  Requires request/fieldContent.
+</tal:comment>
+<metal:save define-macro="saveField"
+ tal:define="fieldName request/fieldName;
+             fieldContent request/fieldContent;
+             dummy python: contextObj.updateField(fieldName, fieldContent)">
+ <metal:call use-macro="app/ui/widgets/show/macros/fieldAjax"/>
+</metal:save>
