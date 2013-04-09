@@ -109,7 +109,8 @@
                navBaseCall   python: 'askQueryResult(\'%s\',\'%s\',\'%s\',\'%s\',**v**)' % (ajaxHookId, tool.absolute_url(), className, searchName);
                newSearchUrl  python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart);
                showSubTitles python: request.get('showSubTitles', 'true') == 'true';
-               resultMode    python: tool.getResultMode(className)">
+               resultMode    python: tool.getResultMode(className);
+               showNewSearch showNewSearch|python:True">
 
  <tal:result condition="objs">
   <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>
@@ -128,7 +129,7 @@
   <p>
    <span tal:replace="searchDescr/translated"/>
     (<span tal:replace="totalNumber"/>)
-      <tal:newSearch condition="python: searchName == 'customSearch'">
+      <tal:newSearch condition="python: showNewSearch and (searchName == 'customSearch')">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>
@@ -164,7 +165,7 @@
 
   <tal:noResult condition="not: objs">
     <span tal:replace="python: _('query_no_result')"/>
-    <tal:newSearch condition="python: searchName == 'customSearch'">
+    <tal:newSearch condition="python: showNewSearch and (searchName == 'customSearch')">
         <br/><i class="discreet"><a tal:attributes="href newSearchUrl"
         tal:content="python: _('search_new')"></a></i>
       </tal:newSearch>

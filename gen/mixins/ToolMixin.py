@@ -288,7 +288,14 @@ class ToolMixin(BaseMixin):
         '''Gets, for the currently logged user, the value for index
            "Allowed".'''
         user = self.getUser()
-        res = ['user:%s' % user.getId(), 'Anonymous'] + user.getRoles()
+        # Get the user roles
+        res = user.getRoles()
+        # Add role "Anonymous"
+        if 'Anonymous' not in res: res.append('Anonymous')
+        # Add the user id if not anonymous
+        userId = user.getId()
+        if userId: res.append('user:%s' % userId)
+        # Add group ids
         try:
             res += ['user:%s' % g for g in user.groups.keys()]
         except AttributeError, ae:
@@ -602,9 +609,9 @@ class ToolMixin(BaseMixin):
 
     transformMethods = {'uppercase': 'upper', 'lowercase': 'lower',
                         'capitalize': 'capitalize'}
-    def onSearchObjects(self):
-        '''This method is called when the user triggers a search from
-           search.pt.'''
+    def storeSearchCriteria(self):
+        '''Stores the search criteria coming from the request into the
+           session.'''
         rq = self.REQUEST
         # Store the search criteria in the session
         criteria = self._getDefaultSearchCriteria()
@@ -665,6 +672,12 @@ class ToolMixin(BaseMixin):
         refInfo = rq.get('ref', None)
         if refInfo: criteria['_ref'] = refInfo
         rq.SESSION['searchCriteria'] = criteria
+
+    def onSearchObjects(self):
+        '''This method is called when the user triggers a search from
+           search.pt.'''
+        rq = self.REQUEST
+        self.storeSearchCriteria()
         # Go to the screen that displays search results
         backUrl = '%s/ui/query?className=%s&&search=customSearch' % \
                   (self.absolute_url(), rq['className'])
