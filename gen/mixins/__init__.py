@@ -928,10 +928,11 @@ class BaseMixin:
                 return None
             return res
 
-    def getIcons(self, navInfo=''):
-        '''Gets the icons that can be shown besides the title of an object.'''
+    def getSupTitle(self, navInfo=''):
+        '''Gets the html code (icons,...) that can be shown besides the title
+           of an object.'''
         appyObj = self.appy()
-        if hasattr(appyObj, 'getIcons'): return appyObj.getIcons(navInfo)
+        if hasattr(appyObj, 'getSupTitle'): return appyObj.getSupTitle(navInfo)
         return ''
 
     def getSubTitle(self):
@@ -1836,8 +1837,8 @@ class BaseMixin:
         # this field.
         field = self.getAppyType(name)
         ckAttrs = {'toolbar': 'Appy',
-                   'format_tags': '%s' % ';'.join(field.styles),
-                   'width': field.width}
+                   'format_tags': '%s' % ';'.join(field.styles)}
+        if field.width: ckAttrs['width'] = field.width
         if field.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % self.absolute_url()
         ck = []

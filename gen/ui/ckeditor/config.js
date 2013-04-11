@@ -6,7 +6,7 @@ CKEDITOR.editorConfig = function(config) {
   config.toolbar = 'Appy';
   config.toolbar_Appy = [
     { name: 'basicstyles',
-      items: ["Bold", "Italic", "Underline"]},
+      items: ["Format", "Bold", "Italic", "Underline"]},
     { name: 'paragraph',
       items: ["NumberedList","BulletedList","Outdent","Indent"]},
     { name: 'clipboard',

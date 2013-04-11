@@ -2,19 +2,23 @@
   We begin with some sub-macros used within macro "show" defined below.
 </tal:comment>
 
-<metal:objectTitle define-macro="objectTitle">
+<metal:objectTitle define-macro="objectTitle"
+    tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);
+                navInfo python: test(appyType['isBack'], '', navInfo)">
   <tal:comment replace="nothing">Displays the title of a referenced object, with a link on
     it to reach the consult view for this object. If we are on a back reference, the link
     allows to reach the correct page where the forward reference is defined. If we are
     on a forward reference, the "nav" parameter is added to the URL for allowing to navigate
     from one object to the next/previous on ui/view.</tal:comment>
-  <tal:icons replace="structure obj/getIcons"/>
-  <a tal:define="includeShownInfo includeShownInfo | python:False;
-                 navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], repeat['obj'].number()+startNumber, totalNumber);
-                 navInfo python: test(appyType['isBack'], '', navInfo);
+  <tal:sup replace="structure python: obj.getSupTitle(navInfo)"/>
+  <a class="objectLink"
+     tal:define="includeShownInfo includeShownInfo | python:False;
                  pageName python: appyType['isBack'] and appyType['backd']['pageName'] or 'main';
                  fullUrl python: obj.getUrl(page=pageName, nav=navInfo)"
-     tal:attributes="href fullUrl" tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a>
+     tal:attributes="href fullUrl"
+     tal:content="python: (not includeShownInfo) and obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())"></a><span
+     name="subTitle" tal:content="structure obj/getSubTitle"
+     tal:attributes="style python: showSubTitles and 'display:inline' or 'display:none'"></span>
 </metal:objectTitle>
 
 <metal:objectActions define-macro="objectActions">
@@ -202,8 +206,6 @@
          <tal:def define="widget column/field">
           <tal:title condition="python: widget['name'] == 'title'">
             <metal:showObjectTitle use-macro="app/ui/widgets/ref/macros/objectTitle"/>
-            <div name="subTitle" tal:content="structure obj/getSubTitle"
-                 tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
             <div tal:attributes="align dright" tal:condition="obj/mayAct">
              <metal:showObjectActions use-macro="app/ui/widgets/ref/macros/objectActions" />
             </div>

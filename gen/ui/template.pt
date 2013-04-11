@@ -32,6 +32,45 @@
 </head>
 
 <body tal:on-error="structure python: tool.manageError(error)">
+ <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
+ <div id="grey" class="grey"></div>
+
+ <tal:comment replace="nothing">Popup for confirming an action</tal:comment>
+ <div id="confirmActionPopup" class="popup">
+  <form id="confirmActionForm" method="post">
+   <div align="center">
+    <p id="appyConfirmText"></p>
+    <input type="hidden" name="actionType"/>
+    <input type="hidden" name="action"/>
+    <div id="commentArea" tal:attributes="align dleft"><br/>
+      <span tal:content="python: _('workflow_comment')" class="discreet"></span>
+      <textarea name="comment" cols="30" rows="3"></textarea>
+      <br/>
+    </div>
+    <br/>
+    <input type="button" onClick="doConfirm()"
+           tal:attributes="value python:_('yes')"/>
+    <input type="button" value="No" onClick="closePopup('confirmActionPopup')"
+           tal:attributes="value python:_('no')"/>
+   </div>
+  </form>
+ </div>
+ <tal:comment replace="nothing">Popup for reinitializing the password</tal:comment>
+ <div id="askPasswordReinitPopup" class="popup" tal:condition="python: isAnon and tool.showForgotPassword()">
+  <form id="askPasswordReinitForm" method="post"
+        tal:attributes="action python: tool.absolute_url() + '/askPasswordReinit'">
+   <div align="center">
+    <p tal:content="python: _('app_login')"></p>
+    <input type="text" size="35" name="login" id="login" value=""/>
+    <br/><br/>
+    <input type="button" onClick="doAskPasswordReinit()"
+           tal:attributes="value python:_('ask_password_reinit')"/>
+    <input type="button" value="No" onClick="closePopup('askPasswordReinitPopup')"
+           tal:attributes="value python:_('object_cancel')"/>
+   </div>
+  </form>
+ </div>
+
 <table class="main" align="center" cellpadding="0">
  <tal:comment replace="nothing">Top banner</tal:comment>
  <tr class="top" metal:define-slot="top">
@@ -76,44 +115,6 @@
   <td>
    <div style="position: relative">
     <metal:msg use-macro="app/ui/page/macros/message"/>
-   </div>
-   <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
-   <div id="grey" class="grey"></div>
-
-   <tal:comment replace="nothing">Popup for confirming an action</tal:comment>
-   <div id="confirmActionPopup" class="popup">
-    <form id="confirmActionForm" method="post">
-     <div align="center">
-      <p id="appyConfirmText"></p>
-      <input type="hidden" name="actionType"/>
-      <input type="hidden" name="action"/>
-      <div id="commentArea" tal:attributes="align dleft"><br/>
-        <span tal:content="python: _('workflow_comment')" class="discreet"></span>
-        <textarea name="comment" cols="30" rows="3"></textarea>
-        <br/>
-      </div>
-      <br/>
-      <input type="button" onClick="doConfirm()"
-             tal:attributes="value python:_('yes')"/>
-      <input type="button" value="No" onClick="closePopup('confirmActionPopup')"
-             tal:attributes="value python:_('no')"/>
-     </div>
-    </form>
-   </div>
-   <tal:comment replace="nothing">Popup for reinitializing the password</tal:comment>
-   <div id="askPasswordReinitPopup" class="popup" tal:condition="python: isAnon and tool.showForgotPassword()">
-    <form id="askPasswordReinitForm" method="post"
-          tal:attributes="action python: tool.absolute_url() + '/askPasswordReinit'">
-     <div align="center">
-      <p tal:content="python: _('app_login')"></p>
-      <input type="text" size="35" name="login" id="login" value=""/>
-      <br/><br/>
-      <input type="button" onClick="doAskPasswordReinit()"
-             tal:attributes="value python:_('ask_password_reinit')"/>
-      <input type="button" value="No" onClick="closePopup('askPasswordReinitPopup')"
-             tal:attributes="value python:_('object_cancel')"/>
-     </div>
-    </form>
    </div>
   </td>
  </tr>

@@ -189,7 +189,6 @@
     <table width="100%" class="summary">
       <tr>
         <td colspan="2" class="by">
-          <tal:icons replace="structure contextObj/getIcons"/>
           <tal:comment replace="nothing">Creator and last modification date</tal:comment>
             <tal:comment replace="nothing">Plus/minus icon for accessing history</tal:comment>
             <tal:accessHistory condition="hasHistory">

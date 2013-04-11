@@ -235,7 +235,7 @@ function setSubTitles(value) {
   var subTitles = getElementsHavingName('div', 'subTitle');
   if (subTitles.length == 0) return;
   for (var i=0; i < subTitles.length; i++) {
-    if (value == 'true') subTitles[i].style.display = 'block';
+    if (value == 'true') subTitles[i].style.display = 'inline';
     else subTitles[i].style.display = 'none';
   }
 }

@@ -1215,7 +1215,7 @@ class String(Type):
         if width == None:
             if format == String.TEXT:  self.width  = 60
             # This width corresponds to the standard width of an Appy page.
-            if format == String.XHTML: self.width  = 870
+            if format == String.XHTML: self.width  = None
             else:                      self.width  = 30
         if height == None:
             if format == String.TEXT: self.height = 5

@@ -3,10 +3,12 @@
  <tal:comment replace="nothing">Title</tal:comment>
  <tal:title condition="python: widget['name'] == 'title'">
   <tal:nav define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, startNumber+currentNumber, totalNumber)">
-  <tal:icons replace="structure python: obj.getIcons(navInfo)"/>
-  <a tal:content="obj/Title" tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a>
-  <div name="subTitle" tal:content="structure obj/getSubTitle"
-       tal:attributes="style python: showSubTitles and 'display:block' or 'display:none'"></div>
+  <tal:sup replace="structure python: obj.getSupTitle(navInfo)"/>
+  <a class="objectLink" tal:content="obj/Title" tal:condition="enableLinks"
+     tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a><span
+     tal:condition="not: enableLinks" class="objectLink" tal:content="obj/Title"></span><span
+     name="subTitle" tal:content="structure obj/getSubTitle"
+     tal:attributes="style python: showSubTitles and 'display:inline' or 'display:none'"></span>
   <tal:comment replace="nothing">Actions: edit, delete</tal:comment>
   <div tal:attributes="align dright" tal:condition="obj/mayAct">
    <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
@@ -33,9 +35,10 @@
 </metal:field>
 
 <tal:comment replace="nothing">Show query results as a list.</tal:comment>
-<table metal:define-macro="list" class="list" width="100%">
+<table metal:define-macro="list" class="list" width="100%"
+       tal:define="showHeaders showHeaders|python:True">
  <tal:comment replace="nothing">Headers, with filters and sort arrows</tal:comment>
- <tr>
+ <tr tal:condition="showHeaders">
   <tal:header repeat="column columns">
    <th tal:define="widget column/field;
                    sortable python: tool.isSortable(widget['name'], className, 'search');
@@ -110,7 +113,8 @@
                newSearchUrl  python: '%s/ui/search?className=%s%s' % (tool.absolute_url(), className, refUrlPart);
                showSubTitles python: request.get('showSubTitles', 'true') == 'true';
                resultMode    python: tool.getResultMode(className);
-               showNewSearch showNewSearch|python:True">
+               showNewSearch showNewSearch|python:True;
+               enableLinks   enableLinks|python: True">
 
  <tal:result condition="objs">
   <tal:comment replace="nothing">Display here POD templates if required.</tal:comment>

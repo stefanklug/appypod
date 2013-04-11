@@ -1,6 +1,7 @@
-body { font: 75% Helvetica,Arial,sans-serif; background-color: #EAEAEA;
-       margin-top: 18px }
-pre { font: 100% Helvetica,Arial,sans-serif; margin: 0 }
+body { font: 75% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
+       background-color: #EAEAEA; margin-top: 18px }
+pre { font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
+      margin: 0 }
 h1 { font-size: 14pt; margin:6px 0 6px 0 }
 h2 { font-size: 13pt; margin:6px 0 6px 0; font-style: italic;
      font-weight: normal }
@@ -13,9 +14,9 @@ a { text-decoration: none; color: #436976 }
 a:visited { color: #436976 }
 table { font-size: 100%; border-spacing: 0px; border-collapse:collapse;}
 form { margin: 0; padding: 0 }
-p { margin: 0 }
+p { margin: 0 0 5px 0 }
 acronym { cursor: help }
-input { font: 92% Helvetica,Arial,sans-serif }
+input { font: 92% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 input[type=image] { border: 0; background: none; cursor: pointer }
 input[type=checkbox] { border: 0; background: none; cursor: pointer }
 input[type=radio] { border: 0; background: none; cursor: pointer }
@@ -26,13 +27,13 @@ input[type=button] { border: 1px solid #d0d0d0; margin: 0 3px;
 input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }
 input[type=password] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
-                       font-family: Helvetica,Arial,sans-serif }
+                       font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 input[type=text] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
-                   font-family: Helvetica,Arial,sans-serif;
+                   font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
                    margin-bottom: 1px }
 select { border: 1px solid #d0d0d0; background-color: #f8f8f8 }
 
-textarea { width: 99%; font: 100% Helvetica,Arial,sans-serif;
+textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
            border: 1px solid #d0d0d0; background-color: #f8f8f8 }
 label { font-weight: 600; font-style: italic; line-height: 1.4em }
 legend { padding-bottom: 2px; padding-right: 3px; color: black }
@@ -64,7 +65,8 @@ img { border: 0; vertical-align: middle }
 .login { margin-top: 2px; margin-bottom: 2px; color: black }
 .buttons { margin-left: 4px }
 .fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
-              padding: 0px 8px 2px; font: italic 92% Helvetica,Arial,sans-serif}
+              padding: 0px 8px 2px;
+              font: italic 92% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 .message { position: absolute; top: -40px; left: 150px; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
            background-color: #F9EDBE; text-align: center;
@@ -74,6 +76,7 @@ img { border: 0; vertical-align: middle }
          box-shadow: 0 2px 4px #A9A9A9 }
 .focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; color: grey }
+.objectLink {}
 .lostPassword a { font-size: 90%; color: white; padding-left: 1em }
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed }
@@ -86,13 +89,13 @@ img { border: 0; vertical-align: middle }
                 margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey }
 .portletSearch { font-size: 90%; font-style: italic }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
-.grey { display: none; position: absolute; left: 0px; top: 0px;
+.grey { display: none; position: absolute; left: 0px; top: 0px; z-index:2;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;
         filter:alpha(Opacity=50) }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey }
-.list { border: 1px solid grey; margin-bottom: 3px }
+.list { margin-bottom: 3px }
 .list td, .list th { border: 1px solid grey;
                      padding-left: 5px; padding-right: 5px; padding-top: 3px }
 .list th { background-color: #d7dee4; font-style: italic; font-weight: normal }
@@ -109,12 +112,12 @@ img { border: 0; vertical-align: middle }
             padding: 0.3em 0em 0.2em 0.1em; background-color: #eef3f5;
             border-top: 1px solid #8CACBB;border-bottom: 1px solid #8CACBB }
 .section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.2em 0;
-            border-bottom: 2px solid grey }
+            border-bottom: 1px solid #DADADA }
 .section3 { font-size: 100%; font-style: italic; font-weight: bold;
-            margin: 0.45em 0em 0.1em 0; background-color: #95a1b3;
+            margin: 0.45em 0em 0.1em 0; background-color: #a1aeb5;
             text-align: center; color: white }
-.odd { background-color: #f9f9f9 }
-.even { background-color: #f4f4f4 }
+.even { background-color: #f9f9f9 }
+.odd { background-color: #f4f4f4 }
 .summary { margin-bottom: 5px; background-color: #e9e9e9;
            border: 1px dashed grey }
 .objectTitle { font-size: 11pt; border-bottom: 3px solid grey;
