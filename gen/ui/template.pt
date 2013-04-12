@@ -1,6 +1,8 @@
-<!DOCTYPE html>
-<html metal:define-macro="main"
-      tal:define="user tool/getUser;
+<metal:main define-macro="main">
+<tal:doctype tal:replace="structure string:&lt;!DOCTYPE html PUBLIC
+  &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot;
+  &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;" />
+<html tal:define="user tool/getUser;
                   isAnon tool/userIsAnon;
                   app tool/getApp;
                   appUrl app/absolute_url;
@@ -218,3 +220,4 @@
 </table>
 </body>
 </html>
+</metal:main>
