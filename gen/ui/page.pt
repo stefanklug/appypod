@@ -307,7 +307,7 @@
     </a>
   </td>
 
-  <tal:comment replace="nothing">Next</tal:comment> 
+  <tal:comment replace="nothing">Next</tal:comment>
   <td tal:condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
       <img style="cursor:pointer" onClick="submitAppyForm('next')"

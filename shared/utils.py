@@ -266,7 +266,7 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
         try:
             decPart = int(splitted[1])
             if decPart != 0:
-                res += sep + str(decPart)
+                res += sep + splitted[1]
         except ValueError:
             # This exception may occur when the float value has an "exp"
             # part, like in this example: 4.345e-05

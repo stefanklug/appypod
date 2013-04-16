@@ -96,7 +96,9 @@ class AbstractWrapper(object):
         elif name == 'tool': return self.o.getTool().appy()
         elif name == 'request':
             # The request may not be present, ie if we are at Zope startup.
-            return getattr(self.o, 'REQUEST', None)
+            res = getattr(self.o, 'REQUEST', None)
+            if res != None: return res
+            return self.o.getProductConfig().fakeRequest
         elif name == 'session': return self.o.REQUEST.SESSION
         elif name == 'typeName': return self.__class__.__bases__[-1].__name__
         elif name == 'id': return self.o.id
@@ -193,7 +195,7 @@ class AbstractWrapper(object):
            root object in the application folder.'''
         isField = isinstance(fieldNameOrClass, basestring)
         tool = self.tool.o
-        # Determine the portal type of the object to create
+        # Determine the class of the object to create
         if isField:
             fieldName = fieldNameOrClass
             appyType = self.o.getAppyType(fieldName)

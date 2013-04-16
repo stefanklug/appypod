@@ -131,7 +131,7 @@
 
   <tal:comment replace="nothing">The title of the search.</tal:comment>
   <p>
-   <span tal:replace="searchDescr/translated"/>
+   <span tal:replace="structure searchDescr/translated"/>
     (<span tal:replace="totalNumber"/>)
       <tal:newSearch condition="python: showNewSearch and (searchName == 'customSearch')">
         &nbsp;&mdash;&nbsp;<i><a tal:attributes="href newSearchUrl"
