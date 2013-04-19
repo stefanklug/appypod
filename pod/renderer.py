@@ -25,13 +25,13 @@ import appy.pod, time, cgi
 from appy.pod import PodError
 from appy.shared import mimeTypes, mimeTypesExts
 from appy.shared.xml_parser import XmlElement
-from appy.shared.utils import FolderDeleter, executeCommand
-from appy.shared.utils import FileWrapper
+from appy.shared.utils import FolderDeleter, executeCommand, FileWrapper
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
 from appy.pod.converter import FILE_TYPES
 from appy.pod.buffers import FileBuffer
 from appy.pod.xhtml2odt import Xhtml2OdtConverter
-from appy.pod.doc_importers import OdtImporter, ImageImporter, PdfImporter
+from appy.pod.doc_importers import \
+     OdtImporter, ImageImporter, PdfImporter, ConvertImporter
 from appy.pod.styles_manager import StylesManager
 
 # ------------------------------------------------------------------------------
@@ -274,6 +274,7 @@ class Renderer:
 
     imageFormats = ('png', 'jpeg', 'jpg', 'gif', 'svg')
     ooFormats = ('odt',)
+    convertibleFormats = FILE_TYPES.keys()
     def importDocument(self, content=None, at=None, format=None,
                        anchor='as-char', wrapInPara=True, size=None,
                        sizeUnit='cm', style=None):
@@ -300,12 +301,12 @@ class Renderer:
         # Is there someting to import?
         if not content and not at:
             raise PodError(DOC_NOT_SPECIFIED)
+        # Convert Zope files into Appy wrappers.
+        if content.__class__.__name__ == 'File':
+            content = FileWrapper(content)
         # Guess document format
         if isinstance(content, FileWrapper):
             format = content.mimeType
-        elif hasattr(content, 'filename') and content.filename:
-            format = os.path.splitext(content.filename)[1][1:]
-            content = content.data
         if not format:
             # It should be deduced from p_at
             if not at:
@@ -325,6 +326,8 @@ class Renderer:
             isImage = True
         elif format == 'pdf':
             importer = PdfImporter
+        elif format in self.convertibleFormats:
+            importer = ConvertImporter
         else:
             raise PodError(DOC_WRONG_FORMAT % format)
         imp = importer(content, at, format, self)

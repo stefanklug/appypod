@@ -36,6 +36,7 @@ PDF_TO_IMG_ERROR = 'A PDF file could not be converted into images. Please ' \
                    'system and the "gs" program is in the path.'
 CONVERT_ERROR = 'Program "convert", from imagemagick, must be installed and ' \
                 'in the path for converting a SVG file into a PNG file.'
+TO_PDF_ERROR = 'ConvertImporter error while converting a doc to PDF: %s.'
 
 # ------------------------------------------------------------------------------
 class DocImporter:
@@ -116,7 +117,8 @@ class DocImporter:
         '''In the case parameter "at" was used, we may want to move the file at
            p_at within the ODT result in p_importPath (for images) or do
            nothing (for docs). In the latter case, the file to import stays
-           at _at, and is not copied into p_importPath.'''
+           at _at, and is not copied into p_importPath. So the previously
+           computed p_importPath is not used at all.'''
         return at
 
 class OdtImporter(DocImporter):
@@ -135,18 +137,18 @@ class PdfImporter(DocImporter):
     '''This class allows to import the content of a PDF file into a pod
        template. It calls gs to split the PDF into images and calls the
        ImageImporter for importing it into the result.'''
-    imagePrefix = 'PdfPart'
     def getImportFolder(self): return '%s/docImports' % self.tempFolder
     def run(self):
+        imagePrefix = os.path.splitext(os.path.basename(self.importPath))[0]
         # Split the PDF into images with Ghostscript
         imagesFolder = os.path.dirname(self.importPath)
         cmd = 'gs -dNOPAUSE -dBATCH -sDEVICE=jpeg -r125x125 ' \
               '-sOutputFile=%s/%s%%d.jpg %s' % \
-              (imagesFolder, self.imagePrefix, self.importPath)
+              (imagesFolder, imagePrefix, self.importPath)
         os.system(cmd)
         # Check that at least one image was generated
         succeeded = False
-        firstImage = '%s1.jpg' % self.imagePrefix
+        firstImage = '%s1.jpg' % imagePrefix
         for fileName in os.listdir(imagesFolder):
             if fileName == firstImage:
                 succeeded = True
@@ -157,16 +159,30 @@ class PdfImporter(DocImporter):
         i = 0
         while not noMoreImages:
             i += 1
-            nextImage = '%s/%s%d.jpg' % (imagesFolder, self.imagePrefix, i)
+            nextImage = '%s/%s%d.jpg' % (imagesFolder, imagePrefix, i)
             if os.path.exists(nextImage):
                 # Use internally an Image importer for doing this job.
-                imgImporter =ImageImporter(None, nextImage, 'jpg',self.renderer)
+                imgImporter= ImageImporter(None, nextImage, 'jpg',self.renderer)
                 imgImporter.setImageInfo('paragraph', True, None, None, None)
                 self.res += imgImporter.run()
                 os.remove(nextImage)
             else:
                 noMoreImages = True
         return self.res
+
+class ConvertImporter(DocImporter):
+    '''This class allows to import the content of any file that LibreOffice (LO)
+       can convert into PDF: doc, rtf, xls. It first calls LO to convert the
+       document into PDF, then calls a PdfImporter.'''
+    def getImportFolder(self): return '%s/docImports' % self.tempFolder
+    def run(self):
+        # Convert the document into PDF with LibreOffice
+        output = self.renderer.callLibreOffice(self.importPath, 'pdf')
+        if output: raise PodError(TO_PDF_ERROR % output)
+        pdfFile = '%s.pdf' % os.path.splitext(self.importPath)[0]
+        # Launch a PdfImporter to import this PDF into the POD result.
+        pdfImporter = PdfImporter(None, pdfFile, 'pdf', self.renderer)
+        return pdfImporter.run()
 
 # Compute size of images -------------------------------------------------------
 jpgTypes = ('jpg', 'jpeg')
