@@ -31,7 +31,7 @@ from appy.pod.converter import FILE_TYPES
 from appy.pod.buffers import FileBuffer
 from appy.pod.xhtml2odt import Xhtml2OdtConverter
 from appy.pod.doc_importers import \
-     OdtImporter, ImageImporter, PdfImporter, ConvertImporter
+     OdtImporter, ImageImporter, PdfImporter, ConvertImporter, PodImporter
 from appy.pod.styles_manager import StylesManager
 
 # ------------------------------------------------------------------------------
@@ -232,7 +232,8 @@ class Renderer:
         evalContext = {'xhtml': self.renderXhtml,
                        'text':  self.renderText,
                        'test': self.evalIfExpression,
-                       'document': self.importDocument} # Default context
+                       'document': self.importDocument,
+                       'pod': self.importPod } # Default context
         if hasattr(context, '__dict__'):
             evalContext.update(context.__dict__)
         elif isinstance(context, dict) or isinstance(context, UserDict):
@@ -333,8 +334,28 @@ class Renderer:
         imp = importer(content, at, format, self)
         # Initialise image-specific parameters
         if isImage: imp.setImageInfo(anchor, wrapInPara, size, sizeUnit, style)
-        res = imp.run()
-        return res
+        return imp.run()
+
+    def importPod(self, content=None, at=None, format='odt', context=None):
+        '''Similar to m_importDocument, but allows to import the result of
+           executing the POD template specified in p_content or p_at, and
+           include it in the POD result.'''
+        # Is there a pod template defined?
+        if not content and not at:
+            raise PodError(DOC_NOT_SPECIFIED)
+        # If the POD template is specified as a Zope file, convert it into a
+        # Appy FileWrapper.
+        if content.__class__.__name__ == 'File':
+            content = FileWrapper(content)
+        imp = PodImporter(content, at, format, self)
+        self.forceOoCall = True
+        # Define the context to use: either the current context of the current
+        # POD renderer, or p_context if given.
+        if context:
+            imp.setContext(context)
+        else:
+            imp.setContext(self.contentParser.env.context)
+        return imp.run()
 
     def prepareFolders(self):
         # Check if I can write the result

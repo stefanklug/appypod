@@ -133,6 +133,34 @@ class OdtImporter(DocImporter):
                         self.linkNs, self.importPath, self.textNs, self.textNs)
         return self.res
 
+class PodImporter(DocImporter):
+    '''This class allows to import the result of applying another POD template,
+       into the current POD result.'''
+    def getImportFolder(self): return '%s/docImports' % self.tempFolder
+
+    def setContext(self, context):
+        '''Defines the context to user for the PodImporter.'''
+        self.context = context
+
+    def run(self):
+        # Define where to store the pod result in the temp folder
+        r = self.renderer
+        # Define where to store the ODT result.
+        op = os.path
+        resFolder = op.dirname(self.importPath)
+        resName = '%s.res.odt' % op.splitext(op.basename(self.importPath))[0]
+        resOdt = op.join(resFolder, resName)
+        # The POD template is in self.importPath
+        renderer = r.__class__(self.importPath, self.context, resOdt,
+                               pythonWithUnoPath=r.pyPath,
+                               ooPort=r.ooPort, forceOoCall=r.forceOoCall,
+                               imageResolver=r.imageResolver)
+        renderer.stylesManager.stylesMapping = r.stylesManager.stylesMapping
+        renderer.run()
+        # The POD result is in "resOdt". Import it into the main POD result
+        # using an OdtImporter.
+        return OdtImporter(None, resOdt, 'odt', self.renderer).run()
+
 class PdfImporter(DocImporter):
     '''This class allows to import the content of a PDF file into a pod
        template. It calls gs to split the PDF into images and calls the
