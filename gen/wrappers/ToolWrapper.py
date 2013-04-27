@@ -43,8 +43,9 @@ class ToolWrapper(AbstractWrapper):
 
     def computeConnectedUsers(self):
         '''Computes a table showing users that are currently connected.'''
-        res = '<table cellpadding="0" cellspacing="0" class="list"><tr>' \
-              '<th></th><th>%s</th></tr>' % self.translate('last_user_access')
+        res = '<table cellpadding="0" cellspacing="0" class="list">' \
+              '<tr><th></th><th>%s</th></tr>' % \
+              self.translate('last_user_access')
         rows = []
         for userId, lastAccess in loggedUsers.items():
             user = self.search1('User', noSecurity=True, login=userId)

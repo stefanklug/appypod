@@ -118,6 +118,7 @@ class AbstractWrapper(object):
             return self.search1('User', noSecurity=True,
                                 login=self.o.getUser().getId())
         elif name == 'fields': return self.o.getAllAppyTypes()
+        elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)
         # If we got an Appy type, return the value of this type for this object

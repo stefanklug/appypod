@@ -2,15 +2,16 @@
 <metal:field define-macro="field">
  <tal:comment replace="nothing">Title</tal:comment>
  <tal:title condition="python: widget['name'] == 'title'">
-  <tal:nav define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, startNumber+currentNumber, totalNumber)">
+  <tal:nav define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, startNumber+currentNumber, totalNumber);
+                   cssClass python: obj.getCssFor('title')">
   <tal:sup replace="structure python: obj.getSupTitle(navInfo)"/>
-  <a class="objectLink" tal:content="obj/Title" tal:condition="enableLinks"
-     tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"></a><span
-     tal:condition="not: enableLinks" class="objectLink" tal:content="obj/Title"></span><span
+  <a tal:content="obj/Title" tal:condition="enableLinks"
+     tal:attributes="href python: obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage()); class cssClass"></a><span
+     tal:condition="not: enableLinks" tal:attributes="class cssClass" tal:content="obj/Title"></span><span
      name="subTitle" tal:content="structure obj/getSubTitle"
      tal:attributes="style python: showSubTitles and 'display:inline' or 'display:none'"></span>
   <tal:comment replace="nothing">Actions: edit, delete</tal:comment>
-  <div tal:attributes="align dright" tal:condition="obj/mayAct">
+  <div tal:condition="obj/mayAct">
    <a tal:define="navInfo python:'search.%s.%s.%d.%d' % (className, searchName, repeat['obj'].number()+startNumber, totalNumber);"
       tal:attributes="href python: obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), nav=navInfo)"
       tal:condition="obj/mayEdit">

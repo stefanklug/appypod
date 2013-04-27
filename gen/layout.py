@@ -227,6 +227,11 @@ widePageLayouts = {
     'view': Table('w|-b|', align="center"),
     'edit': Table('w|-b|')
 }
+centeredPageLayouts = {
+    'view': Table('w|-b|', align="center"),
+    'edit': Table('w|-b|', width=None, align='center')
+}
+
 # The default layout for fields. Alternative layouts may exist and are declared
 # as static attributes of the concerned Type subclass.
 defaultFieldLayouts = {'edit': 'lrv-f'}

@@ -810,6 +810,15 @@ class BaseMixin:
         res['css'] = css
         res['js'] = js
 
+    def getCssFor(self, elem):
+        '''Gets the name of the CSS class to use for styling some p_elem. If
+           self's class does not define a dict "styles", the defaut CSS class
+           to use will be named p_elem.'''
+        klass = self.getClass()
+        if hasattr(klass, 'styles') and (elem in klass.styles):
+            return klass.styles[elem]
+        return elem
+
     def getColumnsSpecifiers(self, columnLayouts, dir):
         '''Extracts and returns, from a list of p_columnLayouts, the information
            that is necessary for displaying a column in a result screen or for

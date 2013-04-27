@@ -92,7 +92,7 @@
 <table metal:define-macro="navigationStrip" tal:condition="python: contextObj"
        width="100%" class="navigate">
  <tr>
-  <td tal:define="breadcrumb contextObj/getBreadCrumb">
+  <td tal:define="breadcrumb contextObj/getBreadCrumb" class="breadcrumb">
    <tal:bc repeat="bc breadcrumb">
     <tal:elem define="nb repeat/bc/number">
      <tal:sep condition="python: nb != 1">

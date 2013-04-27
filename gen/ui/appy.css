@@ -35,7 +35,8 @@ select { border: 1px solid #d0d0d0; background-color: #f8f8f8 }
 
 textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
            border: 1px solid #d0d0d0; background-color: #f8f8f8 }
-label { font-weight: 600; font-style: italic; line-height: 1.4em }
+label { color: #888888; font-size: 11px; margin: 3px 0;
+        text-transform: uppercase }
 legend { padding-bottom: 2px; padding-right: 3px; color: black }
 ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
      list-style: none outside none }
@@ -76,7 +77,8 @@ img { border: 0; vertical-align: middle }
          box-shadow: 0 2px 4px #A9A9A9 }
 .focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; color: grey }
-.objectLink {}
+.title { color: #BA9440 }
+.breadcrumb { color: #BA9440; font-size: 13px }
 .lostPassword a { font-size: 90%; color: white; padding-left: 1em }
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed }
@@ -98,7 +100,7 @@ img { border: 0; vertical-align: middle }
 .list { margin-bottom: 3px }
 .list td, .list th { border: 1px solid grey;
                      padding-left: 5px; padding-right: 5px; padding-top: 3px }
-.list th { background-color: #d7dee4; font-style: italic; font-weight: normal }
+.list th { background-color: #e5e5e5; font-style: italic; font-weight: normal }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 2px solid grey; padding: 2px 2px }
 .grid td { padding-right: 5px }
@@ -110,16 +112,17 @@ img { border: 0; vertical-align: middle }
                     margin-top: 0.5em; margin-bottom: 0.5em }
 .section1 { font-size: 120%; margin: 0.45em 0em 0.1em 0;
             padding: 0.3em 0em 0.2em 0.1em; background-color: #eef3f5;
-            border-top: 1px solid #8CACBB;border-bottom: 1px solid #8CACBB }
-.section2 { font-size: 110%; font-style: italic; margin: 0.45em 0em 0.2em 0;
-            border-bottom: 1px solid #DADADA }
-.section3 { font-size: 100%; font-style: italic; font-weight: bold;
-            margin: 0.45em 0em 0.1em 0; background-color: #a1aeb5;
-            text-align: center; color: white }
+            border-top: 1px solid #8CACBB;border-bottom: 1px solid #8cacbb }
+.section2 { font-size: 14px; padding: 6px; text-transform: uppercase;
+            border-bottom: 1px dashed #cccccc; border-top: 1px dashed #cccccc;
+            background-color: #f9f9f9 }
+.section3 { font-size: 11px; font-weight: bold; text-transform: uppercase;
+            padding: 2px 0px; background-color: #a1aeb5; text-align: center;
+            color: white }
 .even { background-color: #f9f9f9 }
 .odd { background-color: #f4f4f4 }
-.summary { margin-bottom: 5px; background-color: #e9e9e9;
-           border: 1px dashed grey }
+.summary { margin-bottom: 5px; background-color: #f9f9f9;
+           border-bottom: 1px dashed #cccccc; border-top: 1px dashed #cccccc; }
 .objectTitle { font-size: 11pt; border-bottom: 3px solid grey;
                font-weight: bold }
 .by { padding: 5px; color: grey; font-size: 97% }
