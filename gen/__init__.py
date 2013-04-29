@@ -3013,4 +3013,6 @@ class Config:
         # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
         # the field below.
         self.ogone = None
+        # When using Google analytics, specify here the Analytics ID
+        self.googleAnalyticsId = None
 # ------------------------------------------------------------------------------

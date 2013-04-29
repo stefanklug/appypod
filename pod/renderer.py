@@ -540,8 +540,13 @@ class Renderer:
         # Linux/Unix, are unable to detect the correct mimetype for a pod result
         # (it simply recognizes it as a "application/zip" and not a
         # "application/vnd.oasis.opendocument.text)".
-        resultZip.write(os.path.join(self.unzipFolder, 'mimetype'),
-                        'mimetype', zipfile.ZIP_STORED)
+        mimetypeFile = os.path.join(self.unzipFolder, 'mimetype')
+        # This file may not exist (presumably, ods files from Google Drive)
+        if not os.path.exists(mimetypeFile):
+            f = open(mimetypeFile, 'w')
+            f.write(mimeTypes[resultExt])
+            f.close()
+        resultZip.write(mimetypeFile, 'mimetype', zipfile.ZIP_STORED)
         for dir, dirnames, filenames in os.walk(self.unzipFolder):
             for f in filenames:
                 folderName = dir[len(self.unzipFolder)+1:]

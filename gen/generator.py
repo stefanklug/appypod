@@ -605,6 +605,7 @@ class ZopeGenerator(Generator):
         repls['sourceLanguage'] = self.config.sourceLanguage
         repls['enableSessionTimeout'] = self.config.enableSessionTimeout
         repls['ogone'] = repr(self.config.ogone)
+        repls['googleAnalyticsId'] = repr(self.config.googleAnalyticsId)
         repls['activateForgotPassword'] = self.config.activateForgotPassword
         self.copyFile('config.pyt', repls, destName='config.py')
 

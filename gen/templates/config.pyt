@@ -50,6 +50,7 @@ sourceLanguage = '<!sourceLanguage!>'
 activateForgotPassword = <!activateForgotPassword!>
 enableSessionTimeout = <!enableSessionTimeout!>
 ogone = <!ogone!>
+googleAnalyticsId = <!googleAnalyticsId!>
 
 # When Zope is starting or runs in test mode, there is no request object. We
 # create here a fake one for storing Appy wrappers.

@@ -248,6 +248,7 @@ class PodParser(OdfParser):
             e.exprHasStyle = False
         elif (elem == e.tags['table-cell']) and \
              attrs.has_key(e.tags['formula']) and \
+             attrs.has_key(e.tags['value-type']) and \
              (attrs[e.tags['value-type']] == 'string') and \
              attrs[e.tags['formula']].startswith('of:="'):
             # In an ODS template, any cell containing a formula of type "string"

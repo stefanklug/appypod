@@ -1222,4 +1222,29 @@ class ToolMixin(BaseMixin):
         else:
             objects = method.__get__(tool)(tool)
         return [(o.uid, o) for o in objects]
+
+    def getGoogleAnalyticsCode(self):
+        '''If the config defined a Google Analytics ID, this method returns the
+           Javascript code to be included in every page, allowing Google
+           Analytics to work.'''
+        # Disable Google Analytics when we are in debug mode.
+        if self.isDebug(): return
+        # Disable Google Analytics if no ID is found in the config.
+        gaId = self.getProductConfig().googleAnalyticsId
+        if not gaid: return
+        # Google Analytics must be enabled: return the chunk of Javascript
+        # code specified by Google.
+        code = "var _gaq = _gaq || [];\n" \
+               "_gaq.push(['_setAccount', '%s']);\n" \
+               "_gaq.push(['_trackPageview']);\n" \
+               "(function() {\n" \
+               "  var ga = document.createElement('script'); " \
+               "ga.type = 'text/javascript'; ga.async = true;\n" \
+               "  ga.src = ('https:' == document.location.protocol ? " \
+               "'https://ssl' : 'http://www') + " \
+               "'.google-analytics.com/ga.js';\n" \
+               "  var s = document.getElementsByTagName('script')[0]; " \
+               "s.parentNode.insertBefore(ga, s);\n" \
+               "})();\n" % gaId
+        return code
 # ------------------------------------------------------------------------------

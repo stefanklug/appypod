@@ -34,6 +34,9 @@
 </head>
 
 <body tal:on-error="structure python: tool.manageError(error)">
+ <tal:comment replace="nothing">Google Analytics stuff, if enabled</tal:comment>
+ <script tal:define="gaCode tool/getGoogleAnalyticsCode" tal:condition="gaCode"
+         type="text/javascript" tal:content="gaCode"></script>
  <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
  <div id="grey" class="grey"></div>
 
