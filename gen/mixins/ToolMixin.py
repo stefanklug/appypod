@@ -1231,7 +1231,7 @@ class ToolMixin(BaseMixin):
         if self.isDebug(): return
         # Disable Google Analytics if no ID is found in the config.
         gaId = self.getProductConfig().googleAnalyticsId
-        if not gaid: return
+        if not gaId: return
         # Google Analytics must be enabled: return the chunk of Javascript
         # code specified by Google.
         code = "var _gaq = _gaq || [];\n" \
