@@ -314,8 +314,8 @@ class Search:
         # use it instead of trying to translate from labels.
         self.translated = translated
         self.translatedDescr = translatedDescr
-        # In the dict below, keys are indexed field names and values are
-        # search values.
+        # In the dict below, keys are indexed field names or names of standard
+        # indexes, and values are search values.
         self.fields = fields
 
     @staticmethod
@@ -336,13 +336,14 @@ class Search:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
 
     @staticmethod
-    def getSearchValue(fieldName, fieldValue):
+    def getSearchValue(fieldName, fieldValue, klass):
         '''Returns a transformed p_fieldValue for producing a valid search
            value as required for searching in the index corresponding to
            p_fieldName.'''
-        if fieldName in ('title', 'SearchableText'):
-            # Title and SearchableText are TextIndex indexes. We must split
-            # p_fieldValue into keywords.
+        field = getattr(klass, fieldName, None)
+        if (field and (field.getIndexType() == 'TextIndex')) or \
+           (fieldName == 'SearchableText'):
+            # For TextIndex indexes. We must split p_fieldValue into keywords.
             res = Keywords(fieldValue).get()
         elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
             v = fieldValue[:-1]
@@ -369,7 +370,7 @@ class Search:
             res = fieldValue
         return res
 
-    def updateSearchCriteria(self, criteria, advanced=False):
+    def updateSearchCriteria(self, criteria, klass, advanced=False):
         '''This method updates dict p_criteria with all the search criteria
            corresponding to this Search instance. If p_advanced is True,
            p_criteria correspond to an advanced search, to be stored in the
@@ -387,7 +388,8 @@ class Search:
             if not advanced:
                 attrName = Search.getIndexName(fieldName)
                 # Express the field value in the way needed by the index
-                criteria[attrName]= Search.getSearchValue(fieldName, fieldValue)
+                criteria[attrName] = Search.getSearchValue(fieldName,
+                                                           fieldValue, klass)
             else:
                 criteria[fieldName]= fieldValue
         # Add a sort order if specified
@@ -821,6 +823,7 @@ class Type:
         # we consider it to be an index type. It allows to bypass the standard
         # way to decide what index type must be used.
         if isinstance(self.indexed, str): return self.indexed
+        if self.name == 'title': return 'TextIndex'
         return 'FieldIndex'
 
     def getIndexValue(self, obj, forSearch=False):

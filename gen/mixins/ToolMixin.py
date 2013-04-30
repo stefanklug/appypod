@@ -348,12 +348,13 @@ class ToolMixin(BaseMixin):
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
         params = {'ClassName': className}
+        appyClass = self.getAppyClass(className, wrapper=True)
         if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
         if searchName: search = self.getSearch(className, searchName)
         if search:
             # Add in params search and sort criteria.
-            search.updateSearchCriteria(params)
+            search.updateSearchCriteria(params, appyClass)
         # Determine or override sort if specified.
         if sortBy:
             params['sort_on'] = Search.getIndexName(sortBy, usage='sort')
@@ -362,7 +363,7 @@ class ToolMixin(BaseMixin):
         # If defined, add the filter among search parameters.
         if filterKey:
             filterKey = Search.getIndexName(filterKey)
-            filterValue = Search.getSearchValue(filterKey, filterValue)
+            filterValue = Search.getSearchValue(filterKey,filterValue,appyClass)
             params[filterKey] = filterValue
             # TODO This value needs to be merged with an existing one if already
             # in params, or, in a first step, we should avoid to display the
@@ -372,6 +373,7 @@ class ToolMixin(BaseMixin):
             params['UID'] = getattr(refObject, refField.name).data
         # Use index "Allowed" if noSecurity is False
         if not noSecurity: params['Allowed'] = self.getAllowedValue()
+        print params
         brains = self.getPath("/catalog")(**params)
         if brainsOnly:
             # Return brains only.
@@ -602,9 +604,11 @@ class ToolMixin(BaseMixin):
         if 'className' not in rq.form: return res
         klass = self.getAppyClass(rq.form['className'])
         if not hasattr(klass, 'searchAdvanced'): return res
-        # In this attribute, we have the Search instance representing automatic
-        # advanced search criteria.
-        klass.searchAdvanced.updateSearchCriteria(res, advanced=True)
+        # In klass.searchAdvanced, we have the Search instance representing
+        # default advanced search criteria.
+        wrapperClass = self.getAppyClass(rq.form['className'], wrapper=True)
+        klass.searchAdvanced.updateSearchCriteria(res, wrapperClass,
+                                                  advanced=True)
         return res
 
     transformMethods = {'uppercase': 'upper', 'lowercase': 'lower',
