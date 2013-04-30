@@ -40,9 +40,11 @@
             tal:content="year"></option>
   </select>
   <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
-  <input type="hidden" tal:attributes="id name; name name"/>
-  <img tal:attributes="id string:${name}_img; src string: $appUrl/ui/calendar.gif"/>
-  <script type="text/javascript" tal:content="python: contextObj.getCalendarInit(name, years)"></script>
+  <tal:calendar condition="widget/calendar">
+   <input type="hidden" tal:attributes="id name; name name"/>
+   <img tal:attributes="id string:${name}_img; src string: $appUrl/ui/calendar.gif"/>
+   <script type="text/javascript" tal:content="python: contextObj.getCalendarInit(name, years)"></script>
+  </tal:calendar> 
 
   <tal:hour condition="python: widget['format'] == 0">
     <select tal:define="hours python:range(0,24);"
@@ -107,9 +109,11 @@
                   tal:content="value" tal:attributes="value value"></option>
         </select>
        <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
-       <input type="hidden" tal:attributes="id fromName; name fromName"/>
-       <img tal:attributes="id string:${fromName}_img; src string: $appUrl/ui/calendar.gif"/>
-       <script type="text/javascript" tal:content="python: tool.getCalendarInit(fromName, years)"></script>
+       <tal:calendar condition="widget/calendar">
+        <input type="hidden" tal:attributes="id fromName; name fromName"/>
+        <img tal:attributes="id string:${fromName}_img; src string: $appUrl/ui/calendar.gif"/>
+        <script type="text/javascript" tal:content="python: tool.getCalendarInit(fromName, years)"></script>
+       </tal:calendar>
       </td>
     </tr>
     <tal:comment replace="nothing">To</tal:comment>
@@ -138,9 +142,11 @@
                  tal:content="value" tal:attributes="value value"></option>
         </select>
        <tal:comment replace="nothing">The icon for displaying the calendar popup</tal:comment>
-       <input type="hidden" tal:attributes="id toName; name toName"/>
-       <img tal:attributes="id string:${toName}_img; src string: $appUrl/ui/calendar.gif"/>
-       <script type="text/javascript" tal:content="python: tool.getCalendarInit(toName, years)"></script>
+       <tal:calendar condition="widget/calendar">
+        <input type="hidden" tal:attributes="id toName; name toName"/>
+        <img tal:attributes="id string:${toName}_img; src string: $appUrl/ui/calendar.gif"/>
+        <script type="text/javascript" tal:content="python: tool.getCalendarInit(toName, years)"></script>
+       </tal:calendar>
       </td>
     </tr>
   </table>

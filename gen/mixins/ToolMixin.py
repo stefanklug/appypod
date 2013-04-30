@@ -373,7 +373,6 @@ class ToolMixin(BaseMixin):
             params['UID'] = getattr(refObject, refField.name).data
         # Use index "Allowed" if noSecurity is False
         if not noSecurity: params['Allowed'] = self.getAllowedValue()
-        print params
         brains = self.getPath("/catalog")(**params)
         if brainsOnly:
             # Return brains only.
