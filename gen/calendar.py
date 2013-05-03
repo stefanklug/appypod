@@ -131,7 +131,7 @@ class Calendar(Type):
         '''Creates a list of lists of DateTime objects representing the calendar
            grid to render for a given p_month.'''
         # Month is a string "YYYY/mm".
-        currentDay = DateTime('%s/01 12:00' % month)
+        currentDay = DateTime('%s/01 UTC' % month)
         currentMonth = currentDay.month()
         res = [[]]
         dayOneNb = currentDay.dow() or 7 # This way, Sunday is 7 and not 0.
@@ -295,7 +295,7 @@ class Calendar(Type):
                         if eventType and (event.eventType != eventType):
                             continue
                         # We have found a event.
-                        date = DateTime('%d/%d/%d 12:00' % (year,month,day))
+                        date = DateTime('%d/%d/%d UTC' % (year, month, day))
                         if groupSpanned:
                             singleRes = [date, None, event]
                         else:
