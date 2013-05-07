@@ -75,12 +75,11 @@ class Calendar(Type):
         # and the result of self.preCompute. The method's result (a string that
         # can hold text or a chunk of XHTML) will be inserted in the cell.
         self.additionalInfo = additionalInfo
-        # One may limit event encoding and viewing to a limited period of time,
+        # One may limit event encoding and viewing to some period of time,
         # via p_startDate and p_endDate. Those parameters, if given, must hold
-        # methods accepting no arg and returning a Zope DateTime instance.
+        # methods accepting no arg and returning a Zope DateTime instance. The
+        # startDate and endDate will be converted to UTC at 00.00.
         self.startDate = startDate
-        # Beware: specify an end date with an hour like
-        # DateTime('2012/10/13 23:59:59') to avoid surprises.
         self.endDate = endDate
         # If a default date is specified, it must be a method accepting no arg
         # and returning a DateTime instance. As soon as the calendar is shown,
@@ -109,7 +108,7 @@ class Calendar(Type):
     def getSiblingMonth(self, month, prevNext):
         '''Gets the next or previous month (depending of p_prevNext) relative
            to p_month.'''
-        dayOne = DateTime('%s/01' % month)
+        dayOne = DateTime('%s/01 UTC' % month)
         if prevNext == 'previous':
             refDate = dayOne - 1
         elif prevNext == 'next':
@@ -348,11 +347,17 @@ class Calendar(Type):
 
     def getStartDate(self, obj):
         '''Get the start date for this calendar if defined.'''
-        if self.startDate: return self.startDate(obj.appy())
+        if self.startDate:
+            d = self.startDate(obj.appy())
+            # Return the start date without hour, in UTC.
+            return DateTime('%d/%d/%d UTC' % (d.year(), d.month(), d.day()))
 
     def getEndDate(self, obj):
         '''Get the end date for this calendar if defined.'''
-        if self.endDate: return self.endDate(obj.appy())
+        if self.endDate:
+            d = self.endDate(obj.appy())
+            # Return the end date without hour, in UTC.
+            return DateTime('%d/%d/%d UTC' % (d.year(), d.month(), d.day()))
 
     def getDefaultDate(self, obj):
         '''Get the default date that must appear as soon as the calendar is
