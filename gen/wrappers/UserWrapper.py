@@ -74,8 +74,9 @@ class UserWrapper(AbstractWrapper):
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
             tool._updateCookie(login, newPassword)
+        loggedUser = self.user.getId() or 'system|anon'
         self.log('Password %s by "%s" for "%s".' % \
-                 (msgPart, self.user.getId(), login))
+                 (msgPart, loggedUser, login))
         return newPassword
 
     def checkPassword(self, clearPassword):

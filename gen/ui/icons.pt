@@ -1,1 +1,2 @@
-<span metal:define-macro="icons"></span>
+<metal:i define-macro="icons"></metal:i>
+<metal:l define-macro="links"></metal:l>

@@ -604,6 +604,7 @@ class ZopeGenerator(Generator):
         repls['languageSelector'] = self.config.languageSelector
         repls['sourceLanguage'] = self.config.sourceLanguage
         repls['enableSessionTimeout'] = self.config.enableSessionTimeout
+        repls['discreetLogin'] = self.config.discreetLogin
         repls['ogone'] = repr(self.config.ogone)
         repls['googleAnalyticsId'] = repr(self.config.googleAnalyticsId)
         repls['activateForgotPassword'] = self.config.activateForgotPassword

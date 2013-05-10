@@ -32,6 +32,15 @@ function setLoginVars() {
   else emptyPassword.value = '0';
 }
 
+function showLoginForm() {
+  // Hide the login link.
+  var loginLink = document.getElementById('loginLink');
+  loginLink.style.display = "none";
+  // Displays the login form.
+  var loginFields = document.getElementById('loginFields');
+  loginFields.style.display = "inline";
+}
+
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
 
 function getElementsHavingName(tag, name) {

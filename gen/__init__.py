@@ -3013,6 +3013,10 @@ class Config:
         self.activateForgotPassword = True
         # Enable session timeout?
         self.enableSessionTimeout = False
+        # If the following field is True, the login/password widget will be
+        # discreet. This is for sites where authentication is not foreseen for
+        # the majority of visitors (just for some administrators).
+        self.discreetLogin = False
         # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
         # the field below.
         self.ogone = None

@@ -89,9 +89,13 @@ class ToolMixin(BaseMixin):
                            'inline;filename="%s"' % res.name)
         return res.content
 
-    def getAttr(self, name):
+    def getAttr(self, name, source='appy'):
         '''Gets attribute named p_name.'''
-        return getattr(self.appy(), name, None)
+        if source == 'config':
+            obj = self.getProductConfig()
+        else:
+            obj = self.appy()
+        return getattr(obj, name, None)
 
     def getAppName(self):
         '''Returns the name of the application.'''

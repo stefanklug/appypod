@@ -55,15 +55,15 @@ img { border: 0; vertical-align: middle }
         border-style: solid; border-width: 1px; border-color: grey }
 .top { height: 89px; margin-left: 3em; vertical-align: top }
 .lang { margin-right: 6px }
-.userStrip { background-color: #6282B3; height: 35px;
-             border-top: 3px solid #034984; border-bottom: 2px solid #034984 }
+.userStrip { background-color: #6282B3; border-top: 3px solid #034984;
+             border-bottom: 2px solid #034984 }
 .userStripText { padding: 0 0.3em 0 0.3em; color: white }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
 .navigate { border-bottom: 1px solid #5F7983;
             background-color: #dbdde1; font-weight: bold }
 .navigate td { padding: 4px 9px }
-.login { margin-top: 2px; margin-bottom: 2px; color: black }
+.login { margin: 3px; color: black }
 .buttons { margin-left: 4px }
 .fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
               padding: 0px 8px 2px;
@@ -79,7 +79,7 @@ img { border: 0; vertical-align: middle }
 .discreet { font-size: 90%; color: grey }
 .title { color: #BA9440 }
 .breadcrumb { color: #BA9440; font-size: 13px }
-.lostPassword a { font-size: 90%; color: white; padding-left: 1em }
+.lostPassword { font-size: 90%; color: white; padding-left: 1em }
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed }
 .portletContent { margin: 4px 9px }
@@ -133,7 +133,7 @@ img { border: 0; vertical-align: middle }
 .history th { font-style: italic; text-align: left; padding: 0 5px 0 5px }
 .topSpace { margin-top: 15px }
 .bottomSpace { margin-bottom: 15px }
-.pageLink { padding-left: 8px }
+.pageLink { margin-right: 8px }
 .footer { font-size: 95% }
 .footer td { background-color: #CBCBC9; border-top: 1px solid grey;
              padding: 0.4em 1em 0.5em }

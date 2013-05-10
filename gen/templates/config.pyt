@@ -49,6 +49,7 @@ languageSelector = <!languageSelector!>
 sourceLanguage = '<!sourceLanguage!>'
 activateForgotPassword = <!activateForgotPassword!>
 enableSessionTimeout = <!enableSessionTimeout!>
+discreetLogin = <!discreetLogin!>
 ogone = <!ogone!>
 googleAnalyticsId = <!googleAnalyticsId!>
 

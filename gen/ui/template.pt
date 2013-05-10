@@ -15,6 +15,7 @@
                   layoutType tool/getLayoutType;
                   contextObj python: tool.getPublishedObject(layoutType);
                   dir python: tool.getLanguageDirection(lang);
+                  discreetLogin python: tool.getAttr('discreetLogin', source='config');
                   dleft python: (dir == 'ltr') and 'left' or 'right';
                   dright python: (dir == 'ltr') and 'right' or 'left';
                   x python: resp.setHeader('Content-type', 'text/html;;charset=UTF-8');
@@ -39,7 +40,6 @@
          type="text/javascript" tal:content="gaCode"></script>
  <tal:comment replace="nothing">Grey background shown when popups are shown</tal:comment>
  <div id="grey" class="grey"></div>
-
  <tal:comment replace="nothing">Popup for confirming an action</tal:comment>
  <div id="confirmActionPopup" class="popup">
   <form id="confirmActionForm" method="post">
@@ -81,38 +81,35 @@
  <tr class="top" metal:define-slot="top">
   <td tal:define="bannerName python: (dir == 'ltr') and 'banner' or 'bannerrtl'"
       tal:attributes="style python: 'background-image: url(%s/ui/%s.jpg)' % (appUrl, bannerName)">
-   <table width="100%" style="margin-top: 4px">
-    <tr valign="top" tal:define="pages tool/getMainPages">
-     <tal:comment replace="nothing">Links to main pages</tal:comment>
-     <td tal:condition="pages"><a tal:repeat="page pages" class="pageLink"
-         tal:content="page/title" tal:attributes="href page/absolute_url"></a>
-     </td>
-     <tal:comment replace="nothing">Language selector (links or listbox)</tal:comment>
-     <td tal:condition="tool/showLanguageSelector" tal:attributes="align dright">
-     <tal:lgs define="languages tool/getLanguages;
-                      defaultLanguage python: languages[0];
-                      asLinks python: len(languages) &lt;= 8">
-      <table tal:condition="asLinks">
-       <tr>
-        <td tal:repeat="lang languages">
-          <a class="lang"
-             tal:attributes="href string: $appUrl/config/changeLanguage?language=$lang;
-                             title python: tool.getLanguageName(lang)"
-             tal:content="python: lang"></a>
-         </td>
-        </tr>
-      </table>
-      <select tal:condition="not: asLinks"
-              tal:attributes="onchange string:window.location='$appUrl/config/changeLanguage?language=' + this.options[this.selectedIndex].value">
-       <option tal:repeat="lang languages"
-               tal:content="python: tool.getLanguageName(lang)"
-               tal:attributes="selected python:defaultLanguage == lang; value lang">
-       </option>
-      </select>
-      </tal:lgs>
-     </td>
-    </tr>
-   </table>
+   <tal:comment replace="nothing">Top links</tal:comment>
+   <div style="margin-top: 4px"
+        tal:define="pages tool/getMainPages" tal:attributes="align dright">
+    <tal:comment replace="nothing">Icon "home"</tal:comment>
+    <a class="pageLink" tal:attributes="href appUrl; title python: _('app_home')">
+     <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
+    </a>
+    <tal:comment replace="nothing">Additional links (or icons) from icons.pt</tal:comment>
+    <metal:call use-macro="app/ui/icons/macros/links"/>
+    <tal:comment replace="nothing">Top-level pages</tal:comment>
+    <a tal:repeat="page pages" class="pageLink"
+       tal:content="page/title" tal:attributes="href page/absolute_url"></a>
+    <tal:comment replace="nothing">Connect link if discreet login</tal:comment>
+    <a id="loginLink" name="loginLink" onclick="showLoginForm()" class="pageLink" style="cursor:pointer"
+       tal:condition="python: isAnon and discreetLogin" tal:content="python: _('app_connect')">
+    </a>
+    <tal:comment replace="nothing">Language selector</tal:comment>
+    <tal:lg condition="tool/showLanguageSelector">
+     <select class="pageLink"
+             tal:define="languages tool/getLanguages;
+                         defaultLanguage python: languages[0]"
+             tal:attributes="onchange string:window.location='$appUrl/config/changeLanguage?language=' + this.options[this.selectedIndex].value">
+      <option tal:repeat="lg languages"
+              tal:content="python: tool.getLanguageName(lg)"
+              tal:attributes="selected python:lang == lg; value lg">
+      </option>
+     </select>
+    </tal:lg>
+   </div>
   </td>
  </tr>
  <tal:comment replace="nothing">The message strip</tal:comment>
@@ -128,58 +125,46 @@
   <td>
    <table class="userStrip" width="100%">
     <tr>
-     <td>
-      <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
-       <table align="center" tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])"
-              class="login">
+     <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
+     <td align="center"
+         tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])">
+      <form id="loginForm" name="loginForm" method="post" class="login"
+            tal:attributes="action python: tool.absolute_url() + '/performLogin'">
+       <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
+       <input type="hidden" name="cookies_enabled" id="cookies_enabled" value=""/>
+       <input type="hidden" name="login_name" id="login_name" value=""/>
+       <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
+       <tal:comment replace="nothing">The login fields, directly shown or not (depends on discreetLogin)</tal:comment>
+       <span id="loginFields" name="loginFields"
+             tal:attributes="style python: discreetLogin and 'display:none' or 'display:block'">
+        <span class="userStripText" tal:content="python: _('app_login')"/>
+        <input type="text" name="__ac_name" id="__ac_name" value="" style="width: 142px"/>&nbsp;
+        <span class="userStripText" tal:content="python: _('app_password')"/>
+        <input type="password" name="__ac_password" id="__ac_password" style="width: 142px"/>
+        <input type="submit" name="submit" onclick="setLoginVars()"
+               tal:define="label python: _('app_connect')" tal:attributes="value label; alt label"/>
+        <tal:comment replace="nothing">Forgot password?</tal:comment>
+        <a class="lostPassword" href="javascript: openPopup('askPasswordReinitPopup')"
+           tal:condition="tool/showForgotPassword"
+           tal:content="python: _('forgot_password')">
+        </a>
+       </span>
+      </form>
+     </td>
+     <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
+     <td tal:condition="not: isAnon">
+      <table class="buttons" width="99%">
        <tr>
         <td>
-         <!-- Go home -->
-         <a tal:attributes="href appUrl; title python: _('app_home')">
-          <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
-         </a>
-         <tal:comment replace="nothing">Additional icons can be added here by redefining icons.pt</tal:comment>
-         <metal:call use-macro="app/ui/icons/macros/icons"/>
-        </td>
-        <td class="userStripText">
-         <form name="loginform" method="post"
-              tal:attributes="action python: tool.absolute_url() + '/performLogin'">
-
-          <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
-          <input type="hidden" name="cookies_enabled" id="cookies_enabled" value=""/>
-          <input type="hidden" name="login_name" id="login_name" value=""/>
-          <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
-
-          <span tal:replace="python: _('app_login')"/>&nbsp;
-          <input type="text" name="__ac_name" id="__ac_name" value="" style="width: 142px"/>&nbsp;
-          <span tal:replace="python: _('app_password')"/>&nbsp;
-          <input type="password" name="__ac_password" id="__ac_password" style="width: 142px"/>
-          <input type="submit" name="submit" onclick="setLoginVars()"
-                 tal:define="label python: _('app_connect')" tal:attributes="value label; alt label;"/>
-         </form>
-       </td>
-       <td class="lostPassword" tal:condition="tool/showForgotPassword">
-        <a href="javascript: openPopup('askPasswordReinitPopup')"
-           tal:content="python: _('forgot_password')"></a></td>
-      </tr>
-      </table>
-      <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
-      <table tal:condition="not: isAnon" class="buttons" width="99%">
-       <tr>
-        <td>
-         <!-- Go home -->
-         <a tal:attributes="href appUrl; title python: _('app_home')">
-          <img tal:attributes="src string: $appUrl/ui/home.gif"/>
-         </a>
-         <!-- Config -->
+         <tal:comment replace="nothing">Config</tal:comment>
          <a tal:condition="python: user.has_role('Manager')"
             tal:attributes="href python: tool.getUrl(nav='');
                             title python: _('%sTool' % appName)">
           <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
          </a>
-         <tal:comment replace="nothing">Additional icons can be added here by redefining icons.pt</tal:comment>
+         <tal:comment replace="nothing">Additional icons from icons.pt</tal:comment>
          <metal:call use-macro="app/ui/icons/macros/icons"/>
-         <!-- Logout -->
+         <tal:comment replace="nothing">Log out</tal:comment>
          <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
                             title python: _('app_logout')">
           <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
