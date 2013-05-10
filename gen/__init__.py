@@ -1654,6 +1654,8 @@ class Date(Type):
             import DateTime
             return DateTime.DateTime(value)
 
+    def getIndexType(self): return 'DateIndex'
+
 class File(Type):
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
