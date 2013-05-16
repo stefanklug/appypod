@@ -4,7 +4,8 @@ import appy
 
 # ------------------------------------------------------------------------------
 usage = '''Usage: python checklo.py [port]
-        If port is not speficied, it defaults to 2002.'''
+
+If port is not speficied, it defaults to 2002.'''
 
 # ------------------------------------------------------------------------------
 class LoChecker:

@@ -35,7 +35,9 @@ PDF_TO_IMG_ERROR = 'A PDF file could not be converted into images. Please ' \
                    'ensure that Ghostscript (gs) is installed on your ' \
                    'system and the "gs" program is in the path.'
 CONVERT_ERROR = 'Program "convert", from imagemagick, must be installed and ' \
-                'in the path for converting a SVG file into a PNG file.'
+                'in the path for converting a SVG file into a PNG file. ' \
+                'Conversion of SVG files must also be enabled. On Ubuntu: ' \
+                'apt-get install librsvg2-bin'
 TO_PDF_ERROR = 'ConvertImporter error while converting a doc to PDF: %s.'
 
 # ------------------------------------------------------------------------------
