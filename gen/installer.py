@@ -414,9 +414,9 @@ class ZopeInstaller:
         self.enableUserTracking()
         self.configureSessions()
         self.installBaseObjects()
-        self.installCatalog()
         # The following line cleans and rebuilds the catalog entirely.
         #self.app.config.appy().refreshCatalog()
+        self.installCatalog()
         self.installTool()
         self.installUi()
         # Perform migrations if required

@@ -310,7 +310,10 @@ class Calendar(Type):
                 currentDate = res[i][0]
                 lastDate = res[i][1]
                 previousDate = res[i-1][0]
-                if previousDate == (currentDate-1):
+                currentType = res[i][2].eventType
+                previousType = res[i-1][2].eventType
+                if (previousDate == (currentDate-1)) and \
+                   (previousType == currentType):
                     # A merge is needed
                     del res[i]
                     res[i-1][1] = lastDate or currentDate
