@@ -120,6 +120,7 @@ class AbstractWrapper(object):
             if user: return user
             if self.o.getUser().getUserName() == 'System Processes':
                 return self.search1('User', noSecurity=True, login='admin')
+            return
         elif name == 'fields': return self.o.getAllAppyTypes()
         elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
         # Now, let's try to return a real attribute.
