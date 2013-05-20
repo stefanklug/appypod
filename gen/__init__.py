@@ -1993,10 +1993,16 @@ class Ref(Type):
             if res:
                 # The index does not like persistent lists.
                 res = list(res)
+            else:
+                # Ugly catalog: if I return an empty list, the previous value
+                # is kept.
+                res.append('')
             return res
         else:
             # For the global search: return linked objects' titles.
-            return [o.title for o in self.getValue(type='objects')]
+            res = [o.title for o in self.getValue(type='objects')]
+            if not res: res.append('')
+            return res
 
     def validateValue(self, obj, value):
         if not self.link: return None
