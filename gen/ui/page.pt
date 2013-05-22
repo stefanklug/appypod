@@ -31,6 +31,12 @@
     <input type="hidden" name="fieldName"/>
     <input type="hidden" name="targetUid"/>
   </form>
+  <tal:comment replace="nothing">Global form for unlocking a page</tal:comment>
+  <form id="unlockForm" method="post" action="do">
+    <input type="hidden" name="action" value="Unlock"/>
+    <input type="hidden" name="objectUid"/>
+    <input type="hidden" name="pageName"/>
+  </form>
   <tal:comment replace="nothing">Global form for generating a document from a pod template</tal:comment>
   <form id="podTemplateForm" name="podTemplateForm" method="post"
         tal:attributes="action python: tool.absolute_url() + '/generateDocument'">

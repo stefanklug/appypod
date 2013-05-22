@@ -19,7 +19,7 @@ except ImportError:
 
 # Errors -----------------------------------------------------------------------
 jsMessages = ('no_elem_selected', 'delete_confirm', 'unlink_confirm',
-              'warn_leave_form')
+              'unlock_confirm', 'warn_leave_form')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):

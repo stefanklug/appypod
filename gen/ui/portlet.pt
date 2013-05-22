@@ -163,8 +163,12 @@
             <img style="cursor: help"
                  tal:define="lockDate python: tool.formatDate(locked[1]);
                              lockMsg python: _('page_locked', mapping={'user':tool.getUserName(locked[0]), 'date': lockDate})"
-                 tal:attributes="src string: $appUrl/ui/locked.png; title lockMsg"/>
-           </a>
+                 tal:attributes="src string: $appUrl/ui/locked.png; title lockMsg"/></a>
+           <a tal:condition="python: editable and locked and user.has_role('Manager')">
+            <img style="cursor: pointer"
+                 tal:attributes="src string: $appUrl/ui/unlock.png;
+                                 title python: _('page_unlock');
+                                 onclick python: 'onUnlockPage(\'%s\',\'%s\')' % (contextObj.UID(), aPage)"/></a>
           </tal:icons>
         </div>
         <tal:comment replace="nothing">Next lines: links</tal:comment>

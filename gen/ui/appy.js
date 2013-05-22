@@ -403,6 +403,13 @@ function onUnlinkObject(sourceUid, fieldName, targetUid) {
   askConfirm('form', 'unlinkForm', unlink_confirm);
 }
 
+function onUnlockPage(objectUid, pageName) {
+  f = document.getElementById('unlockForm');
+  f.objectUid.value = objectUid;
+  f.pageName.value = pageName;
+  askConfirm('form', 'unlockForm', unlock_confirm);
+}
+
 function createCookie(name, value, days) {
   if (days) {
     var date = new Date();

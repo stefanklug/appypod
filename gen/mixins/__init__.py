@@ -229,16 +229,20 @@ class BaseMixin:
         if hasattr(self.aq_base, 'locks') and (page in self.locks):
             if (user.getId() != self.locks[page][0]): return self.locks[page]
 
-    def removeLock(self, page):
-        '''Removes the lock on the current page. This happens after the page has
-           been saved: the lock must be released.'''
+    def removeLock(self, page, force=False):
+        '''Removes the lock on the current page. This happens:
+           - after the page has been saved: the lock must be released;
+           - or when an admin wants to force the deletion of a lock that was
+             left on p_page for too long (p_force=True).
+        '''
         if page not in self.locks: return
         # Raise an error if the user that saves changes is not the one that
-        # has locked the page.
-        userId = self.getUser().getId()
-        if self.locks[page][0] != userId:
-            from AccessControl import Unauthorized
-            raise Unauthorized('This page was locked by someone else.')
+        # has locked the page (excepted if p_force is True)
+        if not force:
+            userId = self.getUser().getId()
+            if self.locks[page][0] != userId:
+                from AccessControl import Unauthorized
+                raise Unauthorized('This page was locked by someone else.')
         # Remove the lock
         del self.locks[page]
 
@@ -250,6 +254,17 @@ class BaseMixin:
         if hasattr(self.aq_base, 'locks') and (page in self.locks) and \
            (user.getId() == self.locks[page][0]):
             del self.locks[page]
+
+    def onUnlock(self):
+        '''Called when an admin wants to remove a lock that was left for too
+           long by some user.'''
+        rq = self.REQUEST
+        tool = self.getTool()
+        obj = tool.getObject(rq['objectUid'])
+        obj.removeLock(rq['pageName'], force=True)
+        urlBack = self.getUrl(rq['HTTP_REFERER'])
+        self.say(self.translate('unlock_done'))
+        self.goto(urlBack)
 
     def onCreateWithoutForm(self):
         '''This method is called when a user wants to create a object from a
