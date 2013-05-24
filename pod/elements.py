@@ -78,6 +78,13 @@ class Expression(PodElement):
     def __init__(self, pyExpr):
         # The Python expression
         self.expr = pyExpr.strip()
+        # Must we, when evaluating the expression, escape XML special chars
+        # or not?
+        if self.expr.startswith(':'):
+            self.expr = self.expr[1:]
+            self.escapeXml = False
+        else:
+            self.escapeXml = True
         # We will store here the expression's true result (before being
         # converted to a string)
         self.result = None
@@ -91,11 +98,8 @@ class Expression(PodElement):
         '''Evaluates the Python expression (self.expr) with a given
            p_context, and returns the result. More precisely, it returns a
            tuple (result, escapeXml). Boolean escapeXml indicates if XML chars
-           must be escaped or not. For example, if the expression's result is a
-           PX, the result of evaluating it (a chunk of XHTML) must be inserted
-           as is, unescaped, into the buffer. In most situations, XML escaping
-           will be enabled.'''
-        escapeXml = True
+           must be escaped or not.'''
+        escapeXml = self.escapeXml
         # Evaluate the expression, or get it from self.result if it has already
         # been computed.
         if self.evaluated:
@@ -121,6 +125,7 @@ class Expression(PodElement):
             # A PX that must be called within the current PX. Call it with the
             # current context.
             res = res(context)
+            # Force escapeXml to False.
             escapeXml = False
         else:
             res = unicode(res)
