@@ -86,8 +86,7 @@ class DocImporter:
                 f = file(self.importPath, 'wb')
                 f.write(fileContent)
                 f.close()
-        # ImageImporter adds image-specific attrs, through
-        # ImageImporter.setImageInfo.
+        # Some importers add specific attrs, through method init.
 
     def getUuid(self):
         '''Creates a unique id for images/documents to be imported into an
@@ -127,12 +126,27 @@ class OdtImporter(DocImporter):
     '''This class allows to import the content of another ODT document into a
        pod template.'''
     def getImportFolder(self): return '%s/docImports' % self.tempFolder
+
+    def init(self, pageBreakBefore, pageBreakAfter):
+        '''OdtImporter-specific constructor.'''
+        self.pageBreakBefore = pageBreakBefore
+        self.pageBreakAfter = pageBreakAfter
+
     def run(self):
+        # Define a "pageBreak" if needed.
+        if self.pageBreakBefore or self.pageBreakAfter:
+            pageBreak = '<%s:p %s:style-name="podPageBreak"></%s:p>' % \
+                        (self.textNs, self.textNs, self.textNs)
+        # Insert a page break before importing the doc if needed
+        if self.pageBreakBefore: self.res += pageBreak
+        # Import the external odt document
         self.res += '<%s:section %s:name="PodImportSection%f">' \
                     '<%s:section-source %s:href="%s" ' \
                     '%s:filter-name="writer8"/></%s:section>' % (
                         self.textNs, self.textNs, time.time(), self.textNs,
                         self.linkNs, self.importPath, self.textNs, self.textNs)
+        # Insert a page break after importing the doc if needed
+        if self.pageBreakAfter: self.res += pageBreak
         return self.res
 
 class PodImporter(DocImporter):
@@ -140,9 +154,11 @@ class PodImporter(DocImporter):
        into the current POD result.'''
     def getImportFolder(self): return '%s/docImports' % self.tempFolder
 
-    def setContext(self, context):
-        '''Defines the context to user for the PodImporter.'''
+    def init(self, context, pageBreakBefore, pageBreakAfter):
+        '''PodImporter-specific constructor.'''
         self.context = context
+        self.pageBreakBefore = pageBreakBefore
+        self.pageBreakAfter = pageBreakAfter
 
     def run(self):
         # Define where to store the pod result in the temp folder
@@ -161,7 +177,9 @@ class PodImporter(DocImporter):
         renderer.run()
         # The POD result is in "resOdt". Import it into the main POD result
         # using an OdtImporter.
-        return OdtImporter(None, resOdt, 'odt', self.renderer).run()
+        odtImporter = OdtImporter(None, resOdt, 'odt', self.renderer)
+        odtImporter.init(self.pageBreakBefore, self.pageBreakAfter)
+        return odtImporter.run()
 
 class PdfImporter(DocImporter):
     '''This class allows to import the content of a PDF file into a pod
@@ -193,7 +211,7 @@ class PdfImporter(DocImporter):
             if os.path.exists(nextImage):
                 # Use internally an Image importer for doing this job.
                 imgImporter= ImageImporter(None, nextImage, 'jpg',self.renderer)
-                imgImporter.setImageInfo('paragraph', True, None, None, None)
+                imgImporter.init('paragraph', True, None, None, None)
                 self.res += imgImporter.run()
                 os.remove(nextImage)
             else:
@@ -325,7 +343,8 @@ class ImageImporter(DocImporter):
             appyFile.dump(importPath)
         return importPath
 
-    def setImageInfo(self, anchor, wrapInPara, size, sizeUnit, style):
+    def init(self, anchor, wrapInPara, size, sizeUnit, style):
+        '''ImageImporter-specific constructor.'''
         # Initialise anchor
         if anchor not in self.anchorTypes:
             raise PodError(self.WRONG_ANCHOR % str(self.anchorTypes))

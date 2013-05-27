@@ -278,7 +278,8 @@ class Renderer:
     convertibleFormats = FILE_TYPES.keys()
     def importDocument(self, content=None, at=None, format=None,
                        anchor='as-char', wrapInPara=True, size=None,
-                       sizeUnit='cm', style=None):
+                       sizeUnit='cm', style=None,
+                       pageBreakBefore=False, pageBreakAfter=False):
         '''If p_at is not None, it represents a path or url allowing to find
            the document. If p_at is None, the content of the document is
            supposed to be in binary format in p_content. The document
@@ -297,6 +298,10 @@ class Renderer:
            * If p_style is given, it is the content of a "style" attribute,
              containing CSS attributes. If "width" and "heigth" attributes are
              found there, they will override p_size and p_sizeUnit.
+
+           p_pageBreakBefore and p_pageBreakAfter are only relevant for import
+           of external odt documents, and allows to insert a page break
+           before/after the inserted document.
         '''
         importer = None
         # Is there someting to import?
@@ -318,9 +323,11 @@ class Renderer:
             if mimeTypesExts.has_key(format):
                 format = mimeTypesExts[format]
         isImage = False
+        isOdt = False
         if format in self.ooFormats:
             importer = OdtImporter
             self.forceOoCall = True
+            isOdt = True
         elif (format in self.imageFormats) or not format:
             # If the format can't be guessed, we suppose it is an image.
             importer = ImageImporter
@@ -333,10 +340,12 @@ class Renderer:
             raise PodError(DOC_WRONG_FORMAT % format)
         imp = importer(content, at, format, self)
         # Initialise image-specific parameters
-        if isImage: imp.setImageInfo(anchor, wrapInPara, size, sizeUnit, style)
+        if isImage: imp.init(anchor, wrapInPara, size, sizeUnit, style)
+        elif isOdt: imp.init(pageBreakBefore, pageBreakAfter)
         return imp.run()
 
-    def importPod(self, content=None, at=None, format='odt', context=None):
+    def importPod(self, content=None, at=None, format='odt', context=None,
+                  pageBreakBefore=False, pageBreakAfter=False):
         '''Similar to m_importDocument, but allows to import the result of
            executing the POD template specified in p_content or p_at, and
            include it in the POD result.'''
@@ -352,9 +361,10 @@ class Renderer:
         # Define the context to use: either the current context of the current
         # POD renderer, or p_context if given.
         if context:
-            imp.setContext(context)
+            ctx = context
         else:
-            imp.setContext(self.contentParser.env.context)
+            ctx = self.contentParser.env.context
+        imp.init(ctx, pageBreakBefore, pageBreakAfter)
         return imp.run()
 
     def prepareFolders(self):
