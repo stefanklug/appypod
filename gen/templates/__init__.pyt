@@ -15,9 +15,9 @@ if covFolder:
         cov = coverage()
         cov.start()
     except ImportError:
-        print 'COVERAGE KO! The "coverage" program is not installed. You can ' \
+        print('COVERAGE KO! The "coverage" program is not installed. You can ' \
               'download it from http://nedbatchelder.com/code/coverage.' \
-              '\nHit <enter> to execute the test suite without coverage.'
+              '\nHit <enter> to execute the test suite without coverage.')
         sys.stdin.readline()
 
 def countTest():

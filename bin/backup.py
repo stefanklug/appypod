@@ -217,7 +217,7 @@ class ZodbBackuper:
         if self.emails:
             self.sendEmails()
         self.logFile.close()
-        print self.logMem.getvalue()
+        print(self.logMem.getvalue())
         self.logMem.close()
 
 # ------------------------------------------------------------------------------

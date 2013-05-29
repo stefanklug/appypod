@@ -110,12 +110,12 @@ class EggifyScript:
         eggFullName = j(self.eggFolder, self.eggName)
         if os.path.exists(eggFullName):
             os.remove(eggFullName)
-            print 'Existing "%s" was removed.' % eggFullName
+            print('Existing "%s" was removed.' % eggFullName)
         # Create a temp folder where to store the egg
         eggTempFolder = os.path.splitext(eggFullName)[0]
         if os.path.exists(eggTempFolder):
             FolderDeleter.delete(eggTempFolder)
-            print 'Removed "%s" that was in my way.' % eggTempFolder
+            print('Removed "%s" that was in my way.' % eggTempFolder)
         os.mkdir(eggTempFolder)
         # Create the "Products" sub-folder if we must wrap the package in this
         # namespace

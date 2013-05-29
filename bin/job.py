@@ -31,16 +31,16 @@ import sys, transaction
 
 # Check that job.py is called with the right parameters.
 if len(sys.argv) != 2:
-    print 'job.py was called with wrong args.'
-    print __doc__
+    print('job.py was called with wrong args.')
+    print(__doc__)
 else:
     commands = sys.argv[1].split(';')
     # Check that every command has the right number of sub-elelements.
     for command in commands:
         parts = command.split(':')
         if len(parts) not in (4,5):
-            print 'job.py was called with wrong args.'
-            print __doc__
+            print('job.py was called with wrong args.')
+            print(__doc__)
 
     for command in commands:
         parts = command.split(':')

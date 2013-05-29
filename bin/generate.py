@@ -53,12 +53,12 @@ class GeneratorScript:
     def manageArgs(self, parser, options, args):
         # Check number of args
         if len(args) != 1:
-            print WRONG_NG_OF_ARGS
+            print(WRONG_NG_OF_ARGS)
             parser.print_help()
             sys.exit(ERROR_CODE)
         # Check existence of application
         if not os.path.exists(args[0]):
-            print APP_NOT_FOUND % args[0]
+            print(APP_NOT_FOUND % args[0])
             sys.exit(ERROR_CODE)
         # Convert app path to an absolute path
         args[0] = os.path.abspath(args[0])
@@ -76,8 +76,8 @@ class GeneratorScript:
         (options, args) = optParser.parse_args()
         try:
             self.manageArgs(optParser, options, args)
-            print 'Appy version:', appy.version.verbose
-            print 'Generating Zope product in %s/zope...' % args[0]
+            print('Appy version: %s' % appy.version.verbose)
+            print('Generating Zope product in %s/zope...' % args[0])
             ZopeGenerator(args[0], options).run()
             # Give the user some statistics about its code
             LinesCounter(args[0], excludes=['%szope' % os.sep]).run()

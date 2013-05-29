@@ -20,21 +20,21 @@ class LoChecker:
         # Call LO in server mode to convert self.odtFile to PDF
         converter = os.path.join(self.appyFolder, 'pod', 'converter.py')
         cmd = 'python %s %s pdf -p %d' % (converter, self.odtFile, self.port)
-        print cmd
+        print(cmd)
         os.system(cmd)
         # Check if the PDF was generated
         pdfFile = '%s.pdf' % os.path.splitext(self.odtFile)[0]
         if not os.path.exists(pdfFile):
-            print 'PDF was not generated.'
+            print('PDF was not generated.')
         else:
             os.remove(pdfFile)
-            print 'Check successfull.'
+            print('Check successfull.')
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     nbOfArgs = len(sys.argv)
     if nbOfArgs not in (1, 2):
-        print usage
+        print(usage)
         sys.exit()
     # Get the nb of args
     port = (nbOfArgs == 2) and int(sys.argv[1]) or 2002

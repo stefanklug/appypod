@@ -214,10 +214,10 @@ class XmlParser(ContentHandler, ErrorHandler):
     # ErrorHandler methods ---------------------------------------------------
     def error(self, error):
         if self.raiseOnError: raise error
-        else: print 'SAX error', error
+        else: print('SAX error %s' % str(error))
     def fatalError(self, error):
         if self.raiseOnError: raise error
-        else: print 'SAX fatal error', error
+        else: print('SAX fatal error %s' % str(error))
     def warning(self, error): pass
 
     def parse(self, xml, source='string'):
@@ -940,17 +940,17 @@ class XmlComparator:
                     msg = 'Difference(s) detected between files %s and %s:' % \
                           (self.fileNameA, self.fileNameB)
                     if report: report.say(msg, encoding='utf-8')
-                    else:      print msg
+                    else: print(msg)
                     atLeastOneDiff = True
                 if not lastLinePrinted:
                     if report: report.say('...')
-                    else: print '...'
+                    else: print('...')
                 if self.areXml:
                     if report: report.say(line, encoding=encoding)
-                    else: print line
+                    else: print(line)
                 else:
                     if report: report.say(line[:-1], encoding=encoding)
-                    else: print line[:-1]
+                    else: print(line[:-1])
                 lastLinePrinted = True
             else:
                 lastLinePrinted = False

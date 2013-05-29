@@ -16,7 +16,7 @@ class LdapTester:
     def __init__(self):
         # Get params from shell args.
         if len(sys.argv) != 7:
-            print LdapTester.__doc__
+            print(LdapTester.__doc__)
             sys.exit(0)
         s = self
         s.uri, s.login, s.password, s.base, s.attrs, s.filter = sys.argv[1:]
@@ -28,25 +28,25 @@ class LdapTester:
 
     def test(self):
         # Connect the the LDAP
-        print 'Creating server object for server %s...' % self.uri
+        print('Creating server object for server %s...' % self.uri)
         server = ldap.initialize(self.uri)
-        print 'Done. Login with %s...' % self.login
+        print('Done. Login with %s...' % self.login)
         server.simple_bind(self.login, self.password)
         if self.ssl:
             server.start_tls_s()
         try:
             for i in range(self.tentatives):
                 try:
-                    print 'Done. Performing a simple query on %s...' % self.base
+                    print('Done. Performing a simple query on %s...'% self.base)
                     res = server.search_st(
                         self.base, ldap.SCOPE_ONELEVEL, filterstr=self.filter,
                         attrlist=self.attrs, timeout=5)
-                    print 'Got %d entries' % len(res)
+                    print('Got %d entries' % len(res))
                     break
                 except ldap.TIMEOUT:
-                    print 'Got timeout.'
+                    print('Got timeout.')
         except ldap.LDAPError, le:
-            print le.__class__.__name__, le
+            print('%s %s' % (le.__class__.__name__, str(le)))
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':

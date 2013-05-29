@@ -21,10 +21,10 @@ class ZodbRestorer:
             datePart = '-D %s' % self.restoreDate
         repozoCmd = '%s %s -Rv -r %s %s -o %s' % (self.python,
             self.repozo, self.backupFolder, datePart, self.storageLocation)
-        print 'Executing %s...' % repozoCmd
+        print('Executing %s...' % repozoCmd)
         os.system(repozoCmd)
         stopTime = time.time()
-        print 'Done in %d minutes.' % ((stopTime-startTime)/60)
+        print('Done in %d minute(s).' % ((stopTime-startTime)/60))
 
 # ------------------------------------------------------------------------------
 class ZodbRestoreScript:

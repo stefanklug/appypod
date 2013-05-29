@@ -28,9 +28,9 @@ recursive-include appy/pod *
 recursive-include appy/shared *
 '''
 def askLogin():
-    print 'Login: ',
+    print('Login:')
     login = sys.stdin.readline().strip()
-    print 'Password: ',
+    print('Password:')
     passwd = sys.stdin.readline().strip()
     return (login, passwd)
 
@@ -84,7 +84,8 @@ class FtpFolder:
     def clean(self, site):
         '''Cleans this folder'''
         # First, clean subFolders if they exist
-        print 'Cleaning', self.getFullName(), len(self.subFolders), 'subFolders'
+        print('Cleaning %s %d subFolders' % \
+              (self.getFullName(), len(self.subFolders)))
         for subFolder in self.subFolders:
             subFolder.clean(site)
             # Remove the subFolder
@@ -93,7 +94,7 @@ class FtpFolder:
         for f in self.files:
             fileName = '%s/%s' % (self.getFullName(), f)
             site.delete(fileName)
-            print fileName, 'removed.'
+            print('%s removed.' % fileName)
 
 # ------------------------------------------------------------------------------
 class AppySite:
@@ -146,17 +147,17 @@ class AppySite:
         fileExt = os.path.splitext(fileName)[1]
         if fileExt in self.textExtensions:
             # Make a transfer in text mode
-            print 'Transfer file %s (text mode)' % fileName
+            print('Transfer file %s (text mode)' % fileName)
             self.site.storlines(cmd, localFile)
         else:
             # Make a transfer in binary mode
-            print 'Transfer file %s (binary mode)' % fileName
+            print('Transfer file %s (binary mode)' % fileName)
             self.site.storbinary(cmd, localFile)
 
     def publish(self):
         # Delete the existing content of the distant site
         self.createFolderProxies()
-        print 'Removing existing data on site...'
+        print('Removing existing data on site...')
         self.rootFolder.clean(self.site)
         curDir = os.getcwd()
         os.chdir('%s/temp' % appyPath)
@@ -255,7 +256,7 @@ class Publisher:
             yesNo = '[Y/n]'
         else:
             yesNo = '[y/N]'
-        print question + ' ' + yesNo + ' ',
+        print(question + ' ' + yesNo + ' ')
         response = sys.stdin.readline().strip().lower()
         res = False
         if response in ('y', 'yes'):
@@ -272,7 +273,7 @@ class Publisher:
 
     def executeCommand(self, cmd):
         '''Executes the system command p_cmd.'''
-        print 'Executing %s...' % cmd
+        print('Executing %s...' % cmd)
         os.system(cmd)
 
     distExcluded = ('appy/doc', 'appy/temp', 'appy/versions', 'appy/gen/test')
@@ -336,9 +337,9 @@ class Publisher:
         if os.path.exists(newZipRelease):
             if not self.askQuestion('"%s" already exists. Replace it?' % \
                                     newZipRelease, default='yes'):
-                print 'Publication canceled.'
+                print('Publication canceled.')
                 sys.exit(1)
-            print 'Removing obsolete %s...' % newZipRelease
+            print('Removing obsolete %s...' % newZipRelease)
             os.remove(newZipRelease)
         zipFile = zipfile.ZipFile(newZipRelease, 'w', zipfile.ZIP_DEFLATED)
         curdir = os.getcwd()
@@ -472,7 +473,7 @@ class Publisher:
         if minimalist:
             FolderDeleter.delete('%s/pod/test' % genSrcFolder)
         # Write the appy version into the code itself (in appy/version.py)'''
-        print 'Publishing version %s...' % self.versionShort
+        print('Publishing version %s...' % self.versionShort)
         # Dump version info in appy/version.py
         f = file('%s/version.py' % genSrcFolder, 'w')
         f.write('short = "%s"\n' % self.versionShort)
@@ -493,7 +494,7 @@ class Publisher:
         Cleaner().run(verbose=False)
         # Perform a small analysis on the Appy code
         LinesCounter(appy).run()
-        print 'Generating site in %s...' % self.genFolder
+        print('Generating site in %s...' % self.genFolder)
         minimalist = self.askQuestion('Minimalist (shipped without tests)?',
                                       default='no')
         self.prepareGenFolder(minimalist)

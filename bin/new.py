@@ -141,7 +141,7 @@ class ZopeInstanceCreator:
         os.chmod('inituser', 0644)
         # User "zope" must own this instance
         os.system('chown -R zope %s' % self.instancePath)
-        print 'Zope instance created in %s.' % self.instancePath
+        print('Zope instance created in %s.' % self.instancePath)
         os.chdir(curdir)
 
 # ------------------------------------------------------------------------------
@@ -320,13 +320,13 @@ class NewScript:
         # For Plone4, we will call it later.
         cmd = '%s %s -d %s' % (pythonPath, makeInstancePath, self.instancePath)
         if self.ploneVersion != 'plone4':
-            print cmd
+            print(cmd)
             os.system(cmd)
         # Now, make the instance Plone-ready
         action = 'Copying'
         if linksForProducts:
             action = 'Symlinking'
-        print '%s Plone stuff in the Zope instance...' % action
+        print('%s Plone stuff in the Zope instance...' % action)
         if self.ploneVersion in ('plone25', 'plone30'):
             self.installPlone25or30Stuff(linksForProducts)
         elif self.ploneVersion in ('plone3x', 'plone4'):
@@ -338,7 +338,7 @@ class NewScript:
                 os.environ['PYTHONPATH'] = '%s:%s' % \
                     (j(self.instancePath,'Products'),
                      j(self.instancePath, 'lib/python'))
-                print cmd
+                print(cmd)
                 os.system(cmd)
                 self.patchPlone4(versions)
         # Remove .bat files under Linux
@@ -379,13 +379,12 @@ class NewScript:
         try:
             self.manageArgs(args)
             if self.ploneVersion != 'zope':
-                print 'Creating new %s instance...' % self.ploneVersion
+                print('Creating new %s instance...' % self.ploneVersion)
                 self.createInstance(linksForProducts)
             else:
                 ZopeInstanceCreator(self.instancePath).run()
         except NewError, ne:
             optParser.print_help()
-            print
             sys.stderr.write(str(ne))
             sys.stderr.write('\n')
             sys.exit(ERROR_CODE)

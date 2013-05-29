@@ -342,7 +342,7 @@ class Generator:
         msg = ''
         if self.totalNumberOfTests:
             msg = ' (number of tests found: %d)' % self.totalNumberOfTests
-        print 'Done%s.' % msg
+        print('Done%s.' % msg)
 
 # ------------------------------------------------------------------------------
 class ZopeGenerator(Generator):
@@ -427,8 +427,8 @@ class ZopeGenerator(Generator):
         removedLabels = potFile.update(self.labels.get(),self.options.i18nClean,
                                        not self.options.i18nSort)
         if removedLabels:
-            print 'Warning: %d messages were removed from translation ' \
-                  'files: %s' % (len(removedLabels), str(removedLabels))
+            print('Warning: %d messages were removed from translation ' \
+                  'files: %s' % (len(removedLabels), str(removedLabels)))
         # Before generating the POT file, we still need to add one label for
         # every page for the Translation class. We've not done it yet because
         # the number of pages depends on the total number of labels in the POT
@@ -754,7 +754,7 @@ class ZopeGenerator(Generator):
         '''Is called each time an Appy class is found in the application, for
            generating the corresponding Archetype class.'''
         k = classDescr.klass
-        print 'Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)
+        print('Generating %s.%s (gen-class)...' % (k.__module__, k.__name__))
         # Determine base Zope class
         isFolder = classDescr.isFolder()
         baseClass = isFolder and 'Folder' or 'SimpleItem'
@@ -788,7 +788,7 @@ class ZopeGenerator(Generator):
         '''This method creates the i18n labels related to the workflow described
            by p_wfDescr.'''
         k = wfDescr.klass
-        print 'Generating %s.%s (gen-workflow)...' % (k.__module__, k.__name__)
+        print('Generating %s.%s (gen-workflow)...' % (k.__module__, k.__name__))
         # Identify workflow name
         wfName = WorkflowDescriptor.getWorkflowName(wfDescr.klass)
         # Add i18n messages for states

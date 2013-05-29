@@ -491,7 +491,7 @@ class Renderer:
             # an ODT or ODS to return to the user. So we produce a warning
             # instead of raising an error.
             if (resultType in self.templateTypes) and self.forceOoCall:
-                print WARNING_INCOMPLETE_OD % str(pe)
+                print(WARNING_INCOMPLETE_OD % str(pe))
             else:
                 raise pe
         return loOutput
@@ -535,7 +535,7 @@ class Renderer:
             try:
                 self.finalizeFunction(self.unzipFolder)
             except Exception, e:
-                print WARNING_FINALIZE_ERROR % str(e)
+                print(WARNING_FINALIZE_ERROR % str(e))
         # Re-zip the result, first as an OpenDocument file of the same type as
         # the POD template (odt, ods...)
         resultExt = self.getTemplateType()

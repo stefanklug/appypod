@@ -32,5 +32,4 @@ if not os.path.exists(scriptName):
     f.close()
 os.system('chmod -R 755 %s' % repoFolder)
 os.chdir(curdir)
-print 'Repository created.'
-
+print('Repository created.')

@@ -134,7 +134,7 @@ class Test(appy.shared.test.Test):
         #tempFolder2 = '%s/sevResults' % self.testFolder
         #if not os.path.exists(tempFolder2):
         #    os.mkdir(tempFolder2)
-        #print 'Result is', self.result, 'temp folder 2 is', tempFolder2
+        #print('Result is %s, temp folder 2 is %s.' % (self.result,tempFolder2))
         #shutil.copy(self.result, tempFolder2)
 
     def getOdtContent(self, odtFile):

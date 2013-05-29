@@ -52,7 +52,7 @@ class OdfGrep:
         # Run "grep" in this folder
         match = self.callGrep(tempFolder)
         if match:
-            print 'Found in', fileName
+            print('Found in %s' % fileName)
         FolderDeleter.delete(tempFolder)
 
     def run(self):
@@ -65,12 +65,12 @@ class OdfGrep:
                     if os.path.splitext(name)[1] in self.toUnzip:
                         self.grepFile(os.path.join(dir, name))
         else:
-            print '%s does not exist.' % self.fileOrFolder
+            print('%s does not exist.' % self.fileOrFolder)
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        print usage
+        print(usage)
         sys.exit()
     OdfGrep(sys.argv[1], sys.argv[2]).run()
 # ------------------------------------------------------------------------------

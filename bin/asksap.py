@@ -41,7 +41,7 @@ class AskSap:
     def manageArgs(self, parser, options, args):
         # Check number of args
         if len(args) != 5:
-            print WRONG_NG_OF_ARGS
+            print(WRONG_NG_OF_ARGS)
             parser.print_help()
             sys.exit(ERROR_CODE)
 
@@ -59,10 +59,10 @@ class AskSap:
             if not password:
                 password = getpass.getpass('Password for the SAP user: ')
             connectionParams = args[:4] + [password]
-            print 'Connecting to SAP...'
+            print('Connecting to SAP...')
             sap = Sap(*connectionParams)
             sap.connect()
-            print 'Connected.'
+            print('Connected.')
             sapElement = args[4]
             if options.isGroup:
                 # Returns info about the functions available in this group of
@@ -73,8 +73,8 @@ class AskSap:
                 # Return info about a given function.
                 info = sap.getFunctionInfo(sapElement)
                 prefix = 'Function'
-            print '%s: %s' % (prefix, sapElement)
-            print info
+            print('%s: %s' % (prefix, sapElement))
+            print(info)
             sap.disconnect()
         except SapError, se:
             sys.stderr.write(str(se))
