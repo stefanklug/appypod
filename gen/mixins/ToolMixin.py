@@ -1136,13 +1136,22 @@ class ToolMixin(BaseMixin):
     def manageError(self, error):
         '''Manages an error.'''
         tb = sys.exc_info()
-        from zExceptions.ExceptionFormatter import format_exception
-        htmlMessage = format_exception(tb[0], tb[1], tb[2], as_html=1)
-        textMessage = format_exception(tb[0], tb[1], tb[2], as_html=0)
-        self.log(''.join(textMessage).strip(), type='error')
-        return '<table class="main" align="center" cellpadding="0"><tr>' \
-               '<td style="padding: 1em 1em 1em 1em">An error occurred. %s' \
-               '</td></tr></table>' % '\n'.join(htmlMessage)
+        if error.type.__name__ == 'Unauthorized':
+            siteUrl = self.getSiteUrl()
+            htmlMessage = '<a href="%s"><img src="%s/ui/home.gif"/></a>' \
+                          'You are not allowed to access this page.' % \
+                          (siteUrl, siteUrl)
+            userId = self.appy().user.getId() or 'system|anon'
+            textMessage = 'Unauthorized for %s @%s.' % \
+                          (userId, self.REQUEST.get('PATH_INFO'))
+        else:
+            from zExceptions.ExceptionFormatter import format_exception
+            htmlMessage = format_exception(tb[0], tb[1], tb[2], as_html=1)
+            htmlMessage = '\n'.join(htmlMessage)
+            textMessage = format_exception(tb[0], tb[1], tb[2], as_html=0)
+            textMessage = ''.join(textMessage).strip()
+        self.log(textMessage, type='error')
+        return '<div class="error" align="center">%s</div>' % htmlMessage
 
     def getMainPages(self):
         '''Returns the main pages.'''
