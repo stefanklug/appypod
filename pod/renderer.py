@@ -233,7 +233,8 @@ class Renderer:
                        'text':  self.renderText,
                        'test': self.evalIfExpression,
                        'document': self.importDocument,
-                       'pod': self.importPod } # Default context
+                       'pod': self.importPod,
+                       'pageBreak': self.insertPageBreak} # Default context
         if hasattr(context, '__dict__'):
             evalContext.update(context.__dict__)
         elif isinstance(context, dict) or isinstance(context, UserDict):
@@ -366,6 +367,12 @@ class Renderer:
             ctx = self.contentParser.env.context
         imp.init(ctx, pageBreakBefore, pageBreakAfter)
         return imp.run()
+
+    def insertPageBreak(self):
+        '''Inserts a page break into the result.'''
+        textNs = self.currentParser.env.namespaces[PodEnvironment.NS_TEXT]
+        return '<%s:p %s:style-name="podPageBreak"></%s:p>' % \
+               (textNs, textNs, textNs)
 
     def prepareFolders(self):
         # Check if I can write the result

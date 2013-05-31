@@ -1151,7 +1151,7 @@ class ToolMixin(BaseMixin):
             textMessage = format_exception(tb[0], tb[1], tb[2], as_html=0)
             textMessage = ''.join(textMessage).strip()
         self.log(textMessage, type='error')
-        return '<div class="error" align="center">%s</div>' % htmlMessage
+        return '<div class="error">%s</div>' % htmlMessage
 
     def getMainPages(self):
         '''Returns the main pages.'''

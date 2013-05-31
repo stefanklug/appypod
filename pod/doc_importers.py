@@ -165,9 +165,7 @@ class PodImporter(DocImporter):
         r = self.renderer
         # Define where to store the ODT result.
         op = os.path
-        resFolder = op.dirname(self.importPath)
-        resName = '%s.res.odt' % op.splitext(op.basename(self.importPath))[0]
-        resOdt = op.join(resFolder, resName)
+        resOdt = op.join(self.getImportFolder(), '%s.odt' % self.getUuid())
         # The POD template is in self.importPath
         renderer = r.__class__(self.importPath, self.context, resOdt,
                                pythonWithUnoPath=r.pyPath,
