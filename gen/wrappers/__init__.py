@@ -104,6 +104,8 @@ class AbstractWrapper(object):
         elif name == 'id': return self.o.id
         elif name == 'uid': return self.o.UID()
         elif name == 'klass': return self.__class__.__bases__[-1]
+        elif name == 'created': return self.o.created
+        elif name == 'modified': return self.o.modified
         elif name == 'url': return self.o.absolute_url()
         elif name == 'state': return self.o.State()
         elif name == 'stateLabel':
@@ -343,6 +345,13 @@ class AbstractWrapper(object):
                                 noSecurity=noSecurity)
         if res: return res._len # It is a LazyMap instance
         else: return 0
+
+    def countRefs(self, fieldName):
+        '''Counts the number of objects linked to this one via Ref field
+           p_fieldName.'''
+        uids = getattr(self.o.aq_base, fieldName, None)
+        if not uids: return 0
+        return len(uids)
 
     def compute(self, klass, sortBy='', maxResults=None, context=None,
                 expression=None, noSecurity=False, **fields):
