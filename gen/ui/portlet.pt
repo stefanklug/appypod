@@ -90,7 +90,7 @@
    </tal:icons>
    <br/>
    
-   <tal:search condition="python: tool.getAttr('enableAdvancedSearchFor%s' % rootClass)">
+   <tal:search condition="python: tool.advancedSearchEnabledFor(rootClass)">
     <tal:comment replace="nothing">Live search</tal:comment>
     <form tal:attributes="action string: $appUrl/config/do">
      <input type="hidden" name="action" value="SearchObjects"/>

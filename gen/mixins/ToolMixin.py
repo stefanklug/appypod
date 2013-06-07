@@ -723,22 +723,23 @@ class ToolMixin(BaseMixin):
         default = None # Also retrieve the default one here.
         groups = {} # The already encountered groups
         page = Page('main') # A dummy page required by class GroupDescr
-        searches = ClassDescriptor.getSearches(appyClass)
-        # Add dynamic searches if defined on p_appyClass
+        # Get the searches statically defined on the class
+        searches = ClassDescriptor.getSearches(appyClass, tool=self.appy())
+        # Get the dynamically computed searches
         if hasattr(appyClass, 'getDynamicSearches'):
             searches += appyClass.getDynamicSearches(self.appy())
         for search in searches:
             # Create the search descriptor
-            searchDescr = SearchDescr(search, className, self).get()
+            sDescr = SearchDescr(search, className, self).get()
             if not search.group:
                 # Insert the search at the highest level, not in any group.
-                res.append(searchDescr)
+                res.append(sDescr)
             else:
-                groupDescr = search.group.insertInto(res, groups, page,
-                                                     className, forSearch=True)
-                GroupDescr.addWidget(groupDescr, searchDescr)
+                gDescr = search.group.insertInto(res, groups, page, className,
+                                                 forSearch=True)
+                GroupDescr.addWidget(gDescr, sDescr)
             # Is this search the default search?
-            if search.default: default = searchDescr
+            if search.default: default = sDescr
         return Object(searches=res, default=default).__dict__
 
     def getSearch(self, className, name, descr=False):
@@ -765,6 +766,15 @@ class ToolMixin(BaseMixin):
         # Return a SearchDescr if required.
         if descr: res = SearchDescr(res, className, self).get()
         return res
+
+    def advancedSearchEnabledFor(self, className):
+        '''Is advanced search visible for p_klass ?'''
+        klass = self.getAppyClass(className)
+        # By default, advanced search is enabled.
+        if not hasattr(klass, 'searchAdvanced'): return True
+        # Evaluate attribute "show" on this Search instance representing the
+        # advanced search.
+        return klass.searchAdvanced.isShowable(klass, self.appy())
 
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)

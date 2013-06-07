@@ -298,7 +298,7 @@ class Import:
 class Search:
     '''Used for specifying a search for a given type.'''
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
-                 default=False, colspan=1, translated=None,
+                 default=False, colspan=1, translated=None, show=True,
                  translatedDescr=None, **fields):
         self.name = name
         # Searches may be visually grouped in the portlet.
@@ -314,6 +314,8 @@ class Search:
         # use it instead of trying to translate from labels.
         self.translated = translated
         self.translatedDescr = translatedDescr
+        # Condition for showing or not this search
+        self.show = show
         # In the dict below, keys are indexed field names or names of standard
         # indexes, and values are search values.
         self.fields = fields
@@ -331,6 +333,8 @@ class Search:
             # 'SortableTitle', because index 'Title' is a TextIndex
             # (for searchability) and can't be used for sorting.
         elif fieldName == 'state': return 'State'
+        elif fieldName == 'created': return 'Created'
+        elif fieldName == 'modified': return 'Modified'
         elif fieldName in defaultIndexes: return fieldName
         else:
             return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
@@ -402,6 +406,12 @@ class Search:
             else:
                 criteria['sortBy'] = self.sortBy
                 criteria['sortOrder'] = self.sortOrder
+
+    def isShowable(self, klass, tool):
+        '''Is this Search instance (defined in p_klass) showable?'''
+        if self.show.__class__.__name__ == 'staticmethod':
+            return self.show.__get__(klass)(tool)
+        return self.show
 
 # ------------------------------------------------------------------------------
 class Type:

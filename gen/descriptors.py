@@ -174,35 +174,28 @@ class ClassDescriptor(Descriptor):
     def getCreateMean(self, type='Import'):
         '''Returns the mean for this class that corresponds to p_type, or
            None if the class does not support this create mean.'''
-        if not self.klass.__dict__.has_key('create'): return None
+        if not self.klass.__dict__.has_key('create'): return
         else:
             means = self.klass.create
-            if not means: return None
+            if not means: return
             if not isinstance(means, tuple) and not isinstance(means, list):
                 means = [means]
             for mean in means:
                 exec 'found = isinstance(mean, %s)' % type
                 if found: return mean
-        return None
 
     @staticmethod
-    def getSearches(klass):
-        '''Returns the list of searches that are defined on this class.'''
-        res = []
+    def getSearches(klass, tool=None):
+        '''Returns the list of searches that are defined on this class. If
+           p_tool is given, we are at execution time (not a generation time),
+           and we may potentially execute search.show methods that allow to
+           conditionnaly include a search or not.'''
         if klass.__dict__.has_key('search'):
             searches = klass.__dict__['search']
-            if isinstance(searches, basestring):
-                res.append(gen.Search(searches))
-            elif isinstance(searches, gen.Search):
-                res.append(searches)
-            else:
-                # It must be a list of searches.
-                for search in searches:
-                    if isinstance(search, basestring):
-                        res.append(gen.Search(search))
-                    else:
-                        res.append(search)
-        return res
+            if not tool: return searches
+            # Evaluate attributes "show" for every search.
+            return [s for s in searches if s.isShowable(klass, tool)]
+        return []
 
     @staticmethod
     def getSearch(klass, searchName):
@@ -210,7 +203,6 @@ class ClassDescriptor(Descriptor):
         for search in ClassDescriptor.getSearches(klass):
             if search.name == searchName:
                 return search
-        return None
 
     def addIndexMethod(self, field):
         '''For indexed p_field, this method generates a method that allows to
