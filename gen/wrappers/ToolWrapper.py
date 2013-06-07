@@ -101,10 +101,6 @@ class ToolWrapper(AbstractWrapper):
                Stores the list of columns that must be shown when displaying
                instances of a given root p_klass.
 
-           "enableAdvancedSearch"
-               Determines if the advanced search screen must be enabled for
-               p_klass.
-
            "numberOfSearchColumns"
                Determines in how many columns the search screen for p_klass
                is rendered.

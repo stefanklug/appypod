@@ -443,12 +443,6 @@ class ToolClassDescriptor(ClassDescriptor):
         '''Adds, for class p_classDescr, attributes related to the search
            functionality for class p_classDescr.'''
         className = classDescr.name
-        # Field that defines if advanced search is enabled for class
-        # p_classDescr or not.
-        fieldName = 'enableAdvancedSearchFor%s' % className
-        fieldType = gen.Boolean(default=True, page='userInterface',
-                                group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType)
         # Field that defines how many columns are shown on the custom search
         # screen.
         fieldName = 'numberOfSearchColumnsFor%s' % className

@@ -222,7 +222,6 @@ CONFIG = "Configuration panel for product '%s'"
 MSG_podTemplate = "POD template for field '%s'"
 MSG_formats = "Output format(s) for field '%s'"
 MSG_resultColumns = "Columns to display while showing query results"
-MSG_enableAdvancedSearch = "Enable advanced search"
 MSG_numberOfSearchColumns = "Number of search columns"
 MSG_searchFields = "Search fields"
 POD_ASKACTION = 'Trigger related action'
