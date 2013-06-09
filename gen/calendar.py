@@ -164,7 +164,7 @@ class Calendar(Type):
         '''Returns the list of other calendars whose events must also be shown
            on this calendar.'''
         if self.otherCalendars:
-            res = self.callMethod(obj, self.otherCalendars, preComputed)
+            res = self.otherCalendars(obj.appy(), preComputed)
             # Replace field names with field objects
             for i in range(len(res)):
                 res[i][1] = res[i][0].getField(res[i][1])

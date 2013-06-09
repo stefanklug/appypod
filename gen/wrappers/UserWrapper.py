@@ -13,7 +13,7 @@ class UserWrapper(AbstractWrapper):
         if self.user.has_role('Manager'): return True
         return ('view', 'result')
 
-    def showName(self):
+    def showName(tool):
         '''Name and first name, by default, are always shown.'''
         return True
 
@@ -23,9 +23,9 @@ class UserWrapper(AbstractWrapper):
         email = self.email
         return email and (email != self.login)
 
-    def showRoles(self):
+    def showRoles(tool):
         '''Only the admin can view or edit roles.'''
-        return self.user.has_role('Manager')
+        return tool.user.has_role('Manager')
 
     def validateLogin(self, login):
         '''Is this p_login valid?'''

@@ -7,14 +7,13 @@ from appy.gen.layout import Table
 from appy.gen.layout import defaultFieldLayouts
 from appy.gen.mail import sendNotification
 from appy.gen.indexer import defaultIndexes, XhtmlTextExtractor
-from appy.gen.utils import GroupDescr, Keywords, getClassName, SomeObjects
+from appy.gen import utils as gutils
 import appy.pod
 from appy.pod.renderer import Renderer
 from appy.shared.data import countries
 from appy.shared.xml_parser import XhtmlCleaner
 from appy.shared.diff import HtmlDiff
-from appy.shared.utils import Traceback, getOsTempFolder, formatNumber, \
-                              FileWrapper, sequenceTypes
+from appy.shared import utils as sutils
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -30,7 +29,7 @@ labelTypes = ('label', 'descr', 'help')
 def initMasterValue(v):
     '''Standardizes p_v as a list of strings.'''
     if not isinstance(v, bool) and not v: res = []
-    elif type(v) not in sequenceTypes: res = [v]
+    elif type(v) not in sutils.sequenceTypes: res = [v]
     else: res = v
     return [str(v) for v in res]
 
@@ -249,8 +248,8 @@ class Group:
         # First, create the corresponding GroupDescr if not already in
         # p_groupDescrs.
         if self.name not in groupDescrs:
-            groupDescr = groupDescrs[self.name] = \
-                GroupDescr(self, page, metaType, forSearch=forSearch).get()
+            groupDescr = groupDescrs[self.name] = gutils.GroupDescr(\
+                self, page, metaType, forSearch=forSearch).get()
             # Insert the group at the higher level (ie, directly in p_widgets)
             # if the group is not itself in a group.
             if not self.group:
@@ -258,7 +257,7 @@ class Group:
             else:
                 outerGroupDescr = self.group.insertInto(widgets, groupDescrs,
                                             page, metaType, forSearch=forSearch)
-                GroupDescr.addWidget(outerGroupDescr, groupDescr)
+                gutils.GroupDescr.addWidget(outerGroupDescr, groupDescr)
         else:
             groupDescr = groupDescrs[self.name]
         return groupDescr
@@ -348,12 +347,12 @@ class Search:
         if (field and (field.getIndexType() == 'TextIndex')) or \
            (fieldName == 'SearchableText'):
             # For TextIndex indexes. We must split p_fieldValue into keywords.
-            res = Keywords(fieldValue).get()
+            res = gutils.Keywords(fieldValue).get()
         elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
             v = fieldValue[:-1]
             # Warning: 'z' is higher than 'Z'!
             res = {'query':(v,v+'z'), 'range':'min:max'}
-        elif type(fieldValue) in sequenceTypes:
+        elif type(fieldValue) in sutils.sequenceTypes:
             if fieldValue and isinstance(fieldValue[0], basestring):
                 # We have a list of string values (ie: we need to
                 # search v1 or v2 or...)
@@ -410,7 +409,7 @@ class Search:
     def isShowable(self, klass, tool):
         '''Is this Search instance (defined in p_klass) showable?'''
         if self.show.__class__.__name__ == 'staticmethod':
-            return self.show.__get__(klass)(tool)
+            return gutils.callMethod(tool, self.show, klass=klass)
         return self.show
 
 # ------------------------------------------------------------------------------
@@ -540,7 +539,7 @@ class Type:
         self.name = name
         # Determine prefix for this class
         if not klass: prefix = appName
-        else:         prefix = getClassName(klass, appName)
+        else:         prefix = gutils.getClassName(klass, appName)
         # Recompute the ID (and derived attributes) that may have changed if
         # we are in debug mode (because we recreate new Type instances).
         self.id = id(self)
@@ -628,7 +627,7 @@ class Type:
         else:
             res = self.show
         # Take into account possible values 'view', 'edit', 'result'...
-        if type(res) in sequenceTypes:
+        if type(res) in sutils.sequenceTypes:
             for r in res:
                 if r == layoutType: return True
             return False
@@ -645,7 +644,7 @@ class Type:
             master, masterValue = masterData
             reqValue = master.getRequestValue(obj.REQUEST)
             # reqValue can be a list or not
-            if type(reqValue) not in sequenceTypes:
+            if type(reqValue) not in sutils.sequenceTypes:
                 return reqValue in masterValue
             else:
                 for m in masterValue:
@@ -847,7 +846,7 @@ class Type:
         if forSearch and (value != None):
             if isinstance(value, unicode):
                 res = value.encode('utf-8')
-            elif type(value) in sequenceTypes:
+            elif type(value) in sutils.sequenceTypes:
                 res = []
                 for v in value:
                     if isinstance(v, unicode): res.append(v.encode('utf-8'))
@@ -966,7 +965,7 @@ class Type:
            p_self type definition on p_obj.'''
         setattr(obj, self.name, value)
 
-    def callMethod(self, obj, method, raiseOnError=True):
+    def callMethod(self, obj, method, cache=True):
         '''This method is used to call a p_method on p_obj. p_method is part of
            this type definition (ie a default method, the method of a Computed
            field, a method used for showing or not a field...). Normally, those
@@ -975,26 +974,22 @@ class Type:
            p_method with no arg *or* with the field arg.'''
         obj = obj.appy()
         try:
-            return method(obj)
+            return gutils.callMethod(obj, method, cache=cache)
         except TypeError, te:
             # Try a version of the method that would accept self as an
-            # additional parameter.
-            tb = Traceback.get()
+            # additional parameter. In this case, we do not try to cache the
+            # value (we do not call gutils.callMethod), because the value may
+            # be different depending on the parameter.
+            tb = sutils.Traceback.get()
             try:
                 return method(obj, self)
             except Exception, e:
                 obj.log(tb, type='error')
-                if raiseOnError:
-                    # Raise the initial error.
-                    raise te
-                else:
-                    return str(te)
+                # Raise the initial error.
+                raise te
         except Exception, e:
-            obj.log(Traceback.get(), type='error')
-            if raiseOnError:
-                raise e
-            else:
-                return str(e)
+            obj.log(sutils.Traceback.get(), type='error')
+            raise e
 
     def process(self, obj):
         '''This method is a general hook allowing a field to perform some
@@ -1047,7 +1042,7 @@ class Float(Type):
         self.precision = precision
         # The decimal separator can be a tuple if several are allowed, ie
         # ('.', ',')
-        if type(sep) not in sequenceTypes:
+        if type(sep) not in sutils.sequenceTypes:
             self.sep = (sep,)
         else:
             self.sep = sep
@@ -1065,8 +1060,8 @@ class Float(Type):
         self.pythonType = float
 
     def getFormattedValue(self, obj, value, showChanges=False):
-        return formatNumber(value, sep=self.sep[0], precision=self.precision,
-                            tsep=self.tsep)
+        return sutils.formatNumber(value, sep=self.sep[0],
+                                   precision=self.precision, tsep=self.tsep)
 
     def validateValue(self, obj, value):
         # Replace used separator with the Python separator '.'
@@ -1487,7 +1482,7 @@ class String(Type):
             value = value[:self.maxChars]
         # Get a multivalued value if required.
         if value and self.isMultiValued() and \
-           (type(value) not in sequenceTypes):
+           (type(value) not in sutils.sequenceTypes):
             value = [value]
         return value
 
@@ -1701,12 +1696,12 @@ class File(Type):
         res.filename = fileName
         res.content_type = mimetypes.guess_type(fileName)[0]
         f.close()
-        if not zope: res = FileWrapper(res)
+        if not zope: res = sutils.FileWrapper(res)
         return res
 
     def getValue(self, obj):
         value = Type.getValue(self, obj)
-        if value: value = FileWrapper(value)
+        if value: value = sutils.FileWrapper(value)
         return value
 
     def getFormattedValue(self, obj, value, showChanges=False):
@@ -1786,11 +1781,11 @@ class File(Type):
                 setattr(obj, self.name, existingValue)
             elif isinstance(value, OFSImageFile):
                 setattr(obj, self.name, value)
-            elif isinstance(value, FileWrapper):
+            elif isinstance(value, sutils.FileWrapper):
                 setattr(obj, self.name, value._zopeFile)
             elif isinstance(value, basestring):
                 setattr(obj, self.name, File.getFileObject(value, zope=True))
-            elif type(value) in sequenceTypes:
+            elif type(value) in sutils.sequenceTypes:
                 # It should be a 2-tuple or 3-tuple
                 fileName = None
                 mimeType = None
@@ -1956,13 +1951,13 @@ class Ref(Type):
             if defValue:
                 # I must prefix call to function "type" with "__builtins__"
                 # because this name was overridden by a method parameter.
-                if __builtins__['type'](defValue) in sequenceTypes:
+                if __builtins__['type'](defValue) in sutils.sequenceTypes:
                     uids = [o.o.UID() for o in defValue]
                 else:
                     uids = [defValue.o.UID()]
         # Prepare the result: an instance of SomeObjects, that will be unwrapped
         # if not required.
-        res = SomeObjects()
+        res = gutils.SomeObjects()
         res.totalNumber = res.batchSize = len(uids)
         batchNeeded = startNumber != None
         if batchNeeded:
@@ -2040,7 +2035,7 @@ class Ref(Type):
         '''This method links p_value (which can be a list of objects) to p_obj
            through this Ref field.'''
         # p_value can be a list of objects
-        if type(value) in sequenceTypes:
+        if type(value) in sutils.sequenceTypes:
             for v in value: self.linkObject(obj, v, back=back)
             return
         # Gets the list of referred objects (=list of uids), or create it.
@@ -2068,7 +2063,7 @@ class Ref(Type):
         '''This method unlinks p_value (which can be a list of objects) from
            p_obj through this Ref field.'''
         # p_value can be a list of objects
-        if type(value) in sequenceTypes:
+        if type(value) in sutils.sequenceTypes:
             for v in value: self.unlinkObject(obj, v, back=back)
             return
         obj = obj.o
@@ -2093,7 +2088,7 @@ class Ref(Type):
         # Standardize p_value into a list of Zope objects
         objects = value
         if not objects: objects = []
-        if type(objects) not in sequenceTypes: objects = [objects]
+        if type(objects) not in sutils.sequenceTypes: objects = [objects]
         tool = obj.getTool()
         for i in range(len(objects)):
             if isinstance(objects[i], basestring):
@@ -2234,7 +2229,7 @@ class Computed(Type):
             return self.callMacro(obj, self.method)
         else:
             # self.method is a method that will return the field value
-            return self.callMethod(obj, self.method, raiseOnError=True)
+            return self.callMethod(obj, self.method, cache=False)
 
     def getFormattedValue(self, obj, value, showChanges=False):
         if not isinstance(value, basestring): return str(value)
@@ -2278,12 +2273,12 @@ class Action(Type):
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
     def __call__(self, obj):
         '''Calls the action on p_obj.'''
-        if type(self.action) in sequenceTypes:
+        if type(self.action) in sutils.sequenceTypes:
             # There are multiple Python methods
             res = [True, '']
             for act in self.action:
                 actRes = act(obj)
-                if type(actRes) in sequenceTypes:
+                if type(actRes) in sutils.sequenceTypes:
                     res[0] = res[0] and actRes[0]
                     if self.result.startswith('file'):
                         res[1] = res[1] + actRes[1]
@@ -2294,7 +2289,7 @@ class Action(Type):
         else:
             # There is only one Python method
             actRes = self.action(obj)
-            if type(actRes) in sequenceTypes:
+            if type(actRes) in sutils.sequenceTypes:
                 res = list(actRes)
             else:
                 res = [actRes, '']
@@ -2395,7 +2390,9 @@ class Pod(Type):
            retrieved by calling pod to compute the result.'''
         rq = getattr(obj, 'REQUEST', None)
         res = getattr(obj.aq_base, self.name, None)
-        if res and res.size: return FileWrapper(res) # Return the frozen file.
+        if res and res.size:
+            # Return the frozen file.
+            return sutils.FileWrapper(res)
         # If we are here, it means that we must call pod to compute the file.
         # A Pod field differs from other field types because there can be
         # several ways to produce the field value (ie: output file format can be
@@ -2419,7 +2416,7 @@ class Pod(Type):
             specificContext = self.context
         # Temporary file where to generate the result
         tempFileName = '%s/%s_%f.%s' % (
-            getOsTempFolder(), obj.uid, time.time(), outputFormat)
+            sutils.getOsTempFolder(), obj.uid, time.time(), outputFormat)
         # Define parameters to give to the appy.pod renderer
         podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
@@ -2486,7 +2483,7 @@ class Pod(Type):
 
     def store(self, obj, value):
         '''Stores (=freezes) a document (in p_value) in the field.'''
-        if isinstance(value, FileWrapper):
+        if isinstance(value, sutils.FileWrapper):
             value = value._zopeFile
         setattr(obj, self.name, value)
 

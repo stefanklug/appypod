@@ -306,4 +306,55 @@ def updateRolesForPermission(permission, roles, obj):
             existingRoles = perm.getRoles()
     allRoles = set(existingRoles).union(roles)
     obj.manage_permission(permission, tuple(allRoles), acquire=0)
+
+# ------------------------------------------------------------------------------
+def callMethod(obj, method, klass=None, cache=True):
+    '''This function is used to call a p_method on some Appy p_obj. m_method
+       can be an instance method on p_obj; it can also be a static method. In
+       this latter case, p_obj is the tool and the static method, defined in
+       p_klass, will be called with the tool as unique arg.
+
+       A method cache is implemented on the request object (available at
+       p_obj.request). So while handling a single request from the ui, every
+       method is called only once. Some method calls must not be cached (ie,
+       values of Computed fields). In this case, p_cache will be False.'''
+    rq = obj.request
+    # Create the method cache if it does not exist on the request
+    if not hasattr(rq, 'methodCache'): rq.methodCache = {}
+    # If m_method is a static method or an instance method, unwrap the true
+    # Python function object behind it.
+    methodType = method.__class__.__name__
+    if methodType == 'staticmethod':
+        method = method.__get__(klass)
+    elif methodType == 'instancemethod':
+        method = method.im_func
+    # Call the method if cache is not needed.
+    if not cache: return method(obj)
+    # If first arg of method is named "tool" instead of the traditional "self",
+    # we cheat and will call the method with the tool as first arg. This will
+    # allow to consider this method as if it was a static method on the tool.
+    # Every method call, even on different instances, will be cached in a unique
+    # key.
+    cheat = False
+    if not klass and (method.func_code.co_varnames[0] == 'tool'):
+        prefix = obj.klass.__name__
+        obj = obj.tool
+        cheat = True
+    # Build the key of this method call in the cache.
+    # First part of the key: the p_obj's uid (if p_method is an instance method)
+    # or p_className (if p_method is a static method).
+    if not cheat:
+        if klass:
+            prefix = klass.__name__
+        else:
+            prefix = obj.uid
+    # Second part of the key: p_method name
+    key = '%s:%s' % (prefix, method.func_name)
+    # Return the cached value if present in the method cache.
+    if key in rq.methodCache:
+        return rq.methodCache[key]
+    # No cached value: call the method, cache the result and return it
+    res = method(obj)
+    rq.methodCache[key] = res
+    return res
 # ------------------------------------------------------------------------------
