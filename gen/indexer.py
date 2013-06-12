@@ -74,7 +74,7 @@ def splitIntoWords(text):
        words). Words of a single char are ignored, excepted digits which are
        always kept. Duplicate words are removed (result is a set and not a
        list).'''
-    res = text.split(' ')
+    res = text.split()
     # Remove tokens of a single char (excepted if this char is a digit).
     i = len(res)-1
     while i > -1 :
