@@ -55,7 +55,7 @@ class BufferAction:
         self.fromExprResult = None
         # When an error is encountered, must we raise it or write it into the
         # buffer?
-        self.raiseErrors = self.buffer.caller() == 'px'
+        self.raiseErrors = self.buffer.caller == 'px'
 
     def getExceptionLine(self, e):
         '''Gets the line describing exception p_e, containing the pathname of
@@ -66,7 +66,7 @@ class BufferAction:
         '''Write the encountered error into the buffer or raise an exception
            if self.raiseErrors is True.'''
         if self.raiseErrors:
-            if self.buffer.caller() == 'px':
+            if self.buffer.caller == 'px':
                 # Add in the error message the line nb where the errors occurs
                 # within the PX.
                 locator = self.buffer.env.parser.locator

@@ -66,16 +66,24 @@ for k, v in htmlentitydefs.entitydefs.iteritems():
     if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
         HTML_ENTITIES[k] = ''
 
-def escapeXml(s):
+def escapeXml(s, format='xml', nsText='text'):
     '''Returns p_s, whose XML special chars have been replaced with escaped XML
-       entities.'''
+       entities. If p_format is "odf", line breaks are converted to ODF line
+       breaks. In this case, it is needed to give the name of the "text"
+       namespace (p_nsText) as defined in the ODF document where the line breaks
+       must be inserted.'''
     if isinstance(s, unicode):
         res = u''
     else:
         res = ''
+    odf = format == 'odf'
     for c in s:
         if XML_SPECIAL_CHARS.has_key(c):
             res += XML_SPECIAL_CHARS[c]
+        elif odf and (c == '\n'):
+            res += '<%s:line-break/>' % nsText
+        elif odf and (c == '\r'):
+            pass
         else:
             res += c
     return res

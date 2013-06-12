@@ -121,6 +121,8 @@ class Buffer:
         self.parent = parent
         self.subBuffers = {} # ~{i_bufferIndex: Buffer}~
         self.env = env
+        # Are we computing for pod or for px ?
+        self.caller= (env.__class__.__name__=='PxEnvironment') and 'px' or 'pod'
 
     def addSubBuffer(self, subBuffer=None):
         if not subBuffer:
@@ -182,7 +184,13 @@ class Buffer:
 
     def dumpContent(self, content):
         '''Dumps string p_content into the buffer.'''
-        self.write(escapeXml(content))
+        if self.caller == 'pod':
+            # Take care of converting line breaks to odf line breaks.
+            content = escapeXml(content, format='odf',
+                                nsText=self.env.namespaces[self.env.NS_TEXT])
+        else:
+            content = escapeXml(content)
+        self.write(content)
 
 # ------------------------------------------------------------------------------
 class FileBuffer(Buffer):
@@ -635,7 +643,7 @@ class MemoryBuffer(Buffer):
                         if escape: result.dumpContent(res)
                         else: result.write(res)
                     except Exception, e:
-                        if self.caller() == 'pod':
+                        if self.caller == 'pod':
                             PodError.dump(result, EVAL_EXPR_ERROR % (
                                           evalEntry.expr, e), dumpTb=False)
                         else: # px
@@ -654,9 +662,4 @@ class MemoryBuffer(Buffer):
     def clean(self):
         '''Cleans the buffer content.'''
         self.content = u''
-
-    def caller(self):
-        '''Returns "pod" if the caller is appy.pod, "px" if it is appy.px.'''
-        if self.env.__class__.__name__ == 'PxEnvironment': return 'px'
-        return 'pod'
 # ------------------------------------------------------------------------------
