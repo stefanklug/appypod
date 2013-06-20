@@ -45,6 +45,7 @@
     <input type="hidden" name="podFormat"/>
     <input type="hidden" name="askAction"/>
     <input type="hidden" name="queryData"/>
+    <input type="hidden" name="customParams"/>
   </form>
 </div>
 

@@ -2435,8 +2435,17 @@ class Pod(Type):
                      sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
                      filterValue=filterValue, maxResults='NO_LIMIT')
             podContext['objects'] = [o.appy() for o in objs['objects']]
+        # Add the field-specific context if present.
         if specificContext:
             podContext.update(specificContext)
+        # If a custom param comes from the request, add it to the context. A
+        # custom param must have format "name:value". Custom params override any
+        # other value in the request, including values from the field-specific
+        # context.
+        customParams = rq.get('customParams', None)
+        if customParams:
+            paramsDict = eval(customParams)
+            podContext.update(paramsDict)
         # Define a potential global styles mapping
         if callable(self.stylesMapping):
             stylesMapping = self.callMethod(obj, self.stylesMapping)

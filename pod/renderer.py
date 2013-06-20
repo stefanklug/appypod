@@ -309,7 +309,7 @@ class Renderer:
         if not content and not at:
             raise PodError(DOC_NOT_SPECIFIED)
         # Convert Zope files into Appy wrappers.
-        if content.__class__.__name__ == 'File':
+        if content.__class__.__name__ in ('File', 'Image'):
             content = FileWrapper(content)
         # Guess document format
         if isinstance(content, FileWrapper):
