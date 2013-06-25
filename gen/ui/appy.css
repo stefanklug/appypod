@@ -65,7 +65,8 @@ img { border: 0; vertical-align: middle }
 .navigate td { padding: 4px 9px }
 .login { margin: 3px; color: black }
 .button { border-width: 0 !important; color: #666666; height: 23px; width: 150px;
-          cursor:pointer; font-size: 90%; padding: 1px 0 0 10px }
+          cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
+          background-color: transparent !important }
 .buttons { margin-left: 4px }
 .message { position: absolute; top: -40px; left: 150px; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;

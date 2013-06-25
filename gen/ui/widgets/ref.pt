@@ -72,20 +72,20 @@
   </table>
 </metal:objectActions>
 
-<metal:plusIcon define-macro="plusIcon">
-    <tal:comment replace="nothing">Displays the "plus" icon that allows to add new object
+<tal:comment replace="nothing">Displays the "plus" icon that allows to add new object
       through a reference widget. Indeed, If field was declared as "addable", we must provide
       an icon for creating a new linked object (at least if multiplicities allow it).</tal:comment>
-  <img style="cursor:pointer" tal:condition="showPlusIcon"
+<metal:plus define-macro="plusIcon" tal:condition="showPlusIcon">
+<input type="button" class="button"
        tal:define="navInfo python:'ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, appyType['pageName'], 0, totalNumber);
                    formCall python:'window.location=\'%s/do?action=Create&className=%s&nav=%s\'' % (folder.absolute_url(), linkedPortalType, navInfo);
                    formCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (formCall, addConfirmMsg), formCall);
                    noFormCall python: navBaseCall.replace('**v**', '%d, \'CreateWithoutForm\'' % startNumber);
                    noFormCall python: test(appyType['addConfirm'], 'askConfirm(\'script\', &quot;%s&quot;, &quot;%s&quot;)' % (noFormCall, addConfirmMsg), noFormCall)"
-       tal:attributes="src string:$appUrl/ui/plus.png;
-                       title python: _('add_ref');
+       tal:attributes="style string: background-image: url($appUrl/ui/buttonAdd.png);
+                       value python: _('add_ref');
                        onClick python: test(appyType['noForm'], noFormCall, formCall)"/>
-</metal:plusIcon>
+</metal:plus>
 
 <tal:comment replace="nothing">
   This macro displays, in a cell header from a ref table, icons for sorting the
@@ -161,14 +161,14 @@
 
   <tal:comment replace="nothing">Display a table in all other cases.</tal:comment>
   <tal:anyNumberOfReferences condition="not: atMostOneRef">
-  <div tal:condition="python: not innerRef or showPlusIcon">
-     (<span tal:replace="totalNumber"/>)
-     <metal:plusIcon use-macro="app/ui/widgets/ref/macros/plusIcon"/>
-     <tal:comment replace="nothing">The search icon if field is queryable</tal:comment>
-     <a tal:condition="python: objs and appyType['queryable']"
-        tal:attributes="href python: '%s/ui/search?className=%s&ref=%s:%s' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
-     <img tal:attributes="title python: _('search_title');
-                          src string: $appUrl/ui/search.gif"/></a>
+  <div tal:condition="python: not innerRef or showPlusIcon" style="margin-bottom: 4px">
+   (<span tal:replace="totalNumber"/>)
+   <metal:plus use-macro="app/ui/widgets/ref/macros/plusIcon"/>
+   <tal:comment replace="nothing">The search button if field is queryable</tal:comment>
+   <input type="button" class="button" tal:condition="python: objs and appyType['queryable']"
+          tal:attributes="style string: background-image: url($appUrl/ui/buttonSearch.png);
+                          value python: _('search_title');
+                          onclick python: 'window.location=\'%s/ui/search?className=%s&ref=%s:%s\'' % (tool.absolute_url(), linkedPortalType, contextObj.UID(), appyType['name'])">
   </div>
 
   <tal:comment replace="nothing">Appy (top) navigation</tal:comment>
