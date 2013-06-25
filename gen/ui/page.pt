@@ -168,14 +168,17 @@
         <tal:comment replace="nothing">Buttons for triggering transitions</tal:comment>
         <td tal:attributes="align dright" tal:repeat="transition transitions">
           <tal:comment replace="nothing">Real button</tal:comment>
-          <input type="button" tal:condition="transition/may_trigger"
-                 tal:attributes="value transition/title;
-                                 onClick python: 'triggerTransition(\'%s\',\'%s\',\'%s\')' % (formId,transition['name'],transition['confirm'])"/>
+          <input type="button" class="button" tal:condition="transition/may_trigger"
+                 tal:attributes="style string: background-image: url($appUrl/ui/buttonTransition.png);
+                                 title transition/title;
+                                 value python: tool.truncateValue(transition['title']);
+                                 onClick python: 'triggerTransition(\'%s\',\'%s\',\'%s\')' % (formId,transition['name'],transition['confirm'])">
+          
           <tal:comment replace="nothing">Fake button, explaining why the transition can't be triggered</tal:comment>
-          <div class="fakeButton" tal:condition="not: transition/may_trigger">
-            <acronym tal:content="transition/title"
-                     tal:attributes="title transition/reason"></acronym>
-          </div>
+          <input type="button" class="button" tal:condition="not: transition/may_trigger"
+                 tal:attributes="style string: background-image: url($appUrl/ui/buttonFake.png);; cursor: help;
+                                 value python: tool.truncateValue(transition['title']);
+                                 title python: '%s: %s' % (transition['title'], transition['reason'])"/>
         </td>
     </tr>
     </table>
@@ -262,30 +265,34 @@
                    isEdit         python: layoutType == 'edit';
                    pageInfo       python: phaseInfo['pagesInfo'][page]">
  <tr>
-  <tal:comment replace="nothing">Previous</tal:comment> 
+  <tal:comment replace="nothing">Previous</tal:comment>
   <td tal:condition="python: previousPage and pageInfo['showPrevious']">
     <tal:button condition="isEdit">
-      <img style="cursor:pointer" onClick="submitAppyForm('previous')"
-           tal:attributes="src string:$appUrl/ui/previous.png; title python: _('page_previous')"/>
-      <input type="hidden" name="previousPage" tal:attributes="value previousPage"/>
+     <input type="button" class="button" onClick="submitAppyForm('previous')"
+          tal:attributes="style string: background-image: url($appUrl/ui/buttonPrevious.png);
+                          value python: _('page_previous')">
+     <input type="hidden" name="previousPage" tal:attributes="value previousPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
-      <a tal:attributes="href python: contextObj.getUrl(page=previousPage)">
-        <img tal:attributes="src string:$appUrl/ui/previous.png; title python: _('page_previous')"/>
-      </a>
+     <input type="button" class="button"
+            tal:attributes="style string: background-image: url($appUrl/ui/buttonPrevious.png);
+                            value python: _('page_previous');
+                            onclick python: 'window.location=\'%s\'' % contextObj.getUrl(page=previousPage)">
     </tal:link>
   </td>
 
   <tal:comment replace="nothing">Save</tal:comment>
   <td tal:condition="python: isEdit and pageInfo['showSave']">
-    <img style="cursor:pointer" onClick="submitAppyForm('save')"
-         tal:attributes="src string:$appUrl/ui/save.png; title python: _('object_save');"/>
+   <input type="button" class="button" onClick="submitAppyForm('save')"
+          tal:attributes="style string: background-image: url($appUrl/ui/buttonSave.png);
+                          value python: _('object_save')">
   </td>
 
   <tal:comment replace="nothing">Cancel</tal:comment>
   <td tal:condition="python: isEdit and pageInfo['showCancel']">
-    <img style="cursor:pointer" onClick="submitAppyForm('cancel')"
-         tal:attributes="src string:$appUrl/ui/cancel.png; title python: _('object_cancel')"/>
+   <input type="button" class="button" onClick="submitAppyForm('cancel')"
+          tal:attributes="style string: background-image: url($appUrl/ui/buttonCancel.png);
+                          value python: _('object_cancel')">
   </td>
 
   <tal:edit condition="not: isEdit">
@@ -293,11 +300,11 @@
                    editable python: pageInfo['showOnEdit'] and contextObj.mayEdit()">
 
     <tal:comment replace="nothing">Edit</tal:comment>
-    <a tal:condition="python: editable and not locked"
-       tal:attributes="href python: contextObj.getUrl(mode='edit', page=page)">
-     <img tal:attributes="src string: $appUrl/ui/editBig.png;
-                         title python: _('object_edit')"/>
-    </a>
+    <input type="button" class="button" tal:condition="python: editable and not locked"
+           tal:attributes="style string: background-image: url($appUrl/ui/buttonEdit.png);
+                           value python: _('object_edit');
+                           onclick python: 'window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page)">
+
     <tal:comment replace="nothing">Locked</tal:comment>
     <a tal:condition="python: editable and locked">
      <img style="cursor: help"
@@ -308,32 +315,33 @@
    </td>
   </tal:edit>
 
-  <tal:comment replace="nothing">Refresh</tal:comment>
-  <td tal:condition="contextObj/isDebug">
-    <a tal:attributes="href python: contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
-     <img title="Refresh" style="vertical-align:top"
-          tal:attributes="src string: $appUrl/ui/refresh.png"/>
-    </a>
-  </td>
-
   <tal:comment replace="nothing">Next</tal:comment>
   <td tal:condition="python: nextPage and pageInfo['showNext']">
     <tal:button condition="isEdit">
-      <img style="cursor:pointer" onClick="submitAppyForm('next')"
-           tal:attributes="src string:$appUrl/ui/next.png; title python: _('page_next')"/>
-      <input type="hidden" name="nextPage" tal:attributes="value nextPage"/>
+     <input type="button" class="button" onClick="submitAppyForm('next')"
+          tal:attributes="style string: background-image: url($appUrl/ui/buttonNext.png);
+                          value python: _('page_next')">
+     <input type="hidden" name="nextPage" tal:attributes="value nextPage"/>
     </tal:button>
     <tal:link condition="not: isEdit">
-      <a tal:attributes="href python: contextObj.getUrl(page=nextPage)">
-        <img tal:attributes="src string:$appUrl/ui/next.png;
-                             title python: _('page_next')"/>
-      </a>
+     <input type="button" class="button"
+            tal:attributes="style string: background-image: url($appUrl/ui/buttonNext.png);
+                            value python: _('page_next');
+                            onclick python: 'window.location=\'%s\'' % contextObj.getUrl(page=nextPage)">
     </tal:link>
   </td>
   <tal:comment replace="nothing">Workflow transitions</tal:comment>
   <td tal:define="targetObj python: contextObj"
       tal:condition="python: targetObj.showTransitions(layoutType)">
    <metal:transitions use-macro="app/ui/page/macros/transitions"/>
+  </td>
+
+  <tal:comment replace="nothing">Refresh</tal:comment>
+  <td tal:condition="contextObj/isDebug">
+    <a tal:attributes="href python: contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
+     <img title="Refresh" style="vertical-align:top"
+          tal:attributes="src string: $appUrl/ui/refresh.png"/>
+    </a>
   </td>
  </tr>
 </table>

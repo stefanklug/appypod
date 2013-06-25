@@ -64,10 +64,9 @@ img { border: 0; vertical-align: middle }
             background-color: #dbdde1; font-weight: bold }
 .navigate td { padding: 4px 9px }
 .login { margin: 3px; color: black }
+.button { border-width: 0 !important; color: #666666; height: 23px; width: 150px;
+          cursor:pointer; font-size: 90%; padding: 1px 0 0 10px }
 .buttons { margin-left: 4px }
-.fakeButton { border: 1px solid #D7DEE4; background-color: #fde8e0;
-              padding: 0px 8px 2px;
-              font: italic 92% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 .message { position: absolute; top: -40px; left: 150px; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
            background-color: #F9EDBE; text-align: center;
@@ -83,13 +82,14 @@ img { border: 0; vertical-align: middle }
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed }
 .portletContent { margin: 4px 9px }
-.portletTitle { font-weight: bold; font-size: 110%; margin-bottom: 4px }
-.portletCurrent { font-weight: bold }
+.portletTitle { font-size: 110%; margin-bottom: 4px }
+.portletCurrent { font-weight: bold; color: grey }
 .portletSep { border-top: 1px solid #5F7983; margin-top: 2px }
 .portletPage { font-style: italic }
-.portletGroup { font-variant: small-caps; font-weight: bold; font-size: 105%;
+.portletGroup { font-variant: small-caps; font-weight: bold;
                 margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey }
 .portletSearch { font-size: 90%; font-style: italic }
+.inputSearch { height: 15px; width: 132px; margin: 3px 3px 2px 3px !important }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
 .grey { display: none; position: absolute; left: 0px; top: 0px; z-index:2;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;

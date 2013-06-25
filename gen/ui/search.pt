@@ -44,7 +44,9 @@
 
   <tal:comment replace="nothing">Submit button</tal:comment>
   <p tal:attributes="align dright"><br/>
-    <input type="submit" tal:attributes="value python: _('search_button')"/>
+    <input type="submit" class="button"
+           tal:attributes="value python: _('search_button');
+                           style string: background-image: url($appUrl/ui/buttonSearch.png);"/>
   </p>
   </form>
  </metal:fill>

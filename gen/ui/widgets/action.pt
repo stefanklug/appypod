@@ -8,13 +8,17 @@
     <input type="hidden" name="objectUid" tal:attributes="value contextObj/UID"/>
     <input type="hidden" name="fieldName" tal:attributes="value name"/>
     <tal:confirm condition="widget/confirm">
-    <input type="button"
+    <input type="button" class="button"
            tal:define="labelConfirm python: contextObj.translate(widget['labelId'] + '_confirm')"
-           tal:attributes="value label;
+           tal:attributes="value python: tool.truncateValue(label);
+                           title label;
+                           style string: background-image: url($appUrl/ui/buttonAction.png);
                            onClick python: 'askConfirm(\'form\', \'%s\', &quot;%s&quot;)' % (formId, labelConfirm)"/>
     </tal:confirm>
-    <input type="submit" name="do" tal:condition="not: widget/confirm"
-           tal:attributes="value label"/>
+    <input type="submit" class="button" name="do" tal:condition="not: widget/confirm"
+           tal:attributes="value python: tool.truncateValue(label);
+                           title label;
+                           style string: background-image: url($appUrl/ui/buttonAction.png);"/>
   </form>
 </metal:view>
 
