@@ -7,28 +7,19 @@ class PxEnvironment(XmlEnvironment):
     '''Environment for the PX parser.'''
 
     def __init__(self):
-        # We try to mimic POD. POD has a root buffer that is a FileBuffer, which
-        # is the final result buffer, into which the result of evaluating all
-        # memory buffers, defined as sub-buffers of this file buffer, is
-        # generated. For PX, we will define a result buffer, but as a memory
-        # buffer instead of a file buffer.
-        self.result = MemoryBuffer(self, None)
-        # In this buffer, we will create a single memory sub-buffer that will
-        # hold the result of parsing the PX = a hierarchy of memory buffers =
-        # PX's AST (Abstract Syntax Tree).
-        self.ast = MemoryBuffer(self, self.result)
+        # In the following buffer, we will create a single memory sub-buffer
+        # that will hold the result of parsing the PX = a hierarchy of memory
+        # buffers = PX's AST (Abstract Syntax Tree).
         # A major difference between POD and PX: POD creates the AST and
         # generates the result in the same step: one AST is generated, and then
         # directly produces a single evaluation, in the root file buffer. PX
-        # works in 2  steps: the AST is initially created in self.ast. Then,
-        # several evaluations can be generated, in self.result, without
-        # re-generating the AST. After every evaluation, self.result will be
-        # cleaned, to be reusable for the next evaluation.
-        # Context will come afterwards
-        self.context = None
+        # works in 2 steps: the AST is initially created in self.ast. Then,
+        # several (concurrent) evaluations can occur, without re-generating the
+        # AST.
+        self.ast = MemoryBuffer(self, None)
         # Buffer where we must dump the content we are currently reading
         self.currentBuffer = self.ast
-        # Tag content we are currently reading. We will put soomething in this
+        # Tag content we are currently reading. We will put something in this
         # attribute only if we encounter content that is Python code.
         # Else, we will directly dump the parsed content into the current
         # buffer.

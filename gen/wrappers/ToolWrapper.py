@@ -5,6 +5,7 @@ from appy.gen.mail import sendMail
 from appy.shared.utils import executeCommand
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.installer import loggedUsers
+from appy.px import Px
 
 # ------------------------------------------------------------------------------
 _PY = 'Please specify a file corresponding to a Python interpreter ' \
@@ -19,6 +20,10 @@ NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
 
 # ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
+
+    pxHome = Px('''<p>Hello home</p>''',
+                template=AbstractWrapper.pxTemplate, hook='content')
+
     def validPythonWithUno(self, value):
         '''This method represents the validator for field unoEnabledPython.'''
         if value:

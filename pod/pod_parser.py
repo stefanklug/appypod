@@ -1,20 +1,18 @@
 # ------------------------------------------------------------------------------
-# Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007 Gaetan Delannay
+# This file is part of Appy, a framework for building applications in the Python
+# language. Copyright (C) 2007 Gaetan Delannay
 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# Appy is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Appy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
+# You should have received a copy of the GNU General Public License along with
+# Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
 import re
@@ -65,17 +63,13 @@ class PodEnvironment(OdfEnvironment):
     #                continue to dump it in the current buffer
     ADD_IN_BUFFER = 0
     # ADD_IN_SUBBUFFER: when encountering an impactable element, we must
-    #                   create a new subbuffer and dump it in it.
+    #                   create a new sub-buffer and dump it in it.
     ADD_IN_SUBBUFFER = 1
     # Possible states
     IGNORING = 0 # We are ignoring what we are currently reading
     READING_CONTENT = 1 # We are reading "normal" content
-    READING_STATEMENT = 2
-    # We are reading a POD statement (for, if...), which is located within a
-    # office:annotation element
-    READING_EXPRESSION = 3
-    # We are reading a POD expression, which is located between
-    # a text:change-start and a text:change-end elements
+    READING_STATEMENT = 2 # We are reading a POD statement (for, if...)
+    READING_EXPRESSION = 3 # We are reading a POD expression.
     def __init__(self, context, inserts=[]):
         OdfEnvironment.__init__(self)
         # Buffer where we must dump the content we are currently reading
@@ -335,7 +329,8 @@ class PodParser(OdfParser):
                                 if isinstance(parent, FileBuffer):
                                     # Execute buffer action and delete the
                                     # buffer.
-                                    e.currentBuffer.action.execute()
+                                    e.currentBuffer.action.execute(parent,
+                                                                   e.context)
                                     parent.removeLastSubBuffer()
                                 e.currentBuffer = parent
                             e.mode = e.ADD_IN_SUBBUFFER

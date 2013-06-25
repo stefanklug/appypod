@@ -7,6 +7,7 @@ import appy.pod
 from appy.gen import Type, Search, Ref, String, WorkflowAnonymous
 from appy.gen.indexer import defaultIndexes
 from appy.gen.utils import createObject
+from appy.px import Px
 from appy.shared.utils import getOsTempFolder, executeCommand, \
                               normalizeString, sequenceTypes
 from appy.shared.xml_parser import XmlMarshaller
@@ -25,6 +26,15 @@ FREEZE_FATAL_ERROR = 'A server error occurred. Please contact the system ' \
 class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
        instance of this class.'''
+
+    pxTemplate = Px('''
+    <html>
+     <head><title>:self.title</title></head>
+     <body>
+      <x>:content</x>
+     </body>
+    </html>
+    ''', prologue=Px.xhtmlPrologue)
 
     # --------------------------------------------------------------------------
     # Class methods

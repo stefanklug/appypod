@@ -1,24 +1,21 @@
 # ------------------------------------------------------------------------------
-# Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007 Gaetan Delannay
+# This file is part of Appy, a framework for building applications in the Python
+# language. Copyright (C) 2007 Gaetan Delannay
 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# Appy is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Appy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
+# You should have received a copy of the GNU General Public License along with
+# Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
 import re
-
 from xml.sax.saxutils import quoteattr
 from appy.shared.xml_parser import xmlPrologue, escapeXml
 from appy.pod import PodError
@@ -121,8 +118,8 @@ class Buffer:
         self.parent = parent
         self.subBuffers = {} # ~{i_bufferIndex: Buffer}~
         self.env = env
-        # Are we computing for pod or for px ?
-        self.caller= (env.__class__.__name__=='PxEnvironment') and 'px' or 'pod'
+        # Are we computing for pod (True) or px (False)
+        self.pod = env.__class__.__name__ != 'PxEnvironment'
 
     def addSubBuffer(self, subBuffer=None):
         if not subBuffer:
@@ -184,7 +181,7 @@ class Buffer:
 
     def dumpContent(self, content):
         '''Dumps string p_content into the buffer.'''
-        if self.caller == 'pod':
+        if self.pod:
             # Take care of converting line breaks to odf line breaks.
             content = escapeXml(content, format='odf',
                                 nsText=self.env.namespaces[self.env.NS_TEXT])
@@ -214,7 +211,8 @@ class FileBuffer(Buffer):
     def addExpression(self, expression, tiedHook=None):
         # At 2013-02-06, this method was not called within the whole test suite.
         try:
-            res, escape = Expression(expression).evaluate(self.env.context)
+            expr = Expression(expression, self.pod)
+            res, escape = expr.evaluate(self.env.context)
             if escape: self.dumpContent(res)
             else: self.write(res)
         except Exception, e:
@@ -329,7 +327,7 @@ class MemoryBuffer(Buffer):
             # First unreference all elements
             for index in self.getElementIndexes(expressions=False):
                 del self.elements[index]
-            self.evaluate()
+            self.evaluate(self.parent, self.env.context)
         else:
             # Transfer content in itself
             oldParentLength = self.parent.getLength()
@@ -337,7 +335,7 @@ class MemoryBuffer(Buffer):
             # Transfer elements
             for index, podElem in self.elements.iteritems():
                 self.parent.elements[oldParentLength + index] = podElem
-            # Transfer subBuffers
+            # Transfer sub-buffers
             for index, buf in self.subBuffers.iteritems():
                 self.parent.subBuffers[oldParentLength + index] = buf
         # Empty the buffer
@@ -360,7 +358,7 @@ class MemoryBuffer(Buffer):
 
     def addExpression(self, expression, tiedHook=None):
         # Create the POD expression
-        expr = Expression(expression)
+        expr = Expression(expression, self.pod)
         if tiedHook: tiedHook.tiedExpression = expr
         self.elements[self.getLength()] = expr
         # To be sure that an expr and an elem can't be found at the same index
@@ -621,8 +619,11 @@ class MemoryBuffer(Buffer):
 
     reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
                               '(?P=f)>', re.S)
-    def evaluate(self, subElements=True, removeMainElems=False):
-        result = self.getRootBuffer()
+    def evaluate(self, result, context, subElements=True,
+                 removeMainElems=False):
+        '''Evaluates this buffer given the current p_context and add the result
+           into p_result. With pod, p_result is the root file buffer; with px
+           it is a memory buffer.'''
         if not subElements:
             # Dump the root tag in this buffer, but not its content.
             res = self.reTagContent.match(self.content.strip())
@@ -639,20 +640,20 @@ class MemoryBuffer(Buffer):
                 currentIndex = index + 1
                 if isinstance(evalEntry, Expression):
                     try:
-                        res, escape = evalEntry.evaluate(self.env.context)
+                        res, escape = evalEntry.evaluate(context)
                         if escape: result.dumpContent(res)
                         else: result.write(res)
                     except Exception, e:
-                        if self.caller == 'pod':
+                        if self.pod:
                             PodError.dump(result, EVAL_EXPR_ERROR % (
                                           evalEntry.expr, e), dumpTb=False)
                         else: # px
                             raise Exception(EVAL_EXPR_ERROR %(evalEntry.expr,e))
                 elif isinstance(evalEntry, Attributes):
-                    result.write(evalEntry.evaluate(self.env.context))
+                    result.write(evalEntry.evaluate(context))
                 else: # It is a subBuffer
                     if evalEntry.action:
-                        evalEntry.action.execute()
+                        evalEntry.action.execute(result, context)
                     else:
                         result.write(evalEntry.content)
             stopIndex = self.getStopIndex(removeMainElems)

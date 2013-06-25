@@ -1,20 +1,18 @@
 # ------------------------------------------------------------------------------
-# Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007 Gaetan Delannay
+# This file is part of Appy, a framework for building applications in the Python
+# language. Copyright (C) 2007 Gaetan Delannay
 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# Appy is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Appy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
+# You should have received a copy of the GNU General Public License along with
+# Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
 from appy import Object
@@ -43,30 +41,24 @@ class BufferAction:
         # case of a NullAction or ElseAction, for example)
         self.elem = elem # The element within the buffer that is the object
         # of the action.
-        self.minus = minus # If True, the main buffer element(s) must not be
-        # dumped.
-        self.result = self.buffer.getRootBuffer()
-        self.source = source # if 'buffer', we must dump the (evaluated) buffer
+        self.minus = minus # If True, the main elem(s) must not be dumped.
+        self.source = source # If 'buffer', we must dump the (evaluated) buffer
         # content. If 'from', we must dump what comes from the 'from' part of
         # the action (='fromExpr')
         self.fromExpr = fromExpr
-        # We store the result of evaluation of expr and fromExpr
-        self.exprResult = None
-        self.fromExprResult = None
-        # When an error is encountered, must we raise it or write it into the
-        # buffer?
-        self.raiseErrors = self.buffer.caller == 'px'
+        # When an error occurs, must we raise it or write it into the buffer?
+        self.raiseErrors = not self.buffer.pod
 
     def getExceptionLine(self, e):
         '''Gets the line describing exception p_e, containing the pathname of
            the exception class, the exception's message and line number.'''
         return '%s.%s: %s' % (e.__module__, e.__class__.__name__, str(e))
 
-    def writeError(self, errorMessage, dumpTb=True):
-        '''Write the encountered error into the buffer or raise an exception
-           if self.raiseErrors is True.'''
+    def manageError(self, result, context, errorMessage, dumpTb=True):
+        '''Manage the encountered error: dump it into the buffer or raise an
+           exception if self.raiseErrors is True.'''
         if self.raiseErrors:
-            if self.buffer.caller == 'px':
+            if not self.buffer.pod:
                 # Add in the error message the line nb where the errors occurs
                 # within the PX.
                 locator = self.buffer.env.parser.locator
@@ -76,90 +68,95 @@ class BufferAction:
                 else: col = ', column %d' % col
                 errorMessage += ' (line %s%s)' % (locator.getLineNumber(), col)
             raise Exception(errorMessage)
-        # Empty the buffer
+        # Empty the buffer (pod-only)
         self.buffer.__init__(self.buffer.env, self.buffer.parent)
         PodError.dump(self.buffer, errorMessage, withinElement=self.elem,
                       dumpTb=dumpTb)
-        self.buffer.evaluate()
+        self.buffer.evaluate(result, context)
 
-    def evaluateExpression(self, expr):
-        '''Evaluates expression p_expr with the current context. Returns a tuple
-           (result, errorOccurred).'''
+    def evaluateExpression(self, result, context, expr):
+        '''Evaluates expression p_expr with the current p_context. Returns a
+           tuple (result, errorOccurred).'''
         try:
-            res = eval(expr, self.buffer.env.context)
+            res = eval(expr, context)
             error = False
         except Exception, e:
             res = None
-            self.writeError(EVAL_ERROR % (expr, self.getExceptionLine(e)))
+            errorMessage = EVAL_ERROR % (expr, self.getExceptionLine(e))
+            self.manageError(result, context, errorMessage)
             error = True
         return res, error
 
-    def execute(self):
+    def execute(self, result, context):
+        '''Executes this action given some p_context and add the result to
+           p_result.'''
         # Check that if minus is set, we have an element which can accept it
         if self.minus and isinstance(self.elem, Table) and \
            (not self.elem.tableInfo.isOneCell()):
-            self.writeError(TABLE_NOT_ONE_CELL % self.expr)
+            self.manageError(result, context, TABLE_NOT_ONE_CELL % self.expr)
         else:
             error = False
+            # Evaluate self.expr in eRes.
+            eRes = None
             if self.expr:
-                self.exprResult, error = self.evaluateExpression(self.expr)
+                eRes,error = self.evaluateExpression(result, context, self.expr)
             if not error:
-                self.do()
+                # Trigger action-specific behaviour.
+                self.do(result, context, eRes)
 
-    def evaluateBuffer(self):
+    def evaluateBuffer(self, result, context):
         if self.source == 'buffer':
-            self.buffer.evaluate(removeMainElems = self.minus)
+            self.buffer.evaluate(result, context, removeMainElems=self.minus)
         else:
-            # Evaluate fromExpr
-            self.fromExprResult = None
+            # Evaluate self.fromExpr in feRes.
+            feRes = None
             error = False
             try:
-                self.fromExprResult= eval(self.fromExpr,self.buffer.env.context)
+                feRes = eval(self.fromExpr, context)
             except Exception, e:
-                msg= FROM_EVAL_ERROR % (self.fromExpr, self.getExceptionLine(e))
-                self.writeError(msg, dumpTb=False)
+                msg = FROM_EVAL_ERROR% (self.fromExpr, self.getExceptionLine(e))
+                self.manageError(result, context, msg, dumpTb=False)
                 error = True
             if not error:
-                self.result.write(self.fromExprResult)
+                result.write(feRes)
 
 class IfAction(BufferAction):
     '''Action that determines if we must include the content of the buffer in
        the result or not.'''
-    def do(self):
-        if self.exprResult:
-            self.evaluateBuffer()
+    def do(self, result, context, exprRes):
+        if exprRes:
+            self.evaluateBuffer(result, context)
         else:
             if self.buffer.isMainElement(Cell.OD):
                 # Don't leave the current row with a wrong number of cells
-                self.result.dumpElement(Cell.OD.elem)
+                result.dumpElement(Cell.OD.elem)
 
 class ElseAction(IfAction):
     '''Action that is linked to a previous "if" action. In fact, an "else"
        action works exactly like an "if" action, excepted that instead of
        defining a conditional expression, it is based on the negation of the
        conditional expression of the last defined "if" action.'''
-    def __init__(self, name, buffer, expr, elem, minus, source, fromExpr,
-                 ifAction):
-        IfAction.__init__(self, name, buffer, None, elem, minus, source,
-                          fromExpr)
+
+    def __init__(self, name, buff, expr, elem, minus, src, fromExpr, ifAction):
+        IfAction.__init__(self, name, buff, None, elem, minus, src, fromExpr)
         self.ifAction = ifAction
-    def do(self):
-        # The result of this "else" action is "not <result from last execution
-        # of linked 'if' action>".
-        self.exprResult = not self.ifAction.exprResult
-        IfAction.do(self)
+
+    def do(self, result, context, exprRes):
+        # This action is executed if the tied "if" action is not executed.
+        ifAction = self.ifAction
+        iRes,error = ifAction.evaluateExpression(result, context, ifAction.expr)
+        IfAction.do(self, result, context, not iRes)
 
 class ForAction(BufferAction):
     '''Actions that will include the content of the buffer as many times as
        specified by the action parameters.'''
-    def __init__(self, name, buffer, expr, elem, minus, iter, source, fromExpr):
-        BufferAction.__init__(self, name, buffer, expr, elem, minus, source,
-                              fromExpr)
+
+    def __init__(self, name, buff, expr, elem, minus, iter, src, fromExpr):
+        BufferAction.__init__(self, name, buff, expr, elem, minus, src,fromExpr)
         self.iter = iter # Name of the iterator variable used in the each loop
 
-    def initialiseLoop(self):
+    def initialiseLoop(self, context, elems):
         '''Initialises information about the loop, before entering into it.'''
-        context = self.buffer.env.context
         # The "loop" object, made available in the POD context, contains info
         # about all currently walked loops. For every walked loop, a specific
         # object, le'ts name it curLoop, accessible at getattr(loop, self.iter),
@@ -182,21 +179,22 @@ class ForAction(BufferAction):
         if 'loop' not in context:
             context['loop'] = Object()
         try:
-            total = len(self.exprResult)
+            total = len(elems)
         except:
             total = 0
         curLoop = Object(length=total)
         setattr(context['loop'], self.iter, curLoop)
         return curLoop
 
-    def do(self):
-        context = self.buffer.env.context
-        # Check self.exprResult type
+    def do(self, result, context, elems):
+        '''Performs the "for" action. p_elems is the list of elements to
+           walk, evaluated from self.expr.'''
+        # Check p_exprRes type.
         try:
             # All "iterable" objects are OK.
-            iter(self.exprResult)
+            iter(elems)
         except TypeError:
-            self.writeError(WRONG_SEQ_TYPE % self.expr)
+            self.manageError(result, context, WRONG_SEQ_TYPE % self.expr)
             return
         # Remember variable hidden by iter if any
         hasHiddenVariable = False
@@ -211,14 +209,14 @@ class ForAction(BufferAction):
             initialColIndex = self.elem.colIndex
             currentColIndex = initialColIndex
             rowAttributes = self.elem.tableInfo.curRowAttrs
-            # If self.exprResult is empty, dump an empty cell to avoid
-            # having the wrong number of cells for the current row
-            if not self.exprResult:
-                self.result.dumpElement(Cell.OD.elem)
-        # Enter the "for" loop
-        loop = self.initialiseLoop()
+            # If p_elems is empty, dump an empty cell to avoid having the wrong
+            # number of cells for the current row.
+            if not elems:
+                result.dumpElement(Cell.OD.elem)
+        # Enter the "for" loop.
+        loop = self.initialiseLoop(context, elems)
         i = -1
-        for item in self.exprResult:
+        for item in elems:
             i += 1
             loop.nb = i
             loop.first = i == 0
@@ -226,20 +224,20 @@ class ForAction(BufferAction):
             context[self.iter] = item
             # Cell: add a new row if we are at the end of a row
             if isCell and (currentColIndex == nbOfColumns):
-                self.result.dumpEndElement(Row.OD.elem)
-                self.result.dumpStartElement(Row.OD.elem, rowAttributes)
+                result.dumpEndElement(Row.OD.elem)
+                result.dumpStartElement(Row.OD.elem, rowAttributes)
                 currentColIndex = 0
-            self.evaluateBuffer()
+            self.evaluateBuffer(result, context)
             # Cell: increment the current column index
             if isCell:
                 currentColIndex += 1
         # Cell: leave the last row with the correct number of cells
-        if isCell and self.exprResult:
+        if isCell and elems:
             wrongNbOfCells = (currentColIndex-1) - initialColIndex
             if wrongNbOfCells < 0: # Too few cells for last row
                 for i in range(abs(wrongNbOfCells)):
                     context[self.iter] = ''
-                    self.buffer.evaluate(subElements=False)
+                    self.buffer.evaluate(result, context, subElements=False)
                     # This way, the cell is dumped with the correct styles
             elif wrongNbOfCells > 0: # Too many cells for last row
                 # Finish current row
@@ -248,15 +246,15 @@ class ForAction(BufferAction):
                     nbOfMissingCells = nbOfColumns - currentColIndex
                     context[self.iter] = ''
                     for i in range(nbOfMissingCells):
-                        self.buffer.evaluate(subElements=False)
-                self.result.dumpEndElement(Row.OD.elem)
+                        self.buffer.evaluate(result, context, subElements=False)
+                result.dumpEndElement(Row.OD.elem)
                 # Create additional row with remaining cells
-                self.result.dumpStartElement(Row.OD.elem, rowAttributes)
+                result.dumpStartElement(Row.OD.elem, rowAttributes)
                 nbOfRemainingCells = wrongNbOfCells + nbOfMissingCells
                 nbOfMissingCellsLastLine = nbOfColumns - nbOfRemainingCells
                 context[self.iter] = ''
                 for i in range(nbOfMissingCellsLastLine):
-                    self.buffer.evaluate(subElements=False)
+                    self.buffer.evaluate(result, context, subElements=False)
         # Delete the object representing info about the current loop.
         try:
             delattr(context['loop'], self.iter)
@@ -266,40 +264,40 @@ class ForAction(BufferAction):
         if hasHiddenVariable:
             context[self.iter] = hiddenVariable
         else:
-            if self.exprResult:
+            if elems:
                 if self.iter in context: # May not be the case on error.
                     del context[self.iter]
 
 class NullAction(BufferAction):
     '''Action that does nothing. Used in conjunction with a "from" clause, it
        allows to insert in a buffer arbitrary odt content.'''
-    def do(self):
-        self.evaluateBuffer()
+    def do(self, result, context, exprRes):
+        self.evaluateBuffer(result, context)
 
 class VariablesAction(BufferAction):
     '''Action that allows to define a set of variables somewhere in the
        template.'''
-    def __init__(self, name, buffer, elem, minus, variables, source, fromExpr):
+    def __init__(self, name, buff, elem, minus, variables, src, fromExpr):
         # We do not use the default Buffer.expr attribute for storing the Python
         # expression, because here we will have several expressions, one for
         # every defined variable.
-        BufferAction.__init__(self, name, buffer, None, elem, minus, source,
-                              fromExpr)
+        BufferAction.__init__(self,name, buff, None, elem, minus, src, fromExpr)
         # Definitions of variables: ~[(s_name, s_expr)]~
         self.variables = variables
 
-    def do(self):
-        context = self.buffer.env.context
-        # Evaluate the variables' expressions: because there are several
-        # expressions, we did not use the standard, single-expression-minded
-        # BufferAction code for evaluating our expressions.
-        # Also: we remember the names and values of the variables that we will
-        # hide in the context: after execution of this buffer we will restore
-        # those values.
+    def do(self, result, context, exprRes):
+        '''Evaluate the variables' expressions: because there are several
+           expressions, we do not use the standard, single-expression-minded
+           BufferAction code for evaluating our expressions.
+
+           We remember the names and values of the variables that we will hide
+           in the context: after execution of this buffer we will restore those
+           values.
+        '''
         hidden = None
         for name, expr in self.variables:
-            # Evaluate the expression
-            result, error = self.evaluateExpression(expr)
+            # Evaluate variable expression in vRes.
+            vRes, error = self.evaluateExpression(result, context, expr)
             if error: return
             # Remember the variable previous value if already in the context
             if name in context:
@@ -308,9 +306,9 @@ class VariablesAction(BufferAction):
                 else:
                     hidden[name] = context[name]
             # Store the result into the context
-            context[name] = result
+            context[name] = vRes
         # Evaluate the buffer
-        self.evaluateBuffer()
+        self.evaluateBuffer(result, context)
         # Restore hidden variables if any
         if hidden: context.update(hidden)
         # Delete not-hidden variables

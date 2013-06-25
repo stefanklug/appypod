@@ -1,20 +1,18 @@
 # ------------------------------------------------------------------------------
-# Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007 Gaetan Delannay
+# This file is part of Appy, a framework for building applications in the Python
+# language. Copyright (C) 2007 Gaetan Delannay
 
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# Appy is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Appy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
+# You should have received a copy of the GNU General Public License along with
+# Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
 from xml.sax.saxutils import quoteattr
@@ -28,8 +26,8 @@ class PodElement:
                  'table': 'Table', 'table-row': 'Row', 'table-cell': 'Cell',
                  None: 'Expression'}
     POD_ELEMS = ('text', 'title', 'section', 'table', 'row', 'cell')
-    MINUS_ELEMS = ('section', 'table') # Elements for which the '-' operator can
-    # be applied
+    # Elements for which the '-' operator can be applied.
+    MINUS_ELEMS = ('section', 'table')
     @staticmethod
     def create(elem):
         '''Used to create any POD elem that has an equivalent OD element. Not
@@ -38,8 +36,9 @@ class PodElement:
 
 class Text(PodElement):
     OD = XmlElement('p', nsUri=ns.NS_TEXT)
-    subTags = [] # When generating an error we may need to surround the error
-    # with a given tag and subtags
+    # When generating an error we may need to surround it with a given tag and
+    # sub-tags.
+    subTags = []
 
 class Title(PodElement):
     OD = XmlElement('h', nsUri=ns.NS_TEXT)
@@ -48,8 +47,9 @@ class Title(PodElement):
 class Section(PodElement):
     OD = XmlElement('section', nsUri=ns.NS_TEXT)
     subTags = [Text.OD]
-    DEEPEST_TO_REMOVE = OD # When we must remove the Section element from a
-    # buffer, the deepest element to remove is the Section element itself
+    # When we must remove the Section element from a buffer, the deepest element
+    # to remove is the Section element itself.
+    DEEPEST_TO_REMOVE = OD
 
 class Cell(PodElement):
     OD = XmlElement('table-cell', nsUri=ns.NS_TABLE)
@@ -65,19 +65,19 @@ class Row(PodElement):
 class Table(PodElement):
     OD = XmlElement('table', nsUri=ns.NS_TABLE)
     subTags = [Row.OD, Cell.OD, Text.OD]
-    DEEPEST_TO_REMOVE = Cell.OD # When we must remove the Table element from a
-    # buffer, the deepest element to remove is the Cell (it can only be done for
-    # one-row, one-cell tables
+    # When we must remove the Table element from a buffer, the deepest element
+    # to remove is the Cell (it can only be done for one-row, one-cell tables).
+    DEEPEST_TO_REMOVE = Cell.OD
     def __init__(self):
         self.tableInfo = None # ~OdTable~
 
 class Expression(PodElement):
-    '''Instances of this class represent Python expressions that are inserted
-       into a POD template.'''
+    '''Represents a Python expression that is found in a pod or px.'''
     OD = None
-    def __init__(self, pyExpr):
+    def __init__(self, pyExpr, pod):
         # The Python expression
         self.expr = pyExpr.strip()
+        self.pod = pod # True if I work for pod, False if I work for px.
         # Must we, when evaluating the expression, escape XML special chars
         # or not?
         if self.expr.startswith(':'):
@@ -85,14 +85,18 @@ class Expression(PodElement):
             self.escapeXml = False
         else:
             self.escapeXml = True
-        # We will store here the expression's true result (before being
-        # converted to a string)
-        self.result = None
-        # This boolean indicates if this Expression instance has already been
-        # evaluated or not. Expressions which are tied to attribute hooks are
-        # already evaluated when the tied hook is evaluated: this boolean
-        # prevents the expression from being evaluated twice.
-        self.evaluated = False
+        if self.pod:
+            # pod-only: store here the expression's true result (before being
+            # converted to a string).
+            self.result = None
+            # pod-only: the following bool indicates if this Expression instance
+            # has already been evaluated or not. Expressions which are tied to
+            # attribute hooks are already evaluated when the tied hook is
+            # evaluated: this boolean prevents the expression from being
+            # evaluated twice.
+            self.evaluated = False
+            # self.result and self.evaluated are not used by PX, because they
+            # are not thread-safe.
 
     def evaluate(self, context):
         '''Evaluates the Python expression (self.expr) with a given
@@ -102,7 +106,7 @@ class Expression(PodElement):
         escapeXml = self.escapeXml
         # Evaluate the expression, or get it from self.result if it has already
         # been computed.
-        if self.evaluated:
+        if self.pod and self.evaluated:
             res = self.result
             # It can happen only once, to ask to evaluate an expression that
             # was already evaluated (from the tied hook). We reset here the
@@ -111,9 +115,11 @@ class Expression(PodElement):
             self.evaluated = False
         else:
             # Evaluates the Python expression
-            res = self.result = eval(self.expr, context)
-        # Converts the expression result to a string that can be inserted into
-        # the POD/PX result.
+            res = eval(self.expr, context)
+            # pod-only: cache the expression result.
+            if self.pod: self.result = res
+        # Converts the expr result to a string that can be inserted in the
+        # pod/px result.
         resultType = res.__class__.__name__
         if resultType == 'NoneType':
             res = u''
@@ -124,7 +130,7 @@ class Expression(PodElement):
         elif resultType == 'Px':
             # A PX that must be called within the current PX. Call it with the
             # current context.
-            res = res(context)
+            res = res(context, applyTemplate=False)
             # Force escapeXml to False.
             escapeXml = False
         else:
@@ -133,7 +139,7 @@ class Expression(PodElement):
 
 class Attributes(PodElement):
     '''Represents a bunch of XML attributes that will be dumped for a given tag
-       in the result.'''
+       in the result. pod-only.'''
     OD = None
     floatTypes = ('int', 'long', 'float')
     dateTypes = ('DateTime',)
@@ -166,7 +172,7 @@ class Attributes(PodElement):
         # Evaluate first the tied expression, in order to determine its type.
         try:
             self.tiedExpression.evaluate(context)
-            self.evaluated = True
+            self.tiedExpression.evaluated = True
         except Exception, e:
             # Don't set "evaluated" to True. This way, when the buffer will
             # evaluate the expression directly, we will really evaluate it, so

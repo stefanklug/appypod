@@ -37,6 +37,11 @@ class ToolMixin(BaseMixin):
         if res in ('User', 'Group', 'Translation'): res = appName + res
         return res
 
+    def home(self):
+        '''Returns the content of px ToolWrapper.pxHome.'''
+        tool = self.appy()
+        return tool.pxHome({'self': tool}).encode('utf-8')
+
     def getHomePage(self):
         '''Return the home page when a user hits the app.'''
         # If the app defines a method "getHomePage", call it.
