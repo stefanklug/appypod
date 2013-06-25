@@ -21,8 +21,13 @@ NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
 # ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
 
-    pxHome = Px('''<p>Hello home</p>''',
-                template=AbstractWrapper.pxTemplate, hook='content')
+    pxHome = Px('''
+     <table width="300px" height="240px" align="center">
+      <tr valign="middle">
+       <td align="center">:_('front_page_text')</td>
+      </tr>
+     </table>
+    ''', template=AbstractWrapper.pxTemplate, hook='content')
 
     def validPythonWithUno(self, value):
         '''This method represents the validator for field unoEnabledPython.'''

@@ -24,6 +24,8 @@ jsMessages = ('no_elem_selected', 'delete_confirm', 'unlink_confirm',
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):
     _appy_meta_type = 'Tool'
+    xhtmlEncoding = 'text/html;charset=UTF-8'
+
     def getPortalType(self, metaTypeOrAppyClass):
         '''Returns the name of the portal_type that is based on
            p_metaTypeOrAppyType.'''
@@ -40,7 +42,7 @@ class ToolMixin(BaseMixin):
     def home(self):
         '''Returns the content of px ToolWrapper.pxHome.'''
         tool = self.appy()
-        return tool.pxHome({'self': tool}).encode('utf-8')
+        return tool.pxHome({'self': tool})
 
     def getHomePage(self):
         '''Return the home page when a user hits the app.'''

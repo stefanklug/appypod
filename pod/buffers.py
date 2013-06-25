@@ -471,6 +471,9 @@ class MemoryBuffer(Buffer):
         return res
 
     def createPxAction(self, elem, actionType, statement):
+        '''Creates a PX action and link it to this buffer. If an action is
+           already linked to this buffer (in self.action), this action is
+           chained behind the last action via self.action.subAction.'''
         res = 0
         statement = statement.strip()
         if actionType == 'for':
@@ -478,15 +481,19 @@ class MemoryBuffer(Buffer):
             if not forRes:
                 raise ParsingError(BAD_FOR_EXPRESSION % statement)
             iter, subExpr = forRes.groups()
-            self.action = ForAction('for', self, subExpr, elem, False, iter,
-                                    'buffer', None)
+            action = ForAction('for', self, subExpr, elem, False, iter,
+                               'buffer', None)
         elif actionType == 'if':
-            self.action = IfAction('if', self, statement, elem, False,
-                                   'buffer', None)
+            action= IfAction('if', self, statement, elem, False, 'buffer', None)
         elif actionType == 'var':
             variables = self._getVariables(statement)
-            self.action = VariablesAction('var', self, elem, False, variables,
-                                          'buffer', None)
+            action = VariablesAction('var', self, elem, False, variables,
+                                     'buffer', None)
+        # Is it the first action for this buffer or not?
+        if not self.action:
+            self.action = action
+        else:
+            self.action.addSubAction(action)
         return res
 
     def cut(self, index, keepFirstPart):

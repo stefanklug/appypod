@@ -28,9 +28,211 @@ class AbstractWrapper(object):
        instance of this class.'''
 
     pxTemplate = Px('''
-    <html>
-     <head><title>:self.title</title></head>
+     <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
+                isAnon=ztool.userIsAnon();      app=ztool.getApp();
+                appUrl=app.absolute_url();      appFolder=app.data;
+                appName=ztool.getAppName();     _=ztool.translate;
+                req=ztool.REQUEST;              resp=req.RESPONSE;
+                lang=ztool.getUserLanguage();
+                layoutType=ztool.getLayoutType();
+                contextObj=ztool.getPublishedObject(layoutType);
+                dir=ztool.getLanguageDirection(lang);
+                discreetLogin=ztool.getAttr('discreetLogin', source='config');
+                dleft=(dir == 'ltr') and 'left' or 'right';
+                dright=(dir == 'ltr') and 'right' or 'left';
+                x=resp.setHeader('Content-type', ztool.xhtmlEncoding);
+                x=resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
+                x=resp.setHeader('Content-Language', lang)"
+           dir=":ztool.getLanguageDirection(lang)">
+     <head>
+      <title>:_('app_name')</title>
+      <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+      <x for="name in ztool.getGlobalCssJs()">
+       <link if="name.endswith('.css') and \
+                 not ((dir == 'ltr') and (name == 'appyrtl.css'))"
+             rel="stylesheet" type="text/css"
+             href=":'%s/ui/%s' % (appUrl, name)"/>
+       <script if="name.endswith('.js')" type="text/javascript"
+               src=":'%s/ui/%s' % (appUrl, name)"></script>
+      </x>
+     </head>
      <body>
+      <!-- Google Analytics stuff, if enabled -->
+      <script var="gaCode=ztool.getGoogleAnalyticsCode()" if="gaCode"
+              type="text/javascript">:gaCode</script>
+
+      <!-- Grey background shown when popups are shown -->
+      <div id="grey" class="grey"></div>
+
+      <!-- Popup for confirming an action -->
+      <div id="confirmActionPopup" class="popup">
+      <form id="confirmActionForm" method="post">
+       <div align="center">
+        <p id="appyConfirmText"></p>
+        <input type="hidden" name="actionType"/>
+        <input type="hidden" name="action"/>
+        <div id="commentArea" align=":dleft"><br/>
+         <span class="discreet">:_('workflow_comment')</span>
+         <textarea name="comment" cols="30" rows="3"></textarea>
+         <br/>
+        </div>
+        <br/>
+        <input type="button" onclick="doConfirm()" value="_('yes')"/>
+        <input type="button" onclick="closePopup('confirmActionPopup')"
+               value="_('no')"/>
+       </div>
+      </form>
+      </div>
+
+      <!-- Popup for reinitializing the password -->
+      <div id="askPasswordReinitPopup" class="popup"
+           if="isAnon and ztool.showForgotPassword()">
+      <form id="askPasswordReinitForm" method="post"
+             action=":ztool.absolute_url() + '/askPasswordReinit'">
+       <div align="center">
+        <p>:_('app_login')</p>
+        <input type="text" size="35" name="login" id="login" value=""/>
+        <br/><br/>
+        <input type="button" onclick="doAskPasswordReinit()"
+               value=":_('ask_password_reinit')"/>
+        <input type="button" onclick="closePopup('askPasswordReinitPopup')"
+               value="_('object_cancel')"/>
+       </div>
+      </form>
+      </div>
+
+<!--
+      <table class="main" align="center" cellpadding="0">
+      <tal:comment replace="nothing">Top banner</tal:comment>
+       <tr class="top" metal:define-slot="top">
+        <td tal:define="bannerName python: (dir == 'ltr') and 'banner' or 'bannerrtl'"
+          tal:attributes="style python: 'background-image: url(%s/ui/%s.jpg)' % (appUrl, bannerName)">
+       <tal:comment replace="nothing">Top links</tal:comment>
+       <div style="margin-top: 4px"
+            tal:define="pages tool/getMainPages" tal:attributes="align dright">
+        <tal:comment replace="nothing">Icon "home"</tal:comment>
+        <a class="pageLink" tal:attributes="href appUrl; title python: _('app_home')">
+         <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
+        </a>
+        <tal:comment replace="nothing">Additional links (or icons) from icons.pt</tal:comment>
+        <metal:call use-macro="app/ui/icons/macros/links"/>
+        <tal:comment replace="nothing">Top-level pages</tal:comment>
+        <a tal:repeat="page pages" class="pageLink"
+           tal:content="page/title" tal:attributes="href page/absolute_url"></a>
+        <tal:comment replace="nothing">Connect link if discreet login</tal:comment>
+        <a id="loginLink" name="loginLink" onclick="showLoginForm()" class="pageLink" style="cursor:pointer"
+           tal:condition="python: isAnon and discreetLogin" tal:content="python: _('app_connect')">
+        </a>
+        <tal:comment replace="nothing">Language selector</tal:comment>
+        <tal:lg condition="tool/showLanguageSelector">
+         <select class="pageLink"
+                 tal:define="languages tool/getLanguages;
+                             defaultLanguage python: languages[0]"
+                 tal:attributes="onchange string:window.location='$appUrl/config/changeLanguage?language=' + this.options[this.selectedIndex].value">
+          <option tal:repeat="lg languages"
+                  tal:content="python: tool.getLanguageName(lg)"
+                  tal:attributes="selected python:lang == lg; value lg">
+          </option>
+         </select>
+        </tal:lg>
+       </div>
+      </td>
+     </tr>
+     <tal:comment replace="nothing">The message strip</tal:comment>
+     <tr valign="top">
+      <td>
+       <div style="position: relative">
+        <metal:msg use-macro="app/ui/page/macros/message"/>
+       </div>
+      </td>
+     </tr>
+     <tal:comment replace="nothing">The user strip</tal:comment>
+     <tr>
+      <td>
+       <table class="userStrip" width="100%">
+        <tr>
+         <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
+         <td align="center"
+             tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])">
+          <form id="loginForm" name="loginForm" method="post" class="login"
+                tal:attributes="action python: tool.absolute_url() + '/performLogin'">
+           <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
+           <input type="hidden" name="cookies_enabled" id="cookies_enabled" value=""/>
+           <input type="hidden" name="login_name" id="login_name" value=""/>
+           <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
+           <tal:comment replace="nothing">The login fields, directly shown or not (depends on discreetLogin)</tal:comment>
+           <span id="loginFields" name="loginFields"
+                 tal:attributes="style python: discreetLogin and 'display:none' or 'display:block'">
+            <span class="userStripText" tal:content="python: _('app_login')"/>
+            <input type="text" name="__ac_name" id="__ac_name" value="" style="width: 142px"/>&nbsp;
+            <span class="userStripText" tal:content="python: _('app_password')"/>
+            <input type="password" name="__ac_password" id="__ac_password" style="width: 142px"/>
+            <input type="submit" name="submit" onclick="setLoginVars()"
+                   tal:define="label python: _('app_connect')" tal:attributes="value label; alt label"/>
+            <tal:comment replace="nothing">Forgot password?</tal:comment>
+            <a class="lostPassword" href="javascript: openPopup('askPasswordReinitPopup')"
+               tal:condition="tool/showForgotPassword"
+               tal:content="python: _('forgot_password')">
+            </a>
+           </span>
+          </form>
+         </td>
+         <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
+         <td tal:condition="not: isAnon">
+          <table class="buttons" width="99%">
+           <tr>
+            <td>
+             <tal:comment replace="nothing">Config</tal:comment>
+             <a tal:condition="python: user.has_role('Manager')"
+                tal:attributes="href python: tool.getUrl(nav='');
+                                title python: _('%sTool' % appName)">
+              <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
+             </a>
+             <tal:comment replace="nothing">Additional icons from icons.pt</tal:comment>
+             <metal:call use-macro="app/ui/icons/macros/icons"/>
+             <tal:comment replace="nothing">Log out</tal:comment>
+             <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
+                                title python: _('app_logout')">
+              <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
+             </a>
+            </td>
+            <td class="userStripText" tal:define="userInfo tool/getUserLine" tal:attributes="align dright">
+              <span tal:content="python: userInfo[0]"></span>
+              <a tal:condition="python: userInfo[1]"
+                 tal:attributes="href python: userInfo[1]">
+                <img tal:attributes="src string: $appUrl/ui/edit.png"/>
+              </a>
+            </td>
+           </tr>
+          </table>
+         </td>
+        </tr>
+       </table>
+      </td>
+     </tr>
+     <tal:comment replace="nothing">The navigation strip</tal:comment>
+     <tr tal:condition="python: contextObj and (layoutType == 'view')">
+      <td><metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/></td>
+     </tr>
+     <tr>
+      <td>
+        <table width="100%" cellpadding="0" cellspacing="0">
+         <tr valign="top">
+          <tal:comment replace="nothing">Portlet</tal:comment>
+          <td tal:condition="python: tool.showPortlet(context, layoutType)" class="portlet">
+            <metal:portlet use-macro="app/ui/portlet/macros/portlet"/>
+          </td>
+          <tal:comment replace="nothing">Page content</tal:comment>
+          <td class="content"><span metal:define-slot="content"></span></td>
+         </tr> 
+        </table>
+       </td> 
+     </tr>
+     <tr><tal:comment replace="nothing">Footer</tal:comment>
+      <td><metal:call use-macro="app/ui/footer/macros/footer"/></td>
+     </tr>
+    </table>
+-->
       <x>:content</x>
      </body>
     </html>

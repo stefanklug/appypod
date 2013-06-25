@@ -48,6 +48,9 @@ class BufferAction:
         self.fromExpr = fromExpr
         # When an error occurs, must we raise it or write it into the buffer?
         self.raiseErrors = not self.buffer.pod
+        # Several actions may co-exist for the same buffer, as a chain of
+        # BufferAction instances, defined via the following attribute.
+        self.subAction = None
 
     def getExceptionLine(self, e):
         '''Gets the line describing exception p_e, containing the pathname of
@@ -119,6 +122,13 @@ class BufferAction:
                 error = True
             if not error:
                 result.write(feRes)
+
+    def addSubAction(self, action):
+        '''Adds p_action as a sub-action of this action.'''
+        if not self.subAction:
+            self.subAction = action
+        else:
+            self.subAction.addSubAction(action)
 
 class IfAction(BufferAction):
     '''Action that determines if we must include the content of the buffer in
@@ -227,7 +237,12 @@ class ForAction(BufferAction):
                 result.dumpEndElement(Row.OD.elem)
                 result.dumpStartElement(Row.OD.elem, rowAttributes)
                 currentColIndex = 0
-            self.evaluateBuffer(result, context)
+            # If a sub-action is defined, execute it.
+            if self.subAction:
+                self.subAction.execute(result, context)
+            else:
+                # Evaluate the buffer directly.
+                self.evaluateBuffer(result, context)
             # Cell: increment the current column index
             if isCell:
                 currentColIndex += 1
@@ -307,8 +322,12 @@ class VariablesAction(BufferAction):
                     hidden[name] = context[name]
             # Store the result into the context
             context[name] = vRes
-        # Evaluate the buffer
-        self.evaluateBuffer(result, context)
+        # If a sub-action is defined, execute it.
+        if self.subAction:
+            self.subAction.execute(result, context)
+        else:
+            # Evaluate the buffer directly.
+            self.evaluateBuffer(result, context)
         # Restore hidden variables if any
         if hidden: context.update(hidden)
         # Delete not-hidden variables
