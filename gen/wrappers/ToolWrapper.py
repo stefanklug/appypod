@@ -24,7 +24,7 @@ class ToolWrapper(AbstractWrapper):
     pxHome = Px('''
      <table width="300px" height="240px" align="center">
       <tr valign="middle">
-       <td align="center">:_('front_page_text')</td>
+       <td align="center">::_('front_page_text')</td>
       </tr>
      </table>
     ''', template=AbstractWrapper.pxTemplate, hook='content')

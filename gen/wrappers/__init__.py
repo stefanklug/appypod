@@ -77,9 +77,9 @@ class AbstractWrapper(object):
          <br/>
         </div>
         <br/>
-        <input type="button" onclick="doConfirm()" value="_('yes')"/>
+        <input type="button" onclick="doConfirm()" value=":_('yes')"/>
         <input type="button" onclick="closePopup('confirmActionPopup')"
-               value="_('no')"/>
+               value=":_('no')"/>
        </div>
       </form>
       </div>
@@ -101,44 +101,44 @@ class AbstractWrapper(object):
       </form>
       </div>
 
-<!--
       <table class="main" align="center" cellpadding="0">
-      <tal:comment replace="nothing">Top banner</tal:comment>
-       <tr class="top" metal:define-slot="top">
-        <td tal:define="bannerName python: (dir == 'ltr') and 'banner' or 'bannerrtl'"
-          tal:attributes="style python: 'background-image: url(%s/ui/%s.jpg)' % (appUrl, bannerName)">
-       <tal:comment replace="nothing">Top links</tal:comment>
-       <div style="margin-top: 4px"
-            tal:define="pages tool/getMainPages" tal:attributes="align dright">
-        <tal:comment replace="nothing">Icon "home"</tal:comment>
-        <a class="pageLink" tal:attributes="href appUrl; title python: _('app_home')">
-         <img tal:attributes="src string: $appUrl/ui/home.gif" style="margin-right: 3px"/>
-        </a>
-        <tal:comment replace="nothing">Additional links (or icons) from icons.pt</tal:comment>
-        <metal:call use-macro="app/ui/icons/macros/links"/>
-        <tal:comment replace="nothing">Top-level pages</tal:comment>
-        <a tal:repeat="page pages" class="pageLink"
-           tal:content="page/title" tal:attributes="href page/absolute_url"></a>
-        <tal:comment replace="nothing">Connect link if discreet login</tal:comment>
-        <a id="loginLink" name="loginLink" onclick="showLoginForm()" class="pageLink" style="cursor:pointer"
-           tal:condition="python: isAnon and discreetLogin" tal:content="python: _('app_connect')">
-        </a>
-        <tal:comment replace="nothing">Language selector</tal:comment>
-        <tal:lg condition="tool/showLanguageSelector">
-         <select class="pageLink"
-                 tal:define="languages tool/getLanguages;
-                             defaultLanguage python: languages[0]"
-                 tal:attributes="onchange string:window.location='$appUrl/config/changeLanguage?language=' + this.options[this.selectedIndex].value">
-          <option tal:repeat="lg languages"
-                  tal:content="python: tool.getLanguageName(lg)"
-                  tal:attributes="selected python:lang == lg; value lg">
-          </option>
-         </select>
-        </tal:lg>
-       </div>
-      </td>
-     </tr>
-     <tal:comment replace="nothing">The message strip</tal:comment>
+       <tr class="top">
+        <!-- Top banner -->
+        <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
+            style=":'background-image: url(%s/ui/%s.jpg)'% (appUrl,bannerName)">
+
+         <!-- Top links -->
+         <div style="margin-top: 4px" align=":dright">
+          <!-- Icon "home" -->
+          <a class="pageLink" href=":appUrl" title=": _('app_home')">
+           <img src=":'%s/ui/home.gif' % appUrl" style="margin-right: 3px"/>
+          </a>
+          <!-- Additional links (or icons) from icons.pt -->
+          <!--metal:call use-macro="app/ui/icons/macros/links"/-->
+
+          <!-- Top-level pages -->
+          <a for="page in tool.pages" class="pageLink"
+             href=":page.url">:page.title</a>
+
+          <!-- Connect link if discreet login -->
+          <a if="isAnon and discreetLogin" id="loginLink" name="loginLink"
+             onclick="showLoginForm()" class="pageLink"
+             style="cursor:pointer">:_('app_connect')</a>
+
+          <!-- Language selector -->
+          <x if="ztool.showLanguageSelector()">
+           <select class="pageLink"
+                   var="languages=ztool.getLanguages();
+                        defaultLanguage=languages[0]"
+                   onchange=":'window.location=&quot;%s/config/changeLanguage?language=&quot; + this.options[this.selectedIndex].value' % appUrl">
+            <option for="lg in languages" value=":lg"
+                    selected=":lang == lg">:ztool.getLanguageName(lg)</option>
+           </select>
+          </x>
+         </div>
+        </td>
+       </tr>
+     <!--tal:comment replace="nothing">The message strip</tal:comment>
      <tr valign="top">
       <td>
        <div style="position: relative">
@@ -230,9 +230,8 @@ class AbstractWrapper(object):
      </tr>
      <tr><tal:comment replace="nothing">Footer</tal:comment>
       <td><metal:call use-macro="app/ui/footer/macros/footer"/></td>
-     </tr>
+     </tr-->
     </table>
--->
       <x>:content</x>
      </body>
     </html>

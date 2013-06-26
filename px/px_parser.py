@@ -47,6 +47,7 @@ class PxParser(XmlParser):
     pxAttributes = ('var', 'for', 'if')
     # No-end tags
     noEndTags = ('br', 'img', 'link', 'input')
+    noDumpTags = ('selected', 'checked')
 
     def __init__(self, env, caller=None):
         XmlParser.__init__(self, env, caller)
@@ -73,8 +74,19 @@ class PxParser(XmlParser):
             # the main element or to a sub-element.
             e.currentBuffer.addElement(elem, elemType='px')
         if elem != 'x':
+            # Dump the start elements and its attributes. But as a preamble,
+            # manage special attributes that could not be dumped at all, like
+            # "selected" or "checked".
+            hook = None
+            ignorableAttrs = self.pxAttributes
+            for name in self.noDumpTags:
+                if attrs.has_key(name) and attrs[name].startswith(':'):
+                    hook = (name, attrs[name][1:])
+                    ignorableAttrs += (name,)
+                    break
             e.currentBuffer.dumpStartElement(elem, attrs,
-                ignoreAttrs=self.pxAttributes, noEndTag=elem in self.noEndTags)
+                ignoreAttrs=ignorableAttrs, noEndTag=elem in self.noEndTags,
+                hook=hook)
 
     def endElement(self, elem):
         e = self.env

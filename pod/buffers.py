@@ -138,14 +138,20 @@ class Buffer:
 
     def getLength(self): pass # To be overridden
 
-    def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(),
-                         insertAttributesHook=False, noEndTag=False):
+    def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(), hook=False,
+                         noEndTag=False):
         '''Inserts into this buffer the start tag p_elem, with its p_attrs,
-           excepted those listed in p_ignoreAttrs. If p_insertAttributesHook
-           is True (works only for MemoryBuffers), we will insert an Attributes
-           instance at the end of the list of dumped attributes, in order to be
-           able, when evaluating the buffer, to dump additional attributes, not
-           known at this dump time.'''
+           excepted those listed in p_ignoreAttrs. If p_hook is not None
+           (works only for MemoryBuffers), we will insert, at the end of the
+           list of dumped attributes:
+           * [pod] an Attributes instance, in order to be able, when evaluating
+                   the buffer, to dump additional attributes, not known at this
+                   dump time;
+           * [px]  an Attribute instance, representing a special HTML attribute
+                   like "checked" or "selected", that, if the tied expression
+                   returns False, must not be dumped at all. In this case,
+                   p_hook must be a tuple (s_attrName, s_expr).
+        '''
         self.write('<%s' % elem)
         for name, value in attrs.items():
             if ignoreAttrs and (name in ignoreAttrs): continue
@@ -157,16 +163,14 @@ class Buffer:
                 self.write(' %s="' % name)
                 self.addExpression(value[1:])
                 self.write('"')
-        if insertAttributesHook:
-            res = self.addAttributes()
-        else:
-            res = None
+        res = None
+        if hook:
+            if self.pod:
+                res = self.addAttributes()
+            else:
+                self.addAttribute(*hook)
         # Close the tag
-        if noEndTag:
-            suffix = '/>'
-        else:
-            suffix = '>'
-        self.write(suffix)
+        self.write(noEndTag and '/>' or '>')
         return res
 
     def dumpEndElement(self, elem):
@@ -212,6 +216,7 @@ class FileBuffer(Buffer):
         # At 2013-02-06, this method was not called within the whole test suite.
         try:
             expr = Expression(expression, self.pod)
+            if tiedHook: tiedHook.tiedExpression = expr
             res, escape = expr.evaluate(self.env.context)
             if escape: self.dumpContent(res)
             else: self.write(res)
@@ -366,11 +371,18 @@ class MemoryBuffer(Buffer):
         self.content += u' '
 
     def addAttributes(self):
-        # Create the Attributes instance
+        '''pod-only: adds an Attributes instance into this buffer.'''
         attrs = Attributes(self.env)
         self.elements[self.getLength()] = attrs
         self.content += u' '
         return attrs
+
+    def addAttribute(self, name, expr):
+        '''px-only: adds an Attribute instance into this buffer.'''
+        attr = Attribute(name, expr)
+        self.elements[self.getLength()] = attr
+        self.content += u' '
+        return attr
 
     def _getVariables(self, expr):
         '''Returns variable definitions in p_expr as a list
@@ -656,7 +668,8 @@ class MemoryBuffer(Buffer):
                                           evalEntry.expr, e), dumpTb=False)
                         else: # px
                             raise Exception(EVAL_EXPR_ERROR %(evalEntry.expr,e))
-                elif isinstance(evalEntry, Attributes):
+                elif isinstance(evalEntry, Attributes) or \
+                     isinstance(evalEntry, Attribute):
                     result.write(evalEntry.evaluate(context))
                 else: # It is a subBuffer
                     if evalEntry.action:

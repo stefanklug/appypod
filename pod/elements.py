@@ -185,4 +185,20 @@ class Attributes(PodElement):
         for name, value in self.attrs.iteritems():
             res += ' %s=%s' % (name, quoteattr(value))
         return res
+
+class Attribute(PodElement):
+    '''Represents an HTML special attribute like "selected" or "checked".
+       px-only.'''
+    OD = None
+
+    def __init__(self, name, expr):
+        # The name of the attribute
+        self.name = name
+        # The expression that will compute the attribute value
+        self.expr = expr.strip()
+
+    def evaluate(self, context):
+        # If the expr evaluates to False, we do not dump the attribute at all.
+        if eval(self.expr, context): return ' %s="%s"' % (self.name, self.name)
+        return ''
 # ------------------------------------------------------------------------------

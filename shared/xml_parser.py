@@ -37,7 +37,7 @@ CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \
                           'error while converting value "%s". %s'
 XML_SPECIAL_CHARS = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
                      "'": '&apos;'}
-XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': "'", 'apos': "'"}
+XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': '"', 'apos': "'"}
 HTML_ENTITIES = {
         'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
         'brvbar': 'Š', 'sect': '§', 'uml': '¨', 'copy':'©', 'ordf':'ª',

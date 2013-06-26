@@ -259,7 +259,7 @@ class PodParser(OdfParser):
             hook = e.currentBuffer.dumpStartElement(elem, attrs,
                      ignoreAttrs=(e.tags['formula'], e.tags['string-value'],
                                   e.tags['value-type']),
-                     insertAttributesHook=True)
+                     hook=True)
             # We already have the POD expression: remember it on the env.
             e.currentOdsExpression = attrs[e.tags['string-value']]
             e.currentOdsHook = hook
