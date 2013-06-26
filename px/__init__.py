@@ -3,6 +3,7 @@
    Python and XML.'''
 
 # ------------------------------------------------------------------------------
+import xml.sax
 from px_parser import PxParser, PxEnvironment
 from appy.pod.buffers import MemoryBuffer
 
@@ -45,12 +46,31 @@ class Px:
         self.parser = PxParser(PxEnvironment(), self)
         # Parses self.content (a PX code in a string) with self.parser, to
         # produce a tree of memory buffers.
-        self.parser.parse(self.content)
+        try:
+            self.parser.parse(self.content)
+        except xml.sax.SAXParseException, spe:
+            self.completeErrorMessage(spe)
+            raise spe
         # Is this PX based on a template PX?
         self.template = template
         self.hook = hook
         # Is there some (XML, XHTML...) prologue to dump?
         self.prologue = prologue
+
+    def completeErrorMessage(self, parsingError):
+        '''A p_parsingError occurred. Complete the error message with the
+           erroneous line from self.content.'''
+        # Split lines from self.content
+        splitted = self.content.split('\n')
+        i = parsingError.getLineNumber() - 1
+        # Get the erroneous line, and add a subsequent line for indicating
+        # the erroneous column.
+        column = ' ' * (parsingError.getColumnNumber()-1) + '^'
+        lines = [splitted[i], column]
+        # Get the previous and next lines when present.
+        if i > 0: lines.insert(0, splitted[i-1])
+        if i < len(splitted)-1: lines.append(splitted[i+1])
+        parsingError._msg += '\n%s' % '\n'.join(lines)
 
     def __call__(self, context, applyTemplate=True):
         '''Renders the PX.

@@ -27,6 +27,131 @@ class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
        instance of this class.'''
 
+    pxPhases = Px('''<p>Phases</p>
+    ''')
+
+    pxPortlet = Px('''
+     <x var="toolUrl=tool.url;
+             queryUrl='%s/ui/query' % toolUrl;
+             currentSearch=req.get('search', None);
+             currentClass=req.get('className', None);
+             currentPage=req['PATH_INFO'].rsplit('/',1)[-1];
+             rootClasses=ztool.getRootClasses();
+             phases=contextObj and contextObj.getAppyPhases() or None">
+
+      <x if="contextObj and \
+             phases and contextObj.mayNavigate()">:self.pxPhases</x>
+
+      <!-- One section for every searchable root class -->
+      <x for="rootClass in [rc for rc in rootClasses \
+                            if tool.userMaySearch(rc)]">
+
+       <!-- A separator if required -->
+       <div class="portletSep" var="nb=loop.rootClass.nb"
+            if="(nb != 0) or ((nb == 0) and phases)"></div>
+
+       <!-- Section title (link triggers the default search) -->
+       <div class="portletContent"
+            var="searchInfo=ztool.getGroupedSearches(rootClass)">
+        <div class="portletTitle">
+         <a var="queryParam=searchInfo['default'] and \
+                            searchInfo['default']['name'] or ''"
+            href=":'%s?className=%s&amp;search=%s' % \
+                   (queryUrl,rootClass,queryParam)"
+            class=":(not currentSearch and (currentClass==rootClass) and \
+                    (currentPage=='query')) and \
+                    'portletCurrent' or ''">::_(rootClass + '_plural')</a>
+        </div>
+
+        <!-- Actions -->
+        <x var="addPermission='%s: Add %s' % (appName, rootClass);
+                userMayAdd=user.has_permission(addPermission, appFolder);
+                createMeans=ztool.getCreateMeans(rootClass)">
+
+         <!-- Create a new object from a web form -->
+         <input type="button" class="button"
+                if="userMayAdd and ('form' in createMeans)"
+                style=":'background-image: url(%s/ui/buttonAdd.png)' % appUrl"
+                value=":_('query_create')"
+                onclick=":'window.location=&quot;%s/do?action=Create&amp;' \
+                          'className=%s&quot;' % (toolUrl, rootClass)"/>
+
+         <!-- Create object(s) by importing data -->
+         <input type="button" class="button"
+                if="userMayAdd and ('import' in createMeans)"
+                style=":'background-image: url(%s/ui/buttonImport.png)'% appUrl"
+                value=":_('query_import')"
+                onclick=":'window.location=&quot;%s/ui/import?' \
+                          'className=%s&quot;' % (toolUrl, rootClass)"/>
+        </x>
+
+        <!-- Searches -->
+        <x if="ztool.advancedSearchEnabledFor(rootClass)">
+
+         <!-- Live search -->
+         <form action=":'%s/config/do' % appUrl">
+          <input type="hidden" name="action" value="SearchObjects"/>
+          <input type="hidden" name="className" value=":rootClass"/>
+          <table cellpadding="0" cellspacing="0">
+           <tr valign="bottom">
+            <td><input type="text" size="14" name="w_SearchableText"
+                       class="inputSearch"/></td>
+            <td><input type="image" style="cursor:pointer"
+                       src=":'%s/ui/search.gif' % appUrl"
+                       title=":_('search_button')"/></td>
+           </tr>
+          </table>
+         </form>
+
+         <!-- Advanced search -->
+         <div var="highlighted=(currentClass == rootClass) and \
+                               (currentPage == 'search')"
+              class="highlighted and 'portletSearch portletCurrent' or \
+                     'portletSearch'"
+              align=":dright">
+          <a var="text=_('search_title')" style="font-size: 88%"
+             href=":'%s/ui/search?className=%s' % (toolUrl, rootClass)"
+             title=":text"><x>:text</x>...</a>
+         </div>
+        </x>
+
+        <!-- Predefined searches -->
+        <x for="widget in searchInfo['searches']">
+        <x if="widget['type'] == 'group'">
+         <!--metal:s use-macro="app/ui/portlet/macros/group"/-->
+        </x>
+        <x if="widget['type'] != 'group'">
+         <x var="search=widget">
+          <!--metal:s use-macro="app/ui/portlet/macros/search"/-->
+         </x>
+        </x>
+        </x>
+       </div>
+      </x>
+     </x>
+    ''')
+
+    pxMessage = Px('''
+     <x var="messages=ztool.consumeMessages()" if="messages">
+      <div class="message">
+       <!-- The icon for closing the message -->
+       <img src=":'%s/ui/close.png' % appUrl" align=":dright"
+            style="cursor:pointer"
+            onclick="this.parentNode.style.display='none'"/>
+       <!-- The message content -->
+       <x>::messages</x>
+      </div>
+     </x>
+    ''')
+
+    pxFooter = Px('''
+     <table cellpadding="0" cellspacing="0" width="100%" class="footer">
+      <tr>
+       <td align=":dright">Made with
+        <a href="http://appyframework.org" target="_blank">Appy</a></td></tr>
+     </table>
+    ''')
+
     pxTemplate = Px('''
      <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
                 isAnon=ztool.userIsAnon();      app=ztool.getApp();
@@ -96,7 +221,7 @@ class AbstractWrapper(object):
         <input type="button" onclick="doAskPasswordReinit()"
                value=":_('ask_password_reinit')"/>
         <input type="button" onclick="closePopup('askPasswordReinitPopup')"
-               value="_('object_cancel')"/>
+               value=":_('object_cancel')"/>
        </div>
       </form>
       </div>
@@ -127,10 +252,9 @@ class AbstractWrapper(object):
 
           <!-- Language selector -->
           <x if="ztool.showLanguageSelector()">
-           <select class="pageLink"
-                   var="languages=ztool.getLanguages();
+           <select var="languages=ztool.getLanguages();
                         defaultLanguage=languages[0]"
-                   onchange=":'window.location=&quot;%s/config/changeLanguage?language=&quot; + this.options[this.selectedIndex].value' % appUrl">
+                   class="pageLink" onchange="switchLanguage(this)"> 
             <option for="lg in languages" value=":lg"
                     selected=":lang == lg">:ztool.getLanguageName(lg)</option>
            </select>
@@ -138,101 +262,98 @@ class AbstractWrapper(object):
          </div>
         </td>
        </tr>
-     <!--tal:comment replace="nothing">The message strip</tal:comment>
-     <tr valign="top">
-      <td>
-       <div style="position: relative">
-        <metal:msg use-macro="app/ui/page/macros/message"/>
-       </div>
-      </td>
-     </tr>
-     <tal:comment replace="nothing">The user strip</tal:comment>
-     <tr>
-      <td>
-       <table class="userStrip" width="100%">
-        <tr>
-         <tal:comment replace="nothing">The user login form for anonymous users</tal:comment>
-         <td align="center"
-             tal:condition="python: isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])">
-          <form id="loginForm" name="loginForm" method="post" class="login"
-                tal:attributes="action python: tool.absolute_url() + '/performLogin'">
-           <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
-           <input type="hidden" name="cookies_enabled" id="cookies_enabled" value=""/>
-           <input type="hidden" name="login_name" id="login_name" value=""/>
-           <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
-           <tal:comment replace="nothing">The login fields, directly shown or not (depends on discreetLogin)</tal:comment>
-           <span id="loginFields" name="loginFields"
-                 tal:attributes="style python: discreetLogin and 'display:none' or 'display:block'">
-            <span class="userStripText" tal:content="python: _('app_login')"/>
-            <input type="text" name="__ac_name" id="__ac_name" value="" style="width: 142px"/>&nbsp;
-            <span class="userStripText" tal:content="python: _('app_password')"/>
-            <input type="password" name="__ac_password" id="__ac_password" style="width: 142px"/>
-            <input type="submit" name="submit" onclick="setLoginVars()"
-                   tal:define="label python: _('app_connect')" tal:attributes="value label; alt label"/>
-            <tal:comment replace="nothing">Forgot password?</tal:comment>
-            <a class="lostPassword" href="javascript: openPopup('askPasswordReinitPopup')"
-               tal:condition="tool/showForgotPassword"
-               tal:content="python: _('forgot_password')">
-            </a>
-           </span>
-          </form>
-         </td>
-         <tal:comment replace="nothing">User info and controls for authenticated users</tal:comment>
-         <td tal:condition="not: isAnon">
-          <table class="buttons" width="99%">
-           <tr>
-            <td>
-             <tal:comment replace="nothing">Config</tal:comment>
-             <a tal:condition="python: user.has_role('Manager')"
-                tal:attributes="href python: tool.getUrl(nav='');
-                                title python: _('%sTool' % appName)">
-              <img tal:attributes="src string:$appUrl/ui/appyConfig.gif"/>
-             </a>
-             <tal:comment replace="nothing">Additional icons from icons.pt</tal:comment>
-             <metal:call use-macro="app/ui/icons/macros/icons"/>
-             <tal:comment replace="nothing">Log out</tal:comment>
-             <a tal:attributes="href python: tool.absolute_url() + '/performLogout';
-                                title python: _('app_logout')">
-              <img tal:attributes="src string: $appUrl/ui/logout.gif"/>
-             </a>
-            </td>
-            <td class="userStripText" tal:define="userInfo tool/getUserLine" tal:attributes="align dright">
-              <span tal:content="python: userInfo[0]"></span>
-              <a tal:condition="python: userInfo[1]"
-                 tal:attributes="href python: userInfo[1]">
-                <img tal:attributes="src string: $appUrl/ui/edit.png"/>
-              </a>
-            </td>
-           </tr>
-          </table>
-         </td>
-        </tr>
-       </table>
-      </td>
-     </tr>
-     <tal:comment replace="nothing">The navigation strip</tal:comment>
-     <tr tal:condition="python: contextObj and (layoutType == 'view')">
-      <td><metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/></td>
-     </tr>
-     <tr>
-      <td>
-        <table width="100%" cellpadding="0" cellspacing="0">
-         <tr valign="top">
-          <tal:comment replace="nothing">Portlet</tal:comment>
-          <td tal:condition="python: tool.showPortlet(context, layoutType)" class="portlet">
-            <metal:portlet use-macro="app/ui/portlet/macros/portlet"/>
-          </td>
-          <tal:comment replace="nothing">Page content</tal:comment>
-          <td class="content"><span metal:define-slot="content"></span></td>
-         </tr> 
-        </table>
-       </td> 
-     </tr>
-     <tr><tal:comment replace="nothing">Footer</tal:comment>
-      <td><metal:call use-macro="app/ui/footer/macros/footer"/></td>
-     </tr-->
-    </table>
-      <x>:content</x>
+
+       <!-- The message strip -->
+       <tr valign="top">
+        <td><div style="position: relative">:self.pxMessage</div></td>
+       </tr>
+
+       <!-- The user strip -->
+       <tr>
+        <td>
+         <table class="userStrip" width="100%">
+          <tr>
+           <!-- The user login form for anonymous users -->
+           <td align="center"
+               if="isAnon and ('/temp_folder/' not in req['ACTUAL_URL'])">
+            <form id="loginForm" name="loginForm" method="post" class="login"
+                  action=":tool.url + '/performLogin'">
+             <input type="hidden" name="js_enabled" id="js_enabled" value="0"/>
+             <input type="hidden" name="cookies_enabled" id="cookies_enabled"
+                    value=""/>
+             <input type="hidden" name="login_name" id="login_name" value=""/>
+             <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
+             <!-- Login fields, directly shown or not (depends on
+                  discreetLogin) -->
+             <span id="loginFields" name="loginFields"
+                   style=":discreetLogin and 'display:none' or 'display:block'">
+              <span class="userStripText">:_('app_login')</span>
+              <input type="text" name="__ac_name" id="__ac_name" value=""
+                     style="width: 142px"/>&nbsp;
+              <span class="userStripText">:_('app_password')</span>
+              <input type="password" name="__ac_password" id="__ac_password"
+                     style="width: 142px"/>
+              <input type="submit" name="submit" onclick="setLoginVars()"
+                     var="label=_('app_connect')" value=":label" alt=":label"/>
+              <!-- Forgot password? -->
+              <a if="ztool.showForgotPassword()"
+                 href="javascript: openPopup('askPasswordReinitPopup')"
+                 class="lostPassword">:_('forgot_password')</a>
+             </span>
+            </form>
+           </td>
+
+           <!-- User info and controls for authenticated users -->
+           <td if="not isAnon">
+            <table class="buttons" width="99%">
+             <tr>
+              <td>
+               <!-- Config -->
+               <a if="user.has_role('Manager')" href=":tool.url"
+                  title="_('%sTool' % appName)">
+                <img src="'%s/ui/appyConfig.gif' % appUrl"/></a>
+               <!-- Additional icons from icons.pt -->
+               <!--metal:call use-macro="app/ui/icons/macros/icons"/-->
+               <!-- Log out -->
+               <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
+                <img src=":'%s/ui/logout.gif' % appUrl"/></a>
+              </td>
+              <td class="userStripText" var="userInfo=ztool.getUserLine()"
+                  align=":dright">
+               <span>:userInfo[0]</span>
+               <a if="userInfo[1]" href=":userInfo[1]">
+                <img src=":'%s/ui/edit.png' % appUrl"/></a>
+              </td>
+             </tr>
+            </table>
+           </td>
+          </tr>
+         </table>
+        </td>
+       </tr>
+
+       <!-- The navigation strip -->
+       <tr if="contextObj and (layoutType == 'view')">
+        <td>
+         <!--metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/-->
+        </td>
+       </tr>
+       <tr>
+        <td>
+         <table width="100%" cellpadding="0" cellspacing="0">
+          <tr valign="top">
+           <!-- The portlet -->
+           <td if="ztool.showPortlet(contextObj, layoutType)"
+               class="portlet">:self.pxPortlet</td>
+           <!-- Page content -->
+           <td class="content">:content</td>
+          </tr>
+         </table>
+        </td>
+       </tr>
+       <!-- Footer -->
+       <tr><td>:self.pxFooter</td></tr>
+      </table>
      </body>
     </html>
     ''', prologue=Px.xhtmlPrologue)

@@ -269,9 +269,9 @@ class ToolMixin(BaseMixin):
         '''When must the portlet be shown?'''
         # Not on 'edit' pages.
         if layoutType == 'edit': return
-        if context.id == 'ui': context = context.getParentNode()
+        if context and (context.id == 'ui'): context = context.getParentNode()
         res = True
-        if hasattr(context.aq_base, 'appy'):
+        if context and hasattr(context.aq_base, 'appy'):
             appyObj = context.appy()
             try:
                 res = appyObj.showPortlet()

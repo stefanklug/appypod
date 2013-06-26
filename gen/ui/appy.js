@@ -41,6 +41,11 @@ function showLoginForm() {
   loginFields.style.display = "inline";
 }
 
+function switchLanguage(selectWidget) {
+  var language = selectWidget.options[selectWidget.selectedIndex].value;
+  window.location = "/config/changeLanguage?language=" + language;
+}
+
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
 
 function getElementsHavingName(tag, name) {
