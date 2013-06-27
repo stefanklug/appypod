@@ -556,7 +556,273 @@ class AbstractWrapper(object):
      </body>
     </html>''', prologue=Px.xhtmlPrologue)
 
-    # PX for viewing an object -------------------------------------------------
+    # --------------------------------------------------------------------------
+    # PXs for rendering graphical elements tied to a given object
+    # --------------------------------------------------------------------------
+
+    # This PX displays an object's history.
+    pxObjectHistory = Px('''
+     <x var="startNumber=req.get'startNumber', 0);
+             startNumber=int(startNumber);
+             batchSize=int(req.get('maxPerPage', 5));
+             historyInfo=contextObj.getHistory(startNumber,batchSize=batchSize);
+             objs=historyInfo['events'];
+             totalNumber=historyInfo['totalNumber'];
+             ajaxHookId='appyHistory';
+             navBaseCall='askObjectHistory(&quot;%s&quot;, &quot;%s&quot;, \
+                %d, **v**)' % (ajaxHookId,contextObj.absolute_url(),batchSize)">
+
+      <!-- Table containing the history -->
+      <x if="objs">
+       <x>:self.pxAppyNavigate</x>
+       <table width="100%" class="history">
+        <tr>
+         <th align=":dleft">:_('object_action')</th>
+         <th align=":dleft">:_('object_author')</th>
+         <th align=":dleft">:_('action_date')</th>
+         <th align=":dleft">:_('action_comment')</th>
+        </tr>
+        <x for="event in objs">
+         <tr var="odd=loop.event.odd;
+                  rhComments=event.get('comments', None);
+                  state=event.get('review_state', None);
+                  action=event['action'];
+                  isDataChange=action == '_datachange_'"
+             class="odd and 'even' or 'odd'" valign="top">
+          <td if="isDataChange">
+            <x>:_('data_change')</x>
+            <img if="user.has_role('Manager')" style="cursor:pointer"
+                 src=":'%s/ui/delete.png' % appUrl"
+                 onclick=":'onDeleteEvent(&quot;%s&quot;, &quot;%s&quot;)' % \
+                            (contextObj.UID(), event['time'])"/>
+          </td>
+          <td if="not isDataChange">:_(contextObj.getWorkflowLabel(action))</td>
+          <td var="actorId=event.get('actor')">
+           <x if="not actorId">?</x>
+           <x if="actorId">:ztool.getUserName(actorId)</x>
+          </td>
+          <td>:ztool.formatDate(event['time'], withHour=True)"></td>
+          <td if="not isDataChange">
+            <x if="rhComments">::contextObj.formatText(rhComments)</x>
+            <x if="not rhComments">-</x>
+          </td>
+          <td if="isDataChange">
+            <!-- Display the previous values of the fields whose value were
+                 modified in this change. -->
+            <table class="appyChanges" width="100%">
+             <tr>
+              <th align=":dleft" width="30%">:_('modified_field')</th>
+              <th align=":dleft" width="70%">:_('previous_value')</th>
+             </tr>
+             <tr for="change in event['changes'].items()" valign="top">
+              <x var="appyType=contextObj.getAppyType(change[0], asDict=True)">
+               <td>::_(appyType['labelId'])</td>
+               <td>::change[1][0]</td>
+              </x>
+             </tr>
+            </table>
+          </td>
+         </tr>
+        </x>
+       </table>
+      </x>
+     </x>
+    ''')
+
+    # Displays an object's transitions(s).
+    pxTransitions = Px('''
+     <x var="transitions=targetObj.getAppyTransitions()" if="transitions">
+      <form var="formId='trigger_%s' % targetObj.UID()" method="post"
+            id=":formId" action=":targetObj.absolute_url() + '/do'">
+       <input type="hidden" name="action" value="Trigger"/>
+       <input type="hidden" name="workflow_action"/>
+       <table>
+        <tr valign="middle">
+         <!-- Input field for storing comment -->
+         <textarea id="comment" name="comment" cols="30" rows="3"
+                   style="display:none"></textarea>
+         <!-- Buttons for triggering transitions -->
+         <td align=":dright" for="transition in transitions">
+          <!-- Real button -->
+          <input type="button" class="button" if="transition['may_trigger']"
+                 style=":'background-image: \
+                          url(%s/ui/buttonTransition.png)' % appUrl"
+                 title=":transition['title']"
+                 value=":ztool.truncateValue(transition['title'])"
+                 onclick=":'triggerTransition(&quot;%s&quot;, &quot;%s&quot;, \
+                           &quot;%s&quot;)' % (formId, transition['name'], \
+                                               transition['confirm'])"/>
+
+          <!-- Fake button, explaining why the transition can't be triggered -->
+          <input type="button" class="button" if="not transition['may_trigger']"
+                 style=":'background-image: url(%s/ui/buttonFake.png); \
+                          cursor: help' % appUrl"
+                 value=":ztool.truncateValue(transition['title'])"
+                 title=":'%s: %s' % (transition['title'], \
+                                     transition['reason'])"/>
+         </td>
+        </tr>
+       </table>
+      </form>
+     </x>''')
+
+    # Displays header information about an object: title, workflow-related info,
+    # history...
+    pxObjectHeader = Px('''
+     <div var="hasHistory=contextObj.hasHistory();
+               historyMaxPerPage=req.get('maxPerPage', 5);
+               historyExpanded=req.get('appyHistory','collapsed') == 'expanded';
+               creator=contextObj.Creator()"
+          if="not contextObj.isTemporary()">
+
+      <table width="100%" class="summary">
+       <tr>
+        <td colspan="2" class="by">
+         <!-- Plus/minus icon for accessing history -->
+         <x if="hasHistory">
+          <img style="cursor:pointer" onClick="toggleCookie('appyHistory')"
+               src="historyExpanded and 'ui/collapse.gif' or 'ui/expand.gif'"
+               align=":dleft" id="appyHistory_img"/>
+          <x>:_('object_history')</x> || 
+         </x>
+
+         <!-- Creator and last modification date -->
+         <x>:_('object_created_by')</x>
+         <x>:ztool.getUserName(creator)</x>
+         
+         <!-- Creation and last modification dates -->
+         <x>:_('object_created_on')</x>
+         <x var="creationDate=contextObj.Created();
+                 modificationDate=contextObj.Modified()">
+          <x>:ztool.formatDate(creationDate, withHour=True)></x>
+          <x if="modificationDate != creationDate">&mdash;
+           <x>:_('object_modified_on')</x>
+           <x>:ztool.formatDate(modificationDate, withHour=True)</x>
+          </x>
+         </x>
+
+         <!-- State -->
+         <x if="contextObj.showState()">&mdash;
+          <x>:_('workflow_state')</x> : <b>:_(contextObj.getWorkflowLabel())</b>
+         </x>
+        </td>
+       </tr>
+
+       <!-- Object history -->
+       <tr if="hasHistory">
+        <td colspan="2">
+         <span id="appyHistory"
+               style=":historyExpanded and 'display:block' or 'display:none')">
+          <div var="ajaxHookId=contextObj.UID() + '_history'"
+               id=":ajaxHookId">
+           <script type="text/javascript">:'askObjectHistory(&quot;%s&quot;, \
+             &quot;%s&quot;, %d, 0)' % (ajaxHookId, contextObj.absolute_url(),\
+             historyMaxPerPage)</script>
+          </div>
+         </span>
+        </td>
+       </tr>
+      </table>
+    </div>
+    ''')
+
+    # Shows the range of buttons (next, previous, save,...) and the workflow
+    # transitions.
+    pxObjectButtons = Px('''
+     <table cellpadding="2" cellspacing="0" style="margin-top: 7px"
+            var="previousPage=contextObj.getPreviousPage(phaseInfo, page)[0];
+                 nextPage=contextObj.getNextPage(phaseInfo, page)[0];
+                 isEdit=layoutType == 'edit';
+                 pageInfo=phaseInfo['pagesInfo'][page]">
+      <tr>
+       <!-- Previous -->
+       <td if="previousPage and pageInfo['showPrevious']">
+        <!-- Button on the edit page -->
+        <x if="isEdit">
+         <input type="button" class="button" value=":_('page_previous')"
+                onClick="submitAppyForm('previous')"
+                style=":'background-image: \
+                         url(%s/ui/buttonPrevious.png)' % appUrl"/>
+         <input type="hidden" name="previousPage" value=":previousPage"/>
+        </x>
+        <!-- Button on the view page -->
+        <x if="not isEdit">
+         <input type="button" class="button" value=":_('page_previous')"
+                style=":'background-image: \
+                         url(%s/ui/buttonPrevious.png)' % appUrl"
+                onclick=":'window.location=&quot;%s&quot;' % \
+                           contextObj.getUrl(page=previousPage)"/>
+        </x>
+       </td>
+
+       <!-- Save -->
+       <td if="isEdit and pageInfo['showSave']">
+        <input type="button" class="button" onClick="submitAppyForm('save')"
+               style=":'background-image: url(%s/ui/buttonSave.png)' % appUrl"
+               value=":_('object_save')"/>
+       </td>
+
+       <!-- Cancel -->
+       <td if="isEdit and pageInfo['showCancel']">
+        <input type="button" class="button" onClick="submitAppyForm('cancel')"
+               style=":'background-image: url(%s/ui/buttonCancel.png)' % appUrl"
+               value=":_('object_cancel')"/>
+       </td>
+
+       <x if="not isEdit">
+        <td var="locked=contextObj.isLocked(user, page);
+                 editable=pageInfo['showOnEdit'] and contextObj.mayEdit()">
+
+         <!-- Edit -->
+         <input type="button" class="button" if="editable and not locked"
+                style=":'background-image: url(%s/ui/buttonEdit.png)' % appUrl"
+                value=":_('object_edit')"
+                onclick=":'window.location=&quot;%s&quot;' % \
+                          contextObj.getUrl(mode='edit', page=page)"/>
+
+         <!-- Locked -->
+         <a if="editable and locked">
+          <img style="cursor: help"
+               var="lockDate=tool.formatDate(locked[1]);
+                    lockMap={'user': tool.getUserName(locked[0]),\
+                             'date': lockDate};
+                    lockMsg=_('page_locked', mapping=lockMap)"
+               src=":'%s/ui/lockedBig.png' % appUrl" title=":lockMsg"/></a>
+        </td>
+       </x>
+
+       <!-- Next -->
+       <td if="nextPage and pageInfo['showNext']">
+        <!-- Button on the edit page -->
+        <x if="isEdit">
+         <input type="button" class="button" onClick="submitAppyForm('next')"
+                style=":'background-image: url(%s/ui/buttonNext.png)' % appUrl"
+                value=":_('page_next')"/>
+         <input type="hidden" name="nextPage" value=":nextPage"/>
+        </x>
+        <!-- Button on the view page -->
+        <x if="not isEdit">
+         <input type="button" class="button"
+                style=":'background-image: url(%s/ui/buttonNext.png)' % appUrl"
+                value=":_('page_next')"
+                onclick=":'window.location=&quot;%s&quot;' % \
+                          contextObj.getUrl(page=nextPage)"/>
+        </x>
+       </td>
+
+       <!-- Workflow transitions -->
+       <td var="targetObj=contextObj"
+           if="targetObj.showTransitions(layoutType)">:self.pxTransitions</td>
+
+       <!-- Refresh -->
+       <td if="contextObj.isDebug()">
+        <a href="contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
+         <img title="Refresh" style="vertical-align:top"
+              src=":'%s/ui/refresh.png' % appUrl"/></a>
+       </td>
+      </tr>
+     </table>''')
+
     pxLayoutedObject = Px('''<p>Layouted object</p>''')
     pxView = Px('''
      <x var="x=contextObj.allows('View', raiseError=True);

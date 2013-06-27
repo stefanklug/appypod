@@ -358,7 +358,7 @@ class MemoryBuffer(Buffer):
                 # Remember where this cell is in the table
                 elem.colIndex = elem.tableInfo.curColIndex
         if elem == 'x':
-            # See comment on similar statement in the following below.
+            # See comment on similar statement in the method below.
             self.content += u' '
 
     def addExpression(self, expression, tiedHook=None):
