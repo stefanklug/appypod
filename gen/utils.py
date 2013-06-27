@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path
 from appy.shared.utils import normalizeText
+from appy.px import Px
 
 # Function for creating a Zope object ------------------------------------------
 def createObject(folder, id, className, appName, wf=True, noSecurity=False):
@@ -53,15 +54,50 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
     if wf: obj.notifyWorkflowCreated()
     return obj
 
-# Classes used by edit/view templates for accessing information ----------------
+# Classes used by edit/view PXs for accessing information ----------------------
 class Descr:
     '''Abstract class for description classes.'''
     def get(self): return self.__dict__
 
 class GroupDescr(Descr):
+    '''Intermediary, on-the-fly-generated data structure that groups all fields
+       sharing the same appy.gen.Group instance, that some logged user can
+       see.'''
+    # PX that renders a group of fields
+    pxGroupedFields = Px('''<p>pxGroupedFields</p>''')
+
+    # PX that renders a group of fields
+    pxGroupedSearches = Px('''
+     <x var="expanded=req.get(widget['labelId'], 'collapsed') == 'expanded'">
+      <!-- Group name, prefixed by the expand/collapse icon -->
+      <div class="portletGroup">
+       <img style="cursor:pointer; margin-right: 3px" align=":dleft"
+            id=":'%s_img' % widget['labelId']"
+            src=":expanded and 'ui/collapse.gif' or 'ui/expand.gif'"
+            onclick=":'toggleCookie(&quot;%s&quot;)' % widget['labelId']"/>
+       <x if="not widget['translated']">:_(widget['labelId'])</x>
+       <x if="widget['translated']">:widget['translated']</x>
+      </div>
+      <!-- Group content -->
+      <div var="display=expanded and 'display:block' or 'display:none'"
+           id=":widget['labelId']" style=":'padding-left: 10px; %s' % display">
+       <x for="searches in widget['widgets']">
+        <x for="searchElem in searches">
+         <!-- An inner group within this group -->
+         <x if="searchElem['type'] == 'group'">
+          <x var="widget=searchElem">:widget['px']</x>
+         </x>
+         <!-- A search -->
+         <x if="searchElem['type'] != 'group'">
+          <x var="search=searchElem">:search['px']</x>
+         </x>
+        </x>
+       </x>
+      </div>
+     </x>
+    ''')
+
     def __init__(self, group, page, metaType, forSearch=False):
-        '''Creates the data structure manipulated in ZPTs for p_group, the
-           Group instance used in the field definition.'''
         self.type = 'group'
         # All p_group attributes become self attributes.
         for name, value in group.__dict__.iteritems():
@@ -88,6 +124,8 @@ class GroupDescr(Descr):
         # They will be stored by m_addWidget below as a list of lists because
         # they will be rendered as a table.
         self.widgets = [[]]
+        # PX to user for rendering this group.
+        self.px = forSearch and self.pxGroupedSearches or self.pxGroupedFields
 
     @staticmethod
     def addWidget(groupDict, newWidget):
@@ -118,6 +156,55 @@ class GroupDescr(Descr):
             groupDict['widgets'].append(newRow)
 
 class PhaseDescr(Descr):
+    '''Describes a phase.'''
+
+    pxPhase = Px('''
+     <tr var="singlePage=len(phase['pages']) == 1">
+      <td var="label='%s_phase_%s' % (contextObj.meta_type, phase['name'])">
+
+       <!-- The title of the phase -->
+       <div class="portletGroup"
+            if="not singlePhase and not singlePage">::_(label)</div>
+
+       <!-- The page(s) within the phase -->
+       <x for="aPage in phase['pages']">
+        <!-- First line: page name and icons -->
+        <div if="not (singlePhase and singlePage)"
+             class=":aPage==page and 'portletCurrent portletPage' or \
+                     'portletPage'">
+         <a href=":contextObj.getUrl(page=aPage)">::_('%s_page_%s' % \
+                   (contextObj.meta_type, aPage))</a>
+         <x var="locked=contextObj.isLocked(user, aPage);
+                 editable=mayEdit and phase['pagesInfo'][aPage]['showOnEdit']">
+          <a if="editable and not locked"
+             href="contextObj.getUrl(mode='edit', page=aPage)">
+           <img src=":'%s/ui/edit.png' % appUrl" title=":_('object_edit')"/>
+          </a>
+          <a if="editable and locked">
+           <img style="cursor: help"
+                var="lockDate=tool.formatDate(locked[1]);
+                     lockMap={'user':ztool.getUserName(locked[0]), \
+                              'date':lockDate};
+                     lockMsg=_('page_locked', mapping=lockMap)"
+                src=":'%s/ui/locked.png' % appUrl" title=":lockMsg"/></a>
+          <a if="editable and locked and user.has_role('Manager')">
+           <img style="cursor: pointer" title=":_('page_unlock')"
+                src=":'%s/ui/unlock.png' % appUrl"
+                onclick=":'onUnlockPage(&quot;%s&quot;,&quot;%s&quot;)' % \
+                           (contextObj.UID(), aPage)"/></a>
+         </x>
+        </div>
+        <!-- Next lines: links -->
+        <x var="links=phase['pagesInfo'][aPage].get('links')" if="links">
+         <div for="link in links">
+           <a href=":link['url']">:link['title']</a>
+         </div>
+        </x>
+       </x>
+      </td>
+     </tr>
+    ''')
+
     def __init__(self, name, obj):
         self.name = name
         self.obj = obj
@@ -133,6 +220,7 @@ class PhaseDescr(Descr):
         # phase if allowed by phase state.
         self.previousPhase = None
         self.nextPhase = None
+        self.px = self.pxPhase
 
     def addPageLinks(self, appyType, obj):
         '''If p_appyType is a navigable Ref, we must add, within self.pagesInfo,
@@ -177,6 +265,16 @@ class PhaseDescr(Descr):
 
 class SearchDescr(Descr):
     '''Describes a Search.'''
+    # PX for rendering a search.
+    pxSearch = Px('''
+     <div class="portletSearch">
+      <a href=":'%s?className=%s&amp;search=%s' % \
+                 (queryUrl, rootClass, search['name'])"
+         class=":search['name'] == currentSearch and 'portletCurrent' or ''"
+         title=":search['translatedDescr']">:search['translated']</a>
+     </div>
+    ''')
+
     def __init__(self, search, className, tool):
         self.search = search
         self.name = search.name
@@ -200,6 +298,7 @@ class SearchDescr(Descr):
                 self.translatedDescr = tool.translate(labelDescr)
             else:
                 self.translatedDescr = ''
+        self.px = self.pxSearch
 
 # ------------------------------------------------------------------------------
 upperLetter = re.compile('[A-Z]')

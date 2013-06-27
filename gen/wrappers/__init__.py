@@ -27,8 +27,210 @@ class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
        instance of this class.'''
 
-    pxPhases = Px('''<p>Phases</p>
-    ''')
+    # --------------------------------------------------------------------------
+    # Navigation-related PXs
+    # --------------------------------------------------------------------------
+    # Icon for hiding/showing details below the title.
+    pxShowDetails = Px('''
+     <x if="ztool.subTitleIsUsed(className)">
+      <img if="widget['name'] == 'title'" style="cursor:pointer"
+           src=":'%s/ui/toggleDetails.png'%appUrl" onClick="toggleSubTitles()"/>
+     </x>''')
+
+    # Displays up/down arrows in a table header column for sorting a given
+    # column. Requires variables "sortable", 'filterable' and 'fieldName'.
+    pxSortAndFilter = Px('''
+     <x var="fieldName=widget['name']">
+      <x if="sortable">
+       <img if="(sortKey != fieldName) or (sortOrder == 'desc')"
+            onclick=":navBaseCall.replace('**v**', '0,&quot;%s&quot;, \
+                     &quot;asc&quot;, &quot;%s&quot;' % (fieldName,filterKey))"
+            src=":'%s/ui/sortDown.gif' % appUrl" style="cursor:pointer"/>
+       <img if="(sortKey != fieldName) or (sortOrder == 'asc')"
+            onClick=":navBaseCall.replace('**v**', '0,&quot;%s&quot;, \
+                     &quot;desc&quot;, &quot;%s&quot;' % (fieldName,filterKey))"
+            src=":'%s/ui/sortUp.gif' % appUrl" style="cursor:pointer"/>
+      </x>
+      <x if="filterable">
+       <input type="text" size="7"
+              id=":'%s_%s' % (ajaxHookId, fieldName)"
+              value=":filterKey == fieldName and filterValue or ''"/>
+        <img onClick=":navBaseCall.replace('**v**', '0, &quot;%s&quot;, \
+                       &quot;%s&quot;, &quot;%s&quot;' % \
+                       (sortKey, sortOrder, fieldName))"
+             src=":'%s/ui/funnel.png' % appUrl" style="cursor:pointer"/>
+      </x>
+     </x>''')
+
+    # Buttons for navigating among a list of elements: next,back,first,last...
+    pxAppyNavigate = Px('''
+     <div if="totalNumber &gt; batchSize" align=":dright">
+      <table class="listNavigate"
+             var="mustSortAndFilter=ajaxHookId == 'queryResult';
+                  sortAndFilter=mustSortAndFilter and \
+                     ',&quot;%s&quot;, &quot;%s&quot;, &quot;%s&quot;' % \
+                     (sortKey, sortOrder, filterKey) or ''">
+       <tr valign="middle">
+        <!-- Go to the first page -->
+        <td if="(startNumber != 0) and (startNumber != batchSize)"><img
+            style="cursor:pointer" src=":'%s/ui/arrowLeftDouble.png' % appUrl"
+            title=":_('goto_first')"
+            onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
+
+        <!-- Go to the previous page -->
+        <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
+            style="cursor:pointer" src=":'%s/ui/arrowLeftSimple.png' % appUrl"
+            title=":_('goto_previous')"
+            onClick="navBaseCall.replace('**v**', \
+                                         str(sNumber)+sortAndFilter)"/></td>
+
+        <!-- Explain which elements are currently shown -->
+        <td class="discreet">&nbsp;
+         <x>:startNumber + 1</x><img src=":'%s/ui/to.png' % appUrl"/>
+         <x>:startNumber + len(objs)</x>&nbsp;<b>//</b>
+         <x>:totalNumber</x>&nbsp;&nbsp;</td>
+
+        <!-- Go to the next page -->
+        <td var="sNumber=startNumber + batchSize"
+            if="sNumber &lt; totalNumber"><img style="cursor:pointer"
+            src=":'%s/ui/arrowRightSimple.png' % appUrl"
+            title=":_('goto_next')"
+            onClick=":navBaseCall.replace('**v**', \
+                                          str(sNumber)+sortAndFilter)"/></td>
+
+        <!-- Go to the last page -->
+        <td var="lastPageIsIncomplete=totalNumber % batchSize;
+                 nbOfCompletePages=totalNumber/batchSize;
+                 nbOfCountedPages=lastPageIsIncomplete and \
+                                  nbOfCompletePages or nbOfCompletePages-1;
+                 sNumber= nbOfCountedPages * batchSize"
+            if="(startNumber != sNumber) and \
+                (startNumber != sNumber-batchSize)"><img style="cursor:pointer"
+            src=":'%s/ui/arrowRightDouble.png' % appUrl"
+            title=":_('goto_last')"
+            onClick="navBaseCall.replace('**v**', \
+                                         str(sNumber)+sortAndFilter)"/></td>
+       </tr>
+      </table>
+     </div>''')
+
+    # Buttons for going to next/previous elements if this one is among bunch of
+    # referenced or searched objects. currentNumber starts with 1.
+    pxObjectNavigate = Px('''
+     <x if="req.get('nav', None)">
+      <div var="navInfo=ztool.getNavigationInfo();
+                currentNumber=navInfo['currentNumber'];
+                totalNumber=navInfo['totalNumber'];
+                firstUrl=navInfo['firstUrl'];
+                previousUrl=navInfo['previousUrl'];
+                nextUrl=navInfo['nextUrl'];
+                lastUrl=navInfo['lastUrl'];
+                sourceUrl=navInfo['sourceUrl'];
+                backText=navInfo['backText']">
+
+      <!-- Go to the source URL (search or referred object) -->
+      <a if="sourceUrl" href=":sourceUrl"><img
+         var="gotoSource=_('goto_source');
+              goBack=backText and ('%s - %s' % (backText, gotoSource)) \
+                     or gotoSource"
+         src=":'%s/ui/gotoSource.png' % appUrl" title=":goBack"/></a>
+
+      <!-- Go to the first page -->
+      <a if="firstUrl" href=":firstUrl"><img title=":_('goto_first')"
+         src=":'%s/ui/arrowLeftDouble.png' % appUrl"/></a>
+
+      <!-- Go to the previous page -->
+      <a if="previousUrl" href=":previousUrl"><img title=":_('goto_previous')"
+         src=":'%s/ui/arrowLeftSimple.png' % appUrl"/></a>
+
+      <!-- Explain which element is currently shown -->
+      <span class="discreet">&nbsp;
+       <x>:currentNumber</x>&nbsp;<b>//</b>
+       <x>:totalNumber</x>&nbsp;&nbsp;
+      </span>
+
+      <!-- Go to the next page -->
+      <a if="nextUrl" href=":nextUrl"><img title=":_('goto_next')"
+         src=":'%s/ui/arrowRightSimple.png' % appUrl"/></a>
+
+      <!-- Go to the last page -->
+      <a if="lastUrl" href=":lastUrl"><img title=":_('goto_last')"
+         src=":'%s/ui/arrowRightDouble.png' % appUrl"/></a>
+     </div>
+     </x>''')
+
+    pxNavigationStrip = Px('''
+     <table width="100%" class="navigate">
+      <tr>
+       <td var="breadcrumb=contextObj.getBreadCrumb()" class="breadcrumb">
+        <x for="bc in breadcrumb">
+         <x var="nb=loop.bc.nb">
+          <img if="nb != 0" src=":'%s/ui/to.png' % appUrl"/>
+          <!-- Display only the title of the current object -->
+          <span if="nb == len(breadcrumb)-1">:bc['title']</span>
+          <!-- Display a link for parent objects -->
+          <a if="nb != len(breadcrumb)-1" href=":bc['url']">:bc['title']</a>
+         </x>
+        </x>
+       </td>
+       <td align="right">:self.pxObjectNavigate</td>
+      </tr>
+     </table>''')
+
+    # --------------------------------------------------------------------------
+    # PXs for graphical elements shown on every page
+    # --------------------------------------------------------------------------
+    # Global elements included in every page.
+    pxPagePrologue = Px('''
+     <div>
+      <!-- Include type-specific CSS and JS. -->
+      <x if="cssJs">
+       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
+             href=":'%s/ui/%s' % (appUrl, cssFile)"/>
+       <script for="jsFile in cssJs['js']" type="text/javascript"
+               src=":'%s/ui/%s' % (appUrl, jsFile)"></script></x>
+
+      <!-- Javascript messages -->
+      <script type="text/javascript">:ztool.getJavascriptMessages()</script>
+
+      <!-- Global form for deleting an object -->
+      <form id="deleteForm" method="post" action="do">
+        <input type="hidden" name="action" value="Delete"/>
+        <input type="hidden" name="objectUid"/>
+      </form>
+      <!-- Global form for deleting an event from an object's history -->
+      <form id="deleteEventForm" method="post" action="do">
+        <input type="hidden" name="action" value="DeleteEvent"/>
+        <input type="hidden" name="objectUid"/>
+        <input type="hidden" name="eventTime"/>
+      </form>
+      <!-- Global form for unlinking an object -->
+      <form id="unlinkForm" method="post" action="do">
+        <input type="hidden" name="action" value="Unlink"/>
+        <input type="hidden" name="sourceUid"/>
+        <input type="hidden" name="fieldName"/>
+        <input type="hidden" name="targetUid"/>
+      </form>
+      <!-- Global form for unlocking a page -->
+      <form id="unlockForm" method="post" action="do">
+        <input type="hidden" name="action" value="Unlock"/>
+        <input type="hidden" name="objectUid"/>
+        <input type="hidden" name="pageName"/>
+      </form>
+      <!-- Global form for generating a document from a pod template -->
+      <form id="podTemplateForm" name="podTemplateForm" method="post"
+            action=":ztool.absolute_url() + '/generateDocument'">
+        <input type="hidden" name="objectUid"/>
+        <input type="hidden" name="fieldName"/>
+        <input type="hidden" name="podFormat"/>
+        <input type="hidden" name="askAction"/>
+        <input type="hidden" name="queryData"/>
+        <input type="hidden" name="customParams"/>
+      </form>
+    </div>''')
+
+    pxPageBottom = Px('''
+     <script type="text/javascript">initSlaves();</script>''')
 
     pxPortlet = Px('''
      <x var="toolUrl=tool.url;
@@ -39,12 +241,18 @@ class AbstractWrapper(object):
              rootClasses=ztool.getRootClasses();
              phases=contextObj and contextObj.getAppyPhases() or None">
 
-      <x if="contextObj and \
-             phases and contextObj.mayNavigate()">:self.pxPhases</x>
+      <x if="contextObj and phases and contextObj.mayNavigate()">
+       <table class="portletContent"
+              var="singlePhase=phases and (len(phases) == 1);
+                   page=req.get('page', 'main');
+                   mayEdit=contextObj.mayEdit()">
+        <x for="phase in phases">:phase['px']</x>
+       </table>
+      </x>
 
       <!-- One section for every searchable root class -->
       <x for="rootClass in [rc for rc in rootClasses \
-                            if tool.userMaySearch(rc)]">
+                            if ztool.userMaySearch(rc)]">
 
        <!-- A separator if required -->
        <div class="portletSep" var="nb=loop.rootClass.nb"
@@ -106,7 +314,7 @@ class AbstractWrapper(object):
          <!-- Advanced search -->
          <div var="highlighted=(currentClass == rootClass) and \
                                (currentPage == 'search')"
-              class="highlighted and 'portletSearch portletCurrent' or \
+              class=":highlighted and 'portletSearch portletCurrent' or \
                      'portletSearch'"
               align=":dright">
           <a var="text=_('search_title')" style="font-size: 88%"
@@ -117,19 +325,14 @@ class AbstractWrapper(object):
 
         <!-- Predefined searches -->
         <x for="widget in searchInfo['searches']">
-        <x if="widget['type'] == 'group'">
-         <!--metal:s use-macro="app/ui/portlet/macros/group"/-->
-        </x>
-        <x if="widget['type'] != 'group'">
-         <x var="search=widget">
-          <!--metal:s use-macro="app/ui/portlet/macros/search"/-->
+         <x if="widget['type'] == 'group'">:widget['px']</x>
+         <x if="widget['type'] != 'group'">
+          <x var="search=widget">:search['px']</x>
          </x>
-        </x>
         </x>
        </div>
       </x>
-     </x>
-    ''')
+     </x>''')
 
     pxMessage = Px('''
      <x var="messages=ztool.consumeMessages()" if="messages">
@@ -141,16 +344,14 @@ class AbstractWrapper(object):
        <!-- The message content -->
        <x>::messages</x>
       </div>
-     </x>
-    ''')
+     </x>''')
 
     pxFooter = Px('''
      <table cellpadding="0" cellspacing="0" width="100%" class="footer">
       <tr>
        <td align=":dright">Made with
         <a href="http://appyframework.org" target="_blank">Appy</a></td></tr>
-     </table>
-    ''')
+     </table>''')
 
     pxTemplate = Px('''
      <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
@@ -310,8 +511,8 @@ class AbstractWrapper(object):
               <td>
                <!-- Config -->
                <a if="user.has_role('Manager')" href=":tool.url"
-                  title="_('%sTool' % appName)">
-                <img src="'%s/ui/appyConfig.gif' % appUrl"/></a>
+                  title=":_('%sTool' % appName)">
+                <img src=":'%s/ui/appyConfig.gif' % appUrl"/></a>
                <!-- Additional icons from icons.pt -->
                <!--metal:call use-macro="app/ui/icons/macros/icons"/-->
                <!-- Log out -->
@@ -334,9 +535,7 @@ class AbstractWrapper(object):
 
        <!-- The navigation strip -->
        <tr if="contextObj and (layoutType == 'view')">
-        <td>
-         <!--metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/-->
-        </td>
+        <td>:self.pxNavigationStrip</td>
        </tr>
        <tr>
         <td>
@@ -355,8 +554,68 @@ class AbstractWrapper(object):
        <tr><td>:self.pxFooter</td></tr>
       </table>
      </body>
-    </html>
-    ''', prologue=Px.xhtmlPrologue)
+    </html>''', prologue=Px.xhtmlPrologue)
+
+    # PX for viewing an object -------------------------------------------------
+    pxLayoutedObject = Px('''<p>Layouted object</p>''')
+    pxView = Px('''
+     <x var="x=contextObj.allows('View', raiseError=True);
+             errors=req.get('errors', {});
+             layout=contextObj.getPageLayout(layoutType);
+             phaseInfo=contextObj.getAppyPhases(currentOnly=True, \
+                                                layoutType='view');
+             phase=phaseInfo['name'];
+             cssJs={};
+             page=req.get('page',None) or contextObj.getDefaultViewPage();
+             x=contextObj.removeMyLock(user, page);
+             groupedWidgets=contextObj.getGroupedAppyTypes(layoutType, page, \
+                                                           cssJs=cssJs)">
+      <x>:self.pxPagePrologue</x>
+      <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
+      <x>:self.pxPageBottom</x>
+     </x>''', template=pxTemplate, hook='content')
+
+    pxEdit = Px('''
+     <x var="x=contextObj.allows('Modify portal content', raiseError=True);
+             errors=req.get('errors', None) or {};
+             layout=contextObj.getPageLayout(layoutType);
+             cssJs={};
+             phaseInfo=contextObj.getAppyPhases(currentOnly=True, \
+                                                layoutType=layoutType);
+             phase=phaseInfo['name'];
+             page=req.get('page', None) or contextObj.getDefaultEditPage();
+             x=contextObj.setLock(user, page);
+             confirmMsg=req.get('confirmMsg', None);
+             groupedWidgets=contextObj.getGroupedAppyTypes(layoutType, page, \
+                                                           cssJs=cssJs)">
+      <x>:self.pxPagePrologue</x>
+      <!-- Warn the user that the form should be left via buttons -->
+      <script type="text/javascript">
+       window.onbeforeunload = function(e){
+         theForm = document.getElementById('appyForm');
+         if (theForm.button.value == "") {
+           var e = e || window.event;
+           if (e) {e.returnValue = warn_leave_form;}
+           return warn_leave_form;
+         }
+       }
+      </script>
+      <form id="appyForm" name="appyForm" method="post"
+            enctype="multipart/form-data"
+            action=":contextObj.absolute_url()+'/do'">
+        <input type="hidden" name="action" value="Update"/>
+        <input type="hidden" name="button" value=""/>
+        <input type="hidden" name="page" value=":page"/>
+        <input type="hidden" name="nav" value=":req.get('nav', None)"/>
+        <input type="hidden" name="confirmed" value="False"/>
+        <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
+      </form>
+      <script type="text/javascript"
+              if="confirmMsg">:'askConfirm(&quot;script&quot;, \
+                                &quot;postConfirmedEditForm()&quot;, \
+                                &quot;%s&quot;)' % confirmMsg</script>
+      <x>:self.pxPageBottom</x>
+     </x>''', template=pxTemplate, hook='content')
 
     # --------------------------------------------------------------------------
     # Class methods

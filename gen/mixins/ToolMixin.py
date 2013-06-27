@@ -44,6 +44,11 @@ class ToolMixin(BaseMixin):
         tool = self.appy()
         return tool.pxHome({'self': tool})
 
+    def query(self):
+        '''Returns the content of px ToolWrapper.pxQuery.'''
+        tool = self.appy()
+        return tool.pxQuery({'self': tool})
+
     def getHomePage(self):
         '''Return the home page when a user hits the app.'''
         # If the app defines a method "getHomePage", call it.
@@ -452,9 +457,9 @@ class ToolMixin(BaseMixin):
         '''Guess the current layout type, according to actual URL.'''
         actualUrl = self.REQUEST['ACTUAL_URL']
         res = ''
-        if actualUrl.endswith('/ui/view'):
+        if actualUrl.endswith('/view'):
             res = 'view'
-        elif actualUrl.endswith('/ui/edit') or actualUrl.endswith('/do'):
+        elif actualUrl.endswith('/edit') or actualUrl.endswith('/do'):
             res = 'edit'
         return res
 

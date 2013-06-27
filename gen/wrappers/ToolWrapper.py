@@ -26,8 +26,191 @@ class ToolWrapper(AbstractWrapper):
       <tr valign="middle">
        <td align="center">::_('front_page_text')</td>
       </tr>
-     </table>
-    ''', template=AbstractWrapper.pxTemplate, hook='content')
+     </table>''', template=AbstractWrapper.pxTemplate, hook='content')
+
+    # Show on query list or grid, the field content for a given object.
+    pxQueryField = Px('''
+     <x><!-- Title -->
+      <x if="widget['name'] == 'title'">
+       <x var="navInfo='search.%s.%s.%d.%d' % (className, searchName, \
+                                               startNumber+currentNumber, \
+                                               totalNumber);
+               cssClass=obj.getCssFor('title')">
+        <x>::obj.getSupTitle(navInfo)</x>
+        <a href=":obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"
+           if="enableLinks" class=":cssClass">:obj.Title()</a><span
+           if="not enableLinks" class=":cssClass">:obj.Title()</span><span
+           style=":showSubTitles and 'display:inline' or 'display:none'"
+           name="subTitle">::obj.getSubTitle()</span>
+
+        <!-- Actions: edit, delete -->
+        <div if="obj.mayAct()">
+         <a var="navInfo='search.%s.%s.%d.%d' % (className, searchName, \
+                                                 loop.obj.nb+1+startNumber, \
+                                                 totalNumber)"
+            if="obj.mayEdit()"
+            href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
+                              nav=navInfo)">
+          <img src=":'%s/ui/edit.png' % appUrl"
+               title=":_('object_edit')"/></a><img
+               if="obj.mayDelete()" style="cursor:pointer"
+               src=":'%s/ui/delete.png' % appUrl"
+               title=":_('object_delete')"
+               onClick="'onDeleteObject(&quot;%s&quot;)' % obj.UID()"/>
+        </div>
+       </x>
+      </x>
+      <!-- Any other field -->
+      <x if="widget['name'] != 'title'">
+       <x var="contextObj=obj;
+               layoutType='cell';
+               innerRef=True"
+          if="contextObj.showField(widget['name'], 'result')">
+        <!-- metal:f use-macro="context/ui/widgets/show/macros/field"/-->
+       </x>
+      </x>
+     </x>''')
+
+    # Show query results as a list.
+    pxQueryResultList = Px('''
+     <table class="list" width="100%">
+      <!-- Headers, with filters and sort arrows -->
+      <tr if="showHeaders">
+       <x for="column in columns">
+        <th var="widget=column['field'];
+                 sortable=ztool.isSortable(widget['name'], className, 'search');
+                 filterable=widget.get('filterable', None)"
+            width=":column['width']" align=":column['align']">
+         <x>::ztool.truncateText(_(widget['labelId']))</x>
+         <x>:self.pxSortAndFilter</x><x>:self.pxShowDetails</x>
+        </th>
+       </x>
+      </tr>
+
+      <!-- Results -->
+      <x for="obj in objs">
+       <tr var="odd=loop.obj.odd; currentNumber=currentNumber + 1"
+           id="query_row" valign="top" class=":odd and 'even' or 'odd'">
+        <x for="column in columns">
+         <td var="widget=column['field']" id=":'field_%s' % widget['name']"
+             width=":column['width']"
+             align=":column['align']">:self.pxQueryField</td>
+        </x>
+       </tr>
+      </x>
+     </table>''')
+
+    # Show query results as a grid.
+    pxQueryResultGrid = Px('''
+     <table width="100%"
+            var="modeElems=resultMode.split('_');
+                 cols=(len(modeElems)==2) and int(modeElems[1]) or 4;
+                 rows=ztool.splitList(objs, cols)">
+      <tr for="row in rows" valign="middle">
+       <td for="obj in row" width=":'%d%%' % (100/cols)" align="center"
+           style="padding-top: 25px">
+        <x var="currentNumber=currentNumber + 1"
+           for="column in columns">
+         <x var="widget = column['field']">:self.pxQueryField</x>
+        </x>
+       </td>
+      </tr>
+     </table>''')
+
+    # Show paginated query results as a list or grid.
+    pxQueryResult = Px('''
+     <div id="queryResult"
+          var="_=ztool.translate;
+               className=req['className'];
+               refInfo=ztool.getRefInfo();
+               refObject=refInfo[0];
+               refField=refInfo[1];
+               refUrlPart=refObject and ('&amp;ref=%s:%s' % (refObject.UID(), \
+                                                             refField)) or '';
+               startNumber=req.get('startNumber', '0');
+               startNumber=int(startNumber);
+               searchName=req.get('search', '');
+               searchDescr=ztool.getSearch(className, searchName, descr=True);
+               sortKey=req.get('sortKey', '');
+               sortOrder=req.get('sortOrder', 'asc');
+               filterKey=req.get('filterKey', '');
+               filterValue=req.get('filterValue', '');
+               queryResult=ztool.executeQuery(className, \
+                   search=searchDescr['search'], startNumber=startNumber, \
+                   remember=True, sortBy=sortKey, sortOrder=sortOrder, \
+                   filterKey=filterKey, filterValue=filterValue, \
+                   refObject=refObject, refField=refField);
+               objs=queryResult['objects'];
+               totalNumber=queryResult['totalNumber'];
+               batchSize=queryResult['batchSize'];
+               ajaxHookId='queryResult';
+               navBaseCall='askQueryResult(&quot;%s&quot;,&quot;%s&quot;, \
+                   &quot;%s&quot;, &quot;%s&quot;, **v**)' % (ajaxHookId, \
+                   ztool.absolute_url(), className, searchName);
+               newSearchUrl='%s/ui/search?className=%s%s' % \
+                   (ztool.absolute_url(), className, refUrlPart);
+               showSubTitles=req.get('showSubTitles', 'true') == 'true';
+               resultMode=ztool.getResultMode(className)">
+
+      <x if="objs">
+       <!-- Display here POD templates if required. -->
+       <table var="widgets=ztool.getResultPodFields(className);
+                   layoutType='view'"
+              if="objs and widgets" align=":dright">
+        <tr>
+         <td var="contextObj=objs[0]" for="widget in widgets">
+           <!--use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;-->
+         </td>
+        </tr>
+       </table>
+
+       <!-- The title of the search -->
+       <p>
+        <x>:searchDescr['translated']</x>
+        (<x>:totalNumber</x>)
+        <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
+         &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
+        </x>
+       </p>
+       <table width="100%">
+        <tr>
+         <!-- Search description -->
+         <td if="searchDescr['translatedDescr']">
+          <span class="discreet">:searchDescr['translatedDescr']</span><br/>
+         </td>
+         <!-- Appy (top) navigation -->
+         <td align=":dright" width="25%"><x>:self.pxAppyNavigate</x></td>
+        </tr>
+       </table>
+
+       <!-- Results, as a list or grid -->
+       <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
+               columns=objs[0].getColumnsSpecifiers(columnLayouts, dir);
+               currentNumber=0">
+        <x if="resultMode == 'list'">:self.pxQueryResultList</x>
+        <x if="resultMode != 'list'">:self.pxQueryResultGrid</x>
+       </x>
+
+       <!-- Appy (bottom) navigation -->
+       <x>:self.pxAppyNavigate</x>
+      </x>
+
+      <x if="not objs">
+       <x>:_('query_no_result')></x>
+       <x if="showNewSearch and (searchName == 'customSearch')"><br/>
+        <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>
+      </x>
+    </div>''')
+
+    pxQuery = Px('''
+     <x var="className=req['className'];
+             searchName=req.get('search', '');
+             cssJs=None;
+             showNewSearch=True;
+             showHeaders=True;
+             enableLinks=True">
+      <x>:self.pxPagePrologue</x><x>:self.pxQueryResult</x>
+     </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     def validPythonWithUno(self, value):
         '''This method represents the validator for field unoEnabledPython.'''

@@ -203,6 +203,16 @@ class BaseMixin:
         obj = createObject(tool.getPath('/temp_folder'), id, className, appName)
         return self.goto(obj.getUrl(**urlParams))
 
+    def view(self):
+        '''Returns the view PX.'''
+        appySelf = self.appy()
+        return appySelf.pxView({'self': appySelf})
+
+    def edit(self):
+        '''Returns the edit PX.'''
+        appySelf = self.appy()
+        return appySelf.pxEdit({'self': appySelf})
+
     def setLock(self, user, page):
         '''A p_user edits a given p_page on this object: we will set a lock, to
            prevent other users to edit this page at the same time.'''

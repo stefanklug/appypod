@@ -175,10 +175,12 @@ class ForAction(BufferAction):
         #                     the loop
         #   * curLoop.nb      gives the index (starting at 0) if the currently
         #                     walked element.
-        #   * curLoop.first   is True if the currently walkded element is the
+        #   * curLoop.first   is True if the currently walked element is the
         #                     first one.
-        #   * curLoop.last    is True if the currently walkded element is the
+        #   * curLoop.last    is True if the currently walked element is the
         #                     last one.
+        #   * curLoop.odd     is True if the currently walked element is odd
+        #   * curLoop.even    is True if the currently walked element is even
         # For example, if you have a "for" statement like this:
         #        for elem in myListOfElements
         # Within the part of the ODT document impacted by this statement, you
@@ -231,6 +233,8 @@ class ForAction(BufferAction):
             loop.nb = i
             loop.first = i == 0
             loop.last = i == (loop.length-1)
+            loop.even = (i%2)==0
+            loop.odd = not loop.even
             context[self.iter] = item
             # Cell: add a new row if we are at the end of a row
             if isCell and (currentColIndex == nbOfColumns):
