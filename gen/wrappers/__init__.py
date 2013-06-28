@@ -244,7 +244,7 @@ class AbstractWrapper(object):
       <x if="contextObj and phases and contextObj.mayNavigate()">
        <table class="portletContent"
               var="singlePhase=phases and (len(phases) == 1);
-                   page=req.get('page', 'main');
+                   page=req.get('page', '');
                    mayEdit=contextObj.mayEdit()">
         <x for="phase in phases">:phase['px']</x>
        </table>
@@ -334,6 +334,7 @@ class AbstractWrapper(object):
       </x>
      </x>''')
 
+    # The message that is shown when a user triggers an action.
     pxMessage = Px('''
      <x var="messages=ztool.consumeMessages()" if="messages">
       <div class="message">
@@ -346,6 +347,7 @@ class AbstractWrapper(object):
       </div>
      </x>''')
 
+    # The page footer.
     pxFooter = Px('''
      <table cellpadding="0" cellspacing="0" width="100%" class="footer">
       <tr>
@@ -353,6 +355,15 @@ class AbstractWrapper(object):
         <a href="http://appyframework.org" target="_blank">Appy</a></td></tr>
      </table>''')
 
+    # Hook for defining a PX that proposes additional links, after the links
+    # corresponding to top-level pages.
+    pxLinks = ''
+
+    # Hook for defining a PX that proposes additional icons after standard
+    # icons in the user strip.
+    pxIcons = ''
+
+    # The template PX for all pages.
     pxTemplate = Px('''
      <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
                 isAnon=ztool.userIsAnon();      app=ztool.getApp();
@@ -361,7 +372,9 @@ class AbstractWrapper(object):
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 lang=ztool.getUserLanguage();
                 layoutType=ztool.getLayoutType();
-                contextObj=ztool.getPublishedObject(layoutType);
+                contextObj=ztool.getPublishedObject(layoutType) or \
+                           ztool.getHomeObject();
+                showPortlet=ztool.showPortlet(contextObj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 discreetLogin=ztool.getAttr('discreetLogin', source='config');
                 dleft=(dir == 'ltr') and 'left' or 'right';
@@ -439,8 +452,9 @@ class AbstractWrapper(object):
           <a class="pageLink" href=":appUrl" title=": _('app_home')">
            <img src=":'%s/ui/home.gif' % appUrl" style="margin-right: 3px"/>
           </a>
-          <!-- Additional links (or icons) from icons.pt -->
-          <!--metal:call use-macro="app/ui/icons/macros/links"/-->
+
+          <!-- Additional links -->
+          <x>:self.pxLinks</x>
 
           <!-- Top-level pages -->
           <a for="page in tool.pages" class="pageLink"
@@ -513,8 +527,8 @@ class AbstractWrapper(object):
                <a if="user.has_role('Manager')" href=":tool.url"
                   title=":_('%sTool' % appName)">
                 <img src=":'%s/ui/appyConfig.gif' % appUrl"/></a>
-               <!-- Additional icons from icons.pt -->
-               <!--metal:call use-macro="app/ui/icons/macros/icons"/-->
+               <!-- Additional icons -->
+               <x>:self.pxIcons</x>
                <!-- Log out -->
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
                 <img src=":'%s/ui/logout.gif' % appUrl"/></a>
@@ -534,7 +548,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The navigation strip -->
-       <tr if="contextObj and (layoutType == 'view')">
+       <tr if="contextObj and showPortlet and (layoutType != 'edit')">
         <td>:self.pxNavigationStrip</td>
        </tr>
        <tr>
@@ -542,8 +556,7 @@ class AbstractWrapper(object):
          <table width="100%" cellpadding="0" cellspacing="0">
           <tr valign="top">
            <!-- The portlet -->
-           <td if="ztool.showPortlet(contextObj, layoutType)"
-               class="portlet">:self.pxPortlet</td>
+           <td if="showPortlet" class="portlet">:self.pxPortlet</td>
            <!-- Page content -->
            <td class="content">:content</td>
           </tr>

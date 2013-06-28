@@ -37,9 +37,10 @@ def initMasterValue(v):
 # (pages, groups,...) ----------------------------------------------------------
 class Page:
     '''Used for describing a page, its related phase, show condition, etc.'''
-    subElements = ('save', 'cancel', 'previous', 'next')
+    subElements = ('save', 'cancel', 'previous', 'next', 'edit')
     def __init__(self, name, phase='main', show=True, showSave=True,
-                 showCancel=True, showPrevious=True, showNext=True):
+                 showCancel=True, showPrevious=True, showNext=True,
+                 showEdit=True):
         self.name = name
         self.phase = phase
         self.show = show
@@ -53,6 +54,8 @@ class Page:
         # When editing the page, and when a next page exists, must I show the
         # "next" button?
         self.showNext = showNext
+        # When viewing the page, must I show the "edit" button?
+        self.showEdit = showEdit
 
     @staticmethod
     def get(pageData):
@@ -77,7 +80,7 @@ class Page:
            or 'view' (page is available only in "view" mode).
 
            If p_elem is not "page", this method returns the fact that a
-           sub-element is viewable or not (button "save", "cancel", etc).'''
+           sub-element is viewable or not (buttons "save", "cancel", etc).'''
         # Define what attribute to test for "showability".
         showAttr = 'show'
         if elem != 'page':

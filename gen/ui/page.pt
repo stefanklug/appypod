@@ -300,13 +300,13 @@
                    editable python: pageInfo['showOnEdit'] and contextObj.mayEdit()">
 
     <tal:comment replace="nothing">Edit</tal:comment>
-    <input type="button" class="button" tal:condition="python: editable and not locked"
+    <input type="button" class="button" tal:condition="python: editable and not locked and pageInfo['showEdit']"
            tal:attributes="style string: background-image: url($appUrl/ui/buttonEdit.png);
                            value python: _('object_edit');
                            onclick python: 'window.location=\'%s\'' % contextObj.getUrl(mode='edit', page=page)">
 
     <tal:comment replace="nothing">Locked</tal:comment>
-    <a tal:condition="python: editable and locked">
+    <a tal:condition="python: editable and locked and pageInfo['showEdit']">
      <img style="cursor: help"
           tal:define="lockDate python: tool.formatDate(locked[1]);
                       lockMsg python: _('page_locked', mapping={'user':tool.getUserName(locked[0]), 'date': lockDate})"

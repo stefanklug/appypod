@@ -49,6 +49,11 @@ class ToolMixin(BaseMixin):
         tool = self.appy()
         return tool.pxQuery({'self': tool})
 
+    def search(self):
+        '''Returns the content of px ToolWrapper.pxSearch.'''
+        tool = self.appy()
+        return tool.pxSearch({'self': tool})
+
     def getHomePage(self):
         '''Return the home page when a user hits the app.'''
         # If the app defines a method "getHomePage", call it.
@@ -63,6 +68,24 @@ class ToolMixin(BaseMixin):
             else:
                 url = self.goto(self.getApp().ui.home.absolute_url())
         return url
+
+    def getHomeObject(self):
+        '''The concept of "home object" is the object where the user must "be",
+           even if he is "nowhere". For example, if the user is on a search
+           screen, there is no contextual object. In this case, if we have a
+           home object for him, we will use it as contextual object, and its
+           portlet menu will nevertheless appear: the user will not have the
+           feeling of being lost.'''
+        # If the app defines a method "getHomeObject", call it.
+        appyTool = self.appy()
+        try:
+            obj = appyTool.getHomeObject()
+            if obj: return obj.o
+        except AttributeError:
+            # For managers, the home object is the config. For others, there is
+            # no default home object.
+            user = self.getUser()
+            if user.has_role('Manager'): return self
 
     def getCatalog(self):
         '''Returns the catalog object.'''
@@ -455,13 +478,9 @@ class ToolMixin(BaseMixin):
 
     def getLayoutType(self):
         '''Guess the current layout type, according to actual URL.'''
-        actualUrl = self.REQUEST['ACTUAL_URL']
-        res = ''
-        if actualUrl.endswith('/view'):
-            res = 'view'
-        elif actualUrl.endswith('/edit') or actualUrl.endswith('/do'):
-            res = 'edit'
-        return res
+        url = self.REQUEST['ACTUAL_URL']
+        if url.endswith('/view'): return 'view'
+        if url.endswith('/edit') or url.endswith('/do'): return 'edit'
 
     def getPublishedObject(self, layoutType):
         '''Gets the currently published object, if its meta_class is among

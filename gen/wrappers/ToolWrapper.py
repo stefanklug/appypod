@@ -212,6 +212,162 @@ class ToolWrapper(AbstractWrapper):
       <x>:self.pxPagePrologue</x><x>:self.pxQueryResult</x>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
+    pxSearch = Px('''
+     <x var="className=req['className'];
+             refInfo=req.get('ref', None);
+             searchInfo=ztool.getSearchInfo(className, refInfo);
+             cssJs={};
+             x=ztool.getCssJs(searchInfo['fields'], 'edit', cssJs)">
+
+      <!-- Include type-specific CSS and JS. -->
+      <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
+            href=":'%s/ui/%s' % (appUrl, cssFile)"/>
+      <script for="jsFile in cssJs['js']" type="text/javascript"
+              src=":'%s/ui/%s' % (appUrl, jsFile)"></script>
+
+      <!-- Search title -->
+      <h1><x>:_('%s_plural'%className)</x> &ndash;
+          <x>:_('search_title')</x></h1>
+      <br/>
+      <!-- Form for searching objects of request/className. -->
+      <form name="search" action=":ztool.absolute_url()+'/do'" method="post">
+       <input type="hidden" name="action" value="SearchObjects"/>
+       <input type="hidden" name="className" value=":className"/>
+       <input if="refInfo" type="hidden" name="ref" value=":refInfo"/>
+
+       <table width="100%">
+        <tr for="searchRow in ztool.getGroupedSearchFields(searchInfo)"
+            valign="top">
+         <x for="widget in searchRow">
+          <td var="scolspan=widget and widget['scolspan'] or 1"
+              colspan=":scolspan"
+              width=":'%d%%' % ((100/searchInfo['nbOfColumns'])*scolspan)">
+           <x if="widget">
+            <x var="name=widget['name'];
+                    widgetName='w_%s' % name;
+                    macroPage=widget['type'].lower()">
+              <!--metal:call use-macro="python: getattr(appFolder.ui.widgets, macroPage).macros['search']"/-->
+            </x>
+           </x><br class="discreet"/>
+          </td>
+         </x>
+        </tr>
+       </table>
+
+       <!-- Submit button -->
+       <p align=":dright"><br/>
+        <input type="submit" class="button" value=":_('search_button')"
+               style=":'background-image: url(%s/ui/buttonSearch.png)'%appUrl"/>
+       </p>
+      </form>
+     </x>
+    ''', template=AbstractWrapper.pxTemplate, hook='content')
+
+    pxImport = Px('''
+     <x var="className=req['className'];
+             importElems=ztool.getImportElements(className);
+             allAreImported=True">
+      <x>:self.pxPagePrologue</x>
+      <script type="text/javascript"><![CDATA[
+      var importedElemsShown = false;
+      function toggleViewableElements() {
+        var rows = document.getElementsByName('importedElem');
+        var newDisplay = 'table-row';
+        if (isIe) newDisplay = 'block';
+        if (importedElemsShown) newDisplay = 'none';
+        for (var i=0; i<rows.length; i++) {
+          rows[i].style.display = newDisplay;
+        }
+        importedElemsShown = !importedElemsShown;
+      }
+      var checkBoxesChecked = true;
+      function toggleCheckboxes() {
+        var checkBoxes = document.getElementsByName('cbElem');
+        var newCheckValue = true;
+        if (checkBoxesChecked) newCheckValue = false;
+        for (var i=0; i<checkBoxes.length; i++) {
+           checkBoxes[i].checked = newCheckValue;
+        }
+        checkBoxesChecked = newCheckValue;
+      }
+      function importSingleElement(importPath) {
+        var f = document.forms['importElements'];
+        f.importPath.value = importPath;
+        f.submit();
+      }
+      function importManyElements() {
+        var f = document.forms['importElements'];
+        var importPaths = '';
+        // Get the values of the checkboxes
+        var checkBoxes = document.getElementsByName('cbElem');
+        for (var i=0; i<checkBoxes.length; i++) {
+          if (checkBoxes[i].checked) {
+            importPaths += checkBoxes[i].value + '|';
+          }
+        }
+        if (! importPaths) alert(no_elem_selected);
+        else {
+          f.importPath.value = importPaths;
+          f.submit();
+        }
+      }]]>
+      </script>
+
+      <!-- Form for importing several elements at once. -->
+      <form name="importElements"
+            action=":ztool.absolute_url()+'/do'" method="post">
+       <input type="hidden" name="action" value="ImportObjects"/>
+       <input type="hidden" name="className" value=":className"/>
+       <input type="hidden" name="importPath" value=""/>
+      </form>
+
+      <h1>:_('import_title')"></h1><br/>
+      <table class="list" width="100%">
+       <tr>
+        <th for="columnHeader in importElems[0]">
+         <img if="loop.columnHeader.nb == 0" src=":'%s/ui/eye.png' % appUrl"
+              title="_('import_show_hide')" style="cursor:pointer"
+              onClick="toggleViewableElements()" align=":dleft" />
+         <x>:columnHeader</x>
+        </th>
+        <th></th>
+        <th width="20px"><img src=":'%s/ui/select_elems.png' % $appUrl"
+            title=":_('select_delesect')" onClick="toggleCheckboxes()"
+            style="cursor:pointer"/></th>
+       </tr>
+       <x for="row in importElems[1]">
+        <tr var="alreadyImported=ztool.isAlreadyImported(className, row[0]);
+                 allAreImported=allAreImported and alreadyImported;
+                 odd=loop.row.odd"
+            id=":alreadyImported and 'importedElem' or 'notImportedElem'"
+            name=":alreadyImported and 'importedElem' or 'notImportedElem'"
+            style=":alreadyImported and 'display:none' or 'display:table-row'"
+            class=":odd and 'even' or 'odd'">
+         <td for="elem in row[1:]">:elem</td>
+         <td>
+          <input type="button" if="not alreadyImported"
+                 onClick=":'importSingleElement(&quot;%s&quot;)' % row[0]"
+                 value=":_('query_import')"/>
+          <x if="alreadyImported">:_('import_already')</x>
+         </td>
+         <td align="center">
+          <input if="not alreadyImported" type="checkbox" checked="checked"
+                 id="cbElem" name="cbElem" value="row[0]" />
+         </td>
+        </tr>
+       </x>
+       <tr if="not importElems[1] or allAreImported">
+        <td colspan="15">:_('query_no_result')</td></tr>
+      </table>
+
+      <!-- Button for importing several elements at once. -->
+      <p align=":dright"><br/>
+       <input if="importElems[1] and not allAreImported"
+              type="button" onClick="importManyElements()"
+              value=":_('import_many')"/>
+      </p>
+     </x>''', template=AbstractWrapper.pxTemplate, hook='content')
+
     def validPythonWithUno(self, value):
         '''This method represents the validator for field unoEnabledPython.'''
         if value:

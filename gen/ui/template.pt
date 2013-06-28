@@ -13,7 +13,8 @@
                   resp req/RESPONSE;
                   lang tool/getUserLanguage;
                   layoutType tool/getLayoutType;
-                  contextObj python: tool.getPublishedObject(layoutType);
+                  contextObj python: tool.getPublishedObject(layoutType) or tool.getHomeObject();
+                  showPortlet python: tool.showPortlet(context, layoutType);
                   dir python: tool.getLanguageDirection(lang);
                   discreetLogin python: tool.getAttr('discreetLogin', source='config');
                   dleft python: (dir == 'ltr') and 'left' or 'right';
@@ -185,7 +186,7 @@
   </td>
  </tr>
  <tal:comment replace="nothing">The navigation strip</tal:comment>
- <tr tal:condition="python: contextObj and (layoutType == 'view')">
+ <tr tal:condition="python: contextObj and showPortlet and (layoutType != 'edit')">
   <td><metal:navigate use-macro="app/ui/navigate/macros/navigationStrip"/></td>
  </tr>
  <tr>
@@ -193,7 +194,7 @@
     <table width="100%" cellpadding="0" cellspacing="0">
      <tr valign="top">
       <tal:comment replace="nothing">Portlet</tal:comment>
-      <td tal:condition="python: tool.showPortlet(context, layoutType)" class="portlet">
+      <td tal:condition="showPortlet" class="portlet">
         <metal:portlet use-macro="app/ui/portlet/macros/portlet"/>
       </td>
       <tal:comment replace="nothing">Page content</tal:comment>

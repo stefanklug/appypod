@@ -134,7 +134,7 @@
 </tal:comment>
 <table metal:define-macro="phases" class="portletContent"
        tal:define="singlePhase python: phases and (len(phases) == 1);
-                   page python: req.get('page', 'main');
+                   page python: req.get('page', '');
                    mayEdit contextObj/mayEdit">
   <tal:phase repeat="phase phases">
     <tal:comment replace="nothing">The box containing phase-related information</tal:comment>
