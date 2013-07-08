@@ -1,4 +1,4 @@
-<tal:comment replace="nothing">View macro</tal:comment>
+<tal:comment replace="nothing">Month view macro</tal:comment>
 <div metal:define-macro="viewMonth"
      tal:define="fieldName request/fieldName;
                  ajaxHookId python: contextObj.UID() + fieldName;

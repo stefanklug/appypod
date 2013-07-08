@@ -47,7 +47,12 @@ class PxParser(XmlParser):
     pxAttributes = ('var', 'for', 'if')
     # No-end tags
     noEndTags = ('br', 'img', 'link', 'input')
-    noDumpTags = ('selected', 'checked')
+    noDumpTags = ('selected', 'checked', 'disabled', 'multiple')
+    # The following dict allows to convert attrs "lfor" to "for". Indeed,
+    # because tags "label" can have an attribute named "for", it clashes with
+    # the "for" attribute added by PX. The solution is to force users to write,
+    # in their PX, the HTML attr for" as "lfor".
+    renamedAttributes = {'lfor': 'for'}
 
     def __init__(self, env, caller=None):
         XmlParser.__init__(self, env, caller)
@@ -86,7 +91,7 @@ class PxParser(XmlParser):
                     break
             e.currentBuffer.dumpStartElement(elem, attrs,
                 ignoreAttrs=ignorableAttrs, noEndTag=elem in self.noEndTags,
-                hook=hook)
+                hook=hook, renamedAttrs=self.renamedAttributes)
 
     def endElement(self, elem):
         e = self.env

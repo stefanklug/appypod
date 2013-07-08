@@ -139,11 +139,12 @@ class Buffer:
     def getLength(self): pass # To be overridden
 
     def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(), hook=False,
-                         noEndTag=False):
+                         noEndTag=False, renamedAttrs=None):
         '''Inserts into this buffer the start tag p_elem, with its p_attrs,
-           excepted those listed in p_ignoreAttrs. If p_hook is not None
-           (works only for MemoryBuffers), we will insert, at the end of the
-           list of dumped attributes:
+           excepted those listed in p_ignoreAttrs. Attrs can be dumped with an
+           alternative name if specified in dict p_renamedAttrs. If p_hook is
+           not None (works only for MemoryBuffers), we will insert, at the end
+           of the list of dumped attributes:
            * [pod] an Attributes instance, in order to be able, when evaluating
                    the buffer, to dump additional attributes, not known at this
                    dump time;
@@ -155,6 +156,7 @@ class Buffer:
         self.write('<%s' % elem)
         for name, value in attrs.items():
             if ignoreAttrs and (name in ignoreAttrs): continue
+            if renamedAttrs and (name in renamedAttrs): name=renamedAttrs[name]
             # If the value begins with ':', it is a Python expression. Else,
             # it is a static value.
             if not value.startswith(':'):

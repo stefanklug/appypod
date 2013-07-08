@@ -158,7 +158,7 @@ class Generator:
            workflow.'''
         res = 'none'
         for attrValue in klass.__dict__.itervalues():
-            if isinstance(attrValue, gen.Type):
+            if isinstance(attrValue, gen.Field):
                 res = 'class'
             elif isinstance(attrValue, gen.State):
                 res = 'workflow'
@@ -218,7 +218,7 @@ class Generator:
                 # programmatically
                 moreAttrs = []
                 for eName, eValue in moduleElem.__dict__.iteritems():
-                    if isinstance(eValue, gen.Type) and (eName not in attrs):
+                    if isinstance(eValue, gen.Field) and (eName not in attrs):
                         moreAttrs.append(eName)
                 # Sort them in alphabetical order: else, order would be random
                 moreAttrs.sort()

@@ -55,7 +55,7 @@ class ClassDescriptor(Descriptor):
             except AttributeError:
                 attrValue = getattr(self.modelClass, attrName)
                 hookClass = self.modelClass
-            if isinstance(attrValue, gen.Type):
+            if isinstance(attrValue, gen.Field):
                 if not condition or eval(condition):
                     attrs.append( (attrName, attrValue, hookClass) )
         # Then, add attributes from parent classes
@@ -124,7 +124,7 @@ class ClassDescriptor(Descriptor):
                 attrValue = getattr(self.klass, attrName)
             except AttributeError:
                 attrValue = getattr(self.modelClass, attrName)
-            if not isinstance(attrValue, gen.Type): continue
+            if not isinstance(attrValue, gen.Field): continue
             FieldDescriptor(attrName, attrValue, self).generate()
 
     def isAbstract(self):

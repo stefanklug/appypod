@@ -2,7 +2,7 @@
 import os, os.path, sys, re, time, random, types, base64, urllib
 from appy import Object
 import appy.gen
-from appy.gen import Type, Search, Selection, String, Page
+from appy.gen import Search, String, Page
 from appy.gen.utils import SomeObjects, getClassName, GroupDescr, SearchDescr
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
@@ -475,6 +475,11 @@ class ToolMixin(BaseMixin):
         '''Returns a list made of the same elements as p_l, but grouped into
            sub-lists of p_sub elements.'''
         return splitList(l, sub)
+
+    def quote(self, s):
+        '''Returns the quoted version of p_s.'''
+        if "'" in s: return '&quot;%s&quot;' % s
+        return "'%s'" % s
 
     def getLayoutType(self):
         '''Guess the current layout type, according to actual URL.'''

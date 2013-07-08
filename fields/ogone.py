@@ -1,7 +1,8 @@
 # ------------------------------------------------------------------------------
 import sha
 from appy import Object
-from appy.gen import Type
+from appy.gen import Field
+from appy.px import Px
 
 # ------------------------------------------------------------------------------
 class OgoneConfig:
@@ -25,20 +26,39 @@ class OgoneConfig:
     def __repr__(self): return str(self.__dict__)
 
 # ------------------------------------------------------------------------------
-class Ogone(Type):
+class Ogone(Field):
     '''This field allows to perform payments with the Ogone (r) system.'''
     urlTypes = ('accept', 'decline', 'exception', 'cancel')
+
+    pxView = pxCell = Px('''
+     <x>
+      <!-- var "value" is misused and contains the contact params for Ogone -->
+      <p>:value</p>
+      <!-- The form for sending the payment request to Ogone -->
+      <form method="post" id="form1" name="form1" var="env=value['env']"
+            action=":'https://secure.ogone.com/ncol/%s/orderstandard.asp'% env">
+        <x for="item in value.items()">
+         <input type="hidden" if="item[0] != 'env'" id=":item[0]"
+                name=":item[0]" value=":item[1]"/>
+        </x>
+        <!-- Submit image -->
+        <input type="image" id="submit2" name="submit2"
+               src=":'%s/ui/ogone.gif' % $appUrl" title=":_('custom_pay')"/>
+      </form>
+     </x>''')
+
+    pxEdit = pxSearch = ''
 
     def __init__(self, orderMethod, responseMethod, show='view', page='main',
                  group=None, layouts=None, move=0, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None):
-        Type.__init__(self, None, (0,1), None, show, page, group, layouts, move,
-                      False, False,specificReadPermission,
-                      specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, False, True, mapping, label,
-                      None, None, None, None)
+        Field.__init__(self, None, (0,1), None, show, page, group, layouts,
+                       move, False, False,specificReadPermission,
+                       specificWritePermission, width, height, None, colspan,
+                       master, masterValue, focus, False, True, mapping, label,
+                       None, None, None, None)
         # orderMethod must contain a method returning a dict containing info
         # about the order. Following keys are mandatory:
         #   * orderID   An identifier for the order. Don't use the object UID

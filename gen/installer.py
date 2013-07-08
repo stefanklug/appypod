@@ -385,7 +385,7 @@ class ZopeInstaller:
             for baseClass in klass.wrapperClass.__bases__:
                 if baseClass.__name__ == 'AbstractWrapper': continue
                 for name, appyType in baseClass.__dict__.iteritems():
-                    if not isinstance(appyType, gen.Type) or \
+                    if not isinstance(appyType, gen.Field) or \
                            (isinstance(appyType, gen.Ref) and appyType.isBack):
                         continue # Back refs are initialised within fw refs
                     appyType.init(name, baseClass, appName)

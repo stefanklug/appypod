@@ -1,16 +1,249 @@
 # ------------------------------------------------------------------------------
 import types
 from appy import Object
-from appy.gen import Type
+from appy.gen import Field
+from appy.px import Px
 from DateTime import DateTime
 from BTrees.IOBTree import IOBTree
 from persistent.list import PersistentList
 
 # ------------------------------------------------------------------------------
-class Calendar(Type):
+class Calendar(Field):
     '''This field allows to produce an agenda (monthly view) and view/edit
        events on it.'''
     jsFiles = {'view': ('widgets/calendar.js',)}
+
+    # Month view for a calendar. Called by pxView, and directly from the UI,
+    # via Ajax, when the user selects another month.
+    pxMonthView = Px('''
+     <div var="fieldName=req['fieldName'];
+               ajaxHookId=contextObj.UID() + fieldName;
+               month=req['month'];
+               monthDayOne=DateTime('%s/01' % month);
+               today=DateTime('00:00');
+               grid=contextObj.callField(fieldName, 'getMonthGrid', month);
+               allEventTypes=contextObj.callField(fieldName, 'getEventTypes', \
+                                                  contextObj);
+               preComputed=contextObj.callField(fieldName, \
+                   'getPreComputedInfo', contextObj, monthDayOne, grid);
+               defaultDate=contextObj.callField(fieldName, 'getDefaultDate', \
+                                                contextObj);
+               defaultDateMonth=defaultDate.strftime('%Y/%m');
+               previousMonth=contextObj.callField(fieldName, \
+                   'getSiblingMonth', month, 'previous');
+               nextMonth=contextObj.callField(fieldName, 'getSiblingMonth', \
+                                              month, 'next');
+               widget=contextObj.getAppyType(fieldName, asDict=True);
+               mayEdit=contextObj.allows(widget['writePermission']);
+               objUrl=contextObj/absolute_url();
+               startDate=contextObj.callField(fieldName, 'getStartDate', \
+                                              contextObj);
+               endDate=contextObj.callField(fieldName, 'getEndDate',contextObj);
+               otherCalendars=contextObj.callField(fieldName, \
+                   'getOtherCalendars', contextObj, preComputed)"
+          id=":ajaxHookId">
+
+     <script type="text/javascript">:'var %s_maxEventLength = %d;' % \
+                                    (fieldName, widget['maxEventLength'])">
+     </script>
+
+     <!-- Month chooser -->
+     <div style="margin-bottom: 5px"
+          var="fmt='%Y/%m/%d';
+               goBack=not startDate or (startDate.strftime(fmt) &lt; \
+                                        grid[0][0].strftime(fmt));
+               goForward=not endDate or (endDate.strftime(fmt) &gt; \
+                                         grid[-1][-1].strftime(fmt))">
+      <!-- Go to the previous month -->
+      <img style="cursor:pointer" tal:condition="goBack"
+           src=":'%s/ui/arrowLeftSimple.png' % appUrl"
+           onclick=":'askMonthView(%s, %s, %s, %s)' % \
+                     (q(ajaxHookId),q(objUrl),q(fieldName),q(previousMonth))"/>
+      <!-- Go back to the default date -->
+      <x if="goBack or goForward">
+       <input type="button"
+              var="fmt='%Y/%m';
+                   label=(defaultDate.strftime(fmt)==today.strftime(fmt)) and \
+                         'today' or 'goto_source'"
+              value=":_(label)"
+              onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
+                                  q(objUrl), q(fieldName), q(defaultDateMonth))"
+              disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
+      </x>
+      <!-- Go to the next month -->
+      <img style="cursor:pointer" if="goForward"
+           src=":'%s/ui/arrowRightSimple.png' % appUrl"
+           onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
+                                   q(objUrl), q(fieldName), q(nextMonth))"/>
+      <span>:_('month_%s' % monthDayOne.aMonth())</span>
+      <span>:month.split('/')[0]</span>
+     </div>
+
+     <!-- Calendar month view -->
+     <table cellpadding="0" cellspacing="0" width="100%" class="list"
+            style="font-size: 95%"
+            var="rowHeight=int(widget['height']/float(len(grid)))">
+      <!-- 1st row: names of days -->
+      <tr height="22px">
+       <th for="dayName in contextObj.callField(fieldName, 'getNamesOfDays', \
+                                                contextObj)"
+           width="14%">:dayName</th>
+      </tr>
+      <!-- The calendar in itself -->
+      <tr for="row in grid" valign="top" height=":rowHeight">
+       <x for="date in row">
+        <x var="tooEarly=startDate and (date &lt; startDate);
+                tooLate=endDate and not tooEarly and (date &gt; endDate);
+                inRange=not tooEarly and not tooLate;
+                cssClasses=contextObj.callField(fieldName, 'getCellStyle', \
+                                                contextObj, date, today)">
+         <!-- Dump an empty cell if we are out of the supported date range -->
+         <td if="not inRange" class=":cssClasses"></td>
+         <!-- Dump a normal cell if we are in range -->
+         <x if="inRange">
+          <td var="events=contextObj.callField(fieldName, 'getEventsAt', \
+                                               contextObj, date);
+                   spansDays=contextObj.callField(fieldName, 'hasEventsAt', \
+                                                  contextObj, date+1, events);
+                   mayCreate=mayEdit and not events;
+                   mayDelete=mayEdit and events"
+              style="date.isCurrentDay() and 'font-weight:bold' or \
+                                             'font-weight:normal'"
+              class=":cssClasses"
+              onmouseover=":mayEdit and 'this.getElementsByTagName(\
+                %s)[0].style.visibility=%s' % (q('img'), q('visible')) or ''"
+              onmouseout="mayEdit and 'this.getElementsByTagName(\
+                %s)[0].style.visibility=%s' % (q('img'), q('hidden')) or ''">
+           <x var="day=date.day();
+                   dayString=date.strftime('%Y/%m/%d')">
+            <span>:day</span>
+            <span if="day == 1">:_('month_%s_short' % date.aMonth())"></span>
+            <!-- Icon for adding an event -->
+            <x if="mayCreate">
+             <img style="visibility:hidden; cursor:pointer"
+                  var="info=contextObj.callField(fieldName, \
+                            'getApplicableEventsTypesAt', contextObj, date, \
+                            allEventTypes, preComputed, True)"
+                  if="info['eventTypes']"
+                  src=":'%s/ui/plus.png' % appUrl"
+                  onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
+                    (q('new'), q(fieldName), q(dayString), \
+                     q(info['eventTypes']), q(info['message']))"/>
+            </x>
+            <!-- Icon for deleting an event -->
+            <img if="mayDelete" style="visibility:hidden; cursor:pointer"
+                 src=":'%s/ui/delete.png' % appUrl"
+                 onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
+                   (q('del'), q(fieldName), q(dayString), q(str(spansDays)))"/>
+            <x if="events">
+             <!-- A single event is allowed for the moment -->
+             <div var="eventType=events[0]['eventType']">
+              <span style="color: grey">:contextObj.callField(fieldName, \
+                 'getEventName', contextObj, eventType)"></span>
+             </div>
+            </x>
+            <!-- Events from other calendars -->
+            <x if="otherCalendars">
+             <x var="otherEvents=contextObj.callField(fieldName, \
+                         'getOtherEventsAt', contextObj, date, otherCalendars)"
+                if="otherEvents">
+              <div style=":'color: %s; font-style: italic' % event['color']"
+                   for="event in otherEvents">:event['name']</div>
+             </x>
+            </x>
+            <!-- Additional info -->
+            <x var="info=contextObj.callField(fieldName, \
+                    'getAdditionalInfoAt', contextObj, date, preComputed)"
+               if="info">::info</x>
+           </x>
+          </td>
+         </x>
+        </x>
+       </x>
+      </tr>
+     </table>
+
+     <!-- Popup for creating a calendar event -->
+     <div var="prefix='%s_newEvent' % fieldName;
+               popupId=prefix + 'Popup'"
+          id=":popupId" class="popup" align="center">
+      <form id="prefix + 'Form'" method="post">
+       <input type="hidden" name="fieldName" value=":fieldName"/>
+       <input type="hidden" name="month" value=":month"/>
+       <input type="hidden" name="name" value=":fieldName"/>
+       <input type="hidden" name="action" value="Process"/>
+       <input type="hidden" name="actionType" value="createEvent"/>
+       <input type="hidden" name="day"/>
+
+       <!-- Choose an event type -->
+       <div align="center" style="margin-bottom: 3px">:_('which_event')"></div>
+       <select name="eventType">
+        <option value="">:_('choose_a_value')"></option>
+        <option for="eventType in allEventTypes"
+                value=":eventType">:contextObj.callField(fieldName, \
+                                    'getEventName', contextObj, eventType)">
+        </option>
+       </select><br/><br/>
+       <!--Span the event on several days -->
+       <div align="center" class="discreet" style="margin-bottom: 3px">
+        <span>:_('event_span')"></span>
+        <input type="text" size="3" name="eventSpan"/>
+       </div>
+       <input type="button"
+              value=":_('object_save')"
+              onclick=":'triggerCalendarEvent(%s, %s, %s, %s, \
+                         %s_maxEventLength)' % (q('new'), q(ajaxHookId), \
+                         q(fieldName), q(objUrl), fieldName)"/>
+       <input type="button"
+              value=":_('object_cancel')"
+              onclick=":'closePopup(%s)' % q(popupId)"/>
+      </form>
+     </div>
+
+     <!-- Popup for deleting a calendar event -->
+     <div var="prefix='%s_delEvent' % fieldName;
+               popupId=prefix + 'Popup'"
+          id=":popupId" class="popup" align="center">
+      <form id=":prefix + 'Form'" method="post">
+       <input type="hidden" name="fieldName" value=":fieldName"/>
+       <input type="hidden" name="month" value=":month"/>
+       <input type="hidden" name="name" value=":fieldName"/>
+       <input type="hidden" name="action" value="Process"/>
+       <input type="hidden" name="actionType" value="deleteEvent"/>
+       <input type="hidden" name="day"/>
+
+       <div align="center" style="margin-bottom: 5px">_('delete_confirm')">
+       </div>
+
+       <!-- Delete successive events ? -->
+       <div class="discreet" style="margin-bottom: 10px"
+            id=":prefix + 'DelNextEvent'">
+         <input type="checkbox" name="deleteNext_cb"
+                id=":prefix + '_cb'"
+                onClick=":'toggleCheckbox(%s, %s)' % \
+                          (q('%s_cb' % prefix), q('%s_hd' % prefix))"/>
+         <input type="hidden" id=":prefix + '_hd'" name="deleteNext"/>
+         <span>:_('del_next_events')"></span>
+       </div>
+       <input type="button" value=":_('yes')"
+              onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
+                (q('del'), q(ajaxHookId), q(fieldName), q(objUrl))"/>
+       <input type="button" value=":_('no')"
+              onclick=":'closePopup(%s)' % q(popupId)"/>
+      </form>
+     </div>
+    </div>''')
+
+    pxView = pxCell = Px('''
+     <x var="defaultDate=contextObj.callField(widget['name'], 'getDefaultDate',\
+                                              contextObj);
+             x=req.set('fieldName', widget['name']);
+             x=req.set('month', defaultDate.strftime('%Y/%m'))">
+      <x>:widget['pxMonthView']></x>
+     </x>
+    ''')
+
+    pxEdit = pxSearch = ''
 
     def __init__(self, eventTypes, eventNameMethod=None, validator=None,
                  default=None, show='view', page='main', group=None,
@@ -21,11 +254,11 @@ class Calendar(Type):
                  otherCalendars=None, additionalInfo=None, startDate=None,
                  endDate=None, defaultDate=None, preCompute=None,
                  applicableEvents=None):
-        Type.__init__(self, validator, (0,1), default, show, page, group,
-                      layouts, move, False, False, specificReadPermission,
-                      specificWritePermission, width, height, None, colspan,
-                      master, masterValue, focus, False, True, mapping, label,
-                      None, None, None, None)
+        Field.__init__(self, validator, (0,1), default, show, page, group,
+                       layouts, move, False, False, specificReadPermission,
+                       specificWritePermission, width, height, None, colspan,
+                       master, masterValue, focus, False, True, mapping, label,
+                       None, None, None, None)
         # eventTypes can be a "static" list or tuple of strings that identify
         # the types of events that are supported by this calendar. It can also
         # be a method that computes such a "dynamic" list or tuple. When

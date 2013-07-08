@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, mimetypes
 import appy.pod
-from appy.gen import Type, Search, Ref, String, WorkflowAnonymous
+from appy.gen import Field, Search, Ref, String, WorkflowAnonymous
 from appy.gen.indexer import defaultIndexes
 from appy.gen.utils import createObject
 from appy.px import Px
@@ -370,7 +370,7 @@ class AbstractWrapper(object):
                 appUrl=app.absolute_url();      appFolder=app.data;
                 appName=ztool.getAppName();     _=ztool.translate;
                 req=ztool.REQUEST;              resp=req.RESPONSE;
-                lang=ztool.getUserLanguage();
+                lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
                 contextObj=ztool.getPublishedObject(layoutType) or \
                            ztool.getHomeObject();
@@ -998,7 +998,7 @@ class AbstractWrapper(object):
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)
         # If we got an Appy type, return the value of this type for this object
-        if isinstance(res, Type):
+        if isinstance(res, Field):
             o = self.o
             if isinstance(res, Ref):
                 return res.getValue(o, noListIfSingleObj=True)

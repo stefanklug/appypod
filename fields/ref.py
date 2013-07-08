@@ -1,0 +1,672 @@
+# ------------------------------------------------------------------------------
+# This file is part of Appy, a framework for building applications in the Python
+# language. Copyright (C) 2007 Gaetan Delannay
+
+# Appy is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+
+# Appy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# Appy. If not, see <http://www.gnu.org/licenses/>.
+
+# ------------------------------------------------------------------------------
+import sys
+from appy.fields import Field, No
+from appy.px import Px
+from appy.gen.layout import Table
+from appy.gen import utils as gutils
+from appy.shared import utils as sutils
+
+# ------------------------------------------------------------------------------
+class Ref(Field):
+    # Some default layouts. "w" stands for "wide": those layouts produce tables
+    # of Ref objects whose width is 100%.
+    wLayouts = Table('lrv-f', width='100%')
+    # "d" stands for "description": a description label is added.
+    wdLayouts = {'view': Table('l-d-f', width='100%')}
+
+    # This PX displays the title of a referenced object, with a link on it to
+    # reach the consult view for this object. If we are on a back reference, the
+    # link allows to reach the correct page where the forward reference is
+    # defined. If we are on a forward reference, the "nav" parameter is added to
+    # the URL for allowing to navigate from one object to the next/previous on
+    # ui/view.
+    pxObjectTitle = Px('''
+     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, \
+               appyType['pageName'], loop.obj.nb + startNumber, totalNumber);
+             navInfo=not appyType['isBack'] and navInfo or '';
+             cssClass=obj.getCssFor('title')">
+      <x>::obj.getSupTitle(navInfo)</x>
+      <a var="pageName=appyType['isBack'] and appyType['backd']['pageName'] or \
+                                              'main';
+              fullUrl=obj.getUrl(page=pageName, nav=navInfo)"
+         href=":fullUrl" class=":cssClass">:(not includeShownInfo) and \
+        obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())
+      </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
+            'display:none'">::obj.getSubTitle()"</span>
+     </x>''')
+
+    # This PX displays icons for triggering actions on a given referenced object
+    # (edit, delete, etc).
+    pxObjectActions = Px('''
+     <table class="noStyle" var="isBack=appyType['isBack']">
+      <tr>
+       <!-- Arrows for moving objects up or down -->
+       <td if=":not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
+        <x var="objectIndex=contextObj.getAppyRefIndex(fieldName, obj);
+                ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
+                  (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
+                   q(obj.UID()), q('move'), q('**v**')))">
+        <img if="objectIndex &gt; 0" style="cursor:pointer"
+             src=":'%s/ui/arrowUp.png' % $appUrl" title=":_('move_up')"
+             onclick=":ajaxBaseCall.replace('**v**', 'up')"/><img
+             style="cursor:pointer" if="objectIndex &lt; (totalNumber-1)"
+             src=":'%s/ui/arrowDown.png' % appUrl" title=":_('move_down')"
+             onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
+        </x>
+       </td>
+       <!-- Workflow transitions -->
+       <td if="obj.showTransitions('result')">
+        <x var="targetObj=obj">:targetObj.appy().pxTransitions</x>
+       </td>
+       <!-- Edit -->
+       <td if="not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
+        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, \
+                        appyType['pageName'], loop.obj.nb + startNumber, \
+                        totalNumber)"
+           href=":obj.getUrl(mode='edit', page='main', nav=navInfo)">
+         <img src=":'%s/ui/edit.png' % appUrl" title=":_('object_edit')"/>
+        </a>
+       </td>
+       <!-- Delete -->
+       <td if="not isBack and appyType['delete'] and canWrite and \
+               obj.mayDelete()">
+        <img style="cursor:pointer" title=":_('object_delete')"
+             src=":'%s/ui/delete.png' % appUrl"
+             onclick=":'onDeleteObject(%s)' % q(obj.UID())"/>
+       </td>
+       <!-- Unlink -->
+       <td if="not isBack and appyType['unlink'] and canWrite">
+        <img style="cursor:pointer" title=":_('object_unlink')"
+             src=":'%s/ui/unlink.png' % appUrl"
+             onclick=":'onUnlinkObject(%s,%s,%s)' % (q(contextObj.UID()), \
+                        q(appyType['name']), q(obj.UID()))"/>
+       </td>
+      </tr>
+     </table>''')
+
+    # Displays the button allowing to add a new object through a Ref field, if
+    # it has been declared as addable and if multiplicities allow it.
+    pxAdd = Px('''
+     <x if="showPlusIcon">
+      <input type="button" class="button"
+             var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), \
+                    fieldName, appyType['pageName'], 0, totalNumber);
+                  formCall='window.location=%s' % \
+                    q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
+                      (folder.absolute_url(), linkedPortalType, navInfo));
+                  formCall=not appyType['addConfirm'] and formCall or \
+                    'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
+                                              q(addConfirmMsg));
+                  noFormCall=navBaseCall.replace('**v**', \
+                               '%d,%s' % (startNumber, q('CreateWithoutForm')));
+                  noFormCall=not appyType['addConfirm'] and noFormCall or \
+                    'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
+                                                q(addConfirmMsg))"
+             style=":'background-image: url(%s/ui/buttonAdd.png)' % appUrl"
+             value=":_('add_ref')"
+             onclick=":appyType['noForm'] and noFormCall or formCall"/>
+     </x>''')
+
+    # This PX displays, in a cell header from a ref table, icons for sorting the
+    # ref field according to the field that corresponds to this column.
+    pxSortIcons = Px('''
+     <x var="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}' % \
+               (q(startNumber), q('SortReference'), q('sortKey'), \
+                q(widget['name']), q('reverse'), q('**v**')))"
+        if="changeOrder and canWrite and ztool.isSortable(widget['name'], \
+            objs[0].meta_type, 'ref')">
+      <img style="cursor:pointer" src=":'%s/ui/sortAsc.png' % appUrl"
+           onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
+      <img style="cursor:pointer" src=":'%s/ui/sortDesc.png' % appUrl"
+           onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
+     </x>''')
+
+    # This PX is called by a XmlHttpRequest (or directly by pxView) for
+    # displaying the referred objects of a reference field.
+    pxViewContent = Px('''
+     <div var="fieldName=req['fieldName'];
+               appyType=contextObj.getAppyType(fieldName, asDict=True);
+               innerRef=req.get('innerRef',False) == 'True';
+               ajaxHookId=contextObj.UID() + fieldName;
+               startNumber=int(req.get('%s_startNumber' % ajaxHookId, 0));
+               refObjects=contextObj.getAppyRefs(fieldName, startNumber);
+               objs=refObjects['objects'];
+               totalNumber=refObjects['totalNumber'];
+               batchSize=refObjects['batchSize'];
+               folder=contextObj.getCreateFolder();
+               linkedPortalType=ztool.getPortalType(appyType['klass']);
+               canWrite=not appyType['isBack'] and \
+                        contextObj.allows(appyType['writePermission']);
+               showPlusIcon=contextObj.mayAddReference(fieldName);
+               atMostOneRef=(appyType['multiplicity'][1] == 1) and \
+                            (len(objs)&lt;=1);
+               addConfirmMsg=appyType['addConfirm'] and \
+                             _('%s_addConfirm' % appyType['labelId']) or '';
+               navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
+                            (q(ajaxHookId), q(contextObj.absolute_url()), \
+                             q(fieldName), q(innerRef));
+               changeOrder=contextObj.callField(fieldName, \
+                           'changeOrderEnabled', contextObj);
+               showSubTitles=req.get('showSubTitles', 'true') == 'true'"
+          id=":ajaxHookId">
+
+      <!-- The definition of "atMostOneRef" above may sound strange: we
+           shouldn't check the actual number of referenced objects. But for
+           back references people often forget to specify multiplicities. So
+           concretely, multiplicities (0,None) are coded as (0,1). -->
+      <x if="atMostOneRef">
+       <!-- Display a simplified widget if maximum number of referenced objects
+            is 1. -->
+       <table>
+        <tr valign="top">
+         <!-- If there is no object -->
+         <x if="not objs">
+          <td class="discreet">:_('no_ref')</td>
+          <td>:widget['pxAdd']</td>
+         </x>
+         <!-- If there is an object... -->
+         <x if="objs">
+          <x for="obj in objs">
+           <td var="includeShownInfo=True">:widget['pxObjectTitle']</td>
+          </x>
+         </x>
+        </tr>
+       </table>
+      </x>
+
+      <!-- Display a table in all other cases -->
+      <x if="not atMostOneRef">
+       <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
+        (<x>:totalNumber</x>)
+        <x>:widget['pxAdd']</x>
+        <!-- The search button if field is queryable -->
+        <input if="objs and appyType['queryable']" type="button" class="button"
+               style=":'background-image: url(%s/ui/buttonSearch.png)' % appUrl"
+               value=":_('search_title')"
+               onclick=":'window.location=%s' % \
+                 q('%s/ui/search?className=%s&amp;ref=%s:%s' % \
+                 (ztool.absolute_url(), linkedPortalType, contextObj.UID(), \
+                  appyType['name']))"/>
+       </div>
+
+       <!-- Appy (top) navigation -->
+       <x>:contextObj.appy().pxAppyNavigate</x>
+
+       <!-- No object is present -->
+       <p class="discreet" if="not objs">:_('no_ref')</p>
+
+       <table if="objs" class=":innerRef and 'innerAppyTable' or ''"
+             width="100%">
+        <tr valign="bottom">
+         <td>
+          <!-- Show forward or backward reference(s) -->
+          <table class="not innerRef and 'list' or '';
+                        width=innerRef and '100%' or \
+                              appyType['layouts']['view']['width']"
+                 var="columns=objs[0].getColumnsSpecifiers(\
+                              appyType['shownInfo'], dir)">
+           <tr if="appyType['showHeaders']">
+            <th for="column in columns" width=":column['width']"
+                align="column['align']">
+             <x var="widget=column['field']">
+              <span>_(widget['labelId'])</span>
+              <x>:widget['pxSortIcons']</x>
+              <x var="className=linkedPortalType">:contextObj.appy(\
+                 ).pxShowDetails</x>
+             </x>
+            </th>
+           </tr>
+           <x for="obj in objs">
+            <tr valign="top" var="odd=loop.obj.odd"
+                class=":odd and 'even' or 'odd'">
+             <td for="column in columns"
+                 width=":column['width']" align=":column['align']">
+              <x var="widget=column['field']">
+               <!-- The "title" field -->
+               <x if="python: widget['name'] == 'title'">
+                <x>:widget['pxObjectTitle']</x>
+                <div if="obj.mayAct()">:widget['pxObjectActions']</div>
+               </x>
+               <!-- Any other field -->
+               <x if="widget['name'] != 'title'">
+                <x var="contextObj=obj;
+                        layoutType='cell';
+                        innerRef=True"
+                   if="obj.showField(widget['name'], layoutType='result')">
+                 <!-- use-macro="app/ui/widgets/show/macros/field"/-->
+                </x>
+               </x>
+              </x>
+             </td>
+            </tr>
+           </x>
+          </table>
+         </td>
+        </tr>
+       </table>
+
+       <!-- Appy (bottom) navigation -->
+       <x>:contextObj.appy().pxAppyNavigate</x>
+      </x> 
+     </div>''')
+
+    pxView = pxCell = Px('''
+     <x var="x=req.set('fieldName', widget['name'])">:widget['pxViewContent']
+     </x>''')
+
+    pxEdit = Px('''
+     <x if="widget['link']"
+        var="requestValue=req.get(name, []);
+             inRequest=req.has_key(name);
+             allObjects=contextObj.getSelectableAppyRefs(name);
+             refUids=[o.UID() for o in contextObj.getAppyRefs(name)['objects']];
+             isBeingCreated=contextObj.isTemporary()">
+      <select name=":name" size="isMultiple and widget['height'] or ''"
+              multiple="isMultiple and 'multiple' or ''">
+       <option value="" if="not isMultiple">:_('choose_a_value')"></option>
+       <x for="refObj in allObjects">
+        <option var="uid=contextObj.getReferenceUid(refObj)"
+                selected=":inRequest and (uid in requestValue) or \
+                                         (uid in refUids)"
+                value=":uid">:contextObj.getReferenceLabel(name, refObj)
+        </option>
+       </x>
+      </select>
+     </x>''')
+
+    pxSearch = Px('''
+     <x>
+      <label lfor=":widgetName">:_(widget['labelId'])"></label><br/>&nbsp;&nbsp;
+      <!-- The "and" / "or" radio buttons -->
+      <x var="operName='o_%s' % name;
+              orName='%s_or' % operName;
+              andName='%s_and' % operName"
+         if="widget['multiplicity'][1] != 1">
+       <input type="radio" name=":operName" id=":orName"
+              checked="checked" value="or"/>
+       <label lfor=":orName">:_('search_or')"></label>
+       <input type="radio" name=":operName" id=":andName" value="and"/>
+       <label lfor=":andName">:_('search_and')"></label><br/>
+      </x>
+      <!-- The list of values -->
+      <select name=":widgetName" size="widget['sheight']" multiple="multiple">
+       <x for="v in ztool.getSearchValues(name, className)">
+        <option var="uid=v[0];
+                     title=ztool.getReferenceLabel(name, v[1], className)"
+                value=":uid"
+                title=":title">:ztool.truncateValue(title, widget['swidth'])">
+        </option>
+       </x>
+      </select>
+     </x>''')
+
+    def __init__(self, klass=None, attribute=None, validator=None,
+                 multiplicity=(0,1), default=None, add=False, addConfirm=False,
+                 delete=None, noForm=False, link=True, unlink=None, back=None,
+                 show=True, page='main', group=None, layouts=None,
+                 showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
+                 move=0, indexed=False, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=5, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, queryable=False, queryFields=None, queryNbCols=1,
+                 navigable=False, searchSelect=None, changeOrder=True,
+                 sdefault='', scolspan=1, swidth=None, sheight=None):
+        self.klass = klass
+        self.attribute = attribute
+        # May the user add new objects through this ref ?
+        self.add = add
+        # When the user adds a new object, must a confirmation popup be shown?
+        self.addConfirm = addConfirm
+        # May the user delete objects via this Ref?
+        self.delete = delete
+        if delete == None:
+            # By default, one may delete objects via a Ref for which one can
+            # add objects.
+            self.delete = bool(self.add)
+        # If noForm is True, when clicking to create an object through this ref,
+        # the object will be created automatically, and no creation form will
+        # be presented to the user.
+        self.noForm = noForm
+        # May the user link existing objects through this ref?
+        self.link = link
+        # May the user unlink existing objects?
+        self.unlink = unlink
+        if unlink == None:
+            # By default, one may unlink objects via a Ref for which one can
+            # link objects.
+            self.unlink = bool(self.link)
+        self.back = None
+        if back:
+            # It is a forward reference
+            self.isBack = False
+            # Initialise the backward reference
+            self.back = back
+            self.backd = back.__dict__
+            back.isBack = True
+            back.back = self
+            back.backd = self.__dict__
+            # klass may be None in the case we are defining an auto-Ref to the
+            # same class as the class where this field is defined. In this case,
+            # when defining the field within the class, write
+            # myField = Ref(None, ...)
+            # and, at the end of the class definition (name it K), write:
+            # K.myField.klass = K
+            # setattr(K, K.myField.back.attribute, K.myField.back)
+            if klass: setattr(klass, back.attribute, back)
+        # When displaying a tabular list of referenced objects, must we show
+        # the table headers?
+        self.showHeaders = showHeaders
+        # When displaying referenced object(s), we will display its title + all
+        # other fields whose names are listed in the following attribute.
+        self.shownInfo = list(shownInfo)
+        if not self.shownInfo: self.shownInfo.append('title')
+        # If a method is defined in this field "select", it will be used to
+        # filter the list of available tied objects.
+        self.select = select
+        # Maximum number of referenced objects shown at once.
+        self.maxPerPage = maxPerPage
+        # Specifies sync
+        sync = {'view': False, 'edit':True}
+        # If param p_queryable is True, the user will be able to perform queries
+        # from the UI within referenced objects.
+        self.queryable = queryable
+        # Here is the list of fields that will appear on the search screen.
+        # If None is specified, by default we take every indexed field
+        # defined on referenced objects' class.
+        self.queryFields = queryFields
+        # The search screen will have this number of columns
+        self.queryNbCols = queryNbCols
+        # Within the portlet, will referred elements appear ?
+        self.navigable = navigable
+        # The search select method is used if self.indexed is True. In this
+        # case, we need to know among which values we can search on this field,
+        # in the search screen. Those values are returned by self.searchSelect,
+        # which must be a static method accepting the tool as single arg.
+        self.searchSelect = searchSelect
+        # If changeOrder is False, it even if the user has the right to modify
+        # the field, it will not be possible to move objects or sort them.
+        self.changeOrder = changeOrder
+        Field.__init__(self, validator, multiplicity, default, show, page,
+                       group, layouts, move, indexed, False,
+                       specificReadPermission, specificWritePermission, width,
+                       height, None, colspan, master, masterValue, focus,
+                       historized, sync, mapping, label, sdefault, scolspan,
+                       swidth, sheight)
+        self.validable = self.link
+
+    def getDefaultLayouts(self):
+        return {'view': Table('l-f', width='100%'), 'edit': 'lrv-f'}
+
+    def isShowable(self, obj, layoutType):
+        res = Field.isShowable(self, obj, layoutType)
+        if not res: return res
+        # We add here specific Ref rules for preventing to show the field under
+        # some inappropriate circumstances.
+        if (layoutType == 'edit') and \
+           (self.mayAdd(obj) or not self.link): return False
+        if self.isBack:
+            if layoutType == 'edit': return False
+            else: return getattr(obj.aq_base, self.name, None)
+        return res
+
+    def getValue(self, obj, type='objects', noListIfSingleObj=False,
+                 startNumber=None, someObjects=False):
+        '''Returns the objects linked to p_obj through this Ref field.
+           - If p_type is "objects",  it returns the Appy wrappers;
+           - If p_type is "zobjects", it returns the Zope objects;
+           - If p_type is "uids",     it returns UIDs of objects (= strings).
+
+           * If p_startNumber is None, it returns all referred objects.
+           * If p_startNumber is a number, it returns self.maxPerPage objects,
+             starting at p_startNumber.
+
+           If p_noListIfSingleObj is True, it returns the single reference as
+           an object and not as a list.
+
+           If p_someObjects is True, it returns an instance of SomeObjects
+           instead of returning a list of references.'''
+        uids = getattr(obj.aq_base, self.name, [])
+        if not uids:
+            # Maybe is there a default value?
+            defValue = Field.getValue(self, obj)
+            if defValue:
+                # I must prefix call to function "type" with "__builtins__"
+                # because this name was overridden by a method parameter.
+                if __builtins__['type'](defValue) in sutils.sequenceTypes:
+                    uids = [o.o.UID() for o in defValue]
+                else:
+                    uids = [defValue.o.UID()]
+        # Prepare the result: an instance of SomeObjects, that will be unwrapped
+        # if not required.
+        res = gutils.SomeObjects()
+        res.totalNumber = res.batchSize = len(uids)
+        batchNeeded = startNumber != None
+        if batchNeeded:
+            res.batchSize = self.maxPerPage
+        if startNumber != None:
+            res.startNumber = startNumber
+        # Get the objects given their uids
+        i = res.startNumber
+        while i < (res.startNumber + res.batchSize):
+            if i >= res.totalNumber: break
+            # Retrieve every reference in the correct format according to p_type
+            if type == 'uids':
+                ref = uids[i]
+            else:
+                ref = obj.getTool().getObject(uids[i])
+                if type == 'objects':
+                    ref = ref.appy()
+            res.objects.append(ref)
+            i += 1
+        # Manage parameter p_noListIfSingleObj
+        if res.objects and noListIfSingleObj:
+            if self.multiplicity[1] == 1:
+                res.objects = res.objects[0]
+        if someObjects: return res
+        return res.objects
+
+    def getFormattedValue(self, obj, value, showChanges=False):
+        return value
+
+    def getIndexType(self): return 'ListIndex'
+
+    def getIndexValue(self, obj, forSearch=False):
+        '''Value for indexing is the list of UIDs of linked objects. If
+           p_forSearch is True, it will return a list of the linked objects'
+           titles instead.'''
+        if not forSearch:
+            res = getattr(obj.aq_base, self.name, [])
+            if res:
+                # The index does not like persistent lists.
+                res = list(res)
+            else:
+                # Ugly catalog: if I return an empty list, the previous value
+                # is kept.
+                res.append('')
+            return res
+        else:
+            # For the global search: return linked objects' titles.
+            res = [o.title for o in self.getValue(type='objects')]
+            if not res: res.append('')
+            return res
+
+    def validateValue(self, obj, value):
+        if not self.link: return None
+        # We only check "link" Refs because in edit views, "add" Refs are
+        # not visible. So if we check "add" Refs, on an "edit" view we will
+        # believe that that there is no referred object even if there is.
+        # If the field is a reference, we must ensure itself that multiplicities
+        # are enforced.
+        if not value:
+            nbOfRefs = 0
+        elif isinstance(value, basestring):
+            nbOfRefs = 1
+        else:
+            nbOfRefs = len(value)
+        minRef = self.multiplicity[0]
+        maxRef = self.multiplicity[1]
+        if maxRef == None:
+            maxRef = sys.maxint
+        if nbOfRefs < minRef:
+            return obj.translate('min_ref_violated')
+        elif nbOfRefs > maxRef:
+            return obj.translate('max_ref_violated')
+
+    def linkObject(self, obj, value, back=False):
+        '''This method links p_value (which can be a list of objects) to p_obj
+           through this Ref field.'''
+        # p_value can be a list of objects
+        if type(value) in sutils.sequenceTypes:
+            for v in value: self.linkObject(obj, v, back=back)
+            return
+        # Gets the list of referred objects (=list of uids), or create it.
+        obj = obj.o
+        refs = getattr(obj.aq_base, self.name, None)
+        if refs == None:
+            refs = obj.getProductConfig().PersistentList()
+            setattr(obj, self.name, refs)
+        # Insert p_value into it.
+        uid = value.o.UID()
+        if uid not in refs:
+            # Where must we insert the object? At the start? At the end?
+            if callable(self.add):
+                add = self.callMethod(obj, self.add)
+            else:
+                add = self.add
+            if add == 'start':
+                refs.insert(0, uid)
+            else:
+                refs.append(uid)
+            # Update the back reference
+            if not back: self.back.linkObject(value, obj, back=True)
+
+    def unlinkObject(self, obj, value, back=False):
+        '''This method unlinks p_value (which can be a list of objects) from
+           p_obj through this Ref field.'''
+        # p_value can be a list of objects
+        if type(value) in sutils.sequenceTypes:
+            for v in value: self.unlinkObject(obj, v, back=back)
+            return
+        obj = obj.o
+        refs = getattr(obj.aq_base, self.name, None)
+        if not refs: return
+        # Unlink p_value
+        uid = value.o.UID()
+        if uid in refs:
+            refs.remove(uid)
+            # Update the back reference
+            if not back: self.back.unlinkObject(value, obj, back=True)
+
+    def store(self, obj, value):
+        '''Stores on p_obj, the p_value, which can be:
+           * None;
+           * an object UID (=string);
+           * a list of object UIDs (=list of strings). Generally, UIDs or lists
+             of UIDs come from Ref fields with link:True edited through the web;
+           * a Zope object;
+           * a Appy object;
+           * a list of Appy or Zope objects.'''
+        # Standardize p_value into a list of Zope objects
+        objects = value
+        if not objects: objects = []
+        if type(objects) not in sutils.sequenceTypes: objects = [objects]
+        tool = obj.getTool()
+        for i in range(len(objects)):
+            if isinstance(objects[i], basestring):
+                # We have a UID here
+                objects[i] = tool.getObject(objects[i])
+            else:
+                # Be sure to have a Zope object
+                objects[i] = objects[i].o
+        uids = [o.UID() for o in objects]
+        # Unlink objects that are not referred anymore
+        refs = getattr(obj.aq_base, self.name, None)
+        if refs:
+            i = len(refs)-1
+            while i >= 0:
+                if refs[i] not in uids:
+                    # Object having this UID must unlink p_obj
+                    self.back.unlinkObject(tool.getObject(refs[i]), obj)
+                i -= 1
+        # Link new objects
+        if objects:
+            self.linkObject(obj, objects)
+
+    def mayAdd(self, obj):
+        '''May the user create a new referred object from p_obj via this Ref?'''
+        # We can't (yet) do that on back references.
+        if self.isBack: return No('is_back')
+        # Check if this Ref is addable
+        if callable(self.add):
+            add = self.callMethod(obj, self.add)
+        else:
+            add = self.add
+        if not add: return No('no_add')
+        # Have we reached the maximum number of referred elements?
+        if self.multiplicity[1] != None:
+            refCount = len(getattr(obj, self.name, ()))
+            if refCount >= self.multiplicity[1]: return No('max_reached')
+        # May the user edit this Ref field?
+        if not obj.allows(self.writePermission): return No('no_write_perm')
+        # Have the user the correct add permission?
+        tool = obj.getTool()
+        addPermission = '%s: Add %s' % (tool.getAppName(),
+                                        tool.getPortalType(self.klass))
+        folder = obj.getCreateFolder()
+        if not obj.getUser().has_permission(addPermission, folder):
+            return No('no_add_perm')
+        return True
+
+    def checkAdd(self, obj):
+        '''Compute m_mayAdd above, and raise an Unauthorized exception if
+           m_mayAdd returns False.'''
+        may = self.mayAdd(obj)
+        if not may:
+            from AccessControl import Unauthorized
+            raise Unauthorized("User can't write Ref field '%s' (%s)." % \
+                               (self.name, may.msg))
+
+    def changeOrderEnabled(self, obj):
+        '''Is changeOrder enabled?'''
+        if isinstance(self.changeOrder, bool):
+            return self.changeOrder
+        else:
+            return self.callMethod(obj, self.changeOrder)
+
+def autoref(klass, field):
+    '''klass.field is a Ref to p_klass. This kind of auto-reference can't be
+       declared in the "normal" way, like this:
+
+       class A:
+           attr1 = Ref(A)
+
+       because at the time Python encounters the static declaration
+       "attr1 = Ref(A)", class A is not completely defined yet.
+
+       This method allows to overcome this problem. You can write such
+       auto-reference like this:
+
+       class A:
+           attr1 = Ref(None)
+       autoref(A, A.attr1)
+    '''
+    field.klass = klass
+    setattr(klass, field.back.attribute, field.back)
+# ------------------------------------------------------------------------------
