@@ -221,6 +221,23 @@ class String(Field):
     def MODULO_97_COMPLEMENT(obj, value):
         return String._MODULO_97(obj, value, True)
     BELGIAN_ENTERPRISE_NUMBER = MODULO_97_COMPLEMENT
+
+    @staticmethod
+    def BELGIAN_NISS(obj, value):
+        '''Returns True if the NISS in p_value is valid.'''
+        if not value: return True
+        # Remove any non-digit from nrn
+        niss = sutils.keepDigits(value)
+        # NISS must be made of 11 numbers
+        if len(niss) != 11: return False
+        # When NRN begins with 0 or 1, it must be prefixed with number "2" for
+        # checking the modulo 97 complement.
+        nissForModulo = niss
+        if niss.startswith('0') or niss.startswith('1'):
+            nissForModulo = '2'+niss
+        # Check modulo 97 complement
+        return String.MODULO_97_COMPLEMENT(None, nissForModulo)
+
     @staticmethod
     def IBAN(obj, value):
         '''Checks that p_value corresponds to a valid IBAN number. IBAN stands

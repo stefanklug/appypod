@@ -227,11 +227,18 @@ def normalizeString(s, usage='fileName'):
         res = s
     return res
 
-# ------------------------------------------------------------------------------
 def normalizeText(s):
     '''Normalizes p_s: remove special chars, lowerizes it, etc, for indexing
        purposes.'''
     return normalizeString(s, usage='extractedText').strip().lower()
+
+def keepDigits(s):
+    '''Returns string p_s whose non-number chars have been removed.'''
+    if s is None: return s
+    res = ''
+    for c in s:
+        if c.isdigit(): res += c
+    return res
 
 # ------------------------------------------------------------------------------
 def formatNumber(n, sep=',', precision=2, tsep=' '):
