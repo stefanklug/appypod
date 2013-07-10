@@ -24,15 +24,15 @@ class Computed(Field):
     # Ajax-called view content of a non sync Computed field.
     pxViewContent = Px('''
      <x var="name=req['fieldName'];
-             widget=contextObj.getAppyType(name, asDict=True);
+             field=contextObj.getAppyType(name);
              value=contextObj.getFieldValue(name);
-             sync=True">:widget['pxView']</x>''')
+             sync=True">:field.pxView</x>''')
 
     pxView = pxCell = pxEdit = Px('''
      <x>
       <x if="sync">
-       <x if="widget['plainText']">:value</x>
-       <x if="not widget['plainText']">::value></x>
+       <x if="field.plainText">:value</x>
+       <x if="not field.plainText">::value></x>
       </x>
       <x if="not sync">
        <div var="ajaxHookId=contextObj.UID() + name" id="ajaxHookId">
@@ -45,12 +45,9 @@ class Computed(Field):
 
     pxSearch = Px('''
      <x>
-      <label lfor=":widgetName">:_(widget['labelId'])"></label><br/>&nbsp;&nbsp;
-      <input type="text"
-             var="maxChars=widget['maxChars'] and widget['maxChars'] or ''"
-             name=":'%s*string' % widgetName"
-             maxlength=":maxChars" size=":widget['width']"
-             value=":widget['sdefault']"/>
+      <label lfor=":name">:field.labelId</label><br/>&nbsp;&nbsp;
+      <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
+             size=":field.width" value=":field.sdefault"/>
      </x>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,

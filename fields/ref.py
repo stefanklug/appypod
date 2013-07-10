@@ -15,7 +15,7 @@
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
-import sys
+import sys, re
 from appy.fields import Field, No
 from appy.px import Px
 from appy.gen.layout import Table
@@ -37,16 +37,15 @@ class Ref(Field):
     # the URL for allowing to navigate from one object to the next/previous on
     # ui/view.
     pxObjectTitle = Px('''
-     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, \
-               appyType['pageName'], loop.obj.nb + startNumber, totalNumber);
-             navInfo=not appyType['isBack'] and navInfo or '';
+     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), field.name, \
+               field.pageName, loop.obj.nb + startNumber, totalNumber);
+             navInfo=not field.isBack and navInfo or '';
              cssClass=obj.getCssFor('title')">
       <x>::obj.getSupTitle(navInfo)</x>
-      <a var="pageName=appyType['isBack'] and appyType['backd']['pageName'] or \
-                                              'main';
+      <a var="pageName=field.isBack and field.back.pageName or 'main';
               fullUrl=obj.getUrl(page=pageName, nav=navInfo)"
          href=":fullUrl" class=":cssClass">:(not includeShownInfo) and \
-        obj.Title() or contextObj.getReferenceLabel(fieldName, obj.appy())
+        obj.Title() or field.getReferenceLabel(obj.appy())
       </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
             'display:none'">::obj.getSubTitle()"</span>
      </x>''')
@@ -54,16 +53,16 @@ class Ref(Field):
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <table class="noStyle" var="isBack=appyType['isBack']">
+     <table class="noStyle" var="isBack=field.isBack">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if=":not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
-        <x var="objectIndex=contextObj.getAppyRefIndex(fieldName, obj);
+       <td if="not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
+        <x var="objectIndex=field.getIndexOf(contextObj, obj);
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
                    q(obj.UID()), q('move'), q('**v**')))">
         <img if="objectIndex &gt; 0" style="cursor:pointer"
-             src=":'%s/ui/arrowUp.png' % $appUrl" title=":_('move_up')"
+             src=":'%s/ui/arrowUp.png' % appUrl" title=":_('move_up')"
              onclick=":ajaxBaseCall.replace('**v**', 'up')"/><img
              style="cursor:pointer" if="objectIndex &lt; (totalNumber-1)"
              src=":'%s/ui/arrowDown.png' % appUrl" title=":_('move_down')"
@@ -75,27 +74,25 @@ class Ref(Field):
         <x var="targetObj=obj">:targetObj.appy().pxTransitions</x>
        </td>
        <!-- Edit -->
-       <td if="not appyType['noForm'] and obj.mayEdit() and appyType['delete']">
-        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), fieldName, \
-                        appyType['pageName'], loop.obj.nb + startNumber, \
-                        totalNumber)"
+       <td if="not field.noForm and obj.mayEdit() and field.delete">
+        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), field.name, \
+                        field.pageName, loop.obj.nb + startNumber, totalNumber)"
            href=":obj.getUrl(mode='edit', page='main', nav=navInfo)">
          <img src=":'%s/ui/edit.png' % appUrl" title=":_('object_edit')"/>
         </a>
        </td>
        <!-- Delete -->
-       <td if="not isBack and appyType['delete'] and canWrite and \
-               obj.mayDelete()">
+       <td if="not isBack and field.delete and canWrite and obj.mayDelete()">
         <img style="cursor:pointer" title=":_('object_delete')"
              src=":'%s/ui/delete.png' % appUrl"
              onclick=":'onDeleteObject(%s)' % q(obj.UID())"/>
        </td>
        <!-- Unlink -->
-       <td if="not isBack and appyType['unlink'] and canWrite">
+       <td if="not isBack and field.unlink and canWrite">
         <img style="cursor:pointer" title=":_('object_unlink')"
              src=":'%s/ui/unlink.png' % appUrl"
              onclick=":'onUnlinkObject(%s,%s,%s)' % (q(contextObj.UID()), \
-                        q(appyType['name']), q(obj.UID()))"/>
+                        q(field.name), q(obj.UID()))"/>
        </td>
       </tr>
      </table>''')
@@ -106,21 +103,21 @@ class Ref(Field):
      <x if="showPlusIcon">
       <input type="button" class="button"
              var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), \
-                    fieldName, appyType['pageName'], 0, totalNumber);
+                    field.name, field.pageName, 0, totalNumber);
                   formCall='window.location=%s' % \
                     q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
                       (folder.absolute_url(), linkedPortalType, navInfo));
-                  formCall=not appyType['addConfirm'] and formCall or \
+                  formCall=not field.addConfirm and formCall or \
                     'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
                                               q(addConfirmMsg));
                   noFormCall=navBaseCall.replace('**v**', \
                                '%d,%s' % (startNumber, q('CreateWithoutForm')));
-                  noFormCall=not appyType['addConfirm'] and noFormCall or \
+                  noFormCall=not field.addConfirm and noFormCall or \
                     'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
                                                 q(addConfirmMsg))"
              style=":'background-image: url(%s/ui/buttonAdd.png)' % appUrl"
              value=":_('add_ref')"
-             onclick=":appyType['noForm'] and noFormCall or formCall"/>
+             onclick=":field.noForm and noFormCall or formCall"/>
      </x>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
@@ -128,8 +125,8 @@ class Ref(Field):
     pxSortIcons = Px('''
      <x var="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}' % \
                (q(startNumber), q('SortReference'), q('sortKey'), \
-                q(widget['name']), q('reverse'), q('**v**')))"
-        if="changeOrder and canWrite and ztool.isSortable(widget['name'], \
+                q(field.name), q('reverse'), q('**v**')))"
+        if="changeOrder and canWrite and ztool.isSortable(field.name, \
             objs[0].meta_type, 'ref')">
       <img style="cursor:pointer" src=":'%s/ui/sortAsc.png' % appUrl"
            onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
@@ -140,29 +137,27 @@ class Ref(Field):
     # This PX is called by a XmlHttpRequest (or directly by pxView) for
     # displaying the referred objects of a reference field.
     pxViewContent = Px('''
-     <div var="fieldName=req['fieldName'];
-               appyType=contextObj.getAppyType(fieldName, asDict=True);
-               innerRef=req.get('innerRef',False) == 'True';
-               ajaxHookId=contextObj.UID() + fieldName;
+     <div var="field=contextObj.getAppyType(req['fieldName']);
+               innerRef=req.get('innerRef', False) == 'True';
+               ajaxHookId=contextObj.UID() + field.name;
                startNumber=int(req.get('%s_startNumber' % ajaxHookId, 0));
-               refObjects=contextObj.getAppyRefs(fieldName, startNumber);
-               objs=refObjects['objects'];
-               totalNumber=refObjects['totalNumber'];
-               batchSize=refObjects['batchSize'];
+               refObjects=field.getLinkedObjects(contextObj, startNumber);
+               objs=refObjects.objects;
+               totalNumber=refObjects.totalNumber;
+               batchSize=refObjects.batchSize;
                folder=contextObj.getCreateFolder();
-               linkedPortalType=ztool.getPortalType(appyType['klass']);
-               canWrite=not appyType['isBack'] and \
-                        contextObj.allows(appyType['writePermission']);
-               showPlusIcon=contextObj.mayAddReference(fieldName);
-               atMostOneRef=(appyType['multiplicity'][1] == 1) and \
+               linkedPortalType=ztool.getPortalType(field.klass);
+               canWrite=not field.isBack and \
+                        contextObj.allows(field.writePermission);
+               showPlusIcon=contextObj.mayAddReference(field.name);
+               atMostOneRef=(field.multiplicity[1] == 1) and \
                             (len(objs)&lt;=1);
-               addConfirmMsg=appyType['addConfirm'] and \
-                             _('%s_addConfirm' % appyType['labelId']) or '';
+               addConfirmMsg=field.addConfirm and \
+                             _('%s_addConfirm' % field.labelId) or '';
                navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                             (q(ajaxHookId), q(contextObj.absolute_url()), \
-                             q(fieldName), q(innerRef));
-               changeOrder=contextObj.callField(fieldName, \
-                           'changeOrderEnabled', contextObj);
+                             q(field.name), q(innerRef));
+               changeOrder=field.changeOrderEnabled(contextObj);
                showSubTitles=req.get('showSubTitles', 'true') == 'true'"
           id=":ajaxHookId">
 
@@ -178,12 +173,12 @@ class Ref(Field):
          <!-- If there is no object -->
          <x if="not objs">
           <td class="discreet">:_('no_ref')</td>
-          <td>:widget['pxAdd']</td>
+          <td>:field.pxAdd</td>
          </x>
          <!-- If there is an object... -->
          <x if="objs">
           <x for="obj in objs">
-           <td var="includeShownInfo=True">:widget['pxObjectTitle']</td>
+           <td var="includeShownInfo=True">:field.pxObjectTitle</td>
           </x>
          </x>
         </tr>
@@ -194,15 +189,15 @@ class Ref(Field):
       <x if="not atMostOneRef">
        <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
         (<x>:totalNumber</x>)
-        <x>:widget['pxAdd']</x>
+        <x>:field.pxAdd</x>
         <!-- The search button if field is queryable -->
-        <input if="objs and appyType['queryable']" type="button" class="button"
+        <input if="objs and field.queryable" type="button" class="button"
                style=":'background-image: url(%s/ui/buttonSearch.png)' % appUrl"
                value=":_('search_title')"
                onclick=":'window.location=%s' % \
                  q('%s/ui/search?className=%s&amp;ref=%s:%s' % \
                  (ztool.absolute_url(), linkedPortalType, contextObj.UID(), \
-                  appyType['name']))"/>
+                  field.name))"/>
        </div>
 
        <!-- Appy (top) navigation -->
@@ -216,17 +211,15 @@ class Ref(Field):
         <tr valign="bottom">
          <td>
           <!-- Show forward or backward reference(s) -->
-          <table class="not innerRef and 'list' or '';
-                        width=innerRef and '100%' or \
-                              appyType['layouts']['view']['width']"
-                 var="columns=objs[0].getColumnsSpecifiers(\
-                              appyType['shownInfo'], dir)">
-           <tr if="appyType['showHeaders']">
+          <table class="not innerRef and 'list' or ''"
+                 width=":innerRef and '100%' or field.layouts['view']['width']"
+               var="columns=objs[0].getColumnsSpecifiers(field.shownInfo, dir)">
+           <tr if="field.showHeaders">
             <th for="column in columns" width=":column['width']"
                 align="column['align']">
-             <x var="widget=column['field']">
-              <span>_(widget['labelId'])</span>
-              <x>:widget['pxSortIcons']</x>
+             <x var="field=column['field']">
+              <span>_(field.labelId)</span>
+              <x>:field.pxSortIcons</x>
               <x var="className=linkedPortalType">:contextObj.appy(\
                  ).pxShowDetails</x>
              </x>
@@ -237,18 +230,18 @@ class Ref(Field):
                 class=":odd and 'even' or 'odd'">
              <td for="column in columns"
                  width=":column['width']" align=":column['align']">
-              <x var="widget=column['field']">
+              <x var="field=column['field']">
                <!-- The "title" field -->
-               <x if="python: widget['name'] == 'title'">
-                <x>:widget['pxObjectTitle']</x>
-                <div if="obj.mayAct()">:widget['pxObjectActions']</div>
+               <x if="python: field.name == 'title'">
+                <x>:field.pxObjectTitle</x>
+                <div if="obj.mayAct()">:field.pxObjectActions</div>
                </x>
                <!-- Any other field -->
-               <x if="widget['name'] != 'title'">
+               <x if="field.name != 'title'">
                 <x var="contextObj=obj;
                         layoutType='cell';
                         innerRef=True"
-                   if="obj.showField(widget['name'], layoutType='result')">
+                   if="obj.showField(field.name, layoutType='result')">
                  <!-- use-macro="app/ui/widgets/show/macros/field"/-->
                 </x>
                </x>
@@ -267,37 +260,35 @@ class Ref(Field):
      </div>''')
 
     pxView = pxCell = Px('''
-     <x var="x=req.set('fieldName', widget['name'])">:widget['pxViewContent']
-     </x>''')
+     <x var="x=req.set('fieldName', field.name)">:field.pxViewContent</x>''')
 
     pxEdit = Px('''
-     <x if="widget['link']"
+     <x if="field.link"
         var="requestValue=req.get(name, []);
              inRequest=req.has_key(name);
-             allObjects=contextObj.getSelectableAppyRefs(name);
-             refUids=[o.UID() for o in contextObj.getAppyRefs(name)['objects']];
+             allObjects=field.getSelectableObjects();
+             uids=[o.UID() for o in field.getLinkedObjects(contextObj).objects];
              isBeingCreated=contextObj.isTemporary()">
-      <select name=":name" size="isMultiple and widget['height'] or ''"
+      <select name=":name" size="isMultiple and field.height or ''"
               multiple="isMultiple and 'multiple' or ''">
        <option value="" if="not isMultiple">:_('choose_a_value')"></option>
        <x for="refObj in allObjects">
-        <option var="uid=contextObj.getReferenceUid(refObj)"
+        <option var="uid=refObj.o.UID()"
                 selected=":inRequest and (uid in requestValue) or \
-                                         (uid in refUids)"
-                value=":uid">:contextObj.getReferenceLabel(name, refObj)
-        </option>
+                                         (uid in uids)"
+                value=":uid">:field.getReferenceLabel(refObj)</option>
        </x>
       </select>
      </x>''')
 
     pxSearch = Px('''
      <x>
-      <label lfor=":widgetName">:_(widget['labelId'])"></label><br/>&nbsp;&nbsp;
+      <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
       <!-- The "and" / "or" radio buttons -->
       <x var="operName='o_%s' % name;
               orName='%s_or' % operName;
               andName='%s_and' % operName"
-         if="widget['multiplicity'][1] != 1">
+         if="field.multiplicity[1] != 1">
        <input type="radio" name=":operName" id=":orName"
               checked="checked" value="or"/>
        <label lfor=":orName">:_('search_or')"></label>
@@ -305,12 +296,12 @@ class Ref(Field):
        <label lfor=":andName">:_('search_and')"></label><br/>
       </x>
       <!-- The list of values -->
-      <select name=":widgetName" size="widget['sheight']" multiple="multiple">
+      <select name=":widgetName" size=":field.sheight" multiple="multiple">
        <x for="v in ztool.getSearchValues(name, className)">
         <option var="uid=v[0];
-                     title=ztool.getReferenceLabel(name, v[1], className)"
+                     title=field.getReferenceLabel(v[1])"
                 value=":uid"
-                title=":title">:ztool.truncateValue(title, widget['swidth'])">
+                title=":title">:ztool.truncateValue(title, field.swidth)">
         </option>
        </x>
       </select>
@@ -482,6 +473,14 @@ class Ref(Field):
         if someObjects: return res
         return res.objects
 
+    def getLinkedObjects(self, obj, startNumber=None):
+        '''Gets the objects linked to p_obj via this Ref field. If p_startNumber
+           is None, all linked objects are returned. If p_startNumber is a
+           number, self.maxPerPage objects will be returned, starting at
+           p_startNumber.'''
+        return self.getValue(obj, type='zobjects', someObjects=True,
+                             startNumber=startNumber)
+
     def getFormattedValue(self, obj, value, showChanges=False):
         return value
 
@@ -649,6 +648,47 @@ class Ref(Field):
             return self.changeOrder
         else:
             return self.callMethod(obj, self.changeOrder)
+
+    def getSelectableObjects(self, contextObj):
+        '''This method returns the list of all objects that can be selected to
+           be linked as references to p_contextObj via p_self.'''
+        if not self.select:
+            # No select method has been defined: we must retrieve all objects
+            # of the referred type that the user is allowed to access.
+            return contextObj.appy().search(self.klass)
+        else:
+            return self.select(contextObj.appy())
+
+    xhtmlToText = re.compile('<.*?>', re.S)
+    def getReferenceLabel(self, refObject):
+        '''p_self must have link=True. I need to display, on an edit view, the
+           p_refObject in the listbox that will allow the user to choose which
+           object(s) to link through the Ref. The information to display may
+           only be the object title or more if self.shownInfo is used.'''
+        res = ''
+        for fieldName in self.shownInfo:
+            refType = refObject.o.getAppyType(fieldName)
+            value = getattr(refObject, fieldName)
+            value = refType.getFormattedValue(refObject.o, value)
+            if refType.type == 'String':
+                if refType.format == 2:
+                    value = self.xhtmlToText.sub(' ', value)
+                elif type(value) in sequenceTypes:
+                    value = ', '.join(value)
+            prefix = ''
+            if res:
+                prefix = ' | '
+            res += prefix + value
+        maxWidth = self.width or 30
+        if len(res) > maxWidth:
+            res = res[:maxWidth-2] + '...'
+        return res
+
+    def getIndexOf(self, obj, refObj):
+        '''Gets the position of p_refObj within this field on p_obj.'''
+        uids = getattr(obj.aq_base, self.name, None)
+        if not uids: raise IndexError()
+        return uids.index(refObj.UID())
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be

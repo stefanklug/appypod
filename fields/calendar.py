@@ -16,35 +16,28 @@ class Calendar(Field):
     # Month view for a calendar. Called by pxView, and directly from the UI,
     # via Ajax, when the user selects another month.
     pxMonthView = Px('''
-     <div var="fieldName=req['fieldName'];
-               ajaxHookId=contextObj.UID() + fieldName;
+     <div var="field=contextObj.getAppyType(req['fieldName']);
+               ajaxHookId=contextObj.UID() + field.name;
                month=req['month'];
                monthDayOne=DateTime('%s/01' % month);
                today=DateTime('00:00');
-               grid=contextObj.callField(fieldName, 'getMonthGrid', month);
-               allEventTypes=contextObj.callField(fieldName, 'getEventTypes', \
-                                                  contextObj);
-               preComputed=contextObj.callField(fieldName, \
-                   'getPreComputedInfo', contextObj, monthDayOne, grid);
-               defaultDate=contextObj.callField(fieldName, 'getDefaultDate', \
-                                                contextObj);
+               grid=field.getMonthGrid(month);
+               allEventTypes=field.getEventTypes(contextObj);
+               preComputed=field.getPreComputedInfo(contextObj, monthDayOne, \
+                                                    grid);
+               defaultDate=field.getDefaultDate(contextObj);
                defaultDateMonth=defaultDate.strftime('%Y/%m');
-               previousMonth=contextObj.callField(fieldName, \
-                   'getSiblingMonth', month, 'previous');
-               nextMonth=contextObj.callField(fieldName, 'getSiblingMonth', \
-                                              month, 'next');
-               widget=contextObj.getAppyType(fieldName, asDict=True);
+               previousMonth=field.getSiblingMonth(month, 'previous');
+               nextMonth=field.getSiblingMonth(month, 'next');
                mayEdit=contextObj.allows(widget['writePermission']);
-               objUrl=contextObj/absolute_url();
-               startDate=contextObj.callField(fieldName, 'getStartDate', \
-                                              contextObj);
-               endDate=contextObj.callField(fieldName, 'getEndDate',contextObj);
-               otherCalendars=contextObj.callField(fieldName, \
-                   'getOtherCalendars', contextObj, preComputed)"
+               objUrl=contextObj.absolute_url();
+               startDate=field.getStartDate(contextObj);
+               endDate=field.getEndDate(contextObj);
+               otherCalendars=field.getOtherCalendars(contextObj, preComputed)"
           id=":ajaxHookId">
 
      <script type="text/javascript">:'var %s_maxEventLength = %d;' % \
-                                    (fieldName, widget['maxEventLength'])">
+                                    (field.name, field.maxEventLength)">
      </script>
 
      <!-- Month chooser -->
@@ -58,7 +51,7 @@ class Calendar(Field):
       <img style="cursor:pointer" tal:condition="goBack"
            src=":'%s/ui/arrowLeftSimple.png' % appUrl"
            onclick=":'askMonthView(%s, %s, %s, %s)' % \
-                     (q(ajaxHookId),q(objUrl),q(fieldName),q(previousMonth))"/>
+                     (q(ajaxHookId),q(objUrl),q(field.name),q(previousMonth))"/>
       <!-- Go back to the default date -->
       <x if="goBack or goForward">
        <input type="button"
@@ -67,14 +60,14 @@ class Calendar(Field):
                          'today' or 'goto_source'"
               value=":_(label)"
               onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
-                                  q(objUrl), q(fieldName), q(defaultDateMonth))"
+                                 q(objUrl), q(field.name), q(defaultDateMonth))"
               disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
       </x>
       <!-- Go to the next month -->
       <img style="cursor:pointer" if="goForward"
            src=":'%s/ui/arrowRightSimple.png' % appUrl"
            onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
-                                   q(objUrl), q(fieldName), q(nextMonth))"/>
+                                   q(objUrl), q(field.name), q(nextMonth))"/>
       <span>:_('month_%s' % monthDayOne.aMonth())</span>
       <span>:month.split('/')[0]</span>
      </div>
@@ -82,11 +75,10 @@ class Calendar(Field):
      <!-- Calendar month view -->
      <table cellpadding="0" cellspacing="0" width="100%" class="list"
             style="font-size: 95%"
-            var="rowHeight=int(widget['height']/float(len(grid)))">
+            var="rowHeight=int(field.height/float(len(grid)))">
       <!-- 1st row: names of days -->
       <tr height="22px">
-       <th for="dayName in contextObj.callField(fieldName, 'getNamesOfDays', \
-                                                contextObj)"
+       <th for="dayName in field.getNamesOfDays(contextObj)"
            width="14%">:dayName</th>
       </tr>
       <!-- The calendar in itself -->
@@ -95,16 +87,13 @@ class Calendar(Field):
         <x var="tooEarly=startDate and (date &lt; startDate);
                 tooLate=endDate and not tooEarly and (date &gt; endDate);
                 inRange=not tooEarly and not tooLate;
-                cssClasses=contextObj.callField(fieldName, 'getCellStyle', \
-                                                contextObj, date, today)">
+                cssClasses=field.getCellStyle(contextObj, date, today)">
          <!-- Dump an empty cell if we are out of the supported date range -->
          <td if="not inRange" class=":cssClasses"></td>
          <!-- Dump a normal cell if we are in range -->
          <x if="inRange">
-          <td var="events=contextObj.callField(fieldName, 'getEventsAt', \
-                                               contextObj, date);
-                   spansDays=contextObj.callField(fieldName, 'hasEventsAt', \
-                                                  contextObj, date+1, events);
+          <td var="events=field.getEventsAt(contextObj, date);
+                   spansDays=field.hasEventsAt(contextObj, date+1, events);
                    mayCreate=mayEdit and not events;
                    mayDelete=mayEdit and events"
               style="date.isCurrentDay() and 'font-weight:bold' or \
@@ -121,39 +110,37 @@ class Calendar(Field):
             <!-- Icon for adding an event -->
             <x if="mayCreate">
              <img style="visibility:hidden; cursor:pointer"
-                  var="info=contextObj.callField(fieldName, \
-                            'getApplicableEventsTypesAt', contextObj, date, \
+                  var="info=field.getApplicableEventsTypesAt(contextObj, date, \
                             allEventTypes, preComputed, True)"
                   if="info['eventTypes']"
                   src=":'%s/ui/plus.png' % appUrl"
                   onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
-                    (q('new'), q(fieldName), q(dayString), \
+                    (q('new'), q(field.name), q(dayString), \
                      q(info['eventTypes']), q(info['message']))"/>
             </x>
             <!-- Icon for deleting an event -->
             <img if="mayDelete" style="visibility:hidden; cursor:pointer"
                  src=":'%s/ui/delete.png' % appUrl"
                  onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
-                   (q('del'), q(fieldName), q(dayString), q(str(spansDays)))"/>
+                   (q('del'), q(field.name), q(dayString), q(str(spansDays)))"/>
             <x if="events">
              <!-- A single event is allowed for the moment -->
              <div var="eventType=events[0]['eventType']">
-              <span style="color: grey">:contextObj.callField(fieldName, \
-                 'getEventName', contextObj, eventType)"></span>
+              <span style="color: grey">:field.getEventName(contextObj, \
+                                                            eventType)"></span>
              </div>
             </x>
             <!-- Events from other calendars -->
             <x if="otherCalendars">
-             <x var="otherEvents=contextObj.callField(fieldName, \
-                         'getOtherEventsAt', contextObj, date, otherCalendars)"
+             <x var="otherEvents=field.getOtherEventsAt(contextObj, date, \
+                                                        otherCalendars)"
                 if="otherEvents">
               <div style=":'color: %s; font-style: italic' % event['color']"
                    for="event in otherEvents">:event['name']</div>
              </x>
             </x>
             <!-- Additional info -->
-            <x var="info=contextObj.callField(fieldName, \
-                    'getAdditionalInfoAt', contextObj, date, preComputed)"
+            <x var="info=field.getAdditionalInfoAt(contextObj,date,preComputed)"
                if="info">::info</x>
            </x>
           </td>
@@ -164,13 +151,13 @@ class Calendar(Field):
      </table>
 
      <!-- Popup for creating a calendar event -->
-     <div var="prefix='%s_newEvent' % fieldName;
+     <div var="prefix='%s_newEvent' % field.name;
                popupId=prefix + 'Popup'"
           id=":popupId" class="popup" align="center">
       <form id="prefix + 'Form'" method="post">
-       <input type="hidden" name="fieldName" value=":fieldName"/>
+       <input type="hidden" name="fieldName" value=":field.name"/>
        <input type="hidden" name="month" value=":month"/>
-       <input type="hidden" name="name" value=":fieldName"/>
+       <input type="hidden" name="name" value=":field.name"/>
        <input type="hidden" name="action" value="Process"/>
        <input type="hidden" name="actionType" value="createEvent"/>
        <input type="hidden" name="day"/>
@@ -180,8 +167,7 @@ class Calendar(Field):
        <select name="eventType">
         <option value="">:_('choose_a_value')"></option>
         <option for="eventType in allEventTypes"
-                value=":eventType">:contextObj.callField(fieldName, \
-                                    'getEventName', contextObj, eventType)">
+                value=":eventType">:field.getEventName(contextObj, eventType)">
         </option>
        </select><br/><br/>
        <!--Span the event on several days -->
@@ -193,7 +179,7 @@ class Calendar(Field):
               value=":_('object_save')"
               onclick=":'triggerCalendarEvent(%s, %s, %s, %s, \
                          %s_maxEventLength)' % (q('new'), q(ajaxHookId), \
-                         q(fieldName), q(objUrl), fieldName)"/>
+                         q(field.name), q(objUrl), field.name)"/>
        <input type="button"
               value=":_('object_cancel')"
               onclick=":'closePopup(%s)' % q(popupId)"/>
@@ -201,13 +187,13 @@ class Calendar(Field):
      </div>
 
      <!-- Popup for deleting a calendar event -->
-     <div var="prefix='%s_delEvent' % fieldName;
+     <div var="prefix='%s_delEvent' % field.name;
                popupId=prefix + 'Popup'"
           id=":popupId" class="popup" align="center">
       <form id=":prefix + 'Form'" method="post">
-       <input type="hidden" name="fieldName" value=":fieldName"/>
+       <input type="hidden" name="fieldName" value=":field.name"/>
        <input type="hidden" name="month" value=":month"/>
-       <input type="hidden" name="name" value=":fieldName"/>
+       <input type="hidden" name="name" value=":field.name"/>
        <input type="hidden" name="action" value="Process"/>
        <input type="hidden" name="actionType" value="deleteEvent"/>
        <input type="hidden" name="day"/>
@@ -227,7 +213,7 @@ class Calendar(Field):
        </div>
        <input type="button" value=":_('yes')"
               onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
-                (q('del'), q(ajaxHookId), q(fieldName), q(objUrl))"/>
+                (q('del'), q(ajaxHookId), q(field.name), q(objUrl))"/>
        <input type="button" value=":_('no')"
               onclick=":'closePopup(%s)' % q(popupId)"/>
       </form>
@@ -235,13 +221,11 @@ class Calendar(Field):
     </div>''')
 
     pxView = pxCell = Px('''
-     <x var="defaultDate=contextObj.callField(widget['name'], 'getDefaultDate',\
-                                              contextObj);
-             x=req.set('fieldName', widget['name']);
+     <x var="defaultDate=field.getDefaultDate(contextObj);
+             x=req.set('fieldName', field.name);
              x=req.set('month', defaultDate.strftime('%Y/%m'))">
-      <x>:widget['pxMonthView']></x>
-     </x>
-    ''')
+      <x>:field.pxMonthView</x>
+     </x>''')
 
     pxEdit = pxSearch = ''
 

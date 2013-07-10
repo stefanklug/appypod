@@ -27,12 +27,10 @@ class List(Field):
     # PX for rendering a single row.
     pxRow = Px('''
      <tr valign="top" style="(rowIndex==-1) and 'display: none' or ''">
-      <td align="center" for="fieldInfo in widget['fieldsd']">
-       <x var="widget=fieldInfo[1];
+      <td align="center" for="info in field.fields">
+       <x var="field=info[1];
                tagCss='noStyle';
-               widgetName='%s*%d' % (widget['name'], rowIndex)">
-        <x>:widget['pxView']</x>
-       </x>
+               widgetName='%s*%d' % (field.name, rowIndex)">:field.pxView</x>
       </td>
       <!-- Icon for removing the row -->
       <td if="layoutType=='edit'" align=":dright">
@@ -48,8 +46,7 @@ class List(Field):
             id=":'list_%s' % name" class="isEdit and 'grid' or 'list'">
       <!-- Header -->
       <tr valign="bottom">
-       <th for="fieldInfo in widget['fieldsd']">::_(fieldInfo[1]['labelId'])
-       </th>
+       <th for="info in field.fields">::_(info[1].labelId)</th>
        <!-- Icon for adding a new row. -->
        <th if="isEdit">
         <img style="cursor:pointer" src=":'%s/ui/plus.png' % appUrl"
@@ -59,21 +56,20 @@ class List(Field):
       </tr>
 
       <!-- Template row (edit only) -->
-      <x var="rowIndex=-1" if="isEdit">:widget['pxRow']</x>
+      <x var="rowIndex=-1" if="isEdit">:field.pxRow</x>
       <tr height="7px" if="isEdit"><td></td></tr>
 
       <!-- Rows of data -->
-      <x var="rows =inRequest and requestValue or value" for="row in rows">
-       <x var="rowIndex=loop.row.nb">:widget['pxRow']</x>
+      <x var="rows=inRequest and requestValue or value" for="row in rows">
+       <x var="rowIndex=loop.row.nb">:field.pxRow</x>
       </x>
      </table>''')
 
-    pxView = pxCell = Px('''<x>:widget['pxTable']</x>''')
+    pxView = pxCell = Px('''<x>:field.pxTable</x>''')
     pxEdit = Px('''
      <x>
       <!-- This input makes Appy aware that this field is in the request -->
-      <input type="hidden" name=":name" value=""/>
-      <x>:widget['pxTable']</x>
+      <input type="hidden" name=":name" value=""/><x>:field.pxTable</x>
      </x>''')
 
     pxSearch = ''

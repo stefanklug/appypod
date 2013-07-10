@@ -20,6 +20,7 @@ import re, random
 from appy.gen.layout import Table
 from appy.gen.indexer import XhtmlTextExtractor
 from appy.fields import Field
+from appy.px import Px
 from appy.shared.data import countries
 from appy.shared.xml_parser import XhtmlCleaner
 from appy.shared.diff import HtmlDiff
@@ -70,6 +71,118 @@ class String(Field):
     ALPHANUMERIC = c('[\w-]+')
     URL = c('(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?' \
             '(([0-9]{1,5})?\/.*)?')
+
+    pxView = Px('''
+     <x var="fmt=field.format; isUrl=field.isUrl;
+             mayAjaxEdit=not showChanges and field.inlineEdit and \
+                         contextObj.mayEdit(field.writePermission)">
+      <x if="fmt in (0, 3)">
+       <ul if="value and isMultiple">
+        <li for="sv in value"><i>::sv</i></li>
+       </ul>
+       <x if="value and not isMultiple">
+        <!-- A password -->
+        <x if="fmt == 3">********</x>
+        <!-- A URL -->
+        <a if="(fmt != 3) and isUrl" target="_blank" href=":value">:value</a>
+        <!-- Any other value -->
+        <x if="(fmt != 3) and not isUrl">::value</x>
+       </x>
+      </x>
+      <!-- Unformatted text -->
+      <x if="value and (fmt == 1)">::contextObj.formatText(value, format='html')
+      </x>
+      <!-- XHTML text -->
+      <x if="value and (fmt == 2)">
+       <div if="not mayAjaxEdit" class="xhtml">::value</div>
+       <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
+            id=":'%s_%s_ck' % (contextObj.UID(), name)">::value</div>
+       <script if="mayAjaxEdit">:field.getJsInlineInit(contextObj)"></script>
+      </x>
+      <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
+             name=":name" id=":name"/>
+     </x>''')
+
+    pxEdit = Px('''
+     <x var="fmt=field.format;
+             isSelect=field.isSelect;
+             isMaster=field.slaves;
+             isOneLine=fmt in (0,3,4)">
+      <x if="isSelect">
+       <select var="possibleValues=field.getPossibleValues(contextObj, \
+                                    withTranslations=True, withBlankValue=True)"
+               name=":name" id=":name" class=":masterCss"
+               multiple=":isMultiple and 'multiple' or ''"
+               onchange=":isMaster and 'updateSlaves(this)' or ''"
+               size=":isMultiple and field.height or 1">
+        <option for="val in possibleValues" value=":val[0]"
+                selected=":field.isSelected(contextObj, val[0], rawValue)"
+                title=":val[1]">:ztool.truncateValue(val[1], field.width)">
+        </option>
+       </select>
+      </x>
+      <x if="isOneLine and not isSelect">
+       <input id=":name" name=":name" size=":field.width"
+              maxlength=":field.maxChars"
+              value=":inRequest and requestValue or value"
+              style=":'text-transform:%s' % field.transform"
+              type=":(fmt == 3) and 'password' or 'text'"/>
+        <!-- Display a captcha if required -->
+        <span if="fmt == 4">:_('captcha_text', \
+                               mapping=field.getCaptchaChallenge(req.SESSION))
+        </span>
+      </x>
+      <x if="fmt in (1,2)">
+       <textarea id=":name" name=":name" cols=":field.width"
+                 class=":(fmt == 2) and ('rich_%s' % name) or ''"
+                 style=":'text-transform:%s' % field.transform"
+                 rows=":field.height">:inRequest and requestValue or value
+       </textarea>
+       <script if="fmt == 2"
+               type="text/javascript">:field.getJsInit(contextObj)</script>
+      </x>
+     </x>''')
+
+    pxCell = Px('''
+     <x var="multipleValues=value and isMultiple">
+      <x if="multipleValues">:', '.join(value)"></x>
+      <x if="not multipleValues">:field.pxView</x>
+     </x>''')
+
+    pxSearch = Px('''
+     <x>
+      <label lfor="widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+      <!-- Show a simple search field for most String fields -->
+      <x if="not field.isSelect">
+       <input type="text" maxlength=":field.maxChars" size=":field.swidth"
+              name=":'%s*string-%s' % (widgetName, field.transform)"
+              style=":'text-transform:%s' % field.transform"
+              value=":field.sdefault"/>
+      </x>
+      <!-- Show a multi-selection box for fields whose validator defines a list
+           of values, with a "AND/OR" checkbox. -->
+      <x if="field.isSelect">
+       <!-- The "and" / "or" radio buttons -->
+       <x var="operName='o_%s' % name;
+               orName='%s_or' % operName;
+               andName='%s_and' % operName"
+          if="field.multiplicity[1] != 1">
+        <input type="radio" name=":operName" id=":orName" checked="checked"
+               value="or"/>
+        <label lfor=":orName">:_('search_or')</label>
+        <input type="radio" name=":operName" id=":andName" value="and"/>
+        <label lfor=":andName">:_('search_and')"></label><br/>
+       </x>
+       <!-- The list of values -->
+       <select var="preSelected=field.sdefault"
+               name=":widgetName" size=":field.sheight" multiple="multiple">
+        <option for="v in field.getPossibleValues(ztool, withTranslations=True,\
+                                     withBlankValue=False, className=className)"
+                selected=":v[0] in preSelected" value=":v[0]"
+                title=":v[1]">ztool.truncateValue(v[1], field.swidth)</option>
+       </select>
+      </x><br/>
+     </x>''')
 
     # Some predefined functions that may also be used as validators
     @staticmethod
@@ -352,14 +465,16 @@ class String(Field):
         if res in self.emptyValuesCatalogIgnored: res = ' '
         return res
 
-    def getPossibleValues(self,obj,withTranslations=False,withBlankValue=False):
-        '''Returns the list of possible values for this field if it is a
-           selection field. If p_withTranslations is True,
-           instead of returning a list of string values, the result is a list
-           of tuples (s_value, s_translation). If p_withBlankValue is True, a
-           blank value is prepended to the list, excepted if the type is
-           multivalued.'''
-        if not self.isSelect: raise 'This field is not a selection.'
+    def getPossibleValues(self, obj, withTranslations=False,
+                          withBlankValue=False, className=None):
+        '''Returns the list of possible values for this field (only for fields
+           with self.isSelect=True). If p_withTranslations is True, instead of
+           returning a list of string values, the result is a list of tuples
+           (s_value, s_translation). If p_withBlankValue is True, a blank value
+           is prepended to the list, excepted if the type is multivalued. If
+           p_className is given, p_obj is the tool and, if we need an instance
+           of p_className, we will need to use obj.executeQuery to find one.'''
+        if not self.isSelect: raise Exception('This field is not a selection.')
         if isinstance(self.validator, Selection):
             # We need to call self.methodName for getting the (dynamic) values.
             # If methodName begins with _appy_, it is a special Appy method:
@@ -381,6 +496,15 @@ class String(Field):
             if methodName.startswith('tool:'):
                 obj = obj.getTool()
                 methodName = methodName[5:]
+            else:
+                # We must call on p_obj. But if we have something in
+                # p_className, p_obj is the tool and not an instance of
+                # p_className as required. So find such an instance.
+                if className:
+                    brains = obj.executeQuery(className, maxResults=1,
+                                              brainsOnly=True)
+                    if brains:
+                        obj = brains[0].getObject()
             # Do we need to call the method on the object or on the wrapper?
             if methodName.startswith('_appy_'):
                 exec 'res = obj.%s(*args)' % methodName
@@ -503,4 +627,47 @@ class String(Field):
         '''Generates a password (we recycle here the captcha challenge
            generator).'''
         return self.getCaptchaChallenge({})['text']
+
+    def getJsInit(self, obj):
+        '''Gets the Javascript init code for displaying a rich editor for this
+           field (rich field only).'''
+        # Define the attributes that will initialize the ckeditor instance for
+        # this field.
+        ckAttrs = {'toolbar': 'Appy',
+                   'format_tags': '%s' % ';'.join(self.styles)}
+        if self.width: ckAttrs['width'] = self.width
+        if self.allowImageUpload:
+            ckAttrs['filebrowserUploadUrl'] = '%s/upload' % obj.absolute_url()
+        ck = []
+        for k, v in ckAttrs.iteritems():
+            if isinstance(v, int): sv = str(v)
+            else: sv = '"%s"' % v
+            ck.append('%s: %s' % (k, sv))
+        return 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
+
+    def getJsInlineInit(self, obj):
+        '''Gets the Javascript init code for enabling inline edition of this
+           field (rich text only).'''
+        uid = obj.UID()
+        return "CKEDITOR.disableAutoInline = true;\n" \
+               "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
+               "function( event ) { var data = event.editor.getData(); " \
+               "askAjaxChunk('%s_%s','POST','%s','page','saveField', "\
+               "{'fieldName':'%s', 'fieldContent': encodeURIComponent(data)}, "\
+               "null, evalInnerScripts);}}});"% \
+               (uid, self.name, uid, self.name, obj.absolute_url(), self.name)
+
+    def isSelected(self, obj, vocabValue, dbValue):
+        '''When displaying a selection box (only for fields with a validator
+           being a list), must the _vocabValue appear as selected?'''
+        rq = obj.REQUEST
+        # Get the value we must compare (from request or from database)
+        if rq.has_key(self.name):
+            compValue = rq.get(self.name)
+        else:
+            compValue = dbValue
+        # Compare the value
+        if type(compValue) in sutils.sequenceTypes:
+            return vocabValue in compValue
+        return vocabValue == compValue
 # ------------------------------------------------------------------------------

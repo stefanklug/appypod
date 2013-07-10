@@ -1393,24 +1393,10 @@ class BaseMixin:
 
     def getPossibleValues(self, name, withTranslations, withBlankValue,
                           className=None):
-        '''Gets the possible values for field named p_name. This field must be a
-           String with isSelection()=True. If p_withTranslations is True,
-           instead of returning a list of string values, the result is a list
-           of tuples (s_value, s_translation). If p_withBlankValue is True, a
-           blank value is prepended to the list. If no p_className is defined,
-           the field is supposed to belong to self's class.'''
-        appyType = self.getAppyType(name, className=className)
-        if className:
-            # We need an instance of className, but self can be an instance of
-            # another class. So here we will search such an instance.
-            brains = self.executeQuery(className, maxResults=1, brainsOnly=True)
-            if brains:
-                obj = brains[0].getObject()
-            else:
-                obj = self
-        else:
-            obj = self
-        return appyType.getPossibleValues(obj, withTranslations, withBlankValue)
+        '''See docstring of String.getPossibleValues.'''
+        field = self.getAppyType(name, className=className)
+        return field.getPossibleValues(self, withTranslations, withBlankValue,
+                                       className=className)
 
     def getCaptchaChallenge(self, name):
         return self.getAppyType(name).getCaptchaChallenge(self.REQUEST.SESSION)

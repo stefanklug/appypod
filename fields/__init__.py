@@ -356,7 +356,7 @@ class Field:
         # represents the maximum number of chars that a given input field may
         # accept (corresponds to HTML "maxlength" property). "None" means
         # "unlimited".
-        self.maxChars = maxChars
+        self.maxChars = maxChars or ''
         # If the widget is in a group with multiple columns, the following
         # attribute specifies on how many columns to span the widget.
         self.colspan = colspan

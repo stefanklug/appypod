@@ -24,15 +24,15 @@ class Date(Field):
 
     pxView = pxCell = Px('''<x>:value</x>''')
     pxEdit = Px('''
-     <x var="years=contextObj.getSelectableYears(widget['name'])">
+     <x var="years=field.getSelectableYears()">
       <!-- Day -->
       <select var="days=range(1,32)"
               name=":'%s_day' % name" id=":'%s_day' % name">
        <option value="">-</option>
        <x for="day in days">
         <option var="zDay=str(day).zfill(2)" value=":zDay"
-                selected="contextObj.dateValueSelected(name, 'day', day, \
-                          rawValue)">:zDay></option></x>
+                selected="field.isSelected(contextObj, 'day', day, \
+                                           rawValue)">:zDay</option></x>
       </select>
 
       <!-- Month -->
@@ -41,50 +41,50 @@ class Date(Field):
        <option value="">-</option>
        <x for="month in months">
         <option var="zMonth=str(month).zfill(2)" value=":zMonth"
-                selected="contextObj.dateValueSelected(name, 'month', month, \
-                          rawValue)">:zMonth</option></x>
+                selected="field.isSelected(contextObj, 'month', month, \
+                                           rawValue)">:zMonth</option></x>
       </select>
 
       <!-- Year -->
       <select name=":'%s_year' % name" id=":'%s_year' % name">
        <option value="">-</option>
        <option for="year in years" value=":year"
-               selected="contextObj.dateValueSelected(name, 'year', year, \
-                         rawValue)">:year</option>
+               selected="field.isSelected(contextObj, name, 'year', year, \
+                                          rawValue)">:year</option>
       </select>
 
       <!-- The icon for displaying the calendar popup -->
-      <x if="widget['calendar']">
+      <x if="field.calendar">
        <input type="hidden" id=":name" name=":name"/>
        <img id=":'%s_img' % name" src=":'%s/ui/calendar.gif' % appUrl"/>
-       <script type="text/javascript">:contextObj.getCalendarInit(name, years)
-       </script>
+       <script type="text/javascript">:field.getJsInit(name, years)</script>
       </x>
 
-      <!-- Hour and minutes -->  
-      <x if="widget['format'] == 0">
-        <select var="hours=range(0,24)"
-                name=":'%s_hour' % name" id=":'%s_hour' % name">
-         <option value="">-</option>
-         <x for="hour in hours">
-          <option var="zHour=str(hour).zfill(2)" value=":zHour"
-                  selected=":contextObj.dateValueSelected(name, 'hour', hour, \
-                            rawValue)">:zHour</option></x>
-        </select> :
-        <select var="minutes=range(0,60,5)"
-                name=":'%s_minute' % name" id=":'%s_minute' % name">
-         <option value="">-</option>
-         <x for="minute in minutes">
-            <option var="zMinute=str(minute).zfill(2)" value=":zMinute"
-                    selected=":contextObj.dateValueSelected(name, 'minute', \
-                              minute, rawValue)">:zMinute</option></x>
-        </select>
+      <!-- Hour and minutes -->
+      <x if="field.format == 0">
+       <select var="hours=range(0,24)" name=":'%s_hour' % name"
+               id=":'%s_hour' % name">
+        <option value="">-</option>
+        <x for="hour in hours">
+         <option var="zHour=str(hour).zfill(2)" value=":zHour"
+                 selected=":field.isSelected(contextObj, 'hour', hour, \
+                                             rawValue)">:zHour</option>
+        </x>
+       </select> :
+       <select var="minutes=range(0,60,5)" name=":'%s_minute' % name"
+               id=":'%s_minute' % name">
+        <option value="">-</option>
+        <x for="minute in minutes">
+         <option var="zMinute=str(minute).zfill(2)" value=":zMinute"
+                 selected=":field.isSelected(contextObj, 'minute', minute,\
+                                             rawValue)">:zMinute</option></x>
+       </select>
       </x>
      </x>''')
 
     pxSearch = Px('''
-     <x var="years=range(widget['startYear'], widget['endYear']+1)">
-      <label>:_(widget['labelId'])</label>
+     <x var="years=range(field.startYear, field.endYear+1)">
+      <label>:_(field.labelId)</label>
       <table>
        <!-- From -->
        <tr var="fromName='%s_from' % name;
@@ -106,14 +106,14 @@ class Date(Field):
          </select> /
          <select id=":yearFromName" name=":yearFromName">
           <option value="">--</option>
-          <option for="value in range(widget['startYear'],widget['endYear']+1)"
+          <option for="value in range(field.startYear, field.endYear+1)"
                   value=":value">:value</option>
          </select>
          <!-- The icon for displaying the calendar popup -->
-         <x if="widget['calendar']">
+         <x if="field.calendar">
           <input type="hidden" id=":fromName" name=":fromName"/>
           <img id=":'%s_img' % fromName" src=":'%s/ui/calendar.gif' % appUrl"/>
-          <script type="text/javascript">:tool.getCalendarInit(fromName, years)
+          <script type="text/javascript">:field.getJsInit(fromName, years)
           </script>
          </x>
         </td>
@@ -139,14 +139,14 @@ class Date(Field):
          </select> /
          <select id=":yearToName" name=":yearToName">
           <option value="">--</option>
-          <option for="value in range(widget['startYear'],widget['endYear']+1)"
+          <option for="value in range(field.startYear, field.endYear+1)"
                   value=":value">:value</option>
          </select>
          <!-- The icon for displaying the calendar popup -->
-         <x if="widget['calendar']">
+         <x if="widget.calendar">
           <input type="hidden" id=":toName" name=":toName"/>
           <img id=":'%s_img' % toName" src=":%s/ui/calendar.gif' % appUrl"/>
-          <script type="text/javascript">:tool.getCalendarInit(toName, years)">
+          <script type="text/javascript">:field.getJsInit(toName, years)">
           </script>
          </x>
         </td>
@@ -248,4 +248,30 @@ class Date(Field):
             return DateTime.DateTime(value)
 
     def getIndexType(self): return 'DateIndex'
+
+    def isSelected(self, obj, fieldPart, dateValue, dbValue):
+        '''When displaying this field, must the particular p_dateValue be
+           selected in the sub-field p_fieldPart corresponding to the date
+           part?'''
+        # Get the value we must compare (from request or from database)
+        rq = obj.REQUEST
+        partName = '%s_%s' % (self.name, fieldPart)
+        if rq.has_key(partName):
+            compValue = rq.get(partName)
+            if compValue.isdigit():
+                compValue = int(compValue)
+        else:
+            compValue = dbValue
+            if compValue:
+                compValue = getattr(compValue, fieldPart)()
+        # Compare the value
+        return compValue == dateValue
+
+    def getJsInit(self, name, years):
+        '''Gets the Javascript init code for displaying a calendar popup for
+           this field, for an input named p_name (which can be different from
+           self.name if, ie, it is a search field).'''
+        return 'Calendar.setup({inputField: "%s", button: "%s_img", ' \
+               'onSelect: onSelectDate, range:[%d,%d]});' % \
+               (name, name, years[0], years[-1])
 # ------------------------------------------------------------------------------

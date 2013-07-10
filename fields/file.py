@@ -16,6 +16,7 @@
 
 # ------------------------------------------------------------------------------
 import time, os.path, mimetypes
+from appy import Object
 from appy.fields import Field
 from appy.px import Px
 from appy.shared import utils as sutils
@@ -24,32 +25,32 @@ from appy.shared import utils as sutils
 class File(Field):
 
     pxView = pxCell = Px('''
-     <x var="info=contextObj.getFileInfo(value);
-             empty=not info['size'];
+     <x var="info=field.getFileInfo(value);
+             empty=not info.size;
              imgSrc='%s/download?name=%s' % (contextObj.absolute_url(), name)">
-      <x if="not empty and not widget['isImage']">
-       <a href=":imgSrc">:info['filename']"</a>&nbsp;&nbsp;-
-       <i class="discreet">'%sKb' % (info['size'] / 1024)"></i>
+      <x if="not empty and not field.isImage">
+       <a href=":imgSrc">:info.filename</a>&nbsp;&nbsp;-
+       <i class="discreet">'%sKb' % (info.size / 1024)"></i>
       </x>
-      <x if="not empty and widget['isImage']"><img src=":imgSrc"/></x>
+      <x if="not empty and field.isImage"><img src=":imgSrc"/></x>
       <x if="empty">-</x>
      </x>''')
 
     pxEdit = Px('''
-     <x var="info=contextObj.getFileInfo(value);
-             empty= not info['size'];
+     <x var="info=field.getFileInfo(value);
+             empty= not info.size;
              fName=q('%s_file' % name)">
 
-      <x if="not: empty">:widget['pxView']</x><br/>
+      <x if="not empty">:field.pxView</x><br/>
       <x if="not empty">
        <!-- Keep the file unchanged. -->
        <input type="radio" value="nochange"
-              checked=":(info['size'] != 0) and 'checked' or None"
+              checked=":(info.size != 0) and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_nochange' % name"
               onclick=":'document.getElementById(%s).disabled=true' % fName"/>
        <label lfor=":'%s_nochange' % name">Keep the file unchanged</label><br/>
        <!-- Delete the file. -->
-       <x if="not widget['required']">
+       <x if="not field.required">
         <input type="radio" value="delete"
                name=":'%s_delete' % name" id=":'%s_delete' % name"
                onclick=":'document.getElementById(%s).disabled=true' % fName"/>
@@ -57,14 +58,14 @@ class File(Field):
        </x>
        <!-- Replace with a new file. -->
        <input type="radio" value=""
-              checked=":(info['size'] == 0) and 'checked' or None"
+              checked=":(info.size == 0) and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_upload' % name"
               onclick=":'document.getElementById(%s).disabled=false' % fName"/>
        <label lfor=":'%s_upload' % name">Replace it with a new file</label><br/>
       </x>
       <!-- The upload field. -->
       <input type="file" name=":'%s_file' % name" id=":'%s_file' % name"
-             size=":widget['width']"/>
+             size=":field.width"/>
       <script var="isDisabled=empty and 'false' or 'true'"
               type="text/javascript">:document.getElementById(%s).disabled=%s'%\
                                       (q(fName), q(isDisabled))">
@@ -223,4 +224,9 @@ class File(Field):
             if rq: action = rq.get('%s_delete' % self.name, None)
             if action == 'nochange': pass
             else: setattr(obj, self.name, None)
+
+    def getFileInfo(self, fileObject):
+        '''Returns filename and size of p_fileObject.'''
+        if not fileObject: return Object(filename='', size=0)
+        return Object(filename=fileObject.filename, size=fileObject.size)
 # ------------------------------------------------------------------------------

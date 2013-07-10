@@ -33,7 +33,6 @@ class Ogone(Field):
     pxView = pxCell = Px('''
      <x>
       <!-- var "value" is misused and contains the contact params for Ogone -->
-      <p>:value</p>
       <!-- The form for sending the payment request to Ogone -->
       <form method="post" id="form1" name="form1" var="env=value['env']"
             action=":'https://secure.ogone.com/ncol/%s/orderstandard.asp'% env">

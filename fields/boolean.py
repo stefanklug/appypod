@@ -30,7 +30,7 @@ class Boolean(Field):
      </x>''')
 
     pxEdit = Px('''
-     <x var="isChecked=contextObj.checkboxChecked(name, rawValue)">
+     <x var="isChecked=field.isChecked(contextObj, rawValue)">
       <input type="checkbox" name=":name + '_visible'" id=":name"
              class=":masterCss" checked=":isChecked"
              onclick=":'toggleCheckbox(%s, %s); updateSlaves(this)' % \
@@ -41,19 +41,19 @@ class Boolean(Field):
 
     pxSearch = Px('''
      <x var="typedWidget='%s*bool' % widgetName">
-      <label lfor=":widgetName">:_(widget['labelId'])"></label><br/>&nbsp;&nbsp;
+      <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
       <x var="valueId='%s_yes' % name">
-        <input type="radio" value="True" name=":typedWidget" id=":valueId"/>
-        <label lfor=":valueId">:_('yes')"></label>
+       <input type="radio" value="True" name=":typedWidget" id=":valueId"/>
+       <label lfor=":valueId">:_('yes')</label>
       </x>
       <x var="valueId='%s_no' % name">
-        <input type="radio" value="False" name=":typedWidget" id=":valueId"/>
-        <label lfor=":valueId">:_('no')"></label>
+       <input type="radio" value="False" name=":typedWidget" id=":valueId"/>
+       <label lfor=":valueId">:_('no')"></label>
       </x>
       <x var="valueId='%s_whatever' % name">
-        <input type="radio" value="" name=":typedWidget" id=":valueId"
-               checked="checked"/>
-        <label lfor=":valueId">:_('whatever')"></label>
+       <input type="radio" value="" name=":typedWidget" id=":valueId"
+              checked="checked"/>
+       <label lfor=":valueId">:_('whatever')</label>
       </x><br/>
      </x>''')
 
@@ -96,4 +96,13 @@ class Boolean(Field):
         if not self.isEmptyValue(value):
             exec 'res = %s' % value
             return res
+
+    def isChecked(self, obj, dbValue):
+        '''When rendering this field as a checkbox, must it be checked or
+           not?'''
+        rq = obj.REQUEST
+        # Get the value we must compare (from request or from database)
+        if rq.has_key(self.name):
+            return  rq.get(self.name) in ('True', 1, '1')
+        return dbValue
 # ------------------------------------------------------------------------------

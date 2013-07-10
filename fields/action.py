@@ -28,20 +28,20 @@ class Action(Field):
     pxView = pxCell = Px('''
      <form name="executeAppyAction"
            var="formId='%s_%s_form' % (contextObj.UID(), name);
-                label=_(widget['labelId'])"
+                label=_(field.labelId)"
            id=":formId" action=":ztool.absolute_url() + '/do'">
       <input type="hidden" name="action" value="ExecuteAppyAction"/>
       <input type="hidden" name="objectUid" value=":contextObj.UID()"/>
       <input type="hidden" name="fieldName" value=":name"/>
-      <x if="widget['confirm']"><input
+      <x if="field.confirm"><input
          type="button" class="button"
-         var="labelConfirm=_(widget['labelId'] + '_confirm')"
+         var="labelConfirm=_(field.labelId + '_confirm')"
          value=":ztool.truncateValue(label)" title=":label"
          style=":'background-image: url(%s/ui/buttonAction.png)' % appUrl"
          onclick=":'askConfirm(%s,%s,%s)' % (q('form'), q(formId), \
                                              q(labelConfirm))"/>
       </x>
-      <input if="not widget['confirm']" type="submit" class="button" name="do"
+      <input if="not field.confirm" type="submit" class="button" name="do"
              value=":ztool.truncateValue(label)" title=":label"
              style=":'background-image: url(%s/ui/buttonAction.png)' % appUrl"/>
      </form>''')

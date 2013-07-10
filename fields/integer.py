@@ -28,25 +28,24 @@ class Integer(Field):
      </x>''')
 
     pxEdit = Px('''
-     <input var="maxChars=widget['maxChars'] and widget['maxChars'] or ''"
-            id=":name" name=":name" size=":widget['width']"
-            maxlength=":maxChars" value=":inRequest and requestValue or value"
-            type="text"/>''')
+     <input id=":name" name=":name" size=":field.width"
+            maxlength=":field.maxChars"
+            value=":inRequest and requestValue or value" type="text"/>''')
 
     pxSearch = Px('''
-     <x var="maxChars= widget['maxChars'] and widget['maxChars'] or ''">
-      <label>:_(widget['labelId'])"></label><br/>&nbsp;&nbsp;
+     <x>
+      <label>:_(field.labelId)"></label><br/>&nbsp;&nbsp;
       <!-- From -->
       <x var="fromName='%s*int' % widgetName">
        <label lfor=":fromName">:_('search_from')</label>
-       <input type="text" name=":fromName" maxlength=":maxChars"
-              value=":widget['sdefault'][0]" size=":widget['swidth']"/>
+       <input type="text" name=":fromName" maxlength=":field.maxChars"
+              value=":field.sdefault[0]" size=":field.swidth"/>
       </x>
       <!-- To -->
       <x var="toName='%s_to' % name">
        <label lfor=":toName">:_('search_to')"></label>
-       <input type="text" name=":toName" maxlength=":maxChars"
-              value=":widget['sdefault'][1]" size=":widget['swidth']"/>
+       <input type="text" name=":toName" maxlength=":field.maxChars"
+              value=":field.sdefault[1]" size=":field.swidth"/>
       </x><br/>
      </x>''')
 

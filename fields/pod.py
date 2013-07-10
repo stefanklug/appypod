@@ -28,7 +28,7 @@ from appy.shared import utils as sutils
 class Pod(Field):
     '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
        from data contained in Appy class and linked objects or anything you
-       want to put in it. It uses appy.pod.'''
+       want to put in it. It is the way gen uses pod.'''
     # Layout for rendering a POD field for exporting query results.
     rLayouts = {'view': Table('fl', width=None)}
     POD_ERROR = 'An error occurred while generating the document. Please ' \
@@ -38,14 +38,14 @@ class Pod(Field):
     pxView = pxCell = Px('''
      <x>
       <!-- Ask action -->
-      <x if="widget['askAction']">
-       <x var="doLabel='%s_askaction' % widget['labelId'];
+      <x if="field.askAction">
+       <x var="doLabel='%s_askaction' % field.labelId;
                chekboxId='%s_%s_cb' % (contextObj.UID(), name)">
         <input type="checkbox" name=":doLabel" id=":chekboxId"/>
         <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
        </x>
       </x>
-      <img for="podFormat in ztool.getPodInfo(contextObj, name)[1]"
+      <img for="podFormat in field.getToolInfo(contextObj.appy())[1]"
            src=":'%s/ui/%s.png' % (appUrl, podFormat)"
            onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
              (q(contextObj.UID()), q(name), q(podFormat), \
