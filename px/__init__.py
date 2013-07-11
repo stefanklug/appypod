@@ -6,6 +6,7 @@
 import xml.sax
 from px_parser import PxParser, PxEnvironment
 from appy.pod.buffers import MemoryBuffer
+from appy.shared.xml_parser import xmlPrologue, xhtmlPrologue
 
 # Exception class --------------------------------------------------------------
 class PxError(Exception): pass
@@ -13,11 +14,11 @@ class PxError(Exception): pass
 # ------------------------------------------------------------------------------
 class Px:
     '''Represents a (chunk of) PX code.'''
-    xhtmlPrologue = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '\
-                    '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+    xmlPrologue = xmlPrologue
+    xhtmlPrologue = xhtmlPrologue
 
     def __init__(self, content, isFileName=False, partial=True,
-                 template=None, hook=None, prologue=None):
+                 template=None, hook=None, prologue=None, unicode=True):
         '''p_content is the PX code, as a string, or a file name if p_isFileName
            is True. If this code represents a complete XML file, p_partial is
            False. Else, we must surround p_content with a root tag to be able
@@ -29,6 +30,9 @@ class Px:
 
            If a p_prologue is specified, it will be rendered at the start of the
            PX result.
+
+           By default, a PX's result will be a unicode. If you want to get an
+           encoded str instead, use p_unicode=False.
         '''
         # Get the PX content
         if isFileName:
@@ -56,6 +60,8 @@ class Px:
         self.hook = hook
         # Is there some (XML, XHTML...) prologue to dump?
         self.prologue = prologue
+        # Will the result be unicode or str?
+        self.unicode = unicode
 
     def completeErrorMessage(self, parsingError):
         '''A p_parsingError occurred. Complete the error message with the
@@ -96,5 +102,7 @@ class Px:
             res = result.content
             if self.prologue:
                 res = self.prologue + res
+            if not self.unicode:
+                res = res.encode('utf-8')
             return res
 # ------------------------------------------------------------------------------

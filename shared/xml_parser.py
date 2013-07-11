@@ -31,6 +31,9 @@ from appy.shared.css import parseStyleAttribute
 
 # Constants --------------------------------------------------------------------
 xmlPrologue = '<?xml version="1.0" encoding="utf-8" ?>\n'
+xhtmlPrologue = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" '\
+                '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+
 CONVERSION_ERROR = '"%s" value "%s" could not be converted by the XML ' \
                    'unmarshaller.'
 CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \

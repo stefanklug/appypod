@@ -58,7 +58,7 @@ class SoapDataEncoder:
     def encode(self):
         # Do nothing if we have a SOAP message already
         if isinstance(self.data, basestring): return self.data
-        # self.data is here a Python object. Wrap it a SOAP Body.
+        # self.data is here a Python object. Wrap it in a SOAP Body.
         soap = Object(Body=self.data)
         # Marshall it.
         marshaller = XmlMarshaller(rootTag='Envelope', namespaces=self.ns,
@@ -69,7 +69,7 @@ class SoapDataEncoder:
 class HttpResponse:
     '''Stores information about a HTTP response.'''
     def __init__(self, code, text, headers, body, duration=None):
-        self.code = code # The return code, ie 404, 200, ...
+        self.code = code # The return code, ie 404, 200, 500...
         self.text = text # Textual description of the code
         self.headers = headers # A dict-like object containing the headers
         self.body = body # The body of the HTTP response
@@ -260,17 +260,18 @@ class Resource:
         headers['Content-Length'] = str(len(body))
         return self.send('POST', uri, headers=headers, body=body)
 
-    def soap(self, data, uri=None, headers={}, namespace=None):
+    def soap(self, data, uri=None, headers={}, namespace=None, soapAction=None):
         '''Sends a SOAP message to this resource. p_namespace is the URL of the
-           server-specific namespace.'''
+           server-specific namespace. If header value "SOAPAction" is different
+           from self.url, specify it in p_soapAction.'''
         if not uri: uri = self.uri
         # Prepare the data to send
         data = SoapDataEncoder(data, namespace).encode()
-        headers['SOAPAction'] = self.url
+        headers['SOAPAction'] = soapAction or self.url
         headers['Content-Type'] = 'text/xml'
         res = self.post(data, uri, headers=headers, encode=None)
         # Unwrap content from the SOAP envelope
-        res.data = res.data.Body
+        if hasattr(res.data, 'Body'):
+            res.data = res.data.Body
         return res
 # ------------------------------------------------------------------------------
-
