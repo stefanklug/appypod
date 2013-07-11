@@ -68,10 +68,10 @@ class SoapDataEncoder:
 # ------------------------------------------------------------------------------
 class HttpResponse:
     '''Stores information about a HTTP response.'''
-    def __init__(self, code, text, headers, body, duration=None):
-        self.code = code # The return code, ie 404, 200, 500...
-        self.text = text # Textual description of the code
-        self.headers = headers # A dict-like object containing the headers
+    def __init__(self, response, body, duration=None):
+        self.code = response.status # The return code, ie 404, 200, 500...
+        self.text = response.reason # Textual description of the code
+        self.headers = response.msg # A dict-like object containing the headers
         self.body = body # The body of the HTTP response
         # p_duration, if given, is the time, in seconds, we have waited, before
         # getting this response after having sent the request.
@@ -161,15 +161,15 @@ class Resource:
 
     def send(self, method, uri, body=None, headers={}, bodyType=None):
         '''Sends a HTTP request with p_method, for p_uri.'''
-        conn = httplib.HTTP()
+        conn = httplib.HTTPConnection(self.host, self.port)
         try:
-            conn.connect(self.host, self.port)
+            conn.connect()
         except socket.gaierror, sge:
             raise ResourceError('Check your Internet connection (%s)'% str(sge))
         except socket.error, se:
-            raise ResourceError('Connection error (%s)'% str(se))
+            raise ResourceError('Connection error (%s)' % str(se))
         # Tell what kind of HTTP request it will be.
-        conn.putrequest(method, uri)
+        conn.putrequest(method, uri, skip_host=True)
         # Add HTTP headers
         self.updateHeaders(headers)
         if self.headers: headers.update(self.headers)
@@ -181,16 +181,16 @@ class Resource:
             copyData(body, conn, 'send', type=bodyType)
         # Send the request, get the reply
         if self.measure: startTime = time.time()
-        code, text, headers = conn.getreply()
+        response = conn.getresponse()
         if self.measure: endTime = time.time()
-        body = conn.getfile().read()
+        body = response.read()
         conn.close()
         # Return a smart object containing the various parts of the response
         duration = None
         if self.measure:
             duration = endTime - startTime
             self.serverTime += duration
-        return HttpResponse(code, text, headers, body, duration=duration)
+        return HttpResponse(response, body, duration=duration)
 
     def mkdir(self, name):
         '''Creates a folder named p_name in this resource.'''
