@@ -135,7 +135,10 @@ class IfAction(BufferAction):
        the result or not.'''
     def do(self, result, context, exprRes):
         if exprRes:
-            self.evaluateBuffer(result, context)
+            if self.subAction:
+                self.subAction.execute(result, context)
+            else:
+                self.evaluateBuffer(result, context)
         else:
             if self.buffer.isMainElement(Cell.OD):
                 # Don't leave the current row with a wrong number of cells

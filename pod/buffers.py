@@ -499,7 +499,7 @@ class MemoryBuffer(Buffer):
                                'buffer', None)
         elif actionType == 'if':
             action= IfAction('if', self, statement, elem, False, 'buffer', None)
-        elif actionType == 'var':
+        elif actionType in ('var', 'var2'):
             variables = self._getVariables(statement)
             action = VariablesAction('var', self, elem, False, variables,
                                      'buffer', None)

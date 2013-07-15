@@ -27,15 +27,14 @@ class List(Field):
     # PX for rendering a single row.
     pxRow = Px('''
      <tr valign="top" style="(rowIndex==-1) and 'display: none' or ''">
-      <td align="center" for="info in field.fields">
-       <x var="field=info[1];
-               tagCss='noStyle';
-               widgetName='%s*%d' % (field.name, rowIndex)">:field.pxView</x>
-      </td>
+      <td align="center" for="info in field.fields"
+          var2="field=info[1];
+                tagCss='noStyle';
+                widgetName='%s*%d' % (field.name, rowIndex)">:field.pxView</td>
       <!-- Icon for removing the row -->
       <td if="layoutType=='edit'" align=":dright">
-       <img style="cursor:pointer" src=":'%s/ui/delete.png' % appUrl"
-            title="Delete"
+       <img style="cursor:pointer" src=":img(delete')"
+            title=":_('object_delete')"
             onclick=":'deleteRow(%s, this)' % q('list_%s' % name)"/>
       </td>
      </tr>''')
@@ -49,8 +48,7 @@ class List(Field):
        <th for="info in field.fields">::_(info[1].labelId)</th>
        <!-- Icon for adding a new row. -->
        <th if="isEdit">
-        <img style="cursor:pointer" src=":'%s/ui/plus.png' % appUrl"
-             title=":_('add_ref')"
+        <img style="cursor:pointer" src=":img('plus')" title=":_('add_ref')"
              onclick=":'insertRow(%s)' % q('list_%s' % name)"/>
        </th>
       </tr>
@@ -60,17 +58,15 @@ class List(Field):
       <tr height="7px" if="isEdit"><td></td></tr>
 
       <!-- Rows of data -->
-      <x var="rows=inRequest and requestValue or value" for="row in rows">
-       <x var="rowIndex=loop.row.nb">:field.pxRow</x>
-      </x>
+      <x var="rows=inRequest and requestValue or value"
+         for="row in rows" var2="rowIndex=loop.row.nb">:field.pxRow</x>
      </table>''')
 
     pxView = pxCell = Px('''<x>:field.pxTable</x>''')
-    pxEdit = Px('''
-     <x>
-      <!-- This input makes Appy aware that this field is in the request -->
-      <input type="hidden" name=":name" value=""/><x>:field.pxTable</x>
-     </x>''')
+    pxEdit = Px('''<x>
+     <!-- This input makes Appy aware that this field is in the request -->
+     <input type="hidden" name=":name" value=""/><x>:field.pxTable</x>
+    </x>''')
 
     pxSearch = ''
 

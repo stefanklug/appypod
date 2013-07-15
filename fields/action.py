@@ -33,17 +33,15 @@ class Action(Field):
       <input type="hidden" name="action" value="ExecuteAppyAction"/>
       <input type="hidden" name="objectUid" value=":contextObj.UID()"/>
       <input type="hidden" name="fieldName" value=":name"/>
-      <x if="field.confirm"><input
-         type="button" class="button"
+      <input if="field.confirm" type="button" class="button"
          var="labelConfirm=_(field.labelId + '_confirm')"
          value=":ztool.truncateValue(label)" title=":label"
-         style=":'background-image: url(%s/ui/buttonAction.png)' % appUrl"
+         style=":img('buttonAction', bg=True)"
          onclick=":'askConfirm(%s,%s,%s)' % (q('form'), q(formId), \
                                              q(labelConfirm))"/>
-      </x>
       <input if="not field.confirm" type="submit" class="button" name="do"
              value=":ztool.truncateValue(label)" title=":label"
-             style=":'background-image: url(%s/ui/buttonAction.png)' % appUrl"/>
+             style=":img('buttonAction', bg=True)"/>
      </form>''')
 
     # It is not possible to edit an action, not to search it.

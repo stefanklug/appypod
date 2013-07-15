@@ -108,29 +108,28 @@ class String(Field):
              isSelect=field.isSelect;
              isMaster=field.slaves;
              isOneLine=fmt in (0,3,4)">
-      <x if="isSelect">
-       <select var="possibleValues=field.getPossibleValues(contextObj, \
-                                    withTranslations=True, withBlankValue=True)"
-               name=":name" id=":name" class=":masterCss"
-               multiple=":isMultiple and 'multiple' or ''"
-               onchange=":isMaster and 'updateSlaves(this)' or ''"
-               size=":isMultiple and field.height or 1">
-        <option for="val in possibleValues" value=":val[0]"
-                selected=":field.isSelected(contextObj, val[0], rawValue)"
-                title=":val[1]">:ztool.truncateValue(val[1], field.width)">
-        </option>
-       </select>
-      </x>
+      <select if="isSelect"
+              var2="possibleValues=field.getPossibleValues(contextObj, \
+                      withTranslations=True, withBlankValue=True)"
+              name=":name" id=":name" class=":masterCss"
+              multiple=":isMultiple and 'multiple' or ''"
+              onchange=":isMaster and 'updateSlaves(this)' or ''"
+              size=":isMultiple and field.height or 1">
+       <option for="val in possibleValues" value=":val[0]"
+               selected=":field.isSelected(contextObj, val[0], rawValue)"
+               title=":val[1]">:ztool.truncateValue(val[1], field.width)">
+       </option>
+      </select>
       <x if="isOneLine and not isSelect">
        <input id=":name" name=":name" size=":field.width"
               maxlength=":field.maxChars"
               value=":inRequest and requestValue or value"
               style=":'text-transform:%s' % field.transform"
               type=":(fmt == 3) and 'password' or 'text'"/>
-        <!-- Display a captcha if required -->
-        <span if="fmt == 4">:_('captcha_text', \
-                               mapping=field.getCaptchaChallenge(req.SESSION))
-        </span>
+       <!-- Display a captcha if required -->
+       <span if="fmt == 4">:_('captcha_text', \
+                              mapping=field.getCaptchaChallenge(req.SESSION))
+       </span>
       </x>
       <x if="fmt in (1,2)">
        <textarea id=":name" name=":name" cols=":field.width"
@@ -149,40 +148,37 @@ class String(Field):
       <x if="not multipleValues">:field.pxView</x>
      </x>''')
 
-    pxSearch = Px('''
-     <x>
-      <label lfor="widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
-      <!-- Show a simple search field for most String fields -->
-      <x if="not field.isSelect">
-       <input type="text" maxlength=":field.maxChars" size=":field.swidth"
-              name=":'%s*string-%s' % (widgetName, field.transform)"
-              style=":'text-transform:%s' % field.transform"
-              value=":field.sdefault"/>
+    pxSearch = Px('''<x>
+     <label lfor="widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <!-- Show a simple search field for most String fields -->
+     <input if="not field.isSelect" type="text" maxlength=":field.maxChars"
+            size=":field.swidth" value=":field.sdefault"
+            name=":'%s*string-%s' % (widgetName, field.transform)"
+            style=":'text-transform:%s' % field.transform"/>
+     <!-- Show a multi-selection box for fields whose validator defines a list
+          of values, with a "AND/OR" checkbox. -->
+     <x if="field.isSelect">
+      <!-- The "and" / "or" radio buttons -->
+      <x if="field.multiplicity[1] != 1"
+         var2="operName='o_%s' % name;
+              orName='%s_or' % operName;
+              andName='%s_and' % operName">
+       <input type="radio" name=":operName" id=":orName" checked="checked"
+              value="or"/>
+       <label lfor=":orName">:_('search_or')</label>
+       <input type="radio" name=":operName" id=":andName" value="and"/>
+       <label lfor=":andName">:_('search_and')"></label><br/>
       </x>
-      <!-- Show a multi-selection box for fields whose validator defines a list
-           of values, with a "AND/OR" checkbox. -->
-      <x if="field.isSelect">
-       <!-- The "and" / "or" radio buttons -->
-       <x var="operName='o_%s' % name;
-               orName='%s_or' % operName;
-               andName='%s_and' % operName"
-          if="field.multiplicity[1] != 1">
-        <input type="radio" name=":operName" id=":orName" checked="checked"
-               value="or"/>
-        <label lfor=":orName">:_('search_or')</label>
-        <input type="radio" name=":operName" id=":andName" value="and"/>
-        <label lfor=":andName">:_('search_and')"></label><br/>
-       </x>
-       <!-- The list of values -->
-       <select var="preSelected=field.sdefault"
-               name=":widgetName" size=":field.sheight" multiple="multiple">
-        <option for="v in field.getPossibleValues(ztool, withTranslations=True,\
+      <!-- The list of values -->
+      <select var="preSelected=field.sdefault"
+              name=":widgetName" size=":field.sheight" multiple="multiple">
+       <option for="v in field.getPossibleValues(ztool, withTranslations=True,\
                                      withBlankValue=False, className=className)"
-                selected=":v[0] in preSelected" value=":v[0]"
-                title=":v[1]">ztool.truncateValue(v[1], field.swidth)</option>
-       </select>
-      </x><br/>
-     </x>''')
+               selected=":v[0] in preSelected" value=":v[0]"
+               title=":v[1]">ztool.truncateValue(v[1], field.swidth)</option>
+      </select>
+     </x><br/>
+    </x>''')
 
     # Some predefined functions that may also be used as validators
     @staticmethod

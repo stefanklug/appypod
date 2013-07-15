@@ -64,38 +64,34 @@ class GroupDescr(Descr):
        sharing the same appy.gen.Group instance, that some logged user can
        see.'''
     # PX that renders a group of fields
-    pxGroupedFields = Px('''<p>pxGroupedFields</p>''')
+    pxView = Px('''<p>pxGroupedFields</p>''')
 
-    # PX that renders a group of fields
-    pxGroupedSearches = Px('''
-     <x var="expanded=req.get(widget['labelId'], 'collapsed') == 'expanded'">
+    # PX that renders a group of searches
+    pxViewSearches = Px('''
+     <x var="expanded=req.get(field.labelId, 'collapsed') == 'expanded'">
       <!-- Group name, prefixed by the expand/collapse icon -->
       <div class="portletGroup">
        <img style="cursor:pointer; margin-right: 3px" align=":dleft"
-            id=":'%s_img' % widget['labelId']"
-            src=":expanded and 'ui/collapse.gif' or 'ui/expand.gif'"
-            onclick=":'toggleCookie(&quot;%s&quot;)' % widget['labelId']"/>
-       <x if="not widget['translated']">:_(widget['labelId'])</x>
-       <x if="widget['translated']">:widget['translated']</x>
+            id=":'%s_img' % field.labelId"
+            src=":expanded and img('collapse.gif') or img('expand.gif')"
+            onclick=":'toggleCookie(%s)' % q(field.labelId)"/>
+       <x if="not field.translated">:_(field.labelId)</x>
+       <x if="field.translated">:field.translated</x>
       </div>
       <!-- Group content -->
       <div var="display=expanded and 'display:block' or 'display:none'"
-           id=":widget['labelId']" style=":'padding-left: 10px; %s' % display">
-       <x for="searches in widget['widgets']">
-        <x for="searchElem in searches">
+           id=":field.labelId" style=":'padding-left: 10px; %s' % display">
+       <x for="searches in field.widgets">
+        <x for="elem in searches">
          <!-- An inner group within this group -->
-         <x if="searchElem['type'] == 'group'">
-          <x var="widget=searchElem">:widget['px']</x>
-         </x>
+         <x if="elem['type'] == 'group'"
+            var2="field=elem">:field.pxViewSearches</x>
          <!-- A search -->
-         <x if="searchElem['type'] != 'group'">
-          <x var="search=searchElem">:search['px']</x>
-         </x>
+         <x if="elem['type'] != 'group'" var2="search=elem">:search.pxView</x>
         </x>
        </x>
       </div>
-     </x>
-    ''')
+     </x>''')
 
     def __init__(self, group, page, metaType, forSearch=False):
         self.type = 'group'
@@ -125,7 +121,7 @@ class GroupDescr(Descr):
         # they will be rendered as a table.
         self.widgets = [[]]
         # PX to user for rendering this group.
-        self.px = forSearch and self.pxGroupedSearches or self.pxGroupedFields
+        self.px = forSearch and self.pxViewSearches or self.pxView
 
     @staticmethod
     def addWidget(groupDict, newWidget):
@@ -178,20 +174,19 @@ class PhaseDescr(Descr):
                  editable=mayEdit and phase['pagesInfo'][aPage]['showOnEdit']">
           <a if="editable and not locked"
              href="contextObj.getUrl(mode='edit', page=aPage)">
-           <img src=":'%s/ui/edit.png' % appUrl" title=":_('object_edit')"/>
-          </a>
+           <img src=":img('edit')" title=":_('object_edit')"/></a>
           <a if="editable and locked">
            <img style="cursor: help"
                 var="lockDate=tool.formatDate(locked[1]);
                      lockMap={'user':ztool.getUserName(locked[0]), \
                               'date':lockDate};
                      lockMsg=_('page_locked', mapping=lockMap)"
-                src=":'%s/ui/locked.png' % appUrl" title=":lockMsg"/></a>
+                src=":img('locked')" title=":lockMsg"/></a>
           <a if="editable and locked and user.has_role('Manager')">
            <img style="cursor: pointer" title=":_('page_unlock')"
-                src=":'%s/ui/unlock.png' % appUrl"
-                onclick=":'onUnlockPage(&quot;%s&quot;,&quot;%s&quot;)' % \
-                           (contextObj.UID(), aPage)"/></a>
+                src=":img('unlock')"
+                onclick=":'onUnlockPage(%s,%s)' % \
+                          (q(contextObj.UID()), q(aPage))"/></a>
          </x>
         </div>
         <!-- Next lines: links -->
@@ -202,8 +197,7 @@ class PhaseDescr(Descr):
         </x>
        </x>
       </td>
-     </tr>
-    ''')
+     </tr>''')
 
     def __init__(self, name, obj):
         self.name = name
@@ -266,14 +260,13 @@ class PhaseDescr(Descr):
 class SearchDescr(Descr):
     '''Describes a Search.'''
     # PX for rendering a search.
-    pxSearch = Px('''
+    pxView = Px('''
      <div class="portletSearch">
       <a href=":'%s?className=%s&amp;search=%s' % \
                  (queryUrl, rootClass, search['name'])"
          class=":search['name'] == currentSearch and 'portletCurrent' or ''"
          title=":search['translatedDescr']">:search['translated']</a>
-     </div>
-    ''')
+     </div>''')
 
     def __init__(self, search, className, tool):
         self.search = search

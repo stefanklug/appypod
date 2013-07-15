@@ -29,20 +29,20 @@ class Date(Field):
       <select var="days=range(1,32)"
               name=":'%s_day' % name" id=":'%s_day' % name">
        <option value="">-</option>
-       <x for="day in days">
-        <option var="zDay=str(day).zfill(2)" value=":zDay"
-                selected="field.isSelected(contextObj, 'day', day, \
-                                           rawValue)">:zDay</option></x>
+       <option for="day in days"
+               var2="zDay=str(day).zfill(2)" value=":zDay"
+               selected="field.isSelected(contextObj, 'day', day, \
+                                          rawValue)">:zDay</option>
       </select>
 
       <!-- Month -->
       <select var="months=range(1,13)"
               name=":'%s_month' % name" id=":'%s_month' % name">
        <option value="">-</option>
-       <x for="month in months">
-        <option var="zMonth=str(month).zfill(2)" value=":zMonth"
-                selected="field.isSelected(contextObj, 'month', month, \
-                                           rawValue)">:zMonth</option></x>
+       <option for="month in months"
+               var2="zMonth=str(month).zfill(2)" value=":zMonth"
+               selected="field.isSelected(contextObj, 'month', month, \
+                                          rawValue)">:zMonth</option>
       </select>
 
       <!-- Year -->
@@ -56,7 +56,7 @@ class Date(Field):
       <!-- The icon for displaying the calendar popup -->
       <x if="field.calendar">
        <input type="hidden" id=":name" name=":name"/>
-       <img id=":'%s_img' % name" src=":'%s/ui/calendar.gif' % appUrl"/>
+       <img id=":'%s_img' % name" src=":img('calendar.gif')"/>
        <script type="text/javascript">:field.getJsInit(name, years)</script>
       </x>
 
@@ -65,19 +65,18 @@ class Date(Field):
        <select var="hours=range(0,24)" name=":'%s_hour' % name"
                id=":'%s_hour' % name">
         <option value="">-</option>
-        <x for="hour in hours">
-         <option var="zHour=str(hour).zfill(2)" value=":zHour"
-                 selected=":field.isSelected(contextObj, 'hour', hour, \
-                                             rawValue)">:zHour</option>
-        </x>
+        <option for="hour in hours"
+                var2="zHour=str(hour).zfill(2)" value=":zHour"
+                selected=":field.isSelected(contextObj, 'hour', hour, \
+                                            rawValue)">:zHour</option>
        </select> :
        <select var="minutes=range(0,60,5)" name=":'%s_minute' % name"
                id=":'%s_minute' % name">
         <option value="">-</option>
-        <x for="minute in minutes">
-         <option var="zMinute=str(minute).zfill(2)" value=":zMinute"
-                 selected=":field.isSelected(contextObj, 'minute', minute,\
-                                             rawValue)">:zMinute</option></x>
+        <option for="minute in minutes"
+                var2="zMinute=str(minute).zfill(2)" value=":zMinute"
+                selected=":field.isSelected(contextObj, 'minute', minute,\
+                                            rawValue)">:zMinute</option>
        </select>
       </x>
      </x>''')
@@ -112,7 +111,7 @@ class Date(Field):
          <!-- The icon for displaying the calendar popup -->
          <x if="field.calendar">
           <input type="hidden" id=":fromName" name=":fromName"/>
-          <img id=":'%s_img' % fromName" src=":'%s/ui/calendar.gif' % appUrl"/>
+          <img id=":'%s_img' % fromName" src=":img('calendar.gif')"/>
           <script type="text/javascript">:field.getJsInit(fromName, years)
           </script>
          </x>
@@ -145,7 +144,7 @@ class Date(Field):
          <!-- The icon for displaying the calendar popup -->
          <x if="widget.calendar">
           <input type="hidden" id=":toName" name=":toName"/>
-          <img id=":'%s_img' % toName" src=":%s/ui/calendar.gif' % appUrl"/>
+          <img id=":'%s_img' % toName" src=":img('calendar.gif')"/>
           <script type="text/javascript">:field.getJsInit(toName, years)">
           </script>
          </x>

@@ -28,27 +28,23 @@ class Computed(Field):
              value=contextObj.getFieldValue(name);
              sync=True">:field.pxView</x>''')
 
-    pxView = pxCell = pxEdit = Px('''
-     <x>
-      <x if="sync">
-       <x if="field.plainText">:value</x>
-       <x if="not field.plainText">::value></x>
-      </x>
-      <x if="not sync">
-       <div var="ajaxHookId=contextObj.UID() + name" id="ajaxHookId">
-        <script type="text/javascript">:'askComputedField(%s, %s, %s)' % \
-          (q(ajaxHookId), q(contextObj.absolute_url()), q(name))">
-        </script>
-       </div>
-      </x>
-     </x>''')
+    pxView = pxCell = pxEdit = Px('''<x>
+     <x if="sync">
+      <x if="field.plainText">:value</x><x if="not field.plainText">::value></x>
+     </x>
+     <div if="not sync">
+          var2="ajaxHookId=contextObj.UID() + name" id="ajaxHookId">
+      <script type="text/javascript">:'askComputedField(%s, %s, %s)' % \
+        (q(ajaxHookId), q(contextObj.absolute_url()), q(name))">
+      </script>
+     </div>
+    </x>''')
 
-    pxSearch = Px('''
-     <x>
-      <label lfor=":name">:field.labelId</label><br/>&nbsp;&nbsp;
-      <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
-             size=":field.width" value=":field.sdefault"/>
-     </x>''')
+    pxSearch = Px('''<x>
+     <label lfor=":name">:field.labelId</label><br/>&nbsp;&nbsp;
+     <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
+            size=":field.width" value=":field.sdefault"/>
+    </x>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show='view', page='main', group=None, layouts=None, move=0,

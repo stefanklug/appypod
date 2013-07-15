@@ -35,23 +35,19 @@ class Pod(Field):
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
 
-    pxView = pxCell = Px('''
-     <x>
-      <!-- Ask action -->
-      <x if="field.askAction">
-       <x var="doLabel='%s_askaction' % field.labelId;
-               chekboxId='%s_%s_cb' % (contextObj.UID(), name)">
-        <input type="checkbox" name=":doLabel" id=":chekboxId"/>
-        <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
-       </x>
-      </x>
-      <img for="podFormat in field.getToolInfo(contextObj.appy())[1]"
-           src=":'%s/ui/%s.png' % (appUrl, podFormat)"
-           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
-             (q(contextObj.UID()), q(name), q(podFormat), \
-              q(ztool.getQueryInfo()))"
-           title=":podFormat.capitalize()" style="cursor:pointer"/>
-     </x>''')
+    pxView = pxCell = Px('''<x>
+     <!-- Ask action -->
+     <x if="field.askAction"
+        var2="doLabel='%s_askaction' % field.labelId;
+              chekboxId='%s_%s_cb' % (contextObj.UID(), name)">
+      <input type="checkbox" name=":doLabel" id=":chekboxId"/>
+      <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
+     </x>
+     <img for="fmt in field.getToolInfo(contextObj.appy())[1]" src=":img(fmt)"
+          onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
+            (q(contextObj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
+          title=":fmt.capitalize()" style="cursor:pointer"/>
+    </x>''')
 
     pxEdit = pxSearch = ''
 

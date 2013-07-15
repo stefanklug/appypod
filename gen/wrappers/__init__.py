@@ -32,35 +32,30 @@ class AbstractWrapper(object):
     # --------------------------------------------------------------------------
     # Icon for hiding/showing details below the title.
     pxShowDetails = Px('''
-     <x if="ztool.subTitleIsUsed(className)">
-      <img if="widget['name'] == 'title'" style="cursor:pointer"
-           src=":'%s/ui/toggleDetails.png'%appUrl" onClick="toggleSubTitles()"/>
-     </x>''')
+     <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
+          style="cursor:pointer" src=":img('toggleDetails')"
+          onClick="toggleSubTitles()"/>''')
 
     # Displays up/down arrows in a table header column for sorting a given
-    # column. Requires variables "sortable", 'filterable' and 'fieldName'.
-    pxSortAndFilter = Px('''
-     <x var="fieldName=widget['name']">
-      <x if="sortable">
-       <img if="(sortKey != fieldName) or (sortOrder == 'desc')"
-            onclick=":navBaseCall.replace('**v**', '0,&quot;%s&quot;, \
-                     &quot;asc&quot;, &quot;%s&quot;' % (fieldName,filterKey))"
-            src=":'%s/ui/sortDown.gif' % appUrl" style="cursor:pointer"/>
-       <img if="(sortKey != fieldName) or (sortOrder == 'asc')"
-            onClick=":navBaseCall.replace('**v**', '0,&quot;%s&quot;, \
-                     &quot;desc&quot;, &quot;%s&quot;' % (fieldName,filterKey))"
-            src=":'%s/ui/sortUp.gif' % appUrl" style="cursor:pointer"/>
-      </x>
-      <x if="filterable">
-       <input type="text" size="7"
-              id=":'%s_%s' % (ajaxHookId, fieldName)"
-              value=":filterKey == fieldName and filterValue or ''"/>
-        <img onClick=":navBaseCall.replace('**v**', '0, &quot;%s&quot;, \
-                       &quot;%s&quot;, &quot;%s&quot;' % \
-                       (sortKey, sortOrder, fieldName))"
-             src=":'%s/ui/funnel.png' % appUrl" style="cursor:pointer"/>
-      </x>
-     </x>''')
+    # column. Requires variables "sortable", 'filterable' and 'field'.
+    pxSortAndFilter = Px('''<x>
+     <x if="sortable">
+      <img if="(sortKey != field.name) or (sortOrder == 'desc')"
+           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
+                     (q(field.name), q('asc'), q(filterKey)))"
+           src=":img('sortDown.gif')" style="cursor:pointer"/>
+      <img if="(sortKey != field.name) or (sortOrder == 'asc')"
+           onClick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
+                     (q(field.name), q('desc'), q(filterKey)))"
+           src=":img('sortUp.gif')" style="cursor:pointer"/>
+     </x>
+     <x if="filterable">
+      <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
+             value=":filterKey == field.name and filterValue or ''"/>
+      <img onClick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
+                     (q(sortKey), q(sortOrder), q(field.name)))"
+           src=":img('funnel')" style="cursor:pointer"/>
+     </x></x>''')
 
     # Buttons for navigating among a list of elements: next,back,first,last...
     pxAppyNavigate = Px('''
@@ -68,33 +63,31 @@ class AbstractWrapper(object):
       <table class="listNavigate"
              var="mustSortAndFilter=ajaxHookId == 'queryResult';
                   sortAndFilter=mustSortAndFilter and \
-                     ',&quot;%s&quot;, &quot;%s&quot;, &quot;%s&quot;' % \
-                     (sortKey, sortOrder, filterKey) or ''">
+                    ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
        <tr valign="middle">
         <!-- Go to the first page -->
         <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            style="cursor:pointer" src=":'%s/ui/arrowLeftDouble.png' % appUrl"
+            style="cursor:pointer" src=":img('arrowLeftDouble')"
             title=":_('goto_first')"
             onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
 
         <!-- Go to the previous page -->
         <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            style="cursor:pointer" src=":'%s/ui/arrowLeftSimple.png' % appUrl"
+            style="cursor:pointer" src=":img('arrowLeftSimple')"
             title=":_('goto_previous')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
 
         <!-- Explain which elements are currently shown -->
         <td class="discreet">&nbsp;
-         <x>:startNumber + 1</x><img src=":'%s/ui/to.png' % appUrl"/>
+         <x>:startNumber + 1</x><img src=":img('to')"/>
          <x>:startNumber + len(objs)</x>&nbsp;<b>//</b>
          <x>:totalNumber</x>&nbsp;&nbsp;</td>
 
         <!-- Go to the next page -->
         <td var="sNumber=startNumber + batchSize"
             if="sNumber &lt; totalNumber"><img style="cursor:pointer"
-            src=":'%s/ui/arrowRightSimple.png' % appUrl"
-            title=":_('goto_next')"
+            src=":img('arrowRightSimple')" title=":_('goto_next')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
 
@@ -106,8 +99,7 @@ class AbstractWrapper(object):
                  sNumber= nbOfCountedPages * batchSize"
             if="(startNumber != sNumber) and \
                 (startNumber != sNumber-batchSize)"><img style="cursor:pointer"
-            src=":'%s/ui/arrowRightDouble.png' % appUrl"
-            title=":_('goto_last')"
+            src=":img('arrowRightDouble')" title=":_('goto_last')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
        </tr>
@@ -117,8 +109,8 @@ class AbstractWrapper(object):
     # Buttons for going to next/previous elements if this one is among bunch of
     # referenced or searched objects. currentNumber starts with 1.
     pxObjectNavigate = Px('''
-     <x if="req.get('nav', None)">
-      <div var="navInfo=ztool.getNavigationInfo();
+     <div if="req.get('nav', None)"
+          var2="navInfo=ztool.getNavigationInfo();
                 currentNumber=navInfo['currentNumber'];
                 totalNumber=navInfo['totalNumber'];
                 firstUrl=navInfo['firstUrl'];
@@ -133,15 +125,15 @@ class AbstractWrapper(object):
          var="gotoSource=_('goto_source');
               goBack=backText and ('%s - %s' % (backText, gotoSource)) \
                      or gotoSource"
-         src=":'%s/ui/gotoSource.png' % appUrl" title=":goBack"/></a>
+         src=":img('gotoSource')" title=":goBack"/></a>
 
       <!-- Go to the first page -->
       <a if="firstUrl" href=":firstUrl"><img title=":_('goto_first')"
-         src=":'%s/ui/arrowLeftDouble.png' % appUrl"/></a>
+         src=":img('arrowLeftDouble')"/></a>
 
       <!-- Go to the previous page -->
       <a if="previousUrl" href=":previousUrl"><img title=":_('goto_previous')"
-         src=":'%s/ui/arrowLeftSimple.png' % appUrl"/></a>
+         src=":img('arrowLeftSimple')"/></a>
 
       <!-- Explain which element is currently shown -->
       <span class="discreet">&nbsp;
@@ -151,29 +143,28 @@ class AbstractWrapper(object):
 
       <!-- Go to the next page -->
       <a if="nextUrl" href=":nextUrl"><img title=":_('goto_next')"
-         src=":'%s/ui/arrowRightSimple.png' % appUrl"/></a>
+         src=":img('arrowRightSimple')"/></a>
 
       <!-- Go to the last page -->
       <a if="lastUrl" href=":lastUrl"><img title=":_('goto_last')"
-         src=":'%s/ui/arrowRightDouble.png' % appUrl"/></a>
-     </div>
-     </x>''')
+         src=":img('arrowRightDouble')"/></a>
+     </div>''')
 
     pxNavigationStrip = Px('''
      <table width="100%" class="navigate">
       <tr>
+       <!-- Breadcrumb -->
        <td var="breadcrumb=contextObj.getBreadCrumb()" class="breadcrumb">
-        <x for="bc in breadcrumb">
-         <x var="nb=loop.bc.nb">
-          <img if="nb != 0" src=":'%s/ui/to.png' % appUrl"/>
-          <!-- Display only the title of the current object -->
-          <span if="nb == len(breadcrumb)-1">:bc['title']</span>
-          <!-- Display a link for parent objects -->
-          <a if="nb != len(breadcrumb)-1" href=":bc['url']">:bc['title']</a>
-         </x>
+        <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
+         <img if="nb != 0" src=":img('to')"/>
+         <!-- Display only the title of the current object -->
+         <span if="nb == len(breadcrumb)-1">:bc['title']</span>
+         <!-- Display a link for parent objects -->
+         <a if="nb != len(breadcrumb)-1" href=":bc['url']">:bc['title']</a>
         </x>
        </td>
-       <td align="right">:self.pxObjectNavigate</td>
+       <!-- Object navigation -->
+       <td align=":dright">:self.pxObjectNavigate</td>
       </tr>
      </table>''')
 
@@ -181,53 +172,52 @@ class AbstractWrapper(object):
     # PXs for graphical elements shown on every page
     # --------------------------------------------------------------------------
     # Global elements included in every page.
-    pxPagePrologue = Px('''
-     <div>
-      <!-- Include type-specific CSS and JS. -->
-      <x if="cssJs">
-       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
-             href=":'%s/ui/%s' % (appUrl, cssFile)"/>
-       <script for="jsFile in cssJs['js']" type="text/javascript"
-               src=":'%s/ui/%s' % (appUrl, jsFile)"></script></x>
+    pxPagePrologue = Px('''<x>
+     <!-- Include type-specific CSS and JS. -->
+     <x if="cssJs">
+      <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
+            href=":'%s/ui/%s' % (appUrl, cssFile)"/>
+      <script for="jsFile in cssJs['js']" type="text/javascript"
+              src=":'%s/ui/%s' % (appUrl, jsFile)"></script></x>
 
-      <!-- Javascript messages -->
-      <script type="text/javascript">:ztool.getJavascriptMessages()</script>
+     <!-- Javascript messages -->
+     <script type="text/javascript">:ztool.getJavascriptMessages()</script>
 
-      <!-- Global form for deleting an object -->
-      <form id="deleteForm" method="post" action="do">
-        <input type="hidden" name="action" value="Delete"/>
-        <input type="hidden" name="objectUid"/>
-      </form>
-      <!-- Global form for deleting an event from an object's history -->
-      <form id="deleteEventForm" method="post" action="do">
-        <input type="hidden" name="action" value="DeleteEvent"/>
-        <input type="hidden" name="objectUid"/>
-        <input type="hidden" name="eventTime"/>
-      </form>
-      <!-- Global form for unlinking an object -->
-      <form id="unlinkForm" method="post" action="do">
-        <input type="hidden" name="action" value="Unlink"/>
-        <input type="hidden" name="sourceUid"/>
-        <input type="hidden" name="fieldName"/>
-        <input type="hidden" name="targetUid"/>
-      </form>
-      <!-- Global form for unlocking a page -->
-      <form id="unlockForm" method="post" action="do">
-        <input type="hidden" name="action" value="Unlock"/>
-        <input type="hidden" name="objectUid"/>
-        <input type="hidden" name="pageName"/>
-      </form>
-      <!-- Global form for generating a document from a pod template -->
-      <form id="podTemplateForm" name="podTemplateForm" method="post"
-            action=":ztool.absolute_url() + '/generateDocument'">
-        <input type="hidden" name="objectUid"/>
-        <input type="hidden" name="fieldName"/>
-        <input type="hidden" name="podFormat"/>
-        <input type="hidden" name="askAction"/>
-        <input type="hidden" name="queryData"/>
-        <input type="hidden" name="customParams"/>
-      </form>
-    </div>''')
+     <!-- Global form for deleting an object -->
+     <form id="deleteForm" method="post" action="do">
+      <input type="hidden" name="action" value="Delete"/>
+      <input type="hidden" name="objectUid"/>
+     </form>
+     <!-- Global form for deleting an event from an object's history -->
+     <form id="deleteEventForm" method="post" action="do">
+      <input type="hidden" name="action" value="DeleteEvent"/>
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="eventTime"/>
+     </form>
+     <!-- Global form for unlinking an object -->
+     <form id="unlinkForm" method="post" action="do">
+      <input type="hidden" name="action" value="Unlink"/>
+      <input type="hidden" name="sourceUid"/>
+      <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="targetUid"/>
+     </form>
+     <!-- Global form for unlocking a page -->
+     <form id="unlockForm" method="post" action="do">
+      <input type="hidden" name="action" value="Unlock"/>
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="pageName"/>
+     </form>
+     <!-- Global form for generating a document from a pod template -->
+     <form id="podTemplateForm" name="podTemplateForm" method="post"
+           action=":ztool.absolute_url() + '/generateDocument'">
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="podFormat"/>
+      <input type="hidden" name="askAction"/>
+      <input type="hidden" name="queryData"/>
+      <input type="hidden" name="customParams"/>
+     </form>
+    </x>''')
 
     pxPageBottom = Px('''
      <script type="text/javascript">initSlaves();</script>''')
@@ -241,14 +231,13 @@ class AbstractWrapper(object):
              rootClasses=ztool.getRootClasses();
              phases=contextObj and contextObj.getAppyPhases() or None">
 
-      <x if="contextObj and phases and contextObj.mayNavigate()">
-       <table class="portletContent"
-              var="singlePhase=phases and (len(phases) == 1);
+      <table class="portletContent"
+             if="contextObj and phases and contextObj.mayNavigate()"
+             var2="singlePhase=phases and (len(phases) == 1);
                    page=req.get('page', '');
                    mayEdit=contextObj.mayEdit()">
-        <x for="phase in phases">:phase['px']</x>
-       </table>
-      </x>
+       <x for="phase in phases">:phase['px']</x>
+      </table>
 
       <!-- One section for every searchable root class -->
       <x for="rootClass in [rc for rc in rootClasses \
@@ -279,18 +268,17 @@ class AbstractWrapper(object):
          <!-- Create a new object from a web form -->
          <input type="button" class="button"
                 if="userMayAdd and ('form' in createMeans)"
-                style=":'background-image: url(%s/ui/buttonAdd.png)' % appUrl"
-                value=":_('query_create')"
-                onclick=":'window.location=&quot;%s/do?action=Create&amp;' \
-                          'className=%s&quot;' % (toolUrl, rootClass)"/>
+                style=":img('buttonAdd', bg=True)" value=":_('query_create')"
+                onclick=":'window.location=%s' % \
+                  q('%s/do?action=Create&amp;className=%s' % \
+                    (toolUrl, rootClass))"/>
 
          <!-- Create object(s) by importing data -->
          <input type="button" class="button"
                 if="userMayAdd and ('import' in createMeans)"
-                style=":'background-image: url(%s/ui/buttonImport.png)'% appUrl"
-                value=":_('query_import')"
-                onclick=":'window.location=&quot;%s/ui/import?' \
-                          'className=%s&quot;' % (toolUrl, rootClass)"/>
+                style=":img('buttonImport', bg=True)" value=":_('query_import')"
+                onclick=":'window.location=%s' % \
+                  q('%s/ui/import?className=%s' % (toolUrl, rootClass))"/>
         </x>
 
         <!-- Searches -->
@@ -304,9 +292,9 @@ class AbstractWrapper(object):
            <tr valign="bottom">
             <td><input type="text" size="14" name="w_SearchableText"
                        class="inputSearch"/></td>
-            <td><input type="image" style="cursor:pointer"
-                       src=":'%s/ui/search.gif' % appUrl"
-                       title=":_('search_button')"/></td>
+            <td>
+             <input type="image" style="cursor:pointer" src=":img('search.gif')"
+                    title=":_('search_button')"/></td>
            </tr>
           </table>
          </form>
@@ -325,10 +313,8 @@ class AbstractWrapper(object):
 
         <!-- Predefined searches -->
         <x for="widget in searchInfo['searches']">
-         <x if="widget['type'] == 'group'">:widget['px']</x>
-         <x if="widget['type'] != 'group'">
-          <x var="search=widget">:search['px']</x>
-         </x>
+         <x if="widget['type']=='group'">:widget['px']</x>
+         <x if="widget['type']!='group'" var2="search=widget">:search['px']</x>
         </x>
        </div>
       </x>
@@ -336,16 +322,13 @@ class AbstractWrapper(object):
 
     # The message that is shown when a user triggers an action.
     pxMessage = Px('''
-     <x var="messages=ztool.consumeMessages()" if="messages">
-      <div class="message">
-       <!-- The icon for closing the message -->
-       <img src=":'%s/ui/close.png' % appUrl" align=":dright"
-            style="cursor:pointer"
-            onclick="this.parentNode.style.display='none'"/>
-       <!-- The message content -->
-       <x>::messages</x>
-      </div>
-     </x>''')
+     <div var="messages=ztool.consumeMessages()" if="messages" class="message">
+      <!-- The icon for closing the message -->
+      <img src=":img('close')" align=":dright" style="cursor:pointer"
+           onclick="this.parentNode.style.display='none'"/>
+      <!-- The message content -->
+      <x>::messages</x>
+     </div>''')
 
     # The page footer.
     pxFooter = Px('''
@@ -371,6 +354,7 @@ class AbstractWrapper(object):
                 appName=ztool.getAppName();     _=ztool.translate;
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 lang=ztool.getUserLanguage();   q=ztool.quote;
+                img = ztool.getImageUrl;
                 layoutType=ztool.getLayoutType();
                 contextObj=ztool.getPublishedObject(layoutType) or \
                            ztool.getHomeObject();
@@ -405,52 +389,51 @@ class AbstractWrapper(object):
 
       <!-- Popup for confirming an action -->
       <div id="confirmActionPopup" class="popup">
-      <form id="confirmActionForm" method="post">
-       <div align="center">
-        <p id="appyConfirmText"></p>
-        <input type="hidden" name="actionType"/>
-        <input type="hidden" name="action"/>
-        <div id="commentArea" align=":dleft"><br/>
-         <span class="discreet">:_('workflow_comment')</span>
-         <textarea name="comment" cols="30" rows="3"></textarea>
-         <br/>
-        </div>
-        <br/>
-        <input type="button" onclick="doConfirm()" value=":_('yes')"/>
-        <input type="button" onclick="closePopup('confirmActionPopup')"
+       <form id="confirmActionForm" method="post">
+        <div align="center">
+         <p id="appyConfirmText"></p>
+         <input type="hidden" name="actionType"/>
+         <input type="hidden" name="action"/>
+         <div id="commentArea" align=":dleft"><br/>
+          <span class="discreet">:_('workflow_comment')</span>
+          <textarea name="comment" cols="30" rows="3"></textarea>
+          <br/>
+         </div><br/>
+         <input type="button" onclick="doConfirm()" value=":_('yes')"/>
+         <input type="button" onclick="closePopup('confirmActionPopup')"
                value=":_('no')"/>
-       </div>
-      </form>
+        </div>
+       </form>
       </div>
 
       <!-- Popup for reinitializing the password -->
       <div id="askPasswordReinitPopup" class="popup"
            if="isAnon and ztool.showForgotPassword()">
-      <form id="askPasswordReinitForm" method="post"
+       <form id="askPasswordReinitForm" method="post"
              action=":ztool.absolute_url() + '/askPasswordReinit'">
-       <div align="center">
-        <p>:_('app_login')</p>
-        <input type="text" size="35" name="login" id="login" value=""/>
-        <br/><br/>
-        <input type="button" onclick="doAskPasswordReinit()"
-               value=":_('ask_password_reinit')"/>
-        <input type="button" onclick="closePopup('askPasswordReinitPopup')"
-               value=":_('object_cancel')"/>
-       </div>
-      </form>
+        <div align="center">
+         <p>:_('app_login')</p>
+         <input type="text" size="35" name="login" id="login" value=""/>
+         <br/><br/>
+         <input type="button" onclick="doAskPasswordReinit()"
+                value=":_('ask_password_reinit')"/>
+         <input type="button" onclick="closePopup('askPasswordReinitPopup')"
+                value=":_('object_cancel')"/>
+        </div>
+       </form>
       </div>
 
       <table class="main" align="center" cellpadding="0">
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
-            style=":'background-image: url(%s/ui/%s.jpg)'% (appUrl,bannerName)">
+            style=":img('%s.jpg' % bannerName, bg=True)">
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
           <!-- Icon "home" -->
           <a class="pageLink" href=":appUrl" title=": _('app_home')">
-           <img src=":'%s/ui/home.gif' % appUrl" style="margin-right: 3px"/>
+           <img src=":img('home.gif')" style="margin-right: 3px"/>
           </a>
 
           <!-- Additional links -->
@@ -466,14 +449,13 @@ class AbstractWrapper(object):
              style="cursor:pointer">:_('app_connect')</a>
 
           <!-- Language selector -->
-          <x if="ztool.showLanguageSelector()">
-           <select var="languages=ztool.getLanguages();
-                        defaultLanguage=languages[0]"
-                   class="pageLink" onchange="switchLanguage(this)"> 
-            <option for="lg in languages" value=":lg"
-                    selected=":lang == lg">:ztool.getLanguageName(lg)</option>
-           </select>
-          </x>
+          <select if="ztool.showLanguageSelector()"
+                  var2="languages=ztool.getLanguages();
+                       defaultLanguage=languages[0]"
+                  class="pageLink" onchange="switchLanguage(this)"> 
+           <option for="lg in languages" value=":lg"
+                   selected=":lang == lg">:ztool.getLanguageName(lg)</option>
+          </select>
          </div>
         </td>
        </tr>
@@ -526,18 +508,18 @@ class AbstractWrapper(object):
                <!-- Config -->
                <a if="user.has_role('Manager')" href=":tool.url"
                   title=":_('%sTool' % appName)">
-                <img src=":'%s/ui/appyConfig.gif' % appUrl"/></a>
+                <img src=":img('appyConfig.gif')"/></a>
                <!-- Additional icons -->
                <x>:self.pxIcons</x>
                <!-- Log out -->
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
-                <img src=":'%s/ui/logout.gif' % appUrl"/></a>
+                <img src=":img('logout.gif')"/></a>
               </td>
               <td class="userStripText" var="userInfo=ztool.getUserLine()"
                   align=":dright">
                <span>:userInfo[0]</span>
-               <a if="userInfo[1]" href=":userInfo[1]">
-                <img src=":'%s/ui/edit.png' % appUrl"/></a>
+               <a if="userInfo[1]"
+                  href=":userInfo[1]"><img src=":img('edit')"/></a>
               </td>
              </tr>
             </table>
@@ -578,130 +560,121 @@ class AbstractWrapper(object):
      <x var="startNumber=req.get'startNumber', 0);
              startNumber=int(startNumber);
              batchSize=int(req.get('maxPerPage', 5));
-             historyInfo=contextObj.getHistory(startNumber,batchSize=batchSize);
-             objs=historyInfo['events'];
-             totalNumber=historyInfo['totalNumber'];
-             ajaxHookId='appyHistory';
-             navBaseCall='askObjectHistory(&quot;%s&quot;, &quot;%s&quot;, \
-                %d, **v**)' % (ajaxHookId,contextObj.absolute_url(),batchSize)">
+             historyInfo=contextObj.getHistory(startNumber,batchSize=batchSize)"
+        if="historyInfo['events']"
+        var2="objs=historyInfo['events'];
+              totalNumber=historyInfo['totalNumber'];
+              ajaxHookId='appyHistory';
+              navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
+                (q(ajaxHookId), q(contextObj.absolute_url()), batchSize)">
 
-      <!-- Table containing the history -->
-      <x if="objs">
-       <x>:self.pxAppyNavigate</x>
-       <table width="100%" class="history">
-        <tr>
-         <th align=":dleft">:_('object_action')</th>
-         <th align=":dleft">:_('object_author')</th>
-         <th align=":dleft">:_('action_date')</th>
-         <th align=":dleft">:_('action_comment')</th>
-        </tr>
-        <x for="event in objs">
-         <tr var="odd=loop.event.odd;
-                  rhComments=event.get('comments', None);
-                  state=event.get('review_state', None);
-                  action=event['action'];
-                  isDataChange=action == '_datachange_'"
-             class="odd and 'even' or 'odd'" valign="top">
-          <td if="isDataChange">
-            <x>:_('data_change')</x>
-            <img if="user.has_role('Manager')" style="cursor:pointer"
-                 src=":'%s/ui/delete.png' % appUrl"
-                 onclick=":'onDeleteEvent(&quot;%s&quot;, &quot;%s&quot;)' % \
-                            (contextObj.UID(), event['time'])"/>
-          </td>
-          <td if="not isDataChange">:_(contextObj.getWorkflowLabel(action))</td>
-          <td var="actorId=event.get('actor')">
-           <x if="not actorId">?</x>
-           <x if="actorId">:ztool.getUserName(actorId)</x>
-          </td>
-          <td>:ztool.formatDate(event['time'], withHour=True)"></td>
-          <td if="not isDataChange">
-            <x if="rhComments">::contextObj.formatText(rhComments)</x>
-            <x if="not rhComments">-</x>
-          </td>
-          <td if="isDataChange">
-            <!-- Display the previous values of the fields whose value were
-                 modified in this change. -->
-            <table class="appyChanges" width="100%">
-             <tr>
-              <th align=":dleft" width="30%">:_('modified_field')</th>
-              <th align=":dleft" width="70%">:_('previous_value')</th>
-             </tr>
-             <tr for="change in event['changes'].items()" valign="top">
-              <x var="appyType=contextObj.getAppyType(change[0], asDict=True)">
-               <td>::_(appyType['labelId'])</td>
-               <td>::change[1][0]</td>
-              </x>
-             </tr>
-            </table>
-          </td>
-         </tr>
-        </x>
-       </table>
-      </x>
-     </x>
-    ''')
+      <!-- Navigate between history pages -->
+      <x>:self.pxAppyNavigate</x>
+      <!-- History -->
+      <table width="100%" class="history">
+       <tr>
+        <th align=":dleft">:_('object_action')</th>
+        <th align=":dleft">:_('object_author')</th>
+        <th align=":dleft">:_('action_date')</th>
+        <th align=":dleft">:_('action_comment')</th>
+       </tr>
+       <tr for="event in objs"
+           var2="odd=loop.event.odd;
+                 rhComments=event.get('comments', None);
+                 state=event.get('review_state', None);
+                 action=event['action'];
+                 isDataChange=action == '_datachange_'"
+           class="odd and 'even' or 'odd'" valign="top">
+        <td if="isDataChange">
+         <x>:_('data_change')</x>
+         <img if="user.has_role('Manager')" style="cursor:pointer"
+              src=":img('delete')"
+              onclick=":'onDeleteEvent(%s,%s)' % \
+                        (q(contextObj.UID()), q(event['time']))"/>
+        </td>
+        <td if="not isDataChange">:_(contextObj.getWorkflowLabel(action))</td>
+        <td var="actorId=event.get('actor')">
+         <x if="not actorId">?</x>
+         <x if="actorId">:ztool.getUserName(actorId)</x>
+        </td>
+        <td>:ztool.formatDate(event['time'], withHour=True)"></td>
+        <td if="not isDataChange">
+         <x if="rhComments">::contextObj.formatText(rhComments)</x>
+         <x if="not rhComments">-</x>
+        </td>
+        <td if="isDataChange">
+         <!-- Display the previous values of the fields whose value were
+              modified in this change. -->
+         <table class="appyChanges" width="100%">
+          <tr>
+           <th align=":dleft" width="30%">:_('modified_field')</th>
+           <th align=":dleft" width="70%">:_('previous_value')</th>
+          </tr>
+          <tr for="change in event['changes'].items()" valign="top"
+              var2="appyType=contextObj.getAppyType(change[0], asDict=True)">
+           <td>::_(appyType['labelId'])</td>
+           <td>::change[1][0]</td>
+          </tr>
+         </table>
+        </td>
+       </tr>
+      </table>
+     </x>''')
 
     # Displays an object's transitions(s).
     pxTransitions = Px('''
-     <x var="transitions=targetObj.getAppyTransitions()" if="transitions">
-      <form var="formId='trigger_%s' % targetObj.UID()" method="post"
-            id=":formId" action=":targetObj.absolute_url() + '/do'">
-       <input type="hidden" name="action" value="Trigger"/>
-       <input type="hidden" name="workflow_action"/>
-       <table>
-        <tr valign="middle">
-         <!-- Input field for storing comment -->
-         <textarea id="comment" name="comment" cols="30" rows="3"
-                   style="display:none"></textarea>
-         <!-- Buttons for triggering transitions -->
-         <td align=":dright" for="transition in transitions">
-          <!-- Real button -->
-          <input type="button" class="button" if="transition['may_trigger']"
-                 style=":'background-image: \
-                          url(%s/ui/buttonTransition.png)' % appUrl"
-                 title=":transition['title']"
-                 value=":ztool.truncateValue(transition['title'])"
-                 onclick=":'triggerTransition(&quot;%s&quot;, &quot;%s&quot;, \
-                           &quot;%s&quot;)' % (formId, transition['name'], \
-                                               transition['confirm'])"/>
+     <form var="transitions=targetObj.getAppyTransitions()" if="transitions"
+           var2="formId='trigger_%s' % targetObj.UID()" method="post"
+           id=":formId" action=":targetObj.absolute_url() + '/do'">
+      <input type="hidden" name="action" value="Trigger"/>
+      <input type="hidden" name="workflow_action"/>
+      <table>
+       <tr valign="middle">
+        <!-- Input field for storing comment -->
+        <textarea id="comment" name="comment" cols="30" rows="3"
+                  style="display:none"></textarea>
+        <!-- Buttons for triggering transitions -->
+        <td align=":dright" for="transition in transitions">
+         <!-- Real button -->
+         <input type="button" class="button" if="transition['may_trigger']"
+                style=":img('buttonTransition', bg=True)"
+                title=":transition['title']"
+                value=":ztool.truncateValue(transition['title'])"
+                onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
+                  q(transition['name']), q(transition['confirm']))"/>
 
-          <!-- Fake button, explaining why the transition can't be triggered -->
-          <input type="button" class="button" if="not transition['may_trigger']"
-                 style=":'background-image: url(%s/ui/buttonFake.png); \
-                          cursor: help' % appUrl"
-                 value=":ztool.truncateValue(transition['title'])"
-                 title=":'%s: %s' % (transition['title'], \
-                                     transition['reason'])"/>
-         </td>
-        </tr>
-       </table>
-      </form>
-     </x>''')
+         <!-- Fake button, explaining why the transition can't be triggered -->
+         <input type="button" class="button" if="not transition['may_trigger']"
+                style=":img('buttonFake', bg=True) + ';cursor: help'"
+                value=":ztool.truncateValue(transition['title'])"
+                title=":'%s: %s' % (transition['title'], \
+                                    transition['reason'])"/>
+        </td>
+       </tr>
+      </table>
+     </form>''')
 
     # Displays header information about an object: title, workflow-related info,
     # history...
     pxObjectHeader = Px('''
-     <div var="hasHistory=contextObj.hasHistory();
-               historyMaxPerPage=req.get('maxPerPage', 5);
-               historyExpanded=req.get('appyHistory','collapsed') == 'expanded';
-               creator=contextObj.Creator()"
-          if="not contextObj.isTemporary()">
-
+     <div if="not contextObj.isTemporary()"
+          var2="hasHistory=contextObj.hasHistory();
+                historyMaxPerPage=req.get('maxPerPage', 5);
+                historyExpanded=req.get('appyHistory','collapsed') == 'expanded';
+                creator=contextObj.Creator()">
       <table width="100%" class="summary">
        <tr>
         <td colspan="2" class="by">
          <!-- Plus/minus icon for accessing history -->
          <x if="hasHistory">
-          <img style="cursor:pointer" onClick="toggleCookie('appyHistory')"
-               src="historyExpanded and 'ui/collapse.gif' or 'ui/expand.gif'"
-               align=":dleft" id="appyHistory_img"/>
+          <img style="cursor:pointer" onclick="toggleCookie('appyHistory')"
+              src="historyExpanded and img('collapse.gif') or img('expand.gif')"
+              align=":dleft" id="appyHistory_img"/>
           <x>:_('object_history')</x> || 
          </x>
 
          <!-- Creator and last modification date -->
-         <x>:_('object_created_by')</x>
-         <x>:ztool.getUserName(creator)</x>
+         <x>:_('object_created_by')</x><x>:ztool.getUserName(creator)</x>
          
          <!-- Creation and last modification dates -->
          <x>:_('object_created_on')</x>
@@ -726,18 +699,16 @@ class AbstractWrapper(object):
         <td colspan="2">
          <span id="appyHistory"
                style=":historyExpanded and 'display:block' or 'display:none')">
-          <div var="ajaxHookId=contextObj.UID() + '_history'"
-               id=":ajaxHookId">
-           <script type="text/javascript">:'askObjectHistory(&quot;%s&quot;, \
-             &quot;%s&quot;, %d, 0)' % (ajaxHookId, contextObj.absolute_url(),\
-             historyMaxPerPage)</script>
+          <div var="ajaxHookId=contextObj.UID() + '_history'" id=":ajaxHookId">
+           <script type="text/javascript">:'askObjectHistory(%s,%s,%d,0)' % \
+             (q(ajaxHookId), q(contextObj.absolute_url()), \
+              historyMaxPerPage)</script>
           </div>
          </span>
         </td>
        </tr>
       </table>
-    </div>
-    ''')
+     </div>''')
 
     # Shows the range of buttons (next, previous, save,...) and the workflow
     # transitions.
@@ -754,73 +725,61 @@ class AbstractWrapper(object):
         <x if="isEdit">
          <input type="button" class="button" value=":_('page_previous')"
                 onClick="submitAppyForm('previous')"
-                style=":'background-image: \
-                         url(%s/ui/buttonPrevious.png)' % appUrl"/>
+                style=":img('buttonPrevious', bg=True)"/>
          <input type="hidden" name="previousPage" value=":previousPage"/>
         </x>
         <!-- Button on the view page -->
-        <x if="not isEdit">
-         <input type="button" class="button" value=":_('page_previous')"
-                style=":'background-image: \
-                         url(%s/ui/buttonPrevious.png)' % appUrl"
-                onclick=":'window.location=&quot;%s&quot;' % \
-                           contextObj.getUrl(page=previousPage)"/>
-        </x>
+        <input if="not isEdit" type="button" class="button"
+               value=":_('page_previous')"
+               style=":img('buttonPrevious', bg=True)"
+               onclick=":'window.location=%s' % \
+                         q(contextObj.getUrl(page=previousPage))"/>
        </td>
 
        <!-- Save -->
        <td if="isEdit and pageInfo['showSave']">
         <input type="button" class="button" onClick="submitAppyForm('save')"
-               style=":'background-image: url(%s/ui/buttonSave.png)' % appUrl"
-               value=":_('object_save')"/>
+               style=":img(buttonSave', bg=True)" value=":_('object_save')"/>
        </td>
 
        <!-- Cancel -->
        <td if="isEdit and pageInfo['showCancel']">
         <input type="button" class="button" onClick="submitAppyForm('cancel')"
-               style=":'background-image: url(%s/ui/buttonCancel.png)' % appUrl"
-               value=":_('object_cancel')"/>
+             style=":img('buttonCancel', bg=True)" value=":_('object_cancel')"/>
        </td>
 
-       <x if="not isEdit">
-        <td var="locked=contextObj.isLocked(user, page);
+       <td if="not isEdit"
+           var2="locked=contextObj.isLocked(user, page);
                  editable=pageInfo['showOnEdit'] and contextObj.mayEdit()">
 
-         <!-- Edit -->
-         <input type="button" class="button" if="editable and not locked"
-                style=":'background-image: url(%s/ui/buttonEdit.png)' % appUrl"
-                value=":_('object_edit')"
-                onclick=":'window.location=&quot;%s&quot;' % \
-                          contextObj.getUrl(mode='edit', page=page)"/>
+        <!-- Edit -->
+        <input type="button" class="button" if="editable and not locked"
+               style=":img('buttonEdit', bg=True)" value=":_('object_edit')"
+               onclick=":'window.location=%s' % \
+                         q(contextObj.getUrl(mode='edit', page=page))"/>
 
-         <!-- Locked -->
-         <a if="editable and locked">
-          <img style="cursor: help"
-               var="lockDate=tool.formatDate(locked[1]);
-                    lockMap={'user': tool.getUserName(locked[0]),\
-                             'date': lockDate};
-                    lockMsg=_('page_locked', mapping=lockMap)"
-               src=":'%s/ui/lockedBig.png' % appUrl" title=":lockMsg"/></a>
-        </td>
-       </x>
+        <!-- Locked -->
+        <a if="editable and locked">
+         <img style="cursor: help"
+              var="lockDate=tool.formatDate(locked[1]);
+                   lockMap={'user':tool.getUserName(locked[0]),'date':lockDate};
+                   lockMsg=_('page_locked', mapping=lockMap)"
+              src=":img('lockedBig')" title=":lockMsg"/></a>
+       </td>
 
        <!-- Next -->
        <td if="nextPage and pageInfo['showNext']">
         <!-- Button on the edit page -->
         <x if="isEdit">
          <input type="button" class="button" onClick="submitAppyForm('next')"
-                style=":'background-image: url(%s/ui/buttonNext.png)' % appUrl"
-                value=":_('page_next')"/>
+                style=":img('buttonNext', bg=True)" value=":_('page_next')"/>
          <input type="hidden" name="nextPage" value=":nextPage"/>
         </x>
         <!-- Button on the view page -->
-        <x if="not isEdit">
-         <input type="button" class="button"
-                style=":'background-image: url(%s/ui/buttonNext.png)' % appUrl"
-                value=":_('page_next')"
-                onclick=":'window.location=&quot;%s&quot;' % \
-                          contextObj.getUrl(page=nextPage)"/>
-        </x>
+        <input if="not isEdit" type="button" class="button"
+               style=":img('buttonNext', bg=True)" value=":_('page_next')"
+               onclick=":'window.location=%s' % \
+                         q(contextObj.getUrl(page=nextPage))"/>
        </td>
 
        <!-- Workflow transitions -->
@@ -830,8 +789,8 @@ class AbstractWrapper(object):
        <!-- Refresh -->
        <td if="contextObj.isDebug()">
         <a href="contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
-         <img title="Refresh" style="vertical-align:top"
-              src=":'%s/ui/refresh.png' % appUrl"/></a>
+         <img title="Refresh" style="vertical-align:top" src=":img('refresh')"/>
+        </a>
        </td>
       </tr>
      </table>''')
@@ -869,7 +828,7 @@ class AbstractWrapper(object):
                                                            cssJs=cssJs)">
       <x>:self.pxPagePrologue</x>
       <!-- Warn the user that the form should be left via buttons -->
-      <script type="text/javascript">
+      <script type="text/javascript"><![CDATA[
        window.onbeforeunload = function(e){
          theForm = document.getElementById('appyForm');
          if (theForm.button.value == "") {
@@ -877,22 +836,21 @@ class AbstractWrapper(object):
            if (e) {e.returnValue = warn_leave_form;}
            return warn_leave_form;
          }
-       }
+       }]]>
       </script>
       <form id="appyForm" name="appyForm" method="post"
             enctype="multipart/form-data"
             action=":contextObj.absolute_url()+'/do'">
-        <input type="hidden" name="action" value="Update"/>
-        <input type="hidden" name="button" value=""/>
-        <input type="hidden" name="page" value=":page"/>
-        <input type="hidden" name="nav" value=":req.get('nav', None)"/>
-        <input type="hidden" name="confirmed" value="False"/>
-        <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
+       <input type="hidden" name="action" value="Update"/>
+       <input type="hidden" name="button" value=""/>
+       <input type="hidden" name="page" value=":page"/>
+       <input type="hidden" name="nav" value=":req.get('nav', None)"/>
+       <input type="hidden" name="confirmed" value="False"/>
+       <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
       </form>
       <script type="text/javascript"
-              if="confirmMsg">:'askConfirm(&quot;script&quot;, \
-                                &quot;postConfirmedEditForm()&quot;, \
-                                &quot;%s&quot;)' % confirmMsg</script>
+              if="confirmMsg">:'askConfirm(%s,%s,%s)' % \
+             (q('script'), q('postConfirmedEditForm()'), q(confirmMsg))</script>
       <x>:self.pxPageBottom</x>
      </x>''', template=pxTemplate, hook='content')
 

@@ -29,75 +29,63 @@ class ToolWrapper(AbstractWrapper):
      </table>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     # Show on query list or grid, the field content for a given object.
-    pxQueryField = Px('''
-     <x><!-- Title -->
-      <x if="widget['name'] == 'title'">
-       <x var="navInfo='search.%s.%s.%d.%d' % (className, searchName, \
-                                               startNumber+currentNumber, \
-                                               totalNumber);
-               cssClass=obj.getCssFor('title')">
-        <x>::obj.getSupTitle(navInfo)</x>
-        <a href=":obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"
-           if="enableLinks" class=":cssClass">:obj.Title()</a><span
-           if="not enableLinks" class=":cssClass">:obj.Title()</span><span
-           style=":showSubTitles and 'display:inline' or 'display:none'"
-           name="subTitle">::obj.getSubTitle()</span>
+    pxQueryField = Px('''<x>
+     <!-- Title -->
+     <x if="field.name == 'title'"
+        var2="navInfo='search.%s.%s.%d.%d' % \
+                (className, searchName, startNumber+currentNumber, totalNumber);
+              cssClass=obj.getCssFor('title')">
+      <x>::obj.getSupTitle(navInfo)</x>
+      <a href=":obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"
+         if="enableLinks" class=":cssClass">:obj.Title()</a><span
+         if="not enableLinks" class=":cssClass">:obj.Title()</span><span
+         style=":showSubTitles and 'display:inline' or 'display:none'"
+         name="subTitle">::obj.getSubTitle()</span>
 
-        <!-- Actions: edit, delete -->
-        <div if="obj.mayAct()">
-         <a var="navInfo='search.%s.%s.%d.%d' % (className, searchName, \
-                                                 loop.obj.nb+1+startNumber, \
-                                                 totalNumber)"
-            if="obj.mayEdit()"
-            href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
-                              nav=navInfo)">
-          <img src=":'%s/ui/edit.png' % appUrl"
-               title=":_('object_edit')"/></a><img
-               if="obj.mayDelete()" style="cursor:pointer"
-               src=":'%s/ui/delete.png' % appUrl"
-               title=":_('object_delete')"
-               onClick="'onDeleteObject(&quot;%s&quot;)' % obj.UID()"/>
-        </div>
-       </x>
-      </x>
-      <!-- Any other field -->
-      <x if="widget['name'] != 'title'">
-       <x var="contextObj=obj;
-               layoutType='cell';
-               innerRef=True"
-          if="contextObj.showField(widget['name'], 'result')">
-        <!-- metal:f use-macro="context/ui/widgets/show/macros/field"/-->
-       </x>
-      </x>
-     </x>''')
+      <!-- Actions: edit, delete -->
+      <div if="obj.mayAct()">
+       <a if="obj.mayEdit()"
+          var2="navInfo='search.%s.%s.%d.%d' % \
+                (className, searchName, loop.obj.nb+1+startNumber, totalNumber)"
+          href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
+                            nav=navInfo)">
+        <img src=":img('edit')" title=":_('object_edit')"/></a>
+       <img if="obj.mayDelete()" style="cursor:pointer" src=":img('delete')"
+            title=":_('object_delete')"
+            onClick="'onDeleteObject(%s)' % q(obj.UID())"/>
+      </div>
+     </x>
+     <!-- Any other field -->
+     <x if="field.name != 'title'">
+      <x var="contextObj=obj; layoutType='cell'; innerRef=True"
+         if="contextObj.showField(field.name, 'result')">field.pxView</x>
+     </x>
+    </x>''')
 
     # Show query results as a list.
     pxQueryResultList = Px('''
      <table class="list" width="100%">
       <!-- Headers, with filters and sort arrows -->
       <tr if="showHeaders">
-       <x for="column in columns">
-        <th var="widget=column['field'];
-                 sortable=ztool.isSortable(widget['name'], className, 'search');
-                 filterable=widget.get('filterable', None)"
-            width=":column['width']" align=":column['align']">
-         <x>::ztool.truncateText(_(widget['labelId']))</x>
-         <x>:self.pxSortAndFilter</x><x>:self.pxShowDetails</x>
-        </th>
-       </x>
+       <th for="column in columns"
+           var2="widget=column['field'];
+                 sortable=ztool.isSortable(field.name, className, 'search');
+                 filterable=widget.filterable"
+           width=":column['width']" align=":column['align']">
+        <x>::ztool.truncateText(_(field.labelId))</x>
+        <x>:self.pxSortAndFilter</x><x>:self.pxShowDetails</x>
+       </th>
       </tr>
 
       <!-- Results -->
-      <x for="obj in objs">
-       <tr var="odd=loop.obj.odd; currentNumber=currentNumber + 1"
-           id="query_row" valign="top" class=":odd and 'even' or 'odd'">
-        <x for="column in columns">
-         <td var="widget=column['field']" id=":'field_%s' % widget['name']"
-             width=":column['width']"
-             align=":column['align']">:self.pxQueryField</td>
-        </x>
-       </tr>
-      </x>
+      <tr for="obj in objs"
+          var2="odd=loop.obj.odd; currentNumber=currentNumber + 1"
+          id="query_row" valign="top" class=":odd and 'even' or 'odd'">
+        <td for="column in columns"
+            var2="widget=column['field']" id=":'field_%s' % field.name"
+            width=":column['width']"
+            align=":column['align']">:self.pxQueryField</td>
+      </tr>
      </table>''')
 
     # Show query results as a grid.
@@ -110,9 +98,8 @@ class ToolWrapper(AbstractWrapper):
        <td for="obj in row" width=":'%d%%' % (100/cols)" align="center"
            style="padding-top: 25px">
         <x var="currentNumber=currentNumber + 1"
-           for="column in columns">
-         <x var="widget = column['field']">:self.pxQueryField</x>
-        </x>
+           for="column in columns"
+           var2="widget = column['field']">:self.pxQueryField</x>
        </td>
       </tr>
      </table>''')
@@ -144,9 +131,9 @@ class ToolWrapper(AbstractWrapper):
                totalNumber=queryResult['totalNumber'];
                batchSize=queryResult['batchSize'];
                ajaxHookId='queryResult';
-               navBaseCall='askQueryResult(&quot;%s&quot;,&quot;%s&quot;, \
-                   &quot;%s&quot;, &quot;%s&quot;, **v**)' % (ajaxHookId, \
-                   ztool.absolute_url(), className, searchName);
+               navBaseCall='askQueryResult(%s,%s,%s,%s,**v**)' % \
+                 (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
+                  q(searchName));
                newSearchUrl='%s/ui/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
@@ -158,9 +145,7 @@ class ToolWrapper(AbstractWrapper):
                    layoutType='view'"
               if="objs and widgets" align=":dright">
         <tr>
-         <td var="contextObj=objs[0]" for="widget in widgets">
-           <!--use-macro="context/ui/widgets/show/macros/field"/>&nbsp;&nbsp;&nbsp;-->
-         </td>
+         <td var="contextObj=objs[0]" for="field in widgets">:field.pxView</td>
         </tr>
        </table>
 
@@ -238,30 +223,25 @@ class ToolWrapper(AbstractWrapper):
        <table width="100%">
         <tr for="searchRow in ztool.getGroupedSearchFields(searchInfo)"
             valign="top">
-         <x for="widget in searchRow">
-          <td var="scolspan=widget and widget['scolspan'] or 1"
-              colspan=":scolspan"
-              width=":'%d%%' % ((100/searchInfo['nbOfColumns'])*scolspan)">
-           <x if="widget">
-            <x var="name=widget['name'];
-                    widgetName='w_%s' % name;
-                    macroPage=widget['type'].lower()">
-              <!--metal:call use-macro="python: getattr(appFolder.ui.widgets, macroPage).macros['search']"/-->
-            </x>
-           </x><br class="discreet"/>
-          </td>
-         </x>
+         <td for="field in searchRow"
+             var2="scolspan=field and field.scolspan or 1"
+             colspan=":scolspan"
+             width=":'%d%%' % ((100/searchInfo['nbOfColumns'])*scolspan)">
+           <x if="field"
+              var2="name=field.name;
+                    widgetName='w_%s' % name">field.pxSearch</x>
+           <br class="discreet"/>
+         </td>
         </tr>
        </table>
 
        <!-- Submit button -->
        <p align=":dright"><br/>
         <input type="submit" class="button" value=":_('search_button')"
-               style=":'background-image: url(%s/ui/buttonSearch.png)'%appUrl"/>
+               style=":img('buttonSearch', bg=True)"/>
        </p>
       </form>
-     </x>
-    ''', template=AbstractWrapper.pxTemplate, hook='content')
+     </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxImport = Px('''
      <x var="className=req['className'];
@@ -325,37 +305,35 @@ class ToolWrapper(AbstractWrapper):
       <table class="list" width="100%">
        <tr>
         <th for="columnHeader in importElems[0]">
-         <img if="loop.columnHeader.nb == 0" src=":'%s/ui/eye.png' % appUrl"
+         <img if="loop.columnHeader.nb == 0" src=":img('eye')"
               title="_('import_show_hide')" style="cursor:pointer"
               onClick="toggleViewableElements()" align=":dleft" />
          <x>:columnHeader</x>
         </th>
         <th></th>
-        <th width="20px"><img src=":'%s/ui/select_elems.png' % $appUrl"
-            title=":_('select_delesect')" onClick="toggleCheckboxes()"
-            style="cursor:pointer"/></th>
+        <th width="20px"><img src=":img('select_elems')" style="cursor:pointer"
+            title=":_('select_delesect')" onClick="toggleCheckboxes()"/></th>
        </tr>
-       <x for="row in importElems[1]">
-        <tr var="alreadyImported=ztool.isAlreadyImported(className, row[0]);
+       <tr for="row in importElems[1]"
+           var2="alreadyImported=ztool.isAlreadyImported(className, row[0]);
                  allAreImported=allAreImported and alreadyImported;
                  odd=loop.row.odd"
-            id=":alreadyImported and 'importedElem' or 'notImportedElem'"
-            name=":alreadyImported and 'importedElem' or 'notImportedElem'"
-            style=":alreadyImported and 'display:none' or 'display:table-row'"
-            class=":odd and 'even' or 'odd'">
-         <td for="elem in row[1:]">:elem</td>
-         <td>
-          <input type="button" if="not alreadyImported"
-                 onClick=":'importSingleElement(&quot;%s&quot;)' % row[0]"
-                 value=":_('query_import')"/>
-          <x if="alreadyImported">:_('import_already')</x>
-         </td>
-         <td align="center">
-          <input if="not alreadyImported" type="checkbox" checked="checked"
-                 id="cbElem" name="cbElem" value="row[0]" />
-         </td>
-        </tr>
-       </x>
+           id=":alreadyImported and 'importedElem' or 'notImportedElem'"
+           name=":alreadyImported and 'importedElem' or 'notImportedElem'"
+           style=":alreadyImported and 'display:none' or 'display:table-row'"
+           class=":odd and 'even' or 'odd'">
+        <td for="elem in row[1:]">:elem</td>
+        <td>
+         <input type="button" if="not alreadyImported"
+                onClick=":'importSingleElement(%s)' % q(row[0])"
+                value=":_('query_import')"/>
+         <x if="alreadyImported">:_('import_already')</x>
+        </td>
+        <td align="center">
+         <input if="not alreadyImported" type="checkbox" checked="checked"
+                id="cbElem" name="cbElem" value="row[0]"/>
+        </td>
+       </tr>
        <tr if="not importElems[1] or allAreImported">
         <td colspan="15">:_('query_no_result')</td></tr>
       </table>

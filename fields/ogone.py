@@ -30,21 +30,18 @@ class Ogone(Field):
     '''This field allows to perform payments with the Ogone (r) system.'''
     urlTypes = ('accept', 'decline', 'exception', 'cancel')
 
-    pxView = pxCell = Px('''
-     <x>
-      <!-- var "value" is misused and contains the contact params for Ogone -->
-      <!-- The form for sending the payment request to Ogone -->
-      <form method="post" id="form1" name="form1" var="env=value['env']"
-            action=":'https://secure.ogone.com/ncol/%s/orderstandard.asp'% env">
-        <x for="item in value.items()">
-         <input type="hidden" if="item[0] != 'env'" id=":item[0]"
-                name=":item[0]" value=":item[1]"/>
-        </x>
-        <!-- Submit image -->
-        <input type="image" id="submit2" name="submit2"
-               src=":'%s/ui/ogone.gif' % $appUrl" title=":_('custom_pay')"/>
-      </form>
-     </x>''')
+    pxView = pxCell = Px('''<x>
+     <!-- var "value" is misused and contains the contact params for Ogone -->
+     <!-- The form for sending the payment request to Ogone -->
+     <form method="post" id="form1" name="form1" var="env=value['env']"
+           action=":'https://secure.ogone.com/ncol/%s/orderstandard.asp'% env">
+       <input type="hidden" for="item in value.items()" if="item[0] != 'env'"
+              id=":item[0]" name=":item[0]" value=":item[1]"/>
+       <!-- Submit image -->
+       <input type="image" id="submit2" name="submit2" src=":img('ogone.gif')"
+              title=":_('custom_pay')"/>
+     </form>
+    </x>''')
 
     pxEdit = pxSearch = ''
 

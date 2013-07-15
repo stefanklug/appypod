@@ -56,41 +56,37 @@ class Ref(Field):
      <table class="noStyle" var="isBack=field.isBack">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if="not isBack and (len(objs)&gt;1) and changeOrder and canWrite">
-        <x var="objectIndex=field.getIndexOf(contextObj, obj);
+       <td if="not isBack and (len(objs)&gt;1) and changeOrder and canWrite"
+          var2="objectIndex=field.getIndexOf(contextObj, obj);
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
                    q(obj.UID()), q('move'), q('**v**')))">
         <img if="objectIndex &gt; 0" style="cursor:pointer"
-             src=":'%s/ui/arrowUp.png' % appUrl" title=":_('move_up')"
-             onclick=":ajaxBaseCall.replace('**v**', 'up')"/><img
-             style="cursor:pointer" if="objectIndex &lt; (totalNumber-1)"
-             src=":'%s/ui/arrowDown.png' % appUrl" title=":_('move_down')"
+             src=":img('arrowUp')" title=":_('move_up')"
+             onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
+        <img if="objectIndex &lt; (totalNumber-1)" style="cursor:pointer"
+             src=":img('arrowDown')" title=":_('move_down')"
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
-        </x>
        </td>
        <!-- Workflow transitions -->
-       <td if="obj.showTransitions('result')">
-        <x var="targetObj=obj">:targetObj.appy().pxTransitions</x>
-       </td>
+       <td if="obj.showTransitions('result')"
+           var2="targetObj=obj">:targetObj.appy().pxTransitions</td>
        <!-- Edit -->
        <td if="not field.noForm and obj.mayEdit() and field.delete">
         <a var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), field.name, \
                         field.pageName, loop.obj.nb + startNumber, totalNumber)"
            href=":obj.getUrl(mode='edit', page='main', nav=navInfo)">
-         <img src=":'%s/ui/edit.png' % appUrl" title=":_('object_edit')"/>
-        </a>
+         <img src=":img('edit')" title=":_('object_edit')"/></a>
        </td>
        <!-- Delete -->
        <td if="not isBack and field.delete and canWrite and obj.mayDelete()">
         <img style="cursor:pointer" title=":_('object_delete')"
-             src=":'%s/ui/delete.png' % appUrl"
-             onclick=":'onDeleteObject(%s)' % q(obj.UID())"/>
+             src=":img('delete')" onclick=":'onDeleteObject(%s)'%q(obj.UID())"/>
        </td>
        <!-- Unlink -->
        <td if="not isBack and field.unlink and canWrite">
         <img style="cursor:pointer" title=":_('object_unlink')"
-             src=":'%s/ui/unlink.png' % appUrl"
+             src=":img('unlink')"
              onclick=":'onUnlinkObject(%s,%s,%s)' % (q(contextObj.UID()), \
                         q(field.name), q(obj.UID()))"/>
        </td>
@@ -100,37 +96,34 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-     <x if="showPlusIcon">
-      <input type="button" class="button"
-             var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), \
-                    field.name, field.pageName, 0, totalNumber);
-                  formCall='window.location=%s' % \
-                    q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
-                      (folder.absolute_url(), linkedPortalType, navInfo));
-                  formCall=not field.addConfirm and formCall or \
-                    'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
-                                              q(addConfirmMsg));
-                  noFormCall=navBaseCall.replace('**v**', \
-                               '%d,%s' % (startNumber, q('CreateWithoutForm')));
-                  noFormCall=not field.addConfirm and noFormCall or \
-                    'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
-                                                q(addConfirmMsg))"
-             style=":'background-image: url(%s/ui/buttonAdd.png)' % appUrl"
-             value=":_('add_ref')"
-             onclick=":field.noForm and noFormCall or formCall"/>
-     </x>''')
+      <input if="showPlusIcon" type="button" class="button"
+        var2="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), \
+                field.name, field.pageName, 0, totalNumber);
+              formCall='window.location=%s' % \
+                q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
+                  (folder.absolute_url(), linkedPortalType, navInfo));
+              formCall=not field.addConfirm and formCall or \
+                'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
+                                          q(addConfirmMsg));
+              noFormCall=navBaseCall.replace('**v**', \
+                           '%d,%s' % (startNumber, q('CreateWithoutForm')));
+              noFormCall=not field.addConfirm and noFormCall or \
+                'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
+                                            q(addConfirmMsg))"
+        style=":img('buttonAdd', bg=True)" value=":_('add_ref')"
+        onclick=":field.noForm and noFormCall or formCall"/>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
-     <x var="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}' % \
+     <x if="changeOrder and canWrite and ztool.isSortable(field.name, \
+            objs[0].meta_type, 'ref')"
+        var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('SortReference'), q('sortKey'), \
-                q(field.name), q('reverse'), q('**v**')))"
-        if="changeOrder and canWrite and ztool.isSortable(field.name, \
-            objs[0].meta_type, 'ref')">
-      <img style="cursor:pointer" src=":'%s/ui/sortAsc.png' % appUrl"
+                q(field.name), q('reverse'), q('**v**')))">
+      <img style="cursor:pointer" src=":img('sortAsc')"
            onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
-      <img style="cursor:pointer" src=":'%s/ui/sortDesc.png' % appUrl"
+      <img style="cursor:pointer" src=":img('sortDesc')"
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 
@@ -165,25 +158,21 @@ class Ref(Field):
            shouldn't check the actual number of referenced objects. But for
            back references people often forget to specify multiplicities. So
            concretely, multiplicities (0,None) are coded as (0,1). -->
-      <x if="atMostOneRef">
-       <!-- Display a simplified widget if maximum number of referenced objects
-            is 1. -->
-       <table>
-        <tr valign="top">
-         <!-- If there is no object -->
-         <x if="not objs">
-          <td class="discreet">:_('no_ref')</td>
-          <td>:field.pxAdd</td>
-         </x>
-         <!-- If there is an object... -->
-         <x if="objs">
-          <x for="obj in objs">
-           <td var="includeShownInfo=True">:field.pxObjectTitle</td>
-          </x>
-         </x>
-        </tr>
-       </table>
-      </x>
+      <!-- Display a simplified widget if at most 1 referenced object. -->
+      <table if="atMostOneRef">
+       <tr valign="top">
+        <!-- If there is no object -->
+        <x if="not objs">
+         <td class="discreet">:_('no_ref')</td>
+         <td>:field.pxAdd</td>
+        </x>
+        <!-- If there is an object... -->
+        <x if="objs">
+         <td for="obj in objs"
+             var2="includeShownInfo=True">:field.pxObjectTitle</td>
+        </x>
+       </tr>
+      </table>
 
       <!-- Display a table in all other cases -->
       <x if="not atMostOneRef">
@@ -192,8 +181,7 @@ class Ref(Field):
         <x>:field.pxAdd</x>
         <!-- The search button if field is queryable -->
         <input if="objs and field.queryable" type="button" class="button"
-               style=":'background-image: url(%s/ui/buttonSearch.png)' % appUrl"
-               value=":_('search_title')"
+               style=":img('buttonSearch', bg=True)" value=":_('search_title')"
                onclick=":'window.location=%s' % \
                  q('%s/ui/search?className=%s&amp;ref=%s:%s' % \
                  (ztool.absolute_url(), linkedPortalType, contextObj.UID(), \
@@ -207,7 +195,7 @@ class Ref(Field):
        <p class="discreet" if="not objs">:_('no_ref')</p>
 
        <table if="objs" class=":innerRef and 'innerAppyTable' or ''"
-             width="100%">
+              width="100%">
         <tr valign="bottom">
          <td>
           <!-- Show forward or backward reference(s) -->
@@ -216,39 +204,32 @@ class Ref(Field):
                var="columns=objs[0].getColumnsSpecifiers(field.shownInfo, dir)">
            <tr if="field.showHeaders">
             <th for="column in columns" width=":column['width']"
-                align="column['align']">
-             <x var="field=column['field']">
-              <span>_(field.labelId)</span>
-              <x>:field.pxSortIcons</x>
-              <x var="className=linkedPortalType">:contextObj.appy(\
-                 ).pxShowDetails</x>
-             </x>
+                align="column['align']"
+                var2="field=column['field']">
+             <span>:_(field.labelId)</span>
+             <x>:field.pxSortIcons</x>
+             <x var="className=linkedPortalType">:contextObj.appy(\
+                ).pxShowDetails</x>
             </th>
            </tr>
-           <x for="obj in objs">
-            <tr valign="top" var="odd=loop.obj.odd"
-                class=":odd and 'even' or 'odd'">
-             <td for="column in columns"
-                 width=":column['width']" align=":column['align']">
-              <x var="field=column['field']">
-               <!-- The "title" field -->
-               <x if="python: field.name == 'title'">
-                <x>:field.pxObjectTitle</x>
-                <div if="obj.mayAct()">:field.pxObjectActions</div>
-               </x>
-               <!-- Any other field -->
-               <x if="field.name != 'title'">
-                <x var="contextObj=obj;
-                        layoutType='cell';
-                        innerRef=True"
-                   if="obj.showField(field.name, layoutType='result')">
-                 <!-- use-macro="app/ui/widgets/show/macros/field"/-->
-                </x>
-               </x>
-              </x>
-             </td>
-            </tr>
-           </x>
+           <tr for="obj in objs" var2="odd=loop.obj.odd" valign="top"
+               class=":odd and 'even' or 'odd'">
+            <td for="column in columns"
+                width=":column['width']" align=":column['align']"
+                var2="field=column['field']">
+             <!-- The "title" field -->
+             <x if="python: field.name == 'title'">
+              <x>:field.pxObjectTitle</x>
+              <div if="obj.mayAct()">:field.pxObjectActions</div>
+             </x>
+             <!-- Any other field -->
+             <x if="field.name != 'title'">
+              <x var="contextObj=obj; layoutType='cell'; innerRef=True"
+                 if="obj.showField(field.name, \
+                                   layoutType='result')">:field.pxView</x>
+             </x>
+            </td>
+           </tr>
           </table>
          </td>
         </tr>
@@ -256,56 +237,49 @@ class Ref(Field):
 
        <!-- Appy (bottom) navigation -->
        <x>:contextObj.appy().pxAppyNavigate</x>
-      </x> 
+      </x>
      </div>''')
 
     pxView = pxCell = Px('''
      <x var="x=req.set('fieldName', field.name)">:field.pxViewContent</x>''')
 
     pxEdit = Px('''
-     <x if="field.link"
-        var="requestValue=req.get(name, []);
-             inRequest=req.has_key(name);
-             allObjects=field.getSelectableObjects();
-             uids=[o.UID() for o in field.getLinkedObjects(contextObj).objects];
-             isBeingCreated=contextObj.isTemporary()">
-      <select name=":name" size="isMultiple and field.height or ''"
-              multiple="isMultiple and 'multiple' or ''">
-       <option value="" if="not isMultiple">:_('choose_a_value')"></option>
-       <x for="refObj in allObjects">
-        <option var="uid=refObj.o.UID()"
-                selected=":inRequest and (uid in requestValue) or \
-                                         (uid in uids)"
-                value=":uid">:field.getReferenceLabel(refObj)</option>
-       </x>
-      </select>
-     </x>''')
+     <select if="field.link"
+             var2="requestValue=req.get(name, []);
+                   inRequest=req.has_key(name);
+                   allObjects=field.getSelectableObjects();
+                   uids=[o.UID() for o in \
+                         field.getLinkedObjects(contextObj).objects];
+                   isBeingCreated=contextObj.isTemporary()"
+             name=":name" size="isMultiple and field.height or ''"
+             multiple="isMultiple and 'multiple' or ''">
+      <option value="" if="not isMultiple">:_('choose_a_value')"></option>
+      <option for="refObj in allObjects" var2="uid=refObj.o.UID()"
+              selected=":inRequest and (uid in requestValue) or \
+                                       (uid in uids)"
+              value=":uid">:field.getReferenceLabel(refObj)</option>
+     </select>''')
 
-    pxSearch = Px('''
-     <x>
-      <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
-      <!-- The "and" / "or" radio buttons -->
-      <x var="operName='o_%s' % name;
+    pxSearch = Px('''<x>
+     <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <!-- The "and" / "or" radio buttons -->
+     <x if="field.multiplicity[1] != 1"
+        var2="operName='o_%s' % name;
               orName='%s_or' % operName;
-              andName='%s_and' % operName"
-         if="field.multiplicity[1] != 1">
-       <input type="radio" name=":operName" id=":orName"
-              checked="checked" value="or"/>
-       <label lfor=":orName">:_('search_or')"></label>
-       <input type="radio" name=":operName" id=":andName" value="and"/>
-       <label lfor=":andName">:_('search_and')"></label><br/>
-      </x>
-      <!-- The list of values -->
-      <select name=":widgetName" size=":field.sheight" multiple="multiple">
-       <x for="v in ztool.getSearchValues(name, className)">
-        <option var="uid=v[0];
-                     title=field.getReferenceLabel(v[1])"
-                value=":uid"
-                title=":title">:ztool.truncateValue(title, field.swidth)">
-        </option>
-       </x>
-      </select>
-     </x>''')
+              andName='%s_and' % operName">
+      <input type="radio" name=":operName" id=":orName" checked="checked"
+             value="or"/>
+      <label lfor=":orName">:_('search_or')"></label>
+      <input type="radio" name=":operName" id=":andName" value="and"/>
+      <label lfor=":andName">:_('search_and')"></label><br/>
+     </x>
+     <!-- The list of values -->
+     <select name=":widgetName" size=":field.sheight" multiple="multiple">
+      <option for="v in ztool.getSearchValues(name, className)"
+              var2="uid=v[0]; title=field.getReferenceLabel(v[1])" value=":uid"
+              title=":title">:ztool.truncateValue(title,field.swidth)"></option>
+     </select>
+    </x>''')
 
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), default=None, add=False, addConfirm=False,

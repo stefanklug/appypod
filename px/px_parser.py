@@ -44,7 +44,7 @@ class PxEnvironment(XmlEnvironment):
 # ------------------------------------------------------------------------------
 class PxParser(XmlParser):
     '''PX parser that is specific for parsing PX data.'''
-    pxAttributes = ('var', 'for', 'if')
+    pxAttributes = ('var', 'for', 'if', 'var2')
     # No-end tags
     noEndTags = ('br', 'img', 'link', 'input')
     noDumpTags = ('selected', 'checked', 'disabled', 'multiple')
@@ -79,7 +79,7 @@ class PxParser(XmlParser):
             # the main element or to a sub-element.
             e.currentBuffer.addElement(elem, elemType='px')
         if elem != 'x':
-            # Dump the start elements and its attributes. But as a preamble,
+            # Dump the start element and its attributes. But as a preamble,
             # manage special attributes that could not be dumped at all, like
             # "selected" or "checked".
             hook = None
