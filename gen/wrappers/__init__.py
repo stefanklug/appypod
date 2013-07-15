@@ -445,8 +445,8 @@ class AbstractWrapper(object):
 
           <!-- Connect link if discreet login -->
           <a if="isAnon and discreetLogin" id="loginLink" name="loginLink"
-             onclick="showLoginForm()" class="pageLink"
-             class="clickable">:_('app_connect')</a>
+             onclick="showLoginForm()"
+             class="pageLink clickable">:_('app_connect')</a>
 
           <!-- Language selector -->
           <select if="ztool.showLanguageSelector()"

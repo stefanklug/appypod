@@ -290,7 +290,7 @@ class SearchDescr(Descr):
                 self.translatedDescr = tool.translate(labelDescr)
             else:
                 self.translatedDescr = ''
-        self.px = self.pxSearch
+        self.px = self.pxView
 
 # ------------------------------------------------------------------------------
 upperLetter = re.compile('[A-Z]')
