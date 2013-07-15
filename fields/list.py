@@ -33,8 +33,7 @@ class List(Field):
                 widgetName='%s*%d' % (field.name, rowIndex)">:field.pxView</td>
       <!-- Icon for removing the row -->
       <td if="layoutType=='edit'" align=":dright">
-       <img style="cursor:pointer" src=":img(delete')"
-            title=":_('object_delete')"
+       <img class="clickable" src=":img(delete')" title=":_('object_delete')"
             onclick=":'deleteRow(%s, this)' % q('list_%s' % name)"/>
       </td>
      </tr>''')
@@ -48,7 +47,7 @@ class List(Field):
        <th for="info in field.fields">::_(info[1].labelId)</th>
        <!-- Icon for adding a new row. -->
        <th if="isEdit">
-        <img style="cursor:pointer" src=":img('plus')" title=":_('add_ref')"
+        <img class="clickable" src=":img('plus')" title=":_('add_ref')"
              onclick=":'insertRow(%s)' % q('list_%s' % name)"/>
        </th>
       </tr>

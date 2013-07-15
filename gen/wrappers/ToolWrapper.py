@@ -50,7 +50,7 @@ class ToolWrapper(AbstractWrapper):
           href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
                             nav=navInfo)">
         <img src=":img('edit')" title=":_('object_edit')"/></a>
-       <img if="obj.mayDelete()" style="cursor:pointer" src=":img('delete')"
+       <img if="obj.mayDelete()" class="clickable" src=":img('delete')"
             title=":_('object_delete')"
             onClick="'onDeleteObject(%s)' % q(obj.UID())"/>
       </div>
@@ -306,12 +306,12 @@ class ToolWrapper(AbstractWrapper):
        <tr>
         <th for="columnHeader in importElems[0]">
          <img if="loop.columnHeader.nb == 0" src=":img('eye')"
-              title="_('import_show_hide')" style="cursor:pointer"
+              title="_('import_show_hide')" class="clickable"
               onClick="toggleViewableElements()" align=":dleft" />
          <x>:columnHeader</x>
         </th>
         <th></th>
-        <th width="20px"><img src=":img('select_elems')" style="cursor:pointer"
+        <th width="20px"><img src=":img('select_elems')" class="clickable"
             title=":_('select_delesect')" onClick="toggleCheckboxes()"/></th>
        </tr>
        <tr for="row in importElems[1]"

@@ -61,10 +61,10 @@ class Ref(Field):
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
                    q(obj.UID()), q('move'), q('**v**')))">
-        <img if="objectIndex &gt; 0" style="cursor:pointer"
-             src=":img('arrowUp')" title=":_('move_up')"
+        <img if="objectIndex &gt; 0" class="clickable" src=":img('arrowUp')"
+             title=":_('move_up')"
              onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
-        <img if="objectIndex &lt; (totalNumber-1)" style="cursor:pointer"
+        <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
              src=":img('arrowDown')" title=":_('move_down')"
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
        </td>
@@ -80,13 +80,12 @@ class Ref(Field):
        </td>
        <!-- Delete -->
        <td if="not isBack and field.delete and canWrite and obj.mayDelete()">
-        <img style="cursor:pointer" title=":_('object_delete')"
+        <img class="clickable" title=":_('object_delete')"
              src=":img('delete')" onclick=":'onDeleteObject(%s)'%q(obj.UID())"/>
        </td>
        <!-- Unlink -->
        <td if="not isBack and field.unlink and canWrite">
-        <img style="cursor:pointer" title=":_('object_unlink')"
-             src=":img('unlink')"
+        <img class="clickable" title=":_('object_unlink')" src=":img('unlink')"
              onclick=":'onUnlinkObject(%s,%s,%s)' % (q(contextObj.UID()), \
                         q(field.name), q(obj.UID()))"/>
        </td>
@@ -121,9 +120,9 @@ class Ref(Field):
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('SortReference'), q('sortKey'), \
                 q(field.name), q('reverse'), q('**v**')))">
-      <img style="cursor:pointer" src=":img('sortAsc')"
+      <img class="clickable" src=":img('sortAsc')"
            onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
-      <img style="cursor:pointer" src=":img('sortDesc')"
+      <img class="clickable" src=":img('sortDesc')"
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 

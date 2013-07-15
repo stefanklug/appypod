@@ -47,7 +47,7 @@ class Calendar(Field):
                 goForward=not endDate or (endDate.strftime(fmt) &gt; \
                                           grid[-1][-1].strftime(fmt))">
        <!-- Go to the previous month -->
-       <img style="cursor:pointer" if="goBack" src=":img('arrowLeftSimple')"
+       <img class="clickable" if="goBack" src=":img('arrowLeftSimple')"
             onclick=":'askMonthView(%s,%s,%s,%s)' % \
                      (q(ajaxHookId),q(objUrl),q(field.name),q(previousMonth))"/>
        <!-- Go back to the default date -->
@@ -60,7 +60,7 @@ class Calendar(Field):
                                  q(objUrl), q(field.name), q(defaultDateMonth))"
               disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
        <!-- Go to the next month -->
-       <img style="cursor:pointer" if="goForward" src=":img('arrowRightSimple')"
+       <img class="clickable" if="goForward" src=":img('arrowRightSimple')"
             onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
                                    q(objUrl), q(field.name), q(nextMonth))"/>
        <span>:_('month_%s' % monthDayOne.aMonth())</span>
@@ -104,7 +104,7 @@ class Calendar(Field):
           <span if="day == 1">:_('month_%s_short' % date.aMonth())"></span>
           <!-- Icon for adding an event -->
           <x if="mayCreate">
-           <img style="visibility:hidden; cursor:pointer"
+           <img class="clickable" style="visibility:hidden"
                 var="info=field.getApplicableEventsTypesAt(contextObj, date, \
                             allEventTypes, preComputed, True)"
                 if="info['eventTypes']" src=":img('plus')"
@@ -113,7 +113,7 @@ class Calendar(Field):
                   q(info['message']))"/>
           </x>
           <!-- Icon for deleting an event -->
-          <img if="mayDelete" style="visibility:hidden; cursor:pointer"
+          <img if="mayDelete" class="clickable" style="visibility:hidden"
                src=":img('delete')"
                onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
                  (q('del'), q(field.name), q(dayString), q(str(spansDays)))"/>

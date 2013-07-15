@@ -50,7 +50,7 @@ img { border: 0; vertical-align: middle }
          padding: 6px; border: 1px dashed grey; border-radius: 0.3em }
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
-
+.clickable { cursor: pointer }
 .main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
         border-style: solid; border-width: 1px; border-color: grey }
 .top { height: 89px; margin-left: 3em; vertical-align: top }

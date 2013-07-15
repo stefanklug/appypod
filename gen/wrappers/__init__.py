@@ -33,8 +33,8 @@ class AbstractWrapper(object):
     # Icon for hiding/showing details below the title.
     pxShowDetails = Px('''
      <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
-          style="cursor:pointer" src=":img('toggleDetails')"
-          onClick="toggleSubTitles()"/>''')
+          class="clickable" src=":img('toggleDetails')"
+          onclick="toggleSubTitles()"/>''')
 
     # Displays up/down arrows in a table header column for sorting a given
     # column. Requires variables "sortable", 'filterable' and 'field'.
@@ -43,18 +43,18 @@ class AbstractWrapper(object):
       <img if="(sortKey != field.name) or (sortOrder == 'desc')"
            onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
                      (q(field.name), q('asc'), q(filterKey)))"
-           src=":img('sortDown.gif')" style="cursor:pointer"/>
+           src=":img('sortDown.gif')" class="clickable"/>
       <img if="(sortKey != field.name) or (sortOrder == 'asc')"
-           onClick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
+           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
                      (q(field.name), q('desc'), q(filterKey)))"
-           src=":img('sortUp.gif')" style="cursor:pointer"/>
+           src=":img('sortUp.gif')" class="clickable"/>
      </x>
      <x if="filterable">
       <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
              value=":filterKey == field.name and filterValue or ''"/>
-      <img onClick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
+      <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
                      (q(sortKey), q(sortOrder), q(field.name)))"
-           src=":img('funnel')" style="cursor:pointer"/>
+           src=":img('funnel')" class="clickable"/>
      </x></x>''')
 
     # Buttons for navigating among a list of elements: next,back,first,last...
@@ -67,13 +67,13 @@ class AbstractWrapper(object):
        <tr valign="middle">
         <!-- Go to the first page -->
         <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            style="cursor:pointer" src=":img('arrowLeftDouble')"
+            class="clickable" src=":img('arrowLeftDouble')"
             title=":_('goto_first')"
             onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
 
         <!-- Go to the previous page -->
         <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            style="cursor:pointer" src=":img('arrowLeftSimple')"
+            class="clickable" src=":img('arrowLeftSimple')"
             title=":_('goto_previous')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
@@ -86,7 +86,7 @@ class AbstractWrapper(object):
 
         <!-- Go to the next page -->
         <td var="sNumber=startNumber + batchSize"
-            if="sNumber &lt; totalNumber"><img style="cursor:pointer"
+            if="sNumber &lt; totalNumber"><img class="clickable"
             src=":img('arrowRightSimple')" title=":_('goto_next')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
@@ -98,7 +98,7 @@ class AbstractWrapper(object):
                                   nbOfCompletePages or nbOfCompletePages-1;
                  sNumber= nbOfCountedPages * batchSize"
             if="(startNumber != sNumber) and \
-                (startNumber != sNumber-batchSize)"><img style="cursor:pointer"
+                (startNumber != sNumber-batchSize)"><img class="clickable"
             src=":img('arrowRightDouble')" title=":_('goto_last')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
@@ -293,7 +293,7 @@ class AbstractWrapper(object):
             <td><input type="text" size="14" name="w_SearchableText"
                        class="inputSearch"/></td>
             <td>
-             <input type="image" style="cursor:pointer" src=":img('search.gif')"
+             <input type="image" class="clickable" src=":img('search.gif')"
                     title=":_('search_button')"/></td>
            </tr>
           </table>
@@ -324,7 +324,7 @@ class AbstractWrapper(object):
     pxMessage = Px('''
      <div var="messages=ztool.consumeMessages()" if="messages" class="message">
       <!-- The icon for closing the message -->
-      <img src=":img('close')" align=":dright" style="cursor:pointer"
+      <img src=":img('close')" align=":dright" class="clickable"
            onclick="this.parentNode.style.display='none'"/>
       <!-- The message content -->
       <x>::messages</x>
@@ -446,7 +446,7 @@ class AbstractWrapper(object):
           <!-- Connect link if discreet login -->
           <a if="isAnon and discreetLogin" id="loginLink" name="loginLink"
              onclick="showLoginForm()" class="pageLink"
-             style="cursor:pointer">:_('app_connect')</a>
+             class="clickable">:_('app_connect')</a>
 
           <!-- Language selector -->
           <select if="ztool.showLanguageSelector()"
@@ -587,7 +587,7 @@ class AbstractWrapper(object):
            class="odd and 'even' or 'odd'" valign="top">
         <td if="isDataChange">
          <x>:_('data_change')</x>
-         <img if="user.has_role('Manager')" style="cursor:pointer"
+         <img if="user.has_role('Manager')" class="clickable"
               src=":img('delete')"
               onclick=":'onDeleteEvent(%s,%s)' % \
                         (q(contextObj.UID()), q(event['time']))"/>
@@ -667,7 +667,7 @@ class AbstractWrapper(object):
         <td colspan="2" class="by">
          <!-- Plus/minus icon for accessing history -->
          <x if="hasHistory">
-          <img style="cursor:pointer" onclick="toggleCookie('appyHistory')"
+          <img class="clickable" onclick="toggleCookie('appyHistory')"
               src="historyExpanded and img('collapse.gif') or img('expand.gif')"
               align=":dleft" id="appyHistory_img"/>
           <x>:_('object_history')</x> || 

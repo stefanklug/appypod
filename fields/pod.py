@@ -46,7 +46,7 @@ class Pod(Field):
      <img for="fmt in field.getToolInfo(contextObj.appy())[1]" src=":img(fmt)"
           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
             (q(contextObj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
-          title=":fmt.capitalize()" style="cursor:pointer"/>
+          title=":fmt.capitalize()" class="clickable"/>
     </x>''')
 
     pxEdit = pxSearch = ''

@@ -71,7 +71,7 @@ class GroupDescr(Descr):
      <x var="expanded=req.get(field.labelId, 'collapsed') == 'expanded'">
       <!-- Group name, prefixed by the expand/collapse icon -->
       <div class="portletGroup">
-       <img style="cursor:pointer; margin-right: 3px" align=":dleft"
+       <img class="clickable" style="margin-right: 3px" align=":dleft"
             id=":'%s_img' % field.labelId"
             src=":expanded and img('collapse.gif') or img('expand.gif')"
             onclick=":'toggleCookie(%s)' % q(field.labelId)"/>
@@ -183,8 +183,7 @@ class PhaseDescr(Descr):
                      lockMsg=_('page_locked', mapping=lockMap)"
                 src=":img('locked')" title=":lockMsg"/></a>
           <a if="editable and locked and user.has_role('Manager')">
-           <img style="cursor: pointer" title=":_('page_unlock')"
-                src=":img('unlock')"
+           <img class="clickable" title=":_('page_unlock')" src=":img('unlock')"
                 onclick=":'onUnlockPage(%s,%s)' % \
                           (q(contextObj.UID()), q(aPage))"/></a>
          </x>
