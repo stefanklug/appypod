@@ -38,7 +38,7 @@ class Ogone(Field):
        <input type="hidden" for="item in value.items()" if="item[0] != 'env'"
               id=":item[0]" name=":item[0]" value=":item[1]"/>
        <!-- Submit image -->
-       <input type="image" id="submit2" name="submit2" src=":img('ogone.gif')"
+       <input type="image" id="submit2" name="submit2" src=":url('ogone.gif')"
               title=":_('custom_pay')"/>
      </form>
     </x>''')

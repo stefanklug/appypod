@@ -105,12 +105,12 @@ class ToolMixin(BaseMixin):
         podField = self.getAppyType(name, className=obj.meta_type)
         return podField.getToolInfo(obj.appy())
 
-    def getImageUrl(self, name, bg=False):
-        '''Gets the full URL of an image named p_name. If p_bg is False, the URL
-           is meant to be used as content for an img's "src" attribute. If p_bg
-           is True, the URL is meant to be used in a "style" attribute for
-           defining the background image of the current tag.'''
-        # If not extension is found in the image p_name, suppose it is a png.
+    def getIncludeUrl(self, name, bg=False):
+        '''Gets the full URL of an external resource, like an image, a
+           Javascript or a CSS file, named p_name. If p_bg is True, p_name is
+           an image that is meant to be used in a "style" attribute for defining
+           the background image of some XHTML tag.'''
+        # If no extension is found in p_name, we suppose it is a png image.
         if '.' not in name: name += '.png'
         url = '%s/ui/%s' % (self.getPhysicalRoot(),absolute_url(), name)
         if not bg: return url

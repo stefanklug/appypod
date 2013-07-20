@@ -36,12 +36,12 @@ class Action(Field):
       <input if="field.confirm" type="button" class="button"
          var="labelConfirm=_(field.labelId + '_confirm')"
          value=":ztool.truncateValue(label)" title=":label"
-         style=":img('buttonAction', bg=True)"
+         style=":url('buttonAction', bg=True)"
          onclick=":'askConfirm(%s,%s,%s)' % (q('form'), q(formId), \
                                              q(labelConfirm))"/>
       <input if="not field.confirm" type="submit" class="button" name="do"
              value=":ztool.truncateValue(label)" title=":label"
-             style=":img('buttonAction', bg=True)"/>
+             style=":url('buttonAction', bg=True)"/>
      </form>''')
 
     # It is not possible to edit an action, not to search it.

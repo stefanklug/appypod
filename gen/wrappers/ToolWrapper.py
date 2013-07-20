@@ -49,8 +49,8 @@ class ToolWrapper(AbstractWrapper):
                 (className, searchName, loop.obj.nb+1+startNumber, totalNumber)"
           href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
                             nav=navInfo)">
-        <img src=":img('edit')" title=":_('object_edit')"/></a>
-       <img if="obj.mayDelete()" class="clickable" src=":img('delete')"
+        <img src=":url('edit')" title=":_('object_edit')"/></a>
+       <img if="obj.mayDelete()" class="clickable" src=":url('delete')"
             title=":_('object_delete')"
             onClick="'onDeleteObject(%s)' % q(obj.UID())"/>
       </div>
@@ -206,9 +206,9 @@ class ToolWrapper(AbstractWrapper):
 
       <!-- Include type-specific CSS and JS. -->
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
-            href=":'%s/ui/%s' % (appUrl, cssFile)"/>
+            href=":url(cssFile)"/>
       <script for="jsFile in cssJs['js']" type="text/javascript"
-              src=":'%s/ui/%s' % (appUrl, jsFile)"></script>
+              src=":url(jsFile)"></script>
 
       <!-- Search title -->
       <h1><x>:_('%s_plural'%className)</x> &ndash;
@@ -238,7 +238,7 @@ class ToolWrapper(AbstractWrapper):
        <!-- Submit button -->
        <p align=":dright"><br/>
         <input type="submit" class="button" value=":_('search_button')"
-               style=":img('buttonSearch', bg=True)"/>
+               style=":url('buttonSearch', bg=True)"/>
        </p>
       </form>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
@@ -305,13 +305,13 @@ class ToolWrapper(AbstractWrapper):
       <table class="list" width="100%">
        <tr>
         <th for="columnHeader in importElems[0]">
-         <img if="loop.columnHeader.nb == 0" src=":img('eye')"
+         <img if="loop.columnHeader.nb == 0" src=":url('eye')"
               title="_('import_show_hide')" class="clickable"
               onClick="toggleViewableElements()" align=":dleft" />
          <x>:columnHeader</x>
         </th>
         <th></th>
-        <th width="20px"><img src=":img('select_elems')" class="clickable"
+        <th width="20px"><img src=":url('select_elems')" class="clickable"
             title=":_('select_delesect')" onClick="toggleCheckboxes()"/></th>
        </tr>
        <tr for="row in importElems[1]"

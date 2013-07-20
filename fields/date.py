@@ -56,7 +56,7 @@ class Date(Field):
       <!-- The icon for displaying the calendar popup -->
       <x if="field.calendar">
        <input type="hidden" id=":name" name=":name"/>
-       <img id=":'%s_img' % name" src=":img('calendar.gif')"/>
+       <img id=":'%s_img' % name" src=":url('calendar.gif')"/>
        <script type="text/javascript">:field.getJsInit(name, years)</script>
       </x>
 
@@ -111,7 +111,7 @@ class Date(Field):
          <!-- The icon for displaying the calendar popup -->
          <x if="field.calendar">
           <input type="hidden" id=":fromName" name=":fromName"/>
-          <img id=":'%s_img' % fromName" src=":img('calendar.gif')"/>
+          <img id=":'%s_img' % fromName" src=":url('calendar.gif')"/>
           <script type="text/javascript">:field.getJsInit(fromName, years)
           </script>
          </x>
@@ -144,7 +144,7 @@ class Date(Field):
          <!-- The icon for displaying the calendar popup -->
          <x if="widget.calendar">
           <input type="hidden" id=":toName" name=":toName"/>
-          <img id=":'%s_img' % toName" src=":img('calendar.gif')"/>
+          <img id=":'%s_img' % toName" src=":url('calendar.gif')"/>
           <script type="text/javascript">:field.getJsInit(toName, years)">
           </script>
          </x>

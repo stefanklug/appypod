@@ -61,11 +61,11 @@ class Ref(Field):
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
                    q(obj.UID()), q('move'), q('**v**')))">
-        <img if="objectIndex &gt; 0" class="clickable" src=":img('arrowUp')"
+        <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
              title=":_('move_up')"
              onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
         <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
-             src=":img('arrowDown')" title=":_('move_down')"
+             src=":url('arrowDown')" title=":_('move_down')"
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
        </td>
        <!-- Workflow transitions -->
@@ -76,16 +76,16 @@ class Ref(Field):
         <a var="navInfo='ref.%s.%s:%s.%d.%d' % (contextObj.UID(), field.name, \
                         field.pageName, loop.obj.nb + startNumber, totalNumber)"
            href=":obj.getUrl(mode='edit', page='main', nav=navInfo)">
-         <img src=":img('edit')" title=":_('object_edit')"/></a>
+         <img src=":url('edit')" title=":_('object_edit')"/></a>
        </td>
        <!-- Delete -->
        <td if="not isBack and field.delete and canWrite and obj.mayDelete()">
         <img class="clickable" title=":_('object_delete')"
-             src=":img('delete')" onclick=":'onDeleteObject(%s)'%q(obj.UID())"/>
+             src=":url('delete')" onclick=":'onDeleteObject(%s)'%q(obj.UID())"/>
        </td>
        <!-- Unlink -->
        <td if="not isBack and field.unlink and canWrite">
-        <img class="clickable" title=":_('object_unlink')" src=":img('unlink')"
+        <img class="clickable" title=":_('object_unlink')" src=":url('unlink')"
              onclick=":'onUnlinkObject(%s,%s,%s)' % (q(contextObj.UID()), \
                         q(field.name), q(obj.UID()))"/>
        </td>
@@ -109,7 +109,7 @@ class Ref(Field):
               noFormCall=not field.addConfirm and noFormCall or \
                 'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
                                             q(addConfirmMsg))"
-        style=":img('buttonAdd', bg=True)" value=":_('add_ref')"
+        style=":url('buttonAdd', bg=True)" value=":_('add_ref')"
         onclick=":field.noForm and noFormCall or formCall"/>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
@@ -120,9 +120,9 @@ class Ref(Field):
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('SortReference'), q('sortKey'), \
                 q(field.name), q('reverse'), q('**v**')))">
-      <img class="clickable" src=":img('sortAsc')"
+      <img class="clickable" src=":url('sortAsc')"
            onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
-      <img class="clickable" src=":img('sortDesc')"
+      <img class="clickable" src=":url('sortDesc')"
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 
@@ -180,7 +180,7 @@ class Ref(Field):
         <x>:field.pxAdd</x>
         <!-- The search button if field is queryable -->
         <input if="objs and field.queryable" type="button" class="button"
-               style=":img('buttonSearch', bg=True)" value=":_('search_title')"
+               style=":url('buttonSearch', bg=True)" value=":_('search_title')"
                onclick=":'window.location=%s' % \
                  q('%s/ui/search?className=%s&amp;ref=%s:%s' % \
                  (ztool.absolute_url(), linkedPortalType, contextObj.UID(), \

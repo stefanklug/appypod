@@ -33,7 +33,7 @@ class AbstractWrapper(object):
     # Icon for hiding/showing details below the title.
     pxShowDetails = Px('''
      <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
-          class="clickable" src=":img('toggleDetails')"
+          class="clickable" src=":url('toggleDetails')"
           onclick="toggleSubTitles()"/>''')
 
     # Displays up/down arrows in a table header column for sorting a given
@@ -43,18 +43,18 @@ class AbstractWrapper(object):
       <img if="(sortKey != field.name) or (sortOrder == 'desc')"
            onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
                      (q(field.name), q('asc'), q(filterKey)))"
-           src=":img('sortDown.gif')" class="clickable"/>
+           src=":url('sortDown.gif')" class="clickable"/>
       <img if="(sortKey != field.name) or (sortOrder == 'asc')"
            onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
                      (q(field.name), q('desc'), q(filterKey)))"
-           src=":img('sortUp.gif')" class="clickable"/>
+           src=":url('sortUp.gif')" class="clickable"/>
      </x>
      <x if="filterable">
       <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
              value=":filterKey == field.name and filterValue or ''"/>
       <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
                      (q(sortKey), q(sortOrder), q(field.name)))"
-           src=":img('funnel')" class="clickable"/>
+           src=":url('funnel')" class="clickable"/>
      </x></x>''')
 
     # Buttons for navigating among a list of elements: next,back,first,last...
@@ -67,27 +67,27 @@ class AbstractWrapper(object):
        <tr valign="middle">
         <!-- Go to the first page -->
         <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            class="clickable" src=":img('arrowLeftDouble')"
+            class="clickable" src=":url('arrowLeftDouble')"
             title=":_('goto_first')"
             onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
 
         <!-- Go to the previous page -->
         <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            class="clickable" src=":img('arrowLeftSimple')"
+            class="clickable" src=":url('arrowLeftSimple')"
             title=":_('goto_previous')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
 
         <!-- Explain which elements are currently shown -->
         <td class="discreet">&nbsp;
-         <x>:startNumber + 1</x><img src=":img('to')"/>
+         <x>:startNumber + 1</x><img src=":url('to')"/>
          <x>:startNumber + len(objs)</x>&nbsp;<b>//</b>
          <x>:totalNumber</x>&nbsp;&nbsp;</td>
 
         <!-- Go to the next page -->
         <td var="sNumber=startNumber + batchSize"
             if="sNumber &lt; totalNumber"><img class="clickable"
-            src=":img('arrowRightSimple')" title=":_('goto_next')"
+            src=":url('arrowRightSimple')" title=":_('goto_next')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
 
@@ -99,7 +99,7 @@ class AbstractWrapper(object):
                  sNumber= nbOfCountedPages * batchSize"
             if="(startNumber != sNumber) and \
                 (startNumber != sNumber-batchSize)"><img class="clickable"
-            src=":img('arrowRightDouble')" title=":_('goto_last')"
+            src=":url('arrowRightDouble')" title=":_('goto_last')"
             onClick="navBaseCall.replace('**v**', \
                                          str(sNumber)+sortAndFilter)"/></td>
        </tr>
@@ -125,15 +125,15 @@ class AbstractWrapper(object):
          var="gotoSource=_('goto_source');
               goBack=backText and ('%s - %s' % (backText, gotoSource)) \
                      or gotoSource"
-         src=":img('gotoSource')" title=":goBack"/></a>
+         src=":url('gotoSource')" title=":goBack"/></a>
 
       <!-- Go to the first page -->
       <a if="firstUrl" href=":firstUrl"><img title=":_('goto_first')"
-         src=":img('arrowLeftDouble')"/></a>
+         src=":url('arrowLeftDouble')"/></a>
 
       <!-- Go to the previous page -->
       <a if="previousUrl" href=":previousUrl"><img title=":_('goto_previous')"
-         src=":img('arrowLeftSimple')"/></a>
+         src=":url('arrowLeftSimple')"/></a>
 
       <!-- Explain which element is currently shown -->
       <span class="discreet">&nbsp;
@@ -143,11 +143,11 @@ class AbstractWrapper(object):
 
       <!-- Go to the next page -->
       <a if="nextUrl" href=":nextUrl"><img title=":_('goto_next')"
-         src=":img('arrowRightSimple')"/></a>
+         src=":url('arrowRightSimple')"/></a>
 
       <!-- Go to the last page -->
       <a if="lastUrl" href=":lastUrl"><img title=":_('goto_last')"
-         src=":img('arrowRightDouble')"/></a>
+         src=":url('arrowRightDouble')"/></a>
      </div>''')
 
     pxNavigationStrip = Px('''
@@ -156,7 +156,7 @@ class AbstractWrapper(object):
        <!-- Breadcrumb -->
        <td var="breadcrumb=contextObj.getBreadCrumb()" class="breadcrumb">
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
-         <img if="nb != 0" src=":img('to')"/>
+         <img if="nb != 0" src=":url('to')"/>
          <!-- Display only the title of the current object -->
          <span if="nb == len(breadcrumb)-1">:bc['title']</span>
          <!-- Display a link for parent objects -->
@@ -176,9 +176,9 @@ class AbstractWrapper(object):
      <!-- Include type-specific CSS and JS. -->
      <x if="cssJs">
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
-            href=":'%s/ui/%s' % (appUrl, cssFile)"/>
+            href=":url(cssFile)"/>
       <script for="jsFile in cssJs['js']" type="text/javascript"
-              src=":'%s/ui/%s' % (appUrl, jsFile)"></script></x>
+              src=":url(jsFile)"></script></x>
 
      <!-- Javascript messages -->
      <script type="text/javascript">:ztool.getJavascriptMessages()</script>
@@ -268,7 +268,7 @@ class AbstractWrapper(object):
          <!-- Create a new object from a web form -->
          <input type="button" class="button"
                 if="userMayAdd and ('form' in createMeans)"
-                style=":img('buttonAdd', bg=True)" value=":_('query_create')"
+                style=":url('buttonAdd', bg=True)" value=":_('query_create')"
                 onclick=":'window.location=%s' % \
                   q('%s/do?action=Create&amp;className=%s' % \
                     (toolUrl, rootClass))"/>
@@ -276,7 +276,7 @@ class AbstractWrapper(object):
          <!-- Create object(s) by importing data -->
          <input type="button" class="button"
                 if="userMayAdd and ('import' in createMeans)"
-                style=":img('buttonImport', bg=True)" value=":_('query_import')"
+                style=":url('buttonImport', bg=True)" value=":_('query_import')"
                 onclick=":'window.location=%s' % \
                   q('%s/ui/import?className=%s' % (toolUrl, rootClass))"/>
         </x>
@@ -285,7 +285,7 @@ class AbstractWrapper(object):
         <x if="ztool.advancedSearchEnabledFor(rootClass)">
 
          <!-- Live search -->
-         <form action=":'%s/config/do' % appUrl">
+         <form action=":'%s/do' % toolUrl">
           <input type="hidden" name="action" value="SearchObjects"/>
           <input type="hidden" name="className" value=":rootClass"/>
           <table cellpadding="0" cellspacing="0">
@@ -293,7 +293,7 @@ class AbstractWrapper(object):
             <td><input type="text" size="14" name="w_SearchableText"
                        class="inputSearch"/></td>
             <td>
-             <input type="image" class="clickable" src=":img('search.gif')"
+             <input type="image" class="clickable" src=":url('search.gif')"
                     title=":_('search_button')"/></td>
            </tr>
           </table>
@@ -324,7 +324,7 @@ class AbstractWrapper(object):
     pxMessage = Px('''
      <div var="messages=ztool.consumeMessages()" if="messages" class="message">
       <!-- The icon for closing the message -->
-      <img src=":img('close')" align=":dright" class="clickable"
+      <img src=":url('close')" align=":dright" class="clickable"
            onclick="this.parentNode.style.display='none'"/>
       <!-- The message content -->
       <x>::messages</x>
@@ -350,11 +350,10 @@ class AbstractWrapper(object):
     pxTemplate = Px('''
      <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
                 isAnon=ztool.userIsAnon();      app=ztool.getApp();
-                appUrl=app.absolute_url();      appFolder=app.data;
+                appFolder=app.data;             url = ztool.getIncludeUrl;
                 appName=ztool.getAppName();     _=ztool.translate;
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 lang=ztool.getUserLanguage();   q=ztool.quote;
-                img = ztool.getImageUrl;
                 layoutType=ztool.getLayoutType();
                 contextObj=ztool.getPublishedObject(layoutType) or \
                            ztool.getHomeObject();
@@ -373,10 +372,9 @@ class AbstractWrapper(object):
       <x for="name in ztool.getGlobalCssJs()">
        <link if="name.endswith('.css') and \
                  not ((dir == 'ltr') and (name == 'appyrtl.css'))"
-             rel="stylesheet" type="text/css"
-             href=":'%s/ui/%s' % (appUrl, name)"/>
+             rel="stylesheet" type="text/css" href=":url(name)"/>
        <script if="name.endswith('.js')" type="text/javascript"
-               src=":'%s/ui/%s' % (appUrl, name)"></script>
+               src=":url(name)"></script>
       </x>
      </head>
      <body>
@@ -427,13 +425,13 @@ class AbstractWrapper(object):
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
-            style=":img('%s.jpg' % bannerName, bg=True)">
+            style=":url('%s.jpg' % bannerName, bg=True)">
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
           <!-- Icon "home" -->
-          <a class="pageLink" href=":appUrl" title=": _('app_home')">
-           <img src=":img('home.gif')" style="margin-right: 3px"/>
+          <a class="pageLink" href="/" title=": _('app_home')">
+           <img src=":url('home.gif')" style="margin-right: 3px"/>
           </a>
 
           <!-- Additional links -->
@@ -508,18 +506,18 @@ class AbstractWrapper(object):
                <!-- Config -->
                <a if="user.has_role('Manager')" href=":tool.url"
                   title=":_('%sTool' % appName)">
-                <img src=":img('appyConfig.gif')"/></a>
+                <img src=":url('appyConfig.gif')"/></a>
                <!-- Additional icons -->
                <x>:self.pxIcons</x>
                <!-- Log out -->
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
-                <img src=":img('logout.gif')"/></a>
+                <img src=":url('logout.gif')"/></a>
               </td>
               <td class="userStripText" var="userInfo=ztool.getUserLine()"
                   align=":dright">
                <span>:userInfo[0]</span>
                <a if="userInfo[1]"
-                  href=":userInfo[1]"><img src=":img('edit')"/></a>
+                  href=":userInfo[1]"><img src=":url('edit')"/></a>
               </td>
              </tr>
             </table>
@@ -588,7 +586,7 @@ class AbstractWrapper(object):
         <td if="isDataChange">
          <x>:_('data_change')</x>
          <img if="user.has_role('Manager')" class="clickable"
-              src=":img('delete')"
+              src=":url('delete')"
               onclick=":'onDeleteEvent(%s,%s)' % \
                         (q(contextObj.UID()), q(event['time']))"/>
         </td>
@@ -637,7 +635,7 @@ class AbstractWrapper(object):
         <td align=":dright" for="transition in transitions">
          <!-- Real button -->
          <input type="button" class="button" if="transition['may_trigger']"
-                style=":img('buttonTransition', bg=True)"
+                style=":url('buttonTransition', bg=True)"
                 title=":transition['title']"
                 value=":ztool.truncateValue(transition['title'])"
                 onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
@@ -645,7 +643,7 @@ class AbstractWrapper(object):
 
          <!-- Fake button, explaining why the transition can't be triggered -->
          <input type="button" class="button" if="not transition['may_trigger']"
-                style=":img('buttonFake', bg=True) + ';cursor: help'"
+                style=":url('buttonFake', bg=True) + ';cursor: help'"
                 value=":ztool.truncateValue(transition['title'])"
                 title=":'%s: %s' % (transition['title'], \
                                     transition['reason'])"/>
@@ -668,7 +666,7 @@ class AbstractWrapper(object):
          <!-- Plus/minus icon for accessing history -->
          <x if="hasHistory">
           <img class="clickable" onclick="toggleCookie('appyHistory')"
-              src="historyExpanded and img('collapse.gif') or img('expand.gif')"
+              src="historyExpanded and url('collapse.gif') or url('expand.gif')"
               align=":dleft" id="appyHistory_img"/>
           <x>:_('object_history')</x> || 
          </x>
@@ -725,13 +723,13 @@ class AbstractWrapper(object):
         <x if="isEdit">
          <input type="button" class="button" value=":_('page_previous')"
                 onClick="submitAppyForm('previous')"
-                style=":img('buttonPrevious', bg=True)"/>
+                style=":url('buttonPrevious', bg=True)"/>
          <input type="hidden" name="previousPage" value=":previousPage"/>
         </x>
         <!-- Button on the view page -->
         <input if="not isEdit" type="button" class="button"
                value=":_('page_previous')"
-               style=":img('buttonPrevious', bg=True)"
+               style=":url('buttonPrevious', bg=True)"
                onclick=":'window.location=%s' % \
                          q(contextObj.getUrl(page=previousPage))"/>
        </td>
@@ -739,13 +737,13 @@ class AbstractWrapper(object):
        <!-- Save -->
        <td if="isEdit and pageInfo['showSave']">
         <input type="button" class="button" onClick="submitAppyForm('save')"
-               style=":img(buttonSave', bg=True)" value=":_('object_save')"/>
+               style=":url(buttonSave', bg=True)" value=":_('object_save')"/>
        </td>
 
        <!-- Cancel -->
        <td if="isEdit and pageInfo['showCancel']">
         <input type="button" class="button" onClick="submitAppyForm('cancel')"
-             style=":img('buttonCancel', bg=True)" value=":_('object_cancel')"/>
+             style=":url('buttonCancel', bg=True)" value=":_('object_cancel')"/>
        </td>
 
        <td if="not isEdit"
@@ -754,7 +752,7 @@ class AbstractWrapper(object):
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"
-               style=":img('buttonEdit', bg=True)" value=":_('object_edit')"
+               style=":url('buttonEdit', bg=True)" value=":_('object_edit')"
                onclick=":'window.location=%s' % \
                          q(contextObj.getUrl(mode='edit', page=page))"/>
 
@@ -764,7 +762,7 @@ class AbstractWrapper(object):
               var="lockDate=tool.formatDate(locked[1]);
                    lockMap={'user':tool.getUserName(locked[0]),'date':lockDate};
                    lockMsg=_('page_locked', mapping=lockMap)"
-              src=":img('lockedBig')" title=":lockMsg"/></a>
+              src=":url('lockedBig')" title=":lockMsg"/></a>
        </td>
 
        <!-- Next -->
@@ -772,12 +770,12 @@ class AbstractWrapper(object):
         <!-- Button on the edit page -->
         <x if="isEdit">
          <input type="button" class="button" onClick="submitAppyForm('next')"
-                style=":img('buttonNext', bg=True)" value=":_('page_next')"/>
+                style=":url('buttonNext', bg=True)" value=":_('page_next')"/>
          <input type="hidden" name="nextPage" value=":nextPage"/>
         </x>
         <!-- Button on the view page -->
         <input if="not isEdit" type="button" class="button"
-               style=":img('buttonNext', bg=True)" value=":_('page_next')"
+               style=":url('buttonNext', bg=True)" value=":_('page_next')"
                onclick=":'window.location=%s' % \
                          q(contextObj.getUrl(page=nextPage))"/>
        </td>
@@ -789,7 +787,7 @@ class AbstractWrapper(object):
        <!-- Refresh -->
        <td if="contextObj.isDebug()">
         <a href="contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
-         <img title="Refresh" style="vertical-align:top" src=":img('refresh')"/>
+         <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
         </a>
        </td>
       </tr>

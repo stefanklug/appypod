@@ -47,7 +47,7 @@ class Calendar(Field):
                 goForward=not endDate or (endDate.strftime(fmt) &gt; \
                                           grid[-1][-1].strftime(fmt))">
        <!-- Go to the previous month -->
-       <img class="clickable" if="goBack" src=":img('arrowLeftSimple')"
+       <img class="clickable" if="goBack" src=":url('arrowLeftSimple')"
             onclick=":'askMonthView(%s,%s,%s,%s)' % \
                      (q(ajaxHookId),q(objUrl),q(field.name),q(previousMonth))"/>
        <!-- Go back to the default date -->
@@ -60,7 +60,7 @@ class Calendar(Field):
                                  q(objUrl), q(field.name), q(defaultDateMonth))"
               disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
        <!-- Go to the next month -->
-       <img class="clickable" if="goForward" src=":img('arrowRightSimple')"
+       <img class="clickable" if="goForward" src=":url('arrowRightSimple')"
             onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
                                    q(objUrl), q(field.name), q(nextMonth))"/>
        <span>:_('month_%s' % monthDayOne.aMonth())</span>
@@ -107,14 +107,14 @@ class Calendar(Field):
            <img class="clickable" style="visibility:hidden"
                 var="info=field.getApplicableEventsTypesAt(contextObj, date, \
                             allEventTypes, preComputed, True)"
-                if="info['eventTypes']" src=":img('plus')"
+                if="info['eventTypes']" src=":url('plus')"
                 onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
                  (q('new'), q(field.name), q(dayString), q(info['eventTypes']),\
                   q(info['message']))"/>
           </x>
           <!-- Icon for deleting an event -->
           <img if="mayDelete" class="clickable" style="visibility:hidden"
-               src=":img('delete')"
+               src=":url('delete')"
                onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
                  (q('del'), q(field.name), q(dayString), q(str(spansDays)))"/>
           <!-- A single event is allowed for the moment -->

@@ -43,7 +43,7 @@ class Pod(Field):
       <input type="checkbox" name=":doLabel" id=":chekboxId"/>
       <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
      </x>
-     <img for="fmt in field.getToolInfo(contextObj.appy())[1]" src=":img(fmt)"
+     <img for="fmt in field.getToolInfo(contextObj.appy())[1]" src=":url(fmt)"
           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
             (q(contextObj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
           title=":fmt.capitalize()" class="clickable"/>

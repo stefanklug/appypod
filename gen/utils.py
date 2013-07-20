@@ -73,7 +73,7 @@ class GroupDescr(Descr):
       <div class="portletGroup">
        <img class="clickable" style="margin-right: 3px" align=":dleft"
             id=":'%s_img' % field.labelId"
-            src=":expanded and img('collapse.gif') or img('expand.gif')"
+            src=":expanded and url('collapse.gif') or url('expand.gif')"
             onclick=":'toggleCookie(%s)' % q(field.labelId)"/>
        <x if="not field.translated">:_(field.labelId)</x>
        <x if="field.translated">:field.translated</x>
@@ -174,16 +174,16 @@ class PhaseDescr(Descr):
                  editable=mayEdit and phase['pagesInfo'][aPage]['showOnEdit']">
           <a if="editable and not locked"
              href="contextObj.getUrl(mode='edit', page=aPage)">
-           <img src=":img('edit')" title=":_('object_edit')"/></a>
+           <img src=":url('edit')" title=":_('object_edit')"/></a>
           <a if="editable and locked">
            <img style="cursor: help"
                 var="lockDate=tool.formatDate(locked[1]);
                      lockMap={'user':ztool.getUserName(locked[0]), \
                               'date':lockDate};
                      lockMsg=_('page_locked', mapping=lockMap)"
-                src=":img('locked')" title=":lockMsg"/></a>
+                src=":url('locked')" title=":lockMsg"/></a>
           <a if="editable and locked and user.has_role('Manager')">
-           <img class="clickable" title=":_('page_unlock')" src=":img('unlock')"
+           <img class="clickable" title=":_('page_unlock')" src=":url('unlock')"
                 onclick=":'onUnlockPage(%s,%s)' % \
                           (q(contextObj.UID()), q(aPage))"/></a>
          </x>
