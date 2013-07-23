@@ -608,6 +608,7 @@ class ZopeGenerator(Generator):
         repls['ogone'] = repr(self.config.ogone)
         repls['googleAnalyticsId'] = repr(self.config.googleAnalyticsId)
         repls['activateForgotPassword'] = self.config.activateForgotPassword
+        repls['groupsForGlobalRoles'] = self.config.groupsForGlobalRoles
         self.copyFile('config.pyt', repls, destName='config.py')
 
     def generateInit(self):

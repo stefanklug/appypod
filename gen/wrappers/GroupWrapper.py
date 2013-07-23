@@ -9,7 +9,7 @@ class GroupWrapper(AbstractWrapper):
     def showLogin(self):
         '''When must we show the login field?'''
         if self.o.isTemporary(): return 'edit'
-        return 'view'
+        return ('view', 'result')
 
     def showGroups(self):
         '''Only the admin can view or edit roles.'''

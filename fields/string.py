@@ -262,6 +262,7 @@ class String(Field):
             if letter.match(c): nv += str(ord(c.upper()) - 55)
             else: nv += c
         return int(nv) % 97 == 1
+
     @staticmethod
     def BIC(obj, value):
         '''Checks that p_value corresponds to a valid BIC number. BIC stands

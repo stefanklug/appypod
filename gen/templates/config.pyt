@@ -52,6 +52,7 @@ enableSessionTimeout = <!enableSessionTimeout!>
 discreetLogin = <!discreetLogin!>
 ogone = <!ogone!>
 googleAnalyticsId = <!googleAnalyticsId!>
+groupsForGlobalRoles = <!groupsForGlobalRoles!>
 
 # When Zope is starting or runs in test mode, there is no request object. We
 # create here a fake one for storing Appy wrappers.

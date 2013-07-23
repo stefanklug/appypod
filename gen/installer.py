@@ -250,14 +250,16 @@ class ZopeInstaller:
             appyTool.log('Group "admins" created.')
 
         # Create a group for every global role defined in the application
-        for role in self.config.applicationGlobalRoles:
-            relatedGroup = '%s_group' % role
-            if appyTool.count('Group', noSecurity=True, login=relatedGroup):
-                continue
-            appyTool.create('groups', noSecurity=True, login=relatedGroup,
-                            title=relatedGroup, roles=[role])
-            appyTool.log('Group "%s", related to global role "%s", was ' \
-                         'created.' % (relatedGroup, role))
+        # (if required).
+        if self.app.config.getProductConfig().groupsForGlobalRoles:
+            for role in self.config.applicationGlobalRoles:
+                groupId = role.lower()
+                if appyTool.count('Group', noSecurity=True, login=groupId):
+                    continue
+                appyTool.create('groups', noSecurity=True, login=groupId,
+                                title=role, roles=[role])
+                appyTool.log('Group "%s", related to global role "%s", was ' \
+                             'created.' % (groupId, role))
 
         # Create POD templates within the tool if required
         for contentType in self.config.attributes.iterkeys():
@@ -307,11 +309,8 @@ class ZopeInstaller:
                             id=language, title=title)
             appyTool.log('Translation object created for "%s".' % language)
 
-        # Execute custom installation code if any
-        if hasattr(appyTool, 'onInstall'): appyTool.onInstall()
-
-        # Now, if required, we synchronise every Translation object with the
-        # corresponding "po" file on disk.
+        # Synchronize, if required, synchronise every Translation object with
+        # the corresponding "po" file on disk.
         if appyTool.loadTranslationsAtStartup:
             appFolder = self.config.diskFolder
             appName = self.config.PROJECTNAME
@@ -324,6 +323,9 @@ class ZopeInstaller:
                     setattr(translation, message.id, message.getMessage())
                 appyTool.log('Translation "%s" updated from "%s".' % \
                              (translation.id, poName))
+
+        # Execute custom installation code if any.
+        if hasattr(appyTool, 'onInstall'): appyTool.onInstall()
 
     def configureSessions(self):
         '''Configure the session machinery.'''

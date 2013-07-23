@@ -57,7 +57,15 @@ class BaseMixin:
         if created and rq:
             # Create the final object and put it at the right place.
             tool = self.getTool()
-            id = tool.generateUid(obj.portal_type)
+            # The app may define a method klass.generateUid for producing an UID
+            # for instance of this class. If no such method is found, we use the
+            # standard Appy method to produce an UID.
+            id = None
+            klass = tool.getAppyClass(obj.portal_type)
+            if hasattr(klass, 'generateUid'):
+                id = klass.generateUid(obj.REQUEST)
+            if not id:
+                id = tool.generateUid(obj.portal_type)
             if not initiator:
                 folder = tool.getPath('/data')
             else:

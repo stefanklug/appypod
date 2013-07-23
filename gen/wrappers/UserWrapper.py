@@ -134,7 +134,11 @@ class UserWrapper(AbstractWrapper):
         return self._callCustom('validate', new, errors)
 
     def onEdit(self, created):
-        self.title = self.login
+        # Set a title for this user.
+        if self.firstName and self.name:
+            self.title = '%s %s' % (self.name, self.firstName)
+        else:
+            self.title = self.login
         aclUsers = self.o.acl_users
         login = self.login
         if created:

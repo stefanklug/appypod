@@ -68,7 +68,7 @@ class SoapDataEncoder:
 # ------------------------------------------------------------------------------
 class HttpResponse:
     '''Stores information about a HTTP response.'''
-    def __init__(self, response, body, duration=None):
+    def __init__(self, response, body, duration=None, utf8=True):
         self.code = response.status # The return code, ie 404, 200, 500...
         self.text = response.reason # Textual description of the code
         self.headers = response.msg # A dict-like object containing the headers
@@ -76,6 +76,7 @@ class HttpResponse:
         # p_duration, if given, is the time, in seconds, we have waited, before
         # getting this response after having sent the request.
         self.duration = duration
+        self.utf8 = utf8
         # The following attribute may contain specific data extracted from
         # the previous fields. For example, when response if 302 (Redirect),
         # self.data contains the URI where we must redirect the user to.
@@ -108,7 +109,7 @@ class HttpResponse:
                     # Return an unmarshalled version of the XML content, for
                     # easy use in Python.
                     try:
-                        return XmlUnmarshaller().parse(self.body)
+                        return XmlUnmarshaller(utf8=self.utf8).parse(self.body)
                     except xml.sax.SAXParseException, se:
                         raise ResourceError('Invalid XML response (%s)'%str(se))
 
@@ -120,7 +121,8 @@ class Resource:
     '''Every instance of this class represents some web resource accessible
        through HTTP.'''
 
-    def __init__(self, url, username=None, password=None, measure=False):
+    def __init__(self, url, username=None, password=None, measure=False,
+                 utf8=True):
         self.username = username
         self.password = password
         self.url = url
@@ -142,6 +144,7 @@ class Resource:
         # If some headers must be sent with any request sent through this
         # resource (like a cookie), you can store them in the following dict.
         self.headers = {'Host': self.host}
+        self.utf8 = utf8
 
     def __repr__(self):
         return '<Dav resource at %s>' % self.url
@@ -190,7 +193,7 @@ class Resource:
         if self.measure:
             duration = endTime - startTime
             self.serverTime += duration
-        return HttpResponse(response, body, duration=duration)
+        return HttpResponse(response, body, duration=duration, utf8=self.utf8)
 
     def mkdir(self, name):
         '''Creates a folder named p_name in this resource.'''

@@ -599,4 +599,6 @@ class Config:
         self.ogone = None
         # When using Google analytics, specify here the Analytics ID
         self.googleAnalyticsId = None
+        # Create a group for every global role?
+        self.groupsForGlobalRoles = False
 # ------------------------------------------------------------------------------
