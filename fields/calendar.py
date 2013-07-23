@@ -16,24 +16,23 @@ class Calendar(Field):
     # Month view for a calendar. Called by pxView, and directly from the UI,
     # via Ajax, when the user selects another month.
     pxMonthView = Px('''
-     <div var="field=contextObj.getAppyType(req['fieldName']);
-               ajaxHookId=contextObj.UID() + field.name;
+     <div var="field=zobj.getAppyType(req['fieldName']);
+               ajaxHookId=zobj.UID() + field.name;
                month=req['month'];
                monthDayOne=DateTime('%s/01' % month);
                today=DateTime('00:00');
                grid=field.getMonthGrid(month);
-               allEventTypes=field.getEventTypes(contextObj);
-               preComputed=field.getPreComputedInfo(contextObj, monthDayOne, \
-                                                    grid);
-               defaultDate=field.getDefaultDate(contextObj);
+               allEventTypes=field.getEventTypes(zobj);
+               preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
+               defaultDate=field.getDefaultDate(zobj);
                defaultDateMonth=defaultDate.strftime('%Y/%m');
                previousMonth=field.getSiblingMonth(month, 'previous');
                nextMonth=field.getSiblingMonth(month, 'next');
-               mayEdit=contextObj.allows(widget['writePermission']);
-               objUrl=contextObj.absolute_url();
-               startDate=field.getStartDate(contextObj);
-               endDate=field.getEndDate(contextObj);
-               otherCalendars=field.getOtherCalendars(contextObj, preComputed)"
+               mayEdit=zobj.allows(widget['writePermission']);
+               objUrl=zobj.absolute_url();
+               startDate=field.getStartDate(zobj);
+               endDate=field.getEndDate(zobj);
+               otherCalendars=field.getOtherCalendars(zobj, preComputed)"
           id=":ajaxHookId">
 
       <script type="text/javascript">:'var %s_maxEventLength = %d;' % \
@@ -73,7 +72,7 @@ class Calendar(Field):
              var="rowHeight=int(field.height/float(len(grid)))">
        <!-- 1st row: names of days -->
        <tr height="22px">
-        <th for="dayName in field.getNamesOfDays(contextObj)"
+        <th for="dayName in field.getNamesOfDays(zobj)"
             width="14%">:dayName</th>
        </tr>
        <!-- The calendar in itself -->
@@ -82,13 +81,13 @@ class Calendar(Field):
            var2="tooEarly=startDate and (date &lt; startDate);
                  tooLate=endDate and not tooEarly and (date &gt; endDate);
                  inRange=not tooEarly and not tooLate;
-                 cssClasses=field.getCellStyle(contextObj, date, today)">
+                 cssClasses=field.getCellStyle(zobj, date, today)">
          <!-- Dump an empty cell if we are out of the supported date range -->
          <td if="not inRange" class=":cssClasses"></td>
          <!-- Dump a normal cell if we are in range -->
          <td if="inRange"
-             var2="events=field.getEventsAt(contextObj, date);
-                   spansDays=field.hasEventsAt(contextObj, date+1, events);
+             var2="events=field.getEventsAt(zobj, date);
+                   spansDays=field.hasEventsAt(zobj, date+1, events);
                    mayCreate=mayEdit and not events;
                    mayDelete=mayEdit and events;
                    day=date.day();
@@ -105,7 +104,7 @@ class Calendar(Field):
           <!-- Icon for adding an event -->
           <x if="mayCreate">
            <img class="clickable" style="visibility:hidden"
-                var="info=field.getApplicableEventsTypesAt(contextObj, date, \
+                var="info=field.getApplicableEventsTypesAt(zobj, date, \
                             allEventTypes, preComputed, True)"
                 if="info['eventTypes']" src=":url('plus')"
                 onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
@@ -119,18 +118,18 @@ class Calendar(Field):
                  (q('del'), q(field.name), q(dayString), q(str(spansDays)))"/>
           <!-- A single event is allowed for the moment -->
           <div if="events" var2="eventType=events[0]['eventType']">
-           <span style="color: grey">:field.getEventName(contextObj, \
+           <span style="color: grey">:field.getEventName(zobj, \
                                                          eventType)"></span>
           </div>
           <!-- Events from other calendars -->
           <x if="otherCalendars"
-             var2="otherEvents=field.getOtherEventsAt(contextObj, date, \
+             var2="otherEvents=field.getOtherEventsAt(zobj, date, \
                                                       otherCalendars)">
            <div style=":'color: %s; font-style: italic' % event['color']"
                 for="event in otherEvents">:event['name']</div>
           </x>
           <!-- Additional info -->
-          <x var="info=field.getAdditionalInfoAt(contextObj,date,preComputed)"
+          <x var="info=field.getAdditionalInfoAt(zobj, date, preComputed)"
              if="info">::info</x>
          </td>
         </x>
@@ -154,7 +153,7 @@ class Calendar(Field):
         <select name="eventType">
          <option value="">:_('choose_a_value')"></option>
          <option for="eventType in allEventTypes"
-                 value=":eventType">:field.getEventName(contextObj, eventType)">
+                 value=":eventType">:field.getEventName(zobj, eventType)">
          </option>
         </select><br/><br/>
         <!--Span the event on several days -->
@@ -208,7 +207,7 @@ class Calendar(Field):
      </div>''')
 
     pxView = pxCell = Px('''
-     <x var="defaultDate=field.getDefaultDate(contextObj);
+     <x var="defaultDate=field.getDefaultDate(zobj);
              x=req.set('month', defaultDate.strftime('%Y/%m'));
              x=req.set('fieldName', field.name)">:field.pxMonthView</x>''')
 

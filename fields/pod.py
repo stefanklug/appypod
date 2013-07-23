@@ -39,13 +39,13 @@ class Pod(Field):
      <!-- Ask action -->
      <x if="field.askAction"
         var2="doLabel='%s_askaction' % field.labelId;
-              chekboxId='%s_%s_cb' % (contextObj.UID(), name)">
+              chekboxId='%s_%s_cb' % (zobj.UID(), name)">
       <input type="checkbox" name=":doLabel" id=":chekboxId"/>
       <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
      </x>
-     <img for="fmt in field.getToolInfo(contextObj.appy())[1]" src=":url(fmt)"
+     <img for="fmt in field.getToolInfo(obj)[1]" src=":url(fmt)"
           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
-            (q(contextObj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
+            (q(zobj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
           title=":fmt.capitalize()" class="clickable"/>
     </x>''')
 

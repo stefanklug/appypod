@@ -34,31 +34,31 @@ class ToolWrapper(AbstractWrapper):
      <x if="field.name == 'title'"
         var2="navInfo='search.%s.%s.%d.%d' % \
                 (className, searchName, startNumber+currentNumber, totalNumber);
-              cssClass=obj.getCssFor('title')">
-      <x>::obj.getSupTitle(navInfo)</x>
-      <a href=":obj.getUrl(nav=navInfo, page=obj.getDefaultViewPage())"
-         if="enableLinks" class=":cssClass">:obj.Title()</a><span
-         if="not enableLinks" class=":cssClass">:obj.Title()</span><span
+              cssClass=zobj.getCssFor('title')">
+      <x>::zobj.getSupTitle(navInfo)</x>
+      <a href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage())"
+         if="enableLinks" class=":cssClass">:zobj.Title()</a><span
+         if="not enableLinks" class=":cssClass">:zobj.Title()</span><span
          style=":showSubTitles and 'display:inline' or 'display:none'"
-         name="subTitle">::obj.getSubTitle()</span>
+         name="subTitle">::zobj.getSubTitle()</span>
 
       <!-- Actions: edit, delete -->
-      <div if="obj.mayAct()">
-       <a if="obj.mayEdit()"
+      <div if="zobj.mayAct()">
+       <a if="zobj.mayEdit()"
           var2="navInfo='search.%s.%s.%d.%d' % \
-                (className, searchName, loop.obj.nb+1+startNumber, totalNumber)"
-          href=":obj.getUrl(mode='edit', page=obj.getDefaultEditPage(), \
-                            nav=navInfo)">
+               (className, searchName, loop.zobj.nb+1+startNumber, totalNumber)"
+          href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
+                             nav=navInfo)">
         <img src=":url('edit')" title=":_('object_edit')"/></a>
-       <img if="obj.mayDelete()" class="clickable" src=":url('delete')"
+       <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
             title=":_('object_delete')"
-            onClick="'onDeleteObject(%s)' % q(obj.UID())"/>
+            onClick=":'onDeleteObject(%s)' % q(zobj.UID())"/>
       </div>
      </x>
      <!-- Any other field -->
      <x if="field.name != 'title'">
-      <x var="contextObj=obj; layoutType='cell'; innerRef=True"
-         if="contextObj.showField(field.name, 'result')">field.pxView</x>
+      <x var="layoutType='cell'; innerRef=True"
+         if="zobj.showField(field.name, 'result')">field.pxView</x>
      </x>
     </x>''')
 
@@ -78,9 +78,10 @@ class ToolWrapper(AbstractWrapper):
       </tr>
 
       <!-- Results -->
-      <tr for="obj in objs"
-          var2="odd=loop.obj.odd; currentNumber=currentNumber + 1"
-          id="query_row" valign="top" class=":odd and 'even' or 'odd'">
+      <tr for="zobj in zobjects" id="query_row" valign="top"
+          var2="currentNumber=currentNumber + 1;
+                obj=zobj.appy()"
+          class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
             var2="widget=column['field']" id=":'field_%s' % field.name"
             width=":column['width']"
@@ -93,10 +94,10 @@ class ToolWrapper(AbstractWrapper):
      <table width="100%"
             var="modeElems=resultMode.split('_');
                  cols=(len(modeElems)==2) and int(modeElems[1]) or 4;
-                 rows=ztool.splitList(objs, cols)">
+                 rows=ztool.splitList(zobjects, cols)">
       <tr for="row in rows" valign="middle">
-       <td for="obj in row" width=":'%d%%' % (100/cols)" align="center"
-           style="padding-top: 25px">
+       <td for="zobj in row" width=":'%d%%' % (100/cols)" align="center"
+           style="padding-top: 25px" var2="obj=zobj.appy()">
         <x var="currentNumber=currentNumber + 1"
            for="column in columns"
            var2="widget = column['field']">:self.pxQueryField</x>
@@ -127,9 +128,10 @@ class ToolWrapper(AbstractWrapper):
                    remember=True, sortBy=sortKey, sortOrder=sortOrder, \
                    filterKey=filterKey, filterValue=filterValue, \
                    refObject=refObject, refField=refField);
-               objs=queryResult['objects'];
+               zobjects=queryResult['objects'];
                totalNumber=queryResult['totalNumber'];
                batchSize=queryResult['batchSize'];
+               batchNumber=len(zobjects);
                ajaxHookId='queryResult';
                navBaseCall='askQueryResult(%s,%s,%s,%s,**v**)' % \
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
@@ -139,20 +141,20 @@ class ToolWrapper(AbstractWrapper):
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
                resultMode=ztool.getResultMode(className)">
 
-      <x if="objs">
+      <x if="zobjects">
        <!-- Display here POD templates if required. -->
        <table var="widgets=ztool.getResultPodFields(className);
                    layoutType='view'"
-              if="objs and widgets" align=":dright">
+              if="zobjects and widgets" align=":dright">
         <tr>
-         <td var="contextObj=objs[0]" for="field in widgets">:field.pxView</td>
+         <td var="zobj=zobjects[0]; obj=zobj.appy()"
+             for="field in widgets">:field.pxView</td>
         </tr>
        </table>
 
        <!-- The title of the search -->
        <p>
-        <x>:searchDescr['translated']</x>
-        (<x>:totalNumber</x>)
+        <x>:searchDescr['translated']</x> (<x>:totalNumber</x>)
         <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
          &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
         </x>
@@ -170,7 +172,7 @@ class ToolWrapper(AbstractWrapper):
 
        <!-- Results, as a list or grid -->
        <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
-               columns=objs[0].getColumnsSpecifiers(columnLayouts, dir);
+               columns=zobjects[0].getColumnsSpecifiers(columnLayouts, dir);
                currentNumber=0">
         <x if="resultMode == 'list'">:self.pxQueryResultList</x>
         <x if="resultMode != 'list'">:self.pxQueryResultGrid</x>
@@ -180,7 +182,7 @@ class ToolWrapper(AbstractWrapper):
        <x>:self.pxAppyNavigate</x>
       </x>
 
-      <x if="not objs">
+      <x if="not zobjects">
        <x>:_('query_no_result')></x>
        <x if="showNewSearch and (searchName == 'customSearch')"><br/>
         <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>

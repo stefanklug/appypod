@@ -24,8 +24,8 @@ class Computed(Field):
     # Ajax-called view content of a non sync Computed field.
     pxViewContent = Px('''
      <x var="name=req['fieldName'];
-             field=contextObj.getAppyType(name);
-             value=contextObj.getFieldValue(name);
+             field=zobj.getAppyType(name);
+             value=zobj.getFieldValue(name);
              sync=True">:field.pxView</x>''')
 
     pxView = pxCell = pxEdit = Px('''<x>
@@ -33,9 +33,9 @@ class Computed(Field):
       <x if="field.plainText">:value</x><x if="not field.plainText">::value></x>
      </x>
      <div if="not sync">
-          var2="ajaxHookId=contextObj.UID() + name" id="ajaxHookId">
+          var2="ajaxHookId=zobj.UID() + name" id="ajaxHookId">
       <script type="text/javascript">:'askComputedField(%s, %s, %s)' % \
-        (q(ajaxHookId), q(contextObj.absolute_url()), q(name))">
+        (q(ajaxHookId), q(zobj.absolute_url()), q(name))">
       </script>
      </div>
     </x>''')

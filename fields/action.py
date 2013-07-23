@@ -27,11 +27,11 @@ class Action(Field):
     # PX for viewing the Action button.
     pxView = pxCell = Px('''
      <form name="executeAppyAction"
-           var="formId='%s_%s_form' % (contextObj.UID(), name);
+           var="formId='%s_%s_form' % (zobj.UID(), name);
                 label=_(field.labelId)"
            id=":formId" action=":ztool.absolute_url() + '/do'">
       <input type="hidden" name="action" value="ExecuteAppyAction"/>
-      <input type="hidden" name="objectUid" value=":contextObj.UID()"/>
+      <input type="hidden" name="objectUid" value=":zobj.UID()"/>
       <input type="hidden" name="fieldName" value=":name"/>
       <input if="field.confirm" type="button" class="button"
          var="labelConfirm=_(field.labelId + '_confirm')"

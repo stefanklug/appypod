@@ -112,7 +112,7 @@ class ToolMixin(BaseMixin):
            the background image of some XHTML tag.'''
         # If no extension is found in p_name, we suppose it is a png image.
         if '.' not in name: name += '.png'
-        url = '%s/ui/%s' % (self.getPhysicalRoot(),absolute_url(), name)
+        url = '%s/ui/%s' % (self.getPhysicalRoot().absolute_url(), name)
         if not bg: return url
         return 'background-image: url(%s)' % url
 

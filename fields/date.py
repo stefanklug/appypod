@@ -31,7 +31,7 @@ class Date(Field):
        <option value="">-</option>
        <option for="day in days"
                var2="zDay=str(day).zfill(2)" value=":zDay"
-               selected="field.isSelected(contextObj, 'day', day, \
+               selected="field.isSelected(zobj, 'day', day, \
                                           rawValue)">:zDay</option>
       </select>
 
@@ -41,7 +41,7 @@ class Date(Field):
        <option value="">-</option>
        <option for="month in months"
                var2="zMonth=str(month).zfill(2)" value=":zMonth"
-               selected="field.isSelected(contextObj, 'month', month, \
+               selected="field.isSelected(zobj, 'month', month, \
                                           rawValue)">:zMonth</option>
       </select>
 
@@ -49,7 +49,7 @@ class Date(Field):
       <select name=":'%s_year' % name" id=":'%s_year' % name">
        <option value="">-</option>
        <option for="year in years" value=":year"
-               selected="field.isSelected(contextObj, name, 'year', year, \
+               selected="field.isSelected(zobj, name, 'year', year, \
                                           rawValue)">:year</option>
       </select>
 
@@ -67,7 +67,7 @@ class Date(Field):
         <option value="">-</option>
         <option for="hour in hours"
                 var2="zHour=str(hour).zfill(2)" value=":zHour"
-                selected=":field.isSelected(contextObj, 'hour', hour, \
+                selected=":field.isSelected(zobj, 'hour', hour, \
                                             rawValue)">:zHour</option>
        </select> :
        <select var="minutes=range(0,60,5)" name=":'%s_minute' % name"
@@ -75,7 +75,7 @@ class Date(Field):
         <option value="">-</option>
         <option for="minute in minutes"
                 var2="zMinute=str(minute).zfill(2)" value=":zMinute"
-                selected=":field.isSelected(contextObj, 'minute', minute,\
+                selected=":field.isSelected(zobj, 'minute', minute,\
                                             rawValue)">:zMinute</option>
        </select>
       </x>

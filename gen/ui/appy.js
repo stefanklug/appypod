@@ -41,9 +41,11 @@ function showLoginForm() {
   loginFields.style.display = "inline";
 }
 
+function goto(url) { window.location = url }
+
 function switchLanguage(selectWidget) {
   var language = selectWidget.options[selectWidget.selectedIndex].value;
-  window.location = "/config/changeLanguage?language=" + language;
+  goto("/config/changeLanguage?language=" + language);
 }
 
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
@@ -543,10 +545,8 @@ function doConfirm() {
     }
     theForm.submit();
   }
-  else if (actionType == 'url') {
-    // We must go to the URL defined in "action"
-    window.location = action;
-  }
+  // We must go to the URL defined in "action"
+  else if (actionType == 'url') { goto(action) }
   else if (actionType == 'script') {
     // We must execute Javascript code in "action"
     eval(action);

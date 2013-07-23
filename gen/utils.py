@@ -156,7 +156,7 @@ class PhaseDescr(Descr):
 
     pxPhase = Px('''
      <tr var="singlePage=len(phase['pages']) == 1">
-      <td var="label='%s_phase_%s' % (contextObj.meta_type, phase['name'])">
+      <td var="label='%s_phase_%s' % (zobj.meta_type, phase['name'])">
 
        <!-- The title of the phase -->
        <div class="portletGroup"
@@ -168,12 +168,12 @@ class PhaseDescr(Descr):
         <div if="not (singlePhase and singlePage)"
              class=":aPage==page and 'portletCurrent portletPage' or \
                      'portletPage'">
-         <a href=":contextObj.getUrl(page=aPage)">::_('%s_page_%s' % \
-                   (contextObj.meta_type, aPage))</a>
-         <x var="locked=contextObj.isLocked(user, aPage);
+         <a href=":zobj.getUrl(page=aPage)">::_('%s_page_%s' % \
+                   (zobj.meta_type, aPage))</a>
+         <x var="locked=zobj.isLocked(user, aPage);
                  editable=mayEdit and phase['pagesInfo'][aPage]['showOnEdit']">
           <a if="editable and not locked"
-             href="contextObj.getUrl(mode='edit', page=aPage)">
+             href="zobj.getUrl(mode='edit', page=aPage)">
            <img src=":url('edit')" title=":_('object_edit')"/></a>
           <a if="editable and locked">
            <img style="cursor: help"
@@ -185,7 +185,7 @@ class PhaseDescr(Descr):
           <a if="editable and locked and user.has_role('Manager')">
            <img class="clickable" title=":_('page_unlock')" src=":url('unlock')"
                 onclick=":'onUnlockPage(%s,%s)' % \
-                          (q(contextObj.UID()), q(aPage))"/></a>
+                          (q(zobj.UID()), q(aPage))"/></a>
          </x>
         </div>
         <!-- Next lines: links -->

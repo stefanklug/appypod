@@ -75,7 +75,7 @@ class String(Field):
     pxView = Px('''
      <x var="fmt=field.format; isUrl=field.isUrl;
              mayAjaxEdit=not showChanges and field.inlineEdit and \
-                         contextObj.mayEdit(field.writePermission)">
+                         zobj.mayEdit(field.writePermission)">
       <x if="fmt in (0, 3)">
        <ul if="value and isMultiple">
         <li for="sv in value"><i>::sv</i></li>
@@ -90,14 +90,13 @@ class String(Field):
        </x>
       </x>
       <!-- Unformatted text -->
-      <x if="value and (fmt == 1)">::contextObj.formatText(value, format='html')
-      </x>
+      <x if="value and (fmt == 1)">::zobj.formatText(value, format='html')</x>
       <!-- XHTML text -->
       <x if="value and (fmt == 2)">
        <div if="not mayAjaxEdit" class="xhtml">::value</div>
        <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
-            id=":'%s_%s_ck' % (contextObj.UID(), name)">::value</div>
-       <script if="mayAjaxEdit">:field.getJsInlineInit(contextObj)"></script>
+            id=":'%s_%s_ck' % (zobj.UID(), name)">::value</div>
+       <script if="mayAjaxEdit">:field.getJsInlineInit(zobj)"></script>
       </x>
       <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
              name=":name" id=":name"/>
@@ -109,14 +108,14 @@ class String(Field):
              isMaster=field.slaves;
              isOneLine=fmt in (0,3,4)">
       <select if="isSelect"
-              var2="possibleValues=field.getPossibleValues(contextObj, \
+              var2="possibleValues=field.getPossibleValues(zobj, \
                       withTranslations=True, withBlankValue=True)"
               name=":name" id=":name" class=":masterCss"
               multiple=":isMultiple and 'multiple' or ''"
               onchange=":isMaster and 'updateSlaves(this)' or ''"
               size=":isMultiple and field.height or 1">
        <option for="val in possibleValues" value=":val[0]"
-               selected=":field.isSelected(contextObj, val[0], rawValue)"
+               selected=":field.isSelected(zobj, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1], field.width)">
        </option>
       </select>
@@ -138,7 +137,7 @@ class String(Field):
                  rows=":field.height">:inRequest and requestValue or value
        </textarea>
        <script if="fmt == 2"
-               type="text/javascript">:field.getJsInit(contextObj)</script>
+               type="text/javascript">:field.getJsInit(zobj)</script>
       </x>
      </x>''')
 

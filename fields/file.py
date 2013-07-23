@@ -27,7 +27,7 @@ class File(Field):
     pxView = pxCell = Px('''
      <x var="info=field.getFileInfo(value);
              empty=not info.size;
-             imgSrc='%s/download?name=%s' % (contextObj.absolute_url(), name)">
+             imgSrc='%s/download?name=%s' % (zobj.absolute_url(), name)">
       <x if="not empty and not field.isImage">
        <a href=":imgSrc">:info.filename</a>&nbsp;&nbsp;-
        <i class="discreet">'%sKb' % (info.size / 1024)"></i>

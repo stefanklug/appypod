@@ -30,7 +30,7 @@ class Boolean(Field):
      </x>''')
 
     pxEdit = Px('''
-     <x var="isChecked=field.isChecked(contextObj, rawValue)">
+     <x var="isChecked=field.isChecked(zobj, rawValue)">
       <input type="checkbox" name=":name + '_visible'" id=":name"
              class=":masterCss" checked=":isChecked"
              onclick=":'toggleCheckbox(%s, %s); updateSlaves(this)' % \

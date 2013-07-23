@@ -81,7 +81,7 @@ class AbstractWrapper(object):
         <!-- Explain which elements are currently shown -->
         <td class="discreet">&nbsp;
          <x>:startNumber + 1</x><img src=":url('to')"/>
-         <x>:startNumber + len(objs)</x>&nbsp;<b>//</b>
+         <x>:startNumber + batchNumber</x>&nbsp;<b>//</b>
          <x>:totalNumber</x>&nbsp;&nbsp;</td>
 
         <!-- Go to the next page -->
@@ -154,7 +154,7 @@ class AbstractWrapper(object):
      <table width="100%" class="navigate">
       <tr>
        <!-- Breadcrumb -->
-       <td var="breadcrumb=contextObj.getBreadCrumb()" class="breadcrumb">
+       <td var="breadcrumb=zobj.getBreadCrumb()" class="breadcrumb">
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
          <img if="nb != 0" src=":url('to')"/>
          <!-- Display only the title of the current object -->
@@ -229,13 +229,13 @@ class AbstractWrapper(object):
              currentClass=req.get('className', None);
              currentPage=req['PATH_INFO'].rsplit('/',1)[-1];
              rootClasses=ztool.getRootClasses();
-             phases=contextObj and contextObj.getAppyPhases() or None">
+             phases=zobj and zobj.getAppyPhases() or None">
 
       <table class="portletContent"
-             if="contextObj and phases and contextObj.mayNavigate()"
+             if="zobj and phases and zobj.mayNavigate()"
              var2="singlePhase=phases and (len(phases) == 1);
                    page=req.get('page', '');
-                   mayEdit=contextObj.mayEdit()">
+                   mayEdit=zobj.mayEdit()">
        <x for="phase in phases">:phase['px']</x>
       </table>
 
@@ -269,16 +269,16 @@ class AbstractWrapper(object):
          <input type="button" class="button"
                 if="userMayAdd and ('form' in createMeans)"
                 style=":url('buttonAdd', bg=True)" value=":_('query_create')"
-                onclick=":'window.location=%s' % \
-                  q('%s/do?action=Create&amp;className=%s' % \
+                onclick=":'goto(%s)' % \
+                    q('%s/do?action=Create&amp;className=%s' % \
                     (toolUrl, rootClass))"/>
 
          <!-- Create object(s) by importing data -->
          <input type="button" class="button"
                 if="userMayAdd and ('import' in createMeans)"
                 style=":url('buttonImport', bg=True)" value=":_('query_import')"
-                onclick=":'window.location=%s' % \
-                  q('%s/ui/import?className=%s' % (toolUrl, rootClass))"/>
+                onclick=":'goto(%s)' % \
+                        q('%s/ui/import?className=%s' % (toolUrl, rootClass))"/>
         </x>
 
         <!-- Searches -->
@@ -355,9 +355,10 @@ class AbstractWrapper(object):
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
-                contextObj=ztool.getPublishedObject(layoutType) or \
-                           ztool.getHomeObject();
-                showPortlet=ztool.showPortlet(contextObj, layoutType);
+                zobj=ztool.getPublishedObject(layoutType) or \
+                     ztool.getHomeObject();
+                obj = zobj and zobj.appy() or None;
+                showPortlet=ztool.showPortlet(zobj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 discreetLogin=ztool.getAttr('discreetLogin', source='config');
                 dleft=(dir == 'ltr') and 'left' or 'right';
@@ -528,7 +529,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The navigation strip -->
-       <tr if="contextObj and showPortlet and (layoutType != 'edit')">
+       <tr if="zobj and showPortlet and (layoutType != 'edit')">
         <td>:self.pxNavigationStrip</td>
        </tr>
        <tr>
@@ -558,13 +559,13 @@ class AbstractWrapper(object):
      <x var="startNumber=req.get'startNumber', 0);
              startNumber=int(startNumber);
              batchSize=int(req.get('maxPerPage', 5));
-             historyInfo=contextObj.getHistory(startNumber,batchSize=batchSize)"
+             historyInfo=zobj.getHistory(startNumber,batchSize=batchSize)"
         if="historyInfo['events']"
         var2="objs=historyInfo['events'];
               totalNumber=historyInfo['totalNumber'];
               ajaxHookId='appyHistory';
               navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
-                (q(ajaxHookId), q(contextObj.absolute_url()), batchSize)">
+                (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
 
       <!-- Navigate between history pages -->
       <x>:self.pxAppyNavigate</x>
@@ -588,16 +589,16 @@ class AbstractWrapper(object):
          <img if="user.has_role('Manager')" class="clickable"
               src=":url('delete')"
               onclick=":'onDeleteEvent(%s,%s)' % \
-                        (q(contextObj.UID()), q(event['time']))"/>
+                        (q(zobj.UID()), q(event['time']))"/>
         </td>
-        <td if="not isDataChange">:_(contextObj.getWorkflowLabel(action))</td>
+        <td if="not isDataChange">:_(zobj.getWorkflowLabel(action))</td>
         <td var="actorId=event.get('actor')">
          <x if="not actorId">?</x>
          <x if="actorId">:ztool.getUserName(actorId)</x>
         </td>
         <td>:ztool.formatDate(event['time'], withHour=True)"></td>
         <td if="not isDataChange">
-         <x if="rhComments">::contextObj.formatText(rhComments)</x>
+         <x if="rhComments">::zobj.formatText(rhComments)</x>
          <x if="not rhComments">-</x>
         </td>
         <td if="isDataChange">
@@ -609,7 +610,7 @@ class AbstractWrapper(object):
            <th align=":dleft" width="70%">:_('previous_value')</th>
           </tr>
           <tr for="change in event['changes'].items()" valign="top"
-              var2="appyType=contextObj.getAppyType(change[0], asDict=True)">
+              var2="appyType=zobj.getAppyType(change[0], asDict=True)">
            <td>::_(appyType['labelId'])</td>
            <td>::change[1][0]</td>
           </tr>
@@ -655,11 +656,11 @@ class AbstractWrapper(object):
     # Displays header information about an object: title, workflow-related info,
     # history...
     pxObjectHeader = Px('''
-     <div if="not contextObj.isTemporary()"
-          var2="hasHistory=contextObj.hasHistory();
+     <div if="not zobj.isTemporary()"
+          var2="hasHistory=zobj.hasHistory();
                 historyMaxPerPage=req.get('maxPerPage', 5);
                 historyExpanded=req.get('appyHistory','collapsed') == 'expanded';
-                creator=contextObj.Creator()">
+                creator=zobj.Creator()">
       <table width="100%" class="summary">
        <tr>
         <td colspan="2" class="by">
@@ -676,8 +677,8 @@ class AbstractWrapper(object):
          
          <!-- Creation and last modification dates -->
          <x>:_('object_created_on')</x>
-         <x var="creationDate=contextObj.Created();
-                 modificationDate=contextObj.Modified()">
+         <x var="creationDate=zobj.Created();
+                 modificationDate=zobj.Modified()">
           <x>:ztool.formatDate(creationDate, withHour=True)></x>
           <x if="modificationDate != creationDate">&mdash;
            <x>:_('object_modified_on')</x>
@@ -686,8 +687,8 @@ class AbstractWrapper(object):
          </x>
 
          <!-- State -->
-         <x if="contextObj.showState()">&mdash;
-          <x>:_('workflow_state')</x> : <b>:_(contextObj.getWorkflowLabel())</b>
+         <x if="zobj.showState()">&mdash;
+          <x>:_('workflow_state')</x> : <b>:_(zobj.getWorkflowLabel())</b>
          </x>
         </td>
        </tr>
@@ -697,9 +698,9 @@ class AbstractWrapper(object):
         <td colspan="2">
          <span id="appyHistory"
                style=":historyExpanded and 'display:block' or 'display:none')">
-          <div var="ajaxHookId=contextObj.UID() + '_history'" id=":ajaxHookId">
+          <div var="ajaxHookId=zobj.UID() + '_history'" id=":ajaxHookId">
            <script type="text/javascript">:'askObjectHistory(%s,%s,%d,0)' % \
-             (q(ajaxHookId), q(contextObj.absolute_url()), \
+             (q(ajaxHookId), q(zobj.absolute_url()), \
               historyMaxPerPage)</script>
           </div>
          </span>
@@ -712,8 +713,8 @@ class AbstractWrapper(object):
     # transitions.
     pxObjectButtons = Px('''
      <table cellpadding="2" cellspacing="0" style="margin-top: 7px"
-            var="previousPage=contextObj.getPreviousPage(phaseInfo, page)[0];
-                 nextPage=contextObj.getNextPage(phaseInfo, page)[0];
+            var="previousPage=zobj.getPreviousPage(phaseInfo, page)[0];
+                 nextPage=zobj.getNextPage(phaseInfo, page)[0];
                  isEdit=layoutType == 'edit';
                  pageInfo=phaseInfo['pagesInfo'][page]">
       <tr>
@@ -730,8 +731,7 @@ class AbstractWrapper(object):
         <input if="not isEdit" type="button" class="button"
                value=":_('page_previous')"
                style=":url('buttonPrevious', bg=True)"
-               onclick=":'window.location=%s' % \
-                         q(contextObj.getUrl(page=previousPage))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage))"/>
        </td>
 
        <!-- Save -->
@@ -747,14 +747,13 @@ class AbstractWrapper(object):
        </td>
 
        <td if="not isEdit"
-           var2="locked=contextObj.isLocked(user, page);
-                 editable=pageInfo['showOnEdit'] and contextObj.mayEdit()">
+           var2="locked=zobj.isLocked(user, page);
+                 editable=pageInfo['showOnEdit'] and zobj.mayEdit()">
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"
                style=":url('buttonEdit', bg=True)" value=":_('object_edit')"
-               onclick=":'window.location=%s' % \
-                         q(contextObj.getUrl(mode='edit', page=page))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page))"/>
 
         <!-- Locked -->
         <a if="editable and locked">
@@ -776,17 +775,16 @@ class AbstractWrapper(object):
         <!-- Button on the view page -->
         <input if="not isEdit" type="button" class="button"
                style=":url('buttonNext', bg=True)" value=":_('page_next')"
-               onclick=":'window.location=%s' % \
-                         q(contextObj.getUrl(page=nextPage))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage))"/>
        </td>
 
        <!-- Workflow transitions -->
-       <td var="targetObj=contextObj"
+       <td var="targetObj=zobj"
            if="targetObj.showTransitions(layoutType)">:self.pxTransitions</td>
 
        <!-- Refresh -->
-       <td if="contextObj.isDebug()">
-        <a href="contextObj.getUrl(mode=layoutType, page=page, refresh='yes')">
+       <td if="zobj.isDebug()">
+        <a href="zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
          <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
         </a>
        </td>
@@ -795,16 +793,15 @@ class AbstractWrapper(object):
 
     pxLayoutedObject = Px('''<p>Layouted object</p>''')
     pxView = Px('''
-     <x var="x=contextObj.allows('View', raiseError=True);
+     <x var="x=zobj.allows('View', raiseError=True);
              errors=req.get('errors', {});
-             layout=contextObj.getPageLayout(layoutType);
-             phaseInfo=contextObj.getAppyPhases(currentOnly=True, \
-                                                layoutType='view');
+             layout=zobj.getPageLayout(layoutType);
+             phaseInfo=zobj.getAppyPhases(currentOnly=True, layoutType='view');
              phase=phaseInfo['name'];
              cssJs={};
-             page=req.get('page',None) or contextObj.getDefaultViewPage();
-             x=contextObj.removeMyLock(user, page);
-             groupedWidgets=contextObj.getGroupedAppyTypes(layoutType, page, \
+             page=req.get('page',None) or zobj.getDefaultViewPage();
+             x=zobj.removeMyLock(user, page);
+             groupedWidgets=zobj.getGroupedAppyTypes(layoutType, page, \
                                                            cssJs=cssJs)">
       <x>:self.pxPagePrologue</x>
       <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
@@ -812,18 +809,18 @@ class AbstractWrapper(object):
      </x>''', template=pxTemplate, hook='content')
 
     pxEdit = Px('''
-     <x var="x=contextObj.allows('Modify portal content', raiseError=True);
+     <x var="x=zobj.allows('Modify portal content', raiseError=True);
              errors=req.get('errors', None) or {};
-             layout=contextObj.getPageLayout(layoutType);
+             layout=zobj.getPageLayout(layoutType);
              cssJs={};
-             phaseInfo=contextObj.getAppyPhases(currentOnly=True, \
-                                                layoutType=layoutType);
+             phaseInfo=zobj.getAppyPhases(currentOnly=True, \
+                                          layoutType=layoutType);
              phase=phaseInfo['name'];
-             page=req.get('page', None) or contextObj.getDefaultEditPage();
-             x=contextObj.setLock(user, page);
+             page=req.get('page', None) or zobj.getDefaultEditPage();
+             x=zobj.setLock(user, page);
              confirmMsg=req.get('confirmMsg', None);
-             groupedWidgets=contextObj.getGroupedAppyTypes(layoutType, page, \
-                                                           cssJs=cssJs)">
+             groupedWidgets=zobj.getGroupedAppyTypes(layoutType, page, \
+                                                     cssJs=cssJs)">
       <x>:self.pxPagePrologue</x>
       <!-- Warn the user that the form should be left via buttons -->
       <script type="text/javascript"><![CDATA[
@@ -837,8 +834,7 @@ class AbstractWrapper(object):
        }]]>
       </script>
       <form id="appyForm" name="appyForm" method="post"
-            enctype="multipart/form-data"
-            action=":contextObj.absolute_url()+'/do'">
+            enctype="multipart/form-data" action=":zobj.absolute_url()+'/do'">
        <input type="hidden" name="action" value="Update"/>
        <input type="hidden" name="button" value=""/>
        <input type="hidden" name="page" value=":page"/>
