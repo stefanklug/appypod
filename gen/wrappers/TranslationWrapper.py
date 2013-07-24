@@ -14,7 +14,7 @@ class TranslationWrapper(AbstractWrapper):
         # either from the config object.
         sourceLanguage = self.sourceLanguage
         if not sourceLanguage:
-            sourceLanguage = self.o.getProductConfig().sourceLanguage
+            sourceLanguage = self.o.getProductConfig(True).sourceLanguage
         sourceTranslation = getattr(tool.o, sourceLanguage).appy()
         # p_field is the Computed field. We need to get the name of the
         # corresponding field holding the translation message.
@@ -43,7 +43,7 @@ class TranslationWrapper(AbstractWrapper):
         if field.type == 'Computed': name = field.name[:-6]
         else: name = field.name
         # Get the source message
-        sourceLanguage = self.o.getProductConfig().sourceLanguage
+        sourceLanguage = self.o.getProductConfig(True).sourceLanguage
         sourceTranslation = getattr(tool.o, sourceLanguage).appy()
         sourceMsg = getattr(sourceTranslation, name)
         if field.isEmptyValue(sourceMsg): return False

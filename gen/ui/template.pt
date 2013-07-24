@@ -16,7 +16,7 @@
                   contextObj python: tool.getPublishedObject(layoutType) or tool.getHomeObject();
                   showPortlet python: tool.showPortlet(context, layoutType);
                   dir python: tool.getLanguageDirection(lang);
-                  discreetLogin python: tool.getAttr('discreetLogin', source='config');
+                  discreetLogin python: tool.getAttr('discreetLogin', source='app');
                   dleft python: (dir == 'ltr') and 'left' or 'right';
                   dright python: (dir == 'ltr') and 'right' or 'left';
                   x python: resp.setHeader('Content-type', 'text/html;;charset=UTF-8');

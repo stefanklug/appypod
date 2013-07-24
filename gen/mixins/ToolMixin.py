@@ -2,7 +2,7 @@
 import os, os.path, sys, re, time, random, types, base64, urllib
 from appy import Object
 import appy.gen
-from appy.gen import Search, String, Page
+from appy.gen import Search, String, Page, ldap
 from appy.gen.utils import SomeObjects, getClassName, GroupDescr, SearchDescr
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
@@ -139,6 +139,8 @@ class ToolMixin(BaseMixin):
         '''Gets attribute named p_name.'''
         if source == 'config':
             obj = self.getProductConfig()
+        elif source == 'app':
+            obj = self.getProductConfig(True)
         else:
             obj = self.appy()
         return getattr(obj, name, None)
@@ -160,7 +162,7 @@ class ToolMixin(BaseMixin):
         '''We must show the language selector if the app config requires it and
            it there is more than 2 supported languages. Moreover, on some pages,
            switching the language is not allowed.'''
-        cfg = self.getProductConfig()
+        cfg = self.getProductConfig(True)
         if not cfg.languageSelector: return
         if len(cfg.languages) < 2: return
         page = self.REQUEST.get('ACTUAL_URL').split('/')[-1]
@@ -168,11 +170,11 @@ class ToolMixin(BaseMixin):
 
     def showForgotPassword(self):
         '''We must show link "forgot password?" when the app requires it.'''
-        return self.getProductConfig().activateForgotPassword
+        return self.getProductConfig(True).activateForgotPassword
 
     def getLanguages(self):
         '''Returns the supported languages. First one is the default.'''
-        return self.getProductConfig().languages
+        return self.getProductConfig(True).languages
 
     def getLanguageName(self, code):
         '''Gets the language name (in this language) from a 2-chars language
@@ -1005,27 +1007,43 @@ class ToolMixin(BaseMixin):
         '''Returns the encrypted version of clear p_password.'''
         return self.acl_users._encryptPassword(password)
 
+    def _zopeAuthenticate(self, request):
+        '''Performs the Zope-level authentication. Returns True if
+           authentication succeeds.'''
+        user = self.acl_users.validate(rq)
+        return not self.userIsAnon()
+
+    def _ldapAuthenticate(self, login, password):
+        '''Performs a LDAP-based authentication. Returns True if authentication
+           succeeds.'''
+        # Check if LDAP is configured.
+        ldapConfig = self.getProductConfig(True).ldap
+        if not ldapConfig: return
+        user = ldap.authenticate(login, password, ldapConfig, self)
+        if not user: return
+        return True
+
     def performLogin(self):
         '''Logs the user in.'''
         rq = self.REQUEST
         jsEnabled = rq.get('js_enabled', False) in ('1', 1)
         cookiesEnabled = rq.get('cookies_enabled', False) in ('1', 1)
         urlBack = rq['HTTP_REFERER']
-
         if jsEnabled and not cookiesEnabled:
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
-        # Perform the Zope-level authentication
+        # Extract the login and password
         login = rq.get('__ac_name', '')
-        self._updateCookie(login, rq.get('__ac_password', ''))
-        user = self.acl_users.validate(rq)
-        if self.userIsAnon():
-            rq.RESPONSE.expireCookie('__ac', path='/')
-            msg = self.translate('login_ko')
-            logMsg = 'Authentication failed (tried with login "%s").' % login
-        else:
+        password = rq.get('__ac_password', '')        
+        # Perform the Zope-level authentication
+        self._updateCookie(login, password)
+        if self._zopeAuthenticate(rq) or self._ldapAuthenticate(login,password):
             msg = self.translate('login_ok')
             logMsg = 'User "%s" logged in.' % login
+        else:
+            rq.RESPONSE.expireCookie('__ac', path='/')
+            msg = self.translate('login_ko')
+            logMsg = 'Authentication failed with login "%s".' % login
         self.log(logMsg)
         return self.goto(self.getApp().absolute_url(), msg)
 
@@ -1303,7 +1321,7 @@ class ToolMixin(BaseMixin):
         # Disable Google Analytics when we are in debug mode.
         if self.isDebug(): return
         # Disable Google Analytics if no ID is found in the config.
-        gaId = self.getProductConfig().googleAnalyticsId
+        gaId = self.getProductConfig(True).googleAnalyticsId
         if not gaId: return
         # Google Analytics must be enabled: return the chunk of Javascript
         # code specified by Google.

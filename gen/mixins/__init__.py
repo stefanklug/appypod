@@ -1646,9 +1646,12 @@ class BaseMixin:
         '''Returns the application tool.'''
         return self.getPhysicalRoot().config
 
-    def getProductConfig(self):
-        '''Returns a reference to the config module.'''
-        return self.__class__.config
+    def getProductConfig(self, app=False):
+        '''Returns a reference to the config module. If p_app is True, it
+           returns the application config.'''
+        res = self.__class__.config
+        if app: res = res.appConfig
+        return res
 
     def getParent(self):
         '''If this object is stored within another one, this method returns it.

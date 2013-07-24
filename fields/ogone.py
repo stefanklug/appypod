@@ -8,7 +8,7 @@ from appy.px import Px
 class OgoneConfig:
     '''If you plan, in your app, to perform on-line payments via the Ogone (r)
        system, create an instance of this class in your app and place it in the
-       'ogone' attr of your appy.gen.Config instance.'''
+       'ogone' attr of your appy.gen.Config class.'''
     def __init__(self):
         # self.env refers to the Ogone environment and can be "test" or "prod".
         self.env = 'test'
@@ -103,7 +103,7 @@ class Ogone(Field):
            necessary info for making the payment.'''
         tool = obj.getTool()
         # Basic Ogone parameters were generated in the app config module.
-        res = obj.getProductConfig().ogone.copy()
+        res = obj.getProductConfig(True).ogone.copy()
         shaKey = res['shaInKey']
         # Remove elements from the Ogone config that we must not send in the
         # payment request.
@@ -139,7 +139,7 @@ class Ogone(Field):
         '''Returns True if the SHA-1 signature from Ogone matches retrieved
            params.'''
         response = obj.REQUEST.form
-        shaKey = obj.getProductConfig().ogone['shaOutKey']
+        shaKey = obj.getProductConfig(True).ogone['shaOutKey']
         digest = self.createShaDigest(response, shaKey,
                                       keysToIgnore=self.noShaOutKeys)
         return digest.lower() == response['SHASIGN'].lower()

@@ -360,7 +360,7 @@ class AbstractWrapper(object):
                 obj = zobj and zobj.appy() or None;
                 showPortlet=ztool.showPortlet(zobj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
-                discreetLogin=ztool.getAttr('discreetLogin', source='config');
+                discreetLogin=ztool.getProductConfig(True).discreetLogin;
                 dleft=(dir == 'ltr') and 'left' or 'right';
                 dright=(dir == 'ltr') and 'right' or 'left';
                 x=resp.setHeader('Content-type', ztool.xhtmlEncoding);
@@ -879,7 +879,7 @@ class AbstractWrapper(object):
            p_cfg is the product config that holds the default value.'''
         res = klass._getParentAttr('creators')
         # Return default creators if no creators was found.
-        if not res: res = cfg.defaultAddRoles
+        if not res: res = cfg.appConfig.defaultCreators
         return res
 
     @classmethod

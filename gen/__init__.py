@@ -555,50 +555,62 @@ class User(Model):
     '''If you want to extend or modify the User class, subclass me.'''
 
 # ------------------------------------------------------------------------------
+class LdapConfig:
+    '''Parameters for authenticating users to an external LDAP.'''
+    server = '' # Name of the LDAP server
+    port = None # Port for this server.
+    # Login and password of the technical power user that the Appy application
+    # will use to connect to the LDAP.
+    adminLogin = ''
+    adminPassword = ''
+    # LDAP attribute to use as login for authenticating users.
+    loginAttribute = 'dn' # Can also be "mail", "sAMAccountName", "cn"
+    baseDn = '' # Base distinguished name where to find users in the LDAP.
+
+# ------------------------------------------------------------------------------
 class Config:
     '''If you want to specify some configuration parameters for appy.gen and
-       your application, please create an instance of this class and modify its
-       attributes. You may put your instance anywhere in your application
-       (main package, sub-package, etc).'''
+       your application, please create a class named "Config" in the __init__.py
+       file of your application and override some of the attributes defined
+       here, ie:
 
-    # The default Config instance, used if the application does not give one.
-    defaultConfig = None
-    def getDefault():
-        if not Config.defaultConfig:
-            Config.defaultConfig = Config()
-        return Config.defaultConfig
-    getDefault = staticmethod(getDefault)
+       import appy.gen
+       class Config(appy.gen.Config):
+           langages = ('en', 'fr')
+    '''
 
-    def __init__(self):
-        # For every language code that you specify in this list, appy.gen will
-        # produce and maintain translation files.
-        self.languages = ['en']
-        # If languageSelector is True, on every page, a language selector will
-        # allow to switch between languages defined in self.languages. Else,
-        # the browser-defined language will be used for choosing the language
-        # of returned pages.
-        self.languageSelector = False
-        # People having one of these roles will be able to create instances
-        # of classes defined in your application.
-        self.defaultCreators = ['Manager', 'Owner']
-        # Number of translations for every page on a Translation object
-        self.translationsPerPage = 30
-        # Language that will be used as a basis for translating to other
-        # languages.
-        self.sourceLanguage = 'en'
-        # Activate or not the button on home page for asking a new password
-        self.activateForgotPassword = True
-        # Enable session timeout?
-        self.enableSessionTimeout = False
-        # If the following field is True, the login/password widget will be
-        # discreet. This is for sites where authentication is not foreseen for
-        # the majority of visitors (just for some administrators).
-        self.discreetLogin = False
-        # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
-        # the field below.
-        self.ogone = None
-        # When using Google analytics, specify here the Analytics ID
-        self.googleAnalyticsId = None
-        # Create a group for every global role?
-        self.groupsForGlobalRoles = False
+    # For every language code that you specify in this list, appy.gen will
+    # produce and maintain translation files.
+    languages = ['en']
+    # If languageSelector is True, on every page, a language selector will
+    # allow to switch between languages defined in self.languages. Else,
+    # the browser-defined language will be used for choosing the language
+    # of returned pages.
+    languageSelector = False
+    # People having one of these roles will be able to create instances
+    # of classes defined in your application.
+    defaultCreators = ['Manager', 'Owner']
+    # Number of translations for every page on a Translation object
+    translationsPerPage = 30
+    # Language that will be used as a basis for translating to other
+    # languages.
+    sourceLanguage = 'en'
+    # Activate or not the button on home page for asking a new password
+    activateForgotPassword = True
+    # Enable session timeout?
+    enableSessionTimeout = False
+    # If the following field is True, the login/password widget will be
+    # discreet. This is for sites where authentication is not foreseen for
+    # the majority of visitors (just for some administrators).
+    discreetLogin = False
+    # When using Ogone, place an instance of appy.gen.ogone.OgoneConfig in
+    # the field below.
+    ogone = None
+    # When using Google analytics, specify here the Analytics ID
+    googleAnalyticsId = None
+    # Create a group for every global role?
+    groupsForGlobalRoles = False
+    # When using a LDAP for authenticating users, place an instance of class
+    # LdapConfig above in the field below.
+    ldap = None
 # ------------------------------------------------------------------------------

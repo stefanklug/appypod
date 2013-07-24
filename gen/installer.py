@@ -75,7 +75,7 @@ class ZopeInstaller:
         self.classes = classes
         # Unwrap some useful config variables
         self.productName = config.PROJECTNAME
-        self.languages = config.languages
+        self.languages = config.appConfig.languages
         self.logger = config.logger
         self.addContentPermissions = config.ADD_CONTENT_PERMISSIONS
 
@@ -251,7 +251,7 @@ class ZopeInstaller:
 
         # Create a group for every global role defined in the application
         # (if required).
-        if self.app.config.getProductConfig().groupsForGlobalRoles:
+        if self.config.appConfig.groupsForGlobalRoles:
             for role in self.config.applicationGlobalRoles:
                 groupId = role.lower()
                 if appyTool.count('Group', noSecurity=True, login=groupId):
@@ -333,7 +333,7 @@ class ZopeInstaller:
         # launching Zope in test mode, the temp folder does not exist.
         if not hasattr(self.app, 'temp_folder'): return
         sessionData = self.app.temp_folder.session_data
-        if self.config.enableSessionTimeout:
+        if self.config.appConfig.enableSessionTimeout:
             sessionData.setDelNotificationTarget(onDelSession)
         else:
             sessionData.setDelNotificationTarget(None)

@@ -24,7 +24,6 @@ logger = logging.getLogger('<!applicationName!>')
 # Some global variables --------------------------------------------------------
 PROJECTNAME = '<!applicationName!>'
 diskFolder = os.path.dirname(<!applicationName!>.__file__)
-defaultAddRoles = [<!defaultAddRoles!>]
 ADD_CONTENT_PERMISSIONS = {
 <!addPermissions!>}
 
@@ -43,16 +42,10 @@ applicationRoles = [<!roles!>]
 applicationGlobalRoles = [<!gRoles!>]
 grantableRoles = [<!grRoles!>]
 
-# Configuration options
-languages = [<!languages!>]
-languageSelector = <!languageSelector!>
-sourceLanguage = '<!sourceLanguage!>'
-activateForgotPassword = <!activateForgotPassword!>
-enableSessionTimeout = <!enableSessionTimeout!>
-discreetLogin = <!discreetLogin!>
-ogone = <!ogone!>
-googleAnalyticsId = <!googleAnalyticsId!>
-groupsForGlobalRoles = <!groupsForGlobalRoles!>
+try:
+    appConfig = <!applicationName!>.Config
+except AttributeError:
+    appConfig = appy.gen.Config
 
 # When Zope is starting or runs in test mode, there is no request object. We
 # create here a fake one for storing Appy wrappers.

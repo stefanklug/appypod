@@ -146,29 +146,23 @@ class Generator:
         self.user = None
         self.workflows = []
         self.initialize()
-        self.config = gen.Config.getDefault()
+        self.config = gen.Config
         self.modulesWithTests = set()
         self.totalNumberOfTests = 0
 
-    def determineAppyType(self, klass):
-        '''Is p_klass an Appy class ? An Appy workflow? None of this ?
-           If it (or a parent) declares at least one appy type definition,
-           it will be considered an Appy class. If it (or a parent) declares at
-           least one state definition, it will be considered an Appy
-           workflow.'''
-        res = 'none'
-        for attrValue in klass.__dict__.itervalues():
-            if isinstance(attrValue, gen.Field):
-                res = 'class'
-            elif isinstance(attrValue, gen.State):
-                res = 'workflow'
-        if not res:
-            for baseClass in klass.__bases__:
-                baseClassType = self.determineAppyType(baseClass)
-                if baseClassType != 'none':
-                    res = baseClassType
-                    break
-        return res
+    def determineGenType(self, klass):
+        '''If p_klass is:
+           * a gen-class, this method returns "class";
+           * a gen-workflow, this method it "workflow";
+           * none of it, this method returns None.
+
+           If p_klass declares at least one static attribute that is a
+           appy.fields.Field, it will be considered a gen-class. If p_klass
+           declares at least one static attribute that is a appy.gen.State,
+           it will be considered a gen-workflow.'''
+        for attr in klass.__dict__.itervalues():
+            if isinstance(attr, gen.Field): return 'class'
+            elif isinstance(attr, gen.State): return 'workflow'
 
     def containsTests(self, moduleOrClass):
         '''Returns True if p_moduleOrClass contains doctests. This method also
@@ -206,53 +200,53 @@ class Generator:
         # Find all classes in this module
         for name in module.__dict__.keys():
             exec 'moduleElem = module.%s' % name
-            if (type(moduleElem) == classType) and \
-               (moduleElem.__module__ == module.__name__):
-                # We have found a Python class definition in this module.
-                appyType = self.determineAppyType(moduleElem)
-                if appyType == 'none': continue
-                # Produce a list of static class attributes (in the order
-                # of their definition).
-                attrs = astClasses[moduleElem.__name__].attributes
-                # Collect non-parsable attrs = back references added
-                # programmatically
-                moreAttrs = []
-                for eName, eValue in moduleElem.__dict__.iteritems():
-                    if isinstance(eValue, gen.Field) and (eName not in attrs):
-                        moreAttrs.append(eName)
-                # Sort them in alphabetical order: else, order would be random
-                moreAttrs.sort()
-                if moreAttrs: attrs += moreAttrs
-                # Add attributes added as back references
-                if appyType == 'class':
-                    # Determine the class type (standard, tool, user...)
-                    if issubclass(moduleElem, gen.Tool):
-                        if not self.tool:
-                            klass = self.descriptorClasses['tool']
-                            self.tool = klass(moduleElem, attrs, self)
-                        else:
-                            self.tool.update(moduleElem, attrs)
-                    elif issubclass(moduleElem, gen.User):
-                        if not self.user:
-                            klass = self.descriptorClasses['user']
-                            self.user = klass(moduleElem, attrs, self)
-                        else:
-                            self.user.update(moduleElem, attrs)
+            # Ignore non-classes module elements or classes that were imported
+            # from other modules.
+            if (type(moduleElem) != classType) or  \
+               (moduleElem.__module__ != module.__name__): continue
+            # Ignore classes that are not gen-classes or gen-workflows.
+            genType = self.determineGenType(moduleElem)
+            if not genType: continue
+            # Produce a list of static class attributes (in the order
+            # of their definition).
+            attrs = astClasses[moduleElem.__name__].attributes
+            # Collect non-parsable attrs = back references added
+            # programmatically
+            moreAttrs = []
+            for eName, eValue in moduleElem.__dict__.iteritems():
+                if isinstance(eValue, gen.Field) and (eName not in attrs):
+                    moreAttrs.append(eName)
+            # Sort them in alphabetical order: else, order would be random
+            moreAttrs.sort()
+            if moreAttrs: attrs += moreAttrs
+            # Add attributes added as back references
+            if genType == 'class':
+                # Determine the class type (standard, tool, user...)
+                if issubclass(moduleElem, gen.Tool):
+                    if not self.tool:
+                        klass = self.descriptorClasses['tool']
+                        self.tool = klass(moduleElem, attrs, self)
                     else:
-                        descriptorClass = self.descriptorClasses['class']
-                        descriptor = descriptorClass(moduleElem,attrs, self)
-                        self.classes.append(descriptor)
-                    # Manage classes containing tests
-                    if self.containsTests(moduleElem):
-                        self.modulesWithTests.add(module.__name__)
-                elif appyType == 'workflow':
-                    descriptorClass = self.descriptorClasses['workflow']
-                    descriptor = descriptorClass(moduleElem, attrs, self)
-                    self.workflows.append(descriptor)
-                    if self.containsTests(moduleElem):
-                        self.modulesWithTests.add(module.__name__)
-            elif isinstance(moduleElem, gen.Config):
-                self.config = moduleElem
+                        self.tool.update(moduleElem, attrs)
+                elif issubclass(moduleElem, gen.User):
+                    if not self.user:
+                        klass = self.descriptorClasses['user']
+                        self.user = klass(moduleElem, attrs, self)
+                    else:
+                        self.user.update(moduleElem, attrs)
+                else:
+                    descriptorClass = self.descriptorClasses['class']
+                    descriptor = descriptorClass(moduleElem,attrs, self)
+                    self.classes.append(descriptor)
+                # Manage classes containing tests
+                if self.containsTests(moduleElem):
+                    self.modulesWithTests.add(module.__name__)
+            elif genType == 'workflow':
+                descriptorClass = self.descriptorClasses['workflow']
+                descriptor = descriptorClass(moduleElem, attrs, self)
+                self.workflows.append(descriptor)
+                if self.containsTests(moduleElem):
+                    self.modulesWithTests.add(module.__name__)
 
     def walkApplication(self):
         '''This method walks into the application and creates the corresponding
@@ -262,6 +256,13 @@ class Generator:
         sys.path.append(containingFolder)
         # What is the name of the application ?
         appName = os.path.basename(self.application)
+        # Get the app-specific config if any
+        exec 'import %s as appModule' % appName
+        if hasattr (appModule, 'Config'):
+            self.config = appModule.Config
+            if not issubclass(self.config, gen.Config):
+                raise Exception('Your Config class must subclass ' \
+                                'appy.gen.Config.')
         # Collect modules (only a the first level) in this application. Import
         # them all, to be sure class definitions are complete (ie, back
         # references are set from one class to the other). Moreover, potential
@@ -556,9 +557,6 @@ class ZopeGenerator(Generator):
             if theImport not in imports:
                 imports.append(theImport)
         repls['imports'] = '\n'.join(imports)
-        # Compute default add roles
-        repls['defaultAddRoles'] = ','.join(
-                              ['"%s"' % r for r in self.config.defaultCreators])
         # Compute list of add permissions
         addPermissions = ''
         for classDescr in classesAll:
@@ -599,16 +597,6 @@ class ZopeGenerator(Generator):
         repls['gRoles'] = ','.join(['"%s"' % r.name for r in globalRoles])
         grantableRoles = self.getAllUsedRoles(local=False, grantable=True)
         repls['grRoles'] = ','.join(['"%s"' % r.name for r in grantableRoles])
-        # Generate configuration options
-        repls['languages'] = ','.join('"%s"' % l for l in self.config.languages)
-        repls['languageSelector'] = self.config.languageSelector
-        repls['sourceLanguage'] = self.config.sourceLanguage
-        repls['enableSessionTimeout'] = self.config.enableSessionTimeout
-        repls['discreetLogin'] = self.config.discreetLogin
-        repls['ogone'] = repr(self.config.ogone)
-        repls['googleAnalyticsId'] = repr(self.config.googleAnalyticsId)
-        repls['activateForgotPassword'] = self.config.activateForgotPassword
-        repls['groupsForGlobalRoles'] = self.config.groupsForGlobalRoles
         self.copyFile('config.pyt', repls, destName='config.py')
 
     def generateInit(self):

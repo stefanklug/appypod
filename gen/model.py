@@ -164,6 +164,9 @@ class User(ModelClass):
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,
                        validator=gen.Selection('getGrantableRoles'), **gm)
+    # Where is this user stored? By default, in the ZODB. But the user can be
+    # stored in an external LDAP.
+    source = gen.String(show=False, default='zodb', layouts='f', **gm)
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):
