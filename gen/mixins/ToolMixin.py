@@ -1010,7 +1010,7 @@ class ToolMixin(BaseMixin):
     def _zopeAuthenticate(self, request):
         '''Performs the Zope-level authentication. Returns True if
            authentication succeeds.'''
-        user = self.acl_users.validate(rq)
+        user = self.acl_users.validate(request)
         return not self.userIsAnon()
 
     def _ldapAuthenticate(self, login, password):
