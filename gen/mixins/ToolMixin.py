@@ -1098,7 +1098,7 @@ class ToolMixin(BaseMixin):
         # Try to authenticate this user
         user = self.authenticate(login, password, request)
         emergency = self._emergency_user
-        if emergency and user is emergency:
+        if emergency and (user is emergency):
             # It is the emergency user.
             return emergency.__of__(self)
         elif user is None:
@@ -1113,7 +1113,7 @@ class ToolMixin(BaseMixin):
             # against the published object.
             if self.authorize(user, a, c, n, v, roles):
                 return user.__of__(self)
-            # That didn't work.  Try to authorize the anonymous user.
+            # That didn't work. Try to authorize the anonymous user.
             elif self.authorize(self._nobody, a, c, n, v, roles):
                 return self._nobody.__of__(self)
             else:

@@ -687,7 +687,7 @@ class Field:
                     # because it can be raised as the result of reindexing
                     # the object in situations that are not foreseen by
                     # method in self.default.
-                    return None
+                    return
             else:
                 return self.default
         return value
