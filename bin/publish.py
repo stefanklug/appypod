@@ -23,6 +23,7 @@ setup(name = "appy", version = "%s",
 '''
 manifestInfo = '''
 recursive-include appy/bin *
+recursive-include appy/fields *
 recursive-include appy/gen *
 recursive-include appy/pod *
 recursive-include appy/shared *
@@ -464,7 +465,7 @@ class Publisher:
         os.mkdir(genSrcFolder)
         for aFile in ('__init__.py',):
             shutil.copy('%s/%s' % (appyPath, aFile), genSrcFolder)
-        for aFolder in ('bin', 'gen', 'pod', 'px', 'shared'):
+        for aFolder in ('bin', 'fields', 'gen', 'pod', 'px', 'shared'):
             shutil.copytree('%s/%s' % (appyPath, aFolder),
                             '%s/%s' % (genSrcFolder, aFolder))
         # Remove some scripts from bin
