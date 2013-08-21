@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, base64, urllib
-from appy.shared.utils import normalizeText
+from appy.shared import utils as sutils
 
 # Function for creating a Zope object ------------------------------------------
 def createObject(folder, id, className, appName, wf=True, noSecurity=False):
@@ -96,7 +96,7 @@ class Keywords:
     toRemove = '?-+*()'
     def __init__(self, keywords, operator='AND'):
         # Clean the p_keywords that the user has entered.
-        words = normalizeText(keywords)
+        words = sutils.normalizeText(keywords)
         if words == '*': words = ''
         for c in self.toRemove: words = words.replace(c, ' ')
         self.keywords = words.split()
@@ -220,4 +220,24 @@ def writeCookie(login, password, request):
     cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
     cookieValue = urllib.quote(cookieValue)
     request.RESPONSE.setCookie('_appy_', cookieValue, path='/')
+
+# ------------------------------------------------------------------------------
+def initMasterValue(v):
+    '''Standardizes p_v as a list of strings.'''
+    if not isinstance(v, bool) and not v: res = []
+    elif type(v) not in sutils.sequenceTypes: res = [v]
+    else: res = v
+    return [str(v) for v in res]
+
+# ------------------------------------------------------------------------------
+class No:
+    '''When you write a workflow condition method and you want to return False
+       but you want to give to the user some explanations about why a transition
+       can't be triggered, do not return False, return an instance of No
+       instead. When creating such an instance, you can specify an error
+       message.'''
+    def __init__(self, msg):
+        self.msg = msg
+    def __nonzero__(self):
+        return False
 # ------------------------------------------------------------------------------

@@ -16,7 +16,7 @@
 
 # ------------------------------------------------------------------------------
 import sys, re
-from appy.fields import Field, No
+from appy.fields import Field
 from appy.px import Px
 from appy.gen.layout import Table
 from appy.gen import utils as gutils
@@ -586,20 +586,21 @@ class Ref(Field):
             add = self.callMethod(obj, self.add)
         else:
             add = self.add
-        if not add: return No('no_add')
+        if not add: return gutils.No('no_add')
         # Have we reached the maximum number of referred elements?
         if self.multiplicity[1] != None:
             refCount = len(getattr(obj, self.name, ()))
-            if refCount >= self.multiplicity[1]: return No('max_reached')
+            if refCount >= self.multiplicity[1]: return gutils.No('max_reached')
         # May the user edit this Ref field?
-        if not obj.allows(self.writePermission): return No('no_write_perm')
+        if not obj.allows(self.writePermission):
+            return gutils.No('no_write_perm')
         # Have the user the correct add permission?
         tool = obj.getTool()
         addPermission = '%s: Add %s' % (tool.getAppName(),
                                         tool.getPortalType(self.klass))
         folder = obj.getCreateFolder()
         if not tool.getUser().has_permission(addPermission, folder):
-            return No('no_add_perm')
+            return gutils.No('no_add_perm')
         return True
 
     def checkAdd(self, obj):
