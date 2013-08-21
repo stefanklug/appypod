@@ -369,7 +369,7 @@ function initSlaves() {
   }
 }
 
-// Function used to submit the appy form on edit.pt
+// Function used to submit the appy form on pxEdit
 function submitAppyForm(button) {
   var theForm = document.getElementById('appyForm');
   // On which button has the user clicked?

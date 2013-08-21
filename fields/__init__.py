@@ -421,10 +421,6 @@ class Field:
         self.hasLabel = self.hasLayoutElement('l', layouts)
         self.hasDescr = self.hasLayoutElement('d', layouts)
         self.hasHelp  = self.hasLayoutElement('h', layouts)
-        # Store Table instance's dicts instead of instances: this way, they can
-        # be manipulated in ZPTs.
-        for layoutType in layouts.iterkeys():
-            layouts[layoutType] = layouts[layoutType].get()
         return layouts
 
     def hasLayoutElement(self, element, layouts):
@@ -444,7 +440,7 @@ class Field:
            value for the Field constructor.'''
         res = '{'
         for k, v in self.layouts.iteritems():
-            res += '"%s":"%s",' % (k, v['layoutString'])
+            res += '"%s":"%s",' % (k, v.layoutString)
         res += '}'
         return res
 

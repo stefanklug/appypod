@@ -198,7 +198,7 @@ class Ref(Field):
          <td>
           <!-- Show forward or backward reference(s) -->
           <table class=":not innerRef and 'list' or ''"
-                 width=":innerRef and '100%' or field.layouts['view']['width']"
+                 width=":innerRef and '100%' or field.layouts['view'].width"
                  var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                         field.shownInfo, dir)">
            <tr if="field.showHeaders">
@@ -318,10 +318,8 @@ class Ref(Field):
             self.isBack = False
             # Initialise the backward reference
             self.back = back
-            self.backd = back.__dict__
             back.isBack = True
             back.back = self
-            back.backd = self.__dict__
             # klass may be None in the case we are defining an auto-Ref to the
             # same class as the class where this field is defined. In this case,
             # when defining the field within the class, write
@@ -580,7 +578,7 @@ class Ref(Field):
     def mayAdd(self, obj):
         '''May the user create a new referred object from p_obj via this Ref?'''
         # We can't (yet) do that on back references.
-        if self.isBack: return No('is_back')
+        if self.isBack: return gutils.No('is_back')
         # Check if this Ref is addable
         if callable(self.add):
             add = self.callMethod(obj, self.add)

@@ -85,7 +85,6 @@ class List(Field):
         # Tuples of (names, Field instances) determining the format of every
         # element in the list.
         self.fields = fields
-        self.fieldsd = [(n, f.__dict__) for (n,f) in self.fields]
         # Force some layouting for sub-fields, if subLayouts are given. So the
         # one who wants freedom on tuning layouts at the field level must
         # specify subLayouts=None.

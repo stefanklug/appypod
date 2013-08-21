@@ -50,11 +50,7 @@ pxDict = {
   'r': 'pxRequired', 'c': 'pxChanges'}
 
 # ------------------------------------------------------------------------------
-class LayoutElement:
-    '''Abstract base class for any layout element.'''
-    def get(self): return self.__dict__
-
-class Cell(LayoutElement):
+class Cell:
     '''Represents a cell in a row in a table.'''
     def __init__(self, content, align, isHeader=False):
         self.align = align
@@ -84,7 +80,7 @@ class Cell(LayoutElement):
             self.colspan = int(digits)
 
 # ------------------------------------------------------------------------------
-class Row(LayoutElement):
+class Row:
     '''Represents a row in a table.'''
     def __init__(self, content, valign, isHeader=False):
         self.valign = valign
@@ -93,7 +89,7 @@ class Row(LayoutElement):
         # Compute the row length
         length = 0
         for cell in self.cells:
-            length += cell['colspan']
+            length += cell.colspan
         self.length = length
 
     def decodeCells(self, content, isHeader):
@@ -104,16 +100,16 @@ class Row(LayoutElement):
         for char in content:
             if char in cellDelimiters:
                 align = cellDelimiters[char]
-                self.cells.append(Cell(cellContent, align, isHeader).get())
+                self.cells.append(Cell(cellContent, align, isHeader))
                 cellContent = ''
             else:
                 cellContent += char
         # Manage the last cell if any
         if cellContent:
-            self.cells.append(Cell(cellContent, 'left', isHeader).get())
+            self.cells.append(Cell(cellContent, 'left', isHeader))
 
 # ------------------------------------------------------------------------------
-class Table(LayoutElement):
+class Table:
     '''Represents a table where to dispose graphical elements.'''
     simpleParams = ('style', 'css_class', 'cellpadding', 'cellspacing', 'width',
                     'align')
@@ -193,27 +189,26 @@ class Table(LayoutElement):
                 valign = rowDelimiters[char]
                 if self.isHeaderRow(rowContent):
                     if not self.headerRow:
-                        self.headerRow = Row(rowContent, valign,
-                                             isHeader=True).get()
+                        self.headerRow = Row(rowContent, valign, isHeader=True)
                 else:
-                    self.rows.append(Row(rowContent, valign).get())
+                    self.rows.append(Row(rowContent, valign))
                 rowContent = ''
             else:
                 rowContent += char
         # Manage the last row if any
         if rowContent:
-            self.rows.append(Row(rowContent, 'middle').get())
+            self.rows.append(Row(rowContent, 'middle'))
 
     def removeElement(self, elem):
         '''Removes given p_elem from myself.'''
         macroToRemove = pxDict[elem]
         for row in self.rows:
-            for cell in row['cells']:
-                if macroToRemove in cell['content']:
-                    cell['content'].remove(macroToRemove)
+            for cell in row.cells:
+                if macroToRemove in cell.content:
+                    cell.content.remove(macroToRemove)
 
 # Some base layouts to use, for fields and pages -------------------------------
-# The default layouts for pages
+# The default layouts for pages.
 defaultPageLayouts  = {
     'view': Table('w|-b|', align="center"),
     'edit': Table('w|-b|', width=None)}

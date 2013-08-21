@@ -147,9 +147,9 @@ class UiSearch:
     pxView = Px('''
      <div class="portletSearch">
       <a href=":'%s?className=%s&amp;search=%s' % \
-                 (queryUrl, rootClass, search['name'])"
-         class=":search['name'] == currentSearch and 'portletCurrent' or ''"
-         title=":search['translatedDescr']">:search['translated']</a>
+                 (queryUrl, rootClass, search.name)"
+         class=":search.name == currentSearch and 'portletCurrent' or ''"
+         title=":search.translatedDescr">:search.translated</a>
      </div>''')
 
     def __init__(self, search, className, tool):

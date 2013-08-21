@@ -19,7 +19,7 @@ homePage = '<tal:h define="dummy python: request.RESPONSE.redirect(' \
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}
 originalTraverse = None
-doNotTrack = ('.jpg','.gif','.png','.js','.class','.css')
+doNotTrack = ('.jpg','.gif','.png','.js','.css')
 
 def traverseWrapper(self, path, response=None, validated_hook=None):
     '''This function is called every time a users gets a URL, this is used for
@@ -67,12 +67,9 @@ class ZopeInstaller:
 
     def installUi(self):
         '''Installs the user interface.'''
-        # Some useful imports
+        # Some useful imports.
         from OFS.Folder import manage_addFolder
         from OFS.Image import manage_addImage, manage_addFile
-        from Products.PythonScripts.PythonScript import PythonScript
-        from Products.PageTemplates.ZopePageTemplate import \
-             manage_addPageTemplate
         # Delete the existing folder if it existed.
         zopeContent = self.app.objectIds()
         if 'ui' in zopeContent: self.app.manage_delObjects(['ui'])
@@ -99,33 +96,25 @@ class ZopeInstaller:
                         manage_addFolder(zopeFolder, name)
                 # Create files at this level
                 for name in files:
-                    zopeName, ext = os.path.splitext(name)
-                    if ext not in ('.pt', '.py'):
-                        # In the ZODB, pages and scripts have their name without
-                        # their extension.
-                        zopeName = name
-                    if hasattr(zopeFolder.aq_base, zopeName): continue
+                    ext = os.path.splitext(name)[1]
+                    if hasattr(zopeFolder.aq_base, name): continue
                     f = file(j(root, name))
-                    if zopeName == 'favicon.ico':
-                        if not hasattr(self.app, zopeName):
+                    if name == 'favicon.ico':
+                        if not hasattr(self.app, name):
                             # Copy it at the root. Else, IE won't notice it.
-                            manage_addImage(self.app, zopeName, f)
+                            manage_addImage(self.app, name, f)
                     elif ext in gen.File.imageExts:
-                        manage_addImage(zopeFolder, zopeName, f)
-                    elif ext == '.pt':
-                        manage_addPageTemplate(zopeFolder,zopeName,'',f.read())
-                    elif ext == '.py':
-                        obj = PythonScript(zopeName)
-                        zopeFolder._setObject(zopeName, obj)
-                        zopeFolder._getOb(zopeName).write(f.read())
+                        manage_addImage(zopeFolder, name, f)
                     else:
-                        manage_addFile(zopeFolder, zopeName, f)
+                        manage_addFile(zopeFolder, name, f)
                     f.close()
         # Update the home page
         if 'index_html' in zopeContent:
             self.app.manage_delObjects(['index_html'])
+        from Products.PageTemplates.ZopePageTemplate import \
+             manage_addPageTemplate
         manage_addPageTemplate(self.app, 'index_html', '', homePage)
-        # Update the error page
+        # Remove the error page.
         if 'standard_error_message' in zopeContent:
             self.app.manage_delObjects(['standard_error_message'])
 

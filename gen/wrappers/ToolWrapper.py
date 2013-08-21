@@ -185,8 +185,8 @@ class ToolWrapper(AbstractWrapper):
        <div class="portletContent"
             var="searchInfo=ztool.getGroupedSearches(rootClass)">
         <div class="portletTitle">
-         <a var="queryParam=searchInfo['default'] and \
-                            searchInfo['default']['name'] or ''"
+         <a var="queryParam=searchInfo.default and \
+                            searchInfo.default.name or ''"
             href=":'%s?className=%s&amp;search=%s' % \
                    (queryUrl,rootClass,queryParam)"
             class=":(not currentSearch and (currentClass==rootClass) and \
@@ -246,9 +246,9 @@ class ToolWrapper(AbstractWrapper):
         </x>
 
         <!-- Predefined searches -->
-        <x for="widget in searchInfo['searches']">
-         <x if="widget['type']=='group'">:widget['px']</x>
-         <x if="widget['type']!='group'" var2="search=widget">:search['px']</x>
+        <x for="search in searchInfo.searches">
+         <x if="search.type == 'group'">:search.px</x>
+         <x if="search.type != 'group'">:search.pxView</x>
         </x>
        </div>
       </x>
@@ -285,29 +285,29 @@ class ToolWrapper(AbstractWrapper):
     # will be the object whose page is shown; if the layouted object is a field,
     # the layout target will be this field.
     pxLayoutedObject = Px('''
-     <table var="layoutCss=layout['css_class'];
+     <table var="layoutCss=layout.css_class;
                  isCell=layoutType == 'cell'"
-            cellpadding=":layout['cellpadding']"
-            cellspacing=":layout['cellspacing']"
-            width=":not isCell and layout['width'] or ''"
+            cellpadding=":layout.cellpadding"
+            cellspacing=":layout.cellspacing"
+            width=":not isCell and layout.width or ''"
             align=":not isCell and \
-                   ztool.flipLanguageDirection(layout['align'], dir) or ''"
+                   ztool.flipLanguageDirection(layout.align, dir) or ''"
             class=":tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or \
                    layoutCss"
-            style=":layout['style']" id=":tagId" name=":tagName">
+            style=":layout.style" id=":tagId" name=":tagName">
 
       <!-- The table header row -->
-      <tr if="layout['headerRow']" valign=":layout['headerRow']['valign']">
-       <th for="cell in layout['headerRow']['cells']" width=":cell['width']"
-           align=":ztool.flipLanguageDirection(cell['align'], dir)">
+      <tr if="layout.headerRow" valign=":layout.headerRow.valign">
+       <th for="cell in layout.headerRow.cells" width=":cell.width"
+           align=":ztool.flipLanguageDirection(cell.align, dir)">
        </th>
       </tr>
       <!-- The table content -->
-      <tr for="row in layout['rows']" valign=":row['valign']">
-       <td for="cell in row['cells']" colspan=":cell['colspan']"
-           align=":ztool.flipLanguageDirection(cell['align'], dir)"
+      <tr for="row in layout.rows" valign=":row.valign">
+       <td for="cell in row.cells" colspan=":cell.colspan"
+           align=":ztool.flipLanguageDirection(cell.align, dir)"
            class=":not loop.cell.last and 'cellGap' or ''">
-        <x for="pxName in cell['content']">
+        <x for="pxName in cell.content">
          <x var="px=(pxName == '?') and 'px%s' % layoutType.capitalize() \
                                     or pxName">:getattr(layoutTarget, px)</x>
          <img if="not loop.pxName.last" src=":url('space.gif')"/>
@@ -423,9 +423,9 @@ class ToolWrapper(AbstractWrapper):
                    remember=True, sortBy=sortKey, sortOrder=sortOrder, \
                    filterKey=filterKey, filterValue=filterValue, \
                    refObject=refObject, refField=refField);
-               zobjects=queryResult['objects'];
-               totalNumber=queryResult['totalNumber'];
-               batchSize=queryResult['batchSize'];
+               zobjects=queryResult.objects;
+               totalNumber=queryResult.totalNumber;
+               batchSize=queryResult.batchSize;
                batchNumber=len(zobjects);
                ajaxHookId='queryResult';
                navBaseCall='askQueryResult(%s,%s,%s,%s,**v**)' % \

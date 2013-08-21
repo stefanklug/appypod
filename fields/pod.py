@@ -158,7 +158,7 @@ class Pod(Field):
             objs = tool.o.executeQuery(obj.o.portal_type, searchName=search,
                      sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
                      filterValue=filterValue, maxResults='NO_LIMIT')
-            podContext['objects'] = [o.appy() for o in objs['objects']]
+            podContext['objects'] = [o.appy() for o in objs.objects]
         # Add the field-specific context if present.
         if specificContext:
             podContext.update(specificContext)

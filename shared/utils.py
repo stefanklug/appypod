@@ -300,8 +300,8 @@ def upper(s):
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
                'l': list, 'd': dict}
-exts = {'py': ('.py', '.vpy', '.cpy'), 'pt': ('.pt', '.cpt')}
 
+# ------------------------------------------------------------------------------
 class CodeAnalysis:
     '''This class holds information about some code analysis (line counts) that
        spans some folder hierarchy.'''
@@ -317,25 +317,6 @@ class CodeAnalysis:
     def numberOfLines(self):
         '''Computes the total number of lines within analysed files.'''
         return self.emptyLines + self.commentLines + self.codeLines
-
-    def analyseZptFile(self, theFile):
-        '''Analyses the ZPT file named p_fileName.'''
-        inDoc = False
-        for line in theFile:
-            stripped = line.strip()
-            # Manage a comment
-            if not inDoc and (line.find('<tal:comment ') != -1):
-                inDoc = True
-            if inDoc:
-                self.commentLines += 1
-                if line.find('</tal:comment>') != -1:
-                    inDoc = False
-                continue
-            # Manage an empty line
-            if not stripped:
-                self.emptyLines += 1
-            else:
-                self.codeLines += 1
 
     docSeps = ('"""', "'''")
     def isPythonDoc(self, line, start, isStart=False):
@@ -389,8 +370,7 @@ class CodeAnalysis:
         self.numberOfFiles += 1
         theFile = file(fileName)
         ext = os.path.splitext(fileName)[1]
-        if ext in exts['py']:   self.analysePythonFile(theFile)
-        elif ext in exts['pt']: self.analyseZptFile(theFile)
+        if ext == '.py': self.analysePythonFile(theFile)
         theFile.close()
 
     def printReport(self):
@@ -416,11 +396,9 @@ class LinesCounter:
         else:
             # It is a Python module
             self.folder = os.path.dirname(folderOrModule.__file__)
-        # These dicts will hold information about analysed files
+        # These dict will hold information about analysed files.
         self.python = {False: CodeAnalysis('Python'),
                        True:  CodeAnalysis('Python (test)')}
-        self.zpt = {False: CodeAnalysis('ZPT'),
-                    True:  CodeAnalysis('ZPT (test)')}
         # Are we currently analysing real or test code?
         self.inTest = False
         # Which paths to exclude from the analysis?
@@ -430,7 +408,6 @@ class LinesCounter:
     def printReport(self):
         '''Displays on stdout a small analysis report about self.folder.'''
         for zone in (False, True): self.python[zone].printReport()
-        for zone in (False, True): self.zpt[zone].printReport()
 
     def isExcluded(self, path):
         '''Must p_path be excluded from the analysis?'''
@@ -456,10 +433,8 @@ class LinesCounter:
             # Scan the files in this folder
             for fileName in files:
                 ext = os.path.splitext(fileName)[1]
-                if ext in exts['py']:
+                if ext == '.py':
                     self.python[self.inTest].analyseFile(j(root, fileName))
-                elif ext in exts['pt']:
-                    self.zpt[self.inTest].analyseFile(j(root, fileName))
         self.printReport()
 
 # ------------------------------------------------------------------------------

@@ -273,7 +273,7 @@ class BaseMixin:
     def removeMyLock(self, user, page):
         '''If p_user has set a lock on p_page, this method removes it. This
            method is called when the user that locked a page consults
-           view.pt for this page. In this case, we consider that the user has
+           pxView for this page. In this case, we consider that the user has
            left the edit page in an unexpected way and we remove the lock.'''
         if hasattr(self.aq_base, 'locks') and (page in self.locks) and \
            (user.login == self.locks[page][0]):
@@ -669,69 +669,6 @@ class BaseMixin:
         allValues = self.REQUEST.get(listName)
         if not allValues: return ''
         return getattr(allValues[rowIndex], name, '')
-
-    def getFileInfo(self, fileObject):
-        '''Returns filename and size of p_fileObject.'''
-        if not fileObject: return {'filename': '', 'size': 0}
-        return {'filename': fileObject.filename, 'size': fileObject.size}
-
-    def getAppyRefs(self, name, startNumber=None):
-        '''Gets the objects linked to me through Ref field named p_name.
-           If p_startNumber is None, this method returns all referred objects.
-           If p_startNumber is a number, this method will return
-           appyType.maxPerPage objects, starting at p_startNumber.'''
-        field = self.getAppyType(name)
-        return field.getValue(self, type='zobjects', someObjects=True,
-                              startNumber=startNumber).__dict__
-
-    def getSelectableAppyRefs(self, name):
-        '''p_name is the name of a Ref field. This method returns the list of
-           all objects that can be selected to be linked as references to p_self
-           through field p_name.'''
-        appyType = self.getAppyType(name)
-        if not appyType.select:
-            # No select method has been defined: we must retrieve all objects
-            # of the referred type that the user is allowed to access.
-            return self.appy().search(appyType.klass)
-        else:
-            return appyType.select(self.appy())
-
-    xhtmlToText = re.compile('<.*?>', re.S)
-    def getReferenceLabel(self, name, refObject, className=None):
-        '''p_name is the name of a Ref field with link=True. I need to display,
-           on an edit view, the p_refObject in the listbox that will allow
-           the user to choose which object(s) to link through the Ref.
-           The information to display may only be the object title or more if
-           field.shownInfo is used.'''
-        appyType = self.getAppyType(name, className=className)
-        res = ''
-        for fieldName in appyType.shownInfo:
-            refType = refObject.o.getAppyType(fieldName)
-            value = getattr(refObject, fieldName)
-            value = refType.getFormattedValue(refObject.o, value)
-            if refType.type == 'String':
-                if refType.format == 2:
-                    value = self.xhtmlToText.sub(' ', value)
-                elif type(value) in sequenceTypes:
-                    value = ', '.join(value)
-            prefix = ''
-            if res:
-                prefix = ' | '
-            res += prefix + value
-        maxWidth = appyType.width or 30
-        if len(res) > maxWidth:
-            res = res[:maxWidth-2] + '...'
-        return res
-
-    def getReferenceUid(self, refObject):
-        '''Returns the UID of referred object p_refObject.'''
-        return refObject.o.UID()
-
-    def getAppyRefIndex(self, fieldName, obj):
-        '''Gets the position of p_obj within Ref field named p_fieldName.'''
-        refs = getattr(self.aq_base, fieldName, None)
-        if not refs: raise IndexError()
-        return refs.index(obj.UID())
 
     def mayAddReference(self, name):
         '''May the user add references via Ref field named p_name in
@@ -1134,7 +1071,7 @@ class BaseMixin:
             else:
                 event = history[i]
             res.append(event)
-        return {'events': res, 'totalNumber': len(history)}
+        return Object(events=res, totalNumber=len(history))
 
     def mayNavigate(self):
         '''May the currently logged user see the navigation panel linked to
@@ -1257,64 +1194,6 @@ class BaseMixin:
         self.trigger(rq['workflow_action'], comment=rq.get('comment', ''))
         self.reindex()
         return self.goto(self.getUrl(rq['HTTP_REFERER']))
-
-    def fieldValueSelected(self, fieldName, vocabValue, dbValue):
-        '''When displaying a selection box (ie a String with a validator being a
-           list), must the _vocabValue appear as selected?'''
-        rq = self.REQUEST
-        # Get the value we must compare (from request or from database)
-        if rq.has_key(fieldName):
-            compValue = rq.get(fieldName)
-        else:
-            compValue = dbValue
-        # Compare the value
-        if type(compValue) in sequenceTypes:
-            if vocabValue in compValue: return True
-        else:
-            if vocabValue == compValue: return True
-
-    def checkboxChecked(self, fieldName, dbValue):
-        '''When displaying a checkbox, must it be checked or not?'''
-        rq = self.REQUEST
-        # Get the value we must compare (from request or from database)
-        if rq.has_key(fieldName):
-            compValue = rq.get(fieldName)
-            compValue = compValue in ('True', 1, '1')
-        else:
-            compValue = dbValue
-        # Compare the value
-        return compValue
-
-    def dateValueSelected(self, fieldName, fieldPart, dateValue, dbValue):
-        '''When displaying a date field, must the particular p_dateValue be
-           selected in the field corresponding to the date part?'''
-        # Get the value we must compare (from request or from database)
-        rq = self.REQUEST
-        partName = '%s_%s' % (fieldName, fieldPart)
-        if rq.has_key(partName):
-            compValue = rq.get(partName)
-            if compValue.isdigit():
-                compValue = int(compValue)
-        else:
-            compValue = dbValue
-            if compValue:
-                compValue = getattr(compValue, fieldPart)()
-        # Compare the value
-        return compValue == dateValue
-
-    def getSelectableYears(self, name):
-        '''Gets the list of selectable years for Date field named p_name.'''
-        return self.getAppyType(name).getSelectableYears()
-
-    def getPossibleValues(self, name, withTranslations, withBlankValue,
-                          className=None):
-        '''See docstring of String.getPossibleValues.'''
-        field = self.getAppyType(name, className=className)
-        return field.getPossibleValues(self, withTranslations, withBlankValue,
-                                       className=className)
-
-    def getCaptchaChallenge(self, name):
-        return self.getAppyType(name).getCaptchaChallenge(self.REQUEST.SESSION)
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy
@@ -1480,20 +1359,6 @@ class BaseMixin:
         for permission, creators in allCreators.iteritems():
             updateRolesForPermission(permission, tuple(creators), folder)
 
-    def _appy_getPortalType(self, request):
-        '''Guess the portal_type of p_self from info about p_self and
-           p_request.'''
-        res = None
-        # If the object is being created, self.portal_type is not correctly
-        # initialized yet.
-        if request.has_key('__factory__info__'):
-            factoryInfo = request['__factory__info__']
-            if factoryInfo.has_key('stack'):
-                res = factoryInfo['stack'][0]
-        if not res:
-            res = self.portal_type
-        return res
-
     getUrlDefaults = {'page':True, 'nav':True}
     def getUrl(self, base=None, mode='view', **kwargs):
         '''Returns an URL for this object.
@@ -1568,8 +1433,8 @@ class BaseMixin:
         klass = self.getClass()
         if hasattr(klass, 'breadcrumb') and not klass.breadcrumb: return ()
         # Compute the breadcrumb
-        res = [{'url': self.absolute_url(),
-                'title': self.getFieldValue('title', layoutType='view')}]
+        res = [Object(url=self.absolute_url(),
+                      title=self.getFieldValue('title', layoutType='view'))]
         parent = self.getParent()
         if parent:
             res = parent.getBreadCrumb() + res
@@ -1681,14 +1546,7 @@ class BaseMixin:
                 layout = Table(layout)
         else:
             layout = defaultPageLayouts[layoutType]
-        return layout.get()
-
-    def getPageTemplate(self, ui, templateName):
-        '''Returns, in the ui folder, the page template corresponding to
-           p_templateName.'''
-        res = ui
-        for name in templateName.split('/'): res = getattr(res, name)
-        return res
+        return layout
 
     def download(self, name=None):
         '''Downloads the content of the file that is in the File field whose
@@ -1753,44 +1611,6 @@ class BaseMixin:
             raise Unauthorized
         return res
 
-    def getEditorInit(self, name):
-        '''Gets the Javascript init code for displaying a rich editor for
-           field named p_name.'''
-        # Define the attributes that will initialize the ckeditor instance for
-        # this field.
-        field = self.getAppyType(name)
-        ckAttrs = {'toolbar': 'Appy',
-                   'format_tags': '%s' % ';'.join(field.styles)}
-        if field.width: ckAttrs['width'] = field.width
-        if field.allowImageUpload:
-            ckAttrs['filebrowserUploadUrl'] = '%s/upload' % self.absolute_url()
-        ck = []
-        for k, v in ckAttrs.iteritems():
-            if isinstance(v, int): sv = str(v)
-            else: sv = '"%s"' % v
-            ck.append('%s: %s' % (k, sv))
-        return 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
-
-    def getEditorInlineInit(self, name):
-        '''Gets the Javascript init code for enabling inline edition of a rich
-           field named p_name.'''
-        field = self.getAppyType(name)
-        uid = self.UID()
-        return "CKEDITOR.disableAutoInline = true;\n" \
-               "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
-               "function( event ) { var data = event.editor.getData(); " \
-               "askAjaxChunk('%s_%s','POST','%s','page','saveField', "\
-               "{'fieldName':'%s', 'fieldContent': encodeURIComponent(data)}, "\
-               "null, evalInnerScripts);}}});"% \
-               (uid, name, uid, name, self.absolute_url(), name)
-
-    def getCalendarInit(self, name, years):
-        '''Gets the Javascript init code for displaying a calendar popup for
-           field named p_name.'''
-        return 'Calendar.setup({inputField: "%s", button: "%s_img", ' \
-               'onSelect: onSelectDate, range:[%d,%d]});' % \
-               (name, name, years[0], years[-1])
-
     def isTemporary(self):
         '''Is this object temporary ?'''
         parent = self.getParentNode()
@@ -1802,11 +1622,4 @@ class BaseMixin:
         '''This method is a general hook for transfering processing of a request
            to a given field, whose name must be in the request.'''
         return self.getAppyType(self.REQUEST['name']).process(self)
-
-    def callField(self, name, method, *args, **kwargs):
-        '''This method i a general hook for calling a p_method defined on a
-           field named p_name.'''
-        field = self.getAppyType(name)
-        exec 'res = field.%s(*args, **kwargs)' % method
-        return res
 # ------------------------------------------------------------------------------

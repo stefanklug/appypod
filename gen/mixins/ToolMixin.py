@@ -61,12 +61,12 @@ class ToolMixin(BaseMixin):
         try:
             url = tool.getHomePage()
         except AttributeError:
-            # Bring Managers to the config, lead others to home.pt.
+            # Bring Managers to the config, lead others to pxHome.
             user = self.getUser()
             if user.has_role('Manager'):
                 url = self.goto(self.absolute_url())
             else:
-                url = self.goto('%s/home' % self.getApp().config.absolute_url())
+                url = self.goto('%s/home' % self.absolute_url())
         return url
 
     def getHomeObject(self):
@@ -95,12 +95,6 @@ class ToolMixin(BaseMixin):
     def getSiteUrl(self):
         '''Returns the absolute URL of this site.'''
         return self.getApp().absolute_url()
-
-    def getPodInfo(self, obj, name):
-        '''Gets the available POD formats for Pod field named p_name on
-           p_obj.'''
-        podField = self.getAppyType(name, className=obj.meta_type)
-        return podField.getToolInfo(obj.appy())
 
     def getIncludeUrl(self, name, bg=False):
         '''Gets the full URL of an external resource, like an image, a
@@ -131,16 +125,6 @@ class ToolMixin(BaseMixin):
         response.setHeader('Content-Disposition',
                            'inline;filename="%s"' % res.name)
         return res.content
-
-    def getAttr(self, name, source='appy'):
-        '''Gets attribute named p_name.'''
-        if source == 'config':
-            obj = self.getProductConfig()
-        elif source == 'app':
-            obj = self.getProductConfig(True)
-        else:
-            obj = self.appy()
-        return getattr(obj, name, None)
 
     def getAppName(self):
         '''Returns the name of the application.'''
@@ -270,7 +254,7 @@ class ToolMixin(BaseMixin):
         return res
 
     def getResultMode(self, className):
-        '''Must we show, on result.pt, instances of p_className as a list or
+        '''Must we show, on pxQueryResult, instances of p_className as a list or
            as a grid?'''
         klass = self.getAppyClass(className)
         if hasattr(klass, 'resultMode'): return klass.resultMode
@@ -359,24 +343,20 @@ class ToolMixin(BaseMixin):
                 will be added to the query, or;
              2) "customSearch": in this case, additional search criteria will
                 also be added to the query, but those criteria come from the
-                session (in key "searchCriteria") and were created from
-                search.pt.
+                session (in key "searchCriteria") and came from pxSearch.
 
            We will retrieve objects from p_startNumber. If p_search is defined,
            it corresponds to a custom Search instance (instead of a predefined
            named search like in p_searchName). If both p_searchName and p_search
            are given, p_search is ignored.
 
-           This method returns a list of objects in the form of the
-           __dict__ attribute of an instance of SomeObjects (see in
-           appy.gen.utils). We return the __dict__ attribute instead of real
-           instance: that way, it can be used in ZPTs without security problems.
-           If p_brainsOnly is True, it returns a list of brains instead (can be
-           useful for some usages like knowing the number of objects without
-           needing to get information about them). If no p_maxResults is
-           specified, the method returns maximum
-           self.numberOfResultsPerPage. The method returns all objects if
-           p_maxResults equals string "NO_LIMIT".
+           This method returns a list of objects in the form of an instance of
+           SomeObjects (see in appy.gen.utils). If p_brainsOnly is True, it
+           returns a list of brains instead (can be useful for some usages like
+           knowing the number of objects without needing to get information
+           about them). If no p_maxResults is specified, the method returns
+           maximum self.numberOfResultsPerPage. The method returns all objects
+           if p_maxResults equals string "NO_LIMIT".
 
            If p_noSecurity is True, it gets all the objects, even those that the
            currently logged user can't see.
@@ -393,6 +373,7 @@ class ToolMixin(BaseMixin):
 
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
+
         params = {'ClassName': className}
         appyClass = self.getAppyClass(className, wrapper=True)
         if not brainsOnly: params['batch'] = True
@@ -447,7 +428,7 @@ class ToolMixin(BaseMixin):
                 i += 1
                 uids[startNumber+i] = obj.UID()
             self.REQUEST.SESSION['search_%s' % searchName] = uids
-        return res.__dict__
+        return res
 
     def getResultColumnsLayouts(self, className, refInfo):
         '''Returns the column layouts for displaying objects of
@@ -711,7 +692,7 @@ class ToolMixin(BaseMixin):
 
     def onSearchObjects(self):
         '''This method is called when the user triggers a search from
-           search.pt.'''
+           pxSearch.'''
         rq = self.REQUEST
         self.storeSearchCriteria()
         # Go to the screen that displays search results

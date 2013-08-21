@@ -69,9 +69,9 @@ class AbstractWrapper(object):
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
          <img if="nb != 0" src=":url('to')"/>
          <!-- Display only the title of the current object -->
-         <span if="nb == len(breadcrumb)-1">:bc['title']</span>
+         <span if="nb == len(breadcrumb)-1">:bc.title</span>
          <!-- Display a link for parent objects -->
-         <a if="nb != len(breadcrumb)-1" href=":bc['url']">:bc['title']</a>
+         <a if="nb != len(breadcrumb)-1" href=":bc.url">:bc.title</a>
         </x>
        </td>
        <!-- Object navigation -->
@@ -292,9 +292,9 @@ class AbstractWrapper(object):
              startNumber=int(startNumber);
              batchSize=int(req.get('maxPerPage', 5));
              historyInfo=zobj.getHistory(startNumber,batchSize=batchSize)"
-        if="historyInfo['events']"
-        var2="objs=historyInfo['events'];
-              totalNumber=historyInfo['totalNumber'];
+        if="historyInfo.events"
+        var2="objs=historyInfo.events;
+              totalNumber=historyInfo.totalNumber;
               ajaxHookId='appyHistory';
               navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
                 (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
@@ -516,7 +516,7 @@ class AbstractWrapper(object):
 
        <!-- Refresh -->
        <td if="zobj.isDebug()">
-        <a href="zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
+        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
          <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
         </a>
        </td>
@@ -525,7 +525,7 @@ class AbstractWrapper(object):
 
     # Displays the fields of a given page for a given object.
     pxFields = Px('''
-     <table width=":layout['width']">
+     <table width=":layout.width">
       <tr for="field in groupedFields">
        <td if="field.type == 'group'">:field.pxView</td>
        <td if="field.type != 'group'">:field.pxRender</td>
@@ -911,7 +911,7 @@ class AbstractWrapper(object):
             # returned by method executeResult.
         res = tool.executeQuery(contentType, search=search,
                                 maxResults=maxResults, noSecurity=noSecurity)
-        return [o.appy() for o in res['objects']]
+        return [o.appy() for o in res.objects]
 
     def search1(self, *args, **kwargs):
         '''Identical to m_search above, but returns a single result (if any).'''

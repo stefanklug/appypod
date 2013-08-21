@@ -11,13 +11,12 @@ from persistent.list import PersistentList
 class Calendar(Field):
     '''This field allows to produce an agenda (monthly view) and view/edit
        events on it.'''
-    jsFiles = {'view': ('widgets/calendar.js',)}
+    jsFiles = {'view': ('calendar.js',)}
 
     # Month view for a calendar. Called by pxView, and directly from the UI,
     # via Ajax, when the user selects another month.
     pxMonthView = Px('''
-     <div var="field=zobj.getAppyType(req['fieldName']);
-               ajaxHookId=zobj.UID() + field.name;
+     <div var="ajaxHookId=zobj.UID() + field.name;
                month=req['month'];
                monthDayOne=DateTime('%s/01' % month);
                today=DateTime('00:00');
@@ -28,7 +27,7 @@ class Calendar(Field):
                defaultDateMonth=defaultDate.strftime('%Y/%m');
                previousMonth=field.getSiblingMonth(month, 'previous');
                nextMonth=field.getSiblingMonth(month, 'next');
-               mayEdit=zobj.allows(widget['writePermission']);
+               mayEdit=zobj.allows(field.writePermission);
                objUrl=zobj.absolute_url();
                startDate=field.getStartDate(zobj);
                endDate=field.getEndDate(zobj);
@@ -106,10 +105,10 @@ class Calendar(Field):
            <img class="clickable" style="visibility:hidden"
                 var="info=field.getApplicableEventsTypesAt(zobj, date, \
                             allEventTypes, preComputed, True)"
-                if="info['eventTypes']" src=":url('plus')"
+                if="info.eventTypes" src=":url('plus')"
                 onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
-                 (q('new'), q(field.name), q(dayString), q(info['eventTypes']),\
-                  q(info['message']))"/>
+                 (q('new'), q(field.name), q(dayString), q(info.eventTypes),\
+                  q(info.message))"/>
           </x>
           <!-- Icon for deleting an event -->
           <img if="mayDelete" class="clickable" style="visibility:hidden"
@@ -117,15 +116,15 @@ class Calendar(Field):
                onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
                  (q('del'), q(field.name), q(dayString), q(spansDays))"/>
           <!-- A single event is allowed for the moment -->
-          <div if="events" var2="eventType=events[0]['eventType']">
+          <div if="events" var2="eventType=events[0].eventType">
            <span style="color: grey">:field.getEventName(zobj, eventType)</span>
           </div>
           <!-- Events from other calendars -->
           <x if="otherCalendars"
              var2="otherEvents=field.getOtherEventsAt(zobj, date, \
                                                       otherCalendars)">
-           <div style=":'color: %s; font-style: italic' % event['color']"
-                for="event in otherEvents">:event['name']</div>
+           <div style=":'color: %s; font-style: italic' % event.color"
+                for="event in otherEvents">:event.name</div>
           </x>
           <!-- Additional info -->
           <x var="info=field.getAdditionalInfoAt(zobj, date, preComputed)"
@@ -409,7 +408,7 @@ class Calendar(Field):
             return res.__dict__
         return res
 
-    def getEventsAt(self, obj, date, asDict=True):
+    def getEventsAt(self, obj, date):
         '''Returns the list of events that exist at some p_date (=day).'''
         obj = obj.o # Ensure p_obj is not a wrapper.
         if not hasattr(obj.aq_base, self.name): return
@@ -422,16 +421,12 @@ class Calendar(Field):
         days = months[month]
         day = date.day()
         if day not in days: return
-        if asDict:
-            res = [e.__dict__ for e in days[day]]
-        else:
-            res = days[day]
-        return res
+        return days[day]
 
     def getEventTypeAt(self, obj, date):
         '''Returns the event type of the first event defined at p_day, or None
            if unspecified.'''
-        events = self.getEventsAt(obj, date, asDict=False)
+        events = self.getEventsAt(obj, date)
         if not events: return
         return events[0].eventType
 
@@ -522,20 +517,20 @@ class Calendar(Field):
         '''Returns True if, at p_date, an event is found of the same type as
            p_otherEvents.'''
         if not otherEvents: return False
-        events = self.getEventsAt(obj, date, asDict=False)
+        events = self.getEventsAt(obj, date)
         if not events: return False
-        return events[0].eventType == otherEvents[0]['eventType']
+        return events[0].eventType == otherEvents[0].eventType
 
     def getOtherEventsAt(self, obj, date, otherCalendars):
         '''Gets events that are defined in p_otherCalendars at some p_date.'''
         res = []
         for o, field, color in otherCalendars:
-            events = field.getEventsAt(o.o, date, asDict=False)
+            events = field.getEventsAt(o.o, date)
             if events:
                 eventType = events[0].eventType
                 eventName = field.getEventName(o.o, eventType)
                 info = Object(name=eventName, color=color)
-                res.append(info.__dict__)
+                res.append(info)
         return res
 
     def getEventName(self, obj, eventType):
