@@ -77,11 +77,25 @@ class BufferAction:
                       dumpTb=dumpTb)
         self.buffer.evaluate(result, context)
 
+    def _evalExpr(self, expr, context):
+        '''Evaluates p_expr with p_context. p_expr can contain an error expr,
+           in the form "someExpr|errorExpr". If it is the case, if the "normal"
+           expr raises an error, the "error" expr is evaluated instead.'''
+        if '|' not in expr:
+            res = eval(expr, context)
+        else:
+            expr, errorExpr = expr.rsplit('|', 1)
+            try:
+                res = eval(expr, context)
+            except Exception:
+                res = eval(errorExpr, context)
+        return res
+
     def evaluateExpression(self, result, context, expr):
         '''Evaluates expression p_expr with the current p_context. Returns a
            tuple (result, errorOccurred).'''
         try:
-            res = eval(expr, context)
+            res = self._evalExpr(expr, context)
             error = False
         except Exception, e:
             res = None
@@ -169,7 +183,10 @@ class ForAction(BufferAction):
         self.iter = iter # Name of the iterator variable used in the each loop
 
     def initialiseLoop(self, context, elems):
-        '''Initialises information about the loop, before entering into it.'''
+        '''Initialises information about the loop, before entering into it. It
+           is possible that this loop overrides an outer loop whose iterator
+           has the same name. This method returns a tuple
+           (loop, outerOverriddenLoop).'''
         # The "loop" object, made available in the POD context, contains info
         # about all currently walked loops. For every walked loop, a specific
         # object, le'ts name it curLoop, accessible at getattr(loop, self.iter),
@@ -195,11 +212,17 @@ class ForAction(BufferAction):
             context['loop'] = Object()
         try:
             total = len(elems)
-        except:
+        except Exception:
             total = 0
         curLoop = Object(length=total)
+        # Does this loop overrides an outer loop whose iterator has the same
+        # name ?
+        outerLoop = None
+        if hasattr(context['loop'], self.iter):
+            outerLoop = getattr(context['loop'], self.iter)
+        # Put this loop in the global object "loop".
         setattr(context['loop'], self.iter, curLoop)
-        return curLoop
+        return curLoop, outerLoop
 
     def do(self, result, context, elems):
         '''Performs the "for" action. p_elems is the list of elements to
@@ -229,7 +252,7 @@ class ForAction(BufferAction):
             if not elems:
                 result.dumpElement(Cell.OD.elem)
         # Enter the "for" loop.
-        loop = self.initialiseLoop(context, elems)
+        loop, outerLoop = self.initialiseLoop(context, elems)
         i = -1
         for item in elems:
             i += 1
@@ -277,11 +300,13 @@ class ForAction(BufferAction):
                 context[self.iter] = ''
                 for i in range(nbOfMissingCellsLastLine):
                     self.buffer.evaluate(result, context, subElements=False)
-        # Delete the object representing info about the current loop.
+        # Delete the current loop object and restore the overridden one if any.
         try:
             delattr(context['loop'], self.iter)
         except AttributeError:
             pass
+        if outerLoop:
+            setattr(context['loop'], self.iter, outerLoop)
         # Restore hidden variable if any
         if hasHiddenVariable:
             context[self.iter] = hiddenVariable

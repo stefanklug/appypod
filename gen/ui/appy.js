@@ -115,20 +115,22 @@ function getAjaxChunk(pos) {
   }
 }
 
-function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
-  /* This function will ask to get a chunk of HTML on the server through a
+function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
+  /* This function will ask to get a chunk of XHTML on the server through a
      XMLHttpRequest. p_mode can be 'GET' or 'POST'. p_url is the URL of a
-     given server object. On this URL we will call the page "ajax.pt" that
-     will call a specific p_macro in a given p_page with some additional
-     p_params (must be an associative array) if required.
+     given server object. On this object we will call method "ajax" that will
+     call a specific p_px with some additional p_params (must be an associative
+     array) if required. If p_px is of the form <field name>:<px name>, the PX
+     will be found on the field named <field name> instead of being found
+     directly on the object at p_url.
 
-     p_hook is the ID of the HTML element that will be filled with the HTML
+     p_hook is the ID of the XHTML element that will be filled with the XHTML
      result from the server.
 
      p_beforeSend is a Javascript function to call before sending the request.
-     This function will get 2 args: the XMLHttpRequest object and the
-     p_params. This method can return, in a string, additional parameters to
-     send, ie: "&param1=blabla&param2=blabla".
+     This function will get 2 args: the XMLHttpRequest object and the p_params.
+     This method can return, in a string, additional parameters to send, ie:
+     "&param1=blabla&param2=blabla".
 
      p_onGet is a Javascript function to call when we will receive the answer.
      This function will get 2 args, too: the XMLHttpRequest object and the
@@ -149,7 +151,7 @@ function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
     var rq = xhrObjects[pos];
     rq.freed = 0;
     // Construct parameters
-    var paramsFull = 'page=' + page + '&macro=' + macro;
+    var paramsFull = 'px=' + px;
     if (params) {
       for (var paramName in params)
         paramsFull = paramsFull + '&' + paramName + '=' + params[paramName];
@@ -160,7 +162,7 @@ function askAjaxChunk(hook,mode,url,page,macro,params,beforeSend,onGet) {
        if (res) paramsFull = paramsFull + res;
     }
     // Construct the URL to call
-    var urlFull = url + '/ui/ajax';
+    var urlFull = url + '/ajax';
     if (mode == 'GET') {
       urlFull = urlFull + '?' + paramsFull;
     }
@@ -199,41 +201,39 @@ function askQueryResult(hookId, objectUrl, className, searchName,
       params['filterValue'] = filterWidget.value;
     }
   }
-  askAjaxChunk(hookId,'GET',objectUrl, 'result', 'queryResult', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, 'pxQueryResult', params);
 }
 
 function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
   // Sends an Ajax request for getting the history of an object
   var params = {'maxPerPage': maxPerPage, 'startNumber': startNumber};
-  askAjaxChunk(hookId, 'GET', objectUrl, 'page', 'objectHistory', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, 'pxHistory', params);
 }
 
 function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
                      action, actionParams){
   // Sends an Ajax request for getting the content of a reference field.
   var startKey = hookId + '_startNumber';
-  var params = {'fieldName': fieldName, 'innerRef': innerRef };
+  var params = {'innerRef': innerRef };
   params[startKey] = startNumber;
   if (action) params['action'] = action;
   if (actionParams) {
     for (key in actionParams) { params[key] = actionParams[key]; };
   }
-  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/ref', 'viewContent', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
 }
 
 function askComputedField(hookId, objectUrl, fieldName) {
   // Sends an Ajax request for getting the content of a computed field
-  var params = {'fieldName': fieldName};
-  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/computed', 'viewContent', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxViewContent');
 }
 
 function askField(hookId, objectUrl, layoutType, showChanges){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
-  var params = {'fieldName': fieldName, 'layoutType': layoutType,
-                'showChanges': showChanges};
-  askAjaxChunk(hookId, 'GET', objectUrl, 'widgets/show', 'fieldAjax', params,
-               null, evalInnerScripts);
+  var params = {'layoutType': layoutType, 'showChanges': showChanges};
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxRender', params, null,
+               evalInnerScripts);
 }
 
 // Function used by checkbox widgets for having radio-button-like behaviour

@@ -1,16 +1,16 @@
 # ------------------------------------------------------------------------------
-import os, os.path, sys, re, time, random, types, base64, urllib
+import os, os.path, sys, re, time, random, types
 from appy import Object
 import appy.gen
-from appy.gen import Search, String, Page, ldap
-from appy.gen.utils import SomeObjects, getClassName, GroupDescr, SearchDescr
+from appy.gen import Search, UiSearch, String, Page, ldap
+from appy.gen.layout import ColumnLayout
+from appy.gen import utils as gutils
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
 from appy.gen.mail import sendMail
 from appy.shared import mimeTypes
-from appy.shared.utils import getOsTempFolder, sequenceTypes, normalizeString, \
-                              splitList
+from appy.shared import utils as sutils
 from appy.shared.data import languages
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
@@ -32,7 +32,7 @@ class ToolMixin(BaseMixin):
         appName = self.getProductConfig().PROJECTNAME
         res = metaTypeOrAppyClass
         if not isinstance(metaTypeOrAppyClass, basestring):
-            res = getClassName(metaTypeOrAppyClass, appName)
+            res = gutils.getClassName(metaTypeOrAppyClass, appName)
         if res.find('_wrappers') != -1:
             elems = res.split('_')
             res = '%s%s' % (elems[1], elems[4])
@@ -42,31 +42,31 @@ class ToolMixin(BaseMixin):
     def home(self):
         '''Returns the content of px ToolWrapper.pxHome.'''
         tool = self.appy()
-        return tool.pxHome({'self': tool})
+        return tool.pxHome({'obj': None, 'tool': tool})
 
     def query(self):
         '''Returns the content of px ToolWrapper.pxQuery.'''
         tool = self.appy()
-        return tool.pxQuery({'self': tool})
+        return tool.pxQuery({'obj': None, 'tool': tool})
 
     def search(self):
         '''Returns the content of px ToolWrapper.pxSearch.'''
         tool = self.appy()
-        return tool.pxSearch({'self': tool})
+        return tool.pxSearch({'obj': None, 'tool': tool})
 
     def getHomePage(self):
         '''Return the home page when a user hits the app.'''
         # If the app defines a method "getHomePage", call it.
-        appyTool = self.appy()
+        tool = self.appy()
         try:
-            url = appyTool.getHomePage()
+            url = tool.getHomePage()
         except AttributeError:
             # Bring Managers to the config, lead others to home.pt.
             user = self.getUser()
             if user.has_role('Manager'):
                 url = self.goto(self.absolute_url())
             else:
-                url = self.goto(self.getApp().ui.home.absolute_url())
+                url = self.goto('%s/home' % self.getApp().config.absolute_url())
         return url
 
     def getHomeObject(self):
@@ -77,15 +77,12 @@ class ToolMixin(BaseMixin):
            portlet menu will nevertheless appear: the user will not have the
            feeling of being lost.'''
         # If the app defines a method "getHomeObject", call it.
-        appyTool = self.appy()
         try:
-            obj = appyTool.getHomeObject()
-            if obj: return obj.o
+            return self.appy().getHomeObject()
         except AttributeError:
             # For managers, the home object is the config. For others, there is
             # no default home object.
-            user = self.getUser()
-            if user.has_role('Manager'): return self
+            if self.getUser().has_role('Manager'): return self.appy()
 
     def getCatalog(self):
         '''Returns the catalog object.'''
@@ -220,31 +217,29 @@ class ToolMixin(BaseMixin):
         '''Returns the list of root classes for this application.'''
         return self.getProductConfig().rootClasses
 
-    def _appy_getAllFields(self, contentType):
-        '''Returns the (translated) names of fields of p_contentType.'''
+    def _appy_getAllFields(self, className):
+        '''Returns the (translated) names of fields of p_className.'''
         res = []
-        for appyType in self.getAllAppyTypes(className=contentType):
-            res.append((appyType.name, self.translate(appyType.labelId)))
+        for field in self.getAllAppyTypes(className=className):
+            res.append((className.name, self.translate(className.labelId)))
         # Add object state
         res.append(('state', self.translate('workflow_state')))
         return res
 
-    def _appy_getSearchableFields(self, contentType):
+    def _appy_getSearchableFields(self, className):
         '''Returns the (translated) names of fields that may be searched on
-           objects of type p_contentType (=indexed fields).'''
+           objects of type p_className (=indexed fields).'''
         res = []
-        for appyType in self.getAllAppyTypes(className=contentType):
-            if appyType.indexed:
-                res.append((appyType.name, self.translate(appyType.labelId)))
+        for field in self.getAllAppyTypes(className=className):
+            if field.indexed:
+                res.append((field.name, self.translate(field.labelId)))
         return res
 
-    def getSearchInfo(self, contentType, refInfo=None):
-        '''Returns, as a dict:
-           - the list of searchable fields (= some fields among all indexed
-             fields);
+    def getSearchInfo(self, className, refInfo=None):
+        '''Returns, as an object:
+           - the list of searchable fields (some among all indexed fields);
            - the number of columns for layouting those fields.'''
         fields = []
-        fieldDicts = []
         if refInfo:
             # The search is triggered from a Ref field.
             refObject, fieldName = self.getRefInfo(refInfo)
@@ -253,16 +248,13 @@ class ToolMixin(BaseMixin):
             nbOfColumns = refField.queryNbCols
         else:
             # The search is triggered from an app-wide search.
-            at = self.appy()
-            fieldNames = getattr(at, 'searchFieldsFor%s' % contentType,())
-            nbOfColumns = getattr(at, 'numberOfSearchColumnsFor%s' %contentType)
+            tool = self.appy()
+            fieldNames = getattr(tool, 'searchFieldsFor%s' % className,())
+            nbOfColumns = getattr(tool, 'numberOfSearchColumnsFor%s' %className)
         for name in fieldNames:
-            appyType = self.getAppyType(name,asDict=False,className=contentType)
-            appyDict = self.getAppyType(name, asDict=True,className=contentType)
-            fields.append(appyType)
-            fieldDicts.append(appyDict)
-        return {'fields': fields, 'nbOfColumns': nbOfColumns,
-                'fieldDicts': fieldDicts}
+            field = self.getAppyType(name, className=className)
+            fields.append(field)
+        return Object(fields=fields, nbOfColumns=nbOfColumns)
 
     queryParamNames = ('className', 'search', 'sortKey', 'sortOrder',
                        'filterKey', 'filterValue')
@@ -284,16 +276,16 @@ class ToolMixin(BaseMixin):
         if hasattr(klass, 'resultMode'): return klass.resultMode
         return 'list' # The default mode
 
-    def getImportElements(self, contentType):
+    def getImportElements(self, className):
         '''Returns the list of elements that can be imported from p_path for
-           p_contentType.'''
-        appyClass = self.getAppyClass(contentType)
+           p_className.'''
+        appyClass = self.getAppyClass(className)
         importParams = self.getCreateMeans(appyClass)['import']
         onElement = importParams['onElement'].__get__('')
         sortMethod = importParams['sort']
         if sortMethod: sortMethod = sortMethod.__get__('')
         elems = []
-        importType = self.getAppyType('importPathFor%s' % contentType)
+        importType = self.getAppyType('importPathFor%s' % className)
         importPath = importType.getValue(self)
         for elem in os.listdir(importPath):
             elemFullPath = os.path.join(importPath, elem)
@@ -339,17 +331,19 @@ class ToolMixin(BaseMixin):
     def getAllowedValue(self):
         '''Gets, for the currently logged user, the value for index
            "Allowed".'''
+        tool = self.appy()
         user = self.getUser()
+        rq = tool.request
         # Get the user roles
-        res = user.getRoles()
+        res = rq.userRoles
         # Add role "Anonymous"
         if 'Anonymous' not in res: res.append('Anonymous')
         # Add the user id if not anonymous
-        userId = user.getId()
-        if userId: res.append('user:%s' % userId)
+        userId = user.login
+        if userId != 'anon': res.append('user:%s' % userId)
         # Add group ids
         try:
-            res += ['user:%s' % g for g in user.groups.keys()]
+            res += ['user:%s' % g for g in rq.zopeUser.groups.keys()]
         except AttributeError, ae:
             pass # The Zope admin does not have this attribute.
         return res
@@ -434,7 +428,8 @@ class ToolMixin(BaseMixin):
             if refField: maxResults = refField.maxPerPage
             else:        maxResults = self.appy().numberOfResultsPerPage
         elif maxResults == 'NO_LIMIT': maxResults = None
-        res = SomeObjects(brains, maxResults, startNumber,noSecurity=noSecurity)
+        res = gutils.SomeObjects(brains, maxResults, startNumber,
+                                 noSecurity=noSecurity)
         res.brainsToObjects()
         # In some cases (p_remember=True), we need to keep some information
         # about the query results in the current user's session, allowing him
@@ -454,15 +449,14 @@ class ToolMixin(BaseMixin):
             self.REQUEST.SESSION['search_%s' % searchName] = uids
         return res.__dict__
 
-    def getResultColumnsLayouts(self, contentType, refInfo):
+    def getResultColumnsLayouts(self, className, refInfo):
         '''Returns the column layouts for displaying objects of
-           p_contentType.'''
+           p_className.'''
         if refInfo[0]:
-            res = refInfo[0].getAppyType(refInfo[1]).shownInfo
+            return refInfo[0].getAppyType(refInfo[1]).shownInfo
         else:
-            toolFieldName = 'resultColumnsFor%s' % contentType
-            res = getattr(self.appy(), toolFieldName)
-        return res
+            toolFieldName = 'resultColumnsFor%s' % className
+            return getattr(self.appy(), toolFieldName)
 
     def truncateValue(self, value, width=15):
         '''Truncates the p_value according to p_width.'''
@@ -487,10 +481,11 @@ class ToolMixin(BaseMixin):
     def splitList(self, l, sub):
         '''Returns a list made of the same elements as p_l, but grouped into
            sub-lists of p_sub elements.'''
-        return splitList(l, sub)
+        return sutils.splitList(l, sub)
 
     def quote(self, s):
         '''Returns the quoted version of p_s.'''
+        if not isinstance(s, basestring): s = str(s)
         if "'" in s: return '&quot;%s&quot;' % s
         return "'%s'" % s
 
@@ -499,21 +494,6 @@ class ToolMixin(BaseMixin):
         url = self.REQUEST['ACTUAL_URL']
         if url.endswith('/view'): return 'view'
         if url.endswith('/edit') or url.endswith('/do'): return 'edit'
-
-    def getPublishedObject(self, layoutType):
-        '''Gets the currently published object, if its meta_class is among
-           application classes.'''
-        # In some situations (ie, we are querying objects), the published object
-        # according to Zope is the tool, but we don't want to consider it that
-        # way.
-        if layoutType not in ('edit', 'view'): return
-        obj = self.REQUEST['PUBLISHED']
-        # If URL is a /do, published object is the "do" method.
-        if type(obj) == types.MethodType: obj = obj.im_self
-        else:
-            parent = obj.getParentNode()
-            if parent.id == 'ui': obj = parent.getParentNode()
-        if obj.meta_type in self.getProductConfig().attributes: return obj
 
     def getZopeClass(self, name):
         '''Returns the Zope class whose name is p_name.'''
@@ -735,7 +715,7 @@ class ToolMixin(BaseMixin):
         rq = self.REQUEST
         self.storeSearchCriteria()
         # Go to the screen that displays search results
-        backUrl = '%s/ui/query?className=%s&&search=customSearch' % \
+        backUrl = '%s/query?className=%s&&search=customSearch' % \
                   (self.absolute_url(), rq['className'])
         return self.goto(backUrl)
 
@@ -747,15 +727,31 @@ class ToolMixin(BaseMixin):
             res += 'var %s = "%s";\n' % (msg, self.translate(msg))
         return res
 
+    def getColumnsSpecifiers(self, className, columnLayouts, dir):
+        '''Extracts and returns, from a list of p_columnLayouts, info required
+           for displaying columns of field values for instances of p_className,
+           either in a result screen or for a Ref field.'''
+        res = []
+        for info in columnLayouts:
+            fieldName, width, align = ColumnLayout(info).get()
+            align = self.flipLanguageDirection(align, dir)
+            field = self.getAppyType(fieldName, className)
+            if not field:
+                self.log('Field "%s", used in a column specifier, was not ' \
+                         'found.' % fieldName, type='warning')
+            else:
+                res.append(Object(field=field, width=width, align=align))
+        return res
+
     def getRefInfo(self, refInfo=None):
         '''When a search is restricted to objects referenced through a Ref
            field, this method returns information about this reference: the
-           source content type and the Ref field (Appy type). If p_refInfo is
-           not given, we search it among search criteria in the session.'''
+           source class and the Ref field. If p_refInfo is not given, we search
+           it among search criteria in the session.'''
         if not refInfo and (self.REQUEST.get('search', None) == 'customSearch'):
             criteria = self.REQUEST.SESSION.get('searchCriteria', None)
             if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
-        if not refInfo: return (None, None)
+        if not refInfo: return None, None
         objectUid, fieldName = refInfo.split(':')
         obj = self.getObject(objectUid)
         return obj, fieldName
@@ -771,7 +767,7 @@ class ToolMixin(BaseMixin):
         res = []
         default = None # Also retrieve the default one here.
         groups = {} # The already encountered groups
-        page = Page('main') # A dummy page required by class GroupDescr
+        page = Page('main') # A dummy page required by class UiGroup
         # Get the searches statically defined on the class
         searches = ClassDescriptor.getSearches(appyClass, tool=self.appy())
         # Get the dynamically computed searches
@@ -779,22 +775,21 @@ class ToolMixin(BaseMixin):
             searches += appyClass.getDynamicSearches(self.appy())
         for search in searches:
             # Create the search descriptor
-            sDescr = SearchDescr(search, className, self).get()
+            uiSearch = UiSearch(search, className, self)
             if not search.group:
                 # Insert the search at the highest level, not in any group.
-                res.append(sDescr)
+                res.append(uiSearch)
             else:
-                gDescr = search.group.insertInto(res, groups, page, className,
-                                                 forSearch=True)
-                GroupDescr.addWidget(gDescr, sDescr)
+                uiGroup = search.group.insertInto(res, groups, page, className,
+                                                  forSearch=True)
+                uiGroup.addField(uiSearch)
             # Is this search the default search?
-            if search.default: default = sDescr
-        return Object(searches=res, default=default).__dict__
+            if search.default: default = uiSearch
+        return Object(searches=res, default=default)
 
-    def getSearch(self, className, name, descr=False):
-        '''Gets the Search instance (or a SearchDescr instance if p_descr is
-           True) corresponding to the search named p_name, on class
-           p_className.'''
+    def getSearch(self, className, name, ui=False):
+        '''Gets the Search instance (or a UiSearch instance if p_ui is True)
+           corresponding to the search named p_name, on class p_className.'''
         if name == 'customSearch':
             # It is a custom search whose parameters are in the session.
             fields = self.REQUEST.SESSION['searchCriteria']
@@ -812,8 +807,8 @@ class ToolMixin(BaseMixin):
         else:
             # It is the search for every instance of p_className
             res = Search('allSearch')
-        # Return a SearchDescr if required.
-        if descr: res = SearchDescr(res, className, self).get()
+        # Return a UiSearch if required.
+        if ui: res = UiSearch(res, className, self)
         return res
 
     def advancedSearchEnabledFor(self, className):
@@ -829,7 +824,7 @@ class ToolMixin(BaseMixin):
         '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName
            on p_contentType.'''
-        baseUrl = self.absolute_url() + '/ui'
+        baseUrl = self.absolute_url()
         baseParams = 'className=%s' % contentType
         rq = self.REQUEST
         if rq.get('ref'): baseParams += '&ref=%s' % rq.get('ref')
@@ -856,13 +851,14 @@ class ToolMixin(BaseMixin):
         return startNumber
 
     def getNavigationInfo(self):
-        '''Extracts navigation information from request/nav and returns a dict
-           with the info that a page can use for displaying object
+        '''Extracts navigation information from request/nav and returns an
+           object with the info that a page can use for displaying object
            navigation.'''
-        res = {}
-        t,d1,d2,currentNumber,totalNumber = self.REQUEST.get('nav').split('.')
-        res['currentNumber'] = int(currentNumber)
-        res['totalNumber'] = int(totalNumber)
+        res = Object()
+        rq = self.REQUEST
+        t, d1, d2, currentNumber, totalNumber = rq.get('nav').split('.')
+        res.currentNumber = int(currentNumber)
+        res.totalNumber = int(totalNumber)
         # Compute the label of the search, or ref field
         if t == 'search':
             searchName = d2
@@ -875,29 +871,28 @@ class ToolMixin(BaseMixin):
             else:
                 # This is a named, predefined search.
                 label = '%s_search_%s' % (d1.split(':')[0], searchName)
-            res['backText'] = self.translate(label)
+            res.backText = self.translate(label)
             # If it is a dynamic search this label does not exist.
-            if ('_' in res['backText']): res['backText'] = ''
+            if ('_' in res.backText): res.backText = ''
         else:
             fieldName, pageName = d2.split(':')
             sourceObj = self.getObject(d1)
             label = '%s_%s' % (sourceObj.meta_type, fieldName)
-            res['backText'] = '%s - %s' % (sourceObj.Title(),
-                                           self.translate(label))
+            res.backText = '%s - %s' % (sourceObj.Title(),self.translate(label))
         newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
         # Among, first, previous, next and last, which one do I need?
         previousNeeded = False # Previous ?
-        previousIndex = res['currentNumber'] - 2
-        if (previousIndex > -1) and (res['totalNumber'] > previousIndex):
+        previousIndex = res.currentNumber - 2
+        if (previousIndex > -1) and (res.totalNumber > previousIndex):
             previousNeeded = True
         nextNeeded = False     # Next ?
-        nextIndex = res['currentNumber']
-        if nextIndex < res['totalNumber']: nextNeeded = True
+        nextIndex = res.currentNumber
+        if nextIndex < res.totalNumber: nextNeeded = True
         firstNeeded = False    # First ?
         firstIndex = 0
         if previousIndex > 0: firstNeeded = True
         lastNeeded = False     # Last ?
-        lastIndex = res['totalNumber'] - 1
+        lastIndex = res.totalNumber - 1
         if (nextIndex < lastIndex): lastNeeded = True
         # Get the list of available UIDs surrounding the current object
         if t == 'ref': # Manage navigation from a reference
@@ -908,16 +903,16 @@ class ToolMixin(BaseMixin):
             # Display the reference widget at the page where the current object
             # lies.
             startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)
-            startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
-                res['totalNumber'], batchSize)
-            res['sourceUrl'] = masterObj.getUrl(**{startNumberKey:startNumber,
-                                                   'page':pageName, 'nav':''})
+            startNumber = self.computeStartNumberFrom(res.currentNumber-1,
+                res.totalNumber, batchSize)
+            res.sourceUrl = masterObj.getUrl(**{startNumberKey:startNumber,
+                                             'page':pageName, 'nav':''})
         else: # Manage navigation from a search
             contentType = d1
             searchName = keySuffix = d2
             batchSize = self.appy().numberOfResultsPerPage
             if not searchName: keySuffix = contentType
-            s = self.REQUEST.SESSION
+            s = rq.SESSION
             searchKey = 'search_%s' % keySuffix
             if s.has_key(searchKey): uids = s[searchKey]
             else:                    uids = {}
@@ -928,7 +923,7 @@ class ToolMixin(BaseMixin):
                 # I do not have this UID in session. I will need to
                 # retrigger the query by querying all objects surrounding
                 # this one.
-                newStartNumber = (res['currentNumber']-1) - (batchSize / 2)
+                newStartNumber = (res.currentNumber-1) - (batchSize / 2)
                 if newStartNumber < 0: newStartNumber = 0
                 self.executeQuery(contentType, searchName=searchName,
                                   startNumber=newStartNumber, remember=True)
@@ -938,15 +933,15 @@ class ToolMixin(BaseMixin):
             if not uids.has_key(0): firstNeeded = False
             if not uids.has_key(lastIndex): lastNeeded = False
             # Compute URL of source object
-            startNumber = self.computeStartNumberFrom(res['currentNumber']-1,
-                                                  res['totalNumber'], batchSize)
-            res['sourceUrl'] = self.getQueryUrl(contentType, searchName,
-                                                startNumber=startNumber)
+            startNumber = self.computeStartNumberFrom(res.currentNumber-1,
+                                                     res.totalNumber, batchSize)
+            res.sourceUrl = self.getQueryUrl(contentType, searchName,
+                                             startNumber=startNumber)
         # Compute URLs
         for urlType in ('previous', 'next', 'first', 'last'):
             exec 'needIt = %sNeeded' % urlType
             urlKey = '%sUrl' % urlType
-            res[urlKey] = None
+            setattr(res, urlKey, None)
             if needIt:
                 exec 'index = %sIndex' % urlType
                 uid = None
@@ -959,37 +954,38 @@ class ToolMixin(BaseMixin):
                     brain = self.getObject(uid, brain=True)
                     if brain:
                         sibling = brain.getObject()
-                        res[urlKey] = sibling.getUrl(nav=newNav % (index + 1),
-                                          page=self.REQUEST.get('page', 'main'))
+                        setattr(res, urlKey, sibling.getUrl(\
+                            nav=newNav % (index + 1),
+                            page=rq.get('page', 'main')))
         return res
 
     def getGroupedSearchFields(self, searchInfo):
-        '''This method transforms p_searchInfo['fieldDicts'], which is a "flat"
+        '''This method transforms p_searchInfo.fields, which is a "flat"
            list of fields, into a list of lists, where every sub-list having
-           length p_searchInfo['nbOfColumns']. For every field, scolspan
+           length p_searchInfo.nbOfColumns. For every field, scolspan
            (=colspan "for search") is taken into account.'''
         res = []
         row = []
         rowLength = 0
-        for field in searchInfo['fieldDicts']:
+        for field in searchInfo.fields:
             # Can I insert this field in the current row?
-            remaining = searchInfo['nbOfColumns'] - rowLength
-            if field['scolspan'] <= remaining:
+            remaining = searchInfo.nbOfColumns - rowLength
+            if field.scolspan <= remaining:
                 # Yes.
                 row.append(field)
-                rowLength += field['scolspan']
+                rowLength += field.scolspan
             else:
                 # We must put the field on a new line. Complete the current one
                 # if not complete.
-                while rowLength < searchInfo['nbOfColumns']:
+                while rowLength < searchInfo.nbOfColumns:
                     row.append(None)
                     rowLength += 1
                 res.append(row)
                 row = [field]
-                rowLength = field['scolspan']
+                rowLength = field.scolspan
         # Complete the last unfinished line if required.
         if row:
-            while rowLength < searchInfo['nbOfColumns']:
+            while rowLength < searchInfo.nbOfColumns:
                 row.append(None)
                 rowLength += 1
             res.append(row)
@@ -998,11 +994,6 @@ class ToolMixin(BaseMixin):
     # --------------------------------------------------------------------------
     # Authentication-related methods
     # --------------------------------------------------------------------------
-    def _updateCookie(self, login, password):
-        cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
-        cookieValue = urllib.quote(cookieValue)
-        self.REQUEST.RESPONSE.setCookie('__ac', cookieValue, path='/')
-
     def _encryptPassword(self, password):
         '''Returns the encrypted version of clear p_password.'''
         return self.acl_users._encryptPassword(password)
@@ -1011,7 +1002,7 @@ class ToolMixin(BaseMixin):
         '''Performs the Zope-level authentication. Returns True if
            authentication succeeds.'''
         user = self.acl_users.validate(request)
-        return not self.userIsAnon()
+        return user.getUserName() != 'Anonymous User'
 
     def _ldapAuthenticate(self, login, password):
         '''Performs a LDAP-based authentication. Returns True if authentication
@@ -1032,16 +1023,16 @@ class ToolMixin(BaseMixin):
         if jsEnabled and not cookiesEnabled:
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
-        # Extract the login and password
+        # Extract the login and password, and create an authentication cookie
         login = rq.get('__ac_name', '')
-        password = rq.get('__ac_password', '')        
+        password = rq.get('__ac_password', '')
+        gutils.writeCookie(login, password, rq)
         # Perform the Zope-level authentication
-        self._updateCookie(login, password)
         if self._zopeAuthenticate(rq) or self._ldapAuthenticate(login,password):
             msg = self.translate('login_ok')
             logMsg = 'User "%s" logged in.' % login
         else:
-            rq.RESPONSE.expireCookie('__ac', path='/')
+            rq.RESPONSE.expireCookie('_appy_', path='/')
             msg = self.translate('login_ko')
             logMsg = 'Authentication failed with login "%s".' % login
         self.log(logMsg)
@@ -1050,9 +1041,9 @@ class ToolMixin(BaseMixin):
     def performLogout(self):
         '''Logs out the current user when he clicks on "disconnect".'''
         rq = self.REQUEST
-        userId = self.getUser().getId()
+        userId = self.getUser().login
         # Perform the logout in acl_users
-        rq.RESPONSE.expireCookie('__ac', path='/')
+        rq.RESPONSE.expireCookie('_appy_', path='/')
         # Invalidate session.
         try:
             sdm = self.session_data_manager
@@ -1083,18 +1074,12 @@ class ToolMixin(BaseMixin):
         login, password = self.identify(auth)
         if not login:
             # Try to get them from a cookie
-            cookie = request.get('__ac', None)
-            login = request.get('__ac_name', None)
-            if login and request.form.has_key('__ac_password'):
-                # The user just entered his credentials. The cookie has not been
-                # set yet (it will come in the upcoming HTTP response when the
-                # current request will be served).
-                login = request.get('__ac_name', '')
-                password = request.get('__ac_password', '')
-            elif cookie and (cookie != 'deleted'):
-                cookieValue = base64.decodestring(urllib.unquote(cookie))
-                if ':' in cookieValue:
-                    login, password = cookieValue.split(':')
+            login, password = gutils.readCookie(request)
+            if not login:
+                # Maybe the user just entered his credentials. The cookie could
+                # have been set in the response, but is not in the request.
+                login = request.get('__ac_name', None)
+                password = request.get('__ac_password', None)
         # Try to authenticate this user
         user = self.authenticate(login, password, request)
         emergency = self._emergency_user
@@ -1123,11 +1108,82 @@ class ToolMixin(BaseMixin):
     from AccessControl.User import BasicUserFolder
     BasicUserFolder.validate = validate
 
+    def getUser(self):
+        '''Gets the User instance (Appy wrapper) corresponding to the current
+           user.'''
+        tool = self.appy()
+        rq = tool.request
+        # Try first to return the user that can be cached on the request.
+        if hasattr(rq, 'user'): return rq.user
+        # Get the user login from the authentication cookie.
+        login, password = gutils.readCookie(rq)
+        if not login: # It is the anonymous user or the system.
+            # If we have a real request object, it is the anonymous user.
+            login = (rq.__class__.__name__ == 'Object') and 'system' or 'anon'
+        # Get the User object from a query in the catalog.
+        user = tool.search1('User', noSecurity=True, login=login)
+        rq.user = user
+        # Precompute some values or this usser for performance reasons
+        rq.userRoles = user.getRoles()
+        rq.zopeUser = user.getZopeUser()
+        return user
+        #from AccessControl import getSecurityManager
+        #user = getSecurityManager().getUser()
+        #if not user:
+        #    from AccessControl.User import nobody
+        #    return nobody
+        #return user
+
+    def getUserLine(self):
+        '''Returns a info about the currently logged user as a 2-tuple: first
+           elem is the one-line user info as shown on every page; second line is
+           the URL to edit user info.'''
+        user = self.getUser()
+        userRoles = self.appy().request.userRoles
+        info = [user.title]
+        rolesToShow = [r for r in userRoles if r != 'Authenticated']
+        if rolesToShow:
+            info.append(', '.join([self.translate('role_%s' % r) \
+                                   for r in rolesToShow]))
+        # Edit URL for the user.
+        url = None
+        if user.o.mayEdit():
+            url = user.o.getUrl(mode='edit', page='main', nav='')
+        return (' | '.join(info), url)
+
+    def getUserName(self, login=None, normalized=False):
+        '''Gets the user name corresponding to p_login (or the currently logged
+           login if None), or the p_login itself if the user does not exist
+           anymore. If p_normalized is True, special chars in the first and last
+           names are normalized.'''
+        tool = self.appy()
+        if not login: login = tool.user.login
+        # Manage the special case of an anonymous user.
+        if login == 'Anonymous User':
+            name = self.translate('anonymous')
+            if normalized: name = sutils.normalizeString(name)
+            return name
+        # Manage the case of a "real" user.
+        user = tool.search1('User', noSecurity=True, login=login)
+        if not user: return login
+        firstName = user.firstName
+        name = user.name
+        res = ''
+        if firstName:
+            if normalized: firstName = sutils.normalizeString(firstName)
+            res += firstName
+        if name:
+            if normalized: name = sutils.normalizeString(name)
+            if res: res += ' ' + name
+            else: res = name
+        if not res: res = login
+        return res
+
     def tempFile(self):
         '''A temp file has been created in a temp folder. This method returns
            this file to the browser.'''
         rq = self.REQUEST
-        baseFolder = os.path.join(getOsTempFolder(), self.getAppName())
+        baseFolder = os.path.join(sutils.getOsTempFolder(), self.getAppName())
         baseFolder = os.path.join(baseFolder, rq.SESSION.id)
         fileName   = os.path.join(baseFolder, rq.get('name', ''))
         if os.path.exists(fileName):
@@ -1146,52 +1202,6 @@ class ToolMixin(BaseMixin):
         if ',' in contentType: return ()
         return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
-
-    def getUserLine(self):
-        '''Returns a info about the currently logged user as a 2-tuple: first
-           elem is the one-line user info as shown on every page; second line is
-           the URL to edit user info.'''
-        appyUser = self.appy().appyUser
-        info = [appyUser.title]
-        rolesToShow = [r for r in appyUser.roles \
-                       if r not in ('Authenticated', 'Member')]
-        if rolesToShow:
-            info.append(', '.join([self.translate('role_%s'%r) \
-                                   for r in rolesToShow]))
-        # Edit URL for the appy user.
-        url = None
-        if appyUser.o.mayEdit():
-            url = appyUser.o.getUrl(mode='edit', page='main', nav='')
-        return (' | '.join(info), url)
-
-    def getUserName(self, login=None, normalized=False):
-        '''Gets the user name corresponding to p_login (or the currently logged
-           login if None), or the p_login itself if the user does not exist
-           anymore. If p_normalized is True, special chars in the first and last
-           names are normalized.'''
-        tool = self.appy()
-        if not login: login = tool.user.getId()
-        # Manage the special case of an anonymous user.
-        if login == 'Anonymous User':
-            name = self.translate('anonymous')
-            if normalized: name = normalizeString(name)
-            return name
-        # Manage the case of a "real" user.
-        user = tool.search1('User', noSecurity=True, login=login)
-        if not user: return login
-        firstName = user.firstName
-        name = user.name
-        res = ''
-        if firstName:
-            if normalized: firstName = normalizeString(firstName)
-            res += firstName
-        if name:
-            if normalized: name = normalizeString(name)
-            if res: res += ' ' + name
-            else: res = name
-        if not res: res = login
-        return res
-
     def formatDate(self, aDate, withHour=True):
         '''Returns aDate formatted as specified by tool.dateFormat.
            If p_withHour is True, hour is appended, with a format specified
@@ -1216,7 +1226,7 @@ class ToolMixin(BaseMixin):
             htmlMessage = '<a href="%s"><img src="%s/ui/home.gif"/></a>' \
                           'You are not allowed to access this page.' % \
                           (siteUrl, siteUrl)
-            userId = self.appy().user.getId() or 'system|anon'
+            userId = self.appy().user.login
             textMessage = 'Unauthorized for %s @%s.' % \
                           (userId, self.REQUEST.get('PATH_INFO'))
         else:
@@ -1256,7 +1266,7 @@ class ToolMixin(BaseMixin):
             return self.goto(backUrl, msg)
         # Create a temporary file whose name is the user login and whose
         # content is a generated token.
-        f = file(os.path.join(getOsTempFolder(), login), 'w')
+        f = file(os.path.join(sutils.getOsTempFolder(), login), 'w')
         token = String().generatePassword()
         f.write(token)
         f.close()
@@ -1277,7 +1287,7 @@ class ToolMixin(BaseMixin):
         # Check if such token exists in temp folder
         res = None
         siteUrl = self.getSiteUrl()
-        tokenFile = os.path.join(getOsTempFolder(), login)
+        tokenFile = os.path.join(sutils.getOsTempFolder(), login)
         if os.path.exists(tokenFile):
             f = file(tokenFile)
             storedToken = f.read()

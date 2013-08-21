@@ -37,8 +37,9 @@ class Ref(Field):
     # the URL for allowing to navigate from one object to the next/previous on
     # ui/view.
     pxObjectTitle = Px('''
-     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), field.name, \
-               field.pageName, loop.ztied.nb + startNumber, totalNumber);
+     <x var="includeShownInfo=includeShownInfo|False;
+             navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), field.name, \
+               field.pageName, loop.ztied.nb + 1 + startNumber, totalNumber);
              navInfo=not field.isBack and navInfo or '';
              cssClass=ztied.getCssFor('title')">
       <x>::ztied.getSupTitle(navInfo)</x>
@@ -47,7 +48,7 @@ class Ref(Field):
          href=":fullUrl" class=":cssClass">:(not includeShownInfo) and \
          ztied.Title() or field.getReferenceLabel(ztied.appy())
       </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
-            'display:none'">::ztied.getSubTitle()"</span>
+            'display:none'">::ztied.getSubTitle()</span>
      </x>''')
 
     # This PX displays icons for triggering actions on a given referenced object
@@ -59,7 +60,7 @@ class Ref(Field):
        <td if="not isBack and (len(zobjects)&gt;1) and changeOrder and canWrite"
           var2="objectIndex=field.getIndexOf(zobj, ztied);
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
-                  (q(startNumber), q('ChangeRefOrder'), q('refObjectUid'),
+                  (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
                    q(ztied.UID()), q('move'), q('**v**')))">
         <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
              title=":_('move_up')"
@@ -100,7 +101,7 @@ class Ref(Field):
                 field.name, field.pageName, 0, totalNumber);
               formCall='goto(%s)' % \
                 q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
-                  (folder.absolute_url(), linkedPortalType, navInfo));
+                  (folder.absolute_url(), tiedClassName, navInfo));
               formCall=not field.addConfirm and formCall or \
                 'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
                                           q(addConfirmMsg));
@@ -115,22 +116,20 @@ class Ref(Field):
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
-     <x if="changeOrder and canWrite and ztool.isSortable(field.name, \
-            zobjects[0].meta_type, 'ref')"
+     <x if="changeOrder and canWrite and ztool.isSortable(refField.name, \
+            tiedClassName, 'ref')"
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
-               (q(startNumber), q('SortReference'), q('sortKey'), \
-                q(field.name), q('reverse'), q('**v**')))">
+               (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
+                q('reverse'), q('**v**')))">
       <img class="clickable" src=":url('sortAsc')"
            onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
       <img class="clickable" src=":url('sortDesc')"
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 
-    # This PX is called by a XmlHttpRequest (or directly by pxView) for
-    # displaying the referred objects of a reference field.
-    pxViewContent = Px('''
-     <div var="field=zobj.getAppyType(req['fieldName']);
-               innerRef=req.get('innerRef', False) == 'True';
+    # PX that displays referred objects through this field.
+    pxView = pxCell = Px('''
+     <div var="innerRef=req.get('innerRef', False) == 'True';
                ajaxHookId=zobj.UID() + field.name;
                startNumber=int(req.get('%s_startNumber' % ajaxHookId, 0));
                info=field.getLinkedObjects(zobj, startNumber);
@@ -139,7 +138,7 @@ class Ref(Field):
                batchSize=info.batchSize;
                batchNumber=len(zobjects);
                folder=zobj.getCreateFolder();
-               linkedPortalType=ztool.getPortalType(field.klass);
+               tiedClassName=ztool.getPortalType(field.klass);
                canWrite=not field.isBack and zobj.allows(field.writePermission);
                showPlusIcon=zobj.mayAddReference(field.name);
                atMostOneRef=(field.multiplicity[1] == 1) and \
@@ -182,13 +181,13 @@ class Ref(Field):
         <input if="zobjects and field.queryable" type="button" class="button"
                style=":url('buttonSearch', bg=True)" value=":_('search_title')"
                onclick=":'goto(%s)' % \
-                 q('%s/ui/search?className=%s&amp;ref=%s:%s' % \
-                 (ztool.absolute_url(), linkedPortalType, zobj.UID(), \
+                 q('%s/search?className=%s&amp;ref=%s:%s' % \
+                 (ztool.absolute_url(), tiedClassName, zobj.UID(), \
                   field.name))"/>
        </div>
 
-       <!-- Appy (top) navigation -->
-       <x>:obj.pxAppyNavigate</x>
+       <!-- (Top) navigation -->
+       <x>:tool.pxNavigate</x>
 
        <!-- No object is present -->
        <p class="discreet" if="not zobjects">:_('no_ref')</p>
@@ -198,35 +197,34 @@ class Ref(Field):
         <tr valign="bottom">
          <td>
           <!-- Show forward or backward reference(s) -->
-          <table class="not innerRef and 'list' or ''"
+          <table class=":not innerRef and 'list' or ''"
                  width=":innerRef and '100%' or field.layouts['view']['width']"
-                 var="columns=zobjects[0].getColumnsSpecifiers(\
+                 var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                         field.shownInfo, dir)">
            <tr if="field.showHeaders">
-            <th for="column in columns" width=":column['width']"
-                align="column['align']"
-                var2="field=column['field']">
-             <span>:_(field.labelId)</span>
+            <th for="column in columns" width=":column.width"
+                align="column.align" var2="refField=column.field">
+             <span>:_(refField.labelId)</span>
              <x>:field.pxSortIcons</x>
-             <x var="className=linkedPortalType">:obj.pxShowDetails</x>
+             <x var="className=tiedClassName">:tool.pxShowDetails</x>
             </th>
            </tr>
            <tr for="ztied in zobjects" valign="top"
                class=":loop.ztied.odd and 'even' or 'odd'">
             <td for="column in columns"
-                width=":column['width']" align=":column['align']"
-                var2="field=column['field']">
+                width=":column.width" align=":column.align"
+                var2="refField=column.field">
              <!-- The "title" field -->
-             <x if="python: field.name == 'title'">
+             <x if="refField.name == 'title'">
               <x>:field.pxObjectTitle</x>
               <div if="ztied.mayAct()">:field.pxObjectActions</div>
              </x>
              <!-- Any other field -->
-             <x if="field.name != 'title'">
+             <x if="refField.name != 'title'">
               <x var="zobj=ztied; obj=ztied.appy(); layoutType='cell';
-                      innerRef=True"
+                      innerRef=True; field=refField"
                  if="zobj.showField(field.name, \
-                                    layoutType='result')">:field.pxView</x>
+                                    layoutType='result')">:field.pxRender</x>
              </x>
             </td>
            </tr>
@@ -235,13 +233,10 @@ class Ref(Field):
         </tr>
        </table>
 
-       <!-- Appy (bottom) navigation -->
-       <x>:obj.pxAppyNavigate</x>
+       <!-- (Bottom) navigation -->
+       <x>:tool.pxNavigate</x>
       </x>
      </div>''')
-
-    pxView = pxCell = Px('''
-     <x var="x=req.set('fieldName', field.name)">:field.pxViewContent</x>''')
 
     pxEdit = Px('''
      <select if="field.link"
@@ -253,7 +248,7 @@ class Ref(Field):
                    isBeingCreated=zobj.isTemporary()"
              name=":name" size="isMultiple and field.height or ''"
              multiple="isMultiple and 'multiple' or ''">
-      <option value="" if="not isMultiple">:_('choose_a_value')"></option>
+      <option value="" if="not isMultiple">:_('choose_a_value')</option>
       <option for="ztied in zobjects" var2="uid=ztied.o.UID()"
               selected=":inRequest and (uid in requestValue) or \
                                        (uid in uids)"
@@ -261,7 +256,7 @@ class Ref(Field):
      </select>''')
 
     pxSearch = Px('''<x>
-     <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <label lfor=":widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
      <!-- The "and" / "or" radio buttons -->
      <x if="field.multiplicity[1] != 1"
         var2="operName='o_%s' % name;
@@ -269,15 +264,15 @@ class Ref(Field):
               andName='%s_and' % operName">
       <input type="radio" name=":operName" id=":orName" checked="checked"
              value="or"/>
-      <label lfor=":orName">:_('search_or')"></label>
+      <label lfor=":orName">:_('search_or')</label>
       <input type="radio" name=":operName" id=":andName" value="and"/>
-      <label lfor=":andName">:_('search_and')"></label><br/>
+      <label lfor=":andName">:_('search_and')</label><br/>
      </x>
      <!-- The list of values -->
      <select name=":widgetName" size=":field.sheight" multiple="multiple">
       <option for="v in ztool.getSearchValues(name, className)"
               var2="uid=v[0]; title=field.getReferenceLabel(v[1])" value=":uid"
-              title=":title">:ztool.truncateValue(title,field.swidth)"></option>
+              title=":title">:ztool.truncateValue(title,field.swidth)</option>
      </select>
     </x>''')
 
@@ -603,7 +598,7 @@ class Ref(Field):
         addPermission = '%s: Add %s' % (tool.getAppName(),
                                         tool.getPortalType(self.klass))
         folder = obj.getCreateFolder()
-        if not obj.getUser().has_permission(addPermission, folder):
+        if not tool.getUser().has_permission(addPermission, folder):
             return No('no_add_perm')
         return True
 
@@ -622,6 +617,19 @@ class Ref(Field):
             return self.changeOrder
         else:
             return self.callMethod(obj, self.changeOrder)
+
+    def doChangeOrder(self, obj):
+        '''Moves a referred object up or down.'''
+        rq = obj.REQUEST
+        # Move the item up (-1), down (+1) ?
+        move = (rq['move'] == 'down') and 1 or -1
+        # The UID of the referred object to move
+        uid = rq['refObjectUid']
+        uids = getattr(obj.aq_base, self.name)
+        oldIndex = uids.index(uid)
+        uids.remove(uid)
+        newIndex = oldIndex + move
+        uids.insert(newIndex, uid)
 
     def getSelectableObjects(self, obj):
         '''This method returns the list of all objects that can be selected to
@@ -647,7 +655,7 @@ class Ref(Field):
             if refType.type == 'String':
                 if refType.format == 2:
                     value = self.xhtmlToText.sub(' ', value)
-                elif type(value) in sequenceTypes:
+                elif type(value) in sutils.sequenceTypes:
                     value = ', '.join(value)
             prefix = ''
             if res:
@@ -663,6 +671,13 @@ class Ref(Field):
         uids = getattr(obj.aq_base, self.name, None)
         if not uids: raise IndexError()
         return uids.index(refObj.UID())
+
+    def sort(self, obj):
+        '''Called when the user wants to sort the content of this field.'''
+        rq = obj.REQUEST
+        sortKey = rq.get('sortKey')
+        reverse = rq.get('reverse') == 'True'
+        obj.appy().sort(self.name, sortKey=sortKey, reverse=reverse)
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be

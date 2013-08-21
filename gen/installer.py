@@ -7,31 +7,14 @@ import appy
 import appy.version
 import appy.gen as gen
 from appy.gen.po import PoParser
-from appy.gen.utils import updateRolesForPermission, createObject
 from appy.gen.indexer import defaultIndexes, updateIndexes
 from appy.gen.migrator import Migrator
+from appy.gen import utils as gutils
 from appy.shared.data import languages
 
 # ------------------------------------------------------------------------------
-homePage = '''
-<tal:hp define="tool python: context.config;
-                dummy python: request.RESPONSE.redirect(tool.getHomePage())">
-</tal:hp>
-'''
-errorPage = '''
-<tal:main define="tool python: context.config"
-          on-error="string: ServerError">
- <html metal:use-macro="context/ui/template/macros/main">
-  <div metal:fill-slot="content" tal:define="o python:options">
-   <p tal:condition="o/error_message"
-      tal:content="structure o/error_message"></p>
-   <p>Error type: <b><span tal:replace="o/error_type"/></b></p>
-   <p>Error value: <b><span tal:replace="o/error_value"/></b></p>
-   <p tal:content="structure o/error_tb"></p>
-  </div>
- </html>
-</tal:main>
-'''
+homePage = '<tal:h define="dummy python: request.RESPONSE.redirect(' \
+           'context.config.getHomePage())"/>'
 
 # Stuff for tracking user activity ---------------------------------------------
 loggedUsers = {}
@@ -45,7 +28,7 @@ def traverseWrapper(self, path, response=None, validated_hook=None):
     t = time.time()
     if os.path.splitext(path)[-1].lower() not in doNotTrack:
         # Do nothing when the user gets non-pages
-        userId = self['AUTHENTICATED_USER'].getId()
+        userId, dummy = gutils.readCookie(self)
         if userId:
             loggedUsers[userId] = t
             # "Touch" the SESSION object. Else, expiration won't occur.
@@ -55,11 +38,11 @@ def traverseWrapper(self, path, response=None, validated_hook=None):
 def onDelSession(sessionObject, container):
     '''This function is called when a session expires.'''
     rq = container.REQUEST
-    if rq.cookies.has_key('__ac') and rq.cookies.has_key('_ZopeId') and \
+    if rq.cookies.has_key('_appy_') and rq.cookies.has_key('_ZopeId') and \
        (rq['_ZopeId'] == sessionObject.token):
         # The request comes from a guy whose session has expired.
         resp = rq.RESPONSE
-        resp.expireCookie('__ac', path='/')
+        resp.expireCookie('_appy_', path='/')
         resp.setHeader('Content-Type', 'text/html')
         resp.write('<center>For security reasons, your session has ' \
                    'expired.</center>')
@@ -68,6 +51,9 @@ def onDelSession(sessionObject, container):
 class ZopeInstaller:
     '''This Zope installer runs every time Zope starts and encounters this
        generated Zope product.'''
+    # Info about the default users that are always present.
+    defaultUsers = {'admin': ('Manager',), 'system': ('Manager',), 'anon': ()}
+
     def __init__(self, zopeContext, config, classes):
         self.zopeContext = zopeContext
         self.app = zopeContext._ProductContext__app # The root of the Zope tree
@@ -142,7 +128,6 @@ class ZopeInstaller:
         # Update the error page
         if 'standard_error_message' in zopeContent:
             self.app.manage_delObjects(['standard_error_message'])
-        manage_addPageTemplate(self.app, 'standard_error_message', '',errorPage)
 
     def installCatalog(self):
         '''Create the catalog at the root of Zope if id does not exist.'''
@@ -196,8 +181,8 @@ class ZopeInstaller:
 
         if 'config' not in zopeContent:
             toolName = '%sTool' % self.productName
-            createObject(self.app, 'config', toolName, self.productName,
-                         wf=False, noSecurity=True)
+            gutils.createObject(self.app, 'config', toolName, self.productName,
+                                wf=False, noSecurity=True)
 
         if 'data' not in zopeContent:
             manage_addFolder(self.app, 'data')
@@ -220,7 +205,7 @@ class ZopeInstaller:
                 wrapperClass = tool.getAppyClass(className, wrapper=True)
                 creators = wrapperClass.getCreators(self.config)
                 permission = self.getAddPermission(className)
-                updateRolesForPermission(permission, tuple(creators), data)
+                gutils.updateRolesForPermission(permission,tuple(creators),data)
 
         # Remove some default objects created by Zope but not useful to Appy
         for name in ('standard_html_footer', 'standard_html_header',\
@@ -236,12 +221,13 @@ class ZopeInstaller:
         appyTool = tool.appy()
         appyTool.log('Appy version is "%s".' % appy.version.short)
 
-        # Create the admin user if it does not exist.
-        if not appyTool.count('User', noSecurity=True, login='admin'):
-            appyTool.create('users', noSecurity=True, login='admin',
-                            password1='admin', password2='admin',
-                            email='admin@appyframework.org', roles=['Manager'])
-            appyTool.log('Admin user "admin" created.')
+        # Create the default users if they do not exist.
+        for login, roles in self.defaultUsers.iteritems():
+            if not appyTool.count('User', noSecurity=True, login=login):
+                appyTool.create('users', noSecurity=True, login=login,
+                                password1=login, password2=login,
+                                email='%s@appyframework.org'%login, roles=roles)
+                appyTool.log('User "%s" created.' % login)
 
         # Create group "admins" if it does not exist
         if not appyTool.count('Group', noSecurity=True, login='admins'):

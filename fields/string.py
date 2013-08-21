@@ -96,7 +96,7 @@ class String(Field):
        <div if="not mayAjaxEdit" class="xhtml">::value</div>
        <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
             id=":'%s_%s_ck' % (zobj.UID(), name)">::value</div>
-       <script if="mayAjaxEdit">:field.getJsInlineInit(zobj)"></script>
+       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj)"></script>
       </x>
       <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
              name=":name" id=":name"/>
@@ -116,8 +116,7 @@ class String(Field):
               size=":isMultiple and field.height or 1">
        <option for="val in possibleValues" value=":val[0]"
                selected=":field.isSelected(zobj, val[0], rawValue)"
-               title=":val[1]">:ztool.truncateValue(val[1], field.width)">
-       </option>
+               title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
       <x if="isOneLine and not isSelect">
        <input id=":name" name=":name" size=":field.width"
@@ -137,18 +136,18 @@ class String(Field):
                  rows=":field.height">:inRequest and requestValue or value
        </textarea>
        <script if="fmt == 2"
-               type="text/javascript">:field.getJsInit(zobj)</script>
+               type="text/javascript">::field.getJsInit(zobj)</script>
       </x>
      </x>''')
 
     pxCell = Px('''
      <x var="multipleValues=value and isMultiple">
-      <x if="multipleValues">:', '.join(value)"></x>
+      <x if="multipleValues">:', '.join(value)</x>
       <x if="not multipleValues">:field.pxView</x>
      </x>''')
 
     pxSearch = Px('''<x>
-     <label lfor="widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <label lfor="widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
      <!-- Show a simple search field for most String fields -->
      <input if="not field.isSelect" type="text" maxlength=":field.maxChars"
             size=":field.swidth" value=":field.sdefault"
@@ -166,7 +165,7 @@ class String(Field):
               value="or"/>
        <label lfor=":orName">:_('search_or')</label>
        <input type="radio" name=":operName" id=":andName" value="and"/>
-       <label lfor=":andName">:_('search_and')"></label><br/>
+       <label lfor=":andName">:_('search_and')</label><br/>
       </x>
       <!-- The list of values -->
       <select var="preSelected=field.sdefault"
@@ -656,7 +655,7 @@ class String(Field):
             if isinstance(v, int): sv = str(v)
             else: sv = '"%s"' % v
             ck.append('%s: %s' % (k, sv))
-        return 'CKEDITOR.replace("%s", {%s})' % (name, ', '.join(ck))
+        return 'CKEDITOR.replace("%s", {%s})' % (self.name, ', '.join(ck))
 
     def getJsInlineInit(self, obj):
         '''Gets the Javascript init code for enabling inline edition of this
@@ -665,8 +664,8 @@ class String(Field):
         return "CKEDITOR.disableAutoInline = true;\n" \
                "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
                "function( event ) { var data = event.editor.getData(); " \
-               "askAjaxChunk('%s_%s','POST','%s','page','saveField', "\
-               "{'fieldName':'%s', 'fieldContent': encodeURIComponent(data)}, "\
+               "askAjaxChunk('%s_%s','POST','%s','%s:pxSave', " \
+               "{'fieldContent': encodeURIComponent(data)}, " \
                "null, evalInnerScripts);}}});"% \
                (uid, self.name, uid, self.name, obj.absolute_url(), self.name)
 

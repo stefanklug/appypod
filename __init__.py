@@ -39,4 +39,8 @@ class Object:
     def __nonzero__(self):
         return bool(self.__dict__)
     def get(self, name, default=None): return getattr(self, name, default)
+    def update(self, other):
+        '''Includes information from p_other into p_self.'''
+        for k, v in other.__dict__.iteritems():
+            setattr(self, k, v)
 # ------------------------------------------------------------------------------

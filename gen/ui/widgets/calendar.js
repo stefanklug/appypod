@@ -1,7 +1,7 @@
 function askMonthView(hookId, objectUrl, fieldName, month) {
   // Sends an Ajax request for getting the view month of a calendar field
-  var params = {'fieldName': fieldName, 'month': month};
-  askAjaxChunk(hookId,'GET',objectUrl,'widgets/calendar','viewMonth', params);
+  var params = {'month': month};
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxMonthView', params);
 }
 
 function openEventPopup(action, fieldName, day, spansDays,
@@ -54,7 +54,8 @@ function openEventPopup(action, fieldName, day, spansDays,
   openPopup(prefix + 'Popup');
 }
 
-function triggerCalendarEvent(action, hookId, fieldName, objectUrl, maxEventLength) {
+function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
+                              maxEventLength) {
   /* Sends an Ajax request for triggering a calendar event (create or delete an
      event) and refreshing the view month. */
   var prefix = fieldName + '_' + action + 'Event';
@@ -82,5 +83,5 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl, maxEventLeng
     params[elems[i].name] = elems[i].value;
   }
   closePopup(prefix + 'Popup');
-  askAjaxChunk(hookId,'POST',objectUrl,'widgets/calendar','viewMonth',params);
+  askAjaxChunk(hookId, 'POST', objectUrl, fieldName+':pxViewMonth', params);
 }

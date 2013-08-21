@@ -91,7 +91,7 @@ class Date(Field):
                 monthFromName='%s_from_month' % name;
                 yearFromName='%s*date' % widgetName">
         <td width="10px">&nbsp;</td>
-        <td><label>:_('search_from')"></label></td>
+        <td><label>:_('search_from')</label></td>
         <td>
          <select id=":dayFromName" name=":dayFromName">
           <option value="">--</option>
@@ -124,7 +124,7 @@ class Date(Field):
                 monthToName='%s_to_month' % name;
                 yearToName='%s_to_year' % name">
         <td></td>
-        <td><label>_('search_to')"></label>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+        <td><label>_('search_to')</label>&nbsp;&nbsp;&nbsp;&nbsp;</td>
         <td height="20px">
          <select id=":dayToName" name=":dayToName">
           <option value="">--</option>

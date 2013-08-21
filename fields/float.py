@@ -36,10 +36,10 @@ class Float(Field):
             value=":inRequest and requestValue or value" type="text"/>''')
 
     pxSearch = Px('''<x>
-     <label>:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <label>:_(field.labelId)</label><br/>&nbsp;&nbsp;
      <!-- From -->
      <x var="fromName='%s*float' % widgetName">
-      <label lfor=":fromName">:_('search_from')"></label>
+      <label lfor=":fromName">:_('search_from')</label>
       <input type="text" name=":fromName" maxlength=":field.maxChars"
              value=":field.sdefault[0]" size=":field.swidth"/>
      </x>

@@ -9,7 +9,7 @@ from appy.shared import utils as sutils
 # Import stuff from appy.fields (and from a few other places too).
 # This way, when an app gets "from appy.gen import *", everything is available.
 # ------------------------------------------------------------------------------
-from appy.fields import Page, Group, Field, Column, No
+from appy.fields import Page, Phase, Group, Field, Column, No
 from appy.fields.action import Action
 from appy.fields.boolean import Boolean
 from appy.fields.computed import Computed
@@ -23,6 +23,7 @@ from appy.fields.pod import Pod
 from appy.fields.ref import Ref, autoref
 from appy.fields.string import String, Selection
 from appy.gen.layout import Table
+from appy.px import Px
 from appy import Object
 
 # Default Appy permissions -----------------------------------------------------
@@ -171,6 +172,42 @@ class Search:
         if self.show.__class__.__name__ == 'staticmethod':
             return gutils.callMethod(tool, self.show, klass=klass)
         return self.show
+
+class UiSearch:
+    '''Instances of this class are generated on-the-fly for manipulating a
+       Search from the User Interface.'''
+    # PX for rendering a search.
+    pxView = Px('''
+     <div class="portletSearch">
+      <a href=":'%s?className=%s&amp;search=%s' % \
+                 (queryUrl, rootClass, search['name'])"
+         class=":search['name'] == currentSearch and 'portletCurrent' or ''"
+         title=":search['translatedDescr']">:search['translated']</a>
+     </div>''')
+
+    def __init__(self, search, className, tool):
+        self.search = search
+        self.name = search.name
+        self.type = 'search'
+        self.colspan = search.colspan
+        if search.translated:
+            self.translated = search.translated
+            self.translatedDescr = search.translatedDescr
+        else:
+            # The label may be specific in some special cases.
+            labelDescr = ''
+            if search.name == 'allSearch':
+                label = '%s_plural' % className
+            elif search.name == 'customSearch':
+                label = 'search_results'
+            else:
+                label = '%s_search_%s' % (className, search.name)
+                labelDescr = label + '_descr'
+            self.translated = tool.translate(label)
+            if labelDescr:
+                self.translatedDescr = tool.translate(labelDescr)
+            else:
+                self.translatedDescr = ''
 
 # Workflow-specific types and default workflows --------------------------------
 appyToZopePermissions = {
@@ -381,7 +418,7 @@ class Transition:
                     break
             if not startFound: return False
         # Check that the condition is met
-        user = obj.getUser()
+        user = obj.getTool().getUser()
         if isinstance(self.condition, Role):
             # Condition is a role. Transition may be triggered if the user has
             # this role.

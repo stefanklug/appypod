@@ -149,7 +149,7 @@ class User(ModelClass):
     name = gen.String(show=showName, **gm)
     firstName = gen.String(show=showName, **gm)
     def showEmail(self): pass
-    email = gen.String(show=showEmail)
+    email = gen.String(show=showEmail, **gm)
     gm['multiplicity'] = (1,1)
     def showLogin(self): pass
     def validateLogin(self): pass

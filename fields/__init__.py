@@ -19,6 +19,8 @@ import copy, types, re
 from appy.gen.layout import Table, defaultFieldLayouts
 from appy.gen import utils as gutils
 from appy.shared import utils as sutils
+from appy.px import Px
+from appy import Object
 
 # ------------------------------------------------------------------------------
 nullValues = (None, '', [])
@@ -108,18 +110,167 @@ class Page:
         return res
 
     def getInfo(self, obj, layoutType):
-        '''Gets information about this page, for p_obj, as a dict.'''
-        res = {}
+        '''Gets information about this page, for p_obj, as an object.'''
+        res = Object()
         for elem in Page.subElements:
-            res['show%s' % elem.capitalize()] = self.isShowable(obj, layoutType,
-                                                                elem=elem)
+            setattr(res, 'show%s' % elem.capitalize(), \
+                    self.isShowable(obj, layoutType, elem=elem))
         return res
+
+# ------------------------------------------------------------------------------
+# Phase. Pages are grouped into phases.
+# ------------------------------------------------------------------------------
+class Phase:
+    '''A group of pages.'''
+
+    pxView = Px('''
+     <tr var="singlePage=len(phase.pages) == 1">
+      <td var="label='%s_phase_%s' % (zobj.meta_type, phase.name)">
+
+       <!-- The title of the phase -->
+       <div class="portletGroup"
+            if="not singlePhase and not singlePage">::_(label)</div>
+
+       <!-- The page(s) within the phase -->
+       <x for="aPage in phase.pages">
+        <!-- First line: page name and icons -->
+        <div if="not (singlePhase and singlePage)"
+             class=":aPage==page and 'portletCurrent portletPage' or \
+                     'portletPage'">
+         <a href=":zobj.getUrl(page=aPage)">::_('%s_page_%s' % \
+                   (zobj.meta_type, aPage))</a>
+         <x var="locked=zobj.isLocked(user, aPage);
+                 editable=mayEdit and phase.pagesInfo[aPage].showOnEdit">
+          <a if="editable and not locked"
+             href=":zobj.getUrl(mode='edit', page=aPage)">
+           <img src=":url('edit')" title=":_('object_edit')"/></a>
+          <a if="editable and locked">
+           <img style="cursor: help"
+                var="lockDate=tool.formatDate(locked[1]);
+                     lockMap={'user':ztool.getUserName(locked[0]), \
+                              'date':lockDate};
+                     lockMsg=_('page_locked', mapping=lockMap)"
+                src=":url('locked')" title=":lockMsg"/></a>
+          <a if="editable and locked and user.has_role('Manager')">
+           <img class="clickable" title=":_('page_unlock')" src=":url('unlock')"
+                onclick=":'onUnlockPage(%s,%s)' % \
+                          (q(zobj.UID()), q(aPage))"/></a>
+         </x>
+        </div>
+        <!-- Next lines: links -->
+        <x var="links=phase.pagesInfo[aPage].links" if="links">
+         <div for="link in links"><a href=":link.url">:link.title</a></div>
+        </x>
+       </x>
+      </td>
+     </tr>''')
+
+    def __init__(self, name, obj):
+        self.name = name
+        self.obj = obj
+        # The list of names of pages in this phase
+        self.pages = []
+        # The list of hidden pages in this phase
+        self.hiddenPages = []
+        # The dict below stores info about every page listed in self.pages.
+        self.pagesInfo = {}
+        self.totalNbOfPhases = None
+        # The following attributes allows to browse, from a given page, to the
+        # last page of the previous phase and to the first page of the following
+        # phase if allowed by phase state.
+        self.previousPhase = None
+        self.nextPhase = None
+
+    def addPageLinks(self, field, obj):
+        '''If p_field is a navigable Ref, we must add, within self.pagesInfo,
+           objects linked to p_obj through this ReF as links.'''
+        if field.page.name in self.hiddenPages: return
+        infos = []
+        for ztied in field.getValue(obj, type='zobjects'):
+            infos.append(Object(title=ztied.title, url=ztied.absolute_url()))
+        self.pagesInfo[field.page.name].links = infos
+
+    def addPage(self, field, obj, layoutType):
+        '''Adds page-related information in the phase.'''
+        # If the page is already there, we have nothing more to do.
+        if (field.page.name in self.pages) or \
+           (field.page.name in self.hiddenPages): return
+        # Add the page only if it must be shown.
+        isShowableOnView = field.page.isShowable(obj, 'view')
+        isShowableOnEdit = field.page.isShowable(obj, 'edit')
+        if isShowableOnView or isShowableOnEdit:
+            # The page must be added.
+            self.pages.append(field.page.name)
+            # Create the dict about page information and add it in self.pageInfo
+            pageInfo = Object(page=field.page, showOnView=isShowableOnView,
+                              showOnEdit=isShowableOnEdit, links=None)
+            pageInfo.update(field.page.getInfo(obj, layoutType))
+            self.pagesInfo[field.page.name] = pageInfo
+        else:
+            self.hiddenPages.append(field.page.name)
+
+    def computeNextPrevious(self, allPhases):
+        '''This method also fills fields "previousPhase" and "nextPhase"
+           if relevant, based on list of p_allPhases.'''
+        # Identify previous and next phases
+        for phase in allPhases:
+            if phase.name == self.name:
+                i = allPhases.index(phase)
+                if i > 0:
+                    self.previousPhase = allPhases[i-1]
+                if i < (len(allPhases)-1):
+                    self.nextPhase = allPhases[i+1]
+
+    def getPreviousPage(self, page):
+        '''Returns the page that precedes p_page in this phase.'''
+        try:
+            pageIndex = self.pages.index(page)
+        except ValueError:
+            # The current page is probably not visible anymore. Return the
+            # first available page in current phase.
+            res = self.pages[0]
+            return res, self.pagesInfo[res]
+        if pageIndex > 0:
+            # We stay on the same phase, previous page
+            res = self.pages[pageIndex-1]
+            return res, self.pagesInfo[res]
+        else:
+            if self.previousPhase:
+                # We go to the last page of previous phase
+                previousPhase = self.previousPhase
+                res = previousPhase.pages[-1]
+                return res, previousPhase.pagesInfo[res]
+            else:
+                return None, None
+
+    def getNextPage(self, page):
+        '''Returns the page that follows p_page in this phase.'''
+        try:
+            pageIndex = self.pages.index(page)
+        except ValueError:
+            # The current page is probably not visible anymore. Return the
+            # first available page in current phase.
+            res = self.pages[0]
+            return res, self.pagesInfo[res]
+        if pageIndex < (len(self.pages)-1):
+            # We stay on the same phase, next page
+            res = self.pages[pageIndex+1]
+            return res, self.pagesInfo[res]
+        else:
+            if self.nextPhase:
+                # We go to the first page of next phase
+                nextPhase = self.nextPhase
+                res = nextPhase.pages[0]
+                return res, nextPhase.pagesInfo[res]
+            else:
+                return None, None
+
 
 # ------------------------------------------------------------------------------
 # Group. Fields can be grouped.
 # ------------------------------------------------------------------------------
 class Group:
-    '''Used for describing a group of widgets within a page.'''
+    '''Used for describing a group of fields within a page.'''
     def __init__(self, name, columns=['100%'], wide=True, style='section2',
                  hasLabel=True, hasDescr=False, hasHelp=False,
                  hasHeaders=False, group=None, colspan=1, align='center',
@@ -258,33 +409,214 @@ class Group:
             self.group.generateLabels(messages, classDescr, walkedGroups,
                                       forSearch=forSearch)
 
-    def insertInto(self, widgets, groupDescrs, page, metaType, forSearch=False):
-        '''Inserts the GroupDescr instance corresponding to this Group instance
-           into p_widgets, the recursive structure used for displaying all
-           widgets in a given p_page (or all searches), and returns this
-           GroupDescr instance.'''
-        # First, create the corresponding GroupDescr if not already in
-        # p_groupDescrs.
-        if self.name not in groupDescrs:
-            groupDescr = groupDescrs[self.name] = gutils.GroupDescr(\
-                self, page, metaType, forSearch=forSearch).get()
-            # Insert the group at the higher level (ie, directly in p_widgets)
+    def insertInto(self, fields, uiGroups, page, metaType, forSearch=False):
+        '''Inserts the UiGroup instance corresponding to this Group instance
+           into p_fields, the recursive structure used for displaying all
+           fields in a given p_page (or all searches), and returns this
+           UiGroup instance.'''
+        # First, create the corresponding UiGroup if not already in p_uiGroups.
+        if self.name not in uiGroups:
+            uiGroup = uiGroups[self.name] = UiGroup(self, page, metaType,
+                                                    forSearch=forSearch)
+            # Insert the group at the higher level (ie, directly in p_fields)
             # if the group is not itself in a group.
             if not self.group:
-                widgets.append(groupDescr)
+                fields.append(uiGroup)
             else:
-                outerGroupDescr = self.group.insertInto(widgets, groupDescrs,
-                                            page, metaType, forSearch=forSearch)
-                gutils.GroupDescr.addWidget(outerGroupDescr, groupDescr)
+                outerGroup = self.group.insertInto(fields, uiGroups, page,
+                                                   metaType,forSearch=forSearch)
+                outerGroup.addField(uiGroup)
         else:
-            groupDescr = groupDescrs[self.name]
-        return groupDescr
+            uiGroup = uiGroups[self.name]
+        return uiGroup
 
 class Column:
     '''Used for describing a column within a Group like defined above.'''
     def __init__(self, width, align="left"):
         self.width = width
         self.align = align
+
+class UiGroup:
+    '''On-the-fly-generated data structure that groups all fields sharing the
+       same appy.fields.Group instance, that some logged user can see.'''
+
+    # PX that renders a help icon for a group.
+    pxHelp = Px('''<acronym title="obj.translate('help', field=field)"><img
+     src=":url('help')"/></acronym>''')
+
+    # PX that renders the content of a group.
+    pxContent = Px('''
+     <table var="cellgap=field.cellgap" width=":field.wide"
+            align=":ztool.flipLanguageDirection(field.align, dir)"
+            id=":tagId" name=":tagName" class=":groupCss"
+            cellspacing=":field.cellspacing" cellpadding=":field.cellpadding">
+      <!-- Display the title of the group if not rendered a fieldset. -->
+      <tr if="(field.style != 'fieldset') and field.hasLabel">
+       <td colspan=":len(field.columnsWidths)" class=":field.style"
+           align=":dleft">
+        <x>::_(field.labelId)</x><x if="field.hasHelp">:field.pxHelp</x>
+       </td>
+      </tr>
+      <tr if="(field.style != 'fieldset') and field.hasDescr">
+       <td colspan=":len(field.columnsWidths)"
+           class="discreet">::_(field.descrId)</td>
+      </tr>
+      <!-- The column headers -->
+      <tr>
+       <th for="colNb in range(len(field.columnsWidths))"
+           align="ztool.flipLanguageDirection(field.columnsAligns[colNb], dir)"
+           width=":field.columnsWidths[colNb]">::field.hasHeaders and \
+            _('%s_col%d' % (field.labelId, (colNb+1))) or ''</th>
+      </tr>
+      <!-- The rows of widgets -->
+      <tr valign=":field.valign" for="row in field.fields">
+       <td for="field in row"
+           colspan="field.colspan"
+           style=":not loop.field.last and ('padding-right:%s'% cellgap) or ''">
+        <x if="field">
+         <x if="field.type == 'group'">:field.pxView</x>
+         <x if="field.type != 'group'">:field.pxRender</x>
+        </x>
+       </td>
+      </tr>
+     </table>''')
+
+    # PX that renders a group of fields.
+    pxView = Px('''
+     <x var="tagCss=field.master and ('slave_%s_%s' % \
+                    (field.masterName, '_'.join(field.masterValue))) or '';
+             widgetCss=field.css_class;
+             groupCss=tagCss and ('%s %s' % (tagCss, widgetCss)) or widgetCss;
+             tagName=field.master and 'slave' or '';
+             tagId='%s_%s' % (zobj.UID(), field.name)">
+
+      <!-- Render the group as a fieldset if required -->
+      <fieldset if="field.style == 'fieldset'">
+       <legend if="field.hasLabel">
+         <i>::_(field.labelId)></i><x if="field.hasHelp">:field.pxHelp</x>
+       </legend>
+       <div if="field.hasDescr" class="discreet">::_(field.descrId)</div>
+       <x>:field.pxContent</x>
+      </fieldset>
+
+      <!-- Render the group as a section if required -->
+      <x if="field.style not in ('fieldset', 'tabs')">:field.pxContent</x>
+
+      <!-- Render the group as tabs if required -->
+      <x if="field.style == 'tabs'" var2="lenFields=len(field.fields)">
+       <table width=":field.wide" class=":groupCss" id=":tagId" name=":tagName">
+        <!-- First row: the tabs. -->
+        <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
+         <table style="position:relative; bottom:-2px"
+                cellpadding="0" cellspacing="0">
+          <tr valign="bottom">
+           <x for="row in field.fields"
+              var2="rowNb=loop.row.nb;
+                    tabId='tab_%s_%d_%d' % (field.name, rowNb, lenFields)">
+            <td><img src=":url('tabLeft')" id=":'%s_left' % tabId"/></td>
+            <td style=":url('tabBg', bg=True)" id=":tabId">
+             <a onclick=":'showTab(%s)' % q('%s_%d_%d' % (field.name, rowNb, \
+                                                          lenFields))"
+                class="clickable">:_('%s_col%d' % (field.labelId, rowNb))</a>
+            </td>
+            <td><img id=":'%s_right' % tabId" src=":url('tabRight')"/></td>
+           </x>
+          </tr>
+         </table>
+        </td></tr>
+
+        <!-- Other rows: the fields -->
+        <tr for="row in field.fields"
+            id=":'tabcontent_%s_%d_%d' % (field.name, loop.row.nb, lenFields)"
+            style=":loop.row.nb==0 and 'display:table-row' or 'display:none')">
+         <td var="field=row[0]">
+          <x if="field.type == 'group'">:field.pxView</x>
+          <x if="field.type != 'group'">:field.pxRender</x>
+         </td>
+        </tr>
+       </table>
+       <script type="text/javascript">:'initTab(%s,%s)' % \
+        (q('tab_%s' % field.name), q('%s_1_%d' % (field.name, lenFields)))">
+       </script>
+      </x>
+     </x>''')
+
+    # PX that renders a group of searches.
+    pxViewSearches = Px('''
+     <x var="expanded=req.get(field.labelId, 'collapsed') == 'expanded'">
+      <!-- Group name, prefixed by the expand/collapse icon -->
+      <div class="portletGroup">
+       <img class="clickable" style="margin-right: 3px" align=":dleft"
+            id=":'%s_img' % field.labelId"
+            src=":expanded and url('collapse.gif') or url('expand.gif')"
+            onclick=":'toggleCookie(%s)' % q(field.labelId)"/>
+       <x if="not field.translated">:_(field.labelId)</x>
+       <x if="field.translated">:field.translated</x>
+      </div>
+      <!-- Group content -->
+      <div var="display=expanded and 'display:block' or 'display:none'"
+           id=":field.labelId" style=":'padding-left: 10px; %s' % display">
+       <x for="searches in field.widgets">
+        <x for="elem in searches">
+         <!-- An inner group within this group -->
+         <x if="elem.type == 'group'"
+            var2="field=elem">:field.pxViewSearches</x>
+         <!-- A search -->
+         <x if="elem.type != 'group'" var2="search=elem">:search.pxView</x>
+        </x>
+       </x>
+      </div>
+     </x>''')
+
+    def __init__(self, group, page, metaType, forSearch=False):
+        self.type = 'group'
+        # All p_group attributes become self attributes.
+        for name, value in group.__dict__.iteritems():
+            if not name.startswith('_'):
+                setattr(self, name, value)
+        self.columnsWidths = [col.width for col in group.columns]
+        self.columnsAligns = [col.align for col in group.columns]
+        # Names of i18n labels
+        labelName = self.name
+        prefix = metaType
+        if group.label:
+            if isinstance(group.label, basestring): prefix = group.label
+            else: # It is a tuple (metaType, name)
+                if group.label[1]: labelName = group.label[1]
+                if group.label[0]: prefix = group.label[0]
+        if forSearch: gp = 'searchgroup'
+        else:         gp = 'group'
+        self.labelId = '%s_%s_%s' % (prefix, gp, labelName)
+        self.descrId = self.labelId + '_descr'
+        self.helpId  = self.labelId + '_help'
+        # The name of the page where the group lies
+        self.page = page.name
+        # The fields belonging to the group that the current user may see.
+        # They will be stored by m_addField below as a list of lists because
+        # they will be rendered as a table.
+        self.fields = [[]]
+        # PX to user for rendering this group.
+        self.px = forSearch and self.pxViewSearches or self.pxView
+
+    def addField(self, field):
+        '''Adds p_field into self.fields. We try first to add p_field into the
+           last row. If it is not possible, we create a new row.'''
+        # Get the last row
+        lastRow = self.fields[-1]
+        numberOfColumns = len(self.columnsWidths)
+        # Compute the number of columns already filled in the last row.
+        filledColumns = 0
+        for rowField in lastRow: filledColumns += rowField.colspan
+        freeColumns = numberOfColumns - filledColumns
+        if freeColumns >= field.colspan:
+            # We can add the widget in the last row.
+            lastRow.append(field)
+        else:
+            if freeColumns:
+                # Terminate the current row by appending empty cells
+                for i in range(freeColumns): lastRow.append('')
+            # Create a new row
+            self.fields.append([field])
 
 # ------------------------------------------------------------------------------
 # Abstract base class for every field.
@@ -297,6 +629,67 @@ class Field:
     cssFiles = {}
     jsFiles = {}
     dLayouts = 'lrv-d-f'
+
+    # Render a field. Optiona vars:
+    # * fieldName   can be given as different as field.name for fields included
+    #               in List fields: in this case, fieldName includes the row
+    #               index.
+    # * showChanges If True, a variant of the field showing successive changes
+    #               made to it is shown.
+    pxRender = Px('''
+     <x var="showChanges=showChanges|False;
+             layout=field.layouts[layoutType];
+             name=fieldName|field.name;
+             sync=field.sync[layoutType];
+             outerValue=value|None;
+             rawValue=zobj.getFieldValue(name, onlyIfSync=True, \
+                                         layoutType=layoutType, \
+                                         outerValue=outerValue);
+             value=zobj.getFormattedFieldValue(name, rawValue, showChanges);
+             requestValue=zobj.getRequestFieldValue(name);
+             inRequest=req.has_key(name);
+             errors=errors|();
+             inError=name in errors;
+             isMultiple=(field.multiplicity[1] == None) or \
+                        (field.multiplicity[1] &gt; 1);
+             masterCss=field.slaves and ('master_%s' % name) or '';
+             slaveCss=field.master and ('slave_%s_%s' % \
+                         (field.masterName, '_'.join(field.masterValue))) or '';
+             tagCss=tagCss|'';
+             tagCss=('%s %s' % (slaveCss, tagCss)).strip();
+             tagId='%s_%s' % (zobj.UID(), name);
+             tagName=field.master and 'slave' or '';
+             layoutTarget=field">:tool.pxLayoutedObject</x>''')
+
+    # Displays a field label.
+    pxLabel = Px('''<label if="field.hasLabel and (field.type != 'Action')"
+     lfor="field.name">::zobj.translate('label', field=field)</label>''')
+
+    # Displays a field description.
+    pxDescription = Px('''<span if="field.hasDescr"
+     class="discreet">::zobj.translate('descr', field=field)</span>''')
+
+    # Displays a field help.
+    pxHelp = Px('''<acronym title="zobj.translate('help', field=field)"><img
+     src=":url('help')"/></acronym>''')
+
+    # Displays validation-error-related info about a field.
+    pxValidation = Px('''<x><acronym if="inError" title=":errors[name]"><img
+     src=":url('warning')"/></acronym><img if="not inError"
+     src=":url('warning_no.gif')"/></x>''')
+
+    # Displays the fact that a field is required.
+    pxRequired = Px('''<img src=":url('required.gif')"/>''')
+
+    # Button for showing changes to the field.
+    pxChanges = Px('''<x if=":zobj.hasHistory(name)"><img class="clickable"
+     if="not showChanges" src=":url('changes')" title="_('changes_show')"
+     onclick=":'askField(%s,%s,%s,%s)' % \
+               (q(tagId), q(zobj.absolute_url()), q('view'), q('True'))"/><img
+     class="clickable" if="showChanges" src=":url('changesNo')"
+     onclick=":'askField(%s,%s,%s,%s)' % \
+               (q(tagId), q(zobj.absolute_url(), q('view'), q('True'))"
+     title=":_('changes_hide')"/></x>''')
 
     def __init__(self, validator, multiplicity, default, show, page, group,
                  layouts, move, indexed, searchable, specificReadPermission,
@@ -359,7 +752,7 @@ class Field:
         self.maxChars = maxChars or ''
         # If the widget is in a group with multiple columns, the following
         # attribute specifies on how many columns to span the widget.
-        self.colspan = colspan
+        self.colspan = colspan or 1
         # The list of slaves of this field, if it is a master
         self.slaves = []
         # The behaviour of this field may depend on another, "master" field
@@ -401,7 +794,7 @@ class Field:
         # default value will be present.
         self.sdefault = sdefault
         # Colspan for rendering the search widget corresponding to this field.
-        self.scolspan = scolspan
+        self.scolspan = scolspan or 1
         # Width and height for the search widget
         self.swidth = swidth or width
         self.sheight = sheight or height

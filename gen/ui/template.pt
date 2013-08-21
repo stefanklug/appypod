@@ -3,7 +3,7 @@
   &quot;-//W3C//DTD XHTML 1.0 Strict//EN&quot;
   &quot;http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd&quot;&gt;" />
 <html tal:define="user tool/getUser;
-                  isAnon tool/userIsAnon;
+                  isAnon python: user.login == 'anon';
                   app tool/getApp;
                   appUrl app/absolute_url;
                   appFolder app/data;

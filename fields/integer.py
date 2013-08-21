@@ -33,7 +33,7 @@ class Integer(Field):
             value=":inRequest and requestValue or value" type="text"/>''')
 
     pxSearch = Px('''<x>
-     <label>:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+     <label>:_(field.labelId)</label><br/>&nbsp;&nbsp;
      <!-- From -->
      <x var="fromName='%s*int' % widgetName">
       <label lfor=":fromName">:_('search_from')</label>
@@ -42,7 +42,7 @@ class Integer(Field):
      </x>
      <!-- To -->
      <x var="toName='%s_to' % name">
-      <label lfor=":toName">:_('search_to')"></label>
+      <label lfor=":toName">:_('search_to')</label>
       <input type="text" name=":toName" maxlength=":field.maxChars"
              value=":field.sdefault[1]" size=":field.swidth"/>
      </x><br/>

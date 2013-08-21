@@ -7,7 +7,7 @@ import os, os.path, sys, types, urllib, cgi
 from appy import Object
 import appy.gen as gen
 from appy.gen.utils import *
-from appy.gen.layout import Table, defaultPageLayouts, ColumnLayout
+from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared.utils import sequenceTypes,normalizeText,Traceback,getMimeType
 from appy.shared.data import rtlLanguages
@@ -169,7 +169,7 @@ class BaseMixin:
         self.workflow_history[key] = tuple(history)
         appy = self.appy()
         self.log('Data change event deleted by %s for %s (UID=%s).' % \
-                 (appy.user.getId(), appy.klass.__name__, appy.uid))
+                 (appy.user.login, appy.klass.__name__, appy.uid))
         self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def onUnlink(self):
@@ -213,13 +213,19 @@ class BaseMixin:
 
     def view(self):
         '''Returns the view PX.'''
-        appySelf = self.appy()
-        return appySelf.pxView({'self': appySelf})
+        obj = self.appy()
+        return obj.pxView({'obj': obj, 'tool': obj.tool})
 
     def edit(self):
         '''Returns the edit PX.'''
-        appySelf = self.appy()
-        return appySelf.pxEdit({'self': appySelf})
+        obj = self.appy()
+        return obj.pxEdit({'obj': obj, 'tool': obj.tool})
+
+    def ajax(self):
+        '''Called via an Ajax request to render some PX whose name is in the
+           request.'''
+        obj = self.appy()
+        return obj.pxAjax({'obj': obj, 'tool': obj.tool})
 
     def setLock(self, user, page):
         '''A p_user edits a given p_page on this object: we will set a lock, to
@@ -232,7 +238,7 @@ class BaseMixin:
         # Raise an error is the page is already locked by someone else. If the
         # page is already locked by the same user, we don't mind: he could have
         # used back/forward buttons of its browser...
-        userId = user.getId()
+        userId = user.login
         if (page in self.locks) and (userId != self.locks[page][0]):
             from AccessControl import Unauthorized
             raise Unauthorized('This page is locked.')
@@ -245,7 +251,7 @@ class BaseMixin:
            mind and consider the page as unlocked. If the page is locked, this
            method returns the tuple (userId, lockDate).'''
         if hasattr(self.aq_base, 'locks') and (page in self.locks):
-            if (user.getId() != self.locks[page][0]): return self.locks[page]
+            if (user.login != self.locks[page][0]): return self.locks[page]
 
     def removeLock(self, page, force=False):
         '''Removes the lock on the current page. This happens:
@@ -257,7 +263,7 @@ class BaseMixin:
         # Raise an error if the user that saves changes is not the one that
         # has locked the page (excepted if p_force is True)
         if not force:
-            userId = self.getUser().getId()
+            userId = self.getTool().getUser().login
             if self.locks[page][0] != userId:
                 from AccessControl import Unauthorized
                 raise Unauthorized('This page was locked by someone else.')
@@ -270,7 +276,7 @@ class BaseMixin:
            view.pt for this page. In this case, we consider that the user has
            left the edit page in an unexpected way and we remove the lock.'''
         if hasattr(self.aq_base, 'locks') and (page in self.locks) and \
-           (user.getId() == self.locks[page][0]):
+           (user.login == self.locks[page][0]):
             del self.locks[page]
 
     def onUnlock(self):
@@ -420,11 +426,11 @@ class BaseMixin:
             # previous pages may have changed). Moreover, previous and next
             # pages may not be available in "edit" mode, so we return the edit
             # or view pages depending on page.show.
-            phaseInfo = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = self.getPreviousPage(phaseInfo, rq['page'])
+            phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
+            pageName, pageInfo = phaseObj.getPreviousPage(rq['page'])
             if pageName:
                 # Return to the edit or view page?
-                if pageInfo['showOnEdit']:
+                if pageInfo.showOnEdit:
                     rq.set('page', pageName)
                     # I do not use gotoEdit here because I really need to
                     # redirect the user to the edit page. Indeed, the object
@@ -440,11 +446,11 @@ class BaseMixin:
             # We remember page name, because the next method may set a new
             # current page if the current one is not visible anymore.
             pageName = rq['page']
-            phaseInfo = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = self.getNextPage(phaseInfo, pageName)
+            phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
+            pageName, pageInfo = phaseObj.getNextPage(pageName)
             if pageName:
                 # Return to the edit or view page?
-                if pageInfo['showOnEdit']:
+                if pageInfo.showOnEdit:
                     # Same remark as above (click on "previous").
                     return self.goto(obj.getUrl(mode='edit', page=pageName))
                 else:
@@ -543,7 +549,8 @@ class BaseMixin:
 
     def addHistoryEvent(self, action, **kw):
         '''Adds an event in the object history.'''
-        userId = self.getUser().getId()
+        user = self.getTool().getUser()
+        userId = user and user.login or 'system'
         from DateTime import DateTime
         event = {'action': action, 'actor': userId, 'time': DateTime(),
                  'comments': ''}
@@ -603,13 +610,13 @@ class BaseMixin:
     def gotoEdit(self):
         '''Brings the user to the edit page for this object. This method takes
            care of not carrying any password value. Unlike m_goto above, there
-           is no HTTP redirect here: we execute directly macro "edit" and we
+           is no HTTP redirect here: we execute directly PX "edit" and we
            return the result.'''
         page = self.REQUEST.get('page', 'main')
         for field in self.getAppyTypes('edit', page):
             if (field.type == 'String') and (field.format in (3,4)):
                 self.REQUEST.set(field.name, '')
-        return self.ui.edit(self)
+        return self.edit()
 
     def showField(self, name, layoutType='view'):
         '''Must I show field named p_name on this p_layoutType ?'''
@@ -755,7 +762,7 @@ class BaseMixin:
                 res.update(parent)
             return res
 
-    def getAppyType(self, name, asDict=False, className=None):
+    def getAppyType(self, name, className=None):
         '''Returns the Appy type named p_name. If no p_className is defined, the
            field is supposed to belong to self's class.'''
         isInnerType = '*' in name # An inner type lies within a List type.
@@ -770,7 +777,6 @@ class BaseMixin:
             klass = self.getTool().getAppyClass(className, wrapper=True)
         res = getattr(klass, name, None)
         if res and isInnerType: res = res.getField(subName)
-        if res and asDict: return res.__dict__
         return res
 
     def getAllAppyTypes(self, className=None):
@@ -782,40 +788,39 @@ class BaseMixin:
             klass = self.getTool().getAppyClass(className, wrapper=True)
         return klass.__fields__
 
-    def getGroupedAppyTypes(self, layoutType, pageName, cssJs=None):
-        '''Returns the fields sorted by group. For every field, the appyType
-           (dict version) is given. If a dict is given in p_cssJs, we will add
-           it in the css and js files required by the fields.'''
+    def getGroupedFields(self, layoutType, pageName, cssJs=None):
+        '''Returns the fields sorted by group. If a dict is given in p_cssJs,
+           we will add it in the css and js files required by the fields.'''
         res = []
-        groups = {} # The already encountered groups
+        groups = {} # The already encountered groups.
         # If a dict is given in p_cssJs, we must fill it with the CSS and JS
-        # files required for every returned appyType.
+        # files required for every returned field.
         collectCssJs = isinstance(cssJs, dict)
         css = js = None
         # If param "refresh" is there, we must reload the Python class
         refresh = ('refresh' in self.REQUEST)
         if refresh:
             klass = self.getClass(reloaded=True)
-        for appyType in self.getAllAppyTypes():
-            if refresh: appyType = appyType.reload(klass, self)
-            if appyType.page.name != pageName: continue
-            if not appyType.isShowable(self, layoutType): continue
+        for field in self.getAllAppyTypes():
+            if refresh: field = field.reload(klass, self)
+            if field.page.name != pageName: continue
+            if not field.isShowable(self, layoutType): continue
             if collectCssJs:
                 if css == None: css = []
-                appyType.getCss(layoutType, css)
+                field.getCss(layoutType, css)
                 if js == None: js = []
-                appyType.getJs(layoutType, js)
-            if not appyType.group:
-                res.append(appyType.__dict__)
+                field.getJs(layoutType, js)
+            if not field.group:
+                res.append(field)
             else:
-                # Insert the GroupDescr instance corresponding to
-                # appyType.group at the right place
-                groupDescr = appyType.group.insertInto(res, groups,
-                                                  appyType.page, self.meta_type)
-                GroupDescr.addWidget(groupDescr, appyType.__dict__)
+                # Insert the UiGroup instance corresponding to field.group at
+                # the right place.
+                uiGroup = field.group.insertInto(res, groups, field.page,
+                                                 self.meta_type)
+                uiGroup.addField(field)
         if collectCssJs:
-            cssJs['css'] = css
-            cssJs['js'] = js
+            cssJs['css'] = css or ()
+            cssJs['js'] = js or ()
         return res
 
     def getAppyTypes(self, layoutType, pageName):
@@ -851,23 +856,6 @@ class BaseMixin:
         if hasattr(klass, 'styles') and (elem in klass.styles):
             return klass.styles[elem]
         return elem
-
-    def getColumnsSpecifiers(self, columnLayouts, dir):
-        '''Extracts and returns, from a list of p_columnLayouts, the information
-           that is necessary for displaying a column in a result screen or for
-           a Ref field.'''
-        res = []
-        tool = self.getTool()
-        for info in columnLayouts:
-            fieldName, width, align = ColumnLayout(info).get()
-            align = tool.flipLanguageDirection(align, dir)
-            field = self.getAppyType(fieldName, asDict=True)
-            if not field:
-                self.log('Field "%s", used in a column specifier, was not ' \
-                         'found.' % fieldName, type='warning')
-            else:
-                res.append({'field':field, 'width':width, 'align': align})
-        return res
 
     def getAppyTransitions(self, includeFake=True, includeNotShowable=False):
         '''This method returns info about transitions that one can trigger from
@@ -921,21 +909,21 @@ class BaseMixin:
         # Get the list of phases
         res = [] # Ordered list of phases
         phases = {} # Dict of phases
-        for appyType in self.getAllAppyTypes():
-            typePhase = appyType.page.phase
-            if typePhase not in phases:
-                phase = PhaseDescr(typePhase, self)
-                res.append(phase.__dict__)
-                phases[typePhase] = phase
+        for field in self.getAllAppyTypes():
+            fieldPhase = field.page.phase
+            if fieldPhase not in phases:
+                phase = gen.Phase(fieldPhase, self)
+                res.append(phase)
+                phases[fieldPhase] = phase
             else:
-                phase = phases[typePhase]
-            phase.addPage(appyType, self, layoutType)
-            if (appyType.type == 'Ref') and appyType.navigable:
-                phase.addPageLinks(appyType, self)
+                phase = phases[fieldPhase]
+            phase.addPage(field, self, layoutType)
+            if (field.type == 'Ref') and field.navigable:
+                phase.addPageLinks(field, self)
         # Remove phases that have no visible page
         for i in range(len(res)-1, -1, -1):
-            if not res[i]['pages']:
-                del phases[res[i]['name']]
+            if not res[i].pages:
+                del phases[res[i].name]
                 del res[i]
         # Compute next/previous phases of every phase
         for ph in phases.itervalues():
@@ -948,16 +936,16 @@ class BaseMixin:
             if not page:
                 if layoutType == 'edit': page = self.getDefaultEditPage()
                 else:                    page = self.getDefaultViewPage()
-            for phaseInfo in res:
-                if page in phaseInfo['pages']:
-                    return phaseInfo
+            for phase in res:
+                if page in phase.pages:
+                    return phase
             # If I am here, it means that the page as defined in the request,
             # or the default page, is not existing nor visible in any phase.
             # In this case I find the first visible page among all phases.
             viewAttr = 'showOn%s' % layoutType.capitalize()
             for phase in res:
-                for page in phase['pages']:
-                    if phase['pagesInfo'][page][viewAttr]:
+                for page in phase.pages:
+                    if getattr(phase.pagesInfo[page], viewAttr):
                         rq.set('page', page)
                         pageFound = True
                         break
@@ -965,9 +953,9 @@ class BaseMixin:
         else:
             # Return an empty list if we have a single, link-free page within
             # a single phase.
-            if (len(res) == 1) and (len(res[0]['pages']) == 1) and \
-               not res[0]['pagesInfo'][res[0]['pages'][0]].get('links'):
-                return None
+            if (len(res) == 1) and (len(res[0].pages) == 1) and \
+               not res[0].pagesInfo[res[0].pages[0]].links:
+                return
             return res
 
     def getSupTitle(self, navInfo=''):
@@ -982,87 +970,6 @@ class BaseMixin:
         appyObj = self.appy()
         if hasattr(appyObj, 'getSubTitle'): return appyObj.getSubTitle()
         return ''
-
-    def getPreviousPage(self, phase, page):
-        '''Returns the page that precedes p_page which is in p_phase.'''
-        try:
-            pageIndex = phase['pages'].index(page)
-        except ValueError:
-            # The current page is probably not visible anymore. Return the
-            # first available page in current phase.
-            res = phase['pages'][0]
-            return res, phase['pagesInfo'][res]
-        if pageIndex > 0:
-            # We stay on the same phase, previous page
-            res = phase['pages'][pageIndex-1]
-            resInfo = phase['pagesInfo'][res]
-            return res, resInfo
-        else:
-            if phase['previousPhase']:
-                # We go to the last page of previous phase
-                previousPhase = phase['previousPhase']
-                res = previousPhase['pages'][-1]
-                resInfo = previousPhase['pagesInfo'][res]
-                return res, resInfo
-            else:
-                return None, None
-
-    def getNextPage(self, phase, page):
-        '''Returns the page that follows p_page which is in p_phase.'''
-        try:
-            pageIndex = phase['pages'].index(page)
-        except ValueError:
-            # The current page is probably not visible anymore. Return the
-            # first available page in current phase.
-            res = phase['pages'][0]
-            return res, phase['pagesInfo'][res]
-        if pageIndex < len(phase['pages'])-1:
-            # We stay on the same phase, next page
-            res = phase['pages'][pageIndex+1]
-            resInfo = phase['pagesInfo'][res]
-            return res, resInfo
-        else:
-            if phase['nextPhase']:
-                # We go to the first page of next phase
-                nextPhase = phase['nextPhase']
-                res = nextPhase['pages'][0]
-                resInfo = nextPhase['pagesInfo'][res]
-                return res, resInfo
-            else:
-                return None, None
-
-    def changeRefOrder(self, fieldName, objectUid, newIndex, isDelta):
-        '''This method changes the position of object with uid p_objectUid in
-           reference field p_fieldName to p_newIndex i p_isDelta is False, or
-           to actualIndex+p_newIndex if p_isDelta is True.'''
-        refs = getattr(self.aq_base, fieldName, None)
-        oldIndex = refs.index(objectUid)
-        refs.remove(objectUid)
-        if isDelta:
-            newIndex = oldIndex + newIndex
-        else:
-            pass # To implement later on
-        refs.insert(newIndex, objectUid)
-
-    def onChangeRefOrder(self):
-        '''This method is called when the user wants to change order of an
-           item in a reference field.'''
-        rq = self.REQUEST
-        # Move the item up (-1), down (+1) ?
-        move = -1 # Move up
-        if rq['move'] == 'down':
-            move = 1 # Down
-        isDelta = True
-        self.changeRefOrder(rq['fieldName'], rq['refObjectUid'], move, isDelta)
-
-    def onSortReference(self):
-        '''This method is called when the user wants to sort the content of a
-           reference field.'''
-        rq = self.REQUEST
-        fieldName = rq.get('fieldName')
-        sortKey = rq.get('sortKey')
-        reverse = rq.get('reverse') == 'True'
-        self.appy().sort(fieldName, sortKey=sortKey, reverse=reverse)
 
     def notifyWorkflowCreated(self):
         '''This method is called every time an object is created, be it temp or
@@ -1589,9 +1496,9 @@ class BaseMixin:
 
     getUrlDefaults = {'page':True, 'nav':True}
     def getUrl(self, base=None, mode='view', **kwargs):
-        '''Returns a Appy URL.
+        '''Returns an URL for this object.
            * If p_base is None, it will be the base URL for this object
-             (ie, self.absolute_url()).
+             (ie, Zope self.absolute_url()).
            * p_mode can be "edit", "view" or "raw" (a non-param, base URL)
            * p_kwargs can store additional parameters to add to the URL.
              In this dict, every value that is a string will be added to the
@@ -1600,7 +1507,7 @@ class BaseMixin:
              param will not be included in the URL at all).'''
         # Define the URL suffix
         suffix = ''
-        if mode != 'raw': suffix = '/ui/%s' % mode
+        if mode != 'raw': suffix = '/%s' % mode
         # Define base URL if omitted
         if not base:
             base = self.absolute_url() + suffix
@@ -1609,9 +1516,8 @@ class BaseMixin:
             if '?' in base: base = base[:base.index('?')]
             base = base.strip('/')
             for mode in ('view', 'edit'):
-                suffix = 'ui/%s' % mode
-                if base.endswith(suffix):
-                    base = base[:-len(suffix)].strip('/')
+                if base.endswith(mode):
+                    base = base[:-len(mode)].strip('/')
                     break
             return base
         # Manage default args
@@ -1633,15 +1539,6 @@ class BaseMixin:
             params = ''
         return '%s%s' % (base, params)
 
-    def getUser(self):
-        '''Gets the Zope object representing the authenticated user.'''
-        from AccessControl import getSecurityManager
-        user = getSecurityManager().getUser()
-        if not user:
-            from AccessControl.User import nobody
-            return nobody
-        return user
-
     def getTool(self):
         '''Returns the application tool.'''
         return self.getPhysicalRoot().config
@@ -1659,7 +1556,8 @@ class BaseMixin:
            data folder) it returns None.'''
         parent = self.getParentNode()
         # Not-Managers can't navigate back to the tool
-        if (parent.id == 'config') and not self.getUser().has_role('Manager'):
+        if (parent.id == 'config') and \
+            not self.getTool().getUser().has_role('Manager'):
             return False
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
@@ -1678,7 +1576,7 @@ class BaseMixin:
         return res
 
     def index_html(self):
-        '''Redirects to /ui.'''
+        '''Redirects to /view.'''
         rq = self.REQUEST
         if rq.has_key('do'):
             # The user wants to call a method on this object and get its result
@@ -1687,10 +1585,6 @@ class BaseMixin:
         else:
             # The user wants to consult the view page for this object
             return rq.RESPONSE.redirect(self.getUrl())
-
-    def userIsAnon(self):
-        '''Is the currently logged user anonymous ?'''
-        return self.getUser().getUserName() == 'Anonymous User'
 
     def getUserLanguage(self):
         '''Gets the language (code) of the current user.'''
@@ -1746,15 +1640,13 @@ class BaseMixin:
         if not domain: domain = cfg.PROJECTNAME
         # Get the label name, and the field-specific mapping if any.
         if field:
-            # p_field is the dict version of a appy type or group
-            if field['type'] != 'group':
-                fieldMapping = field['mapping'][label]
+            if field.type != 'group':
+                fieldMapping = field.mapping[label]
                 if fieldMapping:
                     if callable(fieldMapping):
-                        appyField = self.getAppyType(field['name'])
-                        fieldMapping=appyField.callMethod(self,fieldMapping)
+                        fieldMapping = field.callMethod(self, fieldMapping)
                     mapping.update(fieldMapping)
-            label = field['%sId' % label]
+            label = getattr(field, '%sId' % label)
         # We will get the translation from a Translation object.
         # In what language must we get the translation?
         if not language: language = self.getUserLanguage()
@@ -1855,11 +1747,11 @@ class BaseMixin:
 
     def allows(self, permission, raiseError=False):
         '''Has the logged user p_permission on p_self ?'''
-        hasPermission = self.getUser().has_permission(permission, self)
-        if not hasPermission and raiseError:
+        res = self.getTool().getUser().has_permission(permission, self)
+        if not res and raiseError:
             from AccessControl import Unauthorized
             raise Unauthorized
-        return hasPermission
+        return res
 
     def getEditorInit(self, name):
         '''Gets the Javascript init code for displaying a rich editor for

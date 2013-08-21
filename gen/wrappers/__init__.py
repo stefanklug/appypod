@@ -27,126 +27,37 @@ class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
        instance of this class.'''
 
-    # --------------------------------------------------------------------------
-    # Navigation-related PXs
-    # --------------------------------------------------------------------------
-    # Icon for hiding/showing details below the title.
-    pxShowDetails = Px('''
-     <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
-          class="clickable" src=":url('toggleDetails')"
-          onclick="toggleSubTitles()"/>''')
-
-    # Displays up/down arrows in a table header column for sorting a given
-    # column. Requires variables "sortable", 'filterable' and 'field'.
-    pxSortAndFilter = Px('''<x>
-     <x if="sortable">
-      <img if="(sortKey != field.name) or (sortOrder == 'desc')"
-           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
-                     (q(field.name), q('asc'), q(filterKey)))"
-           src=":url('sortDown.gif')" class="clickable"/>
-      <img if="(sortKey != field.name) or (sortOrder == 'asc')"
-           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
-                     (q(field.name), q('desc'), q(filterKey)))"
-           src=":url('sortUp.gif')" class="clickable"/>
-     </x>
-     <x if="filterable">
-      <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
-             value=":filterKey == field.name and filterValue or ''"/>
-      <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
-                     (q(sortKey), q(sortOrder), q(field.name)))"
-           src=":url('funnel')" class="clickable"/>
-     </x></x>''')
-
-    # Buttons for navigating among a list of elements: next,back,first,last...
-    pxAppyNavigate = Px('''
-     <div if="totalNumber &gt; batchSize" align=":dright">
-      <table class="listNavigate"
-             var="mustSortAndFilter=ajaxHookId == 'queryResult';
-                  sortAndFilter=mustSortAndFilter and \
-                    ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
-       <tr valign="middle">
-        <!-- Go to the first page -->
-        <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            class="clickable" src=":url('arrowLeftDouble')"
-            title=":_('goto_first')"
-            onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
-
-        <!-- Go to the previous page -->
-        <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            class="clickable" src=":url('arrowLeftSimple')"
-            title=":_('goto_previous')"
-            onClick="navBaseCall.replace('**v**', \
-                                         str(sNumber)+sortAndFilter)"/></td>
-
-        <!-- Explain which elements are currently shown -->
-        <td class="discreet">&nbsp;
-         <x>:startNumber + 1</x><img src=":url('to')"/>
-         <x>:startNumber + batchNumber</x>&nbsp;<b>//</b>
-         <x>:totalNumber</x>&nbsp;&nbsp;</td>
-
-        <!-- Go to the next page -->
-        <td var="sNumber=startNumber + batchSize"
-            if="sNumber &lt; totalNumber"><img class="clickable"
-            src=":url('arrowRightSimple')" title=":_('goto_next')"
-            onClick=":navBaseCall.replace('**v**', \
-                                          str(sNumber)+sortAndFilter)"/></td>
-
-        <!-- Go to the last page -->
-        <td var="lastPageIsIncomplete=totalNumber % batchSize;
-                 nbOfCompletePages=totalNumber/batchSize;
-                 nbOfCountedPages=lastPageIsIncomplete and \
-                                  nbOfCompletePages or nbOfCompletePages-1;
-                 sNumber= nbOfCountedPages * batchSize"
-            if="(startNumber != sNumber) and \
-                (startNumber != sNumber-batchSize)"><img class="clickable"
-            src=":url('arrowRightDouble')" title=":_('goto_last')"
-            onClick="navBaseCall.replace('**v**', \
-                                         str(sNumber)+sortAndFilter)"/></td>
-       </tr>
-      </table>
-     </div>''')
-
-    # Buttons for going to next/previous elements if this one is among bunch of
+    # Buttons for going to next/previous objects if this one is among bunch of
     # referenced or searched objects. currentNumber starts with 1.
-    pxObjectNavigate = Px('''
-     <div if="req.get('nav', None)"
-          var2="navInfo=ztool.getNavigationInfo();
-                currentNumber=navInfo['currentNumber'];
-                totalNumber=navInfo['totalNumber'];
-                firstUrl=navInfo['firstUrl'];
-                previousUrl=navInfo['previousUrl'];
-                nextUrl=navInfo['nextUrl'];
-                lastUrl=navInfo['lastUrl'];
-                sourceUrl=navInfo['sourceUrl'];
-                backText=navInfo['backText']">
-
+    pxNavigateSiblings = Px('''
+     <div if="req.get('nav', None)" var2="ni=ztool.getNavigationInfo()">
       <!-- Go to the source URL (search or referred object) -->
-      <a if="sourceUrl" href=":sourceUrl"><img
+      <a if="ni.sourceUrl" href=":ni.sourceUrl"><img
          var="gotoSource=_('goto_source');
-              goBack=backText and ('%s - %s' % (backText, gotoSource)) \
+              goBack=ni.backText and ('%s - %s' % (ni.backText, gotoSource)) \
                      or gotoSource"
          src=":url('gotoSource')" title=":goBack"/></a>
 
       <!-- Go to the first page -->
-      <a if="firstUrl" href=":firstUrl"><img title=":_('goto_first')"
+      <a if="ni.firstUrl" href=":ni.firstUrl"><img title=":_('goto_first')"
          src=":url('arrowLeftDouble')"/></a>
 
       <!-- Go to the previous page -->
-      <a if="previousUrl" href=":previousUrl"><img title=":_('goto_previous')"
-         src=":url('arrowLeftSimple')"/></a>
+      <a if="ni.previousUrl" href=":ni.previousUrl"><img
+         title=":_('goto_previous')" src=":url('arrowLeftSimple')"/></a>
 
       <!-- Explain which element is currently shown -->
       <span class="discreet">&nbsp;
-       <x>:currentNumber</x>&nbsp;<b>//</b>
-       <x>:totalNumber</x>&nbsp;&nbsp;
+       <x>:ni.currentNumber</x>&nbsp;<b>//</b>
+       <x>:ni.totalNumber</x>&nbsp;&nbsp;
       </span>
 
       <!-- Go to the next page -->
-      <a if="nextUrl" href=":nextUrl"><img title=":_('goto_next')"
+      <a if="ni.nextUrl" href=":ni.nextUrl"><img title=":_('goto_next')"
          src=":url('arrowRightSimple')"/></a>
 
       <!-- Go to the last page -->
-      <a if="lastUrl" href=":lastUrl"><img title=":_('goto_last')"
+      <a if="ni.lastUrl" href=":ni.lastUrl"><img title=":_('goto_last')"
          src=":url('arrowRightDouble')"/></a>
      </div>''')
 
@@ -164,200 +75,21 @@ class AbstractWrapper(object):
         </x>
        </td>
        <!-- Object navigation -->
-       <td align=":dright">:self.pxObjectNavigate</td>
+       <td align=":dright">:obj.pxNavigateSiblings</td>
       </tr>
      </table>''')
 
-    # --------------------------------------------------------------------------
-    # PXs for graphical elements shown on every page
-    # --------------------------------------------------------------------------
-    # Global elements included in every page.
-    pxPagePrologue = Px('''<x>
-     <!-- Include type-specific CSS and JS. -->
-     <x if="cssJs">
-      <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
-            href=":url(cssFile)"/>
-      <script for="jsFile in cssJs['js']" type="text/javascript"
-              src=":url(jsFile)"></script></x>
-
-     <!-- Javascript messages -->
-     <script type="text/javascript">:ztool.getJavascriptMessages()</script>
-
-     <!-- Global form for deleting an object -->
-     <form id="deleteForm" method="post" action="do">
-      <input type="hidden" name="action" value="Delete"/>
-      <input type="hidden" name="objectUid"/>
-     </form>
-     <!-- Global form for deleting an event from an object's history -->
-     <form id="deleteEventForm" method="post" action="do">
-      <input type="hidden" name="action" value="DeleteEvent"/>
-      <input type="hidden" name="objectUid"/>
-      <input type="hidden" name="eventTime"/>
-     </form>
-     <!-- Global form for unlinking an object -->
-     <form id="unlinkForm" method="post" action="do">
-      <input type="hidden" name="action" value="Unlink"/>
-      <input type="hidden" name="sourceUid"/>
-      <input type="hidden" name="fieldName"/>
-      <input type="hidden" name="targetUid"/>
-     </form>
-     <!-- Global form for unlocking a page -->
-     <form id="unlockForm" method="post" action="do">
-      <input type="hidden" name="action" value="Unlock"/>
-      <input type="hidden" name="objectUid"/>
-      <input type="hidden" name="pageName"/>
-     </form>
-     <!-- Global form for generating a document from a pod template -->
-     <form id="podTemplateForm" name="podTemplateForm" method="post"
-           action=":ztool.absolute_url() + '/generateDocument'">
-      <input type="hidden" name="objectUid"/>
-      <input type="hidden" name="fieldName"/>
-      <input type="hidden" name="podFormat"/>
-      <input type="hidden" name="askAction"/>
-      <input type="hidden" name="queryData"/>
-      <input type="hidden" name="customParams"/>
-     </form>
-    </x>''')
-
-    pxPageBottom = Px('''
-     <script type="text/javascript">initSlaves();</script>''')
-
-    pxPortlet = Px('''
-     <x var="toolUrl=tool.url;
-             queryUrl='%s/ui/query' % toolUrl;
-             currentSearch=req.get('search', None);
-             currentClass=req.get('className', None);
-             currentPage=req['PATH_INFO'].rsplit('/',1)[-1];
-             rootClasses=ztool.getRootClasses();
-             phases=zobj and zobj.getAppyPhases() or None">
-
-      <table class="portletContent"
-             if="zobj and phases and zobj.mayNavigate()"
-             var2="singlePhase=phases and (len(phases) == 1);
-                   page=req.get('page', '');
-                   mayEdit=zobj.mayEdit()">
-       <x for="phase in phases">:phase['px']</x>
-      </table>
-
-      <!-- One section for every searchable root class -->
-      <x for="rootClass in [rc for rc in rootClasses \
-                            if ztool.userMaySearch(rc)]">
-
-       <!-- A separator if required -->
-       <div class="portletSep" var="nb=loop.rootClass.nb"
-            if="(nb != 0) or ((nb == 0) and phases)"></div>
-
-       <!-- Section title (link triggers the default search) -->
-       <div class="portletContent"
-            var="searchInfo=ztool.getGroupedSearches(rootClass)">
-        <div class="portletTitle">
-         <a var="queryParam=searchInfo['default'] and \
-                            searchInfo['default']['name'] or ''"
-            href=":'%s?className=%s&amp;search=%s' % \
-                   (queryUrl,rootClass,queryParam)"
-            class=":(not currentSearch and (currentClass==rootClass) and \
-                    (currentPage=='query')) and \
-                    'portletCurrent' or ''">::_(rootClass + '_plural')</a>
-        </div>
-
-        <!-- Actions -->
-        <x var="addPermission='%s: Add %s' % (appName, rootClass);
-                userMayAdd=user.has_permission(addPermission, appFolder);
-                createMeans=ztool.getCreateMeans(rootClass)">
-
-         <!-- Create a new object from a web form -->
-         <input type="button" class="button"
-                if="userMayAdd and ('form' in createMeans)"
-                style=":url('buttonAdd', bg=True)" value=":_('query_create')"
-                onclick=":'goto(%s)' % \
-                    q('%s/do?action=Create&amp;className=%s' % \
-                    (toolUrl, rootClass))"/>
-
-         <!-- Create object(s) by importing data -->
-         <input type="button" class="button"
-                if="userMayAdd and ('import' in createMeans)"
-                style=":url('buttonImport', bg=True)" value=":_('query_import')"
-                onclick=":'goto(%s)' % \
-                        q('%s/ui/import?className=%s' % (toolUrl, rootClass))"/>
-        </x>
-
-        <!-- Searches -->
-        <x if="ztool.advancedSearchEnabledFor(rootClass)">
-
-         <!-- Live search -->
-         <form action=":'%s/do' % toolUrl">
-          <input type="hidden" name="action" value="SearchObjects"/>
-          <input type="hidden" name="className" value=":rootClass"/>
-          <table cellpadding="0" cellspacing="0">
-           <tr valign="bottom">
-            <td><input type="text" size="14" name="w_SearchableText"
-                       class="inputSearch"/></td>
-            <td>
-             <input type="image" class="clickable" src=":url('search.gif')"
-                    title=":_('search_button')"/></td>
-           </tr>
-          </table>
-         </form>
-
-         <!-- Advanced search -->
-         <div var="highlighted=(currentClass == rootClass) and \
-                               (currentPage == 'search')"
-              class=":highlighted and 'portletSearch portletCurrent' or \
-                     'portletSearch'"
-              align=":dright">
-          <a var="text=_('search_title')" style="font-size: 88%"
-             href=":'%s/ui/search?className=%s' % (toolUrl, rootClass)"
-             title=":text"><x>:text</x>...</a>
-         </div>
-        </x>
-
-        <!-- Predefined searches -->
-        <x for="widget in searchInfo['searches']">
-         <x if="widget['type']=='group'">:widget['px']</x>
-         <x if="widget['type']!='group'" var2="search=widget">:search['px']</x>
-        </x>
-       </div>
-      </x>
-     </x>''')
-
-    # The message that is shown when a user triggers an action.
-    pxMessage = Px('''
-     <div var="messages=ztool.consumeMessages()" if="messages" class="message">
-      <!-- The icon for closing the message -->
-      <img src=":url('close')" align=":dright" class="clickable"
-           onclick="this.parentNode.style.display='none'"/>
-      <!-- The message content -->
-      <x>::messages</x>
-     </div>''')
-
-    # The page footer.
-    pxFooter = Px('''
-     <table cellpadding="0" cellspacing="0" width="100%" class="footer">
-      <tr>
-       <td align=":dright">Made with
-        <a href="http://appyframework.org" target="_blank">Appy</a></td></tr>
-     </table>''')
-
-    # Hook for defining a PX that proposes additional links, after the links
-    # corresponding to top-level pages.
-    pxLinks = ''
-
-    # Hook for defining a PX that proposes additional icons after standard
-    # icons in the user strip.
-    pxIcons = ''
-
     # The template PX for all pages.
     pxTemplate = Px('''
-     <html var="tool=self.tool; ztool=tool.o;   user=tool.user;
-                isAnon=ztool.userIsAnon();      app=ztool.getApp();
+     <html var="ztool=tool.o;                   user=tool.user;
+                obj=obj or ztool.getHomeObject();
+                zobj=obj and obj.o or None;
+                isAnon=user.login=='anon';      app=ztool.getApp();
                 appFolder=app.data;             url = ztool.getIncludeUrl;
                 appName=ztool.getAppName();     _=ztool.translate;
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
-                zobj=ztool.getPublishedObject(layoutType) or \
-                     ztool.getHomeObject();
-                obj = zobj and zobj.appy() or None;
                 showPortlet=ztool.showPortlet(zobj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 discreetLogin=ztool.getProductConfig(True).discreetLogin;
@@ -436,7 +168,7 @@ class AbstractWrapper(object):
           </a>
 
           <!-- Additional links -->
-          <x>:self.pxLinks</x>
+          <x>:tool.pxLinks</x>
 
           <!-- Top-level pages -->
           <a for="page in tool.pages" class="pageLink"
@@ -461,7 +193,7 @@ class AbstractWrapper(object):
 
        <!-- The message strip -->
        <tr valign="top">
-        <td><div style="position: relative">:self.pxMessage</div></td>
+        <td><div style="position: relative">:tool.pxMessage</div></td>
        </tr>
 
        <!-- The user strip -->
@@ -509,7 +241,7 @@ class AbstractWrapper(object):
                   title=":_('%sTool' % appName)">
                 <img src=":url('appyConfig.gif')"/></a>
                <!-- Additional icons -->
-               <x>:self.pxIcons</x>
+               <x>:tool.pxIcons</x>
                <!-- Log out -->
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
                 <img src=":url('logout.gif')"/></a>
@@ -530,14 +262,14 @@ class AbstractWrapper(object):
 
        <!-- The navigation strip -->
        <tr if="zobj and showPortlet and (layoutType != 'edit')">
-        <td>:self.pxNavigationStrip</td>
+        <td>:obj.pxNavigationStrip</td>
        </tr>
        <tr>
         <td>
          <table width="100%" cellpadding="0" cellspacing="0">
           <tr valign="top">
            <!-- The portlet -->
-           <td if="showPortlet" class="portlet">:self.pxPortlet</td>
+           <td if="showPortlet" class="portlet">:tool.pxPortlet</td>
            <!-- Page content -->
            <td class="content">:content</td>
           </tr>
@@ -545,7 +277,7 @@ class AbstractWrapper(object):
         </td>
        </tr>
        <!-- Footer -->
-       <tr><td>:self.pxFooter</td></tr>
+       <tr><td>:tool.pxFooter</td></tr>
       </table>
      </body>
     </html>''', prologue=Px.xhtmlPrologue)
@@ -555,7 +287,7 @@ class AbstractWrapper(object):
     # --------------------------------------------------------------------------
 
     # This PX displays an object's history.
-    pxObjectHistory = Px('''
+    pxHistory = Px('''
      <x var="startNumber=req.get'startNumber', 0);
              startNumber=int(startNumber);
              batchSize=int(req.get('maxPerPage', 5));
@@ -568,7 +300,7 @@ class AbstractWrapper(object):
                 (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
 
       <!-- Navigate between history pages -->
-      <x>:self.pxAppyNavigate</x>
+      <x>:tool.pxNavigate</x>
       <!-- History -->
       <table width="100%" class="history">
        <tr>
@@ -610,8 +342,8 @@ class AbstractWrapper(object):
            <th align=":dleft" width="70%">:_('previous_value')</th>
           </tr>
           <tr for="change in event['changes'].items()" valign="top"
-              var2="appyType=zobj.getAppyType(change[0], asDict=True)">
-           <td>::_(appyType['labelId'])</td>
+              var2="field=zobj.getAppyType(change[0])">
+           <td>::_(field.labelId)</td>
            <td>::change[1][0]</td>
           </tr>
          </table>
@@ -655,7 +387,7 @@ class AbstractWrapper(object):
 
     # Displays header information about an object: title, workflow-related info,
     # history...
-    pxObjectHeader = Px('''
+    pxHeader = Px('''
      <div if="not zobj.isTemporary()"
           var2="hasHistory=zobj.hasHistory();
                 historyMaxPerPage=req.get('maxPerPage', 5);
@@ -710,16 +442,16 @@ class AbstractWrapper(object):
      </div>''')
 
     # Shows the range of buttons (next, previous, save,...) and the workflow
-    # transitions.
-    pxObjectButtons = Px('''
+    # transitions for a given object.
+    pxButtons = Px('''
      <table cellpadding="2" cellspacing="0" style="margin-top: 7px"
-            var="previousPage=zobj.getPreviousPage(phaseInfo, page)[0];
-                 nextPage=zobj.getNextPage(phaseInfo, page)[0];
+            var="previousPage=phaseObj.getPreviousPage(page)[0];
+                 nextPage=phaseObj.getNextPage(page)[0];
                  isEdit=layoutType == 'edit';
-                 pageInfo=phaseInfo['pagesInfo'][page]">
+                 pageInfo=phaseObj.pagesInfo[page]">
       <tr>
        <!-- Previous -->
-       <td if="previousPage and pageInfo['showPrevious']">
+       <td if="previousPage and pageInfo.showPrevious">
         <!-- Button on the edit page -->
         <x if="isEdit">
          <input type="button" class="button" value=":_('page_previous')"
@@ -735,20 +467,20 @@ class AbstractWrapper(object):
        </td>
 
        <!-- Save -->
-       <td if="isEdit and pageInfo['showSave']">
+       <td if="isEdit and pageInfo.showSave">
         <input type="button" class="button" onClick="submitAppyForm('save')"
-               style=":url(buttonSave', bg=True)" value=":_('object_save')"/>
+               style=":url('buttonSave', bg=True)" value=":_('object_save')"/>
        </td>
 
        <!-- Cancel -->
-       <td if="isEdit and pageInfo['showCancel']">
+       <td if="isEdit and pageInfo.showCancel">
         <input type="button" class="button" onClick="submitAppyForm('cancel')"
              style=":url('buttonCancel', bg=True)" value=":_('object_cancel')"/>
        </td>
 
        <td if="not isEdit"
            var2="locked=zobj.isLocked(user, page);
-                 editable=pageInfo['showOnEdit'] and zobj.mayEdit()">
+                 editable=pageInfo.showOnEdit and zobj.mayEdit()">
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"
@@ -765,7 +497,7 @@ class AbstractWrapper(object):
        </td>
 
        <!-- Next -->
-       <td if="nextPage and pageInfo['showNext']">
+       <td if="nextPage and pageInfo.showNext">
         <!-- Button on the edit page -->
         <x if="isEdit">
          <input type="button" class="button" onClick="submitAppyForm('next')"
@@ -780,7 +512,7 @@ class AbstractWrapper(object):
 
        <!-- Workflow transitions -->
        <td var="targetObj=zobj"
-           if="targetObj.showTransitions(layoutType)">:self.pxTransitions</td>
+           if="targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
 
        <!-- Refresh -->
        <td if="zobj.isDebug()">
@@ -791,21 +523,29 @@ class AbstractWrapper(object):
       </tr>
      </table>''')
 
-    pxLayoutedObject = Px('''<p>Layouted object</p>''')
+    # Displays the fields of a given page for a given object.
+    pxFields = Px('''
+     <table width=":layout['width']">
+      <tr for="field in groupedFields">
+       <td if="field.type == 'group'">:field.pxView</td>
+       <td if="field.type != 'group'">:field.pxRender</td>
+      </tr>
+     </table>''')
+
     pxView = Px('''
      <x var="x=zobj.allows('View', raiseError=True);
              errors=req.get('errors', {});
              layout=zobj.getPageLayout(layoutType);
-             phaseInfo=zobj.getAppyPhases(currentOnly=True, layoutType='view');
-             phase=phaseInfo['name'];
+             phaseObj=zobj.getAppyPhases(currentOnly=True, layoutType='view');
+             phase=phaseObj.name;
              cssJs={};
              page=req.get('page',None) or zobj.getDefaultViewPage();
              x=zobj.removeMyLock(user, page);
-             groupedWidgets=zobj.getGroupedAppyTypes(layoutType, page, \
-                                                           cssJs=cssJs)">
-      <x>:self.pxPagePrologue</x>
-      <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
-      <x>:self.pxPageBottom</x>
+             groupedFields=zobj.getGroupedFields(layoutType, page,cssJs=cssJs)">
+      <x>:tool.pxPagePrologue</x>
+      <x var="tagId='pageLayout'; tagName=''; tagCss='';
+              layoutTarget=obj">:tool.pxLayoutedObject</x>
+      <x>:tool.pxPageBottom</x>
      </x>''', template=pxTemplate, hook='content')
 
     pxEdit = Px('''
@@ -813,15 +553,14 @@ class AbstractWrapper(object):
              errors=req.get('errors', None) or {};
              layout=zobj.getPageLayout(layoutType);
              cssJs={};
-             phaseInfo=zobj.getAppyPhases(currentOnly=True, \
-                                          layoutType=layoutType);
-             phase=phaseInfo['name'];
+             phaseObj=zobj.getAppyPhases(currentOnly=True, \
+                                         layoutType=layoutType);
+             phase=phaseObj.name;
              page=req.get('page', None) or zobj.getDefaultEditPage();
              x=zobj.setLock(user, page);
              confirmMsg=req.get('confirmMsg', None);
-             groupedWidgets=zobj.getGroupedAppyTypes(layoutType, page, \
-                                                     cssJs=cssJs)">
-      <x>:self.pxPagePrologue</x>
+             groupedFields=zobj.getGroupedFields(layoutType,page, cssJs=cssJs)">
+      <x>:tool.pxPagePrologue</x>
       <!-- Warn the user that the form should be left via buttons -->
       <script type="text/javascript"><![CDATA[
        window.onbeforeunload = function(e){
@@ -840,13 +579,44 @@ class AbstractWrapper(object):
        <input type="hidden" name="page" value=":page"/>
        <input type="hidden" name="nav" value=":req.get('nav', None)"/>
        <input type="hidden" name="confirmed" value="False"/>
-       <x var="tagId='pageLayout'">:self.pxLayoutedObject</x>
+       <x var="tagId='pageLayout'; tagName=''; tagCss='';
+               layoutTarget=obj">:tool.pxLayoutedObject</x>
       </form>
       <script type="text/javascript"
               if="confirmMsg">:'askConfirm(%s,%s,%s)' % \
              (q('script'), q('postConfirmedEditForm()'), q(confirmMsg))</script>
-      <x>:self.pxPageBottom</x>
+      <x>:tool.pxPageBottom</x>
      </x>''', template=pxTemplate, hook='content')
+
+    # PX called via asynchronous requests from the browser. Keys "Expires" and
+    # "CacheControl" are used to prevent IE to cache returned pages (which is
+    # the default IE behaviour with Ajax requests).
+    pxAjax = Px('''
+     <x var="zobj=obj.o;    ztool=tool.o;    user=tool.user;
+             isAnon=user.login == 'anon';    app=ztool.getApp();
+             appFolder=app.data;             url = ztool.getIncludeUrl;
+             appName=ztool.getAppName();     _=ztool.translate;
+             req=ztool.REQUEST;              resp=req.RESPONSE;
+             lang=ztool.getUserLanguage();   q=ztool.quote;
+             action=req.get('action', None);
+             px=req['px'].split(':');
+             field=(len(px) == 2) and zobj.getAppyType(px[0]) or None;
+             dir=ztool.getLanguageDirection(lang);
+             dleft=(dir == 'ltr') and 'left' or 'right';
+             dright=(dir == 'ltr') and 'right' or 'left';
+             x=resp.setHeader('Content-type', ztool.xhtmlEncoding);
+             x=resp.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:00 GMT+2');
+             x=resp.setHeader('Content-Language', lang);
+             x=resp.setHeader('CacheControl', 'no-cache')">
+
+      <!-- If an action is defined, execute it on p_zobj or on p_field. -->
+      <x if="action and not field" var2="x=getattr(zobj, action)()"></x>
+      <x if="action and field" var2="x=getattr(field, action)(zobj)"></x>
+
+      <!-- Then, call the PX on p_obj or on p_field. -->
+      <x if="not field">:getattr(obj, px[0])</x>
+      <x if="field">:getattr(field, px[1])</x>
+     </x>''')
 
     # --------------------------------------------------------------------------
     # Class methods
@@ -936,15 +706,7 @@ class AbstractWrapper(object):
             o = self.o
             key = o.workflow_history.keys()[0]
             return o.workflow_history[key]
-        elif name == 'user':
-            return self.o.getUser()
-        elif name == 'appyUser':
-            user = self.search1('User', noSecurity=True,
-                                login=self.o.getUser().getId())
-            if user: return user
-            if self.o.getUser().getUserName() == 'System Processes':
-                return self.search1('User', noSecurity=True, login='admin')
-            return
+        elif name == 'user': return self.o.getTool().getUser()
         elif name == 'fields': return self.o.getAllAppyTypes()
         elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
         # Now, let's try to return a real attribute.

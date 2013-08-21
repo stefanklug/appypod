@@ -19,6 +19,7 @@ import re
 from xml.sax.saxutils import quoteattr
 from appy.shared.xml_parser import xmlPrologue, escapeXml
 from appy.pod import PodError
+from appy.shared.utils import Traceback
 from appy.pod.elements import *
 from appy.pod.actions import IfAction, ElseAction, ForAction, VariablesAction, \
                              NullAction

@@ -21,6 +21,301 @@ NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
 # ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
 
+    # --------------------------------------------------------------------------
+    # Navigation-related PXs
+    # --------------------------------------------------------------------------
+    # Icon for hiding/showing details below the title of an object shown in a
+    # list of objects.
+    pxShowDetails = Px('''
+     <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
+          class="clickable" src=":url('toggleDetails')"
+          onclick="toggleSubTitles()"/>''')
+
+    # Displays up/down arrows in a table header column for sorting a given
+    # column. Requires variables "sortable", 'filterable' and 'field'.
+    pxSortAndFilter = Px('''<x>
+     <x if="sortable">
+      <img if="(sortKey != field.name) or (sortOrder == 'desc')"
+           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
+                     (q(field.name), q('asc'), q(filterKey)))"
+           src=":url('sortDown.gif')" class="clickable"/>
+      <img if="(sortKey != field.name) or (sortOrder == 'asc')"
+           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
+                     (q(field.name), q('desc'), q(filterKey)))"
+           src=":url('sortUp.gif')" class="clickable"/>
+     </x>
+     <x if="filterable">
+      <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
+             value=":filterKey == field.name and filterValue or ''"/>
+      <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
+                     (q(sortKey), q(sortOrder), q(field.name)))"
+           src=":url('funnel')" class="clickable"/>
+     </x></x>''')
+
+    # Buttons for navigating among a list of objects (from a Ref field or a
+    # query): next,back,first,last...
+    pxNavigate = Px('''
+     <div if="totalNumber &gt; batchSize" align=":dright">
+      <table class="listNavigate"
+             var="mustSortAndFilter=ajaxHookId == 'queryResult';
+                  sortAndFilter=mustSortAndFilter and \
+                    ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
+       <tr valign="middle">
+        <!-- Go to the first page -->
+        <td if="(startNumber != 0) and (startNumber != batchSize)"><img
+            class="clickable" src=":url('arrowLeftDouble')"
+            title=":_('goto_first')"
+            onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
+
+        <!-- Go to the previous page -->
+        <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
+            class="clickable" src=":url('arrowLeftSimple')"
+            title=":_('goto_previous')"
+            onClick=":navBaseCall.replace('**v**', \
+                                          str(sNumber)+sortAndFilter)"/></td>
+
+        <!-- Explain which elements are currently shown -->
+        <td class="discreet">&nbsp;
+         <x>:startNumber + 1</x><img src=":url('to')"/>
+         <x>:startNumber + batchNumber</x>&nbsp;<b>//</b>
+         <x>:totalNumber</x>&nbsp;&nbsp;</td>
+
+        <!-- Go to the next page -->
+        <td var="sNumber=startNumber + batchSize"
+            if="sNumber &lt; totalNumber"><img class="clickable"
+            src=":url('arrowRightSimple')" title=":_('goto_next')"
+            onClick=":navBaseCall.replace('**v**', \
+                                          str(sNumber)+sortAndFilter)"/></td>
+
+        <!-- Go to the last page -->
+        <td var="lastPageIsIncomplete=totalNumber % batchSize;
+                 nbOfCompletePages=totalNumber/batchSize;
+                 nbOfCountedPages=lastPageIsIncomplete and \
+                                  nbOfCompletePages or nbOfCompletePages-1;
+                 sNumber= nbOfCountedPages * batchSize"
+            if="(startNumber != sNumber) and \
+                (startNumber != sNumber-batchSize)"><img class="clickable"
+            src=":url('arrowRightDouble')" title=":_('goto_last')"
+            onClick=":navBaseCall.replace('**v**', \
+                                          str(sNumber)+sortAndFilter)"/></td>
+       </tr>
+      </table>
+     </div>''')
+
+    # --------------------------------------------------------------------------
+    # PXs for graphical elements shown on every page
+    # --------------------------------------------------------------------------
+    # Global elements included in every page.
+    pxPagePrologue = Px('''<x>
+     <!-- Include type-specific CSS and JS. -->
+     <x if="cssJs">
+      <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
+            href=":url(cssFile)"/>
+      <script for="jsFile in cssJs['js']" type="text/javascript"
+              src=":url(jsFile)"></script></x>
+
+     <!-- Javascript messages -->
+     <script type="text/javascript">::ztool.getJavascriptMessages()</script>
+
+     <!-- Global form for deleting an object -->
+     <form id="deleteForm" method="post" action="do">
+      <input type="hidden" name="action" value="Delete"/>
+      <input type="hidden" name="objectUid"/>
+     </form>
+     <!-- Global form for deleting an event from an object's history -->
+     <form id="deleteEventForm" method="post" action="do">
+      <input type="hidden" name="action" value="DeleteEvent"/>
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="eventTime"/>
+     </form>
+     <!-- Global form for unlinking an object -->
+     <form id="unlinkForm" method="post" action="do">
+      <input type="hidden" name="action" value="Unlink"/>
+      <input type="hidden" name="sourceUid"/>
+      <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="targetUid"/>
+     </form>
+     <!-- Global form for unlocking a page -->
+     <form id="unlockForm" method="post" action="do">
+      <input type="hidden" name="action" value="Unlock"/>
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="pageName"/>
+     </form>
+     <!-- Global form for generating a document from a pod template -->
+     <form id="podTemplateForm" name="podTemplateForm" method="post"
+           action=":ztool.absolute_url() + '/generateDocument'">
+      <input type="hidden" name="objectUid"/>
+      <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="podFormat"/>
+      <input type="hidden" name="askAction"/>
+      <input type="hidden" name="queryData"/>
+      <input type="hidden" name="customParams"/>
+     </form>
+    </x>''')
+
+    pxPageBottom = Px('''
+     <script type="text/javascript">initSlaves();</script>''')
+
+    pxPortlet = Px('''
+     <x var="toolUrl=tool.url;
+             queryUrl='%s/query' % toolUrl;
+             currentSearch=req.get('search', None);
+             currentClass=req.get('className', None);
+             currentPage=req['PATH_INFO'].rsplit('/',1)[-1];
+             rootClasses=ztool.getRootClasses();
+             phases=zobj and zobj.getAppyPhases() or None">
+
+      <table class="portletContent"
+             if="zobj and phases and zobj.mayNavigate()"
+             var2="singlePhase=phases and (len(phases) == 1);
+                   page=req.get('page', '');
+                   mayEdit=zobj.mayEdit()">
+       <x for="phase in phases">:phase.pxView</x>
+      </table>
+
+      <!-- One section for every searchable root class -->
+      <x for="rootClass in [rc for rc in rootClasses \
+                            if ztool.userMaySearch(rc)]">
+
+       <!-- A separator if required -->
+       <div class="portletSep" var="nb=loop.rootClass.nb"
+            if="(nb != 0) or ((nb == 0) and phases)"></div>
+
+       <!-- Section title (link triggers the default search) -->
+       <div class="portletContent"
+            var="searchInfo=ztool.getGroupedSearches(rootClass)">
+        <div class="portletTitle">
+         <a var="queryParam=searchInfo['default'] and \
+                            searchInfo['default']['name'] or ''"
+            href=":'%s?className=%s&amp;search=%s' % \
+                   (queryUrl,rootClass,queryParam)"
+            class=":(not currentSearch and (currentClass==rootClass) and \
+                    (currentPage=='query')) and \
+                    'portletCurrent' or ''">::_(rootClass + '_plural')</a>
+        </div>
+
+        <!-- Actions -->
+        <x var="addPermission='%s: Add %s' % (appName, rootClass);
+                userMayAdd=user.has_permission(addPermission, appFolder);
+                createMeans=ztool.getCreateMeans(rootClass)">
+
+         <!-- Create a new object from a web form -->
+         <input type="button" class="button"
+                if="userMayAdd and ('form' in createMeans)"
+                style=":url('buttonAdd', bg=True)" value=":_('query_create')"
+                onclick=":'goto(%s)' % \
+                    q('%s/do?action=Create&amp;className=%s' % \
+                    (toolUrl, rootClass))"/>
+
+         <!-- Create object(s) by importing data -->
+         <input type="button" class="button"
+                if="userMayAdd and ('import' in createMeans)"
+                style=":url('buttonImport', bg=True)" value=":_('query_import')"
+                onclick=":'goto(%s)' % \
+                        q('%s/import?className=%s' % (toolUrl, rootClass))"/>
+        </x>
+
+        <!-- Searches -->
+        <x if="ztool.advancedSearchEnabledFor(rootClass)">
+
+         <!-- Live search -->
+         <form action=":'%s/do' % toolUrl">
+          <input type="hidden" name="action" value="SearchObjects"/>
+          <input type="hidden" name="className" value=":rootClass"/>
+          <table cellpadding="0" cellspacing="0">
+           <tr valign="bottom">
+            <td><input type="text" size="14" name="w_SearchableText"
+                       class="inputSearch"/></td>
+            <td>
+             <input type="image" class="clickable" src=":url('search.gif')"
+                    title=":_('search_button')"/></td>
+           </tr>
+          </table>
+         </form>
+
+         <!-- Advanced search -->
+         <div var="highlighted=(currentClass == rootClass) and \
+                               (currentPage == 'search')"
+              class=":highlighted and 'portletSearch portletCurrent' or \
+                     'portletSearch'"
+              align=":dright">
+          <a var="text=_('search_title')" style="font-size: 88%"
+             href=":'%s/search?className=%s' % (toolUrl, rootClass)"
+             title=":text"><x>:text</x>...</a>
+         </div>
+        </x>
+
+        <!-- Predefined searches -->
+        <x for="widget in searchInfo['searches']">
+         <x if="widget['type']=='group'">:widget['px']</x>
+         <x if="widget['type']!='group'" var2="search=widget">:search['px']</x>
+        </x>
+       </div>
+      </x>
+     </x>''')
+
+    # The message that is shown when a user triggers an action.
+    pxMessage = Px('''
+     <div var="messages=ztool.consumeMessages()" if="messages" class="message">
+      <!-- The icon for closing the message -->
+      <img src=":url('close')" align=":dright" class="clickable"
+           onclick="this.parentNode.style.display='none'"/>
+      <!-- The message content -->
+      <x>::messages</x>
+     </div>''')
+
+    # The page footer.
+    pxFooter = Px('''
+     <table cellpadding="0" cellspacing="0" width="100%" class="footer">
+      <tr>
+       <td align=":dright">Made with
+        <a href="http://appyframework.org" target="_blank">Appy</a></td></tr>
+     </table>''')
+
+    # Hook for defining a PX that proposes additional links, after the links
+    # corresponding to top-level pages.
+    pxLinks = ''
+
+    # Hook for defining a PX that proposes additional icons after standard
+    # icons in the user strip.
+    pxIcons = ''
+
+    # Displays the content of a layouted object (a page or a field). If the
+    # layouted object is a page, the "layout target" (where to look for PXs)
+    # will be the object whose page is shown; if the layouted object is a field,
+    # the layout target will be this field.
+    pxLayoutedObject = Px('''
+     <table var="layoutCss=layout['css_class'];
+                 isCell=layoutType == 'cell'"
+            cellpadding=":layout['cellpadding']"
+            cellspacing=":layout['cellspacing']"
+            width=":not isCell and layout['width'] or ''"
+            align=":not isCell and \
+                   ztool.flipLanguageDirection(layout['align'], dir) or ''"
+            class=":tagCss and ('%s %s' % (tagCss, layoutCss)).strip() or \
+                   layoutCss"
+            style=":layout['style']" id=":tagId" name=":tagName">
+
+      <!-- The table header row -->
+      <tr if="layout['headerRow']" valign=":layout['headerRow']['valign']">
+       <th for="cell in layout['headerRow']['cells']" width=":cell['width']"
+           align=":ztool.flipLanguageDirection(cell['align'], dir)">
+       </th>
+      </tr>
+      <!-- The table content -->
+      <tr for="row in layout['rows']" valign=":row['valign']">
+       <td for="cell in row['cells']" colspan=":cell['colspan']"
+           align=":ztool.flipLanguageDirection(cell['align'], dir)"
+           class=":not loop.cell.last and 'cellGap' or ''">
+        <x for="pxName in cell['content']">
+         <x var="px=(pxName == '?') and 'px%s' % layoutType.capitalize() \
+                                    or pxName">:getattr(layoutTarget, px)</x>
+         <img if="not loop.pxName.last" src=":url('space.gif')"/>
+        </x>
+       </td>
+      </tr>
+     </table>''')
+
     pxHome = Px('''
      <table width="300px" height="240px" align="center">
       <tr valign="middle">
@@ -58,22 +353,22 @@ class ToolWrapper(AbstractWrapper):
      <!-- Any other field -->
      <x if="field.name != 'title'">
       <x var="layoutType='cell'; innerRef=True"
-         if="zobj.showField(field.name, 'result')">field.pxView</x>
+         if="zobj.showField(field.name, 'result')">:field.pxRender</x>
      </x>
     </x>''')
 
     # Show query results as a list.
     pxQueryResultList = Px('''
-     <table class="list" width="100%">
+     <table class="list" width="100%" var="showHeaders=showHeaders|True">
       <!-- Headers, with filters and sort arrows -->
       <tr if="showHeaders">
        <th for="column in columns"
-           var2="widget=column['field'];
+           var2="field=column.field;
                  sortable=ztool.isSortable(field.name, className, 'search');
-                 filterable=widget.filterable"
-           width=":column['width']" align=":column['align']">
+                 filterable=field.filterable"
+           width=":column.width" align=":column.align">
         <x>::ztool.truncateText(_(field.labelId))</x>
-        <x>:self.pxSortAndFilter</x><x>:self.pxShowDetails</x>
+        <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
        </th>
       </tr>
 
@@ -83,9 +378,9 @@ class ToolWrapper(AbstractWrapper):
                 obj=zobj.appy()"
           class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
-            var2="widget=column['field']" id=":'field_%s' % field.name"
-            width=":column['width']"
-            align=":column['align']">:self.pxQueryField</td>
+            var2="field=column.field" id=":'field_%s' % field.name"
+            width=":column.width"
+            align=":column.align">:tool.pxQueryField</td>
       </tr>
      </table>''')
 
@@ -100,7 +395,7 @@ class ToolWrapper(AbstractWrapper):
            style="padding-top: 25px" var2="obj=zobj.appy()">
         <x var="currentNumber=currentNumber + 1"
            for="column in columns"
-           var2="widget = column['field']">:self.pxQueryField</x>
+           var2="field=column.field">:tool.pxQueryField</x>
        </td>
       </tr>
      </table>''')
@@ -118,13 +413,13 @@ class ToolWrapper(AbstractWrapper):
                startNumber=req.get('startNumber', '0');
                startNumber=int(startNumber);
                searchName=req.get('search', '');
-               searchDescr=ztool.getSearch(className, searchName, descr=True);
+               uiSearch=ztool.getSearch(className, searchName, ui=True);
                sortKey=req.get('sortKey', '');
                sortOrder=req.get('sortOrder', 'asc');
                filterKey=req.get('filterKey', '');
                filterValue=req.get('filterValue', '');
                queryResult=ztool.executeQuery(className, \
-                   search=searchDescr['search'], startNumber=startNumber, \
+                   search=uiSearch.search, startNumber=startNumber, \
                    remember=True, sortBy=sortKey, sortOrder=sortOrder, \
                    filterKey=filterKey, filterValue=filterValue, \
                    refObject=refObject, refField=refField);
@@ -136,25 +431,27 @@ class ToolWrapper(AbstractWrapper):
                navBaseCall='askQueryResult(%s,%s,%s,%s,**v**)' % \
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
                   q(searchName));
-               newSearchUrl='%s/ui/search?className=%s%s' % \
+               showNewSearch=showNewSearch|True;
+               enableLinks=enableLinks|True;
+               newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
                resultMode=ztool.getResultMode(className)">
 
       <x if="zobjects">
        <!-- Display here POD templates if required. -->
-       <table var="widgets=ztool.getResultPodFields(className);
+       <table var="fields=ztool.getResultPodFields(className);
                    layoutType='view'"
-              if="zobjects and widgets" align=":dright">
+              if="zobjects and fields" align=":dright">
         <tr>
          <td var="zobj=zobjects[0]; obj=zobj.appy()"
-             for="field in widgets">:field.pxView</td>
+             for="field in fields">:field.pxView</td>
         </tr>
        </table>
 
        <!-- The title of the search -->
        <p>
-        <x>:searchDescr['translated']</x> (<x>:totalNumber</x>)
+        <x>:uiSearch.translated</x> (<x>:totalNumber</x>)
         <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
          &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
         </x>
@@ -162,41 +459,37 @@ class ToolWrapper(AbstractWrapper):
        <table width="100%">
         <tr>
          <!-- Search description -->
-         <td if="searchDescr['translatedDescr']">
-          <span class="discreet">:searchDescr['translatedDescr']</span><br/>
+         <td if="uiSearch.translatedDescr">
+          <span class="discreet">:uiSearch.translatedDescr</span><br/>
          </td>
-         <!-- Appy (top) navigation -->
-         <td align=":dright" width="25%"><x>:self.pxAppyNavigate</x></td>
+         <!-- (Top) navigation -->
+         <td align=":dright" width="25%"><x>:tool.pxNavigate</x></td>
         </tr>
        </table>
 
        <!-- Results, as a list or grid -->
        <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
-               columns=zobjects[0].getColumnsSpecifiers(columnLayouts, dir);
+               columns=ztool.getColumnsSpecifiers(className,columnLayouts, dir);
                currentNumber=0">
-        <x if="resultMode == 'list'">:self.pxQueryResultList</x>
-        <x if="resultMode != 'list'">:self.pxQueryResultGrid</x>
+        <x if="resultMode == 'list'">:tool.pxQueryResultList</x>
+        <x if="resultMode != 'list'">:tool.pxQueryResultGrid</x>
        </x>
 
-       <!-- Appy (bottom) navigation -->
-       <x>:self.pxAppyNavigate</x>
+       <!-- (Bottom) navigation -->
+       <x>:tool.pxNavigate</x>
       </x>
 
       <x if="not zobjects">
-       <x>:_('query_no_result')></x>
+       <x>:_('query_no_result')</x>
        <x if="showNewSearch and (searchName == 'customSearch')"><br/>
         <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>
       </x>
     </div>''')
 
     pxQuery = Px('''
-     <x var="className=req['className'];
-             searchName=req.get('search', '');
-             cssJs=None;
-             showNewSearch=True;
-             showHeaders=True;
-             enableLinks=True">
-      <x>:self.pxPagePrologue</x><x>:self.pxQueryResult</x>
+     <x var="className=req['className']; searchName=req.get('search', '');
+             cssJs=None">
+      <x>:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxSearch = Px('''
@@ -204,7 +497,7 @@ class ToolWrapper(AbstractWrapper):
              refInfo=req.get('ref', None);
              searchInfo=ztool.getSearchInfo(className, refInfo);
              cssJs={};
-             x=ztool.getCssJs(searchInfo['fields'], 'edit', cssJs)">
+             x=ztool.getCssJs(searchInfo.fields, 'edit', cssJs)">
 
       <!-- Include type-specific CSS and JS. -->
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
@@ -228,10 +521,10 @@ class ToolWrapper(AbstractWrapper):
          <td for="field in searchRow"
              var2="scolspan=field and field.scolspan or 1"
              colspan=":scolspan"
-             width=":'%d%%' % ((100/searchInfo['nbOfColumns'])*scolspan)">
+             width=":'%d%%' % ((100/searchInfo.nbOfColumns)*scolspan)">
            <x if="field"
               var2="name=field.name;
-                    widgetName='w_%s' % name">field.pxSearch</x>
+                    widgetName='w_%s' % name">:field.pxSearch</x>
            <br class="discreet"/>
          </td>
         </tr>
@@ -249,7 +542,7 @@ class ToolWrapper(AbstractWrapper):
      <x var="className=req['className'];
              importElems=ztool.getImportElements(className);
              allAreImported=True">
-      <x>:self.pxPagePrologue</x>
+      <x>:tool.pxPagePrologue</x>
       <script type="text/javascript"><![CDATA[
       var importedElemsShown = false;
       function toggleViewableElements() {
@@ -303,7 +596,7 @@ class ToolWrapper(AbstractWrapper):
        <input type="hidden" name="importPath" value=""/>
       </form>
 
-      <h1>:_('import_title')"></h1><br/>
+      <h1>:_('import_title')</h1><br/>
       <table class="list" width="100%">
        <tr>
         <th for="columnHeader in importElems[0]">

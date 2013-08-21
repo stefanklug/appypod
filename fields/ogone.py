@@ -112,7 +112,7 @@ class Ogone(Field):
         res.update(self.callMethod(obj, self.orderMethod))
         # Add user-related information
         res['CN'] = str(tool.getUserName(normalized=True))
-        user = obj.appy().appyUser
+        user = obj.appy().user
         res['EMAIL'] = user.email or user.login
         # Add standard back URLs
         siteUrl = tool.getSiteUrl()

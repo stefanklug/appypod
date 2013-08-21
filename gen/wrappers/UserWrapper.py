@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
 from appy.gen import WorkflowOwner
 from appy.gen.wrappers import AbstractWrapper
+from appy.gen import utils as gutils
 
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):
@@ -55,7 +56,7 @@ class UserWrapper(AbstractWrapper):
         if self.o.isTemporary(): return 'edit'
         # When the user itself (we don't check role Owner because a Manager can
         # also own a User instance) wants to edit information about himself.
-        if self.user.getId() == self.login: return 'edit'
+        if self.user.login == self.login: return 'edit'
 
     def setPassword(self, newPassword=None):
         '''Sets a p_newPassword for self. If p_newPassword is not given, we
@@ -67,16 +68,15 @@ class UserWrapper(AbstractWrapper):
             newPassword = self.getField('password1').generatePassword()
             msgPart = 'generated'
         login = self.login
-        zopeUser = self.o.acl_users.getUserById(login)
+        zopeUser = self.getZopeUser()
         tool = self.tool.o
         zopeUser.__ = tool._encryptPassword(newPassword)
-        if self.user.getId() == login:
+        if self.user.login == login:
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
-            tool._updateCookie(login, newPassword)
-        loggedUser = self.user.getId() or 'system|anon'
+            gutils.writeCookie(login, newPassword, self.request)
         self.log('Password %s by "%s" for "%s".' % \
-                 (msgPart, loggedUser, login))
+                 (msgPart, self.user.login, login))
         return newPassword
 
     def checkPassword(self, clearPassword):
@@ -91,7 +91,7 @@ class UserWrapper(AbstractWrapper):
         self.login = newLogin
         # Update the corresponding Zope-level user
         aclUsers = self.o.acl_users
-        zopeUser = aclUsers.getUserById(oldLogin)
+        zopeUser = aclUsers.getUser(oldLogin)
         zopeUser.name = newLogin
         del aclUsers.data[oldLogin]
         aclUsers.data[newLogin] = zopeUser
@@ -99,8 +99,8 @@ class UserWrapper(AbstractWrapper):
         email = self.email
         if email == oldLogin:
             self.email = newLogin
-        # Update the title, which is the login
-        self.title = newLogin
+        # Update the title
+        self.updateTitle()
         # Browse all objects of the database and update potential local roles
         # that referred to the old login.
         context = {'nb': 0, 'old': oldLogin, 'new': newLogin}
@@ -109,7 +109,7 @@ class UserWrapper(AbstractWrapper):
                          expression="ctx['nb'] += obj.o.applyUserIdChange(" \
                                     "ctx['old'], ctx['new'])")
         self.log("Login '%s' renamed to '%s' by '%s'." % \
-                 (oldLogin, newLogin, self.user.getId()))
+                 (oldLogin, newLogin, self.user.login))
         self.log('Login change: local roles updated in %d object(s).' % \
                  context['nb'])
 
@@ -133,12 +133,15 @@ class UserWrapper(AbstractWrapper):
             if self.login: self.o._oldLogin = self.login
         return self._callCustom('validate', new, errors)
 
-    def onEdit(self, created):
-        # Set a title for this user.
+    def updateTitle(self):
+        '''Sets a title for this user.'''
         if self.firstName and self.name:
             self.title = '%s %s' % (self.name, self.firstName)
         else:
             self.title = self.login
+
+    def onEdit(self, created):
+        self.updateTitle()
         aclUsers = self.o.acl_users
         login = self.login
         if created:
@@ -158,7 +161,7 @@ class UserWrapper(AbstractWrapper):
                 self.setLogin(oldLogin, login)
             del self.o._oldLogin
             # Update roles at the Zope level.
-            zopeUser = aclUsers.getUserById(login)
+            zopeUser = self.getZopeUser()
             zopeUser.roles = self.roles
             # Update the password if the user has entered new ones.
             rq = self.request
@@ -195,11 +198,19 @@ class UserWrapper(AbstractWrapper):
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
 
-    # Methods that are defined on the Zope user class, wrapped on this class.
+    # Standard Zope user methods -----------------------------------------------
     def has_role(self, role, obj=None):
-        user = self.user
-        if obj: return user.has_role(role, obj)
-        return user.has_role(role)
+        zopeUser = self.request.zopeUser
+        if obj: return zopeUser.has_role(role, obj)
+        return zopeUser.has_role(role)
+
+    def has_permission(self, permission, obj):
+        return self.request.zopeUser.has_permission(permission, obj)
+
+    def getRoles(self):
+        '''This method collects all the roles for this user, not simply
+           user.roles, but also roles inherited from group membership.'''
+        return self.getZopeUser().getRoles()
 
 # ------------------------------------------------------------------------------
 try:

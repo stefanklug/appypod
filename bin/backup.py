@@ -275,7 +275,7 @@ class ZodbBackupScript:
         optParser.add_option("-p", "--python", dest="python",
                              help="The path to the Python interpreter running "\
                                   "Zope",
-                             default='python2.4',metavar="REPOZO",type='string')
+                             default='python2.4',metavar="PYTHON",type='string')
         optParser.add_option("-r", "--repozo", dest="repozo",
                              help="The path to repozo.py",
                              default='', metavar="REPOZO", type='string')

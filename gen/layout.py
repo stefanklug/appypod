@@ -42,15 +42,12 @@ rowDelms = ''.join(rowDelimiters.keys())
 cellDelimiters = {'|': 'center', ';': 'left', '!': 'right'}
 cellDelms = ''.join(cellDelimiters.keys())
 
-macroDict = {
+pxDict = {
   # Page-related elements
-  's': ('page', 'header'), 'w': ('page', 'widgets'),
-  'n': ('navigate', 'objectNavigate'), 'b': ('page', 'buttons'),
+  's': 'pxHeader', 'w': 'pxFields', 'n': 'pxNavigateSiblings', 'b': 'pxButtons',
   # Field-related elements
-  'l': ('show', 'label'), 'd': ('show', 'description'),
-  'h': ('show', 'help'),  'v': ('show', 'validation'),
-  'r': ('show', 'required'), 'c': ('show', 'changes'),
-}
+  'l': 'pxLabel', 'd': 'pxDescription', 'h': 'pxHelp', 'v': 'pxValidation',
+  'r': 'pxRequired', 'c': 'pxChanges'}
 
 # ------------------------------------------------------------------------------
 class LayoutElement:
@@ -77,8 +74,8 @@ class Cell(LayoutElement):
                 digits += char
             else:
                 # It is a letter corresponding to a macro
-                if char in macroDict:
-                    self.content.append(macroDict[char])
+                if char in pxDict:
+                    self.content.append(pxDict[char])
                 elif char == 'f':
                     # The exact macro to call will be known at render-time
                     self.content.append('?')
@@ -209,7 +206,7 @@ class Table(LayoutElement):
 
     def removeElement(self, elem):
         '''Removes given p_elem from myself.'''
-        macroToRemove = macroDict[elem]
+        macroToRemove = pxDict[elem]
         for row in self.rows:
             for cell in row['cells']:
                 if macroToRemove in cell['content']:

@@ -41,14 +41,14 @@ class Boolean(Field):
 
     pxSearch = Px('''
      <x var="typedWidget='%s*bool' % widgetName">
-      <label lfor=":widgetName">:_(field.labelId)"></label><br/>&nbsp;&nbsp;
+      <label lfor=":widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
       <x var="valueId='%s_yes' % name">
        <input type="radio" value="True" name=":typedWidget" id=":valueId"/>
        <label lfor=":valueId">:_('yes')</label>
       </x>
       <x var="valueId='%s_no' % name">
        <input type="radio" value="False" name=":typedWidget" id=":valueId"/>
-       <label lfor=":valueId">:_('no')"></label>
+       <label lfor=":valueId">:_('no')</label>
       </x>
       <x var="valueId='%s_whatever' % name">
        <input type="radio" value="" name=":typedWidget" id=":valueId"

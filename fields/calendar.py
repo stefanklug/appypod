@@ -35,8 +35,8 @@ class Calendar(Field):
                otherCalendars=field.getOtherCalendars(zobj, preComputed)"
           id=":ajaxHookId">
 
-      <script type="text/javascript">:'var %s_maxEventLength = %d;' % \
-                                   (field.name, field.maxEventLength)"></script>
+      <script type="text/javascript">:'var %s_maxEventLength = %d' % \
+                                     (field.name, field.maxEventLength)</script>
 
       <!-- Month chooser -->
       <div style="margin-bottom: 5px"
@@ -100,7 +100,7 @@ class Calendar(Field):
              onmouseout="mayEdit and 'this.getElementsByTagName(\
                %s)[0].style.visibility=%s' % (q('img'), q('hidden')) or ''">
           <span>:day</span>
-          <span if="day == 1">:_('month_%s_short' % date.aMonth())"></span>
+          <span if="day == 1">:_('month_%s_short' % date.aMonth())</span>
           <!-- Icon for adding an event -->
           <x if="mayCreate">
            <img class="clickable" style="visibility:hidden"
@@ -115,11 +115,10 @@ class Calendar(Field):
           <img if="mayDelete" class="clickable" style="visibility:hidden"
                src=":url('delete')"
                onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
-                 (q('del'), q(field.name), q(dayString), q(str(spansDays)))"/>
+                 (q('del'), q(field.name), q(dayString), q(spansDays))"/>
           <!-- A single event is allowed for the moment -->
           <div if="events" var2="eventType=events[0]['eventType']">
-           <span style="color: grey">:field.getEventName(zobj, \
-                                                         eventType)"></span>
+           <span style="color: grey">:field.getEventName(zobj, eventType)</span>
           </div>
           <!-- Events from other calendars -->
           <x if="otherCalendars"
@@ -149,16 +148,15 @@ class Calendar(Field):
         <input type="hidden" name="day"/>
 
         <!-- Choose an event type -->
-        <div align="center" style="margin-bottom: 3px">:_('which_event')"></div>
+        <div align="center" style="margin-bottom: 3px">:_('which_event')</div>
         <select name="eventType">
-         <option value="">:_('choose_a_value')"></option>
+         <option value="">:_('choose_a_value')</option>
          <option for="eventType in allEventTypes"
-                 value=":eventType">:field.getEventName(zobj, eventType)">
-         </option>
+                 value=":eventType">:field.getEventName(zobj,eventType)</option>
         </select><br/><br/>
         <!--Span the event on several days -->
         <div align="center" class="discreet" style="margin-bottom: 3px">
-         <span>:_('event_span')"></span>
+         <span>:_('event_span')</span>
          <input type="text" size="3" name="eventSpan"/>
         </div>
         <input type="button"
@@ -184,8 +182,7 @@ class Calendar(Field):
         <input type="hidden" name="actionType" value="deleteEvent"/>
         <input type="hidden" name="day"/>
 
-        <div align="center" style="margin-bottom: 5px">_('delete_confirm')">
-        </div>
+        <div align="center" style="margin-bottom: 5px">_('delete_confirm')</div>
 
         <!-- Delete successive events ? -->
         <div class="discreet" style="margin-bottom: 10px"
@@ -195,7 +192,7 @@ class Calendar(Field):
                  onClick=":'toggleCheckbox(%s, %s)' % \
                            (q('%s_cb' % prefix), q('%s_hd' % prefix))"/>
           <input type="hidden" id=":prefix + '_hd'" name="deleteNext"/>
-          <span>:_('del_next_events')"></span>
+          <span>:_('del_next_events')</span>
         </div>
         <input type="button" value=":_('yes')"
                onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \

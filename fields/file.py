@@ -30,7 +30,7 @@ class File(Field):
              imgSrc='%s/download?name=%s' % (zobj.absolute_url(), name)">
       <x if="not empty and not field.isImage">
        <a href=":imgSrc">:info.filename</a>&nbsp;&nbsp;-
-       <i class="discreet">'%sKb' % (info.size / 1024)"></i>
+       <i class="discreet">:'%sKb' % (info.size / 1024)</i>
       </x>
       <x if="not empty and field.isImage"><img src=":imgSrc"/></x>
       <x if="empty">-</x>
@@ -67,10 +67,8 @@ class File(Field):
       <input type="file" name=":'%s_file' % name" id=":'%s_file' % name"
              size=":field.width"/>
       <script var="isDisabled=empty and 'false' or 'true'"
-              type="text/javascript">:document.getElementById(%s).disabled=%s'%\
-                                      (q(fName), q(isDisabled))">
-      </script>
-     </x>''')
+             type="text/javascript">:'document.getElementById(%s).disabled=%s'%\
+                                     (q(fName), q(isDisabled))</script></x>''')
 
     pxSearch = ''
 
