@@ -140,7 +140,7 @@ class Ref(Field):
                folder=zobj.getCreateFolder();
                tiedClassName=ztool.getPortalType(field.klass);
                canWrite=not field.isBack and zobj.allows(field.writePermission);
-               showPlusIcon=zobj.mayAddReference(field.name);
+               showPlusIcon=field.mayAdd(zobj);
                atMostOneRef=(field.multiplicity[1] == 1) and \
                             (len(zobjects)&lt;=1);
                addConfirmMsg=field.addConfirm and \
@@ -592,12 +592,8 @@ class Ref(Field):
         # May the user edit this Ref field?
         if not obj.allows(self.writePermission):
             return gutils.No('no_write_perm')
-        # Have the user the correct add permission?
-        tool = obj.getTool()
-        addPermission = '%s: Add %s' % (tool.getAppName(),
-                                        tool.getPortalType(self.klass))
-        folder = obj.getCreateFolder()
-        if not tool.getUser().has_permission(addPermission, folder):
+        # May the user create instances of the referred class?
+        if not obj.getTool().userMayCreate(self.klass):
             return gutils.No('no_add_perm')
         return True
 

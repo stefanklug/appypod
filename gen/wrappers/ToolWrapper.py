@@ -174,8 +174,8 @@ class ToolWrapper(AbstractWrapper):
       </table>
 
       <!-- One section for every searchable root class -->
-      <x for="rootClass in [rc for rc in rootClasses \
-                            if ztool.userMaySearch(rc)]">
+      <x for="rootClass in rootClasses" if="ztool.userMaySearch(rootClass)"
+         var2="className=ztool.getPortalType(rootClass)">
 
        <!-- A separator if required -->
        <div class="portletSep" var="nb=loop.rootClass.nb"
@@ -188,31 +188,30 @@ class ToolWrapper(AbstractWrapper):
          <a var="queryParam=searchInfo.default and \
                             searchInfo.default.name or ''"
             href=":'%s?className=%s&amp;search=%s' % \
-                   (queryUrl,rootClass,queryParam)"
-            class=":(not currentSearch and (currentClass==rootClass) and \
+                   (queryUrl, className, queryParam)"
+            class=":(not currentSearch and (currentClass==className) and \
                     (currentPage=='query')) and \
-                    'portletCurrent' or ''">::_(rootClass + '_plural')</a>
+                    'portletCurrent' or ''">::_(className + '_plural')</a>
         </div>
 
         <!-- Actions -->
-        <x var="addPermission='%s: Add %s' % (appName, rootClass);
-                userMayAdd=user.has_permission(addPermission, appFolder);
+        <x var="mayCreate=ztool.userMayCreate(rootClass);
                 createMeans=ztool.getCreateMeans(rootClass)">
 
-         <!-- Create a new object from a web form -->
+         <!-- Create a new object from a web form. -->
          <input type="button" class="button"
-                if="userMayAdd and ('form' in createMeans)"
+                if="mayCreate and ('form' in createMeans)"
                 style=":url('buttonAdd', bg=True)" value=":_('query_create')"
                 onclick=":'goto(%s)' % \
                     q('%s/do?action=Create&amp;className=%s' % \
-                    (toolUrl, rootClass))"/>
+                    (toolUrl, className))"/>
 
          <!-- Create object(s) by importing data -->
          <input type="button" class="button"
-                if="userMayAdd and ('import' in createMeans)"
+                if="mayCreate and ('import' in createMeans)"
                 style=":url('buttonImport', bg=True)" value=":_('query_import')"
                 onclick=":'goto(%s)' % \
-                        q('%s/import?className=%s' % (toolUrl, rootClass))"/>
+                        q('%s/import?className=%s' % (toolUrl, className))"/>
         </x>
 
         <!-- Searches -->
@@ -221,7 +220,7 @@ class ToolWrapper(AbstractWrapper):
          <!-- Live search -->
          <form action=":'%s/do' % toolUrl">
           <input type="hidden" name="action" value="SearchObjects"/>
-          <input type="hidden" name="className" value=":rootClass"/>
+          <input type="hidden" name="className" value=":className"/>
           <table cellpadding="0" cellspacing="0">
            <tr valign="bottom">
             <td><input type="text" size="14" name="w_SearchableText"
@@ -234,13 +233,13 @@ class ToolWrapper(AbstractWrapper):
          </form>
 
          <!-- Advanced search -->
-         <div var="highlighted=(currentClass == rootClass) and \
+         <div var="highlighted=(currentClass == className) and \
                                (currentPage == 'search')"
               class=":highlighted and 'portletSearch portletCurrent' or \
                      'portletSearch'"
               align=":dright">
           <a var="text=_('search_title')" style="font-size: 88%"
-             href=":'%s/search?className=%s' % (toolUrl, rootClass)"
+             href=":'%s/search?className=%s' % (toolUrl, className)"
              title=":text"><x>:text</x>...</a>
          </div>
         </x>
@@ -753,16 +752,6 @@ class ToolWrapper(AbstractWrapper):
     def sendMail(self, to, subject, body, attachments=None):
         '''Sends a mail. See doc for appy.gen.mail.sendMail.'''
         sendMail(self, to, subject, body, attachments=attachments)
-
-    def refreshSecurity(self):
-        '''Refreshes, on every object in the database, security-related,
-           workflow-managed information.'''
-        context = {'nb': 0}
-        for className in self.o.getProductConfig().allClassNames:
-            self.compute(className, context=context, noSecurity=True,
-                         expression="ctx['nb'] += int(obj.o.refreshSecurity())")
-        msg = 'Security refresh: %d object(s) updated.' % context['nb']
-        self.log(msg)
 
     def refreshCatalog(self, startObject=None):
         '''Reindex all Appy objects. For some unknown reason, method

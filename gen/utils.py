@@ -17,17 +17,11 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
     user = tool.getUser()
     if not noSecurity:
         # Check that the user can create objects of className.
-        userRoles = user.getRoles()
-        allowedRoles=ZopeClass.wrapperClass.getCreators(tool.getProductConfig())
-        allowed = False
-        for role in userRoles:
-            if role in allowedRoles:
-                allowed = True
-                break
-        if not allowed:
+        klass = ZopeClass.wrapperClass.__bases__[-1]
+        if not tool.userMayCreate(klass):
             from AccessControl import Unauthorized
             raise Unauthorized("User can't create instances of %s" % \
-                               ZopeClass.__name__)
+                               klass.__name__)
     obj = ZopeClass(id)
     folder._objects = folder._objects + ({'id':id, 'meta_type':className},)
     folder._setOb(id, obj)
@@ -136,21 +130,6 @@ def getClassName(klass, appName=None):
     else: # This is a standard class
         res = klass.__module__.replace('.', '_') + '_' + klass.__name__
     return res
-
-# ------------------------------------------------------------------------------
-def updateRolesForPermission(permission, roles, obj):
-    '''Adds roles from list p_roles to the list of roles that are granted
-       p_permission on p_obj.'''
-    from AccessControl.Permission import Permission
-    # Find existing roles that were granted p_permission on p_obj
-    existingRoles = ()
-    for p in obj.ac_inherited_permissions(1):
-        name, value = p[:2]
-        if name == permission:
-            perm = Permission(name, value, obj)
-            existingRoles = perm.getRoles()
-    allRoles = set(existingRoles).union(roles)
-    obj.manage_permission(permission, tuple(allRoles), acquire=0)
 
 # ------------------------------------------------------------------------------
 def callMethod(obj, method, klass=None, cache=True):

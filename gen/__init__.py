@@ -59,12 +59,6 @@ class Import:
         self.sort = sort
 
 # Workflow-specific types and default workflows --------------------------------
-appyToZopePermissions = {
-  'read': ('View', 'Access contents information'),
-  'write': 'Modify portal content',
-  'delete': 'Delete objects',
-}
-
 class Role:
     '''Represents a role.'''
     zopeRoles = ('Manager', 'Owner', 'Anonymous', 'Authenticated')
@@ -108,7 +102,7 @@ class State:
            name of a role, this method returns self.usedRoles[role] if it
            exists, or creates a Role instance, puts it in self.usedRoles and
            returns it else. If it is a Role instance, the method stores it in
-           self.usedRoles if it not in it yet and returns it.'''
+           self.usedRoles if it is not in it yet and returns it.'''
         if isinstance(role, basestring):
             if role in self.usedRoles:
                 return self.usedRoles[role]
@@ -134,61 +128,6 @@ class State:
                 self.permissions[permission] = rolesList
 
     def getUsedRoles(self): return self.usedRoles.values()
-
-    def getPermissions(self):
-        '''If you get the permissions mapping through self.permissions, dict
-           values may be of different types (a list of roles, a single role or
-           None). Iy you call this method, you will always get a list which
-           may be empty.'''
-        res = {}
-        for permission, roleValue in self.permissions.iteritems():
-            if roleValue == None:
-                res[permission] = []
-            elif isinstance(roleValue, basestring):
-                res[permission] = [roleValue]
-            else:
-                res[permission] = roleValue
-        return res
-
-    def updatePermission(self, obj, zopePermission, roleNames):
-        '''Updates, on p_obj, list of p_roleNames which are granted a given
-           p_zopePermission. This method returns True if the list has been
-           effectively updated.'''
-        attr = Permission.getZopeAttrName(zopePermission)
-        if not hasattr(obj.aq_base, attr) or \
-            (getattr(obj.aq_base, attr) != roleNames):
-            setattr(obj, attr, roleNames)
-            return True
-        return False
-
-    def updatePermissions(self, wf, obj):
-        '''Zope requires permission-to-roles mappings to be stored as attributes
-           on the object itself. This method does this job, duplicating the info
-           from this state definition on p_obj. p_res is True if at least one
-           change has been effectively performed.'''
-        res = False
-        for permission, roles in self.getPermissions().iteritems():
-            roleNames = tuple([role.name for role in roles])
-            # Compute Zope permission(s) related to this permission.
-            if appyToZopePermissions.has_key(permission):
-                # It is a standard permission (r, w, d)
-                zopePerm = appyToZopePermissions[permission]
-            elif isinstance(permission, basestring):
-                # It is a user-defined permission
-                zopePerm = permission
-            else:
-                # It is a Permission instance
-                appName = obj.getProductConfig().PROJECTNAME
-                zopePerm = permission.getName(wf, appName)
-            # zopePerm contains a single permission or a tuple of permissions
-            if isinstance(zopePerm, basestring):
-                changed = self.updatePermission(obj, zopePerm, roleNames)
-                res = res or changed
-            else:
-                for zPerm in zopePerm:
-                    changed = self.updatePermission(obj, zPerm, roleNames)
-                    res = res or changed
-        return res
 
 class Transition:
     def __init__(self, states, condition=True, action=None, notify=None,
@@ -345,8 +284,6 @@ class Transition:
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
-        # Update permissions-to-roles attributes
-        targetState.updatePermissions(wf, obj)
         # Reindex the object if required. Not only security-related indexes
         # (Allowed, State) need to be updated here.
         if not obj.isTemporary(): obj.reindex()
@@ -384,8 +321,7 @@ class Permission:
         self.fieldDescriptor = fieldDescriptor
 
     def getName(self, wf, appName):
-        '''Returns the name of the Zope permission that corresponds to this
-           permission.'''
+        '''Returns the name of this permission.'''
         className, fieldName = self.fieldDescriptor.rsplit('.', 1)
         if className.find('.') == -1:
             # The related class resides in the same module as the workflow
@@ -397,16 +333,6 @@ class Permission:
         if self.__class__.__name__ == 'ReadPermission': access = 'Read'
         else: access = 'Write'
         return '%s: %s %s %s' % (appName, access, fullClassName, fieldName)
-
-    @staticmethod
-    def getZopeAttrName(zopePermission):
-        '''Gets the name of the attribute where Zope stores, on every object,
-           the tuple of roles who are granted a given p_zopePermission.'''
-        res = ''
-        for c in zopePermission:
-            if c in Permission.allowedChars: res += c
-            else: res += '_'
-        return '_%s_Permission' % res
 
 class ReadPermission(Permission): pass
 class WritePermission(Permission): pass
@@ -475,7 +401,7 @@ class Config:
     languageSelector = False
     # People having one of these roles will be able to create instances
     # of classes defined in your application.
-    defaultCreators = ['Manager', 'Owner']
+    defaultCreators = ['Manager']
     # Number of translations for every page on a Translation object
     translationsPerPage = 30
     # Language that will be used as a basis for translating to other

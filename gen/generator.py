@@ -557,12 +557,6 @@ class ZopeGenerator(Generator):
             if theImport not in imports:
                 imports.append(theImport)
         repls['imports'] = '\n'.join(imports)
-        # Compute list of add permissions
-        addPermissions = ''
-        for classDescr in classesAll:
-            addPermissions += '    "%s":"%s: Add %s",\n' % (classDescr.name,
-                self.applicationName, classDescr.name)
-        repls['addPermissions'] = addPermissions
         # Compute root classes
         repls['rootClasses'] = ','.join(["'%s'" % c.name \
                                         for c in classesButTool if c.isRoot()])

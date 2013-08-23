@@ -246,14 +246,14 @@ class Field:
         elif rp and isinstance(rp, basestring):
             self.readPermission = rp
         else:
-            self.readPermission = 'View'
+            self.readPermission = 'read'
         wp = self.specificWritePermission
         if wp and not isinstance(wp, basestring):
             self.writePermission = '%s: Write %s %s' % (appName, prefix, name)
         elif wp and isinstance(wp, basestring):
             self.writePermission = wp
         else:
-            self.writePermission = 'Modify portal content'
+            self.writePermission = 'write'
         if (self.type == 'Ref') and not self.isBack:
             # We must initialise the corresponding back reference
             self.back.klass = klass

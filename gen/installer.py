@@ -63,7 +63,6 @@ class ZopeInstaller:
         self.productName = config.PROJECTNAME
         self.languages = config.appConfig.languages
         self.logger = config.logger
-        self.addContentPermissions = config.ADD_CONTENT_PERMISSIONS
 
     def installUi(self):
         '''Installs the user interface.'''
@@ -157,14 +156,9 @@ class ZopeInstaller:
             catalog.reindexIndex('SearchableText', self.app.REQUEST)
             self.logger.info('Done.')
 
-    def getAddPermission(self, className):
-        '''What is the name of the permission allowing to create instances of
-           class whose name is p_className?'''
-        return self.productName + ': Add ' + className
-
     def installBaseObjects(self):
-        '''Creates the tool and the root data folder if they do not exist.'''
-        # Create or update the base folder for storing data
+        '''Creates the tool and the base data folder if they do not exist.'''
+        # Create the tool.
         zopeContent = self.app.objectIds()
         from OFS.Folder import manage_addFolder
 
@@ -172,29 +166,8 @@ class ZopeInstaller:
             toolName = '%sTool' % self.productName
             gutils.createObject(self.app, 'config', toolName, self.productName,
                                 wf=False, noSecurity=True)
-
-        if 'data' not in zopeContent:
-            manage_addFolder(self.app, 'data')
-            data = self.app.data
-            tool = self.app.config
-            # Manager has been granted Add permissions for all root classes.
-            # This may not be desired, so remove this.
-            for className in self.config.rootClasses:
-                permission = self.getAddPermission(className)
-                data.manage_permission(permission, (), acquire=0)
-            # All roles defined as creators should be able to create the
-            # corresponding root classes in this folder.
-            i = -1
-            for klass in self.config.appClasses:
-                i += 1
-                if not klass.__dict__.has_key('root') or \
-                   not klass.__dict__['root']:
-                    continue # It is not a root class
-                className = self.config.appClassNames[i]
-                wrapperClass = tool.getAppyClass(className, wrapper=True)
-                creators = wrapperClass.getCreators(self.config)
-                permission = self.getAddPermission(className)
-                gutils.updateRolesForPermission(permission,tuple(creators),data)
+        # Create the base data folder.
+        if 'data' not in zopeContent: manage_addFolder(self.app, 'data')
 
         # Remove some default objects created by Zope but not useful to Appy
         for name in ('standard_html_footer', 'standard_html_header',\
@@ -206,14 +179,13 @@ class ZopeInstaller:
            inner objects (users, groups, translations, documents).'''
         tool = self.app.config
         tool.createOrUpdate(True, None)
-        tool.refreshSecurity()
         appyTool = tool.appy()
         appyTool.log('Appy version is "%s".' % appy.version.short)
 
         # Create the default users if they do not exist.
         for login, roles in self.defaultUsers.iteritems():
             if not appyTool.count('User', noSecurity=True, login=login):
-                appyTool.create('users', noSecurity=True, login=login,
+                appyTool.create('users', noSecurity=True, id=login, login=login,
                                 password1=login, password2=login,
                                 email='%s@appyframework.org'%login, roles=roles)
                 appyTool.log('User "%s" created.' % login)
@@ -332,8 +304,7 @@ class ZopeInstaller:
             wrapper = klass.wrapperClass
             exec 'from %s import manage_add%s as ctor' % (module, name)
             self.zopeContext.registerClass(meta_type=name,
-                constructors = (ctor,),
-                permission = self.addContentPermissions[name])
+                constructors = (ctor,), permission = None)
             # Create workflow prototypical instances in __instance__ attributes
             wf = wrapper.getWorkflow()
             if not hasattr(wf, '__instance__'): wf.__instance__ = wf()

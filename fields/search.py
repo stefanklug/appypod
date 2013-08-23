@@ -147,7 +147,7 @@ class UiSearch:
     pxView = Px('''
      <div class="portletSearch">
       <a href=":'%s?className=%s&amp;search=%s' % \
-                 (queryUrl, rootClass, search.name)"
+                 (queryUrl, className, search.name)"
          class=":search.name == currentSearch and 'portletCurrent' or ''"
          title=":search.translatedDescr">:search.translated</a>
      </div>''')

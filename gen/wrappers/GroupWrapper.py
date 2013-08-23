@@ -30,55 +30,18 @@ class GroupWrapper(AbstractWrapper):
         '''Inter-field validation.'''
         return self._callCustom('validate', new, errors)
 
-    def confirm(self, new):
-        '''Use this method for remembering the previous list of users for this
-           group.'''
-        obj = self.o
-        if hasattr(obj.aq_base, '_oldUsers'): del obj.aq_base._oldUsers
-        obj._oldUsers = self.users
-
     def addUser(self, user):
         '''Adds a p_user to this group.'''
         # Update the Ref field.
         self.link('users', user)
-        # Update the group-related info on the Zope user.
-        zopeUser = user.getZopeUser()
-        zopeUser.groups[self.login] = self.roles
 
     def removeUser(self, user):
         '''Removes a p_user from this group.'''
         self.unlink('users', user)
-        # Update the group-related info on the Zope user.
-        zopeUser = user.getZopeUser()
-        del zopeUser.groups[self.login]
 
     def onEdit(self, created):
-        # Create or update, on every Zope user of this group, group-related
-        # information.
-        # 1. Remove reference to this group for users that were removed from it
-        newUsers = self.users
-        # The list of previously existing users does not exist when editing a
-        # group from Python. For updating self.users, it is recommended to use
-        # methods m_addUser and m_removeUser above.
-        oldUsers = getattr(self.o.aq_base, '_oldUsers', ())
-        for user in oldUsers:
-            if user not in newUsers:
-                del user.getZopeUser().groups[self.login]
-                self.log('User "%s" removed from group "%s".' % \
-                         (user.login, self.login))
-        # 2. Add reference to this group for users that were added to it
-        for user in newUsers:
-            zopeUser = user.getZopeUser()
-            # We refresh group-related info on the Zope user even if the user
-            # was already in the group.
-            zopeUser.groups[self.login] = self.roles
-            if user not in oldUsers:
-                self.log('User "%s" added to group "%s".' % \
-                         (user.login, self.login))
-        if hasattr(self.o.aq_base, '_oldUsers'): del self.o._oldUsers
-        # If the group was created by an Anonymous, Anonymous can't stay Owner
-        # of the object.
-        if None in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__[None]
+        # If the group was created by anon, anon can't stay its Owner.
+        if 'anon' in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__['anon']
         return self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------

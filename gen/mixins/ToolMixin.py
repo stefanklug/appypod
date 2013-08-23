@@ -199,7 +199,8 @@ class ToolMixin(BaseMixin):
 
     def getRootClasses(self):
         '''Returns the list of root classes for this application.'''
-        return self.getProductConfig().rootClasses
+        cfg = self.getProductConfig()
+        return [self.getAppyClass(k) for k in cfg.rootClasses]
 
     def _appy_getAllFields(self, className):
         '''Returns the (translated) names of fields of p_className.'''
@@ -265,8 +266,8 @@ class ToolMixin(BaseMixin):
            p_className.'''
         appyClass = self.getAppyClass(className)
         importParams = self.getCreateMeans(appyClass)['import']
-        onElement = importParams['onElement'].__get__('')
-        sortMethod = importParams['sort']
+        onElement = importParams.onElement.__get__('')
+        sortMethod = importParams.sort
         if sortMethod: sortMethod = sortMethod.__get__('')
         elems = []
         importType = self.getAppyType('importPathFor%s' % className)
@@ -280,7 +281,7 @@ class ToolMixin(BaseMixin):
                 elems.append(elemInfo)
         if sortMethod:
             elems = sortMethod(elems)
-        return [importParams['headers'], elems]
+        return [importParams.headers, elems]
 
     def showPortlet(self, context, layoutType):
         '''When must the portlet be shown?'''
@@ -489,17 +490,13 @@ class ToolMixin(BaseMixin):
         if wrapper: return zopeClass.wrapperClass
         else: return zopeClass.wrapperClass.__bases__[-1]
 
-    def getCreateMeans(self, contentTypeOrAppyClass):
-        '''Gets the different ways objects of p_contentTypeOrAppyClass (which
-           can be a Zope content type or a Appy class) can be created
-           (via a web form, by importing external data, etc). Result is a
-           dict whose keys are strings (ie "form", "import"...) and whose
-           values are additional data about the particular mean.'''
-        pythonClass = contentTypeOrAppyClass
-        if isinstance(contentTypeOrAppyClass, basestring):
-            pythonClass = self.getAppyClass(pythonClass)
+    def getCreateMeans(self, klass):
+        '''Gets the different ways objects of p_klass can be created (via a web
+           form, by importing external data, etc). Result is a dict whose keys
+           are strings (ie "form", "import"...) and whose values are additional
+           data about the particular mean.'''
         res = {}
-        if not pythonClass.__dict__.has_key('create'):
+        if not klass.__dict__.has_key('create'):
             res['form'] = None
             # No additional data for this means, which is the default one.
         else:
@@ -511,22 +508,27 @@ class ToolMixin(BaseMixin):
                         if isinstance(mean, basestring):
                             res[mean] = None
                         else:
-                            res[mean.id] = mean.__dict__
+                            res[mean.id] = mean
                 else:
-                    res[means.id] = means.__dict__
+                    res[means.id] = means
         return res
 
     def userMaySearch(self, rootClass):
-        '''This method checks if the currently logged user can trigger searches
-           on a given p_rootClass. This is done by calling method "maySearch"
-           on the class. If no such method exists, we return True.'''
-        # When editign a form, one should avoid annoying the user with this.
+        '''May the logged user search among instances of p_rootClass ?'''
+        # When editing a form, one should avoid annoying the user with this.
         url = self.REQUEST['ACTUAL_URL']
         if url.endswith('/edit') or url.endswith('/do'): return
-        pythonClass = self.getAppyClass(rootClass)
-        if 'maySearch' in pythonClass.__dict__:
-            return pythonClass.maySearch(self.appy())
+        if 'maySearch' in rootClass.__dict__:
+            return pythonClass.rootClass(self.appy())
         return True
+
+    def userMayCreate(self, klass):
+        '''May the logged user create instances of p_klass ?'''
+        allowedRoles = getattr(klass, 'creators', None) or \
+                       self.getProductConfig().appConfig.defaultCreators
+        for role in self.getUser().getRoles():
+            if role in allowedRoles:
+                return True
 
     def onImportObjects(self):
         '''This method is called when the user wants to create objects from
@@ -737,23 +739,22 @@ class ToolMixin(BaseMixin):
         obj = self.getObject(objectUid)
         return obj, fieldName
 
-    def getGroupedSearches(self, className):
+    def getGroupedSearches(self, klass):
         '''Returns an object with 2 attributes:
-           * "searches" stores the searches that are defined for p_className;
+           * "searches" stores the searches that are defined for p_klass;
            * "default" stores the search defined as the default one.
            Every item representing a search is a dict containing info about a
            search or about a group of searches.
         '''
-        appyClass = self.getAppyClass(className)
         res = []
         default = None # Also retrieve the default one here.
         groups = {} # The already encountered groups
         page = Page('main') # A dummy page required by class UiGroup
         # Get the searches statically defined on the class
-        searches = ClassDescriptor.getSearches(appyClass, tool=self.appy())
+        searches = ClassDescriptor.getSearches(klass, tool=self.appy())
         # Get the dynamically computed searches
-        if hasattr(appyClass, 'getDynamicSearches'):
-            searches += appyClass.getDynamicSearches(self.appy())
+        if hasattr(klass, 'getDynamicSearches'):
+            searches += klass.getDynamicSearches(self.appy())
         for search in searches:
             # Create the search descriptor
             uiSearch = UiSearch(search, className, self)
@@ -792,9 +793,8 @@ class ToolMixin(BaseMixin):
         if ui: res = UiSearch(res, className, self)
         return res
 
-    def advancedSearchEnabledFor(self, className):
+    def advancedSearchEnabledFor(self, klass):
         '''Is advanced search visible for p_klass ?'''
-        klass = self.getAppyClass(className)
         # By default, advanced search is enabled.
         if not hasattr(klass, 'searchAdvanced'): return True
         # Evaluate attribute "show" on this Search instance representing the
@@ -1103,29 +1103,26 @@ class ToolMixin(BaseMixin):
             login = (rq.__class__.__name__ == 'Object') and 'system' or 'anon'
         # Get the User object from a query in the catalog.
         user = tool.search1('User', noSecurity=True, login=login)
+        # It is possible that we find no user here: it happens before users
+        # "anon" and "system" are created, at first Zope startup.
+        if not user: return
         rq.user = user
-        # Precompute some values or this usser for performance reasons
+        # Precompute some values or this user for performance reasons.
         rq.userRoles = user.getRoles()
+        rq.userLogins = user.getLogins()
         rq.zopeUser = user.getZopeUser()
         return user
-        #from AccessControl import getSecurityManager
-        #user = getSecurityManager().getUser()
-        #if not user:
-        #    from AccessControl.User import nobody
-        #    return nobody
-        #return user
 
     def getUserLine(self):
         '''Returns a info about the currently logged user as a 2-tuple: first
            elem is the one-line user info as shown on every page; second line is
            the URL to edit user info.'''
         user = self.getUser()
-        userRoles = self.appy().request.userRoles
         info = [user.title]
-        rolesToShow = [r for r in userRoles if r != 'Authenticated']
-        if rolesToShow:
+        showable = [r for r in user.getRoles() if r != 'Authenticated']
+        if showable:
             info.append(', '.join([self.translate('role_%s' % r) \
-                                   for r in rolesToShow]))
+                                   for r in showable]))
         # Edit URL for the user.
         url = None
         if user.o.mayEdit():
@@ -1134,17 +1131,17 @@ class ToolMixin(BaseMixin):
 
     def getUserName(self, login=None, normalized=False):
         '''Gets the user name corresponding to p_login (or the currently logged
-           login if None), or the p_login itself if the user does not exist
+           user if None), or the p_login itself if the user does not exist
            anymore. If p_normalized is True, special chars in the first and last
            names are normalized.'''
         tool = self.appy()
         if not login: login = tool.user.login
         # Manage the special case of an anonymous user.
-        if login == 'Anonymous User':
+        if login == 'anon':
             name = self.translate('anonymous')
             if normalized: name = sutils.normalizeString(name)
             return name
-        # Manage the case of a "real" user.
+        # Manage the case of any other user.
         user = tool.search1('User', noSecurity=True, login=login)
         if not user: return login
         firstName = user.firstName

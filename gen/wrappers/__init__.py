@@ -533,7 +533,7 @@ class AbstractWrapper(object):
      </table>''')
 
     pxView = Px('''
-     <x var="x=zobj.allows('View', raiseError=True);
+     <x var="x=zobj.allows('read', raiseError=True);
              errors=req.get('errors', {});
              layout=zobj.getPageLayout(layoutType);
              phaseObj=zobj.getAppyPhases(currentOnly=True, layoutType='view');
@@ -549,7 +549,7 @@ class AbstractWrapper(object):
      </x>''', template=pxTemplate, hook='content')
 
     pxEdit = Px('''
-     <x var="x=zobj.allows('Modify portal content', raiseError=True);
+     <x var="x=zobj.allows('write', raiseError=True);
              errors=req.get('errors', None) or {};
              layout=zobj.getPageLayout(layoutType);
              cssJs={};
@@ -625,9 +625,9 @@ class AbstractWrapper(object):
     def _getParentAttr(klass, attr):
         '''Gets value of p_attr on p_klass base classes (if this attr exists).
            Scan base classes in the reverse order as Python does. Used by
-           classmethods m_getWorkflow and m_getCreators below. Scanning base
-           classes in reverse order allows user-defined elements to override
-           default Appy elements.'''
+           classmethod m_getWorkflow below. Scanning base classes in reverse
+           order allows user-defined elements to override default Appy
+           elements.'''
         i = len(klass.__bases__) - 1
         res = None
         while i >= 0:
@@ -641,15 +641,6 @@ class AbstractWrapper(object):
         res = klass._getParentAttr('workflow')
         # Return a default workflow if no workflow was found.
         if not res: res = WorkflowAnonymous
-        return res
-
-    @classmethod
-    def getCreators(klass, cfg):
-        '''Returns the roles that are allowed to create instances of p_klass.
-           p_cfg is the product config that holds the default value.'''
-        res = klass._getParentAttr('creators')
-        # Return default creators if no creators was found.
-        if not res: res = cfg.appConfig.defaultCreators
         return res
 
     @classmethod
@@ -823,7 +814,6 @@ class AbstractWrapper(object):
         if isField:
             # Link the object to this one
             appyType.linkObject(self.o, zopeObj)
-        zopeObj._appy_managePermissions()
         # Call custom initialization
         if externalData: param = externalData
         else: param = True

@@ -13,7 +13,6 @@ from ZPublisher.HTTPRequest import BaseRequest
 from OFS.Image import File
 from ZPublisher.HTTPRequest import FileUpload
 from AccessControl import getSecurityManager
-from AccessControl.PermissionRole import rolesForPermissionOn
 from DateTime import DateTime
 from Products.ExternalMethod.ExternalMethod import ExternalMethod
 from Products.Transience.Transience import TransientObjectContainer
@@ -24,8 +23,6 @@ logger = logging.getLogger('<!applicationName!>')
 # Some global variables --------------------------------------------------------
 PROJECTNAME = '<!applicationName!>'
 diskFolder = os.path.dirname(<!applicationName!>.__file__)
-ADD_CONTENT_PERMISSIONS = {
-<!addPermissions!>}
 
 # Applications classes, in various formats
 rootClasses = [<!rootClasses!>]
@@ -34,7 +31,7 @@ appClassNames = [<!appClassNames!>]
 allClassNames = [<!allClassNames!>]
 
 # In the following dict, we store, for every Appy class, the ordered list of
-# appy types (included inherited ones).
+# fields.
 attributes = {<!attributes!>}
 
 # Application roles

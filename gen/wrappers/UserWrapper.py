@@ -140,8 +140,18 @@ class UserWrapper(AbstractWrapper):
         else:
             self.title = self.login
 
+    def ensureAdminIsManager(self):
+        '''User 'admin' must always have role 'Manager'.'''
+        if self.o.id == 'admin':
+            roles = self.roles
+            if 'Manager' not in roles:
+                if not roles: roles = ['Manager']
+                else: roles.append('Manager')
+                self.roles = roles
+
     def onEdit(self, created):
         self.updateTitle()
+        self.ensureAdminIsManager()
         aclUsers = self.o.acl_users
         login = self.login
         if created:
@@ -173,19 +183,25 @@ class UserWrapper(AbstractWrapper):
             self.o.manage_addLocalRoles(login, ('Owner',))
         # If the user was created by an Anonymous, Anonymous can't stay Owner
         # of the object.
-        if None in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__[None]
+        if 'anon' in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__['anon']
         return self._callCustom('onEdit', created)
 
     def mayEdit(self):
+        '''No one can edit users "system" and "anon".'''
+        if self.o.id in ('system', 'anon'): return
+        # Call custom "mayEdit" when present.
         custom = self._getCustomMethod('mayEdit')
         if custom: return self._callCustom('mayEdit')
-        else:      return True
+        return True
 
     def mayDelete(self):
+        '''No one can delete users "system", "anon" and "admin".'''
+        if self.o.id in ('system', 'anon', 'admin'): return
+        # Call custom "mayDelete" when present.
         custom = self._getCustomMethod('mayDelete')
         if custom: return self._callCustom('mayDelete')
-        else:      return True
+        return True
 
     def getZopeUser(self):
         '''Gets the Zope user corresponding to this user.'''
@@ -198,97 +214,87 @@ class UserWrapper(AbstractWrapper):
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
 
-    # Standard Zope user methods -----------------------------------------------
+    def getLogins(self):
+        '''Gets all the logins that can "match" this user: it own login and the
+           logins of all the groups he belongs to.'''
+        # Try first to get those logins from a cache on the request.
+        try:
+            return self.request.userLogins
+        except AttributeError:
+            res = [group.login for group in self.groups]
+            res.append(self.login)
+            return res
+
+    def getRoles(self):
+        '''This method returns all the global roles for this user, not simply
+           self.roles, but also "ungrantable roles" (like Anonymous or
+           Authenticated) and roles inherited from group membership.'''
+        # Try first to get those roles from a cache on the request.
+        try:
+            return self.request.userRoles
+        except AttributeError:
+            res = list(self.roles)
+            # Add ungrantable roles
+            if self.o.id == 'anon':
+                res.append('Anonymous')
+            else:
+                res.append('Authenticated')
+            # Add group global roles
+            for group in self.groups:
+                for role in group.roles:
+                    if role not in res: res.append(role)
+            return res
+
+    def getRolesFor(self, obj):
+        '''Gets the roles the user has in the context of p_obj: its global roles
+           + its roles which are local to p_obj.'''
+        obj = obj.o
+        # Start with user global roles.
+        res = self.getRoles()
+        # Add local roles, granted to the user directly or to one of its groups.
+        localRoles = getattr(obj.aq_base, '__ac_local_roles__', None)
+        if not localRoles: return res
+        # Gets the logins of this user and all its groups.
+        logins = self.getLogins()
+        for login, roles in localRoles.iteritems():
+            # Ignore logins not corresponding to this user.
+            if login not in logins: continue
+            for role in roles:
+                if role not in res: res.append(role)
+        return res
+
     def has_role(self, role, obj=None):
-        zopeUser = self.request.zopeUser
-        if obj: return zopeUser.has_role(role, obj)
-        return zopeUser.has_role(role)
+        '''Has the logged user some p_role? If p_obj is None, check if the user
+           has p_role globally; else, check if he has this p_role in the context
+           of p_obj.'''
+        if obj:
+            roles = self.getRolesFor(obj)
+        else:
+            roles = self.getRoles()
+        return role in roles
 
     def has_permission(self, permission, obj):
-        return self.request.zopeUser.has_permission(permission, obj)
-
-    def getRoles(self):
-        '''This method collects all the roles for this user, not simply
-           user.roles, but also roles inherited from group membership.'''
-        return self.getZopeUser().getRoles()
-
-# ------------------------------------------------------------------------------
-try:
-    from AccessControl.PermissionRole import _what_not_even_god_should_do, \
-                                             rolesForPermissionOn
-    from Acquisition import aq_base
-except ImportError:
-    pass # For those using Appy without Zope
-
-class ZopeUserPatches:
-    '''This class is a fake one that defines Appy variants of some of Zope's
-       AccessControl.User methods. The idea is to implement the notion of group
-       of users.'''
-
-    def getRoles(self):
-        '''Returns the global roles that this user (or any of its groups)
-           possesses.'''
-        res = list(self.roles)
-        if 'Anonymous' not in res: res.append('Authenticated')
-        # Add group global roles
-        if not hasattr(aq_base(self), 'groups'): return res
-        for roles in self.groups.itervalues():
-            for role in roles:
-                if role not in res: res.append(role)
-        return res
-
-    def getRolesInContext(self, object):
-        '''Return the list of global and local (to p_object) roles granted to
-           this user (or to any of its groups).'''
-        if isinstance(object, AbstractWrapper): object = object.o
-        object = getattr(object, 'aq_inner', object)
-        # Start with user global roles
-        res = self.getRoles()
-        # Add local roles
-        localRoles = getattr(object, '__ac_local_roles__', None)
-        if not localRoles: return res
-        userId = self.getId()
-        groups = getattr(self, 'groups', ())
-        for id, roles in localRoles.iteritems():
-            if (id != userId) and (id not in groups): continue
-            for role in roles:
-                if role not in res: res.append(role)
-        return res
-
-    def allowed(self, object, object_roles=None):
-        '''Checks whether the user has access to p_object. The user (or one of
-           its groups) must have one of the roles in p_object_roles.'''
-        if object_roles is _what_not_even_god_should_do: return 0
-        # If "Anonymous" is among p_object_roles, grant access.
-        if (object_roles is None) or ('Anonymous' in object_roles): return 1
-        # If "Authenticated" is among p_object_roles, grant access if the user
-        # is not anonymous.
-        if 'Authenticated' in object_roles and \
-           (self.getUserName() != 'Anonymous User'):
-            if self._check_context(object): return 1
-        # Try first to grant access based on global user roles
+        '''Has the logged user p_permission on p_obj?'''
+        obj = obj.o
+        # What are the roles which are granted p_permission on p_obj?
+        allowedRoles = obj.getRolesFor(permission)
+        # Grant access if "Anonymous" is among roles.
+        if ('Anonymous' in allowedRoles): return True
+        # Grant access if "Authenticated" is among p_roles and the user is not
+        # anonymous.
+        if ('Authenticated' in allowedRoles) and (self.o.id != 'anon'):
+            return True
+        # Grant access based on global user roles.
         for role in self.getRoles():
-            if role not in object_roles: continue
-            if self._check_context(object): return 1
-            return
-        # Try then to grant access based on local roles
-        innerObject = getattr(object, 'aq_inner', object)
-        localRoles = getattr(innerObject, '__ac_local_roles__', None)
+            if role in allowedRoles: return True
+        # Grant access based on local roles
+        localRoles = getattr(obj.aq_base, '__ac_local_roles__', None)
         if not localRoles: return
-        userId = self.getId()
-        groups = getattr(self, 'groups', ())
-        for id, roles in localRoles.iteritems():
-            if (id != userId) and (id not in groups): continue
+        # Gets the logins of this user and all its groups.
+        userLogins = self.getLogins()
+        for login, roles in localRoles.iteritems():
+            # Ignore logins not corresponding to this user.
+            if login not in logins: continue
             for role in roles:
-                if role not in object_roles: continue
-                if self._check_context(object): return 1
-                return
-
-    try:
-        from AccessControl.User import SimpleUser
-        SimpleUser.getRoles = getRoles
-        SimpleUser.getRolesInContext = getRolesInContext
-        SimpleUser.allowed = allowed
-    except ImportError:
-        pass
+                if role in allowedRoles: return True
 # ------------------------------------------------------------------------------

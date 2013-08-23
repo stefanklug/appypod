@@ -93,9 +93,6 @@ class BaseMixin:
         # Manage potential link with an initiator object
         if created and initiator: initiator.appy().link(initiatorField.name,obj)
 
-        # Manage "add" permissions and reindex the object
-        obj._appy_managePermissions()
-
         # Call the custom "onEdit" if available
         msg = None # The message to display to the user. It can be set by onEdit
         if obj.wrapperClass:
@@ -410,7 +407,7 @@ class BaseMixin:
             return self.goto(tool.getSiteUrl(), msg)
         # If the user can't access the object anymore, redirect him to the
         # main site page.
-        if not obj.allows('View'):
+        if not obj.allows('read'):
             return self.goto(tool.getSiteUrl(), msg)
         if (buttonClicked == 'save') or saveConfirmed:
             obj.say(msg)
@@ -484,7 +481,7 @@ class BaseMixin:
            corresponding Appy wrapper and returns, as XML, the its result.'''
         self.REQUEST.RESPONSE.setHeader('Content-Type','text/xml;charset=utf-8')
         # Check if the user is allowed to consult this object
-        if not self.allows('View'):
+        if not self.allows('read'):
             return XmlMarshaller().marshall('Unauthorized')
         if not action:
             marshaller = XmlMarshaller(rootTag=self.getClass().__name__,
@@ -669,11 +666,6 @@ class BaseMixin:
         allValues = self.REQUEST.get(listName)
         if not allValues: return ''
         return getattr(allValues[rowIndex], name, '')
-
-    def mayAddReference(self, name):
-        '''May the user add references via Ref field named p_name in
-           p_folder?'''
-        return self.getAppyType(name).mayAdd(self)
 
     def isDebug(self):
         '''Are we in debug mode ?'''
@@ -937,30 +929,6 @@ class BaseMixin:
         stateName = stateName or self.State()
         return '%s_%s' % (self.getWorkflow(name=True), stateName)
 
-    def refreshSecurity(self):
-        '''Refresh security info on this object. Returns True if the info has
-           effectively been updated.'''
-        wf = self.getWorkflow()
-        try:
-            # Get the state definition of the object's current state.
-            state = getattr(wf, self.State())
-        except AttributeError:
-            # The workflow information for this object does not correspond to
-            # its current workflow attribution. Add a new fake event
-            # representing passage of this object to the initial state of his
-            # currently attributed workflow.
-            stateName = self.State(name=True, initial=True)
-            self.addHistoryEvent(None, review_state=stateName)
-            state = self.State(name=False, initial=True)
-            self.log('Wrong workflow info for a "%s"; is now in state "%s".' % \
-                     (self.meta_type, stateName))
-        # Update permission attributes on the object if required
-        updated = state.updatePermissions(wf, self)
-        if updated:
-            # Reindex the object because security-related info is indexed.
-            self.reindex()
-        return updated
-
     def applyUserIdChange(self, oldId, newId):
         '''A user whose ID was p_oldId has now p_newId. If the old ID was
            mentioned in self's local roles, update it to the new ID. This
@@ -1105,14 +1073,14 @@ class BaseMixin:
 
     def mayDelete(self):
         '''May the currently logged user delete this object?'''
-        res = self.allows('Delete objects')
+        res = self.allows('delete')
         if not res: return
         # An additional, user-defined condition, may refine the base permission.
         appyObj = self.appy()
         if hasattr(appyObj, 'mayDelete'): return appyObj.mayDelete()
         return True
 
-    def mayEdit(self, permission='Modify portal content'):
+    def mayEdit(self, permission='write'):
         '''May the currently logged user edit this object? p_perm can be a
            field-specific permission.'''
         res = self.allows(permission)
@@ -1194,6 +1162,12 @@ class BaseMixin:
         self.trigger(rq['workflow_action'], comment=rq.get('comment', ''))
         self.reindex()
         return self.goto(self.getUrl(rq['HTTP_REFERER']))
+
+    def getRolesFor(self, permission):
+        '''Gets, according to the workflow, the roles that are currently granted
+           p_permission on this object.'''
+        state = self.State(name=False)
+        return [role.name for role in state.permissions[permission]]
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy
@@ -1284,18 +1258,17 @@ class BaseMixin:
         '''Returns the list of roles and users that are allowed to view this
            object. This index value will be used within catalog queries for
            filtering objects the user is allowed to see.'''
-        res = set()
-        # Get, from the workflow, roles having permission 'View'.
-        for role in self.getProductConfig().rolesForPermissionOn('View', self):
-            res.add(role)
-        # Add users having, locally, this role on this object.
-        localRoles = getattr(self, '__ac_local_roles__', None)
-        if not localRoles: return list(res)
+        # Get, from the workflow, roles having permission 'read'.
+        res = self.getRolesFor('read')
+        # Add users or groups having, locally, this role on this object.
+        localRoles = getattr(self.aq_base, '__ac_local_roles__', None)
+        if not localRoles: return res
         for id, roles in localRoles.iteritems():
             for role in roles:
                 if role in res:
-                    res.add('user:%s' % id)
-        return list(res)
+                    usr = 'user:%s' % id
+                    if usr not in res: res.append(usr)
+        return res
 
     def showState(self):
         '''Must I show self's current state ?'''
@@ -1325,39 +1298,6 @@ class BaseMixin:
             if getattr(workflow, elem).__class__.__name__ != 'State': continue
             res.append((elem, self.translate(self.getWorkflowLabel(elem))))
         return res
-
-    def _appy_managePermissions(self):
-        '''When an object is created or updated, we must update "add"
-           permissions accordingly: if the object is a folder, we must set on
-           it permissions that will allow to create, inside it, objects through
-           Ref fields; if it is not a folder, we must update permissions on its
-           parent folder instead.'''
-        # Determine on which folder we need to set "add" permissions
-        folder = self.getCreateFolder()
-        # On this folder, set "add" permissions for every content type that will
-        # be created through reference fields
-        allCreators = {} # One key for every add permission
-        addPermissions = self.getProductConfig().ADD_CONTENT_PERMISSIONS
-        for appyType in self.getAllAppyTypes():
-            if appyType.type != 'Ref': continue
-            if appyType.isBack or appyType.link: continue
-            # Indeed, no possibility to create objects with such Refs
-            tool = self.getTool()
-            refType = tool.getPortalType(appyType.klass)
-            if refType not in addPermissions: continue
-            # Get roles that may add this content type
-            appyWrapper = tool.getAppyClass(refType, wrapper=True)
-            creators = appyWrapper.getCreators(self.getProductConfig())
-            # Add those creators to the list of creators for this meta_type
-            addPermission = addPermissions[refType]
-            if addPermission in allCreators:
-                allCreators[addPermission] = allCreators[\
-                                             addPermission].union(creators)
-            else:
-                allCreators[addPermission] = set(creators)
-        # Update the permissions
-        for permission, creators in allCreators.iteritems():
-            updateRolesForPermission(permission, tuple(creators), folder)
 
     getUrlDefaults = {'page':True, 'nav':True}
     def getUrl(self, base=None, mode='view', **kwargs):
