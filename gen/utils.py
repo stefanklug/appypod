@@ -11,17 +11,25 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
        p_wf=False.'''
     exec 'from Products.%s.%s import %s as ZopeClass' % \
          (appName, className, className)
-    # Get the tool. Depends on whether p_folder is a Zope (temp) folder or not.
-    isFolder = folder.meta_type.endswith('Folder')
-    tool = isFolder and folder.config or folder.getTool()
-    user = tool.getUser()
+    # Get the tool. It may not be present yet, maybe are we creating it now.
+    if folder.meta_type.endswith('Folder'):
+        # p_folder is a standard Zope (temp) folder.
+        tool = getattr(folder, 'config', None)
+    else:
+        # p_folder is an instance of a gen-class.
+        tool = folder.getTool()
+    # Get the currently logged user
+    user = None
+    if tool:
+        user = tool.getUser()
+    # Checks whether the user an create this object if security is enabled.
     if not noSecurity:
-        # Check that the user can create objects of className.
         klass = ZopeClass.wrapperClass.__bases__[-1]
         if not tool.userMayCreate(klass):
             from AccessControl import Unauthorized
             raise Unauthorized("User can't create instances of %s" % \
                                klass.__name__)
+    # Create the object
     obj = ZopeClass(id)
     folder._objects = folder._objects + ({'id':id, 'meta_type':className},)
     folder._setOb(id, obj)
