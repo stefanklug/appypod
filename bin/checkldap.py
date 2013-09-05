@@ -12,18 +12,22 @@ class LdapTester:
          attrs is a comma-separated list of attrs we will retrieve in the LDAP,
                ie "uid,login"
          filter is the query filter, ie "(&(attr1=Geez*)(status=OK))"
+         scope is the scope of the search, and can be:
+           BASE     To search the object itself on base
+           ONELEVEL To search base's immediate children
+           SUBTREE  To search base and all its descendants
     '''
     def __init__(self):
         # Get params from shell args.
-        if len(sys.argv) != 7:
+        if len(sys.argv) != 8:
             print(LdapTester.__doc__)
             sys.exit(0)
         s = self
-        s.uri, s.login, s.password, s.base, s.attrs, s.filter = sys.argv[1:]
+        s.uri,s.login,s.password,s.base,s.attrs,s.filter,s.scope = sys.argv[1:]
         self.attrs = self.attrs.split(',')
         self.tentatives = 5
         self.timeout = 5
-        self.attrList = ['cfwbV2cn', 'logindisabled']
+        self.attrList = ['cn']
         self.ssl = False
 
     def test(self):
@@ -38,8 +42,9 @@ class LdapTester:
             for i in range(self.tentatives):
                 try:
                     print('Done. Performing a simple query on %s...'% self.base)
-                    res = server.search_st(
-                        self.base, ldap.SCOPE_ONELEVEL, filterstr=self.filter,
+                    res = server.search_st(self.base,
+                        getattr(ldap, 'SCOPE_%s' % self.scope),
+                        filterstr=self.filter,
                         attrlist=self.attrs, timeout=5)
                     print('Got %d entries' % len(res))
                     break

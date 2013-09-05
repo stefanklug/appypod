@@ -25,12 +25,11 @@ def traverseWrapper(self, path, response=None, validated_hook=None):
     '''This function is called every time a users gets a URL, this is used for
        tracking user activity. self is a BaseRequest'''
     res = originalTraverse(self, path, response, validated_hook)
-    t = time.time()
     if os.path.splitext(path)[-1].lower() not in doNotTrack:
-        # Do nothing when the user gets non-pages
+        # Do nothing when the user gets non-pages.
         userId, dummy = gutils.readCookie(self)
         if userId:
-            loggedUsers[userId] = t
+            loggedUsers[userId] = time.time()
             # "Touch" the SESSION object. Else, expiration won't occur.
             session = self.SESSION
     return res

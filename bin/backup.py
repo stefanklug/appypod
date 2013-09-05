@@ -61,6 +61,21 @@ class ZodbBackuper:
             fileName = self.storageLocation + fileSuffix
             os.system('chown %s %s' % (self.zopeUser, fileName))
 
+    def removeDataFsOld(self):
+        '''Removes the file Data.fs.old if it exists.
+
+           In the process of packing the ZODB, an additional file Data.fs.pack
+           is created, and renamed to Data.fs once finished. It means that, when
+           we pack the ZODB, 3 copies of the DB can be present at the same time:
+           Data.fs, Data.fs.old and Data.fs.pack. We prefer to remove the
+           Data.fs.old copy to avoid missing disk space if the DB is big.
+        '''
+        old = self.storageLocation + '.old'
+        if os.path.exists(old):
+            self.log('Removing %s...' % old)
+            os.remove(old)
+            self.log('Done.')
+
     folderCreateError = 'Could not create backup folder. Backup of log ' \
                         'files will not take place. %s'
     def backupLogs(self):
@@ -190,6 +205,8 @@ class ZodbBackuper:
         self.executeCommand('%s stop' % self.zopectl)
         # If we are on the "full backup day", let's pack the ZODB first
         if time.asctime().startswith(self.options.dayFullBackup):
+            # As a preamble to packing the ZODB, remove Data.fs.old if present.
+            self.removeDataFsOld()
             w('> Day is "%s", packing the ZODB...' % self.options.dayFullBackup)
             self.packZodb()
             w('> Make a backup of log files...')

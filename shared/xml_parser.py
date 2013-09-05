@@ -61,7 +61,7 @@ HTML_ENTITIES = {
         'ntilde':'ñ', 'ograve':'ò', 'oacute':'ó', 'ocirc':'ô', 'otilde':'õ',
         'ouml':'ö', 'divide':'÷', 'oslash':'ø', 'ugrave':'ù', 'uacute':'ú',
         'ucirc':'û', 'uuml':'ü', 'yacute':'ý', 'thorn':'þ', 'yuml':'ÿ',
-        'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
+        'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
         "rdquo":"'", 'ndash': '—', 'mdash': '—', 'oelig':'oe', 'quot': "'",
         'mu': 'µ'}
 import htmlentitydefs
@@ -1135,7 +1135,10 @@ class XhtmlCleaner(XmlParser):
         # between tags.
         if not self.env.currentContent or \
            self.env.currentContent[-1] in ('\n', ' '):
-            toAdd = content.lstrip()
+            # I give here to lstrip an explicit list of what is to be considered
+            # as blank chars, because I do not want unicode NBSP chars to be in
+            # this list.
+            toAdd = content.lstrip(u' \n\r\t')
         else:
             toAdd = content
         # Re-transform XML special chars to entities.

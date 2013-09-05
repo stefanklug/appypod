@@ -330,7 +330,7 @@ class XhtmlEnvironment(XmlEnvironment):
         '''Dumps content that was temporarily stored in self.currentContent
            into the result.'''
         contentSize = 0
-        if self.currentContent.strip():
+        if self.currentContent.strip(' \n\r\t'): # NBSP must not be in this list
             # Manage missing elements
             currentElem = self.getCurrentElement()
             if self.anElementIsMissing(currentElem, None):

@@ -369,15 +369,22 @@ class User(Model):
 # ------------------------------------------------------------------------------
 class LdapConfig:
     '''Parameters for authenticating users to an external LDAP.'''
-    server = '' # Name of the LDAP server
-    port = None # Port for this server.
-    # Login and password of the technical power user that the Appy application
-    # will use to connect to the LDAP.
-    adminLogin = ''
-    adminPassword = ''
-    # LDAP attribute to use as login for authenticating users.
-    loginAttribute = 'dn' # Can also be "mail", "sAMAccountName", "cn"
-    baseDn = '' # Base distinguished name where to find users in the LDAP.
+    def __init__(self):
+        self.server = '' # Name of the LDAP server
+        self.port = None # Port for this server.
+        # Login and password of the technical power user that the Appy
+        # application will use to connect to the LDAP.
+        self.adminLogin = ''
+        self.adminPassword = ''
+        # LDAP attribute to use as login for authenticating users.
+        self.loginAttribute = 'dn' # Can also be "mail", "sAMAccountName", "cn"
+        self.baseDn = '' # Base distinguished name where to find users.
+
+    def getServerUri(self):
+        '''Returns the complete URI for accessing the LDAP, ie
+           "ldap://some.ldap.server:389".'''
+        port = self.port or 389
+        return 'ldap://%s:%d' % (self.server, port)
 
 # ------------------------------------------------------------------------------
 class Config:

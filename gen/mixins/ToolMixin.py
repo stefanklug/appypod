@@ -1051,6 +1051,7 @@ class ToolMixin(BaseMixin):
         # a is the object the object was accessed through
         # c is the physical container of the object
         a, c, n, v = self._getobcontext(v, request)
+        print c
         # Try to get user name and password from basic authentication
         login, password = self.identify(auth)
         if not login:
