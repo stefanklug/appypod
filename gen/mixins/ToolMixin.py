@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------------------
-import os, os.path, sys, re, time, random, types
+import os, os.path, sys, re, time, random, types, base64
 from appy import Object
 import appy.gen
-from appy.gen import Search, UiSearch, String, Page, ldap
+from appy.gen import Search, UiSearch, String, Page
 from appy.gen.layout import ColumnLayout
 from appy.gen import utils as gutils
 from appy.gen.mixins import BaseMixin
@@ -12,6 +12,7 @@ from appy.gen.mail import sendMail
 from appy.shared import mimeTypes
 from appy.shared import utils as sutils
 from appy.shared.data import languages
+from appy.shared.ldap_connector import LdapConnector
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -979,21 +980,106 @@ class ToolMixin(BaseMixin):
         '''Returns the encrypted version of clear p_password.'''
         return self.acl_users._encryptPassword(password)
 
-    def _zopeAuthenticate(self, request):
-        '''Performs the Zope-level authentication. Returns True if
-           authentication succeeds.'''
-        user = self.acl_users.validate(request)
-        return user.getUserName() != 'Anonymous User'
+    def getUser(self, authentify=False):
+        '''Gets the current user. If p_authentify is True, in addition to
+           finding the logged user and returning it (=identification), we check
+           if found credentials are valid (=authentification).'''
+        # I. Identify the user (=find its login and password). If identification
+        # fails, if we don't need to authentify the user (p_authentify is
+        # False), we consider that the current user is one of those special
+        # users: anon (corresponds to an anonymous user) or system (the
+        # technical user representing the system itself, running at startup or
+        # in batch mode).
+        tool = self.appy()
+        req = tool.request
+        # Try first to return the user that can be cached on the request. In
+        # this case, we suppose authentification has previously been done, and
+        # we just return the cached user.
+        if hasattr(req, 'user'): return req.user
+        login = password = None
+        isSpecial = False
+        # Ia. Identify the user from http basic authentication.
+        if getattr(req, '_auth', None):
+            # HTTP basic authentication credentials are present (used when
+            # connecting to the ZMI). Decode it.
+            creds = req._auth
+            if creds.lower().startswith('basic '):
+                try:
+                    creds = creds.split(' ')[-1]
+                    login, password = base64.decodestring(creds).split(':', 1)
+                except Exception, e:
+                    pass
+        # Ib. Identify the user from the authentication cookie.
+        if not login:
+            login, password = gutils.readCookie(req)
+        # Ic. Identify the user from the authentication form.
+        if not login:
+            login = req.get('__ac_name', None)
+            password = req.get('__ac_password', None)
+        # Stop the identification process here if we needed to authentify the
+        # user: this user does not exist.
+        if not login and authentify: return
+        # Id. All the identification methods failed. So identify the user as
+        # "anon" or "system".
+        if not login and not authentify:
+            # If we have a real request object, it is the anonymous user.
+            login = (req.__class__.__name__ == 'Object') and 'system' or 'anon'
+            isSpecial = True
+        # Now, get the User instance from a query in the catalog.
+        user = tool.search1('User', noSecurity=True, login=login)
+        # It is possible that we find no user here: it happens before users
+        # "anon" and "system" are created, at first startup.
+        if not user: return
+        # Authentify the user if required
+        if authentify and not isSpecial:
+            if not user.checkPassword(password):
+                # Disable the authentication cookie.
+                req.RESPONSE.expireCookie('_appy_', path='/')
+                return
+            # Create an authentication cookie for this user.
+            gutils.writeCookie(login, password, req)
+        # Cache the user and some precomputed values, for performance.
+        req.user = user
+        req.userRoles = user.getRoles()
+        req.userLogins = user.getLogins()
+        req.zopeUser = user.getZopeUser()
+        return user
 
     def _ldapAuthenticate(self, login, password):
         '''Performs a LDAP-based authentication. Returns True if authentication
            succeeds.'''
         # Check if LDAP is configured.
-        ldapConfig = self.getProductConfig(True).ldap
-        if not ldapConfig: return
-        user = ldap.authenticate(login, password, ldapConfig, self)
-        if not user: return
-        return True
+        cfg = self.getProductConfig(True).ldap
+        if not cfg: return
+        # Get a connector to the LDAP server and connect to the LDAP server.
+        serverUri = cfg.getServerUri()
+        connector = LdapConnector(serverUri, tool=self)
+        success, msg = connector.connect(cfg.adminLogin, cfg.adminPassword)
+        if not success: return
+        # Check if the user corresponding to p_login exists in the LDAP.
+        filter = connector.getFilter(cfg.getUserFilterValues(login))
+        params = cfg.getUserAttributes()
+        ldapData = connector.search(cfg.baseDn, cfg.scope, filter, params)
+        if not ldapData: return
+        # The user exists. Try to connect to the LDAP with this user in order
+        # to validate its password.
+        userConnector = LdapConnector(serverUri, tool=self)
+        success, msg = userConnector.connect(ldapData[0][0], password)
+        if not success: return
+        # The password is correct. We can create/update our local user
+        # corresponding to this LDAP user.
+        userParams = cfg.getUserParams(ldapData)
+        user = self.search1('User', noSecurity=True, login=login)
+        tool = self
+        if user:
+            # Update the user with fresh info about him from the LDAP
+            for name, value in userParams.iteritems():
+                setattr(user, name, value)
+            user.reindex()
+        else:
+            # Create the user
+            user = tool.create('users', login=login, source='ldap',**userParams)
+        return user
 
     def performLogin(self):
         '''Logs the user in.'''
@@ -1004,16 +1090,12 @@ class ToolMixin(BaseMixin):
         if jsEnabled and not cookiesEnabled:
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
-        # Extract the login and password, and create an authentication cookie
-        login = rq.get('__ac_name', '')
-        password = rq.get('__ac_password', '')
-        gutils.writeCookie(login, password, rq)
-        # Perform the Zope-level authentication
-        if self._zopeAuthenticate(rq) or self._ldapAuthenticate(login,password):
+        # Authenticate the user.
+        login = rq.get('__ac_name', None)
+        if self.getUser(authentify=True):
             msg = self.translate('login_ok')
             logMsg = 'User "%s" logged in.' % login
         else:
-            rq.RESPONSE.expireCookie('_appy_', path='/')
             msg = self.translate('login_ko')
             logMsg = 'Authentication failed with login "%s".' % login
         self.log(logMsg)
@@ -1051,33 +1133,19 @@ class ToolMixin(BaseMixin):
         # a is the object the object was accessed through
         # c is the physical container of the object
         a, c, n, v = self._getobcontext(v, request)
-        print c
-        # Try to get user name and password from basic authentication
-        login, password = self.identify(auth)
-        if not login:
-            # Try to get them from a cookie
-            login, password = gutils.readCookie(request)
-            if not login:
-                # Maybe the user just entered his credentials. The cookie could
-                # have been set in the response, but is not in the request.
-                login = request.get('__ac_name', None)
-                password = request.get('__ac_password', None)
-        # Try to authenticate this user
-        user = self.authenticate(login, password, request)
-        emergency = self._emergency_user
-        if emergency and (user is emergency):
-            # It is the emergency user.
-            return emergency.__of__(self)
-        elif user is None:
+        # Identify and authentify the user
+        user = self.getParentNode().config.getUser(authentify=True)
+        if not user:
             # Login and/or password incorrect. Try to authorize and return the
             # anonymous user.
             if self.authorize(self._nobody, a, c, n, v, roles):
                 return self._nobody.__of__(self)
             else:
-                return # Anonymous can't acces this object
+                return
         else:
             # We found a user and his password was correct. Try to authorize him
             # against the published object.
+            user = user.getZopeUser()
             if self.authorize(user, a, c, n, v, roles):
                 return user.__of__(self)
             # That didn't work. Try to authorize the anonymous user.
@@ -1089,30 +1157,6 @@ class ToolMixin(BaseMixin):
     # Patch BasicUserFolder with our version of m_validate above.
     from AccessControl.User import BasicUserFolder
     BasicUserFolder.validate = validate
-
-    def getUser(self):
-        '''Gets the User instance (Appy wrapper) corresponding to the current
-           user.'''
-        tool = self.appy()
-        rq = tool.request
-        # Try first to return the user that can be cached on the request.
-        if hasattr(rq, 'user'): return rq.user
-        # Get the user login from the authentication cookie.
-        login, password = gutils.readCookie(rq)
-        if not login: # It is the anonymous user or the system.
-            # If we have a real request object, it is the anonymous user.
-            login = (rq.__class__.__name__ == 'Object') and 'system' or 'anon'
-        # Get the User object from a query in the catalog.
-        user = tool.search1('User', noSecurity=True, login=login)
-        # It is possible that we find no user here: it happens before users
-        # "anon" and "system" are created, at first Zope startup.
-        if not user: return
-        rq.user = user
-        # Precompute some values or this user for performance reasons.
-        rq.userRoles = user.getRoles()
-        rq.userLogins = user.getLogins()
-        rq.zopeUser = user.getZopeUser()
-        return user
 
     def getUserLine(self):
         '''Returns a info about the currently logged user as a 2-tuple: first

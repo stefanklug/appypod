@@ -141,7 +141,8 @@ class ModelClass:
 # The User class ---------------------------------------------------------------
 class User(ModelClass):
     _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
-                        'password2', 'email', 'roles', 'groups', 'toTool']
+                        'password2', 'email', 'roles', 'source', 'groups',
+                        'toTool']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = gen.String(show=False, indexed=True)
     gm = {'group': 'main', 'width': 25}
@@ -150,6 +151,9 @@ class User(ModelClass):
     firstName = gen.String(show=showName, **gm)
     def showEmail(self): pass
     email = gen.String(show=showEmail, **gm)
+    # Where is this user stored? By default, in the ZODB. But the user can be
+    # stored in an external LDAP (source='ldap').
+    source = gen.String(show=False, default='zodb', layouts='f', **gm)
     gm['multiplicity'] = (1,1)
     def showLogin(self): pass
     def validateLogin(self): pass
@@ -164,9 +168,6 @@ class User(ModelClass):
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,
                        validator=gen.Selection('getGrantableRoles'), **gm)
-    # Where is this user stored? By default, in the ZODB. But the user can be
-    # stored in an external LDAP.
-    source = gen.String(show=False, default='zodb', layouts='f', **gm)
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):
