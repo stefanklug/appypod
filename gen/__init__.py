@@ -412,7 +412,7 @@ class LdapConfig:
     def getUserAttributes(self):
         '''Gets the attributes we want to get from the LDAP for characterizing
            a user.'''
-        res = [self.loginAttribute]
+        res = []
         for name in self.ldapAttributes.iterkeys():
             if getattr(self, name):
                 res.append(getattr(self, name))
@@ -429,7 +429,9 @@ class LdapConfig:
             ldapName = getattr(self, name)
             if not ldapName: continue
             if ldapData.has_key(ldapName) and ldapData[ldapName]:
-                res[appyName] = ldapData[ldapName]
+                value = ldapData[ldapName]
+                if isinstance(value, list): value = value[0]
+                res[appyName] = value
         return res
 
 # ------------------------------------------------------------------------------

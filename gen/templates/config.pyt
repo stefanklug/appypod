@@ -8,14 +8,9 @@ import wrappers
 # The following imports are here for allowing mixin classes to access those
 # elements without being statically dependent on Zope packages.
 from persistent.list import PersistentList
-from zExceptions import BadRequest
-from ZPublisher.HTTPRequest import BaseRequest
 from OFS.Image import File
 from ZPublisher.HTTPRequest import FileUpload
-from AccessControl import getSecurityManager
 from DateTime import DateTime
-from Products.ExternalMethod.ExternalMethod import ExternalMethod
-from Products.Transience.Transience import TransientObjectContainer
 import appy.gen
 import logging
 logger = logging.getLogger('<!applicationName!>')

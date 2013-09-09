@@ -1038,17 +1038,20 @@ class ToolMixin(BaseMixin):
         if not success: return
         # The password is correct. We can create/update our local user
         # corresponding to this LDAP user.
-        userParams = cfg.getUserParams(ldapData)
+        userParams = cfg.getUserParams(ldapData[0][1])
         tool = self.appy()
         user = tool.search1('User', noSecurity=True, login=login)
         if user:
             # Update the user with fresh info about him from the LDAP
             for name, value in userParams.iteritems():
                 setattr(user, name, value)
+            # Update user password
+            user.setPassword(password, log=False)
             user.reindex()
         else:
             # Create the user
-            user = tool.create('users', login=login, source='ldap',**userParams)
+            user = tool.create('users', noSecurity=True, login=login,
+                               password1=password, source='ldap', **userParams)
         return user
 
     def getUser(self, authentify=False, source='zodb'):
@@ -1058,7 +1061,9 @@ class ToolMixin(BaseMixin):
 
            If p_authentify is True and p_source is "zodb", authentication is
            performed locally. Else (p_source is "ldap"), authentication is
-           performed on a LDAP (if a LDAP configuration is found).'''
+           performed on a LDAP (if a LDAP configuration is found). If p_source
+           is "any", authentication is performed on the local User object, be it
+           really local or a copy of a LDAP user.'''
         tool = self.appy()
         req = tool.request
         # Try first to return the user that can be cached on the request. In
@@ -1073,9 +1078,14 @@ class ToolMixin(BaseMixin):
         if authentify and not login: return
         # Now, get the User instance.
         if source == 'zodb':
+            # Get the User object, but only if it is a true local user.
             user = tool.search1('User', noSecurity=True, login=login)
+            if user and (user.source != 'zodb'): user = None # Not a local one.
         elif source == 'ldap':
             user = self.getLdapUser(login, password)
+        elif source == 'any':
+            # Get the user object, be it really local or a copy of a LDAP user.
+            user = tool.search1('User', noSecurity=True, login=login)
         if not user: return
         # Authentify the user if required.
         if authentify:
@@ -1131,22 +1141,35 @@ class ToolMixin(BaseMixin):
                 session.invalidate()
         self.log('User "%s" has been logged out.' % userId)
         # Remove user from variable "loggedUsers"
-        from appy.gen.installer import loggedUsers
-        if loggedUsers.has_key(userId): del loggedUsers[userId]
+        if self.loggedUsers.has_key(userId): del self.loggedUsers[userId]
         return self.goto(self.getApp().absolute_url())
+
+    # This dict stores, for every logged user, the date/time of its last access
+    loggedUsers = {}
+    forgetAccessExtensions = ('.jpg', '.gif', '.png', '.js', '.css')
+    def rememberAccess(self, id, user):
+        '''Every time there is a hit on the server, this method is called in
+           order to update global dict loggedUsers (see above).'''
+        if not id: return
+        if os.path.splitext(id)[-1].lower() in self.forgetAccessExtensions:
+            return
+        self.loggedUsers[user.login] = time.time()
+        # "Touch" the SESSION object. Else, expiration won't occur.
+        session = self.REQUEST.SESSION
 
     def validate(self, request, auth='', roles=_noroles):
         '''This method performs authentication and authorization. It is used as
            a replacement for Zope's AccessControl.User.BasicUserFolder.validate,
            that allows to manage cookie-based authentication.'''
         v = request['PUBLISHED'] # The published object
+        tool = self.getParentNode().config
         # v is the object (value) we're validating access to
         # n is the name used to access the object
         # a is the object the object was accessed through
         # c is the physical container of the object
         a, c, n, v = self._getobcontext(v, request)
         # Identify and authentify the user
-        user = self.getParentNode().config.getUser(authentify=True)
+        user = tool.getUser(authentify=True, source='any')
         if not user:
             # Login and/or password incorrect. Try to authorize and return the
             # anonymous user.
@@ -1156,7 +1179,9 @@ class ToolMixin(BaseMixin):
                 return
         else:
             # We found a user and his password was correct. Try to authorize him
-            # against the published object.
+            # against the published object. By the way, remember its last access
+            # to this system.
+            tool.rememberAccess(a.getId(), user)
             user = user.getZopeUser()
             if self.authorize(user, a, c, n, v, roles):
                 return user.__of__(self)
@@ -1237,6 +1262,7 @@ class ToolMixin(BaseMixin):
         if ',' in contentType: return ()
         return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
+
     def formatDate(self, aDate, withHour=True):
         '''Returns aDate formatted as specified by tool.dateFormat.
            If p_withHour is True, hour is appended, with a format specified

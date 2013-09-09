@@ -1,9 +1,10 @@
 '''This script allows to check a LDAP connection.'''
-import sys, ldap
+import sys
+from appy.shared.ldap_connector import LdapConnector
 
 # ------------------------------------------------------------------------------
 class LdapTester:
-    '''Usage: python checkldap.py ldapUri login password base attrs filter
+    '''Usage: python checkldap.py ldapUri login password base attrs filter scope
 
          ldapUri is, for example, "ldap://127.0.0.1:389"
          login is the login user DN, ie: "cn=gdy,o=geezteem"
@@ -27,34 +28,21 @@ class LdapTester:
         self.attrs = self.attrs.split(',')
         self.tentatives = 5
         self.timeout = 5
-        self.attrList = ['cn']
+        self.attributes = ['cn']
         self.ssl = False
 
     def test(self):
         # Connect the the LDAP
-        print('Creating server object for server %s...' % self.uri)
-        server = ldap.initialize(self.uri)
-        print('Done. Login with %s...' % self.login)
-        server.simple_bind(self.login, self.password)
-        if self.ssl:
-            server.start_tls_s()
-        try:
-            for i in range(self.tentatives):
-                try:
-                    print('Done. Performing a simple query on %s...'% self.base)
-                    res = server.search_st(self.base,
-                        getattr(ldap, 'SCOPE_%s' % self.scope),
-                        filterstr=self.filter,
-                        attrlist=self.attrs, timeout=5)
-                    print('Got %d entries' % len(res))
-                    break
-                except ldap.TIMEOUT:
-                    print('Got timeout.')
-        except ldap.LDAPError, le:
-            print('%s %s' % (le.__class__.__name__, str(le)))
+        print('Connecting to... %s' % self.uri)
+        connector = LdapConnector(self.uri)
+        success, msg = connector.connect(self.login, self.password)
+        if not success: return
+        # Perform the query.
+        print ('Querying %s...' % self.base)
+        res = connector.search(self.base, self.scope, self.filter,
+                               self.attributes)
+        print('Got %d results' % len(res))
 
 # ------------------------------------------------------------------------------
-if __name__ == '__main__':
-    LdapTester().test()
-
+if __name__ == '__main__': LdapTester().test()
 # ------------------------------------------------------------------------------

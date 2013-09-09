@@ -4,7 +4,6 @@ import appy
 from appy.gen.mail import sendMail
 from appy.shared.utils import executeCommand
 from appy.gen.wrappers import AbstractWrapper
-from appy.gen.installer import loggedUsers
 from appy.px import Px
 
 # ------------------------------------------------------------------------------
@@ -668,7 +667,7 @@ class ToolWrapper(AbstractWrapper):
               '<tr><th></th><th>%s</th></tr>' % \
               self.translate('last_user_access')
         rows = []
-        for userId, lastAccess in loggedUsers.items():
+        for userId, lastAccess in self.o.loggedUsers.items():
             user = self.search1('User', noSecurity=True, login=userId)
             if not user: continue # Could have been deleted in the meanwhile
             fmt = '%s (%s)' % (self.dateFormat, self.hourFormat)

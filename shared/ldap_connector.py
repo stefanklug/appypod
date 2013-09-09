@@ -26,7 +26,10 @@ class LdapConnector:
 
     def log(self, message, type='info'):
         '''Logs via a Appy tool if available.'''
-        if self.tool: self.tool.log(message, type=type)
+        if self.tool:
+            self.tool.log(message, type=type)
+        else:
+            print(message)
 
     def connect(self, login, password):
         '''Connects to the LDAP server using p_login and p_password as

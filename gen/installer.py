@@ -2,7 +2,7 @@
    Zope product.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, time
+import os, os.path
 import appy
 import appy.version
 import appy.gen as gen
@@ -15,24 +15,6 @@ from appy.shared.data import languages
 # ------------------------------------------------------------------------------
 homePage = '<tal:h define="dummy python: request.RESPONSE.redirect(' \
            'context.config.getHomePage())"/>'
-
-# Stuff for tracking user activity ---------------------------------------------
-loggedUsers = {}
-originalTraverse = None
-doNotTrack = ('.jpg','.gif','.png','.js','.css')
-
-def traverseWrapper(self, path, response=None, validated_hook=None):
-    '''This function is called every time a users gets a URL, this is used for
-       tracking user activity. self is a BaseRequest'''
-    res = originalTraverse(self, path, response, validated_hook)
-    if os.path.splitext(path)[-1].lower() not in doNotTrack:
-        # Do nothing when the user gets non-pages.
-        userId, dummy = gutils.readCookie(self)
-        if userId:
-            loggedUsers[userId] = time.time()
-            # "Touch" the SESSION object. Else, expiration won't occur.
-            session = self.SESSION
-    return res
 
 def onDelSession(sessionObject, container):
     '''This function is called when a session expires.'''
@@ -284,17 +266,6 @@ class ZopeInstaller:
         else:
             sessionData.setDelNotificationTarget(None)
 
-    def enableUserTracking(self):
-        '''Enables the machinery allowing to know who is currently logged in.
-           Information about logged users will be stored in RAM, in the variable
-           named loggedUsers defined above.'''
-        global originalTraverse
-        if not originalTraverse:
-            # User tracking is not enabled yet. Do it now.
-            BaseRequest = self.config.BaseRequest
-            originalTraverse = BaseRequest.traverse
-            BaseRequest.traverse = traverseWrapper
-
     def installZopeClasses(self):
         '''Zope-level class registration.'''
         for klass in self.classes:
@@ -358,7 +329,6 @@ class ZopeInstaller:
         self.installRoles()
         self.installAppyTypes()
         self.installZopeClasses()
-        self.enableUserTracking()
         self.configureSessions()
         self.installBaseObjects()
         # The following line cleans and rebuilds the catalog entirely.

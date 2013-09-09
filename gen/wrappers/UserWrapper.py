@@ -63,7 +63,7 @@ class UserWrapper(AbstractWrapper):
         '''Returns p_clearPassword, encrypted.'''
         return self.o.getTool().acl_users._encryptPassword(clearPassword)
 
-    def setPassword(self, newPassword=None):
+    def setPassword(self, newPassword=None, log=True):
         '''Sets a p_newPassword for self. If p_newPassword is not given, we
            generate one. This method returns the generated password (or simply
            p_newPassword if no generation occurred).'''
@@ -76,12 +76,13 @@ class UserWrapper(AbstractWrapper):
         zopeUser = self.getZopeUser()
         tool = self.tool.o
         zopeUser.__ = self.encryptPassword(newPassword)
-        if self.user.login == login:
+        if self.user and (self.user.login == login):
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
             gutils.writeCookie(login, newPassword, self.request)
-        self.log('Password %s by "%s" for "%s".' % \
-                 (msgPart, self.user.login, login))
+        if log:
+            self.log('Password %s by "%s" for "%s".' % \
+                     (msgPart, self.user.login, login))
         return newPassword
 
     def checkPassword(self, clearPassword):
@@ -191,10 +192,11 @@ class UserWrapper(AbstractWrapper):
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))
-        # If the user was created by an Anonymous, Anonymous can't stay Owner
-        # of the object.
+        # If the user was created by anon or system, remove this local role.
         if 'anon' in self.o.__ac_local_roles__:
             del self.o.__ac_local_roles__['anon']
+        if 'system' in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__['system']
         return self._callCustom('onEdit', created)
 
     def mayEdit(self):
@@ -311,7 +313,7 @@ class UserWrapper(AbstractWrapper):
         userLogins = self.getLogins()
         for login, roles in localRoles.iteritems():
             # Ignore logins not corresponding to this user.
-            if login not in logins: continue
+            if login not in userLogins: continue
             for role in roles:
                 if role in allowedRoles: return True
 # ------------------------------------------------------------------------------
