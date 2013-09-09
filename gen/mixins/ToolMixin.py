@@ -976,29 +976,19 @@ class ToolMixin(BaseMixin):
     # --------------------------------------------------------------------------
     # Authentication-related methods
     # --------------------------------------------------------------------------
-    def _encryptPassword(self, password):
-        '''Returns the encrypted version of clear p_password.'''
-        return self.acl_users._encryptPassword(password)
+    def identifyUser(self, alsoSpecial=False):
+        '''To identify a user means: get its login and password. There are
+           several places to look for this information: http authentication,
+           cookie of credentials coming from the web form.
 
-    def getUser(self, authentify=False):
-        '''Gets the current user. If p_authentify is True, in addition to
-           finding the logged user and returning it (=identification), we check
-           if found credentials are valid (=authentification).'''
-        # I. Identify the user (=find its login and password). If identification
-        # fails, if we don't need to authentify the user (p_authentify is
-        # False), we consider that the current user is one of those special
-        # users: anon (corresponds to an anonymous user) or system (the
-        # technical user representing the system itself, running at startup or
-        # in batch mode).
+           If no user could be identified, and p_alsoSpecial is True, we will
+           nevertheless identify a "special user": "system", representing the
+           system itself (running at startup or in batch mode) or "anon",
+           representing an anonymous user.'''
         tool = self.appy()
         req = tool.request
-        # Try first to return the user that can be cached on the request. In
-        # this case, we suppose authentification has previously been done, and
-        # we just return the cached user.
-        if hasattr(req, 'user'): return req.user
         login = password = None
-        isSpecial = False
-        # Ia. Identify the user from http basic authentication.
+        # a. Identify the user from http basic authentication.
         if getattr(req, '_auth', None):
             # HTTP basic authentication credentials are present (used when
             # connecting to the ZMI). Decode it.
@@ -1009,45 +999,25 @@ class ToolMixin(BaseMixin):
                     login, password = base64.decodestring(creds).split(':', 1)
                 except Exception, e:
                     pass
-        # Ib. Identify the user from the authentication cookie.
+        # b. Identify the user from the authentication cookie.
         if not login:
             login, password = gutils.readCookie(req)
-        # Ic. Identify the user from the authentication form.
+        # c. Identify the user from the authentication form.
         if not login:
             login = req.get('__ac_name', None)
             password = req.get('__ac_password', None)
-        # Stop the identification process here if we needed to authentify the
-        # user: this user does not exist.
-        if not login and authentify: return
-        # Id. All the identification methods failed. So identify the user as
+        # Stop identification here if we don't need to return a special user
+        if not alsoSpecial: return login, password
+        # d. All the identification methods failed. So identify the user as
         # "anon" or "system".
-        if not login and not authentify:
+        if not login:
             # If we have a real request object, it is the anonymous user.
             login = (req.__class__.__name__ == 'Object') and 'system' or 'anon'
-            isSpecial = True
-        # Now, get the User instance from a query in the catalog.
-        user = tool.search1('User', noSecurity=True, login=login)
-        # It is possible that we find no user here: it happens before users
-        # "anon" and "system" are created, at first startup.
-        if not user: return
-        # Authentify the user if required
-        if authentify and not isSpecial:
-            if not user.checkPassword(password):
-                # Disable the authentication cookie.
-                req.RESPONSE.expireCookie('_appy_', path='/')
-                return
-            # Create an authentication cookie for this user.
-            gutils.writeCookie(login, password, req)
-        # Cache the user and some precomputed values, for performance.
-        req.user = user
-        req.userRoles = user.getRoles()
-        req.userLogins = user.getLogins()
-        req.zopeUser = user.getZopeUser()
-        return user
+        return login, password
 
-    def _ldapAuthenticate(self, login, password):
-        '''Performs a LDAP-based authentication. Returns True if authentication
-           succeeds.'''
+    def getLdapUser(self, login, password):
+        '''Returns a local User instance corresponding to a LDAP user if p_login
+           and p_password correspong to a valid LDAP user.'''
         # Check if LDAP is configured.
         cfg = self.getProductConfig(True).ldap
         if not cfg: return
@@ -1069,8 +1039,8 @@ class ToolMixin(BaseMixin):
         # The password is correct. We can create/update our local user
         # corresponding to this LDAP user.
         userParams = cfg.getUserParams(ldapData)
-        user = self.search1('User', noSecurity=True, login=login)
-        tool = self
+        tool = self.appy()
+        user = tool.search1('User', noSecurity=True, login=login)
         if user:
             # Update the user with fresh info about him from the LDAP
             for name, value in userParams.iteritems():
@@ -1079,6 +1049,47 @@ class ToolMixin(BaseMixin):
         else:
             # Create the user
             user = tool.create('users', login=login, source='ldap',**userParams)
+        return user
+
+    def getUser(self, authentify=False, source='zodb'):
+        '''Gets the current user. If p_authentify is True, in addition to
+           finding the logged user and returning it (=identification), we check
+           if found credentials are valid (=authentification).
+
+           If p_authentify is True and p_source is "zodb", authentication is
+           performed locally. Else (p_source is "ldap"), authentication is
+           performed on a LDAP (if a LDAP configuration is found).'''
+        tool = self.appy()
+        req = tool.request
+        # Try first to return the user that can be cached on the request. In
+        # this case, we suppose authentication has previously been done, and we
+        # just return the cached user.
+        if hasattr(req, 'user'): return req.user
+        # Identify the user (=find its login and password). If we don't need
+        # to authentify the user, we ask to identify a user or, if impossible,
+        # a special user.
+        login, password = self.identifyUser(alsoSpecial=not authentify)
+        # Stop here if no user was found and authentication was required.
+        if authentify and not login: return
+        # Now, get the User instance.
+        if source == 'zodb':
+            user = tool.search1('User', noSecurity=True, login=login)
+        elif source == 'ldap':
+            user = self.getLdapUser(login, password)
+        if not user: return
+        # Authentify the user if required.
+        if authentify:
+            if not user.checkPassword(password):
+                # Disable the authentication cookie.
+                req.RESPONSE.expireCookie('_appy_', path='/')
+                return
+            # Create an authentication cookie for this user.
+            gutils.writeCookie(login, password, req)
+        # Cache the user and some precomputed values, for performance.
+        req.user = user
+        req.userRoles = user.getRoles()
+        req.userLogins = user.getLogins()
+        req.zopeUser = user.getZopeUser()
         return user
 
     def performLogin(self):
@@ -1092,7 +1103,8 @@ class ToolMixin(BaseMixin):
             return self.goto(urlBack, msg)
         # Authenticate the user.
         login = rq.get('__ac_name', None)
-        if self.getUser(authentify=True):
+        if self.getUser(authentify=True) or \
+           self.getUser(authentify=True, source='ldap'):
             msg = self.translate('login_ok')
             logMsg = 'User "%s" logged in.' % login
         else:
@@ -1107,7 +1119,7 @@ class ToolMixin(BaseMixin):
         userId = self.getUser().login
         # Perform the logout in acl_users
         rq.RESPONSE.expireCookie('_appy_', path='/')
-        # Invalidate session.
+        # Invalidate the user session.
         try:
             sdm = self.session_data_manager
         except AttributeError, ae:

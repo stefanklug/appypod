@@ -35,8 +35,9 @@ class UserWrapper(AbstractWrapper):
         #              can potentially be changed.
         if not self.login or (login != self.login):
             # A new p_login is requested. Check if it is valid and free.
-            # Firstly, the login can't be the id of the whole site or "admin".
-            if login == 'admin': return self.translate('login_reserved')
+            # Some logins are not allowed.
+            if login in ('admin', 'anon', 'system'):
+                return self.translate('login_reserved')
             # Check that no user or group already uses this login.
             if self.count('User', noSecurity=True, login=login) or \
                self.count('Group', noSecurity=True, login=login):
@@ -58,6 +59,10 @@ class UserWrapper(AbstractWrapper):
         # also own a User instance) wants to edit information about himself.
         if self.user.login == self.login: return 'edit'
 
+    def encryptPassword(self, clearPassword):
+        '''Returns p_clearPassword, encrypted.'''
+        return self.o.getTool().acl_users._encryptPassword(clearPassword)
+
     def setPassword(self, newPassword=None):
         '''Sets a p_newPassword for self. If p_newPassword is not given, we
            generate one. This method returns the generated password (or simply
@@ -70,7 +75,7 @@ class UserWrapper(AbstractWrapper):
         login = self.login
         zopeUser = self.getZopeUser()
         tool = self.tool.o
-        zopeUser.__ = tool._encryptPassword(newPassword)
+        zopeUser.__ = self.encryptPassword(newPassword)
         if self.user.login == login:
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
@@ -91,7 +96,7 @@ class UserWrapper(AbstractWrapper):
         self.login = newLogin
         # Update the corresponding Zope-level user
         aclUsers = self.o.acl_users
-        zopeUser = aclUsers.getUser(oldLogin)
+        zopeUser = aclUsers.data[oldLogin]
         zopeUser.name = newLogin
         del aclUsers.data[oldLogin]
         aclUsers.data[newLogin] = zopeUser
@@ -150,20 +155,25 @@ class UserWrapper(AbstractWrapper):
                 self.roles = roles
 
     def onEdit(self, created):
-        self.updateTitle()
-        self.ensureAdminIsManager()
-        aclUsers = self.o.acl_users
+        '''Triggered when a User is created or updated.'''
         login = self.login
+        # Is it a local User or a LDAP User?
+        isLocal = self.source == 'zodb'
+        # Ensure correctness of some infos about this user.
+        if isLocal:
+            self.updateTitle()
+            self.ensureAdminIsManager()
         if created:
-            # Create the corresponding Zope user
-            aclUsers._doAddUser(login, self.password1, self.roles, ())
-            zopeUser = aclUsers.getUser(login)
+            # Create the corresponding Zope user.
+            from AccessControl.User import User as ZopeUser
+            password = self.encryptPassword(self.password1)
+            zopeUser = ZopeUser(login, password, self.roles, ())
+            # Add it in acl_users if it is a local user.
+            if isLocal: self.o.acl_users.data[login] = zopeUser
+            # Add it in self.o._zopeUser if it is a LDAP user
+            else: self.o._zopeUser = zopeUser
             # Remove our own password copies
             self.password1 = self.password2 = ''
-            from persistent.mapping import PersistentMapping
-            # The following dict will store, for every group, global roles
-            # granted to it.
-            zopeUser.groups = PersistentMapping()
         else:
             # Update the login itself if the user has changed it.
             oldLogin = self.o._oldLogin
@@ -188,16 +198,20 @@ class UserWrapper(AbstractWrapper):
         return self._callCustom('onEdit', created)
 
     def mayEdit(self):
-        '''No one can edit users "system" and "anon".'''
+        '''No one can edit users "system" and "anon"; no one can edit non-zodb
+           users.'''
         if self.o.id in ('system', 'anon'): return
+        if self.source != 'zodb': return
         # Call custom "mayEdit" when present.
         custom = self._getCustomMethod('mayEdit')
         if custom: return self._callCustom('mayEdit')
         return True
 
     def mayDelete(self):
-        '''No one can delete users "system", "anon" and "admin".'''
+        '''No one can delete users "system", "anon" and "admin"; no one can
+           delete non-zodb users.'''
         if self.o.id in ('system', 'anon', 'admin'): return
+        if self.source != 'zodb': return
         # Call custom "mayDelete" when present.
         custom = self._getCustomMethod('mayDelete')
         if custom: return self._callCustom('mayDelete')
@@ -205,11 +219,14 @@ class UserWrapper(AbstractWrapper):
 
     def getZopeUser(self):
         '''Gets the Zope user corresponding to this user.'''
-        return self.o.acl_users.getUser(self.login)
+        if self.source == 'zodb':
+            return self.o.acl_users.data.get(self.login, None)
+        return self.o._zopeUser
 
     def onDelete(self):
-        '''Before deleting myself, I must delete the corresponding Zope user.'''
-        self.o.acl_users._doDelUsers([self.login])
+        '''Before deleting myself, I must delete the corresponding Zope user
+           (for local users only).'''
+        if self.source == 'zodb': del self.o.acl_users.data[self.login]
         self.log('User "%s" deleted.' % self.login)
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
