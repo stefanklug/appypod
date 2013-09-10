@@ -43,5 +43,7 @@ class GroupWrapper(AbstractWrapper):
         # If the group was created by anon, anon can't stay its Owner.
         if 'anon' in self.o.__ac_local_roles__:
             del self.o.__ac_local_roles__['anon']
+        if 'system' in self.o.__ac_local_roles__:
+            del self.o.__ac_local_roles__['system']
         return self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------

@@ -85,6 +85,12 @@ class UserWrapper(AbstractWrapper):
                      (msgPart, self.user.login, login))
         return newPassword
 
+    def setEncryptedPassword(self, encryptedPassword):
+        '''Sets p_encryptedPassword for this user. m_setPassword above starts
+           for a clear (given or generated) password. This one simply sets an
+           already encrypted password for this user.'''
+        self.getZopeUser().__ = encryptedPassword
+
     def checkPassword(self, clearPassword):
         '''Returns True if p_clearPassword is the correct password for this
            user.'''
@@ -154,6 +160,12 @@ class UserWrapper(AbstractWrapper):
                 if not roles: roles = ['Manager']
                 else: roles.append('Manager')
                 self.roles = roles
+
+    def getSupTitle(self, nav):
+        '''Display a specific icon if the user is a local copy of an external
+           (ie, ldap) user.'''
+        if self.source == 'zodb': return
+        return '<img src="%s/ui/external.png"/>' % self.o.getTool().getSiteUrl()
 
     def onEdit(self, created):
         '''Triggered when a User is created or updated.'''
