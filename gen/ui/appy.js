@@ -483,6 +483,18 @@ function generatePodDocument(contextUid, fieldName, podFormat, queryData,
   }
   theForm.submit();
 }
+
+function protectAppyForm() {
+  window.onbeforeunload = function(e){
+    theForm = document.getElementById("appyForm");
+    if (theForm.button.value == "") {
+      var e = e || window.event;
+      if (e) {e.returnValue = warn_leave_form;}
+      return warn_leave_form;
+    }
+  }
+}
+
 // Functions for opening and closing a popup
 function openPopup(popupId, msg) {
   // Put the message into the popup

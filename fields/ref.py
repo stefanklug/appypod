@@ -246,8 +246,8 @@ class Ref(Field):
                    uids=[o.UID() for o in \
                          field.getLinkedObjects(zobj).objects];
                    isBeingCreated=zobj.isTemporary()"
-             name=":name" size="isMultiple and field.height or ''"
-             multiple="isMultiple and 'multiple' or ''">
+             name=":name" size=":isMultiple and field.height or ''"
+             multiple=":isMultiple">
       <option value="" if="not isMultiple">:_('choose_a_value')</option>
       <option for="ztied in zobjects" var2="uid=ztied.o.UID()"
               selected=":inRequest and (uid in requestValue) or \

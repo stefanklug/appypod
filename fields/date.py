@@ -31,8 +31,8 @@ class Date(Field):
        <option value="">-</option>
        <option for="day in days"
                var2="zDay=str(day).zfill(2)" value=":zDay"
-               selected="field.isSelected(zobj, 'day', day, \
-                                          rawValue)">:zDay</option>
+               selected=":field.isSelected(zobj, 'day', day, \
+                                           rawValue)">:zDay</option>
       </select>
 
       <!-- Month -->
@@ -41,16 +41,16 @@ class Date(Field):
        <option value="">-</option>
        <option for="month in months"
                var2="zMonth=str(month).zfill(2)" value=":zMonth"
-               selected="field.isSelected(zobj, 'month', month, \
-                                          rawValue)">:zMonth</option>
+               selected=":field.isSelected(zobj, 'month', month, \
+                                           rawValue)">:zMonth</option>
       </select>
 
       <!-- Year -->
       <select name=":'%s_year' % name" id=":'%s_year' % name">
        <option value="">-</option>
        <option for="year in years" value=":year"
-               selected="field.isSelected(zobj, name, 'year', year, \
-                                          rawValue)">:year</option>
+               selected=":field.isSelected(zobj, name, 'year', year, \
+                                           rawValue)">:year</option>
       </select>
 
       <!-- The icon for displaying the calendar popup -->

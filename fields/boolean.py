@@ -36,7 +36,7 @@ class Boolean(Field):
              onclick=":'toggleCheckbox(%s, %s); updateSlaves(this)' % \
                        (q(name), q('%s_hidden' % name))"/>
       <input type="hidden" name=":name" id=":'%s_hidden' % name"
-             value=":isChecked and 'True' or 'False')"/>
+             value=":isChecked and 'True' or 'False'"/>
      </x>''')
 
     pxSearch = Px('''

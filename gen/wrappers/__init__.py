@@ -562,16 +562,7 @@ class AbstractWrapper(object):
              groupedFields=zobj.getGroupedFields(layoutType,page, cssJs=cssJs)">
       <x>:tool.pxPagePrologue</x>
       <!-- Warn the user that the form should be left via buttons -->
-      <script type="text/javascript"><![CDATA[
-       window.onbeforeunload = function(e){
-         theForm = document.getElementById('appyForm');
-         if (theForm.button.value == "") {
-           var e = e || window.event;
-           if (e) {e.returnValue = warn_leave_form;}
-           return warn_leave_form;
-         }
-       }]]>
-      </script>
+      <script type="text/javascript">protectAppyForm()</script>
       <form id="appyForm" name="appyForm" method="post"
             enctype="multipart/form-data" action=":zobj.absolute_url()+'/do'">
        <input type="hidden" name="action" value="Update"/>
