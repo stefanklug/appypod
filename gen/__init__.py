@@ -205,12 +205,12 @@ class Transition:
                     startFound = True
                     break
             if not startFound: return False
-        # Check that the condition is met
+        # Check that the condition is met, excepted if noSecurity is True.
+        if noSecurity: return True
         user = obj.getTool().getUser()
         if isinstance(self.condition, Role):
             # Condition is a role. Transition may be triggered if the user has
             # this role.
-            if noSecurity: return True
             return user.has_role(self.condition.name, obj)
         elif type(self.condition) == types.FunctionType:
             return self.condition(wf, obj.appy())
@@ -223,7 +223,7 @@ class Transition:
                 if isinstance(roleOrFunction, basestring):
                     if hasRole == None:
                         hasRole = False
-                    if user.has_role(roleOrFunction, obj) or noSecurity:
+                    if user.has_role(roleOrFunction, obj):
                         hasRole = True
                 elif type(roleOrFunction) == types.FunctionType:
                     if not roleOrFunction(wf, obj.appy()):
