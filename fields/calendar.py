@@ -401,11 +401,7 @@ class Calendar(Field):
         res = Object(eventTypes=eventTypes, message=message)
         if forBrowser:
             res.eventTypes = ','.join(res.eventTypes)
-            if not res.message:
-                res.message = ''
-            else:
-                res.message = obj.formatText(res.message, format='js')
-            return res.__dict__
+            if not res.message: res.message = ''
         return res
 
     def getEventsAt(self, obj, date):

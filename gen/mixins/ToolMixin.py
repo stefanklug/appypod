@@ -203,15 +203,6 @@ class ToolMixin(BaseMixin):
         cfg = self.getProductConfig()
         return [self.getAppyClass(k) for k in cfg.rootClasses]
 
-    def _appy_getAllFields(self, className):
-        '''Returns the (translated) names of fields of p_className.'''
-        res = []
-        for field in self.getAllAppyTypes(className=className):
-            res.append((className.name, self.translate(className.labelId)))
-        # Add object state
-        res.append(('state', self.translate('workflow_state')))
-        return res
-
     def _appy_getSearchableFields(self, className):
         '''Returns the (translated) names of fields that may be searched on
            objects of type p_className (=indexed fields).'''
@@ -438,8 +429,8 @@ class ToolMixin(BaseMixin):
         if refInfo[0]:
             return refInfo[0].getAppyType(refInfo[1]).shownInfo
         else:
-            toolFieldName = 'resultColumnsFor%s' % className
-            return getattr(self.appy(), toolFieldName)
+            k = self.getAppyClass(className)
+            return hasattr(k, 'listColumns') and k.listColumns or ('title',)
 
     def truncateValue(self, value, width=15):
         '''Truncates the p_value according to p_width.'''
@@ -469,7 +460,7 @@ class ToolMixin(BaseMixin):
     def quote(self, s):
         '''Returns the quoted version of p_s.'''
         if not isinstance(s, basestring): s = str(s)
-        if "'" in s: return '&quot;%s&quot;' % s
+        s = s.replace('\r\n', '').replace('\n', '').replace("'", "\\'")
         return "'%s'" % s
 
     def getLayoutType(self):

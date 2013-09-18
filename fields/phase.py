@@ -31,7 +31,7 @@ class Phase:
             if="not singlePhase and not singlePage">::_(label)</div>
 
        <!-- The page(s) within the phase -->
-       <x for="aPage in phase.pages">
+       <x for="aPage in phase.pages" var2="aPageInfo=phase.pagesInfo[aPage]">
         <!-- First line: page name and icons -->
         <div if="not (singlePhase and singlePage)"
              class=":aPage==page and 'portletCurrent portletPage' or \
@@ -39,7 +39,8 @@ class Phase:
          <a href=":zobj.getUrl(page=aPage)">::_('%s_page_%s' % \
                    (zobj.meta_type, aPage))</a>
          <x var="locked=zobj.isLocked(user, aPage);
-                 editable=mayEdit and phase.pagesInfo[aPage].showOnEdit">
+                 editable=mayEdit and aPageInfo.showOnEdit and \
+                          aPageInfo.showEdit">
           <a if="editable and not locked"
              href=":zobj.getUrl(mode='edit', page=aPage)">
            <img src=":url('edit')" title=":_('object_edit')"/></a>
@@ -57,7 +58,7 @@ class Phase:
          </x>
         </div>
         <!-- Next lines: links -->
-        <x var="links=phase.pagesInfo[aPage].links" if="links">
+        <x var="links=aPageInfo.links" if="links">
          <div for="link in links"><a href=":link.url">:link.title</a></div>
         </x>
        </x>

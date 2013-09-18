@@ -49,7 +49,7 @@ class Date(Field):
       <select name=":'%s_year' % name" id=":'%s_year' % name">
        <option value="">-</option>
        <option for="year in years" value=":year"
-               selected=":field.isSelected(zobj, name, 'year', year, \
+               selected=":field.isSelected(zobj, 'year', year, \
                                            rawValue)">:year</option>
       </select>
 
@@ -57,7 +57,7 @@ class Date(Field):
       <x if="field.calendar">
        <input type="hidden" id=":name" name=":name"/>
        <img id=":'%s_img' % name" src=":url('calendar.gif')"/>
-       <script type="text/javascript">:field.getJsInit(name, years)</script>
+       <script type="text/javascript">::field.getJsInit(name, years)</script>
       </x>
 
       <!-- Hour and minutes -->
@@ -112,7 +112,7 @@ class Date(Field):
          <x if="field.calendar">
           <input type="hidden" id=":fromName" name=":fromName"/>
           <img id=":'%s_img' % fromName" src=":url('calendar.gif')"/>
-          <script type="text/javascript">:field.getJsInit(fromName, years)
+          <script type="text/javascript">::field.getJsInit(fromName, years)
           </script>
          </x>
         </td>
@@ -145,7 +145,7 @@ class Date(Field):
          <x if="widget.calendar">
           <input type="hidden" id=":toName" name=":toName"/>
           <img id=":'%s_img' % toName" src=":url('calendar.gif')"/>
-          <script type="text/javascript">:field.getJsInit(toName, years)">
+          <script type="text/javascript">::field.getJsInit(toName, years)">
           </script>
          </x>
         </td>

@@ -214,8 +214,8 @@ setattr(Page, Page.pages.back.attribute, Page.pages.back)
 
 # The Tool class ---------------------------------------------------------------
 # Prefixes of the fields generated on the Tool.
-toolFieldPrefixes = ('podTemplate', 'formats', 'resultColumns',
-                     'numberOfSearchColumns', 'searchFields')
+toolFieldPrefixes = ('podTemplate', 'formats', 'numberOfSearchColumns',
+                     'searchFields')
 defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
                      'appyVersion', 'dateFormat', 'hourFormat', 'users',
                      'connectedUsers', 'groups', 'translations',

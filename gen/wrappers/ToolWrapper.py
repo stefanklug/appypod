@@ -335,18 +335,28 @@ class ToolWrapper(AbstractWrapper):
          style=":showSubTitles and 'display:inline' or 'display:none'"
          name="subTitle">::zobj.getSubTitle()</span>
 
-      <!-- Actions: edit, delete -->
-      <div if="zobj.mayAct()">
-       <a if="zobj.mayEdit()"
-          var2="navInfo='search.%s.%s.%d.%d' % \
+      <!-- Actions -->
+      <table class="noStyle" if="zobj.mayAct()">
+       <tr>
+        <!-- Workflow transitions -->
+        <td if="zobj.showTransitions('result')"
+            var2="targetObj=zobj">:targetObj.appy().pxTransitions</td>
+        <!-- Edit -->
+        <td if="zobj.mayEdit()">
+         <a var="navInfo='search.%s.%s.%d.%d' % \
                (className, searchName, loop.zobj.nb+1+startNumber, totalNumber)"
-          href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
-                             nav=navInfo)">
-        <img src=":url('edit')" title=":_('object_edit')"/></a>
-       <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
-            title=":_('object_delete')"
-            onClick=":'onDeleteObject(%s)' % q(zobj.UID())"/>
-      </div>
+            href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
+                               nav=navInfo)">
+         <img src=":url('edit')" title=":_('object_edit')"/></a>
+        </td>
+        <td>
+         <!-- Delete -->
+         <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
+              title=":_('object_delete')"
+              onClick=":'onDeleteObject(%s)' % q(zobj.UID())"/>
+        </td>
+       </tr>
+      </table>
      </x>
      <!-- Any other field -->
      <x if="field.name != 'title'">
@@ -703,12 +713,10 @@ class ToolWrapper(AbstractWrapper):
         return self.o.getAppyClass(zopeName)
 
     def getAttributeName(self, attributeType, klass, attrName=None):
-        '''Some names of Tool attributes are not easy to guess. For example,
-           the attribute that stores the names of the columns to display in
-           query results for class A that is in package x.y is
-           "tool.resultColumnsForx_y_A". This method generates the attribute
-           name based on p_attributeType, a p_klass from the application, and a
-           p_attrName (given only if needed). p_attributeType may be:
+        '''Some names of Tool attributes are not easy to guess. This method
+           generates the attribute name based on p_attributeType, a p_klass from
+           the application, and a p_attrName (given only if needed).
+           p_attributeType may be:
 
            "podTemplate"
                Stores the pod template for p_attrName.
@@ -716,10 +724,6 @@ class ToolWrapper(AbstractWrapper):
            "formats"
                Stores the output format(s) of a given pod template for
                p_attrName.
-
-           "resultColumns"
-               Stores the list of columns that must be shown when displaying
-               instances of a given root p_klass.
 
            "numberOfSearchColumns"
                Determines in how many columns the search screen for p_klass

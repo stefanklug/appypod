@@ -429,16 +429,6 @@ class ToolClassDescriptor(ClassDescriptor):
                                multiplicity=(1,None), default=('odt',), **pg)
         self.addField(fieldName, fieldType)
 
-    def addQueryResultColumns(self, classDescr):
-        '''Adds, for class p_classDescr, the attribute in the tool that allows
-           to select what default columns will be shown on query results.'''
-        className = classDescr.name
-        fieldName = 'resultColumnsFor%s' % className
-        fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
-            '_appy_getAllFields*%s' % className), page='userInterface',
-            group=classDescr.klass.__name__, default=['title'])
-        self.addField(fieldName, fieldType)
-
     def addSearchRelatedFields(self, classDescr):
         '''Adds, for class p_classDescr, attributes related to the search
            functionality for class p_classDescr.'''

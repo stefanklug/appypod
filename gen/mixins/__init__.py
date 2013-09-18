@@ -786,7 +786,7 @@ class BaseMixin:
             return klass.styles[elem]
         return elem
 
-    def getAppyTransitions(self, includeFake=True, includeNotShowable=False):
+    def getTransitions(self, includeFake=True, includeNotShowable=False):
         '''This method returns info about transitions that one can trigger from
            the user interface.
            * if p_includeFake is True, it retrieves transitions that the user
@@ -824,7 +824,7 @@ class BaseMixin:
                      'confirm': '', 'may_trigger': True}
             if transition.confirm:
                 cLabel = '%s_confirm' % label
-                tInfo['confirm'] = self.translate(cLabel, format='js')
+                tInfo['confirm'] = self.translate(cLabel)
             if not mayTrigger:
                 tInfo['may_trigger'] = False
                 tInfo['reason'] = mayTrigger.msg
@@ -1167,7 +1167,9 @@ class BaseMixin:
         '''Gets, according to the workflow, the roles that are currently granted
            p_permission on this object.'''
         state = self.State(name=False)
-        return [role.name for role in state.permissions[permission]]
+        roles = state.permissions[permission]
+        if roles: return [role.name for role in roles]
+        return ()
 
     def appy(self):
         '''Returns a wrapper object allowing to manipulate p_self the Appy
@@ -1289,15 +1291,6 @@ class BaseMixin:
         # This value can be a single value or a tuple/list of values.
         if isinstance(showValue, basestring): return layoutType == showValue
         return layoutType in showValue
-
-    def _appy_listStates(self):
-        '''Lists the possible states for this object.'''
-        res = []
-        workflow = self.getWorkflow()
-        for elem in dir(workflow):
-            if getattr(workflow, elem).__class__.__name__ != 'State': continue
-            res.append((elem, self.translate(self.getWorkflowLabel(elem))))
-        return res
 
     getUrlDefaults = {'page':True, 'nav':True}
     def getUrl(self, base=None, mode='view', **kwargs):
@@ -1423,9 +1416,6 @@ class BaseMixin:
         if 'html' in format:
             if format == 'html_from_text': text = cgi.escape(text)
             res = text.replace('\r\n', '<br/>').replace('\n', '<br/>')
-        elif format == 'js':
-            res = text.replace('\r\n', '').replace('\n', '')
-            res = res.replace("'", "\\'")
         elif format == 'text':
             res = text.replace('<br/>', '\n')
         else:

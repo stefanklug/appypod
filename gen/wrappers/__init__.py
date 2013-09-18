@@ -354,7 +354,7 @@ class AbstractWrapper(object):
 
     # Displays an object's transitions(s).
     pxTransitions = Px('''
-     <form var="transitions=targetObj.getAppyTransitions()" if="transitions"
+     <form var="transitions=targetObj.getTransitions()" if="transitions"
            var2="formId='trigger_%s' % targetObj.UID()" method="post"
            id=":formId" action=":targetObj.absolute_url() + '/do'">
       <input type="hidden" name="action" value="Trigger"/>
@@ -480,7 +480,8 @@ class AbstractWrapper(object):
 
        <td if="not isEdit"
            var2="locked=zobj.isLocked(user, page);
-                 editable=pageInfo.showOnEdit and zobj.mayEdit()">
+                 editable=pageInfo.showOnEdit and pageInfo.showEdit and \
+                          zobj.mayEdit()">
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"

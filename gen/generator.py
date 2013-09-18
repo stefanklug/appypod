@@ -712,12 +712,10 @@ class ZopeGenerator(Generator):
                           'classDoc': 'Standard Appy class', 'icon': icon})
             self.copyFile('Class.pyt', repls, destName='%s.py' % klass.name)
 
-        # Before generating the Tool class, finalize it with query result
-        # columns, search-related and import-related fields.
+        # Before generating the Tool class, finalize it with search-related and
+        # import-related fields.
         for classDescr in self.getClasses(include='allButTool'):
             if not classDescr.isRoot(): continue
-            # We must be able to configure query results from the tool.
-            self.tool.addQueryResultColumns(classDescr)
             # Add the search-related fields.
             self.tool.addSearchRelatedFields(classDescr)
             importMean = classDescr.getCreateMean('Import')
