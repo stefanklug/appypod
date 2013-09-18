@@ -26,14 +26,14 @@ class List(Field):
 
     # PX for rendering a single row.
     pxRow = Px('''
-     <tr valign="top" style="(rowIndex==-1) and 'display: none' or ''">
-      <td align="center" for="info in field.fields"
+     <tr valign="top" style=":(rowIndex==-1) and 'display: none' or ''">
+      <td for="info in field.fields" align="center"
           var2="field=info[1];
-                tagCss='noStyle';
-                widgetName='%s*%d' % (field.name, rowIndex)">:field.pxView</td>
+                fieldName='%s*%d' % (field.name, rowIndex);
+                tagCss='noStyle'">:field.pxRender</td>
       <!-- Icon for removing the row -->
       <td if="layoutType=='edit'" align=":dright">
-       <img class="clickable" src=":url(delete')" title=":_('object_delete')"
+       <img class="clickable" src=":url('delete')" title=":_('object_delete')"
             onclick=":'deleteRow(%s, this)' % q('list_%s' % name)"/>
       </td>
      </tr>''')
@@ -41,10 +41,12 @@ class List(Field):
     # PX for rendering the list (shared between pxView and pxEdit).
     pxTable = Px('''
      <table var="isEdit=layoutType == 'edit'" if="isEdit or value"
-            id=":'list_%s' % name" class="isEdit and 'grid' or 'list'">
+            id=":'list_%s' % name" class=":isEdit and 'grid' or 'list'"
+            width=":field.width">
       <!-- Header -->
       <tr valign="bottom">
-       <th for="info in field.fields">::_(info[1].labelId)</th>
+       <th for="info in field.fields"
+           width=":field.widths[loop.info.nb]">::_(info[1].labelId)</th>
        <!-- Icon for adding a new row. -->
        <th if="isEdit">
         <img class="clickable" src=":url('plus')" title=":_('add_ref')"
@@ -72,10 +74,10 @@ class List(Field):
     def __init__(self, fields, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
+                 specificWritePermission=False, width='', height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 subLayouts=Table('fv', width=None)):
+                 subLayouts=Table('frv', width=None), widths=None):
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
@@ -91,6 +93,12 @@ class List(Field):
         if subLayouts:
             for name, field in self.fields:
                 field.layouts = field.formatLayouts(subLayouts)
+        # One may specify the width of every column in the list. Indeed, using
+        # widths and layouts of sub-fields may not be sufficient.
+        if not widths:
+            self.widths = [''] * len(self.fields)
+        else:
+            self.widths = widths
 
     def getField(self, name):
         '''Gets the field definition whose name is p_name.'''

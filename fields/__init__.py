@@ -81,7 +81,7 @@ class Field:
      class="discreet">::zobj.translate('descr', field=field)</span>''')
 
     # Displays a field help.
-    pxHelp = Px('''<acronym title="zobj.translate('help', field=field)"><img
+    pxHelp = Px('''<acronym title=":zobj.translate('help', field=field)"><img
      src=":url('help')"/></acronym>''')
 
     # Displays validation-error-related info about a field.

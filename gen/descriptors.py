@@ -326,6 +326,10 @@ class FieldDescriptor:
         for name, field in self.appyType.fields:
             label = '%s_%s_%s' % (self.classDescr.name, self.fieldName, name)
             self.i18n(label, name)
+            if field.hasDescr:
+                self.i18n('%s_descr' % label, ' ')
+            if field.hasHelp:
+                self.i18n('%s_help' % label, ' ')
 
     def walkCalendar(self):
         # Add i18n-specific messages

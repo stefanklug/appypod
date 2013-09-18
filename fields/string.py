@@ -115,7 +115,7 @@ class String(Field):
               onchange=":isMaster and 'updateSlaves(this)' or ''"
               size=":isMultiple and field.height or 1">
        <option for="val in possibleValues" value=":val[0]"
-               selected=":field.isSelected(zobj, val[0], rawValue)"
+               selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
       <x if="isOneLine and not isSelect">
@@ -669,13 +669,15 @@ class String(Field):
                "null, evalInnerScripts);}}});"% \
                (uid, self.name, uid, self.name, obj.absolute_url(), self.name)
 
-    def isSelected(self, obj, vocabValue, dbValue):
+    def isSelected(self, obj, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (only for fields with a validator
-           being a list), must the _vocabValue appear as selected?'''
+           being a list), must the _vocabValue appear as selected? p_fieldName
+           is given and used instead of field.name because it may be a a fake
+           name containing a row number from a field within a list field.'''
         rq = obj.REQUEST
         # Get the value we must compare (from request or from database)
-        if rq.has_key(self.name):
-            compValue = rq.get(self.name)
+        if rq.has_key(fieldName):
+            compValue = rq.get(fieldName)
         else:
             compValue = dbValue
         # Compare the value
