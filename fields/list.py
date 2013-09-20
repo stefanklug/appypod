@@ -140,17 +140,30 @@ class List(Field):
         for v in value:
             sv = Object()
             for name, field in self.fields:
-                setattr(sv, name, field.getStorableValue(getattr(v, name)))
+                subValue = getattr(v, name)
+                try:
+                    setattr(sv, name, field.getStorableValue(subValue))
+                except ValueError:
+                    # The value for this field for this specific row is
+                    # incorrect. It can happen in the process of validating the
+                    # whole List field (a call to getStorableValue occurs at
+                    # this time). We don't care about it, because later on we
+                    # will have sub-field specific validation that will also
+                    # detect the error and will prevent storing the wrong value
+                    # in the database.
+                    setattr(sv, name, subValue)
             res.append(sv)
         return res
 
-    def getInnerValue(self, outerValue, name, i):
+    def getInnerValue(self, obj, outerValue, name, i):
         '''Returns the value of inner field named p_name in row number p_i
            within the whole list of values p_outerValue.'''
         if i == -1: return ''
         if not outerValue: return ''
         if i >= len(outerValue): return ''
-        return getattr(outerValue[i], name, '')
+        # Return the value, or a potential default value.
+        return getattr(outerValue[i], name, '') or \
+               self.getField(name).getValue(obj) or ''
 
     def getCss(self, layoutType, res):
         '''Gets the CSS required by sub-fields if any.'''

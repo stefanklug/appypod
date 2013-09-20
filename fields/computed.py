@@ -46,21 +46,18 @@ class Computed(Field):
                  show='view', page='main', group=None, layouts=None, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, method=None, plainText=True,
+                 maxChars=None, colspan=1, method=None, plainText=False,
                  master=None, masterValue=None, focus=False, historized=False,
                  sync=True, mapping=None, label=None, sdefault='', scolspan=1,
                  swidth=None, sheight=None, context={}):
-        # The Python method used for computing the field value
+        # The Python method used for computing the field value, or a PX.
         self.method = method
         # Does field computation produce plain text or XHTML?
         self.plainText = plainText
-        if isinstance(method, basestring):
-            # When field computation is done with a macro, we know the result
-            # will be HTML.
+        if isinstance(method, Px):
+            # When field computation is done with a PX, the result is XHTML.
             self.plainText = False
-        # The context is a dict (or method returning a dict) that will be given
-        # to the macro specified in self.method. If the dict contains key
-        # "someKey", it will be available to the macro as "options/someKey".
+        # If method is a PX, its context can be given in p_context.
         self.context = context
         Field.__init__(self, None, multiplicity, default, show, page, group,
                        layouts, move, indexed, searchable,
@@ -70,33 +67,15 @@ class Computed(Field):
                        swidth, sheight)
         self.validable = False
 
-    def callMacro(self, obj, macroPath):
-        '''Returns the macro corresponding to p_macroPath. The base folder
-           where we search is "ui".'''
-        # Get the special page in Appy that allows to call a macro
-        macroPage = obj.ui.callMacro
-        # Get, from p_macroPath, the page where the macro lies, and the macro
-        # name.
-        names = self.method.split('/')
-        # Get the page where the macro lies
-        page = obj.ui
-        for name in names[:-1]:
-            page = getattr(page, name)
-        macroName = names[-1]
-        # Compute the macro context.
-        ctx = {'contextObj':obj, 'page':page, 'macroName':macroName}
-        if callable(self.context):
-            ctx.update(self.context(obj.appy()))
-        else:
-            ctx.update(self.context)
-        return macroPage(obj, **ctx)
-
     def getValue(self, obj):
         '''Computes the value instead of getting it in the database.'''
         if not self.method: return
-        if isinstance(self.method, basestring):
-            # self.method is a path to a macro that will produce the field value
-            return self.callMacro(obj, self.method)
+        if isinstance(self.method, Px):
+            obj = obj.appy()
+            ctx = {'obj': obj, 'field': self,
+                   '_': obj.translate, 'tool': obj.tool}
+            ctx.update(self.context)
+            return self.method(ctx)
         else:
             # self.method is a method that will return the field value
             return self.callMethod(obj, self.method, cache=False)

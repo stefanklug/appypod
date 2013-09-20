@@ -300,23 +300,23 @@ class BaseMixin:
            field, we add in p_values an entry with the "ready-to-store" field
            value.'''
         rq = self.REQUEST
-        for appyType in self.getAppyTypes('edit', rq.form.get('page')):
-            if not appyType.validable: continue
-            value = appyType.getRequestValue(rq)
-            message = appyType.validate(self, value)
+        for field in self.getAppyTypes('edit', rq.form.get('page')):
+            if not field.validable: continue
+            value = field.getRequestValue(rq)
+            message = field.validate(self, value)
             if message:
-                setattr(errors, appyType.name, message)
+                setattr(errors, field.name, message)
             else:
-                setattr(values, appyType.name, appyType.getStorableValue(value))
+                setattr(values, field.name, field.getStorableValue(value))
             # Validate sub-fields within Lists
-            if appyType.type != 'List': continue
+            if field.type != 'List': continue
             i = -1
             for row in value:
                 i += 1
-                for name, field in appyType.fields:
-                    message = field.validate(self, getattr(row,name,None))
+                for name, subField in field.fields:
+                    message = subField.validate(self, getattr(row,name,None))
                     if message:
-                        setattr(errors, '%s*%d' % (field.name, i), message)
+                        setattr(errors, '%s*%d' % (subField.name, i), message)
 
     def interFieldValidation(self, errors, values):
         '''This method is called when individual validation of all fields
@@ -638,14 +638,14 @@ class BaseMixin:
         '''Returns the database value of field named p_name for p_self.
            If p_onlyIfSync is True, it returns the value only if appyType can be
            retrieved in synchronous mode.'''
-        appyType = self.getAppyType(name)
-        if not onlyIfSync or (onlyIfSync and appyType.sync[layoutType]):
+        field = self.getAppyType(name)
+        if not onlyIfSync or (onlyIfSync and field.sync[layoutType]):
             # We must really get the field value.
-            if '*' not in name: return appyType.getValue(self)
+            if '*' not in name: return field.getValue(self)
             # The field is an inner field from a List.
             listName, name, i = name.split('*')
             listType = self.getAppyType(listName)
-            return listType.getInnerValue(outerValue, name, int(i))
+            return listType.getInnerValue(self, outerValue, name, int(i))
 
     def getFormattedFieldValue(self, name, value, showChanges=False):
         '''Gets a nice, string representation of p_value which is a value from

@@ -555,7 +555,7 @@ class Field:
            representation of the field value coming from the request.
            This method computes the real (potentially converted or manipulated
            in some other way) value as can be stored in the database.'''
-        if self.isEmptyValue(value): return None
+        if self.isEmptyValue(value): return
         return value
 
     def getMasterData(self):
@@ -572,7 +572,7 @@ class Field:
         '''This method may be overridden by child classes and will be called at
            the right moment by m_validate defined below for triggering
            type-specific validation. p_value is never empty.'''
-        return None
+        return
 
     def securityCheck(self, obj, value):
         '''This method performs some security checks on the p_value that

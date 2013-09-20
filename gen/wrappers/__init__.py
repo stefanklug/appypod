@@ -88,6 +88,7 @@ class AbstractWrapper(object):
                 appFolder=app.data;             url = ztool.getIncludeUrl;
                 appName=ztool.getAppName();     _=ztool.translate;
                 req=ztool.REQUEST;              resp=req.RESPONSE;
+                dummy=setattr(req, 'pxContext', _ctx_);
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
                 showPortlet=ztool.showPortlet(zobj, layoutType);
@@ -589,6 +590,7 @@ class AbstractWrapper(object):
              appFolder=app.data;             url = ztool.getIncludeUrl;
              appName=ztool.getAppName();     _=ztool.translate;
              req=ztool.REQUEST;              resp=req.RESPONSE;
+             dummy=setattr(req, 'pxContext', _ctx_);
              lang=ztool.getUserLanguage();   q=ztool.quote;
              action=req.get('action', None);
              px=req['px'].split(':');
