@@ -49,7 +49,7 @@ class Computed(Field):
                  maxChars=None, colspan=1, method=None, plainText=False,
                  master=None, masterValue=None, focus=False, historized=False,
                  sync=True, mapping=None, label=None, sdefault='', scolspan=1,
-                 swidth=None, sheight=None, context={}):
+                 swidth=None, sheight=None, context=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         # Does field computation produce plain text or XHTML?
@@ -74,7 +74,7 @@ class Computed(Field):
             obj = obj.appy()
             ctx = {'obj': obj, 'field': self,
                    '_': obj.translate, 'tool': obj.tool}
-            ctx.update(self.context)
+            if self.context: ctx.update(self.context)
             return self.method(ctx)
         else:
             # self.method is a method that will return the field value

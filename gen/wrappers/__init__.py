@@ -1026,6 +1026,25 @@ class AbstractWrapper(object):
            whose values are the previous field values.'''
         self.o.addDataChange(data)
 
+    def getLastEvent(self, transition, notBefore=''):
+        '''Gets, from the object history, the last occurrence of transition
+           named p_transition. p_transition can be a list of names: in this
+           case, it returns the most recent occurrence of those transitions. If
+           p_notBefore is given, it corresponds to a kind of start transition
+           for the search: we will not search in the history preceding the last
+           occurrence of this transition.'''
+        history = self.history
+        i = len(history)-1
+        while i >= 0:
+            event = history[i]
+            if notBefore and (event['action'] == notBefore): return
+            if isinstance(transition, basestring):
+                condition = event['action'] == transition
+            else:
+                condition = event['action'] in transition
+            if condition: return event
+            i -= 1
+
     def formatText(self, text, format='html'):
         '''Produces a representation of p_text into the desired p_format, which
            is 'html' by default.'''
