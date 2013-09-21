@@ -716,8 +716,6 @@ class ZopeGenerator(Generator):
         # import-related fields.
         for classDescr in self.getClasses(include='allButTool'):
             if not classDescr.isRoot(): continue
-            # Add the search-related fields.
-            self.tool.addSearchRelatedFields(classDescr)
             importMean = classDescr.getCreateMean('Import')
             if importMean:
                 self.tool.addImportRelatedFields(classDescr)

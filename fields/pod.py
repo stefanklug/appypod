@@ -15,7 +15,7 @@
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
-import time, os, os.path, StringIO
+import time, os, os.path
 from appy.fields import Field
 from appy.px import Px
 from file import File
@@ -43,7 +43,7 @@ class Pod(Field):
       <input type="checkbox" name=":doLabel" id=":chekboxId"/>
       <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
      </x>
-     <img for="fmt in field.getToolInfo(obj)[1]" src=":url(fmt)"
+     <img for="fmt in field.getOutputFormats(zobj)" src=":url(fmt)"
           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
             (q(zobj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
           title=":fmt.capitalize()" class="clickable"/>
@@ -58,7 +58,7 @@ class Pod(Field):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  template=None, context=None, action=None, askAction=False,
-                 stylesMapping={}, freezeFormat='pdf'):
+                 stylesMapping={}, formats=None, freezeFormat='pdf'):
         # The following param stores the path to a POD template
         self.template = template
         # The context is a dict containing a specific pod context, or a method
@@ -72,7 +72,14 @@ class Pod(Field):
         self.askAction = askAction
         # A global styles mapping that would apply to the whole template
         self.stylesMapping = stylesMapping
-        # Freeze format is by PDF by default
+        # What are the output formats when generating documents from this pod ?
+        if not formats:
+            # Compute default ones
+            if template.endswith('.ods'):
+                self.formats = ('xls', 'ods')
+            else:
+                self.formats = ('pdf', 'doc', 'odt')
+        # Freeze format is PDF by default.
         self.freezeFormat = freezeFormat
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, indexed, searchable, specificReadPermission,
@@ -86,26 +93,13 @@ class Pod(Field):
         value = getattr(obj.o.aq_base, self.name, None)
         return isinstance(value, obj.o.getProductConfig().File)
 
-    def getToolInfo(self, obj):
-        '''Gets information related to this field (p_self) that is available in
-           the tool: the POD template and the available output formats. If this
-           field is frozen, available output formats are not available anymore:
-           only the format of the frozen doc is returned.'''
-        tool = obj.tool
-        appyClass = tool.o.getAppyClass(obj.o.meta_type)
-        # Get the output format(s)
-        if self.isFrozen(obj):
-            # The only available format is the one from the frozen document
-            fileName = getattr(obj.o.aq_base, self.name).filename
-            formats = (os.path.splitext(fileName)[1][1:],)
-        else:
-            # Available formats are those which are selected in the tool.
-            name = tool.getAttributeName('formats', appyClass, self.name)
-            formats = getattr(tool, name)
-        # Get the POD template
-        name = tool.getAttributeName('podTemplate', appyClass, self.name)
-        template = getattr(tool, name)
-        return (template, formats)
+    def getOutputFormats(self, obj):
+        '''Returns self.formats, excepted if there is a frozen document: in
+           this case, only the format of the frozen doc is returned.'''
+        if not self.isFrozen(obj): return self.formats
+        # The only available format is the one from the frozen document
+        fileName = getattr(obj.o.aq_base, self.name).filename
+        return (os.path.splitext(fileName)[1][1:],)
 
     def getValue(self, obj):
         '''Gets, on_obj, the value conforming to self's type definition. For a
@@ -121,17 +115,18 @@ class Pod(Field):
         # A Pod field differs from other field types because there can be
         # several ways to produce the field value (ie: output file format can be
         # odt, pdf,...; self.action can be executed or not...). We get those
-        # precisions about the way to produce the file from the request object
-        # and from the tool. If we don't find the request object (or if it does
-        # not exist, ie, when Zope runs in test mode), we use default values.
+        # precisions about the way to produce the file from the request object.
+        # If we don't find the request object (or if it does not exist, ie,
+        # when Zope runs in test mode), we use default values.
         obj = obj.appy()
         tool = obj.tool
-        # Get POD template and available formats from the tool.
-        template, availFormats = self.getToolInfo(obj)
+        diskFolder = tool.getDiskFolder()
+        # Get the path to the pod template.
+        templatePath = os.path.join(diskFolder, self.template)
+        if not os.path.isfile(templatePath):
+            raise Exception('Pod template not found at %s.' % templatePath)
         # Get the output format
-        defaultFormat = 'pdf'
-        if defaultFormat not in availFormats: defaultFormat = availFormats[0]
-        outputFormat = getattr(rq, 'podFormat', defaultFormat)
+        outputFormat = getattr(rq, 'podFormat', 'odt')
         # Get or compute the specific POD context
         specificContext = None
         if callable(self.context):
@@ -144,7 +139,7 @@ class Pod(Field):
         # Define parameters to give to the appy.pod renderer
         podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
-                      '_': obj.translate, 'projectFolder': tool.getDiskFolder()}
+                      '_': obj.translate, 'projectFolder': diskFolder}
         # If the POD document is related to a query, get it from the request,
         # execute it and put the result in the context.
         isQueryRelated = rq.get('queryData', None)
@@ -175,9 +170,8 @@ class Pod(Field):
             stylesMapping = self.callMethod(obj, self.stylesMapping)
         else:
             stylesMapping = self.stylesMapping
-        rendererParams = {'template': StringIO.StringIO(template.content),
-                          'context': podContext, 'result': tempFileName,
-                          'stylesMapping': stylesMapping,
+        rendererParams = {'template': templatePath, 'context': podContext,
+                          'result': tempFileName, 'stylesMapping':stylesMapping,
                           'imageResolver': tool.o.getApp()}
         if tool.unoEnabledPython:
             rendererParams['pythonWithUnoPath'] = tool.unoEnabledPython
@@ -191,7 +185,7 @@ class Pod(Field):
             if not os.path.exists(tempFileName):
                 # In some (most?) cases, when OO returns an error, the result is
                 # nevertheless generated.
-                obj.log(str(pe), type='error')
+                obj.log(str(pe).strip(), type='error')
                 return Pod.POD_ERROR
         # Give a friendly name for this file
         fileName = obj.translate(self.labelId)
@@ -209,9 +203,9 @@ class Pod(Field):
         try:
             os.remove(tempFileName)
         except OSError, oe:
-            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(oe), type='warning')
+            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(oe).strip(), type='warning')
         except IOError, ie:
-            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(ie), type='warning')
+            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(ie).strip(), type='warning')
         return res
 
     def store(self, obj, value):

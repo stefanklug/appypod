@@ -203,15 +203,6 @@ class ToolMixin(BaseMixin):
         cfg = self.getProductConfig()
         return [self.getAppyClass(k) for k in cfg.rootClasses]
 
-    def _appy_getSearchableFields(self, className):
-        '''Returns the (translated) names of fields that may be searched on
-           objects of type p_className (=indexed fields).'''
-        res = []
-        for field in self.getAllAppyTypes(className=className):
-            if field.indexed:
-                res.append((field.name, self.translate(field.labelId)))
-        return res
-
     def getSearchInfo(self, className, refInfo=None):
         '''Returns, as an object:
            - the list of searchable fields (some among all indexed fields);
@@ -225,9 +216,13 @@ class ToolMixin(BaseMixin):
             nbOfColumns = refField.queryNbCols
         else:
             # The search is triggered from an app-wide search.
-            tool = self.appy()
-            fieldNames = getattr(tool, 'searchFieldsFor%s' % className,())
-            nbOfColumns = getattr(tool, 'numberOfSearchColumnsFor%s' %className)
+            klass = self.getAppyClass(className)
+            fieldNames = getattr(klass, 'searchFields', None)
+            if not fieldNames:
+                # Gather all the indexed fields on this class.
+                fieldNames = [f.name for f in self.getAllAppyTypes(className) \
+                              if f.indexed]
+            nbOfColumns = getattr(klass, 'numberOfSearchColumns', 3)
         for name in fieldNames:
             field = self.getAppyType(name, className=className)
             fields.append(field)
@@ -250,8 +245,7 @@ class ToolMixin(BaseMixin):
         '''Must we show, on pxQueryResult, instances of p_className as a list or
            as a grid?'''
         klass = self.getAppyClass(className)
-        if hasattr(klass, 'resultMode'): return klass.resultMode
-        return 'list' # The default mode
+        return getattr(klass, 'resultMode', 'list')
 
     def getImportElements(self, className):
         '''Returns the list of elements that can be imported from p_path for

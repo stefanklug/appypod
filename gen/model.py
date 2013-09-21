@@ -214,13 +214,12 @@ setattr(Page, Page.pages.back.attribute, Page.pages.back)
 
 # The Tool class ---------------------------------------------------------------
 # Prefixes of the fields generated on the Tool.
-toolFieldPrefixes = ('podTemplate', 'formats', 'numberOfSearchColumns',
-                     'searchFields')
 defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
-                     'appyVersion', 'dateFormat', 'hourFormat', 'users',
-                     'connectedUsers', 'groups', 'translations',
-                     'loadTranslationsAtStartup', 'pages', 'unoEnabledPython',
-                     'openOfficePort', 'numberOfResultsPerPage')
+                     'appyVersion', 'dateFormat', 'hourFormat',
+                     'unoEnabledPython', 'openOfficePort',
+                     'numberOfResultsPerPage', 'users', 'connectedUsers',
+                     'groups', 'translations', 'loadTranslationsAtStartup',
+                     'pages')
 
 class Tool(ModelClass):
     # In a ModelClass we need to declare attributes in the following list.
@@ -239,6 +238,9 @@ class Tool(ModelClass):
     appyVersion = gen.String(**lf)
     dateFormat = gen.String(default='%d/%m/%Y', **lf)
     hourFormat = gen.String(default='%H:%M', **lf)
+    unoEnabledPython = gen.String(default='/usr/bin/python', **lf)
+    openOfficePort = gen.Integer(default=2002, **lf)
+    numberOfResultsPerPage = gen.Integer(default=30, **lf)
 
     # Ref(User) will maybe be transformed into Ref(CustomUserClass).
     userPage = gen.Page('users', show=isManager)
@@ -264,16 +266,6 @@ class Tool(ModelClass):
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
                     page=gen.Page('pages', show=isManager))
-
-    # Document generation page
-    dgp = {'page': gen.Page('documents', show=isManagerEdit)}
-    def validPythonWithUno(self, value): pass # Real method in the wrapper
-    unoEnabledPython = gen.String(default='/usr/bin/python', show=False,
-                                  validator=validPythonWithUno, **dgp)
-    openOfficePort = gen.Integer(default=2002, show=False, **dgp)
-    # User interface page
-    numberOfResultsPerPage = gen.Integer(default=30,
-                                     page=gen.Page('userInterface', show=False))
 
     @classmethod
     def _appy_clean(klass):

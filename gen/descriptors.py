@@ -6,7 +6,7 @@
 import types, copy
 import appy.gen as gen
 import po
-from model import ModelClass, toolFieldPrefixes
+from model import ModelClass
 from utils import produceNiceMessage, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
 
@@ -260,21 +260,6 @@ class FieldDescriptor:
     def __repr__(self):
         return '<Field %s, %s>' % (self.fieldName, self.classDescr)
 
-    def getToolFieldMessage(self, fieldName):
-        '''Some attributes generated on the Tool class need a specific
-           default message, returned by this method.'''
-        res = fieldName
-        for prefix in toolFieldPrefixes:
-            fullPrefix = prefix + 'For'
-            if fieldName.startswith(fullPrefix):
-                messageId = 'MSG_%s' % prefix
-                res = getattr(po, messageId)
-                if res.find('%s') != -1:
-                    # I must complete the message with the field name.
-                    res = res % fieldName.split('_')[-1]
-                break
-        return res
-
     def produceMessage(self, msgId, isLabel=True):
         '''Gets the default label, description or help (depending on p_msgType)
            for i18n message p_msgId.'''
@@ -283,10 +268,6 @@ class FieldDescriptor:
         if isLabel:
             niceDefault = True
             default = self.fieldName
-            # Some attributes need a specific predefined message
-            if isinstance(self.classDescr, ToolClassDescriptor):
-                default = self.getToolFieldMessage(self.fieldName)
-                if default != self.fieldName: niceDefault = False
         return msgId, default, niceDefault
 
     def walkString(self):
@@ -318,8 +299,6 @@ class FieldDescriptor:
         if self.appyType.askAction:
             label = '%s_%s_askaction' % (self.classDescr.name, self.fieldName)
             self.i18n(label, po.POD_ASKACTION, nice=False)
-        # Add the POD-related fields on the Tool
-        self.generator.tool.addPodRelatedFields(self)
 
     def walkList(self):
         # Add i18n-specific messages
@@ -416,43 +395,6 @@ class ToolClassDescriptor(ClassDescriptor):
 
     def isFolder(self, klass=None): return True
     def isRoot(self): return False
-
-    def addPodRelatedFields(self, fieldDescr):
-        '''Adds the fields needed in the Tool for configuring a Pod field.'''
-        className = fieldDescr.classDescr.name
-        # On what page and group to display those fields ?
-        pg = {'page': 'documents',
-              'group':gen.Group(fieldDescr.classDescr.klass.__name__,['50%']*2)}
-        # Add the field that will store the pod template.
-        fieldName = 'podTemplateFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = gen.File(**pg)
-        self.addField(fieldName, fieldType)
-        # Add the field that will store the output format(s)
-        fieldName = 'formatsFor%s_%s' % (className, fieldDescr.fieldName)
-        fieldType = gen.String(validator=gen.Selection('getPodOutputFormats'),
-                               multiplicity=(1,None), default=('odt',), **pg)
-        self.addField(fieldName, fieldType)
-
-    def addSearchRelatedFields(self, classDescr):
-        '''Adds, for class p_classDescr, attributes related to the search
-           functionality for class p_classDescr.'''
-        className = classDescr.name
-        # Field that defines how many columns are shown on the custom search
-        # screen.
-        fieldName = 'numberOfSearchColumnsFor%s' % className
-        fieldType = gen.Integer(default=3, page='userInterface',
-                                group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType)
-        # Field that allows to select, among all indexed fields, what fields
-        # must really be used in the search screen.
-        fieldName = 'searchFieldsFor%s' % className
-        defaultValue = [a[0] for a in classDescr.getOrderedAppyAttributes(
-            condition='attrValue.indexed')]
-        if 'title' not in defaultValue: defaultValue.insert(0, 'title')
-        fieldType = gen.String(multiplicity=(0,None), validator=gen.Selection(
-            '_appy_getSearchableFields*%s' % className), default=defaultValue,
-            page='userInterface', group=classDescr.klass.__name__)
-        self.addField(fieldName, fieldType)
 
     def addImportRelatedFields(self, classDescr):
         '''Adds, for class p_classDescr, attributes related to the import

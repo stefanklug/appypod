@@ -189,37 +189,6 @@ class ZopeInstaller:
                 appyTool.log('Group "%s", related to global role "%s", was ' \
                              'created.' % (groupId, role))
 
-        # Create POD templates within the tool if required
-        for contentType in self.config.attributes.iterkeys():
-            appyClass = tool.getAppyClass(contentType)
-            if not appyClass: continue # May be an abstract class
-            wrapperClass = tool.getAppyClass(contentType, wrapper=True)
-            for appyType in wrapperClass.__fields__:
-                if appyType.type != 'Pod': continue
-                # Find the attribute that stores the template, and store on
-                # it the default one specified in the appyType if no
-                # template is stored yet.
-                attrName = appyTool.getAttributeName('podTemplate', appyClass,
-                                                     appyType.name)
-                fileObject = getattr(appyTool, attrName)
-                if not fileObject or (fileObject.size == 0):
-                    # There is no file. Put the one specified in the appyType.
-                    fileName = os.path.join(appyTool.getDiskFolder(),
-                                            appyType.template)
-                    if os.path.exists(fileName):
-                        setattr(appyTool, attrName, fileName)
-                        # If the template is ods, set the default format to ods
-                        # (because default is odt)
-                        if fileName.endswith('.ods'):
-                            formats = appyTool.getAttributeName('formats',
-                                                       appyClass, appyType.name)
-                            setattr(appyTool, formats, ['ods'])
-                        appyTool.log('Imported "%s" in the tool in ' \
-                                     'attribute "%s"'% (fileName, attrName))
-                    else:
-                        appyTool.log('Template "%s" was not found!' % \
-                                     fileName, type='error')
-
         # Create or update Translation objects
         translations = [t.o.id for t in appyTool.translations]
         # We browse the languages supported by this application and check

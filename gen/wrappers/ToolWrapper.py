@@ -7,17 +7,6 @@ from appy.gen.wrappers import AbstractWrapper
 from appy.px import Px
 
 # ------------------------------------------------------------------------------
-_PY = 'Please specify a file corresponding to a Python interpreter ' \
-      '(ie "/usr/bin/python").'
-FILE_NOT_FOUND = 'Path "%s" was not found.'
-VALUE_NOT_FILE = 'Path "%s" is not a file. ' + _PY
-NO_PYTHON = "Name '%s' does not starts with 'python'. " + _PY
-NOT_UNO_ENABLED_PYTHON = '"%s" is not a UNO-enabled Python interpreter. ' \
-                         'To check if a Python interpreter is UNO-enabled, ' \
-                         'launch it and type "import uno". If you have no ' \
-                         'ImportError exception it is ok.'
-
-# ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
 
     # --------------------------------------------------------------------------
@@ -649,19 +638,6 @@ class ToolWrapper(AbstractWrapper):
       </p>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
-    def validPythonWithUno(self, value):
-        '''This method represents the validator for field unoEnabledPython.'''
-        if value:
-            if not os.path.exists(value):
-                return FILE_NOT_FOUND % value
-            if not os.path.isfile(value):
-                return VALUE_NOT_FILE % value
-            if not os.path.basename(value).startswith('python'):
-                return NO_PYTHON % value
-            if os.system('%s -c "import uno"' % value):
-                return NOT_UNO_ENABLED_PYTHON % value
-        return True
-
     def isManager(self):
         '''Some pages on the tool can only be accessed by managers.'''
         if self.user.has_role('Manager'): return 'view'
@@ -686,11 +662,6 @@ class ToolWrapper(AbstractWrapper):
                         (user.o.absolute_url(), user.title,access))
         return res + '\n'.join(rows) + '</table>'
 
-    podOutputFormats = ('odt', 'pdf', 'doc', 'rtf', 'ods', 'xls')
-    def getPodOutputFormats(self):
-        '''Gets the available output formats for POD documents.'''
-        return [(of, self.translate(of)) for of in self.podOutputFormats]
-
     def getInitiator(self, field=False):
         '''Retrieves the object that triggered the creation of the object
            being currently created (if any), or the name of the field in this
@@ -711,32 +682,6 @@ class ToolWrapper(AbstractWrapper):
     def getClass(self, zopeName):
         '''Gets the Appy class corresponding to technical p_zopeName.'''
         return self.o.getAppyClass(zopeName)
-
-    def getAttributeName(self, attributeType, klass, attrName=None):
-        '''Some names of Tool attributes are not easy to guess. This method
-           generates the attribute name based on p_attributeType, a p_klass from
-           the application, and a p_attrName (given only if needed).
-           p_attributeType may be:
-
-           "podTemplate"
-               Stores the pod template for p_attrName.
-
-           "formats"
-               Stores the output format(s) of a given pod template for
-               p_attrName.
-
-           "numberOfSearchColumns"
-               Determines in how many columns the search screen for p_klass
-               is rendered.
-
-           "searchFields"
-               Determines, among all indexed fields for p_klass, which one will
-               really be used in the search screen.
-        '''
-        fullClassName = self.o.getPortalType(klass)
-        res = '%sFor%s' % (attributeType, fullClassName)
-        if attrName: res += '_%s' % attrName
-        return res
 
     def getAvailableLanguages(self):
         '''Returns the list of available languages for this application.'''
@@ -801,36 +746,4 @@ class ToolWrapper(AbstractWrapper):
             except Exception, e:
                 failed.append(startObject)
             return nb, failed
-
-    def validate(self, new, errors):
-        '''Validates that uploaded POD templates and output types are
-           compatible.'''
-        page = self.request.get('page', 'main')
-        if page == 'documents':
-            # Check that uploaded templates and output formats are compatible.
-            for fieldName in dir(new):
-                # Ignore fields which are not POD templates.
-                if not fieldName.startswith('podTemplate'): continue
-                # Get the file name, either from the newly uploaded file or
-                # from the existing file stored in the database.
-                if getattr(new, fieldName):
-                    fileName = getattr(new, fieldName).filename
-                else:
-                    fileName = getattr(self, fieldName).name
-                # Get the extension of the uploaded file.
-                ext = os.path.splitext(fileName)[1][1:]
-                # Get the chosen output formats for this template.
-                formatsFieldName = 'formatsFor%s' % fieldName[14:]
-                formats = getattr(new, formatsFieldName)
-                error = False
-                if ext == 'odt':
-                    error = ('ods' in formats) or ('xls' in formats)
-                elif ext == 'ods':
-                    error = ('odt' in formats) or ('pdf' in formats) or \
-                            ('doc' in formats) or ('rtf' in formats)
-                if error:
-                    msg = 'This (these) format(s) cannot be used with ' \
-                          'this template.'
-                    setattr(errors, formatsFieldName, msg)
-        return self._callCustom('validate', new, errors)
 # ------------------------------------------------------------------------------
