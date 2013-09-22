@@ -158,17 +158,19 @@ class ClassDescriptor(Descriptor):
         return res
 
     def getCreators(self):
-        '''Gets the specific creators defined for this class.'''
+        '''Gets the specific creators defined for this class, excepted if
+           attribute "creators" does not contain a list or roles.'''
         res = []
-        if self.klass.__dict__.has_key('creators') and self.klass.creators:
-            for creator in self.klass.creators:
-                if isinstance(creator, gen.Role):
-                    if creator.local:
-                        raise 'Local role "%s" cannot be used as a creator.' % \
-                              creator.name
-                    res.append(creator)
-                else:
-                    res.append(gen.Role(creator))
+        if not hasattr(self.klass, 'creators'): return res
+        if not isinstance(self.klass.creators, list): return res
+        for creator in self.klass.creators:
+            if isinstance(creator, gen.Role):
+                if creator.local:
+                    raise 'Local role "%s" cannot be used as a creator.' % \
+                          creator.name
+                res.append(creator)
+            else:
+                res.append(gen.Role(creator))
         return res
 
     def getCreateMean(self, type='Import'):

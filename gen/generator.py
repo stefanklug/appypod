@@ -501,7 +501,9 @@ class ZopeGenerator(Generator):
                             allRoles[role.name] = role
         # Gather roles from "creators" attributes from every class
         for cDescr in self.getClasses(include='all'):
-            for role in cDescr.getCreators():
+            creators = cDescr.getCreators()
+            if not creators: continue
+            for role in creators:
                 if role.name not in allRoles:
                     allRoles[role.name] = role
         res = allRoles.values()

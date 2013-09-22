@@ -185,14 +185,16 @@ class Transition:
             # triggered if user has at least one of those roles and if all
             # functions return True.
             hasRole = None
-            for roleOrFunction in self.condition:
-                if isinstance(roleOrFunction, basestring):
+            for condition in self.condition:
+                # "Unwrap" role names from Role instances.
+                if isinstance(condition, Role): condition = condition.name
+                if isinstance(condition, basestring): # It is a role
                     if hasRole == None:
                         hasRole = False
-                    if user.has_role(roleOrFunction, obj):
+                    if user.has_role(condition, obj):
                         hasRole = True
-                elif type(roleOrFunction) == types.FunctionType:
-                    if not roleOrFunction(wf, obj.appy()):
+                else: # It is a method
+                    if not condition(wf, obj.appy()):
                         return False
             if hasRole != False:
                 return True

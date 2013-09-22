@@ -269,24 +269,18 @@ class ToolMixin(BaseMixin):
             elems = sortMethod(elems)
         return [importParams.headers, elems]
 
-    def showPortlet(self, context, layoutType):
-        '''When must the portlet be shown?'''
+    def showPortlet(self, obj, layoutType):
+        '''When must the portlet be shown? p_obj and p_layoutType can be None
+           if we are not browing any objet (ie, we are on the home page).'''
         # Not on 'edit' pages.
         if layoutType == 'edit': return
-        if context and (context.id == 'ui'): context = context.getParentNode()
         res = True
-        if context and hasattr(context.aq_base, 'appy'):
-            appyObj = context.appy()
-            try:
-                res = appyObj.showPortlet()
-            except AttributeError:
-                res = True
+        if obj and hasattr(obj, 'showPortlet'):
+            res = obj.showPortlet()
         else:
-            appyObj = self.appy()
-            try:
-                res = appyObj.showPortletAt(context)
-            except AttributeError:
-                res = True
+            tool = self.appy()
+            if hasattr(tool, 'showPortletAt'):
+                res = tool.showPortletAt(self.REQUEST['ACTUAL_URL'])
         return res
 
     def getObject(self, uid, appy=False, brain=False):
@@ -300,23 +294,14 @@ class ToolMixin(BaseMixin):
         return res.appy()
 
     def getAllowedValue(self):
-        '''Gets, for the currently logged user, the value for index
-           "Allowed".'''
-        tool = self.appy()
+        '''Gets, for the current user, the value of index "Allowed".'''
         user = self.getUser()
-        rq = tool.request
         # Get the user roles
-        res = rq.userRoles
-        # Add role "Anonymous"
-        if 'Anonymous' not in res: res.append('Anonymous')
-        # Add the user id if not anonymous
-        userId = user.login
-        if userId != 'anon': res.append('user:%s' % userId)
-        # Add group ids
-        try:
-            res += ['user:%s' % g for g in rq.zopeUser.groups.keys()]
-        except AttributeError, ae:
-            pass # The Zope admin does not have this attribute.
+        res = user.getRoles()
+        # Get the user logins
+        if user.login != 'anon':
+            for login in user.getLogins():
+                res.append('user:%s' % login)
         return res
 
     def executeQuery(self, className, searchName=None, startNumber=0,
@@ -499,21 +484,39 @@ class ToolMixin(BaseMixin):
                     res[means.id] = means
         return res
 
-    def userMaySearch(self, rootClass):
-        '''May the logged user search among instances of p_rootClass ?'''
+    def userMaySearch(self, klass):
+        '''May the user search among instances of root p_klass ?'''
         # When editing a form, one should avoid annoying the user with this.
         url = self.REQUEST['ACTUAL_URL']
         if url.endswith('/edit') or url.endswith('/do'): return
-        if 'maySearch' in rootClass.__dict__:
-            return pythonClass.rootClass(self.appy())
+        if hasattr(klass, 'maySearch'): return klass.maySearch(self.appy())
         return True
 
     def userMayCreate(self, klass):
-        '''May the logged user create instances of p_klass ?'''
-        allowedRoles = getattr(klass, 'creators', None) or \
-                       self.getProductConfig().appConfig.defaultCreators
+        '''May the logged user create instances of p_klass ? This information
+           can be defined on p_klass, in static attribute "creators".
+           1. If this attr holds a list, we consider it to be a list of roles,
+              and we check that the user has at least one of those roles.
+           2. If this attr holds a boolean, we consider that the user can create
+              instances of this class if the boolean is True.
+           3. If this attr stores a method, we execute the method, and via its
+              result, we fall again in cases 1 or 2.
+
+           If p_klass does not define this attr "creators", we will use a
+           default list of roles as defined in the config.'''
+        # Get the value of attr "creators", or a default value if not present.
+        if hasattr(klass, 'creators'):
+            creators = klass.creators
+        else:
+            creators = self.getProductConfig().appConfig.defaultCreators
+        # Resolve case (3): if "creators" is a method, execute it.
+        if callable(creators): creators = creators(self.appy())
+        # Resolve case (2)
+        if isinstance(creators, bool) or not creators: return creators
+        # Resolve case (1): checks whether the user has at least one of the
+        # roles listed in "creators".
         for role in self.getUser().getRoles():
-            if role in allowedRoles:
+            if role in creators:
                 return True
 
     def onImportObjects(self):

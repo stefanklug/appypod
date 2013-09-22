@@ -91,7 +91,7 @@ class AbstractWrapper(object):
                 dummy=setattr(req, 'pxContext', _ctx_);
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
-                showPortlet=ztool.showPortlet(zobj, layoutType);
+                showPortlet=ztool.showPortlet(obj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 discreetLogin=ztool.getProductConfig(True).discreetLogin;
                 dleft=(dir == 'ltr') and 'left' or 'right';

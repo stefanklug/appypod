@@ -74,7 +74,7 @@ class Field:
 
     # Displays a field label.
     pxLabel = Px('''<label if="field.hasLabel and (field.type != 'Action')"
-     lfor="field.name">::zobj.translate('label', field=field)</label>''')
+     lfor=":field.name">::zobj.translate('label', field=field)</label>''')
 
     # Displays a field description.
     pxDescription = Px('''<span if="field.hasDescr"
