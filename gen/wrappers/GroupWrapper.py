@@ -26,24 +26,18 @@ class GroupWrapper(AbstractWrapper):
             res.append( (role, self.translate('role_%s' % role)) )
         return res
 
+    def getSelectableUsers(self):
+        '''Returns all the users, excepted anon and system.'''
+        return [u for u in self.tool.users if u.login not in ('anon', 'system')]
+
     def validate(self, new, errors):
         '''Inter-field validation.'''
         return self._callCustom('validate', new, errors)
 
-    def addUser(self, user):
-        '''Adds a p_user to this group.'''
-        # Update the Ref field.
-        self.link('users', user)
-
-    def removeUser(self, user):
-        '''Removes a p_user from this group.'''
-        self.unlink('users', user)
-
     def onEdit(self, created):
-        # If the group was created by anon, anon can't stay its Owner.
-        if 'anon' in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__['anon']
-        if 'system' in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__['system']
+        # If the group was created by anon|system, anon|system can't stay Owner.
+        for login in ('anon', 'system'):
+            if login in self.o.__ac_local_roles__:
+                del self.o.__ac_local_roles__[login]
         return self._callCustom('onEdit', created)
 # ------------------------------------------------------------------------------

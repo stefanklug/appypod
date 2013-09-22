@@ -181,9 +181,11 @@ class Group(ModelClass):
                        multiplicity=(1,1), **m)
     roles = gen.String(validator=gen.Selection('getGrantableRoles'),
                        multiplicity=(0,None), **m)
+    def getSelectableUsers(self): pass
     users = gen.Ref(User, multiplicity=(0,None), add=False, link=True,
                     back=gen.Ref(attribute='groups', show=User.showRoles,
                                  multiplicity=(0,None)),
+                    select=getSelectableUsers, height=15,
                     showHeaders=True, shownInfo=('title', 'login'))
 
 # The Translation class --------------------------------------------------------

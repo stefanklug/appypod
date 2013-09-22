@@ -204,11 +204,10 @@ class UserWrapper(AbstractWrapper):
         # "self" must be owned by its Zope user.
         if 'Owner' not in self.o.get_local_roles_for_userid(login):
             self.o.manage_addLocalRoles(login, ('Owner',))
-        # If the user was created by anon or system, remove this local role.
-        if 'anon' in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__['anon']
-        if 'system' in self.o.__ac_local_roles__:
-            del self.o.__ac_local_roles__['system']
+        # If the user was created by anon|system, anon|system can't stay Owner.
+        for login in ('anon', 'system'):
+            if login in self.o.__ac_local_roles__:
+                del self.o.__ac_local_roles__[login]
         return self._callCustom('onEdit', created)
 
     def mayEdit(self):
