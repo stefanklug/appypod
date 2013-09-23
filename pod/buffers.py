@@ -242,7 +242,7 @@ class MemoryBuffer(Buffer):
     actionRex = re.compile('(?:(\w+)\s*\:\s*)?do\s+(\w+)(-)?' \
                            '(?:\s+(for|if|else|with)\s*(.*))?')
     forRex = re.compile('\s*([\w\-_]+)\s+in\s+(.*)')
-    varRex = re.compile('\s*([\w\-_]+)\s*=\s*(.*)')
+    varRex = re.compile('\s*(@?[\w\-_]+)\s*=\s*(.*)')
 
     def __init__(self, env, parent):
         Buffer.__init__(self, env, parent)

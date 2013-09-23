@@ -245,26 +245,30 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
 }
 
 // Function that sets a value for showing/hiding sub-titles.
-function setSubTitles(value) {
+function setSubTitles(value, tag) {
   createCookie('showSubTitles', value);
   // Get the sub-titles
-  var subTitles = getElementsHavingName('div', 'subTitle');
+  var subTitles = getElementsHavingName(tag, 'subTitle');
   if (subTitles.length == 0) return;
+  // Define the display style depending on p_tag.
+  var displayStyle = 'inline';
+  if (tag == 'tr') displayStyle = 'table-row';
   for (var i=0; i < subTitles.length; i++) {
-    if (value == 'true') subTitles[i].style.display = 'inline';
+    if (value == 'true') subTitles[i].style.display = displayStyle;
     else subTitles[i].style.display = 'none';
   }
 }
 
 // Function that toggles the value for showing/hiding sub-titles.
-function toggleSubTitles() {
+function toggleSubTitles(tag) {
   // Get the current value
   var value = readCookie('showSubTitles');
   if (value == null) value = 'true';
   // Toggle the value
   var newValue = 'true';
   if (value == 'true') newValue = 'false';
-  setSubTitles(newValue);
+  if (!tag) tag = 'div';
+  setSubTitles(newValue, tag);
 }
 
 // Functions used for master/slave relationships between widgets

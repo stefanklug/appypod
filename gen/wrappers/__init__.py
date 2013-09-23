@@ -38,26 +38,21 @@ class AbstractWrapper(object):
                      or gotoSource"
          src=":url('gotoSource')" title=":goBack"/></a>
 
-      <!-- Go to the first page -->
+      <!-- Go to the first or previous page -->
       <a if="ni.firstUrl" href=":ni.firstUrl"><img title=":_('goto_first')"
-         src=":url('arrowLeftDouble')"/></a>
-
-      <!-- Go to the previous page -->
-      <a if="ni.previousUrl" href=":ni.previousUrl"><img
+         src=":url('arrowLeftDouble')"/></a><a
+         if="ni.previousUrl" href=":ni.previousUrl"><img
          title=":_('goto_previous')" src=":url('arrowLeftSimple')"/></a>
 
       <!-- Explain which element is currently shown -->
-      <span class="discreet">&nbsp;
-       <x>:ni.currentNumber</x>&nbsp;<b>//</b>
-       <x>:ni.totalNumber</x>&nbsp;&nbsp;
-      </span>
+      <span class="discreet"> 
+       <x>:ni.currentNumber</x> <b>//</b> 
+       <x>:ni.totalNumber</x> </span>
 
-      <!-- Go to the next page -->
+      <!-- Go to the next or last page -->
       <a if="ni.nextUrl" href=":ni.nextUrl"><img title=":_('goto_next')"
-         src=":url('arrowRightSimple')"/></a>
-
-      <!-- Go to the last page -->
-      <a if="ni.lastUrl" href=":ni.lastUrl"><img title=":_('goto_last')"
+         src=":url('arrowRightSimple')"/></a><a
+         if="ni.lastUrl" href=":ni.lastUrl"><img title=":_('goto_last')"
          src=":url('arrowRightDouble')"/></a>
      </div>''')
 
@@ -289,13 +284,14 @@ class AbstractWrapper(object):
 
     # This PX displays an object's history.
     pxHistory = Px('''
-     <x var="startNumber=req.get'startNumber', 0);
+     <x var="startNumber=req.get('startNumber', 0);
              startNumber=int(startNumber);
              batchSize=int(req.get('maxPerPage', 5));
              historyInfo=zobj.getHistory(startNumber,batchSize=batchSize)"
         if="historyInfo.events"
         var2="objs=historyInfo.events;
               totalNumber=historyInfo.totalNumber;
+              batchNumber=len(objs);
               ajaxHookId='appyHistory';
               navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
                 (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
@@ -329,7 +325,7 @@ class AbstractWrapper(object):
          <x if="not actorId">?</x>
          <x if="actorId">:ztool.getUserName(actorId)</x>
         </td>
-        <td>:ztool.formatDate(event['time'], withHour=True)"></td>
+        <td>:ztool.formatDate(event['time'], withHour=True)</td>
         <td if="not isDataChange">
          <x if="rhComments">::zobj.formatText(rhComments)</x>
          <x if="not rhComments">-</x>
@@ -392,7 +388,7 @@ class AbstractWrapper(object):
      <div if="not zobj.isTemporary()"
           var2="hasHistory=zobj.hasHistory();
                 historyMaxPerPage=req.get('maxPerPage', 5);
-                historyExpanded=req.get('appyHistory','collapsed') == 'expanded';
+                historyExpanded=req.get('appyHistory','collapsed')=='expanded';
                 creator=zobj.Creator()">
       <table width="100%" class="summary">
        <tr>
@@ -400,19 +396,19 @@ class AbstractWrapper(object):
          <!-- Plus/minus icon for accessing history -->
          <x if="hasHistory">
           <img class="clickable" onclick="toggleCookie('appyHistory')"
-              src="historyExpanded and url('collapse.gif') or url('expand.gif')"
-              align=":dleft" id="appyHistory_img"/>
+             src=":historyExpanded and url('collapse.gif') or url('expand.gif')"
+             align=":dleft" id="appyHistory_img" style="padding-right:4px"/>
           <x>:_('object_history')</x> || 
          </x>
 
          <!-- Creator and last modification date -->
-         <x>:_('object_created_by')</x><x>:ztool.getUserName(creator)</x>
+         <x>:_('object_created_by')</x> <x>:ztool.getUserName(creator)</x>
          
          <!-- Creation and last modification dates -->
          <x>:_('object_created_on')</x>
          <x var="creationDate=zobj.Created();
                  modificationDate=zobj.Modified()">
-          <x>:ztool.formatDate(creationDate, withHour=True)></x>
+          <x>:ztool.formatDate(creationDate, withHour=True)</x>
           <x if="modificationDate != creationDate">&mdash;
            <x>:_('object_modified_on')</x>
            <x>:ztool.formatDate(modificationDate, withHour=True)</x>
@@ -430,9 +426,9 @@ class AbstractWrapper(object):
        <tr if="hasHistory">
         <td colspan="2">
          <span id="appyHistory"
-               style=":historyExpanded and 'display:block' or 'display:none')">
+               style=":historyExpanded and 'display:block' or 'display:none'">
           <div var="ajaxHookId=zobj.UID() + '_history'" id=":ajaxHookId">
-           <script type="text/javascript">:'askObjectHistory(%s,%s,%d,0)' % \
+           <script type="text/javascript">::'askObjectHistory(%s,%s,%d,0)' % \
              (q(ajaxHookId), q(zobj.absolute_url()), \
               historyMaxPerPage)</script>
           </div>

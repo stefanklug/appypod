@@ -346,6 +346,10 @@ class VariablesAction(BufferAction):
             # Evaluate variable expression in vRes.
             vRes, error = self.evaluateExpression(result, context, expr)
             if error: return
+            # Replace the value of global variables
+            if name.startswith('@'):
+                context[name[1:]] = vRes
+                continue
             # Remember the variable previous value if already in the context
             if name in context:
                 if not hidden:
@@ -364,6 +368,7 @@ class VariablesAction(BufferAction):
         if hidden: context.update(hidden)
         # Delete not-hidden variables
         for name, expr in self.variables:
+            if name.startswith('@'): continue
             if hidden and (name in hidden): continue
             del context[name]
 # ------------------------------------------------------------------------------

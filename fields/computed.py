@@ -72,8 +72,9 @@ class Computed(Field):
         if not self.method: return
         if isinstance(self.method, Px):
             obj = obj.appy()
-            ctx = {'obj': obj, 'field': self,
-                   '_': obj.translate, 'tool': obj.tool}
+            tool = obj.tool
+            ctx = {'obj': obj, 'field': self, 'req': obj.request, 'tool': tool,
+                   '_': tool.translate, 'url': tool.o.getIncludeUrl}
             if self.context: ctx.update(self.context)
             return self.method(ctx)
         else:

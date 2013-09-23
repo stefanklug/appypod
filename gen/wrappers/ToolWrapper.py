@@ -48,7 +48,7 @@ class ToolWrapper(AbstractWrapper):
              var="mustSortAndFilter=ajaxHookId == 'queryResult';
                   sortAndFilter=mustSortAndFilter and \
                     ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
-       <tr valign="middle">
+       <tr valign="bottom">
         <!-- Go to the first page -->
         <td if="(startNumber != 0) and (startNumber != batchSize)"><img
             class="clickable" src=":url('arrowLeftDouble')"
@@ -63,10 +63,10 @@ class ToolWrapper(AbstractWrapper):
                                           str(sNumber)+sortAndFilter)"/></td>
 
         <!-- Explain which elements are currently shown -->
-        <td class="discreet">&nbsp;
-         <x>:startNumber + 1</x><img src=":url('to')"/>
-         <x>:startNumber + batchNumber</x>&nbsp;<b>//</b>
-         <x>:totalNumber</x>&nbsp;&nbsp;</td>
+        <td class="discreet"> 
+         <x>:startNumber + 1</x> <img src=":url('to')"/> 
+         <x>:startNumber + batchNumber</x> <b>//</b> 
+         <x>:totalNumber</x> </td>
 
         <!-- Go to the next page -->
         <td var="sNumber=startNumber + batchSize"

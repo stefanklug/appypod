@@ -244,36 +244,41 @@ class UserWrapper(AbstractWrapper):
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
 
-    def getLogins(self):
-        '''Gets all the logins that can "match" this user: it own login and the
-           logins of all the groups he belongs to.'''
-        # Try first to get those logins from a cache on the request.
-        try:
-            return self.request.userLogins
-        except AttributeError:
-            res = [group.login for group in self.groups]
-            res.append(self.login)
-            return res
+    def getLogins(self, groupsOnly=False):
+        '''Gets all the logins that can "match" this user: it own login
+           (excepted if p_groupsOnly is True) and the logins of all the groups
+           he belongs to.'''
+        # Try first to get those logins from a cache on the request, if this
+        # user corresponds to the logged user.
+        rq = self.request
+        if (self.user == self) and hasattr(rq, 'userLogins'):
+            return rq.userLogins
+        # Compute it.
+        res = [group.login for group in self.groups]
+        if not groupsOnly: res.append(self.login)
+        return res
 
     def getRoles(self):
         '''This method returns all the global roles for this user, not simply
            self.roles, but also "ungrantable roles" (like Anonymous or
            Authenticated) and roles inherited from group membership.'''
-        # Try first to get those roles from a cache on the request.
-        try:
-            return self.request.userRoles
-        except AttributeError:
-            res = list(self.roles)
-            # Add ungrantable roles
-            if self.o.id == 'anon':
-                res.append('Anonymous')
-            else:
-                res.append('Authenticated')
-            # Add group global roles
-            for group in self.groups:
-                for role in group.roles:
-                    if role not in res: res.append(role)
-            return res
+        # Try first to get those roles from a cache on the request, if this user
+        # corresponds to the logged user.
+        rq = self.request
+        if (self.user == self) and hasattr(rq, 'userRoles'):
+            return rq.userRoles
+        # Compute it.
+        res = list(self.roles)
+        # Add ungrantable roles
+        if self.o.id == 'anon':
+            res.append('Anonymous')
+        else:
+            res.append('Authenticated')
+        # Add group global roles
+        for group in self.groups:
+            for role in group.roles:
+                if role not in res: res.append(role)
+        return res
 
     def getRolesFor(self, obj):
         '''Gets the roles the user has in the context of p_obj: its global roles
