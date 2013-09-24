@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, urllib, cgi
 from appy import Object
+from appy.fields.workflow import UiTransition
 import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
@@ -742,11 +743,10 @@ class BaseMixin:
             if not field.group:
                 res.append(field)
             else:
-                # Insert the UiGroup instance corresponding to field.group at
-                # the right place.
+                # Insert the UiGroup instance corresponding to field.group.
                 uiGroup = field.group.insertInto(res, groups, field.page,
                                                  self.meta_type)
-                uiGroup.addField(field)
+                uiGroup.addElement(field)
         if collectCssJs:
             cssJs['css'] = css or ()
             cssJs['js'] = js or ()
@@ -786,9 +786,10 @@ class BaseMixin:
             return klass.styles[elem]
         return elem
 
-    def getTransitions(self, includeFake=True, includeNotShowable=False):
-        '''This method returns info about transitions that one can trigger from
-           the user interface.
+    def getTransitions(self, includeFake=True, includeNotShowable=False,
+                       grouped=True):
+        '''This method returns info about transitions (as UiTransition
+           instances) that one can trigger from the user interface.
            * if p_includeFake is True, it retrieves transitions that the user
              can't trigger, but for which he needs to know for what reason he
              can't trigger it;
@@ -797,8 +798,12 @@ class BaseMixin:
              and not a security concern, in some cases it has sense to set
              includeNotShowable=True, because those transitions are triggerable
              from a security point of view.
+           * If p_grouped is True, transitions are grouped according to their
+             "group" attribute, in a similar way to fields or searches.
         '''
         res = []
+        groups = {} # The already encountered groups of transitions.
+        wfPage = gen.Page('workflow')
         wf = self.getWorkflow()
         currentState = self.State(name=False)
         # Loop on every transition
@@ -818,17 +823,16 @@ class BaseMixin:
             if not includeNotShowable:
                 includeIt = includeIt and transition.isShowable(wf, self)
             if not includeIt: continue
-            # Add transition-info to the result.
-            label = self.getWorkflowLabel(name)
-            tInfo = {'name': name, 'title': self.translate(label),
-                     'confirm': '', 'may_trigger': True}
-            if transition.confirm:
-                cLabel = '%s_confirm' % label
-                tInfo['confirm'] = self.translate(cLabel)
-            if not mayTrigger:
-                tInfo['may_trigger'] = False
-                tInfo['reason'] = mayTrigger.msg
-            res.append(tInfo)
+            # Create the UiTransition instance.
+            info = UiTransition(name, transition, self, mayTrigger)
+            # Add the transition into the result.
+            if not transition.group or not grouped:
+                res.append(info)
+            else:
+                # Insert the UiGroup instance corresponding to transition.group.
+                uiGroup = transition.group.insertInto(res, groups, wfPage,
+                                 self.__class__.__name__, content='transitions')
+                uiGroup.addElement(info)
         return res
 
     def getAppyPhases(self, currentOnly=False, layoutType='view'):

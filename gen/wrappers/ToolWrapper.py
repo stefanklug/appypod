@@ -326,10 +326,7 @@ class ToolWrapper(AbstractWrapper):
 
       <!-- Actions -->
       <table class="noStyle" if="zobj.mayAct()">
-       <tr>
-        <!-- Workflow transitions -->
-        <td if="zobj.showTransitions('result')"
-            var2="targetObj=zobj">:targetObj.appy().pxTransitions</td>
+       <tr valign="top">
         <!-- Edit -->
         <td if="zobj.mayEdit()">
          <a var="navInfo='search.%s.%s.%d.%d' % \
@@ -344,6 +341,9 @@ class ToolWrapper(AbstractWrapper):
               title=":_('object_delete')"
               onClick=":'onDeleteObject(%s)' % q(zobj.UID())"/>
         </td>
+        <!-- Workflow transitions -->
+        <td if="zobj.showTransitions('result')"
+            var2="targetObj=zobj">:targetObj.appy().pxTransitions</td>
        </tr>
       </table>
      </x>

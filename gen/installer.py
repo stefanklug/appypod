@@ -261,8 +261,11 @@ class ZopeInstaller:
                                    indexed=True, searchable=True)
                 title.init('title', None, 'appy')
                 setattr(wrapperClass, 'title', title)
-            # Special field "state" must be added for every class
-            state = gen.String(show='result')
+            # Special field "state" must be added for every class. It must be a
+            # "select" field, because it will be necessary for displaying the
+            # translated state name.
+            state = gen.String(validator=gen.Selection('listStates'),
+                               show='result')
             state.init('state', None, 'workflow')
             setattr(wrapperClass, 'state', state)
             names = self.config.attributes[wrapperClass.__name__[:-8]]

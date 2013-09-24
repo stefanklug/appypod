@@ -761,7 +761,7 @@ class ZopeGenerator(Generator):
             # Generate labels for groups of searches
             if search.group and not search.group.label:
                 search.group.generateLabels(self.labels, classDescr, set(),
-                                            forSearch=True)
+                                            content='searches')
         # Generate the resulting Zope class.
         self.copyFile('Class.pyt', repls, destName=fileName)
 

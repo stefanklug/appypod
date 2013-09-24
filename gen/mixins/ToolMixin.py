@@ -738,8 +738,9 @@ class ToolMixin(BaseMixin):
         res = []
         default = None # Also retrieve the default one here.
         groups = {} # The already encountered groups
-        page = Page('main') # A dummy page required by class UiGroup
+        page = Page('searches') # A dummy page required by class UiGroup
         # Get the searches statically defined on the class
+        className = self.getPortalType(klass)
         searches = ClassDescriptor.getSearches(klass, tool=self.appy())
         # Get the dynamically computed searches
         if hasattr(klass, 'getDynamicSearches'):
@@ -752,8 +753,8 @@ class ToolMixin(BaseMixin):
                 res.append(uiSearch)
             else:
                 uiGroup = search.group.insertInto(res, groups, page, className,
-                                                  forSearch=True)
-                uiGroup.addField(uiSearch)
+                                                  content='searches')
+                uiGroup.addElement(uiSearch)
             # Is this search the default search?
             if search.default: default = uiSearch
         return Object(searches=res, default=default)

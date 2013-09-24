@@ -15,6 +15,8 @@
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 # ------------------------------------------------------------------------------
 import types, string
+from group import Group
+from appy.px import Px
 from appy.gen.mail import sendNotification
 
 # Default Appy permissions -----------------------------------------------------
@@ -97,7 +99,7 @@ class State:
 class Transition:
     '''Represents a workflow transition.'''
     def __init__(self, states, condition=True, action=None, notify=None,
-                 show=True, confirm=False):
+                 show=True, confirm=False, group=None):
         self.states = states # In its simpler form, it is a tuple with 2
         # states: (fromState, toState). But it can also be a tuple of several
         # (fromState, toState) sub-tuples. This way, you may define only 1
@@ -113,6 +115,7 @@ class Transition:
         self.show = show # If False, the end user will not be able to trigger
         # the transition. It will only be possible by code.
         self.confirm = confirm # If True, a confirm popup will show up.
+        self.group = Group.get(group)
 
     def getName(self, wf):
         '''Returns the name for this state in workflow p_wf.'''
@@ -265,6 +268,44 @@ class Transition:
         if not doSay or (transitionName == '_init_'): return
         if not msg: msg = obj.translate('object_saved')
         obj.say(msg)
+
+class UiTransition:
+    '''Represents a widget that displays a transition.'''
+    
+    pxView = Px('''<x>
+      <!-- Real button -->
+      <input if="transition.mayTrigger"
+             type="button" class="button" title=":transition.title"
+             style=":url('buttonTransition', bg=True)"
+             value=":ztool.truncateValue(transition.title)"
+             onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
+                        q(transition.name), q(transition.confirm))"/>
+
+      <!-- Fake button, explaining why the transition can't be triggered -->
+      <input type="button" class="button" if="not transition.mayTrigger"
+             style=":url('buttonFake', bg=True) + ';cursor: help'"
+             value=":ztool.truncateValue(transition.title)"
+             title=":'%s: %s' % (transition.title, transition.reason)"/>
+     </x>''')
+
+    def __init__(self, name, transition, obj, mayTrigger, ):
+        self.name = name
+        self.transition = transition
+        self.type = 'transition'
+        label = obj.getWorkflowLabel(name)
+        self.title = obj.translate(label)
+        if transition.confirm:
+            self.confirm = obj.translate('%s_confirm' % label)
+        else:
+            self.confirm = ''
+        # May this transition be triggered via the UI?
+        self.mayTrigger = True
+        self.reason = ''
+        if not mayTrigger:
+            self.mayTrigger = False
+            self.reason = mayTrigger.msg
+        # Require by the UiGroup.
+        self.colspan = 1
 
 # ------------------------------------------------------------------------------
 class Permission:

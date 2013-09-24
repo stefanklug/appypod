@@ -130,15 +130,14 @@ class Group:
         if self.group: return self.group.getMasterData()
 
     def generateLabels(self, messages, classDescr, walkedGroups,
-                       forSearch=False):
+                       content='fields'):
         '''This method allows to generate all the needed i18n labels related to
            this group. p_messages is the list of i18n p_messages (a PoMessages
            instance) that we are currently building; p_classDescr is the
-           descriptor of the class where this group is defined. If p_forSearch
-           is True, this group is used for grouping searches, and not fields.'''
-        # A part of the group label depends on p_forSearch.
-        if forSearch: gp = 'searchgroup'
-        else:         gp = 'group'
+           descriptor of the class where this group is defined. The type of
+           content in this group is specified by p_content.'''
+        # A part of the group label depends on p_content.
+        gp = (content == 'searches') and 'searchgroup' or 'group'
         if self.hasLabel:
             msgId = '%s_%s_%s' % (classDescr.name, gp, self.name)
             messages.append(msgId, self.name)
@@ -157,25 +156,25 @@ class Group:
            not self.group.label:
             # We remember walked groups for avoiding infinite recursion.
             self.group.generateLabels(messages, classDescr, walkedGroups,
-                                      forSearch=forSearch)
+                                      content=content)
 
-    def insertInto(self, fields, uiGroups, page, metaType, forSearch=False):
+    def insertInto(self, elems, uiGroups, page, className, content='fields'):
         '''Inserts the UiGroup instance corresponding to this Group instance
-           into p_fields, the recursive structure used for displaying all
-           fields in a given p_page (or all searches), and returns this
-           UiGroup instance.'''
+           into p_elems, the recursive structure used for displaying all
+           elements in a given p_page (fields, searches, transitions...) and
+           returns this UiGroup instance.'''
         # First, create the corresponding UiGroup if not already in p_uiGroups.
         if self.name not in uiGroups:
-            uiGroup = uiGroups[self.name] = UiGroup(self, page, metaType,
-                                                    forSearch=forSearch)
-            # Insert the group at the higher level (ie, directly in p_fields)
+            uiGroup = uiGroups[self.name] = UiGroup(self, page, className,
+                                                    content=content)
+            # Insert the group at the higher level (ie, directly in p_elems)
             # if the group is not itself in a group.
             if not self.group:
-                fields.append(uiGroup)
+                elems.append(uiGroup)
             else:
-                outerGroup = self.group.insertInto(fields, uiGroups, page,
-                                                   metaType,forSearch=forSearch)
-                outerGroup.addField(uiGroup)
+                outerGroup = self.group.insertInto(elems, uiGroups, page,
+                                                   className, content=content)
+                outerGroup.addElement(uiGroup)
         else:
             uiGroup = uiGroups[self.name]
         return uiGroup
@@ -187,14 +186,15 @@ class Column:
         self.align = align
 
 class UiGroup:
-    '''On-the-fly-generated data structure that groups all fields sharing the
-       same appy.fields.Group instance, that some logged user can see.'''
+    '''On-the-fly-generated data structure that groups all elements
+       (fields, searches, transitions...) sharing the same Group instance, that
+       the currently logged user can see.'''
 
     # PX that renders a help icon for a group.
     pxHelp = Px('''<acronym title="obj.translate('help', field=field)"><img
      src=":url('help')"/></acronym>''')
 
-    # PX that renders the content of a group.
+    # PX that renders the content of a group (which is refered as var "field").
     pxContent = Px('''
      <table var="cellgap=field.cellgap" width=":field.wide"
             align=":ztool.flipLanguageDirection(field.align, dir)"
@@ -219,7 +219,7 @@ class UiGroup:
             _('%s_col%d' % (field.labelId, (colNb+1))) or ''</th>
       </tr>
       <!-- The rows of widgets -->
-      <tr valign=":field.valign" for="row in field.fields">
+      <tr valign=":field.valign" for="row in field.elements">
        <td for="field in row"
            colspan="field.colspan"
            style=":not loop.field.last and ('padding-right:%s'% cellgap) or ''">
@@ -231,7 +231,7 @@ class UiGroup:
       </tr>
      </table>''')
 
-    # PX that renders a group of fields.
+    # PX that renders a group of fields (the group is refered as var "field").
     pxView = Px('''
      <x var="tagCss=field.master and ('slave_%s_%s' % \
                     (field.masterName, '_'.join(field.masterValue))) or '';
@@ -253,14 +253,14 @@ class UiGroup:
       <x if="field.style not in ('fieldset', 'tabs')">:field.pxContent</x>
 
       <!-- Render the group as tabs if required -->
-      <x if="field.style == 'tabs'" var2="lenFields=len(field.fields)">
+      <x if="field.style == 'tabs'" var2="lenFields=len(field.elements)">
        <table width=":field.wide" class=":groupCss" id=":tagId" name=":tagName">
         <!-- First row: the tabs. -->
         <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
          <table style="position:relative; bottom:-2px"
                 cellpadding="0" cellspacing="0">
           <tr valign="bottom">
-           <x for="row in field.fields"
+           <x for="row in field.elements"
               var2="rowNb=loop.row.nb;
                     tabId='tab_%s_%d_%d' % (field.name, rowNb, lenFields)">
             <td><img src=":url('tabLeft')" id=":'%s_left' % tabId"/></td>
@@ -276,7 +276,7 @@ class UiGroup:
         </td></tr>
 
         <!-- Other rows: the fields -->
-        <tr for="row in field.fields"
+        <tr for="row in field.elements"
             id=":'tabcontent_%s_%d_%d' % (field.name, loop.row.nb, lenFields)"
             style=":loop.row.nb==0 and 'display:table-row' or 'display:none')">
          <td var="field=row[0]">
@@ -318,53 +318,77 @@ class UiGroup:
       </div>
      </x>''')
 
-    def __init__(self, group, page, metaType, forSearch=False):
+    # PX that renders a group of transitions.
+    pxViewTransitions = Px('''
+     <!-- Render a group of transitions, as a one-column table -->
+     <table>
+      <x for="row in uiGroup.elements">
+       <x for="transition in row"><tr><td>:transition.pxView</td></tr></x>
+      </x>
+     </table>''')
+
+    # What PX to use, depending on group content?
+    pxByContent = {'fields': pxView, 'searches': pxViewSearches,
+                   'transitions': pxViewTransitions}
+
+    def __init__(self, group, page, className, content='fields'):
+        '''A UiGroup can group various kinds of elements: fields, searches,
+           transitions..., The type of content that one may find in this group
+           is given in p_content.
+           * p_group      is the Group instance corresponding to this UiGroup;
+           * p_page       is the Page instance where the group is rendered (for
+                          transitions, it corresponds to a virtual page
+                          "workflow");
+           * p_className  is the name of the class that holds the elements to
+                          group.'''
         self.type = 'group'
-        # All p_group attributes become self attributes.
+        # All p_group attributes become self attributes. This is required
+        # because a UiGroup, in some PXs, must behave like a Field (ie, have
+        # the same attributes, like "master".
         for name, value in group.__dict__.iteritems():
             if not name.startswith('_'):
                 setattr(self, name, value)
+        self.group = group
         self.columnsWidths = [col.width for col in group.columns]
         self.columnsAligns = [col.align for col in group.columns]
-        # Names of i18n labels
+        # Names of i18n labels for this group.
         labelName = self.name
-        prefix = metaType
+        prefix = className
         if group.label:
             if isinstance(group.label, basestring): prefix = group.label
-            else: # It is a tuple (metaType, name)
+            else: # It is a tuple (className, name)
                 if group.label[1]: labelName = group.label[1]
                 if group.label[0]: prefix = group.label[0]
-        if forSearch: gp = 'searchgroup'
-        else:         gp = 'group'
+        gp = (content == 'searches') and 'searchgroup' or 'group'
         self.labelId = '%s_%s_%s' % (prefix, gp, labelName)
         self.descrId = self.labelId + '_descr'
         self.helpId  = self.labelId + '_help'
         # The name of the page where the group lies
         self.page = page.name
-        # The fields belonging to the group that the current user may see.
-        # They will be stored by m_addField below as a list of lists because
+        # The elements contained in the group, that the current user may see.
+        # They will be stored by m_addElement below as a list of lists because
         # they will be rendered as a table.
-        self.fields = [[]]
-        # PX to user for rendering this group.
-        self.px = forSearch and self.pxViewSearches or self.pxView
+        self.elements = [[]]
+        # PX to use for rendering this group.
+        self.px = self.pxByContent[content]
 
-    def addField(self, field):
-        '''Adds p_field into self.fields. We try first to add p_field into the
-           last row. If it is not possible, we create a new row.'''
+    def addElement(self, element):
+        '''Adds p_element into self.elements. We try first to add p_element into
+           the last row. If it is not possible, we create a new row.'''
         # Get the last row
-        lastRow = self.fields[-1]
+        lastRow = self.elements[-1]
         numberOfColumns = len(self.columnsWidths)
         # Compute the number of columns already filled in the last row.
         filledColumns = 0
-        for rowField in lastRow: filledColumns += rowField.colspan
+        for rowElem in lastRow: filledColumns += rowElem.colspan
         freeColumns = numberOfColumns - filledColumns
-        if freeColumns >= field.colspan:
-            # We can add the widget in the last row.
-            lastRow.append(field)
+        if freeColumns >= element.colspan:
+            # We can add the element in the last row.
+            lastRow.append(element)
         else:
             if freeColumns:
                 # Terminate the current row by appending empty cells
                 for i in range(freeColumns): lastRow.append('')
             # Create a new row
-            self.fields.append([field])
+            self.elements.append([element])
 # ------------------------------------------------------------------------------

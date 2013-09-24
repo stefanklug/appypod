@@ -349,34 +349,22 @@ class AbstractWrapper(object):
       </table>
      </x>''')
 
-    # Displays an object's transitions(s).
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
            var2="formId='trigger_%s' % targetObj.UID()" method="post"
            id=":formId" action=":targetObj.absolute_url() + '/do'">
       <input type="hidden" name="action" value="Trigger"/>
       <input type="hidden" name="workflow_action"/>
+      <!-- Input field for storing the comment coming from the popup -->
+      <textarea id="comment" name="comment" cols="30" rows="3"
+                style="display:none"></textarea>
       <table>
        <tr valign="middle">
-        <!-- Input field for storing comment -->
-        <textarea id="comment" name="comment" cols="30" rows="3"
-                  style="display:none"></textarea>
-        <!-- Buttons for triggering transitions -->
         <td align=":dright" for="transition in transitions">
-         <!-- Real button -->
-         <input type="button" class="button" if="transition['may_trigger']"
-                style=":url('buttonTransition', bg=True)"
-                title=":transition['title']"
-                value=":ztool.truncateValue(transition['title'])"
-                onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
-                  q(transition['name']), q(transition['confirm']))"/>
-
-         <!-- Fake button, explaining why the transition can't be triggered -->
-         <input type="button" class="button" if="not transition['may_trigger']"
-                style=":url('buttonFake', bg=True) + ';cursor: help'"
-                value=":ztool.truncateValue(transition['title'])"
-                title=":'%s: %s' % (transition['title'], \
-                                    transition['reason'])"/>
+         <!-- Render a transition or a group of transitions. -->
+         <x if="transition.type == 'transition'">:transition.pxView</x>
+         <x if="transition.type == 'group'"
+            var2="uiGroup=transition">:uiGroup.px</x>
         </td>
        </tr>
       </table>
@@ -446,7 +434,7 @@ class AbstractWrapper(object):
                  nextPage=phaseObj.getNextPage(page)[0];
                  isEdit=layoutType == 'edit';
                  pageInfo=phaseObj.pagesInfo[page]">
-      <tr>
+      <tr valign="top">
        <!-- Previous -->
        <td if="previousPage and pageInfo.showPrevious">
         <!-- Button on the edit page -->
@@ -1045,4 +1033,14 @@ class AbstractWrapper(object):
         '''Produces a representation of p_text into the desired p_format, which
            is 'html' by default.'''
         return self.o.formatText(text, format)
+
+    def listStates(self):
+        '''Lists the possible states for this object.'''
+        res = []
+        o = self.o
+        workflow = o.getWorkflow()
+        for name in dir(workflow):
+            if getattr(workflow, name).__class__.__name__ != 'State': continue
+            res.append((name, o.translate(o.getWorkflowLabel(name))))
+        return res
 # ------------------------------------------------------------------------------
