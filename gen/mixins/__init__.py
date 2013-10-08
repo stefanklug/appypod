@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------
 import os, os.path, sys, types, urllib, cgi
 from appy import Object
+from appy.px import Px
 from appy.fields.workflow import UiTransition
 import appy.gen as gen
 from appy.gen.utils import *
@@ -479,7 +480,7 @@ class BaseMixin:
     def xml(self, action=None):
         '''If no p_action is defined, this method returns the XML version of
            this object. Else, it calls method named p_action on the
-           corresponding Appy wrapper and returns, as XML, the its result.'''
+           corresponding Appy wrapper and returns, as XML, its result.'''
         self.REQUEST.RESPONSE.setHeader('Content-Type','text/xml;charset=utf-8')
         # Check if the user is allowed to consult this object
         if not self.allows('read'):
@@ -492,7 +493,13 @@ class BaseMixin:
             appyObj = self.appy()
             try:
                 methodRes = getattr(appyObj, action)()
-                res = XmlMarshaller().marshall(methodRes, objectType='appy')
+                if isinstance(methodRes, Px):
+                    res = methodRes({'self': self.appy()})
+                elif isinstance(methodRes, file):
+                    res = methodRes.read()
+                    methodRes.close()
+                else:
+                    res = XmlMarshaller().marshall(methodRes, objectType='appy')
             except Exception, e:
                 tb = Traceback.get()
                 res = XmlMarshaller().marshall(tb, objectType='appy')
@@ -1378,9 +1385,24 @@ class BaseMixin:
         return res
 
     def index_html(self):
-        '''Redirects to /view.'''
+        '''Base method called when hitting this object.
+           - The standard behaviour is to redirect to /view.
+           - If a parameter named "do" is present in the request, it is supposed
+             to contain the name of a method to call on this object. In this
+             case, we call this method and return its result as XML.
+           - If method is POST, we consider the request to be XML data, that we
+             marshall to Python, and we call the method in param "do" with, as
+             arg, this marshalled Python object. While this could sound strange
+             to expect a query string containing a param "do" in a HTTP POST,
+             the HTTP spec does not prevent to do it.'''
         rq = self.REQUEST
-        if rq.has_key('do'):
+        if (rq.REQUEST_METHOD == 'POST') and rq.QUERY_STRING:
+            # A POST method containing XML data.
+            rq.args = XmlUnmarshaller().parse(rq.stdin.getvalue())
+            # Find the name of the method to call.
+            methodName = rq.QUERY_STRING.split('=')[1]
+            return self.xml(action=methodName)
+        elif rq.has_key('do'):
             # The user wants to call a method on this object and get its result
             # as XML.
             return self.xml(action=rq['do'])

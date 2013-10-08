@@ -46,7 +46,7 @@ class Phase:
            <img src=":url('edit')" title=":_('object_edit')"/></a>
           <a if="editable and locked">
            <img style="cursor: help"
-                var="lockDate=tool.formatDate(locked[1]);
+                var="lockDate=ztool.formatDate(locked[1]);
                      lockMap={'user':ztool.getUserName(locked[0]), \
                               'date':lockDate};
                      lockMsg=_('page_locked', mapping=lockMap)"

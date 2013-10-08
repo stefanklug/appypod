@@ -286,6 +286,13 @@ class ZopeInstaller:
             if role not in roles: roles.append(role)
         self.app.__ac_roles__ = tuple(roles)
 
+    def patchZope(self):
+        '''Patches some arts of Zope.'''
+        # Disables XMLRPC. This way, Zope can transmit HTTP POSTs containing
+        # XML to Appy without trying to recognize it himself as XMLRPC requests.
+        import ZPublisher.HTTPRequest
+        ZPublisher.HTTPRequest.xmlrpc = FakeXmlrpc()
+
     def installDependencies(self):
         '''Zope products are installed in alphabetical order. But here, we need
            ZCTextIndex to be installed before our Appy application. So, we cheat
@@ -297,6 +304,7 @@ class ZopeInstaller:
     def install(self):
         self.logger.info('is being installed...')
         self.installDependencies()
+        self.patchZope()
         self.installRoles()
         self.installAppyTypes()
         self.installZopeClasses()
