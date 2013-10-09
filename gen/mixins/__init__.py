@@ -498,6 +498,9 @@ class BaseMixin:
                 elif isinstance(methodRes, file):
                     res = methodRes.read()
                     methodRes.close()
+                elif isinstance(methodRes, basestring) and \
+                     methodRes.startswith('<?xml'): # Already XML
+                    return methodRes
                 else:
                     res = XmlMarshaller().marshall(methodRes, objectType='appy')
             except Exception, e:
