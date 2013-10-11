@@ -702,6 +702,7 @@ class ZopeGenerator(Generator):
             klass.generateSchema()
             self.i18n(klass.name, klassType, nice=False)
             self.i18n('%s_plural' % klass.name, klass.name+'s', nice=False)
+            self.generateSearches(klass)
             repls = self.repls.copy()
             if klass.isFolder():
                 parents = 'BaseMixin, Folder'
@@ -731,6 +732,17 @@ class ZopeGenerator(Generator):
           'classDoc': 'Tool class for %s' % self.applicationName})
         self.copyFile('Class.pyt', repls, destName='%s.py' % self.tool.name)
 
+    def generateSearches(self, classDescr):
+        '''Generates i18n labels for searches defined on p_classDescr.'''
+        for search in classDescr.getSearches(classDescr.klass):
+            label = '%s_search_%s' % (classDescr.name, search.name)
+            self.i18n(label, search.name)
+            self.i18n('%s_descr' % label, ' ', nice=False)
+            # Generate labels for groups of searches
+            if search.group and not search.group.label:
+                search.group.generateLabels(self.labels, classDescr, set(),
+                                            content='searches')
+
     def generateClass(self, classDescr):
         '''Is called each time an Appy class is found in the application, for
            generating the corresponding Archetype class.'''
@@ -754,14 +766,7 @@ class ZopeGenerator(Generator):
         self.i18n(classDescr.name, k.__name__)
         self.i18n('%s_plural' % classDescr.name, k.__name__+'s')
         # Create i18n labels for searches
-        for search in classDescr.getSearches(k):
-            label = '%s_search_%s' % (classDescr.name, search.name)
-            self.i18n(label, search.name)
-            self.i18n('%s_descr' % label, ' ', nice=False)
-            # Generate labels for groups of searches
-            if search.group and not search.group.label:
-                search.group.generateLabels(self.labels, classDescr, set(),
-                                            content='searches')
+        self.generateSearches(classDescr)
         # Generate the resulting Zope class.
         self.copyFile('Class.pyt', repls, destName=fileName)
 
