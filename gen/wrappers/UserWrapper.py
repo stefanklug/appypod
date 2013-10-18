@@ -10,19 +10,25 @@ class UserWrapper(AbstractWrapper):
     def showLogin(self):
         '''When must we show the login field?'''
         if self.o.isTemporary(): return 'edit'
-        # The manager has the possibility to change the login itself.
-        if self.user.has_role('Manager'): return True
+        # The manager has the possibility to change the login itself (local
+        # users only).
+        if self.user.has_role('Manager') and (self.source == 'zodb'):
+            return True
         return ('view', 'result')
 
-    def showName(tool):
-        '''Name and first name, by default, are always shown.'''
+    def showName(self):
+        '''Name and first name, by default, can not be edited for non-local
+           users.'''
+        if (self.source != 'zodb'): return ('view', 'result')
         return True
 
     def showEmail(self):
         '''In most cases, email is the login. Show the field only if it is not
            the case.'''
         email = self.email
-        return email and (email != self.login)
+        if email and (email != self.login):
+            if (self.source != 'zodb'): return ('view', 'result')
+            return True
 
     def showRoles(tool):
         '''Only the admin can view or edit roles.'''
@@ -53,11 +59,12 @@ class UserWrapper(AbstractWrapper):
 
     def showPassword(self):
         '''When must we show the 2 fields for entering a password ?'''
-        # When someone creates the user
+        # When someone creates the user.
         if self.o.isTemporary(): return 'edit'
         # When the user itself (we don't check role Owner because a Manager can
         # also own a User instance) wants to edit information about himself.
-        if self.user.login == self.login: return 'edit'
+        if (self.user.login == self.login) and (self.source == 'zodb'):
+            return 'edit'
 
     def encryptPassword(self, clearPassword):
         '''Returns p_clearPassword, encrypted.'''
@@ -211,20 +218,16 @@ class UserWrapper(AbstractWrapper):
         return self._callCustom('onEdit', created)
 
     def mayEdit(self):
-        '''No one can edit users "system" and "anon"; no one can edit non-zodb
-           users.'''
+        '''No one can edit users "system" and "anon".'''
         if self.o.id in ('system', 'anon'): return
-        if self.source != 'zodb': return
         # Call custom "mayEdit" when present.
         custom = self._getCustomMethod('mayEdit')
         if custom: return self._callCustom('mayEdit')
         return True
 
     def mayDelete(self):
-        '''No one can delete users "system", "anon" and "admin"; no one can
-           delete non-zodb users.'''
+        '''No one can delete users "system", "anon" and "admin".'''
         if self.o.id in ('system', 'anon', 'admin'): return
-        if self.source != 'zodb': return
         # Call custom "mayDelete" when present.
         custom = self._getCustomMethod('mayDelete')
         if custom: return self._callCustom('mayDelete')

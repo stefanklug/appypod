@@ -16,6 +16,12 @@ from appy.shared.data import languages
 homePage = '<tal:h define="dummy python: request.RESPONSE.redirect(' \
            'context.config.getHomePage())"/>'
 
+# Cheat for disabling Zope's XMLRPC --------------------------------------------
+class FakeXmlrpc:
+    '''Fake class that behaves like Zope's xmlrpc module.'''
+    def parse_input(self, value): return None, ()
+    def response(self, response): return response
+
 def onDelSession(sessionObject, container):
     '''This function is called when a session expires.'''
     rq = container.REQUEST
