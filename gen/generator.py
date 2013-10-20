@@ -444,7 +444,7 @@ class ZopeGenerator(Generator):
             # get it. Else, use appyLabels from the pot file as default empty
             # labels.
             appyPoFileName = os.path.join(appy.getPath(), 'gen', 'tr',
-                                          'Appy-%s.po' % language)
+                                          '%s.po' % language)
             if os.path.exists(appyPoFileName):
                 baseLabels = po.PoParser(appyPoFileName).parse().messages
             else:

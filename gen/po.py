@@ -166,21 +166,20 @@ class PoFile:
         elems = baseName.split('-')
         if self.isPot:
             if len(elems) == 1:
-                self.applicationName = baseName
-                self.domain = baseName
+                self.applicationName = self.domain = elems[0]
             else:
-                self.applicationName = elems[0]
-                self.domain = elems[1]
+                self.applicationName, self.domain = elems
         else:
-            self.applicationName = elems[0]
-            if len(elems) == 2:
-                self.domain = self.applicationName
+            if len(elems) == 1:
+                self.applicationName = self.domain = ''
+                self.language = elems[0]
+            elif len(elems) == 2:
+                self.applicationName = self.domain = elems[0]
                 self.language = elems[1]
             else:
-                self.domain = elems[1]
-                self.language = elems[2]
-        self.generated = False # Is set to True during the generation process
-        # when this file has been generated.
+                self.applicationName, self.domain, self.language = elems
+        self.generated = False # Will be True during the generation process,
+        # once this file will have been generated.
 
     def addMessage(self, newMsg, needsCopy=True):
         if needsCopy:
