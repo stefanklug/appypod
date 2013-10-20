@@ -23,7 +23,7 @@ class Page:
     subElements = ('save', 'cancel', 'previous', 'next', 'edit')
     def __init__(self, name, phase='main', show=True, showSave=True,
                  showCancel=True, showPrevious=True, showNext=True,
-                 showEdit=True):
+                 showEdit=True, label=None):
         self.name = name
         self.phase = phase
         self.show = show
@@ -39,6 +39,9 @@ class Page:
         self.showNext = showNext
         # When viewing the page, must I show the "edit" button?
         self.showEdit = showEdit
+        # Instead of computing a translated label, one may give p_label, a
+        # fixed label which will not be translated.
+        self.label = label
 
     @staticmethod
     def get(pageData):
@@ -85,4 +88,10 @@ class Page:
             setattr(res, 'show%s' % elem.capitalize(), \
                     self.isShowable(obj, layoutType, elem=elem))
         return res
+
+    def getLabel(self, zobj):
+        '''Returns the i18n label for this page, or a fixed label if self.label
+           is not empty.'''
+        if self.label: return self.label
+        return zobj.translate('%s_page_%s' % (zobj.meta_type, self.name))
 # ------------------------------------------------------------------------------

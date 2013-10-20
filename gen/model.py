@@ -128,7 +128,15 @@ class ModelClass:
             if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
             elif callable(pageShow):
                 pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
-            res += '"%s":Pge("%s", show=%s),'% (page.name, page.name, pageShow)
+            pShow = ''
+            if pageShow != True:
+                pShow = ', show=%s' % pageShow
+            # For translation pages, fixed labels are used.
+            label = ''
+            if className == 'Translation':
+                name = (page.name == 'main') and 'Options' or page.name
+                label = ', label="%s"' % name
+            res += '"%s":Pge("%s"%s%s),' % (page.name, page.name, pShow, label)
         res += '}\n'
         # Secondly, dump every (not Ref.isBack) attribute
         for name in klass._appy_attributes:
@@ -192,11 +200,11 @@ class Group(ModelClass):
 class Translation(ModelClass):
     _appy_attributes = ['po', 'title', 'sourceLanguage', 'trToTool']
     # All methods defined below are fake. Real versions are in the wrapper.
-    title = gen.String(show=False, indexed=True)
-    actionsPage = gen.Page('actions')
+    title = gen.String(show=False, indexed=True,
+                       page=gen.Page('main',label='Main'))
     def getPoFile(self): pass
-    po = gen.Action(action=getPoFile, page=actionsPage, result='filetmp')
-    sourceLanguage = gen.String(page=actionsPage, width=4)
+    po = gen.Action(action=getPoFile, result='filetmp')
+    sourceLanguage = gen.String(width=4)
     def label(self): pass
     def show(self, name): pass
 

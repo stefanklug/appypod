@@ -36,8 +36,7 @@ class Phase:
         <div if="not (singlePhase and singlePage)"
              class=":aPage==page and 'portletCurrent portletPage' or \
                      'portletPage'">
-         <a href=":zobj.getUrl(page=aPage)">::_('%s_page_%s' % \
-                   (zobj.meta_type, aPage))</a>
+         <a href=":zobj.getUrl(page=aPage)">::aPageInfo.page.getLabel(zobj)</a>
          <x var="locked=zobj.isLocked(user, aPage);
                  editable=mayEdit and aPageInfo.showOnEdit and \
                           aPageInfo.showEdit">

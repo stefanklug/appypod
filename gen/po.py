@@ -21,200 +21,7 @@ msgstr ""
 fallbacks = {'en': 'en-us en-ca',
              'fr': 'fr-be fr-ca fr-lu fr-mc fr-ch fr-fr'}
 
-# Standard Appy labels with their default value in english ---------------------
-appyLabels = [
- ('app_name', 'Appy'),
- ('workflow_state', 'state'),
- ('workflow_comment', 'Optional comment'),
- ('appy_title', 'Title'),
- ('data_change', 'Data change'),
- ('modified_field', 'Modified field'),
- ('previous_value', 'Previous value or modification'),
- ('phase', 'phase'),
- ('choose_a_value', ' - '),
- ('choose_a_doc', '[ Documents ]'),
- ('min_ref_violated', 'You must choose more elements here.'),
- ('max_ref_violated', 'Too much elements are selected here.'),
- ('no_ref', 'No object.'),
- ('add_ref', 'Add a new one'),
- ('action_ok', 'The action has been successfully executed.'),
- ('action_ko', 'A problem occurred while executing the action.'),
- ('move_up', 'Move up'),
- ('move_down', 'Move down'),
- ('query_create', 'create'),
- ('query_import', 'import'),
- ('query_no_result', 'Nothing to see for the moment.'),
- ('query_consult_all', 'consult all'),
- ('import_title', 'Importing data into your application'),
- ('import_show_hide', 'Show / hide alreadly imported elements.'),
- ('import_already', 'Already imported.'),
- ('import_many', 'Import selected elements'),
- ('import_done', 'Import terminated successfully.'),
- ('search_title', 'Advanced search'),
- ('search_button', 'Search'),
- ('search_results', 'Search results'),
- ('search_results_descr', ' '),
- ('search_new', 'New search'),
- ('search_from', 'From'),
- ('search_to', 'to'),
- ('search_or', 'or'),
- ('search_and', 'and'),
- ('ref_invalid_index', 'No move occurred: please specify a valid number.'),
- ('bad_long', 'An integer value is expected; do not enter any space.'),
- ('bad_float', 'A floating-point number is expected; use the dot as decimal ' \
-               'separator, not a comma; do not enter any space.'),
- ('bad_date', 'Please specify a valid date.'),
- ('bad_email', 'Please enter a valid email.'),
- ('bad_url', 'Please enter a valid URL.'),
- ('bad_alphanumeric', 'Please enter a valid alphanumeric value.'),
- ('bad_select_value', 'The value is not among possible values for this field.'),
- ('select_delesect', '(Un)select all'),
- ('no_elem_selected', 'You must select at least one element.'),
- ('object_edit', 'Edit'),
- ('object_delete', 'Delete'),
- ('object_unlink', 'Unlink'),
- ('page_unlock', 'Unlock'),
- ('delete_confirm', 'Are you sure you want to delete this element?'),
- ('unlink_confirm', 'Are you sure you want to unlink this element?'),
- ('unlock_confirm', 'Are you sure you want to unlock this page?'),
- ('delete_done', 'The element has been deleted.'),
- ('unlink_done', 'The element has been unlinked.'),
- ('unlock_done', 'The page has been unlocked.'),
- ('goto_first', 'Go to top'),
- ('goto_previous', 'Go to previous'),
- ('goto_next', 'Go to next'),
- ('goto_last', 'Go to end'),
- ('goto_source', 'Go back'),
- ('whatever', 'Whatever'),
- ('yes', 'Yes'),
- ('no', 'No'),
- ('field_required', 'Please fill this field.'),
- ('field_invalid', 'Please fill or correct this.'),
- ('file_required', 'Please select a file.'),
- ('image_required', 'The uploaded file must be an image.'),
- ('odt', 'ODT'),
- ('pdf', 'PDF'),
- ('doc', 'DOC'),
- ('rtf', 'RTF'),
- ('ods', 'ODS'),
- ('xls', 'XLS'),
- ('front_page_text', 'Welcome to this Appy-powered site.'),
- ('captcha_text', 'Please type "${text}" (without the double quotes) in the ' \
-                  'field besides, but without the character at position ' \
-                  '${number}.'),
- ('bad_captcha', 'The code was not correct. Please try again.'),
- ('app_login', 'Login'),
- ('app_connect', 'Log in'),
- ('app_logout', 'Logout'),
- ('app_password', 'Password'),
- ('app_home', 'Home'),
- ('login_reserved', 'This login is reserved.'),
- ('login_in_use', 'This login is already in use.'),
- ('login_ko', 'Login failed.'),
- ('login_ok', 'Welcome! You are now logged in.'),
- ('password_too_short', 'Passwords must contain at least ${nb} characters.'),
- ('passwords_mismatch', 'Passwords do not match.'),
- ('object_save', 'Save'),
- ('object_saved', 'Changes saved.'),
- ('validation_error', 'Please correct the indicated errors.'),
- ('object_cancel', 'Cancel'),
- ('object_canceled', 'Changes canceled.'),
- ('enable_cookies', 'You must enable cookies before you can log in.'),
- ('page_previous', 'Previous page'),
- ('page_next', 'Next page'),
- ('forgot_password', 'Forgot password?'),
- ('ask_password_reinit', 'Ask new password'),
- ('wrong_password_reinit', 'Something went wrong. First possibility: you ' \
-    'have already clicked on the link (maybe have you double-clicked?) ' \
-    'and your password has already been re-initialized. Please check ' \
-    'that you haven\'t received your new password in another email. ' \
-    'Second possibility: the link that you received in your mailer was ' \
-    'splitted on several lines. In this case, please re-type the link in ' \
-    'one single line and retry. Third possibility: you have waited too ' \
-    'long and your request has expired, or a technical error occurred. ' \
-    'In this case, please try again to ask a new password from the start.'),
- ('reinit_mail_sent', 'A mail has been sent to you. Please follow the ' \
-                      'instructions from this email.'),
- ('reinit_password', 'Password re-initialisation'),
- ('reinit_password_body', 'Hello,<br/><br/>A password re-initialisation ' \
-    'has been requested, tied to this email address, for the website ' \
-    '${siteUrl}. If you are not at the origin of this request, please ' \
-    'ignore this email. Else, click on the link below to receive a new ' \
-    'password.<br/><br/>${url}'),
- ('new_password', 'Your new password'),
- ('new_password_body', 'Hello,<br/><br/>The new password you have ' \
-                       'requested for website ${siteUrl} is ${password}<br/>' \
-                       '<br/>Best regards.'),
- ('new_password_sent', 'Your new password has been sent to you by email.'),
- ('last_user_access', 'Last access'),
- ('object_history', 'History'),
- ('object_created_by', 'By'),
- ('object_created_on', 'On'),
- ('object_modified_on', 'Last updated on'),
- ('object_action', 'Action'),
- ('object_author', 'Author'),
- ('action_date', 'Date'),
- ('action_comment', 'Comment'),
- ('day_Mon_short', 'Mon'),
- ('day_Tue_short', 'Tue'),
- ('day_Wed_short', 'Wed'),
- ('day_Thu_short', 'Thu'),
- ('day_Fri_short', 'Fri'),
- ('day_Sat_short', 'Sat'),
- ('day_Sun_short', 'Sun'),
- ('day_Off_short', 'Off'),
- ('day_Mon', 'Monday'),
- ('day_Tue', 'Tuesday'),
- ('day_Wed', 'Wednesday'),
- ('day_Thu', 'Thursday'),
- ('day_Fri', 'Friday'),
- ('day_Sat', 'Saturday'),
- ('day_Sun', 'Sunday'),
- ('day_Off', 'Day off'),
- ('ampm_am', 'AM'),
- ('ampm_pm', 'PM'),
- ('month_Jan_short', 'Jan'),
- ('month_Feb_short', 'Feb'),
- ('month_Mar_short', 'Mar'),
- ('month_Apr_short', 'Apr'),
- ('month_May_short', 'May'),
- ('month_Jun_short', 'Jun'),
- ('month_Jul_short', 'Jul'),
- ('month_Aug_short', 'Aug'),
- ('month_Sep_short', 'Sep'),
- ('month_Oct_short', 'Oct'),
- ('month_Nov_short', 'Nov'),
- ('month_Dec_short', 'Dec'),
- ('month_Jan', 'January'),
- ('month_Feb', 'February'),
- ('month_Mar', 'March'),
- ('month_Apr', 'April'),
- ('month_May', 'May'),
- ('month_Jun', 'June'),
- ('month_Jul', 'July'),
- ('month_Aug', 'Augustus'),
- ('month_Sep', 'September'),
- ('month_Oct', 'October'),
- ('month_Nov', 'November'),
- ('month_Dec', 'December'),
- ('today', 'Today'),
- ('which_event', 'Which event type would you like to create?'),
- ('event_span', 'Extend the event on the following number of days (leave ' \
-                'blank to create an event on the current day only):'),
- ('del_next_events', 'Also delete successive events of the same type.'),
- ('history_insert', 'Inserted by ${userName}'),
- ('history_delete', 'Deleted by ${userName}'),
- ('changes_show', 'Show changes'),
- ('changes_hide', 'Hide changes'),
- ('anonymous', 'an anonymous user'),
- ('page_locked', '${date} - This page is locked by ${user}.'),
- ('warn_leave_form', 'In some situations, by leaving this page this way, you ' \
-                     'may lose encoded data or prevent other users from ' \
-                     'editing it afterwards. Please use buttons instead.'),
-]
-
-# Some default values for labels whose ids are not fixed (so they can't be
-# included in the previous variable).
+# Default values for i18n labels whose ids are not fixed.
 CONFIG = "Configuration panel for product '%s'"
 POD_ASKACTION = 'Trigger related action'
 EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
@@ -248,13 +55,15 @@ class PoMessage:
                 # the user may have changed in the pot file. We will write a
                 # default message only when no default message is defined.
         else:
-            # newMsg comes from a pot file, we must update the corresponding
+            # newMsg comes from a pot file or from a base po file (like a
+            # standard Appy po file). We must update the corresponding
             # message in the current po file.
             oldDefault = self.default
             if self.default != newMsg.default:
                 # The default value has changed in the pot file
                 oldDefault = self.default
                 self.default = newMsg.default
+                self.fuzzy = False
                 if self.msg.strip():
                     self.fuzzy = True
                     # We mark the message as "fuzzy" (=may need to be rewritten
@@ -267,8 +76,12 @@ class PoMessage:
                         # tool, but simply without any default value. So in
                         # this case, we do not consider the label as fuzzy.
                         self.fuzzy = False
-                else:
-                    self.fuzzy = False
+            # If p_newMsg contains a message, and no message is defined for
+            # self, copy it.
+            if newMsg.msg and not self.msg:
+                self.msg = newMsg.msg
+            # For english, the the default value from a pot file can be used as
+            # value for the po file.
             if (language == 'en'):
                 if not self.msg:
                     # Put the default message into msg for english
@@ -397,9 +210,7 @@ class PoFile:
             i = len(self.messages)-1
             while i >= 0:
                 oldId = self.messages[i].id
-                if not oldId.startswith('custom_') and \
-                   not oldId.startswith('%sTranslation_page_'%self.domain) and \
-                   (oldId not in newIds):
+                if not oldId.startswith('custom_') and (oldId not in newIds):
                     del self.messages[i]
                     del self.messagesDict[oldId]
                     removedIds.append(oldId)

@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, os.path, re, sys, parser, symbol, token, types
-import appy.pod, appy.pod.renderer
+import appy, appy.pod.renderer
 from appy.shared.utils import FolderDeleter
 import appy.gen as gen
 import po
@@ -394,13 +394,8 @@ class ZopeGenerator(Generator):
     def finalize(self):
         # Add a label for the application name
         self.i18n(self.applicationName, self.applicationName)
-        # Add default Appy i18n messages
-        for id, default in po.appyLabels:
-            self.i18n(id, default, nice=False)
-        # Add a label for every role added by this application (we ensure role
-        # 'Manager' was added even if not mentioned anywhere).
-        self.i18n('role_Manager', 'Manager')
-        for role in self.getAllUsedRoles():
+        # Add a i18n message for every role.
+        for role in self.getUsedRoles(appy=False):
             self.i18n('role_%s' % role.name, role.name)
         # Create basic files (config.py, etc)
         self.generateTool()
@@ -424,23 +419,16 @@ class ZopeGenerator(Generator):
             fullName = os.path.join(self.application, 'tr', potFileName)
             potFile = po.PoFile(fullName)
             self.i18nFiles[potFileName] = potFile
-        # We update the POT file with our list of automatically managed labels.
-        removedLabels = potFile.update(self.labels.get(),self.options.i18nClean,
-                                       not self.options.i18nSort)
+        # Update the pot file with (a) standard Appy labels and (b) the list of
+        # generated application labels.
+        appyPotFileName = os.path.join(appy.getPath(), 'gen', 'tr', 'Appy.pot')
+        appyLabels = po.PoParser(appyPotFileName).parse().messages
+        removedLabels = potFile.update(appyLabels + self.labels.get(),
+            self.options.i18nClean, keepExistingOrder=False)
+        potFile.generate()
         if removedLabels:
             print('Warning: %d messages were removed from translation ' \
                   'files: %s' % (len(removedLabels), str(removedLabels)))
-        # Before generating the POT file, we still need to add one label for
-        # every page for the Translation class. We've not done it yet because
-        # the number of pages depends on the total number of labels in the POT
-        # file.
-        pageLabels = []
-        nbOfPages = int(len(potFile.messages)/self.config.translationsPerPage)+1
-        for i in range(nbOfPages):
-            msgId = '%s_page_%d' % (self.translation.name, i+2)
-            pageLabels.append(po.PoMessage(msgId, '', 'Page %d' % (i+2)))
-        potFile.update(pageLabels, keepExistingOrder=False)
-        potFile.generate()
         # Generate i18n po files
         for language in self.config.languages:
             # I must generate (or update) a po file for the language(s)
@@ -452,11 +440,20 @@ class ZopeGenerator(Generator):
                 fullName = os.path.join(self.application, 'tr', poFileName)
                 poFile = po.PoFile(fullName)
                 self.i18nFiles[poFileName] = poFile
-            poFile.update(potFile.messages, self.options.i18nClean,
-                          not self.options.i18nSort)
+            # If we have default Appy messages translated for this language,
+            # get it. Else, use appyLabels from the pot file as default empty
+            # labels.
+            appyPoFileName = os.path.join(appy.getPath(), 'gen', 'tr',
+                                          'Appy-%s.po' % language)
+            if os.path.exists(appyPoFileName):
+                baseLabels = po.PoParser(appyPoFileName).parse().messages
+            else:
+                baseLabels = appyLabels
+            poFile.update(baseLabels + self.labels.get(),
+                self.options.i18nClean, keepExistingOrder=False)
             poFile.generate()
         # Generate corresponding fields on the Translation class
-        page = 'main'
+        page = '1'
         i = 0
         for message in potFile.messages:
             i += 1
@@ -466,20 +463,17 @@ class ZopeGenerator(Generator):
             self.translation.addMessageField(message.id, page, self.i18nFiles)
             if (i % self.config.translationsPerPage) == 0:
                 # A new page must be defined.
-                if page == 'main':
-                    page = '2'
-                else:
-                    page = str(int(page)+1)
+                page = str(int(page)+1)
         self.generateWrappers()
         self.generateConfig()
 
-    def getAllUsedRoles(self, zope=None, local=None, grantable=None):
+    def getUsedRoles(self, appy=None, local=None, grantable=None):
         '''Produces a list of all the roles used within all workflows and
            classes defined in this application.
 
-           If p_zope is True, it keeps only Zope-standard roles; if p_zope
+           If p_appy is True, it keeps only Appy standard roles; if p_appy
            is False, it keeps only roles which are specific to this application;
-           if p_zope is None it has no effect (so it keeps both roles).
+           if p_appy is None it has no effect (so it keeps both roles).
 
            If p_local is True, it keeps only local roles (ie, roles that can
            only be granted locally); if p_local is False, it keeps only "global"
@@ -508,7 +502,7 @@ class ZopeGenerator(Generator):
                     allRoles[role.name] = role
         res = allRoles.values()
         # Filter the result according to parameters
-        for p in ('zope', 'local', 'grantable'):
+        for p in ('appy', 'local', 'grantable'):
             if eval(p) != None:
                 res = [r for r in res if eval('r.%s == %s' % (p, p))]
         return res
@@ -587,11 +581,11 @@ class ZopeGenerator(Generator):
             attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
         repls['attributes'] = ',\n    '.join(attributes)
         # Compute list of used roles for registering them if needed
-        specificRoles = self.getAllUsedRoles(zope=False)
+        specificRoles = self.getUsedRoles(appy=False)
         repls['roles'] = ','.join(['"%s"' % r.name for r in specificRoles])
-        globalRoles = self.getAllUsedRoles(zope=False, local=False)
+        globalRoles = self.getUsedRoles(appy=False, local=False)
         repls['gRoles'] = ','.join(['"%s"' % r.name for r in globalRoles])
-        grantableRoles = self.getAllUsedRoles(local=False, grantable=True)
+        grantableRoles = self.getUsedRoles(local=False, grantable=True)
         repls['grRoles'] = ','.join(['"%s"' % r.name for r in grantableRoles])
         self.copyFile('config.pyt', repls, destName='config.py')
 

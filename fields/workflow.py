@@ -25,18 +25,18 @@ r, w, d = ('read', 'write', 'delete')
 # ------------------------------------------------------------------------------
 class Role:
     '''Represents a role, be it local or global.'''
-    zopeRoles = ('Manager', 'Owner', 'Anonymous', 'Authenticated')
-    zopeLocalRoles = ('Owner',)
-    zopeUngrantableRoles = ('Anonymous', 'Authenticated')
+    appyRoles = ('Manager', 'Owner', 'Anonymous', 'Authenticated')
+    appyLocalRoles = ('Owner',)
+    appyUngrantableRoles = ('Anonymous', 'Authenticated')
     def __init__(self, name, local=False, grantable=True):
         self.name = name
         self.local = local # True if it can be used as local role only.
         # It is a standard Zope role or an application-specific one?
-        self.zope = name in self.zopeRoles
-        if self.zope and (name in self.zopeLocalRoles):
+        self.appy = name in self.appyRoles
+        if self.appy and (name in self.appyLocalRoles):
             self.local = True
         self.grantable = grantable
-        if self.zope and (name in self.zopeUngrantableRoles):
+        if self.appy and (name in self.appyUngrantableRoles):
             self.grantable = False
         # An ungrantable role is one that is, like the Anonymous or
         # Authenticated roles, automatically attributed to a user.

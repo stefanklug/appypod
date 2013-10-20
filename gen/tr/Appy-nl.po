@@ -1,0 +1,696 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Appy\n"
+"POT-Creation-Date: 2013-07-23 10:41-28\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0\n"
+"Language-code: nl\n"
+"Language-name: nl\n"
+"Preferred-encodings: utf-8 latin1\n"
+"Domain: Appy\n"
+
+#. Default: "Appy"
+msgid "app_name"
+msgstr "Appy"
+
+#. Default: "state"
+msgid "workflow_state"
+msgstr "staat"
+
+#. Default: "Optional comment"
+msgid "workflow_comment"
+msgstr "Commentaar"
+
+#. Default: "Manager"
+msgid "role_Manager"
+msgstr "Beheerder"
+
+#. Default: "Anonymous"
+msgid "role_Anonymous"
+msgstr "Anoniem"
+
+#. Default: "Authenticated"
+msgid "role_Authenticated"
+msgstr "Geauthenticeerd"
+
+#. Default: "Owner"
+msgid "role_Owner"
+msgstr "Eigenaar"
+
+#. Default: "Title"
+msgid "appy_title"
+msgstr "Titel"
+
+#. Default: "Data change"
+msgid "data_change"
+msgstr "Wijziging van de gegevens"
+
+#. Default: "Modified field"
+msgid "modified_field"
+msgstr "Veld gewijzigd"
+
+#. Default: "Previous value or modification"
+msgid "previous_value"
+msgstr "Vorige waarde"
+
+#. Default: "phase"
+msgid "phase"
+msgstr "Fase"
+
+#. Default: " - "
+msgid "choose_a_value"
+msgstr "[maak uw keuze]"
+
+#. Default: "[ Documents ]"
+msgid "choose_a_doc"
+msgstr "[Documenten]"
+
+#. Default: "You must choose more elements here."
+msgid "min_ref_violated"
+msgstr "U moet hier meerdere elementen selecteren."
+
+#. Default: "Too much elements are selected here."
+msgid "max_ref_violated"
+msgstr "U hebt teveel elementen geselecteerd."
+
+#. Default: "No object."
+msgid "no_ref"
+msgstr "Geen element."
+
+#. Default: "Add a new one"
+msgid "add_ref"
+msgstr "Toevoegen"
+
+#. Default: "The action has been successfully executed."
+msgid "action_ok"
+msgstr "De opdracht werd uitgevoerd."
+
+#. Default: "A problem occurred while executing the action."
+msgid "action_ko"
+msgstr "Er heeft zich een probleem voorgedaan."
+
+#. Default: "Move up"
+msgid "move_up"
+msgstr "Verplaats naar boven"
+
+#. Default: "Move down"
+msgid "move_down"
+msgstr "Verplaats naar beneden"
+
+#. Default: "create"
+msgid "query_create"
+msgstr "Aanmaken"
+
+#. Default: "import"
+msgid "query_import"
+msgstr "Importeren"
+
+#. Default: "Nothing to see for the moment."
+msgid "query_no_result"
+msgstr "Geen resultaat"
+
+#. Default: "consult all"
+msgid "query_consult_all"
+msgstr "Alles raadplegen"
+
+#. Default: "Importing data into your application"
+msgid "import_title"
+msgstr "Gegevens importeren"
+
+#. Default: "Show / hide alreadly imported elements."
+msgid "import_show_hide"
+msgstr "Tonen / verbergen van reeds geïmporteerde elementen."
+
+#. Default: "Already imported."
+msgid "import_already"
+msgstr "Reeds geïmporteerd."
+
+#. Default: "Import selected elements"
+msgid "import_many"
+msgstr "Geselecteerde elementen importeren."
+
+#. Default: "Import terminated successfully."
+msgid "import_done"
+msgstr "Het importeren is met succes afgelopen."
+
+#. Default: "Advanced search"
+msgid "search_title"
+msgstr "Gevorderde opzoeking"
+
+#. Default: "Search"
+msgid "search_button"
+msgstr "Opzoeken"
+
+#. Default: "Search results"
+msgid "search_results"
+msgstr "Resultaten"
+
+#. Default: " "
+msgid "search_results_descr"
+msgstr ""
+
+#. Default: "New search"
+msgid "search_new"
+msgstr "Nieuwe opzoeking"
+
+#. Default: "From"
+msgid "search_from"
+msgstr "Van"
+
+#. Default: "to"
+msgid "search_to"
+msgstr "tot"
+
+#. Default: "or"
+msgid "search_or"
+msgstr "of"
+
+#. Default: "and"
+msgid "search_and"
+msgstr "en"
+
+#. Default: "No move occurred: please specify a valid number."
+msgid "ref_invalid_index"
+msgstr "Geen enkele verplaatsing heft plaats gehad: specifieer een geldig aantal."
+
+#. Default: "An integer value is expected; do not enter any space."
+msgid "bad_long"
+msgstr "Vul een hele waarde in."
+
+#. Default: "A floating-point number is expected; use the dot as decimal separator, not a comma; do not enter any space."
+msgid "bad_float"
+msgstr "Vul een reële waarde in."
+
+#. Default: "Please specify a valid date."
+msgid "bad_date"
+msgstr ""
+
+#. Default: "Please enter a valid email."
+msgid "bad_email"
+msgstr "Specifieer een geldig e-mail adres"
+
+#. Default: "Please enter a valid URL."
+msgid "bad_url"
+msgstr "Specifieer een geldig URL."
+
+#. Default: "Please enter a valid alphanumeric value."
+msgid "bad_alphanumeric"
+msgstr "Specifieer een geldige alfnumerische waarde."
+
+#. Default: "The value is not among possible values for this field."
+msgid "bad_select_value"
+msgstr "Deze waarde wordt niet geaccepteerd voor dit veld."
+
+#. Default: "(Un)select all"
+msgid "select_delesect"
+msgstr "Alles (de)selecteren"
+
+#. Default: "You must select at least one element."
+msgid "no_elem_selected"
+msgstr "U moet minstens één element selecteren."
+
+#. Default: "Edit"
+msgid "object_edit"
+msgstr "Bewerken"
+
+#. Default: "Delete"
+msgid "object_delete"
+msgstr "Verwijderen"
+
+#. Default: "Unlink"
+msgid "object_unlink"
+msgstr ""
+
+#. Default: "Unlock"
+msgid "page_unlock"
+msgstr ""
+
+#. Default: "Are you sure you want to delete this element?"
+msgid "delete_confirm"
+msgstr "Wil u dit element werkelijk verwijderen?"
+
+#. Default: "Are you sure you want to unlink this element?"
+msgid "unlink_confirm"
+msgstr ""
+
+#. Default: "Are you sure you want to unlock this page?"
+msgid "unlock_confirm"
+msgstr ""
+
+#. Default: "The element has been deleted."
+msgid "delete_done"
+msgstr "Het element werd verwijderd."
+
+#. Default: "The element has been unlinked."
+msgid "unlink_done"
+msgstr ""
+
+#. Default: "The page has been unlocked."
+msgid "unlock_done"
+msgstr ""
+
+#. Default: "Go to top"
+msgid "goto_first"
+msgstr "Ga naar het begin"
+
+#. Default: "Go to previous"
+msgid "goto_previous"
+msgstr "Ga naar het vorige element"
+
+#. Default: "Go to next"
+msgid "goto_next"
+msgstr "Ga naar het volgende element"
+
+#. Default: "Go to end"
+msgid "goto_last"
+msgstr "Ga naar het einde"
+
+#. Default: "Go back"
+msgid "goto_source"
+msgstr "Terug"
+
+#. Default: "Whatever"
+msgid "whatever"
+msgstr "Maakt niets uit"
+
+#. Default: "Yes"
+msgid "yes"
+msgstr "Ja"
+
+#. Default: "No"
+msgid "no"
+msgstr "Neen"
+
+#. Default: "Please fill this field."
+msgid "field_required"
+msgstr "Gelieve dit veld in te vullen."
+
+#. Default: "Please fill or correct this."
+msgid "field_invalid"
+msgstr "Gelieve dit veld in te vullen of te verbeteren"
+
+#. Default: "Please select a file."
+msgid "file_required"
+msgstr "Kies een bestand."
+
+#. Default: "The uploaded file must be an image."
+msgid "image_required"
+msgstr "Het up te loaden bestand moet een foto zijn."
+
+#. Default: "ODT"
+msgid "odt"
+msgstr "ODT (OpenOffice/LibreOffice)"
+
+#. Default: "PDF"
+msgid "pdf"
+msgstr "PDF"
+
+#. Default: "DOC"
+msgid "doc"
+msgstr "DOC (Microsoft Word)"
+
+#. Default: "RTF"
+msgid "rtf"
+msgstr "RTF (Rich Text)"
+
+#. Default: "ODS"
+msgid "ods"
+msgstr ""
+
+#. Default: "XLS"
+msgid "xls"
+msgstr ""
+
+#. Default: "Welcome to this Appy-powered site."
+msgid "front_page_text"
+msgstr ""
+
+#. Default: "Please type "${text}" (without the double quotes) in the field besides, but without the character at position ${number}."
+msgid "captcha_text"
+msgstr ""
+
+#. Default: "The code was not correct. Please try again."
+msgid "bad_captcha"
+msgstr ""
+
+#. Default: "Login"
+msgid "app_login"
+msgstr "Login"
+
+#. Default: "Log in"
+msgid "app_connect"
+msgstr "Inloggen"
+
+#. Default: "Logout"
+msgid "app_logout"
+msgstr "Zich afmelden"
+
+#. Default: "Password"
+msgid "app_password"
+msgstr "Wachtwoord"
+
+#. Default: "Home"
+msgid "app_home"
+msgstr "Keer terug naar de hoofdpagina"
+
+#. Default: "This login is reserved."
+msgid "login_reserved"
+msgstr "Dit login is voorbehouden"
+
+#. Default: "This login is already in use."
+msgid "login_in_use"
+msgstr "De gekozen gebruikersnaam bestaat al of is ongeldig. Kies een andere."
+
+#. Default: "Login failed."
+msgid "login_ko"
+msgstr "Inloggen mislukt."
+
+#. Default: "Welcome! You are now logged in."
+msgid "login_ok"
+msgstr "Welkom! U bent nu ingelogd."
+
+#. Default: "Passwords must contain at least ${nb} characters."
+msgid "password_too_short"
+msgstr "Een wachtwoord dient minimaal ${nb} karakters lang te zijn."
+
+#. Default: "Passwords do not match."
+msgid "passwords_mismatch"
+msgstr "Wachtwoorden komen niet overeen."
+
+#. Default: "Save"
+msgid "object_save"
+msgstr "Bewaren"
+
+#. Default: "Changes saved."
+msgid "object_saved"
+msgstr "Wijzigingen zijn opgeslagen."
+
+#. Default: "Please correct the indicated errors."
+msgid "validation_error"
+msgstr "Verbeter de aangegeven fout(en)."
+
+#. Default: "Cancel"
+msgid "object_cancel"
+msgstr "Annuleren"
+
+#. Default: "Changes canceled."
+msgid "object_canceled"
+msgstr "Wijzigingen geannuleerd."
+
+#. Default: "You must enable cookies before you can log in."
+msgid "enable_cookies"
+msgstr "U dient het gebruik van cookies toe te staan voordat uw in kunt loggen."
+
+#. Default: "Previous page"
+msgid "page_previous"
+msgstr "Vorige pagina"
+
+#. Default: "Next page"
+msgid "page_next"
+msgstr "Volgende pagina"
+
+#. Default: "Forgot password?"
+msgid "forgot_password"
+msgstr ""
+
+#. Default: "Ask new password"
+msgid "ask_password_reinit"
+msgstr ""
+
+#. Default: "Something went wrong. First possibility: you have already clicked on the link (maybe have you double-clicked?) and your password has already been re-initialized. Please check that you haven't received your new password in another email. Second possibility: the link that you received in your mailer was splitted on several lines. In this case, please re-type the link in one single line and retry. Third possibility: you have waited too long and your request has expired, or a technical error occurred. In this case, please try again to ask a new password from the start."
+msgid "wrong_password_reinit"
+msgstr ""
+
+#. Default: "A mail has been sent to you. Please follow the instructions from this email."
+msgid "reinit_mail_sent"
+msgstr ""
+
+#. Default: "Password re-initialisation"
+msgid "reinit_password"
+msgstr ""
+
+#. Default: "Hello,<br/><br/>A password re-initialisation has been requested, tied to this email address, for the website ${siteUrl}. If you are not at the origin of this request, please ignore this email. Else, click on the link below to receive a new password.<br/><br/>${url}"
+msgid "reinit_password_body"
+msgstr ""
+
+#. Default: "Your new password"
+msgid "new_password"
+msgstr ""
+
+#. Default: "Hello,<br/><br/>The new password you have requested for website ${siteUrl} is ${password}<br/><br/>Best regards."
+msgid "new_password_body"
+msgstr ""
+
+#. Default: "Your new password has been sent to you by email."
+msgid "new_password_sent"
+msgstr ""
+
+#. Default: "Last access"
+msgid "last_user_access"
+msgstr ""
+
+#. Default: "History"
+msgid "object_history"
+msgstr ""
+
+#. Default: "By"
+msgid "object_created_by"
+msgstr ""
+
+#. Default: "On"
+msgid "object_created_on"
+msgstr ""
+
+#. Default: "Last updated on"
+msgid "object_modified_on"
+msgstr ""
+
+#. Default: "Action"
+msgid "object_action"
+msgstr ""
+
+#. Default: "Author"
+msgid "object_author"
+msgstr ""
+
+#. Default: "Date"
+msgid "action_date"
+msgstr ""
+
+#. Default: "Comment"
+msgid "action_comment"
+msgstr ""
+
+#. Default: "Mon"
+msgid "day_Mon_short"
+msgstr ""
+
+#. Default: "Tue"
+msgid "day_Tue_short"
+msgstr ""
+
+#. Default: "Wed"
+msgid "day_Wed_short"
+msgstr ""
+
+#. Default: "Thu"
+msgid "day_Thu_short"
+msgstr ""
+
+#. Default: "Fri"
+msgid "day_Fri_short"
+msgstr ""
+
+#. Default: "Sat"
+msgid "day_Sat_short"
+msgstr ""
+
+#. Default: "Sun"
+msgid "day_Sun_short"
+msgstr ""
+
+#. Default: "Off"
+msgid "day_Off_short"
+msgstr ""
+
+#. Default: "Monday"
+msgid "day_Mon"
+msgstr ""
+
+#. Default: "Tuesday"
+msgid "day_Tue"
+msgstr ""
+
+#. Default: "Wednesday"
+msgid "day_Wed"
+msgstr ""
+
+#. Default: "Thursday"
+msgid "day_Thu"
+msgstr ""
+
+#. Default: "Friday"
+msgid "day_Fri"
+msgstr ""
+
+#. Default: "Saturday"
+msgid "day_Sat"
+msgstr ""
+
+#. Default: "Sunday"
+msgid "day_Sun"
+msgstr ""
+
+#. Default: "Day off"
+msgid "day_Off"
+msgstr ""
+
+#. Default: "AM"
+msgid "ampm_am"
+msgstr ""
+
+#. Default: "PM"
+msgid "ampm_pm"
+msgstr ""
+
+#. Default: "Jan"
+msgid "month_Jan_short"
+msgstr ""
+
+#. Default: "Feb"
+msgid "month_Feb_short"
+msgstr ""
+
+#. Default: "Mar"
+msgid "month_Mar_short"
+msgstr ""
+
+#. Default: "Apr"
+msgid "month_Apr_short"
+msgstr ""
+
+#. Default: "May"
+msgid "month_May_short"
+msgstr ""
+
+#. Default: "Jun"
+msgid "month_Jun_short"
+msgstr ""
+
+#. Default: "Jul"
+msgid "month_Jul_short"
+msgstr ""
+
+#. Default: "Aug"
+msgid "month_Aug_short"
+msgstr ""
+
+#. Default: "Sep"
+msgid "month_Sep_short"
+msgstr ""
+
+#. Default: "Oct"
+msgid "month_Oct_short"
+msgstr ""
+
+#. Default: "Nov"
+msgid "month_Nov_short"
+msgstr ""
+
+#. Default: "Dec"
+msgid "month_Dec_short"
+msgstr ""
+
+#. Default: "January"
+msgid "month_Jan"
+msgstr ""
+
+#. Default: "February"
+msgid "month_Feb"
+msgstr ""
+
+#. Default: "March"
+msgid "month_Mar"
+msgstr ""
+
+#. Default: "April"
+msgid "month_Apr"
+msgstr ""
+
+#. Default: "May"
+msgid "month_May"
+msgstr ""
+
+#. Default: "June"
+msgid "month_Jun"
+msgstr ""
+
+#. Default: "July"
+msgid "month_Jul"
+msgstr ""
+
+#. Default: "Augustus"
+msgid "month_Aug"
+msgstr ""
+
+#. Default: "September"
+msgid "month_Sep"
+msgstr ""
+
+#. Default: "October"
+msgid "month_Oct"
+msgstr ""
+
+#. Default: "November"
+msgid "month_Nov"
+msgstr ""
+
+#. Default: "December"
+msgid "month_Dec"
+msgstr ""
+
+#. Default: "Today"
+msgid "today"
+msgstr ""
+
+#. Default: "Which event type would you like to create?"
+msgid "which_event"
+msgstr ""
+
+#. Default: "Extend the event on the following number of days (leave blank to create an event on the current day only):"
+msgid "event_span"
+msgstr ""
+
+#. Default: "Also delete successive events of the same type."
+msgid "del_next_events"
+msgstr ""
+
+#. Default: "Inserted by ${userName}"
+msgid "history_insert"
+msgstr ""
+
+#. Default: "Deleted by ${userName}"
+msgid "history_delete"
+msgstr ""
+
+#. Default: "Show changes"
+msgid "changes_show"
+msgstr ""
+
+#. Default: "Hide changes"
+msgid "changes_hide"
+msgstr ""
+
+#. Default: "an anonymous user"
+msgid "anonymous"
+msgstr ""
+
+#. Default: "${date} - This page is locked by ${user}."
+msgid "page_locked"
+msgstr ""
+
+#. Default: "In some situations, by leaving this page this way, you may lose encoded data or prevent other users from editing it afterwards. Please use buttons instead."
+msgid "warn_leave_form"
+msgstr ""
