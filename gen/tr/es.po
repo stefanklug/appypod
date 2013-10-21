@@ -327,7 +327,7 @@ msgstr ""
 msgid "front_page_text"
 msgstr ""
 
-#. Default: "Please type "${text}" (without the double quotes) in the field besides, but without the character at position ${number}."
+#. Default: "Please type \"${text}\" (without the double quotes) in the field besides, but without the character at position ${number}."
 msgid "captcha_text"
 msgstr ""
 

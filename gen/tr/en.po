@@ -328,9 +328,9 @@ msgstr "XLS"
 msgid "front_page_text"
 msgstr "Welcome to this Appy-powered site."
 
-#. Default: "Please type "${text}" (without the double quotes) in the field besides, but without the character at position ${number}."
+#. Default: "Please type \"${text}\" (without the double quotes) in the field besides, but without the character at position ${number}."
 msgid "captcha_text"
-msgstr "Please type "${text}" (without the double quotes) in the field besides, but without the character at position ${number}."
+msgstr "Please type \"${text}\" (without the double quotes) in the field besides, but without the character at position ${number}."
 
 #. Default: "The code was not correct. Please try again."
 msgid "bad_captcha"
