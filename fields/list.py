@@ -27,7 +27,7 @@ class List(Field):
     # PX for rendering a single row.
     pxRow = Px('''
      <tr valign="top" style=":(rowIndex==-1) and 'display: none' or ''">
-      <td for="info in field.fields" align="center"
+      <td for="info in subFields" if="info[1]" align="center"
           var2="field=info[1];
                 fieldName='%s*%d' % (field.name, rowIndex);
                 tagCss='noStyle'">:field.pxRender</td>
@@ -42,10 +42,11 @@ class List(Field):
     pxTable = Px('''
      <table var="isEdit=layoutType == 'edit'" if="isEdit or value"
             id=":'list_%s' % name" class=":isEdit and 'grid' or 'list'"
-            width=":field.width">
+            width=":field.width"
+            var2="subFields=field.getSubFields(zobj, layoutType)">
       <!-- Header -->
       <tr valign="bottom">
-       <th for="info in field.fields"
+       <th for="info in subFields" if="info[1]"
            width=":field.widths[loop.info.nb]">::_(info[1].labelId)</th>
        <!-- Icon for adding a new row. -->
        <th if="isEdit">
@@ -104,6 +105,19 @@ class List(Field):
         '''Gets the field definition whose name is p_name.'''
         for n, field in self.fields:
             if n == name: return field
+
+    def getSubFields(self, obj, layoutType):
+        '''Returns the sub-fields (name, Field) that are showable among
+           field.fields on the given p_layoutType. Fields that cannot appear in
+           the result are nevertheless present as a tuple (name, None). This
+           way, it keeps a nice layouting of the table.'''
+        res = []
+        for n, field in self.fields:
+            elem = (n, None)
+            if field.isShowable(obj, layoutType):
+                elem = (n, field)
+            res.append(elem)
+        return res
 
     def getRequestValue(self, request, requestName=None):
         '''Concatenates the list from distinct form elements in the request.'''

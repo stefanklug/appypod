@@ -40,6 +40,13 @@ class LdapConnector:
             self.server = ldap.initialize(self.serverUri)
             self.server.simple_bind_s(login, password)
             return True, None
+        except AttributeError, ae:
+            # When the ldap module is not there, trying to catch ldap.LDAPError
+            # will raise an error.
+            message = str(ae)
+            self.log('Ldap connect error with login %s (%s).' % \
+                     (login, message))
+            return False, message
         except ldap.LDAPError, le:
             message = str(le)
             self.log('%s: connect error with login %s (%s).' % \

@@ -438,7 +438,7 @@ class LinesCounter:
         self.printReport()
 
 # ------------------------------------------------------------------------------
-CONVERSION_ERROR = 'An error occurred while executing command "%s". %s'
+CONVERSION_ERROR = 'An error occurred. %s'
 class FileWrapper:
     '''When you get, from an appy object, the value of a File attribute, you
        get an instance of this class.'''
@@ -476,10 +476,10 @@ class FileWrapper:
            must exist. If not, the file will be dumped in the OS temp folder.
            The absolute path name of the dumped file is returned.
            If an error occurs, the method returns None. If p_format is
-           specified, OpenOffice will be called for converting the dumped file
+           specified, LibreOffice will be called for converting the dumped file
            to the desired format. In this case, p_tool, a Appy tool, must be
            provided. Indeed, any Appy tool contains parameters for contacting
-           OpenOffice in server mode.'''
+           LibreOffice in server mode.'''
         if not filePath:
             filePath = '%s/file%f.%s' % (getOsTempFolder(), time.time(),
                 normalizeString(self.name))
@@ -511,7 +511,7 @@ class FileWrapper:
             else:
                 filePath = '%s.%s' % (baseName, format)
             if not os.path.exists(filePath):
-                tool.log(CONVERSION_ERROR % (cmd, errorMessage), type='error')
+                tool.log(CONVERSION_ERROR % errorMessage, type='error')
                 return
         return filePath
 

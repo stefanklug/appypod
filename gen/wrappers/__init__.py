@@ -154,7 +154,7 @@ class AbstractWrapper(object):
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
-            style=":url('%s.jpg' % bannerName, bg=True)">
+            style=":url('%s.png' % bannerName, bg=True)">
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
