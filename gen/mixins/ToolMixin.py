@@ -179,12 +179,21 @@ class ToolMixin(BaseMixin):
         if align == 'right': return 'left'
         return align
 
-    def getGlobalCssJs(self):
+    def getGlobalCssJs(self, dir):
         '''Returns the list of CSS and JS files to include in the main template.
-           The method ensures that appy.css and appy.js come first.'''
+           The method ensures that appy.css and appy.js come first. If p_dir
+           (=language *dir*rection) is "rtl" (=right-to-left), the stylesheet
+           for rtl languages is also included.'''
         names = self.getPhysicalRoot().ui.objectIds('File')
+        # The single Appy Javascript file
         names.remove('appy.js'); names.insert(0, 'appy.js')
-        names.remove('appyrtl.css'); names.insert(0, 'appyrtl.css')
+        # CSS changes for left-to-right languages
+        names.remove('appyrtl.css')
+        if dir == 'rtl': names.insert(0, 'appyrtl.css')
+        # CSS changes if the "wide" skin is in use
+        names.remove('appywide.css')
+        cfg = self.getProductConfig().appConfig
+        if cfg.skin == 'wide': names.insert(0, 'appywide.css')
         names.remove('appy.css'); names.insert(0, 'appy.css')
         return names
 

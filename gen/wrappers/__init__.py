@@ -98,10 +98,9 @@ class AbstractWrapper(object):
      <head>
       <title>:_('app_name')</title>
       <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
-      <x for="name in ztool.getGlobalCssJs()">
-       <link if="name.endswith('.css') and \
-                 not ((dir == 'ltr') and (name == 'appyrtl.css'))"
-             rel="stylesheet" type="text/css" href=":url(name)"/>
+      <x for="name in ztool.getGlobalCssJs(dir)">
+       <link if="name.endswith('.css')" rel="stylesheet" type="text/css"
+             href=":url(name)"/>
        <script if="name.endswith('.js')" type="text/javascript"
                src=":url(name)"></script>
       </x>
@@ -154,7 +153,7 @@ class AbstractWrapper(object):
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
-            style=":url('%s.png' % bannerName, bg=True)">
+            style=":url(bannerName, bg=True) + '; background-repeat:no-repeat'">
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
@@ -188,14 +187,14 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The message strip -->
-       <tr valign="top">
-        <td><div style="position: relative">:tool.pxMessage</div></td>
+       <tr height="0px">
+        <td><div style="position:relative">:tool.pxMessage</div></td>
        </tr>
 
        <!-- The user strip -->
-       <tr>
+       <tr height="33px">
         <td>
-         <table class="userStrip" width="100%">
+         <table class="userStrip">
           <tr>
            <!-- The user login form for anonymous users -->
            <td align="center"
@@ -257,12 +256,12 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The navigation strip -->
-       <tr if="zobj and showPortlet and (layoutType != 'edit')">
+       <tr height="26px" if="zobj and showPortlet and (layoutType != 'edit')">
         <td>:obj.pxNavigationStrip</td>
        </tr>
        <tr>
         <td>
-         <table width="100%" cellpadding="0" cellspacing="0">
+         <table width="100%" height="100%" cellpadding="0" cellspacing="0">
           <tr valign="top">
            <!-- The portlet -->
            <td if="showPortlet" class="portlet">:tool.pxPortlet</td>
@@ -273,7 +272,7 @@ class AbstractWrapper(object):
         </td>
        </tr>
        <!-- Footer -->
-       <tr><td>:tool.pxFooter</td></tr>
+       <tr height="26px"><td>:tool.pxFooter</td></tr>
       </table>
      </body>
     </html>''', prologue=Px.xhtmlPrologue)

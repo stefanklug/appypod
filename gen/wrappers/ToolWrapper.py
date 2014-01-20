@@ -304,7 +304,7 @@ class ToolWrapper(AbstractWrapper):
      </table>''')
 
     pxHome = Px('''
-     <table width="300px" height="240px" align="center">
+     <table>
       <tr valign="middle">
        <td align="center">::_('front_page_text')</td>
       </tr>

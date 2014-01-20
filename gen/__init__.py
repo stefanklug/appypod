@@ -152,6 +152,9 @@ class Config:
        class Config(appy.gen.Config):
            langages = ('en', 'fr')
     '''
+    # What skin to use for the web interface? Appy has 2 skins: the default
+    # one (with a fixed width) and the "wide" skin (takes the whole page width).
+    skin = None # None means: the default one. Could be "wide".
     # For every language code that you specify in this list, appy.gen will
     # produce and maintain translation files.
     languages = ['en']

@@ -1,5 +1,6 @@
+html { height: 100% }
 body { font: 75% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
-       background-color: #EAEAEA; margin-top: 18px }
+       height: 100%; background-color: #EAEAEA; margin-top: 18px }
 pre { font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
       margin: 0 }
 h1 { font-size: 14pt; margin:6px 0 6px 0 }
@@ -51,16 +52,17 @@ img { border: 0; vertical-align: middle }
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
-.main { width: 900px; background-color: white; box-shadow: 3px 3px 3px #A9A9A9;
-        border-style: solid; border-width: 1px; border-color: grey }
-.top { height: 89px; margin-left: 3em; vertical-align: top }
+.main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9;
+        border-style: solid; border-width: 1px; border-color: grey}
+.top { height: 89px; margin-left: 3em; vertical-align: top;
+       background-color: white }
 .lang { margin-right: 6px }
 .userStrip { background-color: #6282B3; border-top: 3px solid #034984;
-             border-bottom: 2px solid #034984 }
+             border-bottom: 2px solid #034984; width: 100%; height: 100% }
 .userStripText { padding: 0 0.3em 0 0.3em; color: white }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
-.navigate { border-bottom: 1px solid #5F7983;
+.navigate { border-bottom: 1px solid #5F7983; height: 100%;
             background-color: #dbdde1; font-weight: bold }
 .navigate td { padding: 4px 9px }
 .login { margin: 3px; color: black }
@@ -68,9 +70,9 @@ img { border: 0; vertical-align: middle }
           cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
           background-color: transparent !important }
 .buttons { margin-left: 4px }
-.message { position: absolute; top: -40px; left: 150px; font-size: 90%;
+.message { position: absolute; top: -40px; left: 50%; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
-           background-color: #F9EDBE; text-align: center;
+           background-color: #F9EDBE; text-align: center; margin-left: -300px;
            border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9 }
 .focus { font-size: 90%; margin: 7px 0 7px 0; padding: 7px;
          background-color: #d7dee4; border-radius: 2px 2px 2px 2px;
@@ -135,7 +137,7 @@ img { border: 0; vertical-align: middle }
 .topSpace { margin-top: 15px }
 .bottomSpace { margin-bottom: 15px }
 .pageLink { margin-right: 8px }
-.footer { font-size: 95% }
+.footer { font-size: 95%; height: 100% }
 .footer td { background-color: #CBCBC9; border-top: 1px solid grey;
              padding: 0.4em 1em 0.5em }
 .code { font-family: "Lucida Console","Courier New" }
