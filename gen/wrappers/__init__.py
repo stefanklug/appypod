@@ -192,7 +192,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The user strip -->
-       <tr height="33px">
+       <tr height="28px">
         <td>
          <table class="userStrip">
           <tr>
@@ -259,7 +259,7 @@ class AbstractWrapper(object):
        <tr height="26px" if="zobj and showPortlet and (layoutType != 'edit')">
         <td>:obj.pxNavigationStrip</td>
        </tr>
-       <tr>
+       <tr valign="top">
         <td>
          <table width="100%" height="100%" cellpadding="0" cellspacing="0">
           <tr valign="top">

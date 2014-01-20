@@ -40,6 +40,8 @@ CUSTOM_CONVERSION_ERROR = 'Custom converter for "%s" values produced an ' \
                           'error while converting value "%s". %s'
 XML_SPECIAL_CHARS = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
                      "'": '&apos;'}
+XML_SPECIAL_CHARS_NO_APOS = XML_SPECIAL_CHARS.copy()
+del XML_SPECIAL_CHARS_NO_APOS["'"]
 XML_ENTITIES = {'lt': '<', 'gt': '>', 'amp': '&', 'quot': '"', 'apos': "'"}
 HTML_ENTITIES = {
         'iexcl': '¡',  'cent': '¢', 'pound': '£', 'curren': '€', 'yen': '¥',
@@ -81,8 +83,9 @@ def escapeXml(s, format='xml', nsText='text'):
         res = ''
     odf = format == 'odf'
     for c in s:
-        if XML_SPECIAL_CHARS.has_key(c):
-            res += XML_SPECIAL_CHARS[c]
+        if XML_SPECIAL_CHARS_NO_APOS.has_key(c):
+            # We do not escape 'apos': there is no particular need for that.
+            res += XML_SPECIAL_CHARS_NO_APOS[c]
         elif odf and (c == '\n'):
             res += '<%s:line-break/>' % nsText
         elif odf and (c == '\r'):
@@ -99,8 +102,8 @@ def escapeXhtml(s):
     else:
         res = ''
     for c in s:
-        if XML_SPECIAL_CHARS.has_key(c):
-            res += XML_SPECIAL_CHARS[c]
+        if XML_SPECIAL_CHARS_NO_APOS.has_key(c):
+            res += XML_SPECIAL_CHARS_NO_APOS[c]
         elif c == '\n':
             res += '<br/>'
         elif c == '\r':
