@@ -3,7 +3,7 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, sys, types, urllib, cgi
+import os, os.path, re, sys, types, urllib, cgi
 from appy import Object
 from appy.px import Px
 from appy.fields.workflow import UiTransition
@@ -11,10 +11,13 @@ import appy.gen as gen
 from appy.gen.utils import *
 from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
-from appy.shared.utils import sequenceTypes,normalizeText,Traceback,getMimeType
+from appy.shared import utils as sutils
 from appy.shared.data import rtlLanguages
 from appy.shared.xml_parser import XmlMarshaller
 from appy.shared.diff import HtmlDiff
+
+# ------------------------------------------------------------------------------
+NUMBERED_ID = re.compile('.+\d{4}$')
 
 # ------------------------------------------------------------------------------
 class BaseMixin:
@@ -135,6 +138,11 @@ class BaseMixin:
                 field.back.unlinkObject(obj, self, back=True)
         # Uncatalog the object
         self.reindex(unindex=True)
+        # Delete the filesystem folder corresponding to this object
+        folder = os.path.join(*self.getFsFolder())
+        if os.path.exists(folder):
+            sutils.FolderDeleter.delete(folder)
+            sutils.FolderDeleter.deleteEmpty(os.path.dirname(folder))
         # Delete the object
         self.getParentNode().manage_delObjects([self.id])
 
@@ -209,6 +217,39 @@ class BaseMixin:
         appName = tool.getAppName()
         obj = createObject(tool.getPath('/temp_folder'), id, className, appName)
         return self.goto(obj.getUrl(**urlParams))
+
+    def getDbFolder(self):
+        '''Gets the folder, on the filesystem, where the database (Data.fs and
+           sub-folders) lies.'''
+        return os.path.dirname(self.getTool().getApp()._p_jar.db().getName())
+        
+    def getFsFolder(self, create=False):
+        '''Gets the folder where binary files tied to this object will be stored
+           on the filesystem. If p_create is True and the folder does not exist,
+           it is created (together with potentially missing parent folders).
+           This folder is returned as a tuple (s_baseDbFolder, s_subPath).'''
+        objId = self.id
+        # Get the root folder where Data.fs lies.
+        dbFolder = self.getDbFolder()
+        # Build the list of path elements within this db folder.
+        path = []
+        inConfig = False
+        for elem in self.getPhysicalPath():
+            if not elem: continue
+            if elem == 'data': continue
+            if elem == 'config': inConfig = True
+            if not path or ((len(path) == 1) and inConfig):
+                # This object is at the root of the filesystem.
+                if NUMBERED_ID.match(elem):
+                    path.append(elem[-4:])
+            path.append(elem)
+            # We are done if elem corresponds to the object id.
+            if elem == objId: break
+        path = os.sep.join(path)
+        if create:
+            fullPath = os.path.join(dbFolder, path)
+            if not os.path.exists(fullPath): os.makedirs(fullPath)
+        return dbFolder, path
 
     def view(self):
         '''Returns the view PX.'''
@@ -504,7 +545,7 @@ class BaseMixin:
                 else:
                     res = XmlMarshaller().marshall(methodRes, objectType='appy')
             except Exception, e:
-                tb = Traceback.get()
+                tb = sutils.Traceback.get()
                 res = XmlMarshaller().marshall(tb, objectType='appy')
         return res
 
@@ -1132,7 +1173,7 @@ class BaseMixin:
         elif resultType.startswith('file'):
             # msg does not contain a message, but a file instance.
             response = self.REQUEST.RESPONSE
-            response.setHeader('Content-Type', getMimeType(msg.name))
+            response.setHeader('Content-Type', sutils.getMimeType(msg.name))
             response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
                                os.path.basename(msg.name))
             response.write(msg.read())
@@ -1218,7 +1259,7 @@ class BaseMixin:
 
     def SortableTitle(self):
         '''Returns the title as must be stored in index "SortableTitle".'''
-        return normalizeText(self.Title())
+        return sutils.normalizeText(self.Title())
 
     def SearchableText(self):
         '''This method concatenates the content of every field with
@@ -1522,17 +1563,10 @@ class BaseMixin:
            (not appyType.isShowable(self, 'result')):
             from zExceptions import NotFound
             raise NotFound()
-        theFile = getattr(self.aq_base, name, None)
-        if theFile:
-            response = self.REQUEST.RESPONSE
-            response.setHeader('Content-Disposition', 'inline;filename="%s"' % \
-                               theFile.filename)
-            # Define content type
-            if theFile.content_type:
-                response.setHeader('Content-Type', theFile.content_type)
-            response.setHeader('Cachecontrol', 'no-cache')
-            response.setHeader('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
-            return theFile.index_html(self.REQUEST, self.REQUEST.RESPONSE)
+        info = getattr(self.aq_base, name, None)
+        if info:
+            # Write the file in the HTTP response.
+            info.writeResponse(self.REQUEST.RESPONSE, self.getDbFolder())
 
     def upload(self):
         '''Receives an image uploaded by the user via ckeditor and stores it in

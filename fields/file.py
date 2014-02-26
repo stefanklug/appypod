@@ -16,36 +16,189 @@
 
 # ------------------------------------------------------------------------------
 import time, os.path, mimetypes
+from DateTime import DateTime
 from appy import Object
 from appy.fields import Field
 from appy.px import Px
 from appy.shared import utils as sutils
+from appy.shared import UnmarshalledFile, mimeTypesExts
+
+# ------------------------------------------------------------------------------
+WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
+    '2-tuple (fileName, fileContent) or a 3-tuple (fileName, fileContent, ' \
+    'mimeType).'
+
+# ------------------------------------------------------------------------------
+class FileInfo:
+    '''For a "file" field, its binary content is stored on the filesystem.
+       Within the database, we store a FileInfo instance that only stores some
+       metadata.'''
+    BYTES = 5000
+    def __init__(self, fsPath):
+        # The path on disk (from the root DB folder) where the file will be
+        # stored.
+        self.fsPath = fsPath
+        self.fsName = None # The name of the file in fsPath
+        self.uploadName = None # The name of the uploaded file
+        self.size = 0 # Its size, in bytes
+        self.mimeType = None # Its MIME type
+        self.modified = None # The last modification date for this file.
+
+    def removeFile(self, dbFolder, removeEmptyFolders=False):
+        '''Removes the file from the filesystem.'''
+        try:
+            os.remove(os.path.join(dbFolder, self.fsPath, self.fsName))
+        except Exception, e:
+            # If the current ZODB transaction is re-triggered, the file may
+            # already have been deleted.
+            pass
+        # Don't leave empty folders on disk. So delete folder and parent folders
+        # if this removal leaves them empty (unless p_removeEmptyFolders is
+        # False).
+        if removeEmptyFolders:
+            sutils.FolderDeleter.deleteEmpty(os.path.join(dbFolder,self.fsPath))
+
+    def normalizeFileName(self, name):
+        '''Normalizes file p_name.'''
+        return name[max(name.rfind('/'), name.rfind('\\'), name.rfind(':'))+1:]
+
+    def getShownSize(self):
+        '''Displays this file's size in the user interface.'''
+        if self.size < 1024:
+            # Display the size in bytes
+            return '%d byte(s)' % self.size
+        else:
+            # Display the size in Kb
+            return '%d Kb' % (self.size / 1024)
+
+    def replicateFile(self, src, dest):
+        '''p_src and p_dest are open file handlers. This method copies content
+           of p_src to p_dest and returns the file size.'''
+        size = 0
+        while True:
+            chunk = src.read(self.BYTES)
+            if not chunk: break
+            size += len(chunk)
+            dest.write(chunk)
+        return size
+
+    def writeFile(self, fieldName, fileObj, dbFolder):
+        '''Writes to the filesystem the p_fileObj file, that can be:
+           - a Zope FileUpload (coming from a HTTP post);
+           - a OFS.Image.File object (legacy within-ZODB file object);
+           - a tuple (fileName, fileContent, mimeType)
+             (see doc in method File.store below).'''
+        # Determine p_fileObj's type.
+        fileType = fileObj.__class__.__name__
+        # Set MIME type.
+        if fileType == 'FileUpload':
+            mimeType = fileObj.headers.get('content-type')
+        elif fileType == 'File':
+            mimeType = fileObj.content_type
+        else:
+            mimeType = fileObj[2]
+        self.mimeType = mimeType or File.defaultMimeType
+        # Determine the original name of the file to store.
+        fileName= fileType.startswith('File') and fileObj.filename or fileObj[0]
+        if not fileName:
+            # Name it according to field name. Deduce file extension from the
+            # MIME type.
+            ext = (self.mimeType in mimeTypesExts) and \
+                  mimeTypesExts[self.mimeType] or 'bin'
+            fileName = '%s.%s' % (fieldName, ext)
+        # As a preamble, extract file metadata from p_fileObj and store it in
+        # this FileInfo instance.
+        name = self.normalizeFileName(fileName)
+        self.uploadName = name
+        self.fsName = '%s%s' % (fieldName, os.path.splitext(name)[1].lower())
+        # Write the file on disk (and compute/get its size in bytes)
+        fsName = os.path.join(dbFolder, self.fsPath, self.fsName)
+        f = file(fsName, 'wb')
+        if fileType == 'FileUpload':
+            # Write the FileUpload instance on disk.
+            self.size = self.replicateFile(fileObj, f)
+        elif fileType == 'File':
+            # Write the File instance on disk.
+            if fileObj.data.__class__.__name__ == 'Pdata':
+                # The file content is splitted in several chunks.
+                f.write(fileObj.data.data)
+                nextPart = fileObj.data.next
+                while nextPart:
+                    f.write(nextPart.data)
+                    nextPart = nextPart.next
+            else:
+                # Only one chunk
+                f.write(fileObj.data)
+            self.size = fileObj.size
+        else:
+            # Write fileObj[1] on disk.
+            if fileObj[1].__class__.__name__ == 'file':
+                # It is an open file handler.
+                self.size = self.replicateFile(fileObj[1], f)
+            else:
+                # We have file content directly in fileObj[1]
+                self.size = len(fileObj[1])
+                f.write(fileObj[1])
+        f.close()
+        self.modified = DateTime()
+
+    def copyFile(self, fieldName, filePath, dbFolder):
+        '''Copies the "external" file stored at _filePath in the db-controlled
+           file system, for storing a value for p_fieldName.'''
+        # Set names for the file
+        name = self.normalizeFileName(filePath)
+        self.uploadName = name
+        self.fsName = '%s%s' % (fieldName, os.path.splitext(name)[1])
+        # Set mimeType
+        self.mimeType= mimetypes.guess_type(filePath)[0] or File.defaultMimeType
+        # Copy the file
+        shutil.copyfile(filePath, self.fsName)
+        self.modified = DateTime()
+        self.size = os.stat(self.fsName).st_size
+
+    def writeResponse(self, response, dbFolder):
+        '''Writes this file in the HTTP p_response object.'''
+        # As a preamble, initialise response headers.
+        header = response.setHeader
+        header('Content-Disposition', 'inline;filename="%s"' % self.uploadName)
+        header('Content-Type', self.mimeType)
+        header('Content-Length', self.size)
+        header('Accept-Ranges', 'bytes')
+        header('Last-Modified', self.modified.rfc822())
+        #sh('Cachecontrol', 'no-cache')
+        #sh('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
+        # Write the file in the response
+        fsName = os.path.join(dbFolder, self.fsPath, self.fsName)
+        f = file(fsName, 'rb')
+        while True:
+            chunk = f.read(self.BYTES)
+            if not chunk: break
+            response.write(chunk)
+        f.close()
 
 # ------------------------------------------------------------------------------
 class File(Field):
 
     pxView = pxCell = Px('''
-     <x var="info=field.getFileInfo(value);
-             empty=not info.size;
-             imgSrc='%s/download?name=%s' % (zobj.absolute_url(), name)">
-      <x if="not empty and not field.isImage">
-       <a href=":imgSrc">:info.filename</a>&nbsp;&nbsp;-
-       <i class="discreet">:'%sKb' % (info.size / 1024)</i>
+     <x var="downloadUrl='%s/download?name=%s' % (zobj.absolute_url(), name);
+             shownSize=value.getShownSize()">
+      <x if="value and not field.isImage">
+       <a href=":downloadUrl">:value.uploadName</a>&nbsp;&nbsp;-
+       <i class="discreet">:shownSize</i>
       </x>
-      <x if="not empty and field.isImage"><img src=":imgSrc"/></x>
-      <x if="empty">-</x>
+      <x if="value and field.isImage">
+       <img src=":downloadUrl"
+            title=":'%s, %s' % (value.uploadName, shownSize)"/></x>
+      <x if="not value">-</x>
      </x>''')
 
     pxEdit = Px('''
-     <x var="info=field.getFileInfo(value);
-             empty= not info.size;
-             fName=q('%s_file' % name)">
-
-      <x if="not empty">:field.pxView</x><br/>
-      <x if="not empty">
+     <x var="fName=q('%s_file' % name)">
+      <x if="value">:field.pxView</x><br if="value"/>
+      <x if="value">
        <!-- Keep the file unchanged. -->
        <input type="radio" value="nochange"
-              checked=":(info.size != 0) and 'checked' or None"
+              checked=":value and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_nochange' % name"
               onclick=":'document.getElementById(%s).disabled=true' % fName"/>
        <label lfor=":'%s_nochange' % name">Keep the file unchanged</label><br/>
@@ -58,7 +211,7 @@ class File(Field):
        </x>
        <!-- Replace with a new file. -->
        <input type="radio" value=""
-              checked=":(info.size == 0) and 'checked' or None"
+              checked=":not value and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_upload' % name"
               onclick=":'document.getElementById(%s).disabled=false' % fName"/>
        <label lfor=":'%s_upload' % name">Replace it with a new file</label><br/>
@@ -66,7 +219,7 @@ class File(Field):
       <!-- The upload field. -->
       <input type="file" name=":'%s_file' % name" id=":'%s_file' % name"
              size=":field.width"/>
-      <script var="isDisabled=empty and 'false' or 'true'"
+      <script var="isDisabled=not value and 'false' or 'true'"
              type="text/javascript">:'document.getElementById(%s).disabled=%s'%\
                                      (q(fName), q(isDisabled))</script></x>''')
 
@@ -93,7 +246,7 @@ class File(Field):
         '''Returns a File instance as can be stored in the database or
            manipulated in code, filled with content from a file on disk,
            located at p_filePath. If you want to give it a name that is more
-           sexy than the actual basename of filePath, specify it in
+           sexy than the actual basename of p_filePath, specify it in
            p_fileName.
 
            If p_zope is True, it will be the raw Zope object = an instance of
@@ -109,15 +262,6 @@ class File(Field):
         f.close()
         if not zope: res = sutils.FileWrapper(res)
         return res
-
-    def getValue(self, obj):
-        value = Field.getValue(self, obj)
-        if value: value = sutils.FileWrapper(value)
-        return value
-
-    def getFormattedValue(self, obj, value, showChanges=False):
-        if not value: return value
-        return value._zopeFile
 
     def getRequestValue(self, request, requestName=None):
         name = requestName or self.name
@@ -151,80 +295,69 @@ class File(Field):
     defaultMimeType = 'application/octet-stream'
     def store(self, obj, value):
         '''Stores the p_value that represents some file. p_value can be:
-           * an instance of Zope class ZPublisher.HTTPRequest.FileUpload. In
-             this case, it is file content coming from a HTTP POST;
-           * an instance of Zope class OFS.Image.File;
-           * an instance of appy.shared.utils.FileWrapper, which wraps an
-             instance of OFS.Image.File and adds useful methods for manipulating
-             it;
-           * a string. In this case, the string represents the path of a file
-             on disk;
-           * a 2-tuple (fileName, fileContent) where:
-             - fileName is the name of the file (ie "myFile.odt")
-             - fileContent is the binary or textual content of the file or an
-                           open file handler.
-           * a 3-tuple (fileName, fileContent, mimeType) where
-             - fileName and fileContent have the same meaning than above;
-             - mimeType is the MIME type of the file.
+           a. an instance of Zope class ZPublisher.HTTPRequest.FileUpload. In
+              this case, it is file content coming from a HTTP POST;
+           b. an instance of Zope class OFS.Image.File (legacy within-ZODB file
+              object);
+           c. an instance of appy.shared.UnmarshalledFile. In this case, the
+              file comes from a peer Appy site, unmarshalled from XML content
+              sent via an HTTP request;
+           d. a string. In this case, the string represents the path of a file
+              on disk;
+           e. a 2-tuple (fileName, fileContent) where:
+              - fileName is the name of the file (ie "myFile.odt")
+              - fileContent is the binary or textual content of the file or an
+                open file handler.
+           f. a 3-tuple (fileName, fileContent, mimeType) where
+              - fileName and fileContent have the same meaning than above;
+              - mimeType is the MIME type of the file.
         '''
+        zobj = obj.o
         if value:
-            ZFileUpload = obj.o.getProductConfig().FileUpload
-            OFSImageFile = obj.o.getProductConfig().File
-            if isinstance(value, ZFileUpload):
-                # The file content comes from a HTTP POST.
-                # Retrieve the existing value, or create one if None
-                existingValue = getattr(obj.aq_base, self.name, None)
-                if not existingValue:
-                    existingValue = OFSImageFile(self.name, '', '')
-                # Set mimetype
-                if value.headers.has_key('content-type'):
-                    mimeType = value.headers['content-type']
-                else:
-                    mimeType = File.defaultMimeType
-                existingValue.content_type = mimeType
-                # Set filename
-                fileName = value.filename
-                filename= fileName[max(fileName.rfind('/'),fileName.rfind('\\'),
-                                       fileName.rfind(':'))+1:]
-                existingValue.filename = fileName
-                # Set content
-                existingValue.manage_upload(value)
-                setattr(obj, self.name, existingValue)
-            elif isinstance(value, OFSImageFile):
-                setattr(obj, self.name, value)
-            elif isinstance(value, sutils.FileWrapper):
-                setattr(obj, self.name, value._zopeFile)
+            # There is a new value to store. Get the folder on disk where to
+            # store the new file.
+            dbFolder, folder = zobj.getFsFolder(create=True)
+            # Remove the previous file if it existed.
+            info = getattr(obj.aq_base, self.name, None)
+            if info: info.removeFile(dbFolder)
+            # Store the new file. As a preamble, create a FileInfo instance.
+            info = FileInfo(folder)
+            cfg = zobj.getProductConfig()
+            if isinstance(value, cfg.FileUpload) or isinstance(value, cfg.File):
+                # Cases a, b
+                info.writeFile(self.name, value, dbFolder)
+            elif isinstance(value, UnmarshalledFile):
+                # Case c
+                fileInfo = (value.name, value.content, value.mimeType)
+                info.writeFile(self.name, fileInfo, dbFolder)
             elif isinstance(value, basestring):
-                setattr(obj, self.name, File.getFileObject(value, zope=True))
-            elif type(value) in sutils.sequenceTypes:
-                # It should be a 2-tuple or 3-tuple
+                # Case d
+                info.copyFile(self.name, value, dbFolder)
+            else:
+                # Cases e, f. Extract file name, content and MIME type.
                 fileName = None
-                mimeType = None
                 if len(value) == 2:
                     fileName, fileContent = value
                 elif len(value) == 3:
                     fileName, fileContent, mimeType = value
-                else:
-                    raise WRONG_FILE_TUPLE
-                if fileName:
-                    fileId = 'file.%f' % time.time()
-                    zopeFile = OFSImageFile(fileId, fileName, fileContent)
-                    zopeFile.filename = fileName
-                    if not mimeType:
-                        mimeType = mimetypes.guess_type(fileName)[0]
-                    zopeFile.content_type = mimeType
-                    setattr(obj, self.name, zopeFile)
+                if not fileName:
+                    raise Exception(WRONG_FILE_TUPLE)
+                mimeType = mimeType or mimetypes.guess_type(fileName)[0]
+                info.writeFile(self.name, (fileName, fileContent, mimeType),
+                               dbFolder)
+            # Store the FileInfo instance in the database.
+            setattr(obj, self.name, info)
         else:
             # I store value "None", excepted if I find in the request the desire
             # to keep the file unchanged.
             action = None
-            rq = getattr(obj, 'REQUEST', None)
+            rq = getattr(zobj, 'REQUEST', None)
             if rq: action = rq.get('%s_delete' % self.name, None)
-            if action == 'nochange': pass
-            else: setattr(obj, self.name, None)
-
-    def getFileInfo(self, fileObject):
-        '''Returns filename and size of p_fileObject.'''
-        if not fileObject: return Object(filename='', size=0)
-        return Object(filename=fileObject.filename, size=fileObject.size)
+            if action != 'nochange':
+                # Delete the file on disk
+                info = getattr(zobj.aq_base, self.name)
+                if info:
+                    info.removeFile(zobj.getDbFolder(), removeEmptyFolders=True)
+                # Delete the FileInfo in the DB
+                setattr(zobj, self.name, None)
 # ------------------------------------------------------------------------------

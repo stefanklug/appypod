@@ -244,6 +244,18 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   else hidden.value = 'False';
 }
 
+// Shows/hides a dropdown menu
+function toggleDropdown(dropdownId, forcedValue){
+  var dropdown = document.getElementById(dropdownId);
+  // Force to p_forcedValue if specified
+  if (forcedValue) {dropdown.style.display = forcedValue}
+  else {
+    var displayValue = dropdown.style.display;
+    if (displayValue == 'block') dropdown.style.display = 'none';
+    else dropdown.style.display = 'block';
+  }
+}
+
 // Function that sets a value for showing/hiding sub-titles.
 function setSubTitles(value, tag) {
   createCookie('showSubTitles', value);

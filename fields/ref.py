@@ -16,6 +16,7 @@
 
 # ------------------------------------------------------------------------------
 import sys, re
+from appy import Object
 from appy.fields import Field
 from appy.px import Px
 from appy.gen.layout import Table
@@ -127,11 +128,127 @@ class Ref(Field):
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 
+    # PX that displays referred objects as a list.
+    pxViewList = Px('''<x>
+     <!-- Display a simplified widget if at most 1 referenced object. -->
+     <table if="atMostOneRef">
+      <tr valign="top">
+       <!-- If there is no object -->
+       <x if="not zobjects">
+        <td class="discreet">:_('no_ref')</td>
+        <td>:field.pxAdd</td>
+       </x>
+       <!-- If there is an object -->
+       <x if="zobjects">
+        <td for="ztied in zobjects"
+            var2="includeShownInfo=True">:field.pxObjectTitle</td>
+       </x>
+      </tr>
+     </table>
+
+     <!-- Display a table in all other cases -->
+     <x if="not atMostOneRef">
+      <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
+       (<x>:totalNumber</x>)
+       <x>:field.pxAdd</x>
+       <!-- The search button if field is queryable -->
+       <input if="zobjects and field.queryable" type="button" class="button"
+              style=":url('buttonSearch', bg=True)" value=":_('search_title')"
+              onclick=":'goto(%s)' % \
+                q('%s/search?className=%s&amp;ref=%s:%s' % \
+                (ztool.absolute_url(), tiedClassName, zobj.UID(), \
+                 field.name))"/>
+      </div>
+
+      <!-- (Top) navigation -->
+      <x>:tool.pxNavigate</x>
+
+      <!-- No object is present -->
+      <p class="discreet" if="not zobjects">:_('no_ref')</p>
+
+      <table if="zobjects" class=":innerRef and 'innerAppyTable' or ''"
+             width="100%">
+       <tr valign="bottom">
+        <td>
+         <!-- Show forward or backward reference(s) -->
+         <table class=":not innerRef and 'list' or ''"
+                width=":innerRef and '100%' or field.layouts['view'].width"
+                var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                       field.shownInfo, dir)">
+          <tr if="field.showHeaders">
+           <th for="column in columns" width=":column.width"
+               align="column.align" var2="refField=column.field">
+            <span>:_(refField.labelId)</span>
+            <x>:field.pxSortIcons</x>
+            <x var="className=tiedClassName">:tool.pxShowDetails</x>
+           </th>
+          </tr>
+          <tr for="ztied in zobjects" valign="top"
+              class=":loop.ztied.odd and 'even' or 'odd'">
+           <td for="column in columns"
+               width=":column.width" align=":column.align"
+               var2="refField=column.field">
+            <!-- The "title" field -->
+            <x if="refField.name == 'title'">
+             <x>:field.pxObjectTitle</x>
+             <div if="ztied.mayAct()">:field.pxObjectActions</div>
+            </x>
+            <!-- Any other field -->
+            <x if="refField.name != 'title'">
+             <x var="zobj=ztied; obj=ztied.appy(); layoutType='cell';
+                     innerRef=True; field=refField"
+                if="zobj.showField(field.name, \
+                                   layoutType='result')">:field.pxRender</x>
+            </x>
+           </td>
+          </tr>
+         </table>
+        </td>
+       </tr>
+      </table>
+
+      <!-- (Bottom) navigation -->
+      <x>:tool.pxNavigate</x>
+     </x></x>''')
+
+    # PX that displays referred objects as menus.
+    pxViewMenus = Px('''
+     <table><tr style="font-size: 93%">
+      <td for="menu in field.getLinkedObjectsByMenu(obj, zobjects)">
+
+       <!-- A single object in the menu: show a clickable icon to get it -->
+       <a if="len(menu.zobjects)==1" var2="ztied=menu.zobjects[0]"
+          class="dropdownMenu" href=":field.getMenuUrl(zobj, ztied)"
+          title=":ztied.title">
+        <img if="menu.icon" src=":menu.icon"/><x
+             if="not menu.icon">:menu.text</x> 1</a>
+
+       <!-- Several objects: put them in a dropdown menu -->
+       <div if="len(menu.zobjects) &gt; 1" class="dropdownMenu"
+            var2="dropdownId='%s_%d' % (zobj.UID(), loop.menu.nb)"
+            onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
+            onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
+        <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x
+             if="not menu.icon">:menu.text</x>
+        <!-- Display the number of objects in the menu (if more than one) -->
+        <x if="len(menu.zobjects) &gt; 1">:len(menu.zobjects)</x>
+        <!-- The dropdown menu containing annexes -->
+        <div class="dropdown" id=":dropdownId">
+         <div for="ztied in menu.zobjects"
+              var2="ztiedUrl=field.getMenuUrl(zobj, ztied)">
+          <a href=":ztiedUrl">:ztied.title</a>
+         </div>
+        </div>
+       </div>
+      </td>
+     </tr></table>''')
+
     # PX that displays referred objects through this field.
-    pxView = pxCell = Px('''
+    pxView = Px('''
      <div var="innerRef=req.get('innerRef', False) == 'True';
                ajaxHookId=zobj.UID() + field.name;
-               startNumber=int(req.get('%s_startNumber' % ajaxHookId, 0));
+               render=render|'list';
+               startNumber=field.getStartNumber(render, req, ajaxHookId);
                info=field.getLinkedObjects(zobj, startNumber);
                zobjects=info.objects;
                totalNumber=info.totalNumber;
@@ -151,92 +268,17 @@ class Ref(Field):
                changeOrder=field.changeOrderEnabled(zobj);
                showSubTitles=req.get('showSubTitles', 'true') == 'true'"
           id=":ajaxHookId">
-
       <!-- The definition of "atMostOneRef" above may sound strange: we
            shouldn't check the actual number of referenced objects. But for
            back references people often forget to specify multiplicities. So
            concretely, multiplicities (0,None) are coded as (0,1). -->
-      <!-- Display a simplified widget if at most 1 referenced object. -->
-      <table if="atMostOneRef">
-       <tr valign="top">
-        <!-- If there is no object -->
-        <x if="not zobjects">
-         <td class="discreet">:_('no_ref')</td>
-         <td>:field.pxAdd</td>
-        </x>
-        <!-- If there is an object -->
-        <x if="zobjects">
-         <td for="ztied in zobjects"
-             var2="includeShownInfo=True">:field.pxObjectTitle</td>
-        </x>
-       </tr>
-      </table>
 
-      <!-- Display a table in all other cases -->
-      <x if="not atMostOneRef">
-       <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
-        (<x>:totalNumber</x>)
-        <x>:field.pxAdd</x>
-        <!-- The search button if field is queryable -->
-        <input if="zobjects and field.queryable" type="button" class="button"
-               style=":url('buttonSearch', bg=True)" value=":_('search_title')"
-               onclick=":'goto(%s)' % \
-                 q('%s/search?className=%s&amp;ref=%s:%s' % \
-                 (ztool.absolute_url(), tiedClassName, zobj.UID(), \
-                  field.name))"/>
-       </div>
-
-       <!-- (Top) navigation -->
-       <x>:tool.pxNavigate</x>
-
-       <!-- No object is present -->
-       <p class="discreet" if="not zobjects">:_('no_ref')</p>
-
-       <table if="zobjects" class=":innerRef and 'innerAppyTable' or ''"
-              width="100%">
-        <tr valign="bottom">
-         <td>
-          <!-- Show forward or backward reference(s) -->
-          <table class=":not innerRef and 'list' or ''"
-                 width=":innerRef and '100%' or field.layouts['view'].width"
-                 var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                        field.shownInfo, dir)">
-           <tr if="field.showHeaders">
-            <th for="column in columns" width=":column.width"
-                align="column.align" var2="refField=column.field">
-             <span>:_(refField.labelId)</span>
-             <x>:field.pxSortIcons</x>
-             <x var="className=tiedClassName">:tool.pxShowDetails</x>
-            </th>
-           </tr>
-           <tr for="ztied in zobjects" valign="top"
-               class=":loop.ztied.odd and 'even' or 'odd'">
-            <td for="column in columns"
-                width=":column.width" align=":column.align"
-                var2="refField=column.field">
-             <!-- The "title" field -->
-             <x if="refField.name == 'title'">
-              <x>:field.pxObjectTitle</x>
-              <div if="ztied.mayAct()">:field.pxObjectActions</div>
-             </x>
-             <!-- Any other field -->
-             <x if="refField.name != 'title'">
-              <x var="zobj=ztied; obj=ztied.appy(); layoutType='cell';
-                      innerRef=True; field=refField"
-                 if="zobj.showField(field.name, \
-                                    layoutType='result')">:field.pxRender</x>
-             </x>
-            </td>
-           </tr>
-          </table>
-         </td>
-        </tr>
-       </table>
-
-       <!-- (Bottom) navigation -->
-       <x>:tool.pxNavigate</x>
-      </x>
+      <x if="render == 'list'">:field.pxViewList</x>
+      <x if="render == 'menus'">:field.pxViewMenus</x>
      </div>''')
+
+    # The "menus" render mode is only applicable in "cell", not in "view".
+    pxCell = Px('''<x var="render=field.render">:field.pxView</x>''')
 
     pxEdit = Px('''
      <select if="field.link"
@@ -287,7 +329,9 @@ class Ref(Field):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, searchSelect=None, changeOrder=True,
-                 sdefault='', scolspan=1, swidth=None, sheight=None):
+                 sdefault='', scolspan=1, swidth=None, sheight=None,
+                 render='list', menuIdMethod=None, menuInfoMethod=None,
+                 menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -361,6 +405,29 @@ class Ref(Field):
         # If changeOrder is False, it even if the user has the right to modify
         # the field, it will not be possible to move objects or sort them.
         self.changeOrder = changeOrder
+        # There are different ways to render a bunch of linked objects:
+        # - "list" (the default) renders them as a list (=a XHTML table);
+        # - "menus" renders them as a series of popup menus, grouped by type.
+        # Note that render mode "menus" will only be applied in "cell" layouts.
+        # Indeed, we need to keep the "list" rendering in the "view" layout
+        # because the "menus" rendering is minimalist and does not allow to
+        # perform all operations on Ref objects (add, move, delete, edit...).
+        self.render = render
+        # If render is 'menus', 2 methods must be provided.
+        # "menuIdMethod" will be called, with every linked object as single arg,
+        # and must return an ID that identifies the menu into which the object
+        # will be inserted.
+        self.menuIdMethod = menuIdMethod
+        # "menuInfoMethod" will be called with every collected menu ID (from
+        # calls to the previous method) to get info about this menu. This info
+        # must be a tuple (text, icon):
+        # - "text" is the menu name;
+        # - "icon" (can be None) gives the URL of an icon, if you want to render
+        #   the menu as an icon instead of a text.
+        self.menuInfoMethod = menuInfoMethod
+        # "menuUrlMethod" is an optional method that allows to compute an
+        # alternative URL for the tied object that is shown within the menu.
+        self.menuUrlMethod = menuUrlMethod
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
@@ -447,6 +514,54 @@ class Ref(Field):
            p_startNumber.'''
         return self.getValue(obj, type='zobjects', someObjects=True,
                              startNumber=startNumber)
+
+    def getLinkedObjectsByMenu(self, obj, zobjects):
+        '''This method groups p_zobjects into sub-lists of objects, grouped by
+           menu (happens when self.render == 'menus').'''
+        res = []
+        # We store in "menuIds" the already encountered menus:
+        # ~{s_menuId : i_indexInRes}~
+        menuIds = {}
+        # Browse every object from p_zobjects and put them in their menu
+        # (within "res").
+        for zobj in zobjects:
+            menuId = self.menuIdMethod(obj, zobj.appy())
+            if menuId in menuIds:
+                # We have already encountered this menu.
+                menuIndex = menuIds[menuId]
+                res[menuIndex].zobjects.append(zobj)
+            else:
+                # A new menu.
+                menu = Object(id=menuId, zobjects=[zobj])
+                res.append(menu)
+                menuIds[menuId] = len(res) - 1
+        # Complete information about every menu by calling self.menuInfoMethod
+        for menu in res:
+            text, icon = self.menuInfoMethod(obj, menu.id)
+            menu.text = text
+            menu.icon = icon
+        return res
+
+    def getMenuUrl(self, zobj, ztied):
+        '''We must provide the URL of the tied object p_ztied, when shown in a
+           Ref field in render mode 'menus'. If self.menuUrlMethod is specified,
+           use it. Else, returns the "normal" URL of the view page for the tied
+           object, but without any navigation information, because in this
+           render mode, tied object's order is lost and navigation is
+           impossible.'''
+        if self.menuUrlMethod:
+            return self.menuUrlMethod(zobj.appy(), ztied.appy())
+        return ztied.getUrl(nav='')
+
+    def getStartNumber(self, render, req, ajaxHookId):
+        '''This method returns the index of the first linked object that must be
+           shown, or None if all linked objects must be shown at once (it
+           happens when p_render is "menus").'''
+        # When using 'menus' render mode, all linked objects must be shown.
+        if render == 'menus': return
+        # When using 'list' (=default) render mode, the index of the first
+        # object to show is in the request.
+        return int(req.get('%s_startNumber' % ajaxHookId, 0))
 
     def getFormattedValue(self, obj, value, showChanges=False):
         return value

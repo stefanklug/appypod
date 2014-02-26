@@ -23,6 +23,7 @@ sequenceTypes = (list, tuple)
 
 # ------------------------------------------------------------------------------
 class FolderDeleter:
+    @staticmethod
     def delete(dirName):
         '''Recursively deletes p_dirName.'''
         dirName = os.path.abspath(dirName)
@@ -32,7 +33,19 @@ class FolderDeleter:
             for name in dirs:
                 os.rmdir(os.path.join(root, name))
         os.rmdir(dirName)
-    delete = staticmethod(delete)
+
+    @staticmethod
+    def deleteEmpty(dirName):
+        '''Deletes p_dirName and its parent dirs if they are empty.'''
+        while True:
+            try:
+                if not os.listdir(dirName):
+                    os.rmdir(dirName)
+                    dirName = os.path.dirname(dirName)
+                else:
+                    break
+            except OSError, oe:
+                break
 
 # ------------------------------------------------------------------------------
 extsToClean = ('.pyc', '.pyo', '.fsz', '.deltafsz', '.dat', '.log')

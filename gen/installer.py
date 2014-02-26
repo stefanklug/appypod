@@ -169,6 +169,9 @@ class ZopeInstaller:
         appyTool = tool.appy()
         appyTool.log('Appy version is "%s".' % appy.version.short)
 
+        # Execute custom pre-installation code if any.
+        if hasattr(appyTool, 'beforeInstall'): appyTool.beforeInstall()
+
         # Create the default users if they do not exist.
         for login, roles in self.defaultUsers.iteritems():
             if not appyTool.count('User', noSecurity=True, login=login):

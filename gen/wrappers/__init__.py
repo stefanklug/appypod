@@ -14,9 +14,6 @@ from appy.shared.xml_parser import XmlMarshaller
 from appy.shared.csv_parser import CsvMarshaller
 
 # Some error messages ----------------------------------------------------------
-WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
-    '2-tuple (fileName, fileContent) or a 3-tuple (fileName, fileContent, ' \
-    'mimeType).'
 FREEZE_ERROR = 'Error while trying to freeze a "%s" file in POD field ' \
     '"%s" (%s).'
 FREEZE_FATAL_ERROR = 'A server error occurred. Please contact the system ' \

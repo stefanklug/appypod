@@ -43,13 +43,14 @@ class Computed(Field):
     </x>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
-                 show='view', page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, method=None, plainText=False,
-                 master=None, masterValue=None, focus=False, historized=False,
-                 sync=True, mapping=None, label=None, sdefault='', scolspan=1,
-                 swidth=None, sheight=None, context=None):
+                 show=('view', 'result'), page='main', group=None,
+                 layouts=None, move=0, indexed=False, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, method=None,
+                 plainText=False, master=None, masterValue=None, focus=False,
+                 historized=False, sync=True, mapping=None, label=None,
+                 sdefault='', scolspan=1, swidth=None, sheight=None,
+                 context=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         # Does field computation produce plain text or XHTML?
