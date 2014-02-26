@@ -470,6 +470,11 @@ class ToolMixin(BaseMixin):
         if wrapper: return zopeClass.wrapperClass
         else: return zopeClass.wrapperClass.__bases__[-1]
 
+    def getAllClassNames(self):
+        '''Returns the name of all classes within this app, including default
+           Appy classes (Tool, Translation, Page, etc).'''
+        return self.getProductConfig().allClassNames + [self.__class__.__name__]
+
     def getCreateMeans(self, klass):
         '''Gets the different ways objects of p_klass can be created (via a web
            form, by importing external data, etc). Result is a dict whose keys

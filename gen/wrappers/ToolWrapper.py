@@ -1,11 +1,10 @@
 # ------------------------------------------------------------------------------
 import os.path, time
 import appy
-from appy.gen.mail import sendMail
-from appy.shared.utils import executeCommand
-from appy.gen.wrappers import AbstractWrapper
 from appy.px import Px
-
+from appy.gen.mail import sendMail
+from appy.gen.wrappers import AbstractWrapper
+from appy.shared.utils import executeCommand
 # ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
 
@@ -233,7 +232,7 @@ class ToolWrapper(AbstractWrapper):
         </x>
 
         <!-- Predefined searches -->
-        <x for="search in searchInfo.searches">
+        <x for="search in searchInfo.searches" var2="field=search">
          <x if="search.type == 'group'">:search.px</x>
          <x if="search.type != 'group'">:search.pxView</x>
         </x>

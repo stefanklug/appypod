@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import time
+from appy.fields.file import FileInfo
 
 # ------------------------------------------------------------------------------
 class Migrator:
@@ -11,13 +12,36 @@ class Migrator:
         self.app = installer.app
         self.tool = self.app.config.appy()
 
+    @staticmethod
+    def migrateFileFields(obj):
+        '''Ensures all file fields on p_obj are FileInfo instances.'''
+        migrated = 0 # Count the number of migrated fields
+        for field in obj.fields:
+            if field.type != 'File': continue
+            oldValue = getattr(obj, field.name)
+            if oldValue and not isinstance(oldValue, FileInfo):
+                # A legacy File object. Convert it to a FileInfo instance and
+                # extract the binary to the filesystem.
+                setattr(obj, field.name, oldValue)
+                migrated += 1
+        return migrated
+
     def migrateTo_0_9_0(self):
         '''Migrates this DB to Appy 0.9.x.'''
-        pass
+        # Put all binaries to the filesystem
+        tool = self.tool
+        tool.log('Migrating file fields...')
+        context = {'migrate': self.migrateFileFields, 'nb': 0}
+        for className in tool.o.getAllClassNames():
+            tool.compute(className, context=context, noSecurity=True,
+                         expression="ctx['nb'] += ctx['migrate'](obj)")
+        tool.log('Migrated %d File field(s).' % context['nb'])
 
-    def run(self):
+    def run(self, force=False):
+        '''Executes a migration when relevant, or do it for sure if p_force is
+           True.'''
         appyVersion = self.tool.appyVersion
-        if not appyVersion or (appyVersion < '0.9.0'):
+        if force or not appyVersion or (appyVersion < '0.9.0'):
             # Migration is required.
             startTime = time.time()
             self.migrateTo_0_9_0()

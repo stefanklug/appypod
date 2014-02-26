@@ -306,7 +306,7 @@ class UiGroup:
       <!-- Group content -->
       <div var="display=expanded and 'display:block' or 'display:none'"
            id=":field.labelId" style=":'padding-left: 10px; %s' % display">
-       <x for="searches in field.widgets">
+       <x for="searches in field.elements">
         <x for="elem in searches">
          <!-- An inner group within this group -->
          <x if="elem.type == 'group'"

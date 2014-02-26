@@ -123,7 +123,7 @@ class UserWrapper(AbstractWrapper):
         # Browse all objects of the database and update potential local roles
         # that referred to the old login.
         context = {'nb': 0, 'old': oldLogin, 'new': newLogin}
-        for className in self.o.getProductConfig().allClassNames:
+        for className in self.tool.o.getAllClassNames():
             self.compute(className, context=context, noSecurity=True,
                          expression="ctx['nb'] += obj.o.applyUserIdChange(" \
                                     "ctx['old'], ctx['new'])")

@@ -181,7 +181,7 @@ class File(Field):
 
     pxView = pxCell = Px('''
      <x var="downloadUrl='%s/download?name=%s' % (zobj.absolute_url(), name);
-             shownSize=value.getShownSize()">
+             shownSize=value and value.getShownSize() or 0">
       <x if="value and not field.isImage">
        <a href=":downloadUrl">:value.uploadName</a>&nbsp;&nbsp;-
        <i class="discreet">:shownSize</i>
@@ -319,7 +319,11 @@ class File(Field):
             dbFolder, folder = zobj.getFsFolder(create=True)
             # Remove the previous file if it existed.
             info = getattr(obj.aq_base, self.name, None)
-            if info: info.removeFile(dbFolder)
+            if info:
+                # The previous file can be a legacy File object in an old
+                # database we are migrating.
+                if isinstance(info, FileInfo): info.removeFile(dbFolder)
+                else: delattr(obj, self.name)
             # Store the new file. As a preamble, create a FileInfo instance.
             info = FileInfo(folder)
             cfg = zobj.getProductConfig()

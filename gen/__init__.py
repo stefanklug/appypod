@@ -40,6 +40,11 @@ from appy.fields.workflow import *
 from appy.gen.layout import Table
 from appy.gen.utils import No
 
+# Make the following classes available here: people may need to monkey-patch
+# some PXs on thoses classes.
+from appy.gen.wrappers import AbstractWrapper as BaseObject
+from appy.gen.wrappers.ToolWrapper import ToolWrapper as BaseTool
+
 class Import:
     '''Used for describing the place where to find the data to use for creating
        an object.'''
