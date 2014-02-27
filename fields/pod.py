@@ -35,7 +35,7 @@ class Pod(Field):
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
 
-    pxView = pxCell = Px('''<x>
+    pxView = pxCell = Px('''
      <!-- Ask action -->
      <x if="field.askAction"
         var2="doLabel='%s_askaction' % field.labelId;
@@ -46,8 +46,7 @@ class Pod(Field):
      <img for="fmt in field.getOutputFormats(zobj)" src=":url(fmt)"
           onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
             (q(zobj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
-          title=":fmt.capitalize()" class="clickable"/>
-    </x>''')
+          title=":fmt.capitalize()" class="clickable"/>''')
 
     pxEdit = pxSearch = ''
 

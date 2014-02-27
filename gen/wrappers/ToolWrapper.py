@@ -441,7 +441,7 @@ class ToolWrapper(AbstractWrapper):
               if="zobjects and fields" align=":dright">
         <tr>
          <td var="zobj=zobjects[0]; obj=zobj.appy()"
-             for="field in fields">:field.pxView</td>
+             for="field in fields">:field.pxRender</td>
         </tr>
        </table>
 

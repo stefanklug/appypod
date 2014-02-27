@@ -173,7 +173,7 @@ class String(Field):
        <option for="v in field.getPossibleValues(ztool, withTranslations=True,\
                                      withBlankValue=False, className=className)"
                selected=":v[0] in preSelected" value=":v[0]"
-               title=":v[1]">ztool.truncateValue(v[1], field.swidth)</option>
+               title=":v[1]">:ztool.truncateValue(v[1], field.swidth)</option>
       </select>
      </x><br/>
     </x>''')

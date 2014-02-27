@@ -42,7 +42,7 @@ class Field:
     dLayouts = 'lrv-d-f'
     wLayouts = Table('lrv-f')
 
-    # Render a field. Optiona vars:
+    # Render a field. Optional vars:
     # * fieldName   can be given as different as field.name for fields included
     #               in List fields: in this case, fieldName includes the row
     #               index.
@@ -409,9 +409,11 @@ class Field:
             layouts['view'].addCssClasses('focus')
             layouts['edit'].addCssClasses('focus')
         # If layouts are the default ones, set width=None instead of width=100%
-        # for the field if it is not in a group (excepted for rich texts).
+        # for the field if it is not in a group (excepted for rich texts and
+        # refs).
         if areDefault and not self.group and \
-           not ((self.type == 'String') and (self.format == self.XHTML)):
+           not ((self.type == 'String') and (self.format == self.XHTML)) and \
+           not (self.type == 'Ref'):
             for layoutType in layouts.iterkeys():
                 layouts[layoutType].width = ''
         # Remove letters "r" from the layouts if the field is not required.

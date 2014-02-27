@@ -1263,7 +1263,7 @@ class ToolMixin(BaseMixin):
            fields that need to be shown on a page displaying query results.'''
         # Skip this if we are searching multiple content types.
         if ',' in contentType: return ()
-        return [f.__dict__ for f in self.getAllAppyTypes(contentType) \
+        return [f for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
 
     def formatDate(self, aDate, withHour=True):

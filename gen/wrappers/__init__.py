@@ -189,7 +189,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The user strip -->
-       <tr height="28px">
+       <tr height=":discreetLogin and '5px' or '28px'">
         <td>
          <table class="userStrip">
           <tr>

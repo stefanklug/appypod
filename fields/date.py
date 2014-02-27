@@ -124,7 +124,7 @@ class Date(Field):
                 monthToName='%s_to_month' % name;
                 yearToName='%s_to_year' % name">
         <td></td>
-        <td><label>_('search_to')</label>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+        <td><label>:_('search_to')</label>&nbsp;&nbsp;&nbsp;&nbsp;</td>
         <td height="20px">
          <select id=":dayToName" name=":dayToName">
           <option value="">--</option>
@@ -142,10 +142,10 @@ class Date(Field):
                   value=":value">:value</option>
          </select>
          <!-- The icon for displaying the calendar popup -->
-         <x if="widget.calendar">
+         <x if="field.calendar">
           <input type="hidden" id=":toName" name=":toName"/>
           <img id=":'%s_img' % toName" src=":url('calendar.gif')"/>
-          <script type="text/javascript">::field.getJsInit(toName, years)">
+          <script type="text/javascript">::field.getJsInit(toName, years)
           </script>
          </x>
         </td>

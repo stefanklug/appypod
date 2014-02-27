@@ -326,7 +326,7 @@ msgstr "XLS (Microsoft Excel)"
 
 #. Default: "Welcome to this Appy-powered site."
 msgid "front_page_text"
-msgstr "Bienvenue sur HubSessions pour le Collège communal de Schaerbeek (site 'Additions')."
+msgstr "Bienvenue sur ce site fabriqué avec <a href=\"http://appyframework.org\" target=\"_blank\">Appy</a>"
 
 #. Default: "Please type \"${text}\" (without the double quotes) in the field besides, but without the character at position ${number}."
 msgid "captcha_text"
