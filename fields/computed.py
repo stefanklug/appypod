@@ -20,6 +20,8 @@ from appy.px import  Px
 
 # ------------------------------------------------------------------------------
 class Computed(Field):
+    WRONG_METHOD = 'Wrong value "%s". Param "method" must contain a method ' \
+                   'or a PX.'
 
     # Ajax-called view content of a non sync Computed field.
     pxViewContent = Px('''
@@ -53,6 +55,9 @@ class Computed(Field):
                  context=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
+        if isinstance(self.method, basestring):
+            # A legacy macro identifier. Raise an exception
+            raise Exception(self.WRONG_METHOD % self.method)
         # Does field computation produce plain text or XHTML?
         self.plainText = plainText
         if isinstance(method, Px):
@@ -74,8 +79,15 @@ class Computed(Field):
         if isinstance(self.method, Px):
             obj = obj.appy()
             tool = obj.tool
-            ctx = {'obj': obj, 'field': self, 'req': obj.request, 'tool': tool,
-                   '_': tool.translate, 'url': tool.o.getIncludeUrl}
+            req = obj.request
+            # Get the context of the currently executed PX if present
+            try:
+                ctx = req.pxContext
+            except AttributeError:
+                # Create some standard context
+                ctx = {'obj': obj, 'zobj': obj.o, 'field': self,
+                       'req': req, 'tool': tool, 'ztool': tool.o,
+                       '_': tool.translate, 'url': tool.o.getIncludeUrl}
             if self.context: ctx.update(self.context)
             return self.method(ctx)
         else:
