@@ -141,7 +141,9 @@ class ToolWrapper(AbstractWrapper):
     </x>''')
 
     pxPageBottom = Px('''
-     <script type="text/javascript">initSlaves();</script>''')
+     <script type="text/javascript">:'initSlaves(%s,%s,%s)' % \
+                    (q(zobj.absolute_url()), q(layoutType), \
+                     zobj.getSlaveFieldsRequestValues(page))</script>''')
 
     pxPortlet = Px('''
      <x var="toolUrl=tool.url;
@@ -260,11 +262,11 @@ class ToolWrapper(AbstractWrapper):
 
     # Hook for defining a PX that proposes additional links, after the links
     # corresponding to top-level pages.
-    pxLinks = ''
+    pxLinks = Px('')
 
     # Hook for defining a PX that proposes additional icons after standard
     # icons in the user strip.
-    pxIcons = ''
+    pxIcons = Px('')
 
     # Displays the content of a layouted object (a page or a field). If the
     # layouted object is a page, the "layout target" (where to look for PXs)
@@ -310,7 +312,7 @@ class ToolWrapper(AbstractWrapper):
      </table>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     # Show on query list or grid, the field content for a given object.
-    pxQueryField = Px('''<x>
+    pxQueryField = Px('''
      <!-- Title -->
      <x if="field.name == 'title'"
         var2="navInfo='search.%s.%s.%d.%d' % \
@@ -350,8 +352,7 @@ class ToolWrapper(AbstractWrapper):
      <x if="field.name != 'title'">
       <x var="layoutType='cell'; innerRef=True"
          if="zobj.showField(field.name, 'result')">:field.pxRender</x>
-     </x>
-    </x>''')
+     </x>''')
 
     # Show query results as a list.
     pxQueryResultList = Px('''

@@ -171,6 +171,9 @@ class Config:
     # People having one of these roles will be able to create instances
     # of classes defined in your application.
     defaultCreators = ['Manager']
+    # The "root" classes are those that will get their menu in the user
+    # interface. Put their names in the list below.
+    rootClasses = []
     # Number of translations for every page on a Translation object
     translationsPerPage = 30
     # Language that will be used as a basis for translating to other

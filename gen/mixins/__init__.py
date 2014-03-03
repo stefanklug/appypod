@@ -814,6 +814,20 @@ class BaseMixin:
             res.append(field)
         return res
 
+    def getSlaveFieldsRequestValues(self, pageName):
+        '''Returns the list of slave fields having a masterValue being a
+           method.'''
+        res = {}
+        req = self.REQUEST
+        for field in self.getAllAppyTypes():
+            if field.page.name != pageName: continue
+            if field.masterValue and callable(field.masterValue):
+                # We have such a field
+                name = field.name
+                if req.has_key(name) and req[name]:
+                    res[name] = req[name]
+        return sutils.getStringDict(res)
+
     def getCssJs(self, fields, layoutType, res):
         '''Gets, in p_res ~{'css':[s_css], 'js':[s_js]}~ the lists of
            Javascript and CSS files required by Appy types p_fields when shown

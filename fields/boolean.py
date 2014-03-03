@@ -33,8 +33,9 @@ class Boolean(Field):
      <x var="isChecked=field.isChecked(zobj, rawValue)">
       <input type="checkbox" name=":name + '_visible'" id=":name"
              class=":masterCss" checked=":isChecked"
-             onclick=":'toggleCheckbox(%s, %s); updateSlaves(this)' % \
-                       (q(name), q('%s_hidden' % name))"/>
+             onclick=":'toggleCheckbox(%s, %s); %s' % (q(name), \
+                       q('%s_hidden' % name), field.getOnChange(name, zobj, \
+                       layoutType))"/>
       <input type="hidden" name=":name" id=":'%s_hidden' % name"
              value=":isChecked and 'True' or 'False'"/>
      </x>''')

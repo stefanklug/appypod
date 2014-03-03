@@ -104,21 +104,19 @@ class String(Field):
 
     pxEdit = Px('''
      <x var="fmt=field.format;
-             isSelect=field.isSelect;
-             isMaster=field.slaves;
              isOneLine=fmt in (0,3,4)">
-      <select if="isSelect"
+      <select if="field.isSelect"
               var2="possibleValues=field.getPossibleValues(zobj, \
                       withTranslations=True, withBlankValue=True)"
               name=":name" id=":name" class=":masterCss"
               multiple=":isMultiple and 'multiple' or ''"
-              onchange=":isMaster and 'updateSlaves(this)' or ''"
+              onchange=":field.getOnChange(name, zobj, layoutType)"
               size=":isMultiple and field.height or 1">
        <option for="val in possibleValues" value=":val[0]"
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
-      <x if="isOneLine and not isSelect">
+      <x if="isOneLine and not field.isSelect">
        <input id=":name" name=":name" size=":field.width"
               maxlength=":field.maxChars"
               value=":inRequest and requestValue or value"

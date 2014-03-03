@@ -20,10 +20,10 @@ PROJECTNAME = '<!applicationName!>'
 diskFolder = os.path.dirname(<!applicationName!>.__file__)
 
 # Applications classes, in various formats
-rootClasses = [<!rootClasses!>]
 appClasses = [<!appClasses!>]
 appClassNames = [<!appClassNames!>]
 allClassNames = [<!allClassNames!>]
+allShortClassNames = {<!allShortClassNames!>}
 
 # In the following dict, we store, for every Appy class, the ordered list of
 # fields.

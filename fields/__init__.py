@@ -49,7 +49,8 @@ class Field:
     # * showChanges If True, a variant of the field showing successive changes
     #               made to it is shown.
     pxRender = Px('''
-     <x var="showChanges=showChanges|False;
+     <x var="showChanges=showChanges|req.get('showChanges',False);
+             layoutType=layoutType|req.get('layoutType');
              layout=field.layouts[layoutType];
              name=fieldName|field.name;
              sync=field.sync[layoutType];
@@ -65,8 +66,7 @@ class Field:
              isMultiple=(field.multiplicity[1] == None) or \
                         (field.multiplicity[1] &gt; 1);
              masterCss=field.slaves and ('master_%s' % name) or '';
-             slaveCss=field.master and ('slave_%s_%s' % \
-                         (field.masterName, '_'.join(field.masterValue))) or '';
+             slaveCss=field.getSlaveCss();
              tagCss=tagCss|'';
              tagCss=('%s %s' % (slaveCss, tagCss)).strip();
              tagId='%s_%s' % (zobj.UID(), name);
@@ -170,7 +170,12 @@ class Field:
         # The behaviour of this field may depend on another, "master" field
         self.master = master
         if master: self.master.slaves.append(self)
-        # When master has some value(s), there is impact on this field.
+        # The semantics of attribute "masterValue" below is as follows:
+        # - if "masterValue" is anything but a method, the field will be shown
+        #   only when the master has this value, or one of it if multivalued;
+        # - if "masterValue" is a method, the value(s) of the slave field will
+        #   be returned by this method, depending on the master value(s) that
+        #   are given to it, as its unique parameter.
         self.masterValue = gutils.initMasterValue(masterValue)
         # If a field must retain attention in a particular way, set focus=True.
         # It will be rendered in a special way.
@@ -323,6 +328,7 @@ class Field:
         if not masterData: return True
         else:
             master, masterValue = masterData
+            if masterValue and callable(masterValue): return True
             reqValue = master.getRequestValue(obj.REQUEST)
             # reqValue can be a list or not
             if type(reqValue) not in sutils.sequenceTypes:
@@ -566,6 +572,38 @@ class Field:
            containing groups when relevant.'''
         if self.master: return (self.master, self.masterValue)
         if self.group: return self.group.getMasterData()
+
+    def getSlaveCss(self):
+        '''Gets the CSS class that must apply to this field in the web UI when
+           this field is the slave of another field.'''
+        if not self.master: return ''
+        res = 'slave*%s*' % self.masterName
+        if not callable(self.masterValue):
+            res += '*'.join(self.masterValue)
+        else:
+            res += '+'
+        return res
+
+    def getOnChange(self, name, zobj, layoutType):
+        '''When this field is a master, this method computes the call to the
+           Javascript function that will be called when its value changes (in
+           order to update slaves).'''
+        if not self.slaves: return ''
+        q = zobj.getTool().quote
+        # Create the dict of request values for slave fields.
+        rvs = {}
+        req = zobj.REQUEST
+        for slave in self.slaves:
+            name = slave.name
+            if not req.has_key(name): continue
+            if not req[name]: continue
+            rvs[name] = req[name]
+        if rvs:
+            rvs = ',%s' % sutils.getStringDict(rvs)
+        else:
+            rvs = ''
+        return 'updateSlaves(this,null,%s,%s%s)' % \
+               (q(zobj.absolute_url()), q(layoutType), rvs)
 
     def isEmptyValue(self, value, obj=None):
         '''Returns True if the p_value must be considered as an empty value.'''

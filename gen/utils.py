@@ -211,7 +211,8 @@ def writeCookie(login, password, request):
 
 # ------------------------------------------------------------------------------
 def initMasterValue(v):
-    '''Standardizes p_v as a list of strings.'''
+    '''Standardizes p_v as a list of strings, excepted if p_v is a method.'''
+    if callable(v): return v
     if not isinstance(v, bool) and not v: res = []
     elif type(v) not in sutils.sequenceTypes: res = [v]
     else: res = v

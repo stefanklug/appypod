@@ -15,7 +15,7 @@
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
-import time, os.path, mimetypes
+import time, os.path, mimetypes, shutil
 from DateTime import DateTime
 from appy import Object
 from appy.fields import Field
@@ -27,6 +27,7 @@ from appy.shared import UnmarshalledFile, mimeTypesExts
 WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
     '2-tuple (fileName, fileContent) or a 3-tuple (fileName, fileContent, ' \
     'mimeType).'
+CONVERSION_ERROR = 'An error occurred. %s'
 
 # ------------------------------------------------------------------------------
 class FileInfo:
@@ -43,6 +44,12 @@ class FileInfo:
         self.size = 0 # Its size, in bytes
         self.mimeType = None # Its MIME type
         self.modified = None # The last modification date for this file.
+
+    def getFilePath(self, obj):
+        '''Returns the absolute file name of the file on disk that corresponds
+           to this FileInfo instance.'''
+        dbFolder, folder = obj.o.getFsFolder()
+        return os.path.join(dbFolder, folder, self.fsName)
 
     def removeFile(self, dbFolder, removeEmptyFolders=False):
         '''Removes the file from the filesystem.'''
@@ -175,6 +182,39 @@ class FileInfo:
             if not chunk: break
             response.write(chunk)
         f.close()
+
+    def dump(self, obj, filePath=None, format=None):
+        '''Exports this file to disk (outside the db-controller filesystem).
+           The tied Appy p_obj(ect) is required. If p_filePath is specified, it
+           is the path name where the file will be dumped; folders mentioned in
+           it must exist. If not, the file will be dumped in the OS temp folder.
+           The absolute path name of the dumped file is returned. If an error
+           occurs, the method returns None. If p_format is specified,
+           LibreOffice will be called for converting the dumped file to the
+           desired format.'''
+        if not filePath:
+            filePath = '%s/file%f.%s' % (sutils.getOsTempFolder(), time.time(),
+                                         self.fsName)
+        # Copies the file to disk.
+        shutil.copyfile(self.getFilePath(obj), filePath)
+        if format:
+            # Convert the dumped file using LibreOffice
+            errorMessage = obj.tool.convert(filePath, format)
+            # Even if we have an "error" message, it could be a simple warning.
+            # So we will continue here and, as a subsequent check for knowing if
+            # an error occurred or not, we will test the existence of the
+            # converted file (see below).
+            os.remove(filePath)
+            # Return the name of the converted file.
+            baseName, ext = os.path.splitext(filePath)
+            if (ext == '.%s' % format):
+                filePath = '%s.res.%s' % (baseName, format)
+            else:
+                filePath = '%s.%s' % (baseName, format)
+            if not os.path.exists(filePath):
+                obj.log(CONVERSION_ERROR % errorMessage, type='error')
+                return
+        return filePath
 
 # ------------------------------------------------------------------------------
 class File(Field):

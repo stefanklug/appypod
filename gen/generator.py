@@ -553,9 +553,6 @@ class ZopeGenerator(Generator):
             if theImport not in imports:
                 imports.append(theImport)
         repls['imports'] = '\n'.join(imports)
-        # Compute root classes
-        repls['rootClasses'] = ','.join(["'%s'" % c.name \
-                                        for c in classesButTool if c.isRoot()])
         # Compute list of class definitions
         repls['appClasses'] = ','.join(['%s.%s' % (c.klass.__module__, \
                                        c.klass.__name__) for c in classes])
@@ -564,6 +561,9 @@ class ZopeGenerator(Generator):
                                            for c in classes])
         repls['allClassNames'] = ','.join(['"%s"' % c.name \
                                            for c in classesButTool])
+        allShortClassNames = ['"%s":"%s"' % (c.name.split('_')[-1], c.name) \
+                              for c in classesAll]
+        repls['allShortClassNames'] = ','.join(allShortClassNames)
         # Compute the list of ordered attributes (forward and backward,
         # inherited included) for every Appy class.
         attributes = []

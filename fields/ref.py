@@ -282,13 +282,11 @@ class Ref(Field):
 
     pxEdit = Px('''
      <select if="field.link"
-             var2="requestValue=req.get(name, []);
-                   inRequest=req.has_key(name);
-                   zobjects=field.getSelectableObjects(obj);
+             var2="zobjects=field.getSelectableObjects(obj);
                    uids=[o.UID() for o in \
-                         field.getLinkedObjects(zobj).objects];
-                   isBeingCreated=zobj.isTemporary()"
-             name=":name" size=":isMultiple and field.height or ''"
+                         field.getLinkedObjects(zobj).objects]"
+             name=":name" id=":name" size=":isMultiple and field.height or ''"
+             onchange=":field.getOnChange(name, zobj, layoutType)"
              multiple=":isMultiple">
       <option value="" if="not isMultiple">:_('choose_a_value')</option>
       <option for="ztied in zobjects" var2="uid=ztied.o.UID()"
@@ -743,13 +741,31 @@ class Ref(Field):
 
     def getSelectableObjects(self, obj):
         '''This method returns the list of all objects that can be selected to
-           be linked as references to p_obj via p_self.'''
-        if not self.select:
-            # No select method has been defined: we must retrieve all objects
-            # of the referred type that the user is allowed to access.
-            return obj.search(self.klass)
+           be linked as references to p_obj via p_self. If master values are
+           present in the request, we use field.masterValues method instead of
+           self.select.'''
+        req = obj.request
+        if 'masterValues' in req:
+            # Convert masterValue(s) from UID(s) to real object(s).
+            masterValues = req['masterValues'].strip()
+            if not masterValues: masterValues = None
+            else:
+                masterValues = masterValues.split('*')
+                tool = obj.tool
+                if len(masterValues) == 1:
+                    masterValues = tool.getObject(masterValues[0])
+                else:
+                    masterValues = [tool.getObject(v) for v in masterValues]
+            res = self.masterValue(obj, masterValues)
+            return res
         else:
-            return self.select(obj)
+            if not self.select:
+                # No select method has been defined: we must retrieve all
+                # objects of the referred type that the user is allowed to
+                # access.
+                return obj.search(self.klass)
+            else:
+                return self.select(obj)
 
     xhtmlToText = re.compile('<.*?>', re.S)
     def getReferenceLabel(self, refObject):

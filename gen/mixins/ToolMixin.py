@@ -209,8 +209,12 @@ class ToolMixin(BaseMixin):
 
     def getRootClasses(self):
         '''Returns the list of root classes for this application.'''
-        cfg = self.getProductConfig()
-        return [self.getAppyClass(k) for k in cfg.rootClasses]
+        cfg = self.getProductConfig().appConfig
+        rootClasses = cfg.rootClasses
+        if not rootClasses:
+            # We consider every class as being a root class.
+            rootClasses = cfg.appClassNames
+        return [self.getAppyClass(k) for k in rootClasses]
 
     def getSearchInfo(self, className, refInfo=None):
         '''Returns, as an object:
@@ -466,6 +470,10 @@ class ToolMixin(BaseMixin):
         '''Gets the Appy class corresponding to the Zope class named p_name.
            If p_wrapper is True, it returns the Appy wrapper. Else, it returns
            the user-defined class.'''
+        # p_zopeName may be the name of the Zope class *or* the name of the Appy
+        # class (shorter, not prefixed with the underscored package path).
+        classes = self.getProductConfig().allShortClassNames
+        if zopeName in classes: zopeName = classes[zopeName]
         zopeClass = self.getZopeClass(zopeName)
         if wrapper: return zopeClass.wrapperClass
         else: return zopeClass.wrapperClass.__bases__[-1]

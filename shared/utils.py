@@ -253,6 +253,17 @@ def keepDigits(s):
         if c.isdigit(): res += c
     return res
 
+def getStringDict(d):
+    '''Gets the string literal corresponding to dict p_d.'''
+    res = []
+    for k, v in d.iteritems():
+        if type(v) not in sequenceTypes:
+            value = "'%s':'%s'" % (k, v)
+        else:
+            value = "'%s':%s" % (k, v)
+        res.append(value)
+    return '{%s}' % ','.join(res)
+
 # ------------------------------------------------------------------------------
 def formatNumber(n, sep=',', precision=2, tsep=' '):
     '''Returns a string representation of number p_n, which can be a float

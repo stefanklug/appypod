@@ -596,31 +596,48 @@ class XmlMarshaller:
     def dumpFile(self, res, v):
         '''Dumps a file into the result.'''
         if not v: return
+        w = res.write
         # p_value contains the (possibly binary) content of a file. We will
         # encode it in Base64, in one or several parts.
         partTag = self.getTagName('part')
         res.write('<%s type="base64" number="1">' % partTag)
         if hasattr(v, 'data'):
             # The file is an Archetypes file.
-            valueType = v.data.__class__.__name__
-            if valueType == 'Pdata':
+            if v.data.__class__.__name__ == 'Pdata':
                 # There will be several parts.
-                res.write(v.data.data.encode('base64'))
+                w(v.data.data.encode('base64'))
                 # Write subsequent parts
                 nextPart = v.data.next
-                nextPartNumber = 2
+                nextPartNb = 2
                 while nextPart:
-                    res.write('</%s>' % partTag) # Close the previous part
-                    res.write('<%s type="base64" number="%d">' % \
-                              (partTag, nextPartNumber))
-                    res.write(nextPart.data.encode('base64'))
+                    w('</%s>' % partTag) # Close the previous part
+                    w('<%s type="base64" number="%d">' % (partTag, nextPartNb))
+                    w(nextPart.data.encode('base64'))
                     nextPart = nextPart.next
-                    nextPartNumber += 1
+                    nextPartNb += 1
             else:
-                res.write(v.data.encode('base64'))
+                w(v.data.encode('base64'))
+            w('</%s>' % partTag)
+        elif hasattr(v, 'uploadName'):
+            # The file is a Appy FileInfo instance. Read the file from disk.
+            filePath = v.getFilePath(self.instance)
+            f = file(filePath, 'rb')
+            partNb = 1
+            while True:
+                chunk = f.read(v.BYTES)
+                if not chunk: break
+                # We have one more chunk. Dump the start tag (excepted if it is
+                # the first chunk: the start tag has already been dumped, see
+                # above).
+                if partNb > 1:
+                    w('<%s type="base64" number="%d">' % (partTag, partNb))
+                w(chunk.encode('base64'))
+                w('</%s>' % partTag) # Close the tag
+                partNb += 1
+            f.close()
         else:
-            res.write(v.encode('base64'))
-        res.write('</%s>' % partTag)
+            w(v.encode('base64'))
+            w('</%s>' % partTag)
 
     def dumpDict(self, res, v):
         '''Dumps the XML version of dict p_v.'''
@@ -704,11 +721,22 @@ class XmlMarshaller:
                 if fieldValue: length = len(fieldValue)
                 res.write(' count="%d"' % length)
         if fType == 'file':
+            # Get the MIME type
+            mimeType = None
             if hasattr(fieldValue, 'content_type'):
-                res.write(' mimeType="%s"' % fieldValue.content_type)
+                mimeType = fieldValue.content_type
+            elif hasattr(fieldValue, 'mimeType'):
+                mimeType = fieldValue.mimeType
+            if mimeType: res.write(' mimeType="%s"' % mimeType)
+            # Get the file name
+            fileName = None
             if hasattr(fieldValue, 'filename'):
+                fileName = fieldValue.filename
+            elif hasattr(fieldValue, 'uploadName'):
+                fileName = fieldValue.uploadName
+            if fileName:
                 res.write(' name="')
-                self.dumpString(res, fieldValue.filename)
+                self.dumpString(res, fileName)
                 res.write('"')
         res.write('>')
         # Dump the field value
@@ -724,6 +752,8 @@ class XmlMarshaller:
            an instance at all, but another Python data structure or basic type,
            p_objectType is ignored.'''
         self.objectType = objectType
+        # The Appy object is needed to marshall its File fields.
+        if objectType == 'appy': self.instance = instance
         # Call the XmlMarshaller constructor if it hasn't been called yet.
         if not hasattr(self, 'cdata'):
             XmlMarshaller.__init__(self)
@@ -789,7 +819,6 @@ class XmlMarshaller:
                     if field.type == 'File':
                         fieldType = 'file'
                         v = field.getValue(instance)
-                        if v: v = v._zopeFile
                     elif field.type == 'Ref':
                         fieldType = 'ref'
                         v = field.getValue(instance, type='zobjects')

@@ -228,10 +228,13 @@ function askComputedField(hookId, objectUrl, fieldName) {
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxViewContent');
 }
 
-function askField(hookId, objectUrl, layoutType, showChanges){
+function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
+                  requestValue){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
+  if (masterValues) params['masterValues'] = masterValues.join('*');
+  if (requestValue) params[fieldName] = requestValue;
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxRender', params, null,
                evalInnerScripts);
 }
@@ -286,14 +289,15 @@ function toggleSubTitles(tag) {
 // Functions used for master/slave relationships between widgets
 function getSlaveInfo(slave, infoType) {
   // Returns the appropriate info about slavery, depending on p_infoType.
-  cssClasses = slave.className.split(' ');
+  var cssClasses = slave.className.split(' ');
+  var masterInfo = null;
   // Find the CSS class containing master-related info.
   for (var j=0; j < cssClasses.length; j++) {
-    if (cssClasses[j].indexOf('slave_') == 0) {
+    if (cssClasses[j].indexOf('slave*') == 0) {
       // Extract, from this CSS class, master name or master values.
-      masterInfo = cssClasses[j].split('_');
+      masterInfo = cssClasses[j].split('*');
       if (infoType == 'masterName') return masterInfo[1];
-      else return masterInfo.slice(2); // Master values
+      else return masterInfo.slice(2); 
     }
   }
 }
@@ -337,7 +341,7 @@ function getSlaves(master) {
   if (master.type == 'checkbox') {
     masterName = masterName.substr(0, masterName.length-8);
   }
-  slavePrefix = 'slave_' + masterName + '_';
+  slavePrefix = 'slave*' + masterName + '*';
   for (var i=0; i < allSlaves.length; i++){
     cssClasses = allSlaves[i].className.split(' ');
     for (var j=0; j < cssClasses.length; j++) {
@@ -350,37 +354,52 @@ function getSlaves(master) {
   return res;
 }
 
-function updateSlaves(master, slave) {
-  // Given the value(s) in a master field, we must update slave's visibility.
-  // If p_slave is given, it updates only this slave. Else, it updates all
-  // slaves of p_master.
+function updateSlaves(master, slave, objectUrl, layoutType, requestValues){
+  /* Given the value(s) in a master field, we must update slave's visibility or
+     value(s). If p_slave is given, it updates only this slave. Else, it updates
+     all slaves of p_master. */
   var slaves = null;
   if (slave) { slaves = [slave]; }
   else { slaves = getSlaves(master); }
   masterValues = getMasterValues(master);
   for (var i=0; i < slaves.length; i++) {
-    showSlave = false;
     slaveryValues = getSlaveInfo(slaves[i], 'masterValues');
-    for (var j=0; j < slaveryValues.length; j++) {
-      for (var k=0; k< masterValues.length; k++) {
-        if (slaveryValues[j] == masterValues[k]) showSlave = true;
-      }
-    } 
-    if (showSlave) slaves[i].style.display = "";
-    else slaves[i].style.display = "none";
+    if (slaveryValues[0] != '+') {
+      // Update slaves visibility depending on master values.
+      var showSlave = false;
+      for (var j=0; j < slaveryValues.length; j++) {
+        for (var k=0; k< masterValues.length; k++) {
+          if (slaveryValues[j] == masterValues[k]) showSlave = true;
+        }
+      } 
+      if (showSlave) slaves[i].style.display = '';
+      else slaves[i].style.display = 'none';
+    }
+    else {
+      // Update slaves' values depending on master values.
+      var slaveId = slaves[i].id;
+      var slaveName = slaveId.split('_')[1];
+      var reqValue = null;
+      if (requestValues && (slaveName in requestValues))
+        reqValue = requestValues[slaveName];
+      askField(slaveId, objectUrl, layoutType, false, masterValues, reqValue);
+    }
   }
 }
 
-function initSlaves() {
-  // When the current page is loaded, we must set the correct state for all
-  // slave fields.
+function initSlaves(objectUrl, layoutType, requestValues) {
+  /* When the current page is loaded, we must set the correct state for all
+     slave fields. p_requestValues are those from the slave fields that must
+     be ajax-updated. */
   slaves = getElementsHavingName('table', 'slave');
   i = slaves.length -1;
   while (i >= 0) {
     masterName = getSlaveInfo(slaves[i], 'masterName');
     master = document.getElementById(masterName);
     // If master is not here, we can't hide its slaves when appropriate.
-    if (master) updateSlaves(master, slaves[i]);
+    if (master) {
+      updateSlaves(master, slaves[i], objectUrl, layoutType, requestValues);
+    }
     i -= 1;
   }
 }
