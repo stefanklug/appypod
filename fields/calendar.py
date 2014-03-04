@@ -222,7 +222,7 @@ class Calendar(Field):
                        layouts, move, False, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, False, True, mapping, label,
-                       None, None, None, None)
+                       None, None, None, None, True)
         # eventTypes can be a "static" list or tuple of strings that identify
         # the types of events that are supported by this calendar. It can also
         # be a method that computes such a "dynamic" list or tuple. When

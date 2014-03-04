@@ -84,7 +84,9 @@ class Pod(Field):
                        move, indexed, searchable, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, False, mapping,
-                       label, None, None, None, None)
+                       label, None, None, None, None, True)
+        # Param "persist" is set to True but actually, persistence for a pod
+        # field is determined by freezing.
         self.validable = False
 
     def isFrozen(self, obj):

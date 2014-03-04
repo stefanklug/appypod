@@ -173,7 +173,8 @@ class Date(Field):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=None, scolspan=1, swidth=None, sheight=None):
+                 sdefault=None, scolspan=1, swidth=None, sheight=None,
+                 persist=True):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -186,7 +187,7 @@ class Date(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, persist)
 
     def getCss(self, layoutType, res):
         # CSS files are only required if the calendar must be shown.

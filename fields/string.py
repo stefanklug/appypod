@@ -110,7 +110,7 @@ class String(Field):
                       withTranslations=True, withBlankValue=True)"
               name=":name" id=":name" class=":masterCss"
               multiple=":isMultiple and 'multiple' or ''"
-              onchange=":field.getOnChange(name, zobj, layoutType)"
+              onchange=":field.getOnChange(zobj, layoutType)"
               size=":isMultiple and field.height or 1">
        <option for="val in possibleValues" value=":val[0]"
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
@@ -292,8 +292,9 @@ class String(Field):
                  width=None, height=None, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
-                 transform='none', styles=('p','h1','h2','h3','h4'),
-                 allowImageUpload=True, inlineEdit=False):
+                 persist=True, transform='none',
+                 styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
+                 inlineEdit=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -318,7 +319,7 @@ class String(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, persist)
         self.isSelect = self.isSelection()
         # If self.isSelect, self.sdefault must be a list of value(s).
         if self.isSelect and not sdefault:
@@ -390,6 +391,7 @@ class String(Field):
 
     def store(self, obj, value):
         '''When the value is XHTML, we perform some cleanup.'''
+        if not self.persist: return
         if (self.format == String.XHTML) and value:
             # When image upload is allowed, ckeditor inserts some "style" attrs
             # (ie for image size when images are resized). So in this case we

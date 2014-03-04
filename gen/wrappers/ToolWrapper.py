@@ -141,9 +141,10 @@ class ToolWrapper(AbstractWrapper):
     </x>''')
 
     pxPageBottom = Px('''
-     <script type="text/javascript">:'initSlaves(%s,%s,%s)' % \
-                    (q(zobj.absolute_url()), q(layoutType), \
-                     zobj.getSlaveFieldsRequestValues(page))</script>''')
+     <script var="info=zobj.getSlavesRequestInfo(page)"
+             type="text/javascript">:'initSlaves(%s,%s,%s,%s)' % \
+                    (q(zobj.absolute_url()), q(layoutType), info[0], info[1])
+     </script>''')
 
     pxPortlet = Px('''
      <x var="toolUrl=tool.url;

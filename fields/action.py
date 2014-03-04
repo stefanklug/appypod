@@ -74,7 +74,7 @@ class Action(Field):
                        move, indexed, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, False, mapping,
-                       label, None, None, None, None)
+                       label, None, None, None, None, False)
         self.validable = False
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}

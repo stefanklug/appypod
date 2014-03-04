@@ -279,7 +279,7 @@ class File(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, True)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):

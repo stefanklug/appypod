@@ -286,7 +286,7 @@ class Ref(Field):
                    uids=[o.UID() for o in \
                          field.getLinkedObjects(zobj).objects]"
              name=":name" id=":name" size=":isMultiple and field.height or ''"
-             onchange=":field.getOnChange(name, zobj, layoutType)"
+             onchange=":field.getOnChange(zobj, layoutType)"
              multiple=":isMultiple">
       <option value="" if="not isMultiple">:_('choose_a_value')</option>
       <option for="ztied in zobjects" var2="uid=ztied.o.UID()"
@@ -328,8 +328,8 @@ class Ref(Field):
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, searchSelect=None, changeOrder=True,
                  sdefault='', scolspan=1, swidth=None, sheight=None,
-                 render='list', menuIdMethod=None, menuInfoMethod=None,
-                 menuUrlMethod=None):
+                 persist=True, render='list', menuIdMethod=None,
+                 menuInfoMethod=None, menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -431,7 +431,7 @@ class Ref(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, sync, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, persist)
         self.validable = self.link
 
     def getDefaultLayouts(self):
@@ -662,6 +662,7 @@ class Ref(Field):
            * a Zope object;
            * a Appy object;
            * a list of Appy or Zope objects.'''
+        if not self.persist: return
         # Standardize p_value into a list of Zope objects
         objects = value
         if not objects: objects = []
@@ -759,6 +760,11 @@ class Ref(Field):
             res = self.masterValue(obj, masterValues)
             return res
         else:
+            # If this field is a ajax-updatable slave, no need to compute
+            # selectable objects: it will be overridden by method
+            # self.masterValue by a subsequent ajax request (=the "if" statement
+            # above).
+            if self.masterValue and callable(self.masterValue): return []
             if not self.select:
                 # No select method has been defined: we must retrieve all
                 # objects of the referred type that the user is allowed to

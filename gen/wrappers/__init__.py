@@ -533,7 +533,7 @@ class AbstractWrapper(object):
 
     pxEdit = Px('''
      <x var="x=zobj.allows('write', raiseError=True);
-             errors=req.get('errors', None) or {};
+             errors=req.get('errors', {});
              layout=zobj.getPageLayout(layoutType);
              cssJs={};
              phaseObj=zobj.getAppyPhases(currentOnly=True, \

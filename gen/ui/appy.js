@@ -83,6 +83,20 @@ function evalInnerScripts(xhrObject, hookElem) {
   for (var i=0; i<scripts.length; i++) { eval(scripts[i].innerHTML) }
 }
 
+function injectChunk(elem, content){
+  if (!isIe) elem.innerHTML = content;
+  else {
+    if (elem.tagName != 'TABLE') elem.innerHTML = content;
+    else {
+      /* IE doesn't want to replace content of a table. Force it to do so via
+         a temporary DOM element. */
+      var temp = document.createElement('div');
+      temp.innerHTML = content;
+      elem.replaceChild(temp.firstChild, elem.firstChild);
+    }
+  }
+}
+
 function getAjaxChunk(pos) {
   // This function is the callback called by the AJAX machinery (see function
   // askAjaxChunk below) when an Ajax response is available.
@@ -93,13 +107,14 @@ function getAjaxChunk(pos) {
     if (xhrObjects[pos].xhr.readyState == 1) {
       // The request has been initialized: display the waiting radar
       var hookElem = document.getElementById(hook);
-      if (hookElem) hookElem.innerHTML = "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>";
+      if (hookElem)
+        injectChunk(hookElem, "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>");
     }
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
       var hookElem = document.getElementById(hook);
       if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
-        hookElem.innerHTML = xhrObjects[pos].xhr.responseText;
+        injectChunk(hookElem, xhrObjects[pos].xhr.responseText);
         // Call a custom Javascript function if required
         if (xhrObjects[pos].onGet) {
           xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
@@ -229,12 +244,13 @@ function askComputedField(hookId, objectUrl, fieldName) {
 }
 
 function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
-                  requestValue){
+                  requestValue, error){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
   if (masterValues) params['masterValues'] = masterValues.join('*');
   if (requestValue) params[fieldName] = requestValue;
+  if (error) params[fieldName + '_error'] = error;
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxRender', params, null,
                evalInnerScripts);
 }
@@ -354,7 +370,7 @@ function getSlaves(master) {
   return res;
 }
 
-function updateSlaves(master, slave, objectUrl, layoutType, requestValues){
+function updateSlaves(master,slave,objectUrl,layoutType,requestValues,errors){
   /* Given the value(s) in a master field, we must update slave's visibility or
      value(s). If p_slave is given, it updates only this slave. Else, it updates
      all slaves of p_master. */
@@ -382,15 +398,19 @@ function updateSlaves(master, slave, objectUrl, layoutType, requestValues){
       var reqValue = null;
       if (requestValues && (slaveName in requestValues))
         reqValue = requestValues[slaveName];
-      askField(slaveId, objectUrl, layoutType, false, masterValues, reqValue);
+      var err = null;
+      if (errors && (slaveName in errors))
+        err = errors[slaveName];
+      askField(slaveId,objectUrl,layoutType,false,masterValues,reqValue,err);
     }
   }
 }
 
-function initSlaves(objectUrl, layoutType, requestValues) {
+function initSlaves(objectUrl, layoutType, requestValues, errors) {
   /* When the current page is loaded, we must set the correct state for all
-     slave fields. p_requestValues are those from the slave fields that must
-     be ajax-updated. */
+     slave fields. For those that are updated via Ajax requests, their
+     p_requestValues and validation p_errors must be carried to those
+     requests. */
   slaves = getElementsHavingName('table', 'slave');
   i = slaves.length -1;
   while (i >= 0) {
@@ -398,8 +418,7 @@ function initSlaves(objectUrl, layoutType, requestValues) {
     master = document.getElementById(masterName);
     // If master is not here, we can't hide its slaves when appropriate.
     if (master) {
-      updateSlaves(master, slaves[i], objectUrl, layoutType, requestValues);
-    }
+      updateSlaves(master,slaves[i],objectUrl,layoutType,requestValues,errors);}
     i -= 1;
   }
 }

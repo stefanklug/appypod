@@ -54,13 +54,14 @@ class Integer(Field):
                  specificWritePermission=False, width=5, height=None,
                  maxChars=13, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=('',''), scolspan=1, swidth=None, sheight=None):
+                 sdefault=('',''), scolspan=1, swidth=None, sheight=None,
+                 persist=True):
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, persist)
         self.pythonType = long
 
     def validateValue(self, obj, value):

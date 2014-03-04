@@ -417,7 +417,7 @@ class BaseMixin:
         # Trigger field-specific validation
         self.intraFieldValidation(errors, values)
         if errors.__dict__:
-            rq.set('errors', errors.__dict__)
+            for k,v in errors.__dict__.iteritems(): rq.set('%s_error' % k, v)
             self.say(errorMessage)
             return self.gotoEdit()
 
@@ -425,7 +425,7 @@ class BaseMixin:
         msg = self.interFieldValidation(errors, values)
         if not msg: msg = errorMessage
         if errors.__dict__:
-            rq.set('errors', errors.__dict__)
+            for k,v in errors.__dict__.iteritems(): rq.set('%s_error' % k, v)
             self.say(msg)
             return self.gotoEdit()
 
@@ -814,19 +814,27 @@ class BaseMixin:
             res.append(field)
         return res
 
-    def getSlaveFieldsRequestValues(self, pageName):
-        '''Returns the list of slave fields having a masterValue being a
-           method.'''
-        res = {}
+    def getSlavesRequestInfo(self, pageName):
+        '''When slave fields must be updated via Ajax requests, we must carry
+           some information from the global request object to the ajax requests:
+           - the selected values in slave fields;
+           - validation errors.'''
+        requestValues = {}
+        errors = {}
         req = self.REQUEST
         for field in self.getAllAppyTypes():
             if field.page.name != pageName: continue
             if field.masterValue and callable(field.masterValue):
-                # We have such a field
+                # We have a slave field that is updated via ajax requests.
                 name = field.name
+                # Remember the request value for this field if present.
                 if req.has_key(name) and req[name]:
-                    res[name] = req[name]
-        return sutils.getStringDict(res)
+                    requestValues[name] = req[name]
+                # Remember the validation error for this field if present.
+                errorKey = '%s_error' % name
+                if req.has_key(errorKey):
+                    errors[name] = req[errorKey]
+        return sutils.getStringDict(requestValues), sutils.getStringDict(errors)
 
     def getCssJs(self, fields, layoutType, res):
         '''Gets, in p_res ~{'css':[s_css], 'js':[s_js]}~ the lists of

@@ -61,8 +61,7 @@ class Field:
              value=zobj.getFormattedFieldValue(name, rawValue, showChanges);
              requestValue=zobj.getRequestFieldValue(name);
              inRequest=req.has_key(name);
-             errors=errors|();
-             inError=name in errors;
+             error=req.get('%s_error' % name);
              isMultiple=(field.multiplicity[1] == None) or \
                         (field.multiplicity[1] &gt; 1);
              masterCss=field.slaves and ('master_%s' % name) or '';
@@ -86,8 +85,8 @@ class Field:
      src=":url('help')"/></acronym>''')
 
     # Displays validation-error-related info about a field.
-    pxValidation = Px('''<x><acronym if="inError" title=":errors[name]"><img
-     src=":url('warning')"/></acronym><img if="not inError"
+    pxValidation = Px('''<x><acronym if="error" title=":error"><img
+     src=":url('warning')"/></acronym><img if="not error"
      src=":url('warning_no.gif')"/></x>''')
 
     # Displays the fact that a field is required.
@@ -107,7 +106,7 @@ class Field:
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
                  master, masterValue, focus, historized, sync, mapping, label,
-                 sdefault, scolspan, swidth, sheight):
+                 sdefault, scolspan, swidth, sheight, persist):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -215,6 +214,10 @@ class Field:
         # Width and height for the search widget
         self.swidth = swidth or width
         self.sheight = sheight or height
+        # "persist" indicates if field content must be stored in the database.
+        # For some fields it is not wanted (ie, fields used only as masters to
+        # update slave's selectable values).
+        self.persist = persist
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
@@ -584,26 +587,14 @@ class Field:
             res += '+'
         return res
 
-    def getOnChange(self, name, zobj, layoutType):
+    def getOnChange(self, zobj, layoutType):
         '''When this field is a master, this method computes the call to the
            Javascript function that will be called when its value changes (in
            order to update slaves).'''
         if not self.slaves: return ''
         q = zobj.getTool().quote
-        # Create the dict of request values for slave fields.
-        rvs = {}
-        req = zobj.REQUEST
-        for slave in self.slaves:
-            name = slave.name
-            if not req.has_key(name): continue
-            if not req[name]: continue
-            rvs[name] = req[name]
-        if rvs:
-            rvs = ',%s' % sutils.getStringDict(rvs)
-        else:
-            rvs = ''
-        return 'updateSlaves(this,null,%s,%s%s)' % \
-               (q(zobj.absolute_url()), q(layoutType), rvs)
+        return 'updateSlaves(this,null,%s,%s)' % \
+               (q(zobj.absolute_url()), q(layoutType))
 
     def isEmptyValue(self, value, obj=None):
         '''Returns True if the p_value must be considered as an empty value.'''
@@ -680,7 +671,7 @@ class Field:
     def store(self, obj, value):
         '''Stores the p_value (produced by m_getStorableValue) that complies to
            p_self type definition on p_obj.'''
-        setattr(obj, self.name, value)
+        if self.persist: setattr(obj, self.name, value)
 
     def callMethod(self, obj, method, cache=True):
         '''This method is used to call a p_method on p_obj. p_method is part of

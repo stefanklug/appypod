@@ -70,7 +70,7 @@ class Computed(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, sync, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, False)
         self.validable = False
 
     def getValue(self, obj):

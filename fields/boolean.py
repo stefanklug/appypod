@@ -23,19 +23,17 @@ from appy.gen.layout import Table
 class Boolean(Field):
     '''Field for storing boolean values.'''
 
-    pxView = pxCell = Px('''
-     <x><x>:value</x>
-      <input type="hidden" if="masterCss"
-             class=":masterCss" value=":rawValue" name=":name" id=":name"/>
-     </x>''')
+    pxView = pxCell = Px('''<x>:value</x>
+     <input type="hidden" if="masterCss"
+            class=":masterCss" value=":rawValue" name=":name" id=":name"/>''')
 
     pxEdit = Px('''
      <x var="isChecked=field.isChecked(zobj, rawValue)">
       <input type="checkbox" name=":name + '_visible'" id=":name"
              class=":masterCss" checked=":isChecked"
              onclick=":'toggleCheckbox(%s, %s); %s' % (q(name), \
-                       q('%s_hidden' % name), field.getOnChange(name, zobj, \
-                       layoutType))"/>
+                       q('%s_hidden' % name), \
+                       field.getOnChange(zobj, layoutType))"/>
       <input type="hidden" name=":name" id=":'%s_hidden' % name"
              value=":isChecked and 'True' or 'False'"/>
      </x>''')
@@ -64,13 +62,14 @@ class Boolean(Field):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 sdefault=False, scolspan=1, swidth=None, sheight=None):
+                 sdefault=False, scolspan=1, swidth=None, sheight=None,
+                 persist=True):
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight)
+                       swidth, sheight, persist)
         self.pythonType = bool
 
     # Layout including a description
