@@ -16,7 +16,6 @@
 
 # ------------------------------------------------------------------------------
 import time, os.path, mimetypes, shutil
-from DateTime import DateTime
 from appy import Object
 from appy.fields import Field
 from appy.px import Px
@@ -147,6 +146,7 @@ class FileInfo:
                 self.size = len(fileObj[1])
                 f.write(fileObj[1])
         f.close()
+        from DateTime import DateTime
         self.modified = DateTime()
 
     def copyFile(self, fieldName, filePath, dbFolder):
@@ -160,6 +160,7 @@ class FileInfo:
         self.mimeType= mimetypes.guess_type(filePath)[0] or File.defaultMimeType
         # Copy the file
         shutil.copyfile(filePath, self.fsName)
+        from DateTime import DateTime
         self.modified = DateTime()
         self.size = os.stat(self.fsName).st_size
 
