@@ -144,8 +144,7 @@ class String(Field):
       <x if="not multipleValues">:field.pxView</x>
      </x>''')
 
-    pxSearch = Px('''<x>
-     <label lfor="widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
+    pxSearch = Px('''
      <!-- Show a simple search field for most String fields -->
      <input if="not field.isSelect" type="text" maxlength=":field.maxChars"
             size=":field.swidth" value=":field.sdefault"
@@ -173,8 +172,7 @@ class String(Field):
                selected=":v[0] in preSelected" value=":v[0]"
                title=":v[1]">:ztool.truncateValue(v[1], field.swidth)</option>
       </select>
-     </x><br/>
-    </x>''')
+     </x><br/>''')
 
     # Some predefined functions that may also be used as validators
     @staticmethod

@@ -575,7 +575,9 @@ class AbstractWrapper(object):
              lang=ztool.getUserLanguage();   q=ztool.quote;
              action=req.get('action', None);
              px=req['px'].split(':');
-             field=(len(px) == 2) and zobj.getAppyType(px[0]) or None;
+             className=(len(px) == 3) and px[0] or None;
+             field=className and zobj.getAppyType(px[1], className) or None;
+             field=(len(px) == 2) and zobj.getAppyType(px[0]) or field;
              dir=ztool.getLanguageDirection(lang);
              dleft=(dir == 'ltr') and 'left' or 'right';
              dright=(dir == 'ltr') and 'right' or 'left';
@@ -590,7 +592,7 @@ class AbstractWrapper(object):
 
       <!-- Then, call the PX on p_obj or on p_field. -->
       <x if="not field">:getattr(obj, px[0])</x>
-      <x if="field">:getattr(field, px[1])</x>
+      <x if="field">:getattr(field, px[-1])</x>
      </x>''')
 
     # --------------------------------------------------------------------------

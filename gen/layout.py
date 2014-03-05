@@ -7,6 +7,7 @@
 #  "edit"   represents a given page for a given Appy class, in edit mode.
 #  "cell"   represents a cell in a table, like when we need to render a field
 #           value in a query result or in a reference table.
+#  "search" represents an advanced search screen.
 
 # Layout elements for a class or page ------------------------------------------
 #  s - The page summary, containing summarized information about the page or
@@ -113,7 +114,7 @@ class Table:
     '''Represents a table where to dispose graphical elements.'''
     simpleParams = ('style', 'css_class', 'cellpadding', 'cellspacing', 'width',
                     'align')
-    derivedRepls = {'view': 'hrvd', 'cell': 'ldc'}
+    derivedRepls = {'view': 'hrvd', 'search': '', 'cell': 'ldc'}
     def __init__(self, layoutString=None, style=None, css_class='',
                  cellpadding=0, cellspacing=0, width='100%', align='left',
                  other=None, derivedType=None):

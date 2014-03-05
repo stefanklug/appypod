@@ -495,6 +495,7 @@ class ToolWrapper(AbstractWrapper):
              refInfo=req.get('ref', None);
              searchInfo=ztool.getSearchInfo(className, refInfo);
              cssJs={};
+             layoutType='search';
              x=ztool.getCssJs(searchInfo.fields, 'edit', cssJs)">
 
       <!-- Include type-specific CSS and JS. -->
@@ -506,7 +507,6 @@ class ToolWrapper(AbstractWrapper):
       <!-- Search title -->
       <h1><x>:_('%s_plural'%className)</x> &ndash;
           <x>:_('search_title')</x></h1>
-      <br/>
       <!-- Form for searching objects of request/className. -->
       <form name="search" action=":ztool.absolute_url()+'/do'" method="post">
        <input type="hidden" name="action" value="SearchObjects"/>
@@ -516,13 +516,11 @@ class ToolWrapper(AbstractWrapper):
        <table width="100%">
         <tr for="searchRow in ztool.getGroupedSearchFields(searchInfo)"
             valign="top">
-         <td for="field in searchRow"
+         <td for="field in searchRow" class="search"
              var2="scolspan=field and field.scolspan or 1"
              colspan=":scolspan"
              width=":'%d%%' % ((100/searchInfo.nbOfColumns)*scolspan)">
-           <x if="field"
-              var2="name=field.name;
-                    widgetName='w_%s' % name">:field.pxSearch</x>
+           <x if="field">:field.pxRender</x>
            <br class="discreet"/>
          </td>
         </tr>

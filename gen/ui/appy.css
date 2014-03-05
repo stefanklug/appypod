@@ -93,6 +93,7 @@ input.button { border-width: 0 !important; color: #666666; height: 23px;
                 margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey }
 .portletSearch { font-size: 90%; font-style: italic }
 .inputSearch { height: 15px; width: 132px; margin: 3px 3px 2px 3px !important }
+td.search { padding-top: 8px }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
 .grey { display: none; position: absolute; left: 0px; top: 0px; z-index:2;
         background:grey; opacity:0.5; -moz-opacity:0.5; -khtml-opacity:0.5;

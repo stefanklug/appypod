@@ -81,10 +81,7 @@ class Date(Field):
       </x>
      </x>''')
 
-    pxSearch = Px('''
-     <x var="years=range(field.startYear, field.endYear+1)">
-      <label>:_(field.labelId)</label>
-      <table>
+    pxSearch = Px('''<table var="years=range(field.startYear, field.endYear+1)">
        <!-- From -->
        <tr var="fromName='%s_from' % name;
                 dayFromName='%s_from_day' % name;
@@ -150,8 +147,7 @@ class Date(Field):
          </x>
         </td>
        </tr>
-      </table>
-     </x>''')
+      </table>''')
 
     # Required CSS and Javascript files for this type.
     cssFiles = {'edit': ('jscalendar/calendar-blue.css',)}

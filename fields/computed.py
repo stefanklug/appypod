@@ -38,11 +38,9 @@ class Computed(Field):
      </div>
     </x>''')
 
-    pxSearch = Px('''<x>
-     <label lfor=":name">:field.labelId</label><br/>&nbsp;&nbsp;
+    pxSearch = Px('''
      <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
-            size=":field.width" value=":field.sdefault"/>
-    </x>''')
+            size=":field.width" value=":field.sdefault"/>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=('view', 'result'), page='main', group=None,

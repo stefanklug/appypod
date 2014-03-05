@@ -10,7 +10,8 @@ from appy.gen.wrappers.TranslationWrapper import TranslationWrapper as WT
 from appy.gen.wrappers.PageWrapper import PageWrapper as WPage
 from Globals import InitializeClass
 from AccessControl import ClassSecurityInfo
-tfw = {"edit":"f","cell":"f","view":"f"} # Layout for Translation fields
+# Layouts for Translation fields
+tfw = {"edit":"f","cell":"f","view":"f","search":"f"}
 <!imports!>
 
 <!User!>

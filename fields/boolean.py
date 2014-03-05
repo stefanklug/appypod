@@ -38,9 +38,7 @@ class Boolean(Field):
              value=":isChecked and 'True' or 'False'"/>
      </x>''')
 
-    pxSearch = Px('''
-     <x var="typedWidget='%s*bool' % widgetName">
-      <label lfor=":widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
+    pxSearch = Px('''<x var="typedWidget='%s*bool' % widgetName">
       <x var="valueId='%s_yes' % name">
        <input type="radio" value="True" name=":typedWidget" id=":valueId"/>
        <label lfor=":valueId">:_('yes')</label>
@@ -53,8 +51,7 @@ class Boolean(Field):
        <input type="radio" value="" name=":typedWidget" id=":valueId"
               checked="checked"/>
        <label lfor=":valueId">:_('whatever')</label>
-      </x><br/>
-     </x>''')
+      </x><br/></x>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts = None, move=0,

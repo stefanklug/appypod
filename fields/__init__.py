@@ -51,15 +51,17 @@ class Field:
     pxRender = Px('''
      <x var="showChanges=showChanges|req.get('showChanges',False);
              layoutType=layoutType|req.get('layoutType');
+             isSearch = layoutType == 'search';
              layout=field.layouts[layoutType];
              name=fieldName|field.name;
+             widgetName = isSearch and ('w_%s' % name) or name;
              sync=field.sync[layoutType];
              outerValue=value|None;
-             rawValue=zobj.getFieldValue(name, onlyIfSync=True, \
-                                         layoutType=layoutType, \
-                                         outerValue=outerValue);
-             value=zobj.getFormattedFieldValue(name, rawValue, showChanges);
-             requestValue=zobj.getRequestFieldValue(name);
+             rawValue=not isSearch and zobj.getFieldValue(name, \
+                 onlyIfSync=True, layoutType=layoutType, outerValue=outerValue);
+             value=not isSearch and \
+                   field.getFormattedValue(zobj, rawValue, showChanges);
+             requestValue=not isSearch and zobj.getRequestFieldValue(name);
              inRequest=req.has_key(name);
              error=req.get('%s_error' % name);
              isMultiple=(field.multiplicity[1] == None) or \
@@ -68,6 +70,7 @@ class Field:
              slaveCss=field.getSlaveCss();
              tagCss=tagCss|'';
              tagCss=('%s %s' % (slaveCss, tagCss)).strip();
+             zobj=zobj or ztool;
              tagId='%s_%s' % (zobj.UID(), name);
              tagName=field.master and 'slave' or '';
              layoutTarget=field">:tool.pxLayoutedObject</x>''')
@@ -345,8 +348,8 @@ class Field:
         '''Creates a dictionary indicating, for every layout type, if the field
            value must be retrieved synchronously or not.'''
         if isinstance(sync, bool):
-            sync = {'edit': sync, 'view': sync, 'cell': sync}
-        for layoutType in ('edit', 'view', 'cell'):
+            sync = {'edit': sync, 'view': sync, 'cell': sync, 'search': sync}
+        for layoutType in ('edit', 'view', 'search', 'cell'):
             if layoutType not in sync:
                 sync[layoutType] = False
         return sync
@@ -405,9 +408,13 @@ class Field:
         for layoutType in layouts.iterkeys():
             if isinstance(layouts[layoutType], basestring):
                 layouts[layoutType] = Table(layouts[layoutType])
-        # Derive "view" and "cell" layouts from the "edit" layout when relevant
+        # Derive "view", "search" and "cell" layouts from the "edit" layout
+        # when relevant.
         if 'view' not in layouts:
             layouts['view'] = Table(other=layouts['edit'], derivedType='view')
+        if 'search' not in layouts:
+            layouts['search'] = Table(other=layouts['view'],
+                                      derivedType='search')
         # Create the "cell" layout from the 'view' layout if not specified.
         if 'cell' not in layouts:
             layouts['cell'] = Table(other=layouts['view'], derivedType='cell')
@@ -587,14 +594,16 @@ class Field:
             res += '+'
         return res
 
-    def getOnChange(self, zobj, layoutType):
+    def getOnChange(self, zobj, layoutType, className=None):
         '''When this field is a master, this method computes the call to the
            Javascript function that will be called when its value changes (in
            order to update slaves).'''
         if not self.slaves: return ''
         q = zobj.getTool().quote
-        return 'updateSlaves(this,null,%s,%s)' % \
-               (q(zobj.absolute_url()), q(layoutType))
+        # When the field is on a search screen, we need p_className.
+        cName = className and (',%s' % q(className)) or ''
+        return 'updateSlaves(this,null,%s,%s,null,null%s)' % \
+               (q(zobj.absolute_url()), q(layoutType), cName)
 
     def isEmptyValue(self, value, obj=None):
         '''Returns True if the p_value must be considered as an empty value.'''

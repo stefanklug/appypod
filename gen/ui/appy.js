@@ -244,15 +244,16 @@ function askComputedField(hookId, objectUrl, fieldName) {
 }
 
 function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
-                  requestValue, error){
+                  requestValue, error, className){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
   if (masterValues) params['masterValues'] = masterValues.join('*');
   if (requestValue) params[fieldName] = requestValue;
   if (error) params[fieldName + '_error'] = error;
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxRender', params, null,
-               evalInnerScripts);
+  var px = fieldName + ':pxRender';
+  if (className) px = className + ':' + px;
+  askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
 }
 
 // Function used by checkbox widgets for having radio-button-like behaviour
@@ -354,6 +355,8 @@ function getSlaves(master) {
   allSlaves = getElementsHavingName('table', 'slave');
   res = [];  
   masterName = master.attributes['name'].value;
+  // Remove leading 'w_' if the master is in a search screen.
+  if (masterName.indexOf('w_') == 0) masterName = masterName.slice(2);
   if (master.type == 'checkbox') {
     masterName = masterName.substr(0, masterName.length-8);
   }
@@ -370,7 +373,8 @@ function getSlaves(master) {
   return res;
 }
 
-function updateSlaves(master,slave,objectUrl,layoutType,requestValues,errors){
+function updateSlaves(master, slave, objectUrl, layoutType, requestValues,
+                      errors, className){
   /* Given the value(s) in a master field, we must update slave's visibility or
      value(s). If p_slave is given, it updates only this slave. Else, it updates
      all slaves of p_master. */
@@ -401,7 +405,8 @@ function updateSlaves(master,slave,objectUrl,layoutType,requestValues,errors){
       var err = null;
       if (errors && (slaveName in errors))
         err = errors[slaveName];
-      askField(slaveId,objectUrl,layoutType,false,masterValues,reqValue,err);
+      askField(slaveId, objectUrl, layoutType, false, masterValues, reqValue,
+               err, className);
     }
   }
 }

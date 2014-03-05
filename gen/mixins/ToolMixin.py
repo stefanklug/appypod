@@ -648,6 +648,8 @@ class ToolMixin(BaseMixin):
         for attrName in rq.form.keys():
             if attrName.startswith('w_') and \
                not self._searchValueIsEmpty(attrName):
+                field = self.getAppyType(attrName[2:], rq.form['className'])
+                if not field.persist: continue
                 # We have a(n interval of) value(s) that is not empty for a
                 # given field.
                 attrValue = rq.form[attrName]
@@ -1383,18 +1385,6 @@ class ToolMixin(BaseMixin):
         if not res:
             res = self.goto(siteUrl, self.translate('wrong_password_reinit'))
         return res
-
-    def getSearchValues(self, name, className):
-        '''Gets the possible values for selecting a value for searching field
-           p_name belonging to class p_className.'''
-        klass = self.getAppyClass(className, wrapper=True)
-        method = getattr(klass, name).searchSelect
-        tool = self.appy()
-        if method.__class__.__name__ == 'function':
-            objects = method(tool)
-        else:
-            objects = method.__get__(tool)(tool)
-        return [(o.uid, o) for o in objects]
 
     def getGoogleAnalyticsCode(self):
         '''If the config defined a Google Analytics ID, this method returns the

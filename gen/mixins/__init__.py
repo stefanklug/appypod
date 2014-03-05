@@ -690,6 +690,7 @@ class BaseMixin:
         '''Returns the database value of field named p_name for p_self.
            If p_onlyIfSync is True, it returns the value only if appyType can be
            retrieved in synchronous mode.'''
+        if layoutType == 'search': return # No object in search screens.
         field = self.getAppyType(name)
         if not onlyIfSync or (onlyIfSync and field.sync[layoutType]):
             # We must really get the field value.
@@ -698,11 +699,6 @@ class BaseMixin:
             listName, name, i = name.split('*')
             listType = self.getAppyType(listName)
             return listType.getInnerValue(self, outerValue, name, int(i))
-
-    def getFormattedFieldValue(self, name, value, showChanges=False):
-        '''Gets a nice, string representation of p_value which is a value from
-           field named p_name.'''
-        return self.getAppyType(name).getFormattedValue(self,value,showChanges)
 
     def getRequestFieldValue(self, name):
         '''Gets the value of field p_name as may be present in the request.'''

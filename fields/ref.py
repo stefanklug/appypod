@@ -282,21 +282,20 @@ class Ref(Field):
 
     pxEdit = Px('''
      <select if="field.link"
-             var2="zobjects=field.getSelectableObjects(obj);
+             var2="objects=field.getPossibleValues(obj);
                    uids=[o.UID() for o in \
                          field.getLinkedObjects(zobj).objects]"
              name=":name" id=":name" size=":isMultiple and field.height or ''"
              onchange=":field.getOnChange(zobj, layoutType)"
              multiple=":isMultiple">
       <option value="" if="not isMultiple">:_('choose_a_value')</option>
-      <option for="ztied in zobjects" var2="uid=ztied.o.UID()"
+      <option for="tied in objects" var2="uid=tied.uid"
               selected=":inRequest and (uid in requestValue) or \
                                        (uid in uids)"
-              value=":uid">:field.getReferenceLabel(ztied)</option>
+              value=":uid">:field.getReferenceLabel(tied)</option>
      </select>''')
 
-    pxSearch = Px('''<x>
-     <label lfor=":widgetName">:_(field.labelId)</label><br/>&nbsp;&nbsp;
+    pxSearch = Px('''
      <!-- The "and" / "or" radio buttons -->
      <x if="field.multiplicity[1] != 1"
         var2="operName='o_%s' % name;
@@ -309,12 +308,14 @@ class Ref(Field):
       <label lfor=":andName">:_('search_and')</label><br/>
      </x>
      <!-- The list of values -->
-     <select name=":widgetName" size=":field.sheight" multiple="multiple">
-      <option for="v in ztool.getSearchValues(name, className)"
-              var2="uid=v[0]; title=field.getReferenceLabel(v[1])" value=":uid"
-              title=":title">:ztool.truncateValue(title,field.swidth)</option>
-     </select>
-    </x>''')
+     <select var="objects=field.getPossibleValues(tool);
+                  selectAll='masterValues' in req"
+             name=":widgetName" size=":field.sheight" multiple="multiple"
+             onchange=":field.getOnChange(ztool, 'search', className)">
+      <option for="tied in objects" value=":tied.uid" selected=":selectAll"
+              var2="title=field.getReferenceLabel(tied, unlimited=True)"
+              title=":title">:ztool.truncateValue(title, field.swidth)</option>
+     </select>''')
 
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), default=None, add=False, addConfirm=False,
@@ -740,11 +741,12 @@ class Ref(Field):
         newIndex = oldIndex + move
         uids.insert(newIndex, uid)
 
-    def getSelectableObjects(self, obj):
-        '''This method returns the list of all objects that can be selected to
-           be linked as references to p_obj via p_self. If master values are
-           present in the request, we use field.masterValues method instead of
-           self.select.'''
+    def getPossibleValues(self, obj):
+        '''This method returns the list of all objects that can be selected
+           to be linked as references to p_obj via p_self. It is applicable only
+           for ref fields with link=True. If master values are present in the
+           request, we use field.masterValues method instead of self.select.
+        '''
         req = obj.request
         if 'masterValues' in req:
             # Convert masterValue(s) from UID(s) to real object(s).
@@ -762,8 +764,8 @@ class Ref(Field):
         else:
             # If this field is a ajax-updatable slave, no need to compute
             # selectable objects: it will be overridden by method
-            # self.masterValue by a subsequent ajax request (=the "if" statement
-            # above).
+            # self.masterValue by a subsequent ajax request (=the "if"
+            # statement above).
             if self.masterValue and callable(self.masterValue): return []
             if not self.select:
                 # No select method has been defined: we must retrieve all
@@ -774,7 +776,7 @@ class Ref(Field):
                 return self.select(obj)
 
     xhtmlToText = re.compile('<.*?>', re.S)
-    def getReferenceLabel(self, refObject):
+    def getReferenceLabel(self, refObject, unlimited=False):
         '''p_self must have link=True. I need to display, on an edit view, the
            p_refObject in the listbox that will allow the user to choose which
            object(s) to link through the Ref. The information to display may
@@ -793,6 +795,7 @@ class Ref(Field):
             if res:
                 prefix = ' | '
             res += prefix + value
+        if unlimited: return res
         maxWidth = self.width or 30
         if len(res) > maxWidth:
             res = res[:maxWidth-2] + '...'

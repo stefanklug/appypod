@@ -32,8 +32,7 @@ class Integer(Field):
             maxlength=":field.maxChars"
             value=":inRequest and requestValue or value" type="text"/>''')
 
-    pxSearch = Px('''<x>
-     <label>:_(field.labelId)</label><br/>&nbsp;&nbsp;
+    pxSearch = Px('''
      <!-- From -->
      <x var="fromName='%s*int' % widgetName">
       <label lfor=":fromName">:_('search_from')</label>
@@ -45,8 +44,7 @@ class Integer(Field):
       <label lfor=":toName">:_('search_to')</label>
       <input type="text" name=":toName" maxlength=":field.maxChars"
              value=":field.sdefault[1]" size=":field.swidth"/>
-     </x><br/>
-    </x>''')
+     </x><br/>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
