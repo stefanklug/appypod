@@ -400,7 +400,7 @@ class File(Field):
             if rq: action = rq.get('%s_delete' % self.name, None)
             if action != 'nochange':
                 # Delete the file on disk
-                info = getattr(zobj.aq_base, self.name)
+                info = getattr(zobj.aq_base, self.name, None)
                 if info:
                     info.removeFile(zobj.getDbFolder(), removeEmptyFolders=True)
                 # Delete the FileInfo in the DB

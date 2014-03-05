@@ -1243,9 +1243,8 @@ class ToolMixin(BaseMixin):
         tb = sys.exc_info()
         if error.type.__name__ == 'Unauthorized':
             siteUrl = self.getSiteUrl()
-            htmlMessage = '<a href="%s"><img src="%s/ui/home.gif"/></a>' \
-                          'You are not allowed to access this page.' % \
-                          (siteUrl, siteUrl)
+            htmlMessage = '<a href="/">Back</a> You are not allowed to ' \
+                          'access this page.'
             userId = self.appy().user.login
             textMessage = 'Unauthorized for %s @%s.' % \
                           (userId, self.REQUEST.get('PATH_INFO'))

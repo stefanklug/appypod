@@ -150,16 +150,15 @@ class AbstractWrapper(object):
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
-            style=":url(bannerName, bg=True) + '; background-repeat:no-repeat'">
+            style=":url(bannerName, bg=True) + '; background-repeat:no-repeat;\
+                   position:relative'">
+         <!-- Logo (transparent clickable zone by default) -->
+         <div align=":dleft" style="position: absolute"><a href="/">
+          <img src=":url('logo')"/></a></div>
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
-          <!-- Icon "home" -->
-          <a class="pageLink" href="/" title=": _('app_home')">
-           <img src=":url('home.gif')" style="margin-right: 3px"/>
-          </a>
-
-          <!-- Additional links -->
+          <!-- Custom links -->
           <x>:tool.pxLinks</x>
 
           <!-- Top-level pages -->
