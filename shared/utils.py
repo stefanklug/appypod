@@ -216,6 +216,7 @@ def normalizeString(s, usage='fileName'):
        * alphanum: it removes any non-alphanumeric char;
        * alpha: it removes any non-letter char.
     '''
+    strNeeded = isinstance(s, str)
     # We work in unicode. Convert p_s to unicode if not unicode.
     if isinstance(s, str):           s = s.decode('utf-8')
     elif not isinstance(s, unicode): s = unicode(s)
@@ -236,8 +237,12 @@ def normalizeString(s, usage='fileName'):
         res = ''
         for char in s:
             if rex.match(char): res += char
+    elif usage == 'noAccents':
+        res = s
     else:
         res = s
+    # Re-code the result as a str if a str was given.
+    if strNeeded: res = res.encode('utf-8')
     return res
 
 def normalizeText(s):

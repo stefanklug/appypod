@@ -586,21 +586,14 @@ class String(Field):
                         break
             if error: return obj.translate('bad_select_value')
 
-    accents = {'é':'e','è':'e','ê':'e','ë':'e','à':'a','â':'a','ä':'a',
-               'ù':'u','û':'u','ü':'u','î':'i','ï':'i','ô':'o','ö':'o',
-               'ç':'c', 'Ç':'C',
-               'Ù':'U','Û':'U','Ü':'U','Î':'I','Ï':'I','Ô':'O','Ö':'O',
-               'É':'E','È':'E','Ê':'E','Ë':'E','À':'A','Â':'A','Ä':'A'}
     def applyTransform(self, value):
         '''Applies a transform as required by self.transform on single
            value p_value.'''
         if self.transform in ('uppercase', 'lowercase'):
-            # For those transforms, I will remove any accent, because
-            # (1) 'é'.upper() or 'Ê'.lower() has no effect;
-            # (2) most of the time, if the user wants to apply such effect, it
-            #     is for ease of data manipulation, so I guess without accent.
-            for c, n in self.accents.iteritems():
-                if c in value: value = value.replace(c, n)
+            # For those transforms, I will remove any accent, because, most of
+            # the time, if the user wants to apply such effect, it is for ease
+            # of data manipulation, so I guess without accent.
+            value = sutils.normalizeString(value, usage='noAccents')
         # Apply the transform
         if   self.transform == 'lowercase':  return value.lower()
         elif self.transform == 'uppercase':  return value.upper()
