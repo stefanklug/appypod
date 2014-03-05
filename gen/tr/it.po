@@ -103,10 +103,6 @@ msgstr "Giù"
 msgid "query_create"
 msgstr "Creazione in corso"
 
-#. Default: "import"
-msgid "query_import"
-msgstr "Import"
-
 #. Default: "Nothing to see for the moment."
 msgid "query_no_result"
 msgstr "Nessun risultato"
@@ -114,26 +110,6 @@ msgstr "Nessun risultato"
 #. Default: "consult all"
 msgid "query_consult_all"
 msgstr "Consultare tutto"
-
-#. Default: "Importing data into your application"
-msgid "import_title"
-msgstr "Importare i dati"
-
-#. Default: "Show / hide alreadly imported elements."
-msgid "import_show_hide"
-msgstr "Evidenzia / nascondi gli elementi già importati."
-
-#. Default: "Already imported."
-msgid "import_already"
-msgstr "Già importati"
-
-#. Default: "Import selected elements"
-msgid "import_many"
-msgstr "Importare gli elementi selezionati."
-
-#. Default: "Import terminated successfully."
-msgid "import_done"
-msgstr "Import è terminato con successo"
 
 #. Default: "Advanced search"
 msgid "search_title"

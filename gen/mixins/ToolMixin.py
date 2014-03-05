@@ -260,28 +260,6 @@ class ToolMixin(BaseMixin):
         klass = self.getAppyClass(className)
         return getattr(klass, 'resultMode', 'list')
 
-    def getImportElements(self, className):
-        '''Returns the list of elements that can be imported from p_path for
-           p_className.'''
-        appyClass = self.getAppyClass(className)
-        importParams = self.getCreateMeans(appyClass)['import']
-        onElement = importParams.onElement.__get__('')
-        sortMethod = importParams.sort
-        if sortMethod: sortMethod = sortMethod.__get__('')
-        elems = []
-        importType = self.getAppyType('importPathFor%s' % className)
-        importPath = importType.getValue(self)
-        for elem in os.listdir(importPath):
-            elemFullPath = os.path.join(importPath, elem)
-            elemInfo = onElement(elemFullPath)
-            if elemInfo:
-                elemInfo.insert(0, elemFullPath) # To the result, I add the full
-                # path of the elem, which will not be shown.
-                elems.append(elemInfo)
-        if sortMethod:
-            elems = sortMethod(elems)
-        return [importParams.headers, elems]
-
     def showPortlet(self, obj, layoutType):
         '''When must the portlet be shown? p_obj and p_layoutType can be None
            if we are not browing any objet (ie, we are on the home page).'''
@@ -484,26 +462,16 @@ class ToolMixin(BaseMixin):
         return self.getProductConfig().allClassNames + [self.__class__.__name__]
 
     def getCreateMeans(self, klass):
-        '''Gets the different ways objects of p_klass can be created (via a web
-           form, by importing external data, etc). Result is a dict whose keys
-           are strings (ie "form", "import"...) and whose values are additional
-           data about the particular mean.'''
-        res = {}
+        '''Gets the different ways objects of p_klass can be created (currently:
+           via a web form or programmatically only). Result is a list.'''
+        res = []
         if not klass.__dict__.has_key('create'):
-            res['form'] = None
-            # No additional data for this means, which is the default one.
+            return ['form']
         else:
             means = pythonClass.create
             if means:
-                if isinstance(means, basestring): res[means] = None
-                elif isinstance(means, list) or isinstance(means, tuple):
-                    for mean in means:
-                        if isinstance(mean, basestring):
-                            res[mean] = None
-                        else:
-                            res[mean.id] = mean
-                else:
-                    res[means.id] = means
+                if isinstance(means, basestring): res = [means]
+                else: res = means
         return res
 
     def userMaySearch(self, klass):
@@ -540,28 +508,6 @@ class ToolMixin(BaseMixin):
         for role in self.getUser().getRoles():
             if role in creators:
                 return True
-
-    def onImportObjects(self):
-        '''This method is called when the user wants to create objects from
-           external data.'''
-        rq = self.REQUEST
-        appyClass = self.getAppyClass(rq.get('className'))
-        importPaths = rq.get('importPath').split('|')
-        appFolder = self.getPath('/data')
-        for importPath in importPaths:
-            if not importPath: continue
-            objectId = os.path.basename(importPath)
-            self.appy().create(appyClass, id=objectId, _data=importPath)
-        self.say(self.translate('import_done'))
-        return self.goto(rq['HTTP_REFERER'])
-
-    def isAlreadyImported(self, contentType, importPath):
-        data = self.getPath('/data')
-        objectId = os.path.basename(importPath)
-        if hasattr(data.aq_base, objectId):
-            return True
-        else:
-            return False
 
     def isSortable(self, name, className, usage):
         '''Is field p_name defined on p_className sortable for p_usage purposes

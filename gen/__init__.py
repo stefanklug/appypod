@@ -40,43 +40,17 @@ from appy.fields.workflow import *
 from appy.gen.layout import Table
 from appy.gen.utils import No
 
-# Make the following classes available here: people may need to monkey-patch
-# some PXs on thoses classes.
+# Make the following classes available here: people may need to override some
+# of their PXs (defined as static attributes).
 from appy.gen.wrappers import AbstractWrapper as BaseObject
 from appy.gen.wrappers.ToolWrapper import ToolWrapper as BaseTool
-
-class Import:
-    '''Used for describing the place where to find the data to use for creating
-       an object.'''
-    def __init__(self, path, onElement=None, headers=(), sort=None):
-        self.id = 'import'
-        self.path = path
-        # p_onElement hereafter must be a function (or a static method) that
-        # will be called every time an element to import is found. It takes a
-        # single arg that is the absolute filen name of the file to import,
-        # within p_path. It must return a list of info about the element, or
-        # None if the element must be ignored. The list will be used to display
-        # information about the element in a tabular form.
-        self.onElement = onElement
-        # The following attribute must contain the names of the column headers
-        # of the table that will display elements to import (retrieved from
-        # calls to self.onElement). Every not-None element retrieved from
-        # self.onElement must have the same length as self.headers.
-        self.headers = headers
-        # The following attribute must store a function or static method that
-        # will be used to sort elements to import. It will be called with a
-        # single param containing the list of all not-None elements as retrieved
-        # by calls to self.onElement (but with one additional first element in
-        # every list, which is the absolute file name of the element to import)
-        # and must return a similar, sorted, list.
-        self.sort = sort
 
 # ------------------------------------------------------------------------------
 class Model: pass
 class Tool(Model):
-    '''If you want to extend or modify the Tool class, subclass me.'''
+    '''Subclass me to extend or modify the Tool class.'''
 class User(Model):
-    '''If you want to extend or modify the User class, subclass me.'''
+    '''Subclass me to extend or modify the User class.'''
 
 # ------------------------------------------------------------------------------
 class LdapConfig:

@@ -103,10 +103,6 @@ msgstr "Verplaats naar beneden"
 msgid "query_create"
 msgstr "Aanmaken"
 
-#. Default: "import"
-msgid "query_import"
-msgstr "Importeren"
-
 #. Default: "Nothing to see for the moment."
 msgid "query_no_result"
 msgstr "Geen resultaat"
@@ -114,26 +110,6 @@ msgstr "Geen resultaat"
 #. Default: "consult all"
 msgid "query_consult_all"
 msgstr "Alles raadplegen"
-
-#. Default: "Importing data into your application"
-msgid "import_title"
-msgstr "Gegevens importeren"
-
-#. Default: "Show / hide alreadly imported elements."
-msgid "import_show_hide"
-msgstr "Tonen / verbergen van reeds geïmporteerde elementen."
-
-#. Default: "Already imported."
-msgid "import_already"
-msgstr "Reeds geïmporteerd."
-
-#. Default: "Import selected elements"
-msgid "import_many"
-msgstr "Geselecteerde elementen importeren."
-
-#. Default: "Import terminated successfully."
-msgid "import_done"
-msgstr "Het importeren is met succes afgelopen."
 
 #. Default: "Advanced search"
 msgid "search_title"

@@ -187,7 +187,6 @@ class ToolWrapper(AbstractWrapper):
         <!-- Actions -->
         <x var="mayCreate=ztool.userMayCreate(rootClass);
                 createMeans=ztool.getCreateMeans(rootClass)">
-
          <!-- Create a new object from a web form. -->
          <input type="button" class="button"
                 if="mayCreate and ('form' in createMeans)"
@@ -195,15 +194,7 @@ class ToolWrapper(AbstractWrapper):
                 onclick=":'goto(%s)' % \
                     q('%s/do?action=Create&amp;className=%s' % \
                     (toolUrl, className))"/>
-
-         <!-- Create object(s) by importing data -->
-         <input type="button" class="button"
-                if="mayCreate and ('import' in createMeans)"
-                style=":url('buttonImport', bg=True)" value=":_('query_import')"
-                onclick=":'goto(%s)' % \
-                        q('%s/import?className=%s' % (toolUrl, className))"/>
         </x>
-
         <!-- Searches -->
         <x if="ztool.advancedSearchEnabledFor(rootClass)">
 
@@ -532,109 +523,6 @@ class ToolWrapper(AbstractWrapper):
                style=":url('buttonSearch', bg=True)"/>
        </p>
       </form>
-     </x>''', template=AbstractWrapper.pxTemplate, hook='content')
-
-    pxImport = Px('''
-     <x var="className=req['className'];
-             importElems=ztool.getImportElements(className);
-             allAreImported=True">
-      <x>:tool.pxPagePrologue</x>
-      <script type="text/javascript"><![CDATA[
-      var importedElemsShown = false;
-      function toggleViewableElements() {
-        var rows = document.getElementsByName('importedElem');
-        var newDisplay = 'table-row';
-        if (isIe) newDisplay = 'block';
-        if (importedElemsShown) newDisplay = 'none';
-        for (var i=0; i<rows.length; i++) {
-          rows[i].style.display = newDisplay;
-        }
-        importedElemsShown = !importedElemsShown;
-      }
-      var checkBoxesChecked = true;
-      function toggleCheckboxes() {
-        var checkBoxes = document.getElementsByName('cbElem');
-        var newCheckValue = true;
-        if (checkBoxesChecked) newCheckValue = false;
-        for (var i=0; i<checkBoxes.length; i++) {
-           checkBoxes[i].checked = newCheckValue;
-        }
-        checkBoxesChecked = newCheckValue;
-      }
-      function importSingleElement(importPath) {
-        var f = document.forms['importElements'];
-        f.importPath.value = importPath;
-        f.submit();
-      }
-      function importManyElements() {
-        var f = document.forms['importElements'];
-        var importPaths = '';
-        // Get the values of the checkboxes
-        var checkBoxes = document.getElementsByName('cbElem');
-        for (var i=0; i<checkBoxes.length; i++) {
-          if (checkBoxes[i].checked) {
-            importPaths += checkBoxes[i].value + '|';
-          }
-        }
-        if (! importPaths) alert(no_elem_selected);
-        else {
-          f.importPath.value = importPaths;
-          f.submit();
-        }
-      }]]>
-      </script>
-
-      <!-- Form for importing several elements at once. -->
-      <form name="importElements"
-            action=":ztool.absolute_url()+'/do'" method="post">
-       <input type="hidden" name="action" value="ImportObjects"/>
-       <input type="hidden" name="className" value=":className"/>
-       <input type="hidden" name="importPath" value=""/>
-      </form>
-
-      <h1>:_('import_title')</h1><br/>
-      <table class="list" width="100%">
-       <tr>
-        <th for="columnHeader in importElems[0]">
-         <img if="loop.columnHeader.nb == 0" src=":url('eye')"
-              title="_('import_show_hide')" class="clickable"
-              onClick="toggleViewableElements()" align=":dleft" />
-         <x>:columnHeader</x>
-        </th>
-        <th></th>
-        <th width="20px"><img src=":url('select_elems')" class="clickable"
-            title=":_('select_delesect')" onClick="toggleCheckboxes()"/></th>
-       </tr>
-       <tr for="row in importElems[1]"
-           var2="alreadyImported=ztool.isAlreadyImported(className, row[0]);
-                 allAreImported=allAreImported and alreadyImported;
-                 odd=loop.row.odd"
-           id=":alreadyImported and 'importedElem' or 'notImportedElem'"
-           name=":alreadyImported and 'importedElem' or 'notImportedElem'"
-           style=":alreadyImported and 'display:none' or 'display:table-row'"
-           class=":odd and 'even' or 'odd'">
-        <td for="elem in row[1:]">:elem</td>
-        <td>
-         <input type="button" if="not alreadyImported"
-                onClick=":'importSingleElement(%s)' % q(row[0])"
-                value=":_('query_import')"/>
-         <x if="alreadyImported">:_('import_already')</x>
-        </td>
-        <td align="center">
-         <input if="not alreadyImported" type="checkbox" checked="checked"
-                id="cbElem" name="cbElem" value="row[0]"/>
-        </td>
-       </tr>
-       <tr if="not importElems[1] or allAreImported">
-        <td colspan="15">:_('query_no_result')</td></tr>
-      </table>
-
-      <!-- Button for importing several elements at once. -->
-      <p align=":dright"><br/>
-       <input if="importElems[1] and not allAreImported"
-              type="button" onClick="importManyElements()"
-              value=":_('import_many')"/>
-      </p>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     def isManager(self):

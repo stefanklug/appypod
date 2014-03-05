@@ -238,11 +238,6 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
 }
 
-function askComputedField(hookId, objectUrl, fieldName) {
-  // Sends an Ajax request for getting the content of a computed field
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxViewContent');
-}
-
 function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
                   requestValue, error, className){
   // Sends an Ajax request for getting the content of any field.
