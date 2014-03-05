@@ -327,10 +327,10 @@ class Ref(Field):
                  width=None, height=5, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False, searchSelect=None, changeOrder=True,
-                 sdefault='', scolspan=1, swidth=None, sheight=None,
-                 persist=True, render='list', menuIdMethod=None,
-                 menuInfoMethod=None, menuUrlMethod=None):
+                 navigable=False, changeOrder=True, sdefault='', scolspan=1,
+                 swidth=None, sheight=None, sselect=None, persist=True,
+                 render='list', menuIdMethod=None, menuInfoMethod=None,
+                 menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -379,8 +379,23 @@ class Ref(Field):
         self.shownInfo = list(shownInfo)
         if not self.shownInfo: self.shownInfo.append('title')
         # If a method is defined in this field "select", it will be used to
-        # filter the list of available tied objects.
+        # return the list of possible tied objects. Be careful: this method can
+        # receive, in its first argument ("self"), the tool instead of an
+        # instance of the class where this field is defined. This little cheat
+        # is:
+        #  - not really a problem: in this method you will mainly use methods
+        #    that are available on a tool as well as on any object (like
+        #    "search");
+        #  - necessary because in some cases we do not have an instance at our
+        #    disposal, ie, when we need to compute a list of objects on a
+        #    search screen.
+        # NOTE that when a method is defined in field "masterValue" (see parent
+        # class "Field"), it will be used instead of select (or sselect below).
         self.select = select
+        # If you want to specify, for the search screen, a list of objects that
+        # is different from the one produced by self.select, define an
+        # alternative method in field "sselect" below.
+        self.sselect = sselect or self.select
         # Maximum number of referenced objects shown at once.
         self.maxPerPage = maxPerPage
         # Specifies sync
@@ -396,11 +411,6 @@ class Ref(Field):
         self.queryNbCols = queryNbCols
         # Within the portlet, will referred elements appear ?
         self.navigable = navigable
-        # The search select method is used if self.indexed is True. In this
-        # case, we need to know among which values we can search on this field,
-        # in the search screen. Those values are returned by self.searchSelect,
-        # which must be a static method accepting the tool as single arg.
-        self.searchSelect = searchSelect
         # If changeOrder is False, it even if the user has the right to modify
         # the field, it will not be possible to move objects or sort them.
         self.changeOrder = changeOrder
@@ -762,10 +772,9 @@ class Ref(Field):
             res = self.masterValue(obj, masterValues)
             return res
         else:
-            # If this field is a ajax-updatable slave, no need to compute
-            # selectable objects: it will be overridden by method
-            # self.masterValue by a subsequent ajax request (=the "if"
-            # statement above).
+            # If this field is an ajax-updatable slave, no need to compute
+            # possible values: it will be overridden by method self.masterValue
+            # by a subsequent ajax request (=the "if" statement above).
             if self.masterValue and callable(self.masterValue): return []
             if not self.select:
                 # No select method has been defined: we must retrieve all

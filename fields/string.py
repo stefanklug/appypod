@@ -53,7 +53,8 @@ class Selection:
 
     def getText(self, obj, value, appyType):
         '''Gets the text that corresponds to p_value.'''
-        for v, text in appyType.getPossibleValues(obj, withTranslations=True):
+        for v, text in appyType.getPossibleValues(obj, ignoreMasterValues=True,\
+                                                  withTranslations=True):
             if v == value:
                 return text
         return value
@@ -166,7 +167,8 @@ class String(Field):
       </x>
       <!-- The list of values -->
       <select var="preSelected=field.sdefault"
-              name=":widgetName" size=":field.sheight" multiple="multiple">
+              name=":widgetName" size=":field.sheight" multiple="multiple"
+              onchange=":field.getOnChange(ztool, 'search', className)">
        <option for="v in field.getPossibleValues(ztool, withTranslations=True,\
                                      withBlankValue=False, className=className)"
                selected=":v[0] in preSelected" value=":v[0]"
@@ -476,7 +478,8 @@ class String(Field):
         return res
 
     def getPossibleValues(self, obj, withTranslations=False,
-                          withBlankValue=False, className=None):
+                          withBlankValue=False, className=None,
+                          ignoreMasterValues=False):
         '''Returns the list of possible values for this field (only for fields
            with self.isSelect=True). If p_withTranslations is True, instead of
            returning a list of string values, the result is a list of tuples
@@ -485,52 +488,70 @@ class String(Field):
            p_className is given, p_obj is the tool and, if we need an instance
            of p_className, we will need to use obj.executeQuery to find one.'''
         if not self.isSelect: raise Exception('This field is not a selection.')
-        if isinstance(self.validator, Selection):
-            # We need to call self.methodName for getting the (dynamic) values.
-            # If methodName begins with _appy_, it is a special Appy method:
-            # we will call it on the Mixin (=p_obj) directly. Else, it is a
-            # user method: we will call it on the wrapper (p_obj.appy()). Some
-            # args can be hidden into p_methodName, separated with stars,
-            # like in this example: method1*arg1*arg2. Only string params are
-            # supported.
-            methodName = self.validator.methodName
-            # Unwrap parameters if any.
-            if methodName.find('*') != -1:
-                elems = methodName.split('*')
-                methodName = elems[0]
-                args = elems[1:]
+        req = obj.REQUEST
+        if ('masterValues' in req) and not ignoreMasterValues:
+            # Get possible values from self.masterValue
+            masterValues = req['masterValues']
+            if '*' in masterValues: masterValues = masterValues.split('*')
+            values = self.masterValue(obj.appy(), masterValues)
+            if not withTranslations: res = values
             else:
-                args = ()
-            # On what object must we call the method that will produce the
-            # values?
-            if methodName.startswith('tool:'):
-                obj = obj.getTool()
-                methodName = methodName[5:]
-            else:
-                # We must call on p_obj. But if we have something in
-                # p_className, p_obj is the tool and not an instance of
-                # p_className as required. So find such an instance.
-                if className:
-                    brains = obj.executeQuery(className, maxResults=1,
-                                              brainsOnly=True)
-                    if brains:
-                        obj = brains[0].getObject()
-            # Do we need to call the method on the object or on the wrapper?
-            if methodName.startswith('_appy_'):
-                exec 'res = obj.%s(*args)' % methodName
-            else:
-                exec 'res = obj.appy().%s(*args)' % methodName
-            if not withTranslations: res = [v[0] for v in res]
-            elif isinstance(res, list): res = res[:]
+                res = []
+                for v in values:
+                    res.append( (v, self.getFormattedValue(obj, v)) )
         else:
-            # The list of (static) values is directly given in self.validator.
-            res = []
-            for value in self.validator:
-                label = '%s_list_%s' % (self.labelId, value)
-                if withTranslations:
-                    res.append( (value, obj.translate(label)) )
+            # If this field is an ajax-updatable slave, no need to compute
+            # possible values: it will be overridden by method self.masterValue
+            # by a subsequent ajax request (=the "if" statement above).
+            if self.masterValue and callable(self.masterValue) and \
+               not ignoreMasterValues: return []
+            if isinstance(self.validator, Selection):
+                # We need to call self.methodName for getting the (dynamic)
+                # values. If methodName begins with _appy_, it is a special Appy
+                # method: we will call it on the Mixin (=p_obj) directly. Else,
+                # it is a user method: we will call it on the wrapper
+                # (p_obj.appy()). Some args can be hidden into p_methodName,
+                # separated with stars, like in this example: method1*arg1*arg2.
+                # Only string params are supported.
+                methodName = self.validator.methodName
+                # Unwrap parameters if any.
+                if methodName.find('*') != -1:
+                    elems = methodName.split('*')
+                    methodName = elems[0]
+                    args = elems[1:]
                 else:
-                    res.append(value)
+                    args = ()
+                # On what object must we call the method that will produce the
+                # values?
+                if methodName.startswith('tool:'):
+                    obj = obj.getTool()
+                    methodName = methodName[5:]
+                else:
+                    # We must call on p_obj. But if we have something in
+                    # p_className, p_obj is the tool and not an instance of
+                    # p_className as required. So find such an instance.
+                    if className:
+                        brains = obj.executeQuery(className, maxResults=1,
+                                                  brainsOnly=True)
+                        if brains:
+                            obj = brains[0].getObject()
+                # Do we need to call the method on the object or on the wrapper?
+                if methodName.startswith('_appy_'):
+                    exec 'res = obj.%s(*args)' % methodName
+                else:
+                    exec 'res = obj.appy().%s(*args)' % methodName
+                if not withTranslations: res = [v[0] for v in res]
+                elif isinstance(res, list): res = res[:]
+            else:
+                # The list of (static) values is directly given in
+                # self.validator.
+                res = []
+                for value in self.validator:
+                    label = '%s_list_%s' % (self.labelId, value)
+                    if withTranslations:
+                        res.append( (value, obj.translate(label)) )
+                    else:
+                        res.append(value)
         if withBlankValue and not self.isMultiValued():
             # Create the blank value to insert at the beginning of the list
             if withTranslations:
@@ -554,7 +575,7 @@ class String(Field):
                 return obj.translate('bad_captcha')
         elif self.isSelect:
             # Check that the value is among possible values
-            possibleValues = self.getPossibleValues(obj)
+            possibleValues = self.getPossibleValues(obj,ignoreMasterValues=True)
             if isinstance(value, basestring):
                 error = value not in possibleValues
             else:

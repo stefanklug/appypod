@@ -258,7 +258,7 @@ def getStringDict(d):
     res = []
     for k, v in d.iteritems():
         if type(v) not in sequenceTypes:
-            value = "'%s':'%s'" % (k, v)
+            value = "'%s':'%s'" % (k, v.replace("'", "\\'"))
         else:
             value = "'%s':%s" % (k, v)
         res.append(value)

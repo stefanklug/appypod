@@ -213,7 +213,7 @@ class ToolMixin(BaseMixin):
         rootClasses = cfg.rootClasses
         if not rootClasses:
             # We consider every class as being a root class.
-            rootClasses = cfg.appClassNames
+            rootClasses = self.getProductConfig().appClassNames
         return [self.getAppyClass(k) for k in rootClasses]
 
     def getSearchInfo(self, className, refInfo=None):
