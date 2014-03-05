@@ -182,8 +182,8 @@ class Date(Field):
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight, persist)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, persist)
 
     def getCss(self, layoutType, res):
         # CSS files are only required if the calendar must be shown.

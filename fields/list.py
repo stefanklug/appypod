@@ -83,8 +83,7 @@ class List(Field):
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, None, None, None, None,
-                       True)
+                       historized, mapping, label, None, None, None, None, True)
         self.validable = True
         # Tuples of (names, Field instances) determining the format of every
         # element in the list.

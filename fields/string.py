@@ -318,8 +318,8 @@ class String(Field):
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight, persist)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, persist)
         self.isSelect = self.isSelection()
         # If self.isSelect, self.sdefault must be a list of value(s).
         if self.isSelect and not sdefault:

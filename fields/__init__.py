@@ -55,10 +55,9 @@ class Field:
              layout=field.layouts[layoutType];
              name=fieldName|field.name;
              widgetName = isSearch and ('w_%s' % name) or name;
-             sync=field.sync[layoutType];
              outerValue=value|None;
              rawValue=not isSearch and zobj.getFieldValue(name, \
-                 onlyIfSync=True, layoutType=layoutType, outerValue=outerValue);
+                        layoutType=layoutType, outerValue=outerValue);
              value=not isSearch and \
                    field.getFormattedValue(zobj, rawValue, showChanges);
              requestValue=not isSearch and zobj.getRequestFieldValue(name);
@@ -108,7 +107,7 @@ class Field:
     def __init__(self, validator, multiplicity, default, show, page, group,
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
-                 master, masterValue, focus, historized, sync, mapping, label,
+                 master, masterValue, focus, historized, mapping, label,
                  sdefault, scolspan, swidth, sheight, persist):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
@@ -185,9 +184,6 @@ class Field:
         # If we must keep track of changes performed on a field, "historized"
         # must be set to True.
         self.historized = historized
-        # self.sync below determines if the field representations will be
-        # retrieved in a synchronous way by the browser or not (Ajax).
-        self.sync = self.formatSync(sync)
         # Mapping is a dict of contexts that, if specified, are given when
         # translating the label, descr or help related to this field.
         self.mapping = self.formatMapping(mapping)
@@ -343,16 +339,6 @@ class Field:
                 for m in masterValue:
                     for r in reqValue:
                         if m == r: return True
-
-    def formatSync(self, sync):
-        '''Creates a dictionary indicating, for every layout type, if the field
-           value must be retrieved synchronously or not.'''
-        if isinstance(sync, bool):
-            sync = {'edit': sync, 'view': sync, 'cell': sync, 'search': sync}
-        for layoutType in ('edit', 'view', 'search', 'cell'):
-            if layoutType not in sync:
-                sync[layoutType] = False
-        return sync
 
     def formatMapping(self, mapping):
         '''Creates a dict of mappings, one entry by label type (label, descr,

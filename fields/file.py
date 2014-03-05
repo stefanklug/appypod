@@ -279,8 +279,8 @@ class File(Field):
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight, True)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, True)
 
     @staticmethod
     def getFileObject(filePath, fileName=None, zope=False):

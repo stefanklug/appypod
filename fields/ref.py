@@ -398,8 +398,6 @@ class Ref(Field):
         self.sselect = sselect or self.select
         # Maximum number of referenced objects shown at once.
         self.maxPerPage = maxPerPage
-        # Specifies sync
-        sync = {'view': False, 'edit':True}
         # If param p_queryable is True, the user will be able to perform queries
         # from the UI within referenced objects.
         self.queryable = queryable
@@ -441,8 +439,8 @@ class Ref(Field):
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, sync, mapping, label, sdefault, scolspan,
-                       swidth, sheight, persist)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, persist)
         self.validable = self.link
 
     def getDefaultLayouts(self):

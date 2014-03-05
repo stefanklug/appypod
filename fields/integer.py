@@ -58,8 +58,8 @@ class Integer(Field):
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight, persist)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, persist)
         self.pythonType = long
 
     def validateValue(self, obj, value):

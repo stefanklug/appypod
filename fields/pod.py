@@ -83,8 +83,8 @@ class Pod(Field):
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, indexed, searchable, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
-                       master, masterValue, focus, historized, False, mapping,
-                       label, None, None, None, None, True)
+                       master, masterValue, focus, historized, mapping, label,
+                       None, None, None, None, True)
         # Param "persist" is set to True but actually, persistence for a pod
         # field is determined by freezing.
         self.validable = False

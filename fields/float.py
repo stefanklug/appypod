@@ -77,8 +77,8 @@ class Float(Field):
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
-                       historized, True, mapping, label, sdefault, scolspan,
-                       swidth, sheight, persist)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, persist)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value, showChanges=False):

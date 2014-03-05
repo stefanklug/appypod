@@ -685,20 +685,15 @@ class BaseMixin:
         if self.isPrincipiaFolderish: return self
         return self.getParentNode()
 
-    def getFieldValue(self, name, onlyIfSync=False, layoutType=None,
-                      outerValue=None):
-        '''Returns the database value of field named p_name for p_self.
-           If p_onlyIfSync is True, it returns the value only if appyType can be
-           retrieved in synchronous mode.'''
+    def getFieldValue(self, name, layoutType=None, outerValue=None):
+        '''Returns the database value of field named p_name for p_self.'''
         if layoutType == 'search': return # No object in search screens.
         field = self.getAppyType(name)
-        if not onlyIfSync or (onlyIfSync and field.sync[layoutType]):
-            # We must really get the field value.
-            if '*' not in name: return field.getValue(self)
-            # The field is an inner field from a List.
-            listName, name, i = name.split('*')
-            listType = self.getAppyType(listName)
-            return listType.getInnerValue(self, outerValue, name, int(i))
+        if '*' not in name: return field.getValue(self)
+        # The field is an inner field from a List.
+        listName, name, i = name.split('*')
+        listType = self.getAppyType(listName)
+        return listType.getInnerValue(self, outerValue, name, int(i))
 
     def getRequestFieldValue(self, name):
         '''Gets the value of field p_name as may be present in the request.'''

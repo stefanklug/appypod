@@ -22,21 +22,8 @@ from appy.px import  Px
 class Computed(Field):
     WRONG_METHOD = 'Wrong value "%s". Param "method" must contain a method ' \
                    'or a PX.'
-
-    # Ajax-called view content of a non sync Computed field.
-    pxViewContent = Px('''
-     <x var="value=zobj.getFieldValue(name); sync=True">:field.pxView</x>''')
-
-    pxView = pxCell = pxEdit = Px('''<x>
-     <x if="sync">
-      <x if="field.plainText">:value</x><x if="not field.plainText">::value</x>
-     </x>
-     <div if="not sync" var2="ajaxHookId=zobj.UID() + name" id="ajaxHookId">
-      <script type="text/javascript">:'askComputedField(%s, %s, %s)' % \
-        (q(ajaxHookId), q(zobj.absolute_url()), q(name))">
-      </script>
-     </div>
-    </x>''')
+    pxView = pxCell = pxEdit = Px('''<x if="field.plainText">:value</x>
+      <x if="not field.plainText">::value</x>''')
 
     pxSearch = Px('''
      <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
@@ -48,9 +35,8 @@ class Computed(Field):
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, maxChars=None, colspan=1, method=None,
                  plainText=False, master=None, masterValue=None, focus=False,
-                 historized=False, sync=True, mapping=None, label=None,
-                 sdefault='', scolspan=1, swidth=None, sheight=None,
-                 context=None):
+                 historized=False, mapping=None, label=None, sdefault='',
+                 scolspan=1, swidth=None, sheight=None, context=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         if isinstance(self.method, basestring):
@@ -67,8 +53,8 @@ class Computed(Field):
                        layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, sync, mapping, label, sdefault, scolspan,
-                       swidth, sheight, False)
+                       historized, mapping, label, sdefault, scolspan, swidth,
+                       sheight, False)
         self.validable = False
 
     def getValue(self, obj):

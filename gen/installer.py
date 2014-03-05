@@ -215,8 +215,8 @@ class ZopeInstaller:
                             id=language, title=title)
             appyTool.log('Translation object created for "%s".' % language)
 
-        # Synchronize, if required, synchronise every Translation object with
-        # the corresponding "po" file on disk.
+        # Synchronizes, if required, every Translation object with the
+        # corresponding "po" file on disk.
         if appyTool.loadTranslationsAtStartup:
             appFolder = self.config.diskFolder
             appName = self.config.PROJECTNAME
