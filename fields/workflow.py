@@ -325,8 +325,6 @@ class Permission:
        (string) permissions, for referring to it you simply use those strings,
        you do not create instances of ReadPermission or WritePermission.'''
 
-    allowedChars = string.digits + string.letters + '_'
-
     def __init__(self, fieldDescriptor):
         self.fieldDescriptor = fieldDescriptor
 

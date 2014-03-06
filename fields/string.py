@@ -32,6 +32,10 @@ alpha  = re.compile('[a-zA-Z0-9]')
 letter = re.compile('[a-zA-Z]')
 digits = '0123456789'
 letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+# No "0" or "1" that could be interpreted as letters "O" or "l".
+passwordDigits = '23456789'
+# No letters i, l, o (nor lowercase nor uppercase) that could be misread.
+passwordLetters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ'
 emptyTuple = ()
 
 # ------------------------------------------------------------------------------
@@ -640,7 +644,7 @@ class String(Field):
         text = '' # The challenge the user needs to type (minus one char)
         for i in range(length):
             j = random.randint(0, 1)
-            chars = (j == 0) and digits or letters
+            chars = (j == 0) and passwordDigits or passwordLetters
             # Choose a char
             text += chars[random.randint(0,len(chars)-1)]
         res = {'text': text, 'number': number}
