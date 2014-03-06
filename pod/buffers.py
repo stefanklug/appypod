@@ -189,7 +189,7 @@ class Buffer:
     def dumpContent(self, content):
         '''Dumps string p_content into the buffer.'''
         if self.pod:
-            # Take care of converting line breaks to odf line breaks.
+            # Take care of converting line breaks and tabs.
             content = escapeXml(content, format='odf',
                                 nsText=self.env.namespaces[self.env.NS_TEXT])
         else:

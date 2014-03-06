@@ -89,6 +89,11 @@ f.close()
 STYLES_POD_FONTS = '<@style@:font-face @style@:name="PodStarSymbol" ' \
                    '@svg@:font-family="StarSymbol"/>'
 
+# do ... \n from text(...) is obsolete.
+OBSOLETE_RENDER_TEXT = 'Obsolete function. Use a pod expression instead ' \
+                       '(field or track-changed). Now, a pod expression ' \
+                       'handles carriage returns and tabs correctly.'
+
 # ------------------------------------------------------------------------------
 class Renderer:
     templateTypes = ('odt', 'ods') # Types of POD templates
@@ -259,11 +264,8 @@ class Renderer:
                                   stylesMapping, self).run()
 
     def renderText(self, text, encoding='utf-8', stylesMapping={}):
-        '''Method that can be used (under the name 'text') into a pod template
-           for inserting a text containing carriage returns.'''
-        if text == None: text = ''
-        text = cgi.escape(text).replace('\r\n', '<br/>').replace('\n', '<br/>')
-        return self.renderXhtml(text, encoding, stylesMapping)
+        '''Obsolete method.'''
+        raise Exception(OBSOLETE_RENDER_TEXT)
 
     def evalIfExpression(self, condition, ifTrue, ifFalse):
         '''This method implements the method 'test' which is proposed in the

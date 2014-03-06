@@ -73,10 +73,10 @@ for k, v in htmlentitydefs.entitydefs.iteritems():
 
 def escapeXml(s, format='xml', nsText='text'):
     '''Returns p_s, whose XML special chars have been replaced with escaped XML
-       entities. If p_format is "odf", line breaks are converted to ODF line
-       breaks. In this case, it is needed to give the name of the "text"
-       namespace (p_nsText) as defined in the ODF document where the line breaks
-       must be inserted.'''
+       entities. If p_format is "odf", line breaks and tabs are converted to
+       their ODF counterparts. In this case, it is needed to give the name of
+       the "text" namespace (p_nsText) as defined in the ODF document where the
+       line breaks and tabs must be inserted.'''
     if isinstance(s, unicode):
         res = u''
     else:
@@ -88,6 +88,8 @@ def escapeXml(s, format='xml', nsText='text'):
             res += XML_SPECIAL_CHARS_NO_APOS[c]
         elif odf and (c == '\n'):
             res += '<%s:line-break/>' % nsText
+        elif odf and (c == '\t'):
+            res += '<%s:tab/>' % nsText
         elif odf and (c == '\r'):
             pass
         else:

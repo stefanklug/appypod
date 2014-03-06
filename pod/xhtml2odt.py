@@ -340,6 +340,8 @@ class XhtmlEnvironment(XmlEnvironment):
             # We remove leading and trailing carriage returns, but not
             # whitespace because whitespace may be part of the text to dump.
             contentSize = len(content)
+            # We do not escape carriage returns, because, in XHTML, carriage
+            # returns are just ignorable white space.
             self.dumpString(escapeXml(content))
             self.currentContent = u''
         # If we are within a table cell, update the total size of cell content.
