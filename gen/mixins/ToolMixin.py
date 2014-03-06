@@ -468,7 +468,7 @@ class ToolMixin(BaseMixin):
         if not klass.__dict__.has_key('create'):
             return ['form']
         else:
-            means = pythonClass.create
+            means = klass.create
             if means:
                 if isinstance(means, basestring): res = [means]
                 else: res = means
