@@ -289,10 +289,12 @@ class Ref(Field):
              onchange=":field.getOnChange(zobj, layoutType)"
              multiple=":isMultiple">
       <option value="" if="not isMultiple">:_('choose_a_value')</option>
-      <option for="tied in objects" var2="uid=tied.uid"
+      <option for="tied in objects"
+              var2="uid=tied.uid;
+                    title=field.getReferenceLabel(tied, unlimited=True)"
               selected=":inRequest and (uid in requestValue) or \
-                                       (uid in uids)"
-              value=":uid">:field.getReferenceLabel(tied)</option>
+                                       (uid in uids)" value=":uid"
+              title=":title">:ztool.truncateValue(title, field.swidth)</option>
      </select>''')
 
     pxSearch = Px('''
@@ -798,14 +800,12 @@ class Ref(Field):
                     value = self.xhtmlToText.sub(' ', value)
                 elif type(value) in sutils.sequenceTypes:
                     value = ', '.join(value)
-            prefix = ''
-            if res:
-                prefix = ' | '
+            prefix = res and ' | ' or ''
             res += prefix + value
         if unlimited: return res
         maxWidth = self.width or 30
         if len(res) > maxWidth:
-            res = res[:maxWidth-2] + '...'
+            res = refObject.tool.o.truncateValue(res, maxWidth)
         return res
 
     def getIndexOf(self, obj, refObj):
