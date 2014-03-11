@@ -180,7 +180,8 @@ class Ref(Field):
                align="column.align" var2="refField=column.field">
             <span>:_(refField.labelId)</span>
             <x>:field.pxSortIcons</x>
-            <x var="className=tiedClassName">:tool.pxShowDetails</x>
+            <x var="className=tiedClassName;
+                    field=refField">:tool.pxShowDetails</x>
            </th>
           </tr>
           <tr for="ztied in zobjects" valign="top"

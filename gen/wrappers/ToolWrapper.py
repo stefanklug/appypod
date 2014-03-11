@@ -14,13 +14,13 @@ class ToolWrapper(AbstractWrapper):
     # Icon for hiding/showing details below the title of an object shown in a
     # list of objects.
     pxShowDetails = Px('''
-     <img if="ztool.subTitleIsUsed(className) and (field.name == 'title')"
+     <img if="(field.name == 'title') and ztool.subTitleIsUsed(className)"
           class="clickable" src=":url('toggleDetails')"
           onclick="toggleSubTitles()"/>''')
 
     # Displays up/down arrows in a table header column for sorting a given
     # column. Requires variables "sortable", 'filterable' and 'field'.
-    pxSortAndFilter = Px('''<x>
+    pxSortAndFilter = Px('''
      <x if="sortable">
       <img if="(sortKey != field.name) or (sortOrder == 'desc')"
            onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
@@ -37,7 +37,7 @@ class ToolWrapper(AbstractWrapper):
       <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
                      (q(sortKey), q(sortOrder), q(field.name)))"
            src=":url('funnel')" class="clickable"/>
-     </x></x>''')
+     </x>''')
 
     # Buttons for navigating among a list of objects (from a Ref field or a
     # query): next,back,first,last...
