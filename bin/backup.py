@@ -199,25 +199,54 @@ class ZodbBackuper:
     def run(self):
         w = self.log
         startTime = time.time()
-        w('\n****** Backup launched at %s ******' % str(time.asctime()))
+        mode = self.options.mode
+        w('\n****** Backup launched at %s (mode: %s) ******' % \
+          (str(time.asctime()), mode))
         # Shutdown the Zope instance
         w('> Shutting down Zope instance...')
         self.executeCommand('%s stop' % self.zopectl)
-        # If we are on the "full backup day", let's pack the ZODB first
-        if time.asctime().startswith(self.options.dayFullBackup):
-            # As a preamble to packing the ZODB, remove Data.fs.old if present.
-            self.removeDataFsOld()
-            w('> Day is "%s", packing the ZODB...' % self.options.dayFullBackup)
-            self.packZodb()
+        # Check if we are on the "full backup day"
+        dayFull = self.options.dayFullBackup
+        if time.asctime().startswith(dayFull):
+            # If mode 'zodb', let's pack the ZODB first. Afterwards it will
+            # trigger a full backup.
+            if mode == 'zodb':
+                # As a preamble to packing the ZODB, remove Data.fs.old if
+                # present.
+                self.removeDataFsOld()
+                w('> Day is "%s", packing the ZODB...' % dayFull)
+                self.packZodb()
+                w('Pack done.')
+            elif mode == 'copy':
+                dest = os.path.join(self.backupFolder, 'Data.fs.new')
+                w('> Day is "%s", copying %s to %s...' % \
+                  (dayFull, self.storageLocation, dest))
+                # Perform a copy of Data.fs to the backup folder.
+                shutil.copyfile(self.storageLocation, dest)
+                # The copy has succeeded. Remove the previous copy and rename
+                # this one.
+                oldDest = os.path.join(self.backupFolder, 'Data.fs')
+                w('> Copy successful. Renaming %s to %s...' % (dest, oldDest))
+                if os.path.exists(oldDest):
+                    os.remove(oldDest)
+                    w('> (Old existing backup %s was removed).' % oldDest)
+                os.rename(dest, oldDest)
+                w('Done.')
+            # Make a backup of the log files...
             w('> Make a backup of log files...')
             self.backupLogs()
-            w('Done.')
+            w('Log files copied.')
+        else:
+            if mode == 'copy':
+                w('Copy mode: nothing to copy: day is not %s.' % dayFull)
         # Do the backup with repozo
-        w('> Performing backup...')
-        self.executeCommand('%s %s -BvzQ -r %s -f %s' % (self.options.python,
-            self.repozo, self.backupFolder, self.storageLocation))
-        # Remove previous full backups.
-        self.removeOldBackups()
+        if mode == 'zodb':
+            w('> Performing backup...')
+            self.executeCommand('%s %s -BvzQ -r %s -f %s' % \
+                (self.options.python, self.repozo, self.backupFolder,
+                 self.storageLocation))
+            # Remove previous full backups.
+            self.removeOldBackups()
         # If a command is specified, run Zope to execute this command
         if self.options.command:
             w('> Executing command "%s"...' % self.options.command)
@@ -290,75 +319,65 @@ class ZodbBackupScript:
     def run(self):
         optParser = OptionParser(usage=ZodbBackupScript.__doc__)
         optParser.add_option("-p", "--python", dest="python",
-                             help="The path to the Python interpreter running "\
-                                  "Zope",
-                             default='python2.4',metavar="PYTHON",type='string')
+            help="The path to the Python interpreter running Zope",
+            default='python2.4',metavar="PYTHON",type='string')
         optParser.add_option("-r", "--repozo", dest="repozo",
-                             help="The path to repozo.py",
-                             default='', metavar="REPOZO", type='string')
+            help="The path to repozo.py", default='', metavar="REPOZO",
+            type='string')
         optParser.add_option("-z", "--zopectl", dest="zopectl",
-                             help="The path to Zope instance's zopectl script",
-                             default='', metavar="ZOPECTL", type='string')
+            help="The path to Zope instance's zopectl script", default='',
+            metavar="ZOPECTL", type='string')
         optParser.add_option("-l", "--logfile", dest="logFile",
-                             help="Log file where this script will append " \
-                                  "output (defaults to ./backup.log)",
-                             default='./backup.log', metavar="LOGFILE",
-                             type='string')
+            help="Log file where this script will append output (defaults to " \
+                 "./backup.log)", default='./backup.log', metavar="LOGFILE",
+            type='string')
         optParser.add_option("-d", "--day-full-backup", dest="dayFullBackup",
-                             help="Day of the week where the full backup " \
-                                  "must be performed (defaults to 'Sun'). " \
-                                  "Must be one of %s" % str(self.weekDays),
-                             default='Sun', metavar="DAYFULLBACKUP",
-                             type='string')
+            help="Day of the week where the full backup must be performed " \
+                 "(defaults to 'Sun'). Must be one of %s" % str(self.weekDays),
+            default='Sun', metavar="DAYFULLBACKUP", type='string')
         optParser.add_option("-e", "--emails", dest="emails",
-                             help="Comma-separated list of emails that will " \
-                                  "receive the log of this script.",
-                             default='', metavar="EMAILS", type='string')
+            help="Comma-separated list of emails that will receive the log " \
+                 "of this script.", default='', metavar="EMAILS", type='string')
         optParser.add_option("-f", "--from-address", dest="fromAddress",
-                             help="From address for the sent mails",
-                             default='', metavar="FROMADDRESS", type='string')
+            help="From address for the sent mails", default='',
+            metavar="FROMADDRESS", type='string')
         optParser.add_option("-s", "--smtp-server", dest="smtpServer",
-                             help="SMTP server and port (ie: localhost:25) " \
-                                  "for sending mails. You can also embed " \
-                                  "username and password if the SMTP server " \
-                                  "requires authentication, ie " \
-                                  "localhost:25:myLogin:myPassword",
-                             default='localhost:25', metavar="SMTPSERVER",
-                             type='string')
+            help="SMTP server and port (ie: localhost:25) for sending mails. " \
+                 "You can also embed username and password if the SMTP " \
+                 "server requires authentication, ie localhost:25:myLogin:" \
+                 "myPassword", default='localhost:25', metavar="SMTPSERVER",
+            type='string')
         optParser.add_option("-t", "--tempFolder", dest="tempFolder",
-                             help="Folder used by OO for producing temp " \
-                                  "files. Defaults to /tmp.",
-                             default='/tmp', metavar="TEMP", type='string')
+            help="Folder used by LibreOffice for producing temp files. " \
+                 "Defaults to /tmp.", default='/tmp', metavar="TEMP",
+            type='string')
         optParser.add_option("-g", "--logsFolder",dest="logsFolder",
-                             help="Folder where Zope log files are " \
-                                  "(typically: event.log and Z2.log). If no " \
-                                  "folder is provided, we will consider to " \
-                                  "work on a standard Zope instance and " \
-                                  "decide that the log folder is, from " \
-                                  "'storageLocation', located at ../log",
-                             metavar="LOGSFOLDER", type='string')
+            help="Folder where Zope log files are (typically: event.log and " \
+                 "Z2.log). If no folder is provided, we will consider to " \
+                 "work on a standard Zope instance and decide that the log " \
+                 "folder is, from 'storageLocation', located at ../log",
+            metavar="LOGSFOLDER", type='string')
         optParser.add_option("-b", "--logsBackupFolder",dest="logsBackupFolder",
-                             help="Folder where backups of log files " \
-                                  "(event.log and Z2.log) will be stored.",
-                             default='./logsbackup', metavar="LOGSBACKUPFOLDER",
-                             type='string')
+            help="Folder where backups of log files (event.log and Z2.log) " \
+            "will be stored.", default='./logsbackup',
+            metavar="LOGSBACKUPFOLDER", type='string')
 
         optParser.add_option("-u", "--user", dest="zopeUser",
-                             help="User and group that must own Data.fs. " \
-                                  "Defaults to zope:www-data. If " \
-                                  "this script is launched by root, for " \
-                                  "example, when packing the ZODB this script "\
-                                  "may produce a new Data.fs that the user " \
-                                  "running Zope may not be able to read " \
-                                  "anymore. After packing, this script makes " \
-                                  "a 'chmod' on Data.fs.",
-                             default='zope:www-data', metavar="USER",
-                             type='string')
+            help="User and group that must own Data.fs. Defaults to " \
+                 "zope:www-data. If this script is launched by root, for " \
+                 "example, when packing the ZODB this script may produce a " \
+                 "new Data.fs that the user running Zope may not be able to " \
+                 "read anymore. After packing, this script makes a 'chmod' " \
+                 "on Data.fs.", default='zope:www-data', metavar="USER",
+            type='string')
         optParser.add_option("-k", "--keep-seconds", dest="keepSeconds",
-                             help="Number of seconds to leave in the ZODB " \
-                                  "history when the ZODB is packed.",
-                             default='86400', metavar="KEEPSECONDS",
-                             type='string')
+            help="Number of seconds to leave in the ZODB history when the " \
+                 "ZODB is packed.", default='86400', metavar="KEEPSECONDS",
+            type='string')
+        optParser.add_option("-m", "--mode", dest="mode", help="Default mode, "\
+            "'zodb', uses repozo for performing backups. Mode 'copy' simply " \
+            "performs a copy of the database to the specified backup folder.",
+            default='zodb', metavar="MODE", type='string')
         optParser.add_option("-c", "--command", dest="command",
             help="Command to execute while Zope is running. It must have the " \
             "following format: <ZopeAdmin>:<PloneInstancePath>:" \

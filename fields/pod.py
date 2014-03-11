@@ -72,6 +72,7 @@ class Pod(Field):
         # A global styles mapping that would apply to the whole template
         self.stylesMapping = stylesMapping
         # What are the output formats when generating documents from this pod ?
+        self.formats = formats
         if not formats:
             # Compute default ones
             if template.endswith('.ods'):
