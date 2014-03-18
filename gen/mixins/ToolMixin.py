@@ -971,8 +971,16 @@ class ToolMixin(BaseMixin):
         # d. All the identification methods failed. So identify the user as
         # "anon" or "system".
         if not login:
-            # If we have a real request object, it is the anonymous user.
-            login = (req.__class__.__name__ == 'Object') and 'system' or 'anon'
+            # If we have a fake request, we are at startup or in batch mode and
+            # the user is "system". Else, it is "anon". At Zope startup, Appy
+            # uses an Object instance as a fake request. In "zopectl run" mode
+            # (the Zope batch mode), Appy adds a param "_fake_" on the request
+            # object created by Zope.
+            if (req.__class__.__name__ == 'Object') or \
+               (hasattr(req, '_fake_') and req._fake_):
+                login = 'system'
+            else:
+                login = 'anon'
         return login, password
 
     def getLdapUser(self, login, password):

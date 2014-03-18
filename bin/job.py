@@ -53,6 +53,7 @@ else:
         # Zope was initialized in a minimal way. Complete Zope install.
         from Testing import makerequest
         app = makerequest.makerequest(app)
+        app.REQUEST._fake_ = True
         # Log as Zope admin
         from AccessControl.SecurityManagement import newSecurityManager
         user = app.acl_users.getUserById(zopeUser)
