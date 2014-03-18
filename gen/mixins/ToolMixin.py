@@ -591,35 +591,36 @@ class ToolMixin(BaseMixin):
         rq = self.REQUEST
         # Store the search criteria in the session
         criteria = self._getDefaultSearchCriteria()
-        for attrName in rq.form.keys():
-            if attrName.startswith('w_') and \
-               not self._searchValueIsEmpty(attrName):
-                field = self.getAppyType(attrName[2:], rq.form['className'])
-                if not field.persist: continue
+        for name in rq.form.keys():
+            if name.startswith('w_') and not self._searchValueIsEmpty(name):
+                hasStar = name.find('*') != -1
+                fieldName = not hasStar and name[2:] or name[2:name.find('*')]
+                field = self.getAppyType(fieldName, rq.form['className'])
+                if field and not field.persist: continue
                 # We have a(n interval of) value(s) that is not empty for a
-                # given field.
-                attrValue = rq.form[attrName]
-                if attrName.find('*') != -1:
-                    attrValue = attrValue.strip()
+                # given field or index.
+                value = rq.form[name]
+                if hasStar:
+                    value = value.strip()
                     # The type of the value is encoded after char "*".
-                    attrName, attrType = attrName.split('*')
-                    if attrType == 'bool':
-                        exec 'attrValue = %s' % attrValue
-                    elif attrType in ('int', 'float'):
+                    name, type = name.split('*')
+                    if type == 'bool':
+                        exec 'value = %s' % value
+                    elif type in ('int', 'float'):
                         # Get the "from" value
-                        if not attrValue: attrValue = None
+                        if not value: value = None
                         else:
-                            exec 'attrValue = %s(attrValue)' % attrType
+                            exec 'value = %s(value)' % type
                         # Get the "to" value
-                        toValue = rq.form['%s_to' % attrName[2:]].strip()
+                        toValue = rq.form['%s_to' % name[2:]].strip()
                         if not toValue: toValue = None
                         else:
-                            exec 'toValue = %s(toValue)' % attrType
-                        attrValue = (attrValue, toValue)
-                    elif attrType == 'date':
-                        prefix = attrName[2:]
+                            exec 'toValue = %s(toValue)' % type
+                        value = (value, toValue)
+                    elif type == 'date':
+                        prefix = name[2:]
                         # Get the "from" value
-                        year  = attrValue
+                        year  = value
                         month = rq.form['%s_from_month' % prefix]
                         day   = rq.form['%s_from_day' % prefix]
                         fromDate = self._getDateTime(year, month, day, True)
@@ -628,23 +629,23 @@ class ToolMixin(BaseMixin):
                         month = rq.form['%s_to_month' % prefix]
                         day   = rq.form['%s_to_day' % prefix]
                         toDate = self._getDateTime(year, month, day, False)
-                        attrValue = (fromDate, toDate)
-                    elif attrType.startswith('string'):
+                        value = (fromDate, toDate)
+                    elif type.startswith('string'):
                         # In the case of a string, it could be necessary to
                         # apply some text transform.
-                        if len(attrType) > 6:
-                            transform = attrType.split('-')[1]
-                            if (transform != 'none') and attrValue:
-                                exec 'attrValue = attrValue.%s()' % \
+                        if len(type) > 6:
+                            transform = type.split('-')[1]
+                            if (transform != 'none') and value:
+                                exec 'value = value.%s()' % \
                                      self.transformMethods[transform]
-                if isinstance(attrValue, list):
+                if isinstance(value, list):
                     # It is a list of values. Check if we have an operator for
                     # the field, to see if we make an "and" or "or" for all
                     # those values. "or" will be the default.
-                    operKey = 'o_%s' % attrName[2:]
+                    operKey = 'o_%s' % name[2:]
                     oper = ' %s ' % rq.form.get(operKey, 'or').upper()
-                    attrValue = oper.join(attrValue)
-                criteria[attrName[2:]] = attrValue
+                    value = oper.join(value)
+                criteria[name[2:]] = value
         # Complete criteria with Ref info if the search is restricted to
         # referenced objects of a Ref field.
         refInfo = rq.get('ref', None)
