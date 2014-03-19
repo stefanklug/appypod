@@ -156,3 +156,5 @@ td.search { padding-top: 8px }
 .homeTable th { padding-top: 5px; font-size: 105% }
 .first { margin-top: 0px }
 .error { margin: 5px }
+.podName { font-size: 90%; padding-left: 3px }
+.podTable { margin-left: 15px }

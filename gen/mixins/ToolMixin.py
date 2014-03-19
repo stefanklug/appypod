@@ -120,12 +120,10 @@ class ToolMixin(BaseMixin):
             # An error has occurred, and p_res contains the error message
             obj.say(res)
             return self.goto(rq.get('HTTP_REFERER'))
-        # res contains a FileWrapper instance.
-        response = rq.RESPONSE
-        response.setHeader('Content-Type', res.mimeType)
-        response.setHeader('Content-Disposition',
-                           'inline;filename="%s"' % res.name)
-        return res.content
+        # res contains a FileInfo instance.
+        res.writeResponse(rq.RESPONSE)
+        # (Try to) delete the temp file on disk.
+        res.removeFile()
 
     def getAppName(self):
         '''Returns the name of the application.'''

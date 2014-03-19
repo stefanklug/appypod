@@ -28,32 +28,76 @@ WRONG_FILE_TUPLE = 'This is not the way to set a file. You can specify a ' \
     'mimeType).'
 CONVERSION_ERROR = 'An error occurred. %s'
 
+def guessMimeType(fileName):
+    '''Try to find the MIME type of file p_fileName.'''
+    return mimetypes.guess_type(fileName)[0] or File.defaultMimeType
+
+def osPathJoin(*pathElems):
+    '''Version of os.path.elems that takes care of path elems being empty
+       strings.'''
+    return os.path.join(*pathElems).rstrip(os.sep)
+
 # ------------------------------------------------------------------------------
 class FileInfo:
-    '''For a "file" field, its binary content is stored on the filesystem.
-       Within the database, we store a FileInfo instance that only stores some
-       metadata.'''
+    '''A FileInfo instance holds metadata about a file on the filesystem.
+
+       For every File field, we will store a FileInfo instance in the dabatase;
+       the real file will be stored in the Appy/ZODB database-managed
+       filesystem.
+
+       This is the primary usage of FileInfo instances. FileInfo instances can
+       also be used every time we need to manipulate a file. For example, when
+       getting the content of a Pod field, a temporary file may be generated and
+       you will get a FileInfo that represents it.
+    '''
     BYTES = 5000
-    def __init__(self, fsPath):
-        # The path on disk (from the root DB folder) where the file will be
-        # stored.
+
+    def __init__(self, fsPath, inDb=True, uploadName=None):
+        '''p_fsPath is the path of the file on disk.
+           - If p_inDb is True, this FileInfo will be stored in the database and
+             will hold metadata about a File field whose content will lie in the
+             database-controlled filesystem. In this case, p_fsPath is the path
+             of the file *relative* to the root DB folder. We avoid storing
+             absolute paths in order to ease the transfer of databases from one
+             place to the other. Moreover, p_fsPath does not include the
+             filename, that will be computed later, from the field name.
+
+           - If p_inDb is False, this FileInfo is a simple temporary object
+             representing any file on the filesystem (not necessarily in the
+             db-controlled filesystem). For instance, it could represent a temp
+             file generated from a Pod field in the OS temp folder. In this
+             case, p_fsPath is the absolute path to the file, including the
+             filename. If you manipulate such a FileInfo instance, please avoid
+             using methods that are used by Appy to manipulate
+             database-controlled files (like methods getFilePath, removeFile,
+             writeFile or copyFile).'''
         self.fsPath = fsPath
         self.fsName = None # The name of the file in fsPath
-        self.uploadName = None # The name of the uploaded file
+        self.uploadName = uploadName # The name of the uploaded file
         self.size = 0 # Its size, in bytes
         self.mimeType = None # Its MIME type
         self.modified = None # The last modification date for this file.
+        # Complete metadata if p_inDb is False
+        if not inDb:
+            self.fsName = '' # Already included in self.fsPath.
+            # We will not store p_inDb. Checking if self.fsName is the empty
+            # string is equivalent.
+            fileInfo = os.stat(self.fsPath)
+            self.size = fileInfo.st_size
+            self.mimeType = guessMimeType(self.fsPath)
+            from DateTime import DateTime
+            self.modified = DateTime(fileInfo.st_mtime)
 
     def getFilePath(self, obj):
         '''Returns the absolute file name of the file on disk that corresponds
            to this FileInfo instance.'''
         dbFolder, folder = obj.o.getFsFolder()
-        return os.path.join(dbFolder, folder, self.fsName)
+        return osPathJoin(dbFolder, folder, self.fsName)
 
-    def removeFile(self, dbFolder, removeEmptyFolders=False):
+    def removeFile(self, dbFolder='', removeEmptyFolders=False):
         '''Removes the file from the filesystem.'''
         try:
-            os.remove(os.path.join(dbFolder, self.fsPath, self.fsName))
+            os.remove(osPathJoin(dbFolder, self.fsPath, self.fsName))
         except Exception, e:
             # If the current ZODB transaction is re-triggered, the file may
             # already have been deleted.
@@ -62,7 +106,7 @@ class FileInfo:
         # if this removal leaves them empty (unless p_removeEmptyFolders is
         # False).
         if removeEmptyFolders:
-            sutils.FolderDeleter.deleteEmpty(os.path.join(dbFolder,self.fsPath))
+            sutils.FolderDeleter.deleteEmpty(osPathJoin(dbFolder,self.fsPath))
 
     def normalizeFileName(self, name):
         '''Normalizes file p_name.'''
@@ -118,7 +162,7 @@ class FileInfo:
         self.uploadName = name
         self.fsName = '%s%s' % (fieldName, os.path.splitext(name)[1].lower())
         # Write the file on disk (and compute/get its size in bytes)
-        fsName = os.path.join(dbFolder, self.fsPath, self.fsName)
+        fsName = osPathJoin(dbFolder, self.fsPath, self.fsName)
         f = file(fsName, 'wb')
         if fileType == 'FileUpload':
             # Write the FileUpload instance on disk.
@@ -150,21 +194,22 @@ class FileInfo:
         self.modified = DateTime()
 
     def copyFile(self, fieldName, filePath, dbFolder):
-        '''Copies the "external" file stored at _filePath in the db-controlled
+        '''Copies the "external" file stored at p_filePath in the db-controlled
            file system, for storing a value for p_fieldName.'''
         # Set names for the file
         name = self.normalizeFileName(filePath)
         self.uploadName = name
         self.fsName = '%s%s' % (fieldName, os.path.splitext(name)[1])
         # Set mimeType
-        self.mimeType= mimetypes.guess_type(filePath)[0] or File.defaultMimeType
+        self.mimeType = guessMimeType(filePath)
         # Copy the file
-        shutil.copyfile(filePath, self.fsName)
+        fsName = osPathJoin(dbFolder, self.fsPath, self.fsName)
+        shutil.copyfile(filePath, fsName)
         from DateTime import DateTime
         self.modified = DateTime()
-        self.size = os.stat(self.fsName).st_size
+        self.size = os.stat(fsName).st_size
 
-    def writeResponse(self, response, dbFolder):
+    def writeResponse(self, response, dbFolder=''):
         '''Writes this file in the HTTP p_response object.'''
         # As a preamble, initialise response headers.
         header = response.setHeader
@@ -176,7 +221,7 @@ class FileInfo:
         #sh('Cachecontrol', 'no-cache')
         #sh('Expires', 'Thu, 11 Dec 1975 12:05:05 GMT')
         # Write the file in the response
-        fsName = os.path.join(dbFolder, self.fsPath, self.fsName)
+        fsName = osPathJoin(dbFolder, self.fsPath, self.fsName)
         f = file(fsName, 'rb')
         while True:
             chunk = f.read(self.BYTES)
@@ -282,28 +327,6 @@ class File(Field):
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, True)
 
-    @staticmethod
-    def getFileObject(filePath, fileName=None, zope=False):
-        '''Returns a File instance as can be stored in the database or
-           manipulated in code, filled with content from a file on disk,
-           located at p_filePath. If you want to give it a name that is more
-           sexy than the actual basename of p_filePath, specify it in
-           p_fileName.
-
-           If p_zope is True, it will be the raw Zope object = an instance of
-           OFS.Image.File. Else, it will be a FileWrapper instance from Appy.'''
-        f = file(filePath, 'rb')
-        if not fileName:
-            fileName = os.path.basename(filePath)
-        fileId = 'file.%f' % time.time()
-        import OFS.Image
-        res = OFS.Image.File(fileId, fileName, f)
-        res.filename = fileName
-        res.content_type = mimetypes.guess_type(fileName)[0]
-        f.close()
-        if not zope: res = sutils.FileWrapper(res)
-        return res
-
     def getRequestValue(self, request, requestName=None):
         name = requestName or self.name
         return request.get('%s_file' % name)
@@ -387,7 +410,7 @@ class File(Field):
                     fileName, fileContent, mimeType = value
                 if not fileName:
                     raise Exception(WRONG_FILE_TUPLE)
-                mimeType = mimeType or mimetypes.guess_type(fileName)[0]
+                mimeType = mimeType or guessMimeType(fileName)
                 info.writeFile(self.name, (fileName, fileContent, mimeType),
                                dbFolder)
             # Store the FileInfo instance in the database.

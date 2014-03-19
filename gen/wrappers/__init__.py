@@ -797,14 +797,12 @@ class AbstractWrapper(object):
         zopeObj.reindex()
         return appyObj
 
-    def freeze(self, fieldName, doAction=False):
+    def freeze(self, fieldName):
         '''This method freezes a POD document. TODO: allow to freeze Computed
            fields.'''
         rq = self.request
         field = self.o.getAppyType(fieldName)
         if field.type != 'Pod': raise 'Cannot freeze non-Pod field.'
-        # Perform the related action if required.
-        if doAction: self.request.set('askAction', True)
         # Set the freeze format
         rq.set('podFormat', field.freezeFormat)
         # Generate the document.

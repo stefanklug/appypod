@@ -23,7 +23,6 @@ fallbacks = {'en': 'en-us en-ca',
 
 # Default values for i18n labels whose ids are not fixed.
 CONFIG = "Configuration panel for product '%s'"
-POD_ASKACTION = 'Trigger related action'
 EMAIL_SUBJECT = '${siteTitle} - Action \\"${transitionName}\\" has been ' \
                 'performed on element entitled \\"${objectTitle}\\".'
 EMAIL_BODY = 'You can consult this element at ${objectUrl}.'

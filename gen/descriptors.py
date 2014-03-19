@@ -296,12 +296,6 @@ class FieldDescriptor:
             label = '%s_%s_addConfirm' % (self.classDescr.name, self.fieldName)
             self.i18n(label, po.CONFIRM, nice=False)
 
-    def walkPod(self):
-        # Add i18n-specific messages
-        if self.appyType.askAction:
-            label = '%s_%s_askaction' % (self.classDescr.name, self.fieldName)
-            self.i18n(label, po.POD_ASKACTION, nice=False)
-
     def walkList(self):
         # Add i18n-specific messages
         for name, field in self.appyType.fields:
@@ -361,8 +355,6 @@ class FieldDescriptor:
         elif self.appyType.type == 'Action': self.walkAction()
         # Manage things which are specific to Ref types
         elif self.appyType.type == 'Ref': self.walkRef()
-        # Manage things which are specific to Pod types
-        elif self.appyType.type == 'Pod': self.walkPod()
         # Manage things which are specific to List types
         elif self.appyType.type == 'List': self.walkList()
         # Manage things which are specific to Calendar types

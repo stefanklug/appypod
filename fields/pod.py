@@ -16,10 +16,12 @@
 
 # ------------------------------------------------------------------------------
 import time, os, os.path
+from file import FileInfo
+from appy import Object
 from appy.fields import Field
 from appy.px import Px
-from file import File
 from appy.gen.layout import Table
+from appy.gen import utils as gutils
 from appy.pod import PodError
 from appy.pod.renderer import Renderer
 from appy.shared import utils as sutils
@@ -34,19 +36,28 @@ class Pod(Field):
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
     DELETE_TEMP_DOC_ERROR = 'A temporary document could not be removed. %s.'
+    NO_TEMPLATE = 'Please specify a pod template in field "template".'
+    UNAVAILABLE_TEMPLATE = 'You are not allow to perform this action.'
+    TEMPLATE_NOT_FOUND = 'Template not found at %s.'
 
     pxView = pxCell = Px('''
-     <!-- Ask action -->
-     <x if="field.askAction"
-        var2="doLabel='%s_askaction' % field.labelId;
-              chekboxId='%s_%s_cb' % (zobj.UID(), name)">
-      <input type="checkbox" name=":doLabel" id=":chekboxId"/>
-      <label lfor=":chekboxId" class="discreet">:_(doLabel)"></label>
-     </x>
-     <img for="fmt in field.getOutputFormats(zobj)" src=":url(fmt)"
-          onclick=":'generatePodDocument(%s, %s, %s, %s)' % \
-            (q(zobj.UID()), q(name), q(fmt), q(ztool.getQueryInfo()))"
-          title=":fmt.capitalize()" class="clickable"/>''')
+     <table cellpadding="0" cellspacing="0">
+      <tr>
+       <td for="template in field.getVisibleTemplates(obj)">
+        <table cellpadding="0" cellspacing="0" class="podTable">
+         <tr>
+          <td for="fmt in field.getOutputFormats(obj)">
+           <img src=":url(fmt)" title=":fmt.upper()" class="clickable"
+                onclick=":'generatePodDocument(%s,%s,%s,%s,%s)' % \
+                          (q(obj.uid), q(name), q(template), q(fmt), \
+                           q(ztool.getQueryInfo()))"/>
+          </td>
+          <td class="podName">:field.getTemplateName(obj, template)</td>
+         </tr>
+        </table>
+       </td>
+      </tr>
+     </table>''')
 
     pxEdit = pxSearch = ''
 
@@ -56,26 +67,43 @@ class Pod(Field):
                  specificWritePermission=False, width=None, height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 template=None, context=None, action=None, askAction=False,
-                 stylesMapping={}, formats=None, freezeFormat='pdf'):
-        # The following param stores the path to a POD template
-        self.template = template
+                 template=None, templateName=None, showTemplate=None,
+                 context=None, stylesMapping={}, formats=None,
+                 freezeFormat='pdf'):
+        # Param "template" stores the path to the pod template(s).
+        if not template: raise Exception(Pod.NO_TEMPLATE)
+        if isinstance(template, basestring):
+            self.template = [template]
+        else:
+            self.template = template
+        # Param "templateName", if specified, is a method that will be called
+        # with the current template (from self.template) as single arg and must
+        # return the name of this template. If self.template stores a single
+        # template, you have no need to use param "templateName". Simply use the
+        # field label to name the template. But if you have a multi-pod field
+        # (with several templates specified as a list or tuple in param
+        # "template"), you will probably choose to hide the field label and use
+        # param "templateName" to give a specific name to every template. If
+        # "template" contains several templates and "templateName" is None, Appy
+        # will produce names from template filenames.
+        self.templateName = templateName
+        # "showTemplate", if specified, must be a method that will be called
+        # with the current template as single arg and that must return True if
+        # the template can be seen by the current user. "showTemplate" comes in
+        # addition to self.show. self.show dictates the visibility of the whole
+        # field (ie, all templates from self.template) while "showTemplate"
+        # dictates the visiblity of a specific template within self.template.
+        self.showTemplate = showTemplate
         # The context is a dict containing a specific pod context, or a method
         # that returns such a dict.
         self.context = context
-        # Next one is a method that will be triggered after the document has
-        # been generated.
-        self.action = action
-        # If askAction is True, the action will be triggered only if the user
-        # checks a checkbox, which, by default, will be unchecked.
-        self.askAction = askAction
         # A global styles mapping that would apply to the whole template
         self.stylesMapping = stylesMapping
         # What are the output formats when generating documents from this pod ?
         self.formats = formats
         if not formats:
             # Compute default ones
-            if template.endswith('.ods'):
+            if self.template[0].endswith('.ods'):
                 self.formats = ('xls', 'ods')
             else:
                 self.formats = ('pdf', 'doc', 'odt')
@@ -103,32 +131,53 @@ class Pod(Field):
         fileName = getattr(obj.o.aq_base, self.name).filename
         return (os.path.splitext(fileName)[1][1:],)
 
+    def getTemplateName(self, obj, fileName):
+        '''Gets the name of a template given its p_fileName.'''
+        res = None
+        if self.templateName:
+            # Use the method specified in self.templateName.
+            res = self.templateName(obj, fileName)
+        # Else, deduce a nice name from p_fileName.
+        if not res:
+            name = os.path.splitext(os.path.basename(fileName))[0]
+            res = gutils.produceNiceMessage(name)
+        return res
+
+    def getVisibleTemplates(self, obj):
+        '''Returns, among self.template, the template(s) that can be shown.'''
+        if not self.showTemplate: return self.template # Show them all.
+        res = []
+        for template in self.template:
+            if self.showTemplate(obj, template):
+                res.append(template)
+        return res
+
     def getValue(self, obj):
-        '''Gets, on_obj, the value conforming to self's type definition. For a
-           Pod field, if a file is stored in the field, it means that the
-           field has been frozen. Else, it means that the value must be
-           retrieved by calling pod to compute the result.'''
-        rq = getattr(obj, 'REQUEST', None)
-        res = getattr(obj.aq_base, self.name, None)
-        if res and res.size:
-            # Return the frozen file.
-            return sutils.FileWrapper(res)
-        # If we are here, it means that we must call pod to compute the file.
-        # A Pod field differs from other field types because there can be
-        # several ways to produce the field value (ie: output file format can be
-        # odt, pdf,...; self.action can be executed or not...). We get those
-        # precisions about the way to produce the file from the request object.
-        # If we don't find the request object (or if it does not exist, ie,
-        # when Zope runs in test mode), we use default values.
+        '''For a pod field, getting its value means computing a pod document or
+           returning a frozen one. A pod field differs from other field types
+           because there can be several ways to produce the field value (ie:
+           self.template can hold various templates; output file format can be
+           odt, pdf,.... We get those precisions about the way to produce the
+           file from the request object. If we don't find the request object (or
+           if it does not exist, ie, when Zope runs in test mode), we use
+           default values.'''
+        rq = getattr(obj, 'REQUEST') or Object()
         obj = obj.appy()
+        template = rq.get('template') or self.template[0]
+        # Security check.
+        if not self.showTemplate(obj, template):
+            raise Exception(self.UNAVAILABLE_TEMPLATE)
+        # Return the frozen document if frozen.
+        # if ...
+        # We must call pod to compute a pod document from "template".
         tool = obj.tool
         diskFolder = tool.getDiskFolder()
         # Get the path to the pod template.
-        templatePath = os.path.join(diskFolder, self.template)
+        templatePath = os.path.join(diskFolder, template)
         if not os.path.isfile(templatePath):
-            raise Exception('Pod template not found at %s.' % templatePath)
+            raise Exception(self.TEMPLATE_NOT_FOUND % templatePath)
         # Get the output format
-        outputFormat = getattr(rq, 'podFormat', 'odt')
+        outputFormat = rq.get('podFormat', 'odt')
         # Get or compute the specific POD context
         specificContext = None
         if callable(self.context):
@@ -190,24 +239,20 @@ class Pod(Field):
                 obj.log(str(pe).strip(), type='error')
                 return Pod.POD_ERROR
         # Give a friendly name for this file
-        fileName = obj.translate(self.labelId)
+        fileName = self.getTemplateName(obj, template)
         if not isQueryRelated:
             # This is a POD for a single object: personalize the file name with
             # the object title.
             fileName = '%s-%s' % (obj.title, fileName)
         fileName = tool.normalize(fileName) + '.' + outputFormat
-        # Get a FileWrapper instance from the temp file on the filesystem
-        res = File.getFileObject(tempFileName, fileName)
-        # Execute the related action if relevant
-        doAction = getattr(rq, 'askAction', False) in ('True', True)
-        if doAction and self.action: self.action(obj, podContext)
+        # Get a FileInfo instance to manipulate the temp file on the filesystem.
+        return FileInfo(tempFileName, inDb=False, uploadName=fileName)
+
         # Returns the doc and removes the temp file
         try:
             os.remove(tempFileName)
-        except OSError, oe:
-            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(oe).strip(), type='warning')
-        except IOError, ie:
-            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(ie).strip(), type='warning')
+        except Exception, e:
+            obj.log(Pod.DELETE_TEMP_DOC_ERROR % str(e).strip(), type='warning')
         return res
 
     def store(self, obj, value):

@@ -521,20 +521,16 @@ function toggleCookie(cookieId) {
 }
 
 // Function that allows to generate a document from a pod template.
-function generatePodDocument(contextUid, fieldName, podFormat, queryData,
+function generatePodDocument(uid, fieldName, template, podFormat, queryData,
                              customParams) {
   var theForm = document.getElementById("podTemplateForm");
-  theForm.objectUid.value = contextUid;
+  theForm.objectUid.value = uid;
   theForm.fieldName.value = fieldName;
+  theForm.template.value = template;
   theForm.podFormat.value = podFormat;
-  theForm.askAction.value = "False";
   theForm.queryData.value = queryData;
   if (customParams) { theForm.customParams.value = customParams; }
   else { theForm.customParams.value = ''; }
-  var askActionWidget = document.getElementById(contextUid + '_' + fieldName + '_cb');
-  if (askActionWidget && askActionWidget.checked) {
-      theForm.askAction.value = "True";
-  }
   theForm.submit();
 }
 

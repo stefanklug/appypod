@@ -93,7 +93,7 @@ class ToolWrapper(AbstractWrapper):
     # PXs for graphical elements shown on every page
     # --------------------------------------------------------------------------
     # Global elements included in every page.
-    pxPagePrologue = Px('''<x>
+    pxPagePrologue = Px('''
      <!-- Include type-specific CSS and JS. -->
      <x if="cssJs">
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
@@ -133,12 +133,11 @@ class ToolWrapper(AbstractWrapper):
            action=":ztool.absolute_url() + '/generateDocument'">
       <input type="hidden" name="objectUid"/>
       <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="template"/>
       <input type="hidden" name="podFormat"/>
-      <input type="hidden" name="askAction"/>
       <input type="hidden" name="queryData"/>
       <input type="hidden" name="customParams"/>
-     </form>
-    </x>''')
+     </form>''')
 
     pxPageBottom = Px('''
      <script var="info=zobj.getSlavesRequestInfo(page)"
