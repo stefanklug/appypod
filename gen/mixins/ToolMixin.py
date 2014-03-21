@@ -115,6 +115,7 @@ class ToolMixin(BaseMixin):
         # Get the object on which a document must be generated.
         obj = self.getObject(rq.get('objectUid'), appy=True)
         fieldName = rq.get('fieldName')
+        # Get the document by accessing the value of the pod field.
         res = getattr(obj, fieldName)
         if isinstance(res, basestring):
             # An error has occurred, and p_res contains the error message
@@ -122,8 +123,6 @@ class ToolMixin(BaseMixin):
             return self.goto(rq.get('HTTP_REFERER'))
         # res contains a FileInfo instance.
         res.writeResponse(rq.RESPONSE)
-        # (Try to) delete the temp file on disk.
-        res.removeFile()
 
     def getAppName(self):
         '''Returns the name of the application.'''

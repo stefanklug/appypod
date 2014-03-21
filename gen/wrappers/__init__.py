@@ -13,12 +13,6 @@ from appy.shared.utils import getOsTempFolder, executeCommand, \
 from appy.shared.xml_parser import XmlMarshaller
 from appy.shared.csv_parser import CsvMarshaller
 
-# Some error messages ----------------------------------------------------------
-FREEZE_ERROR = 'Error while trying to freeze a "%s" file in POD field ' \
-    '"%s" (%s).'
-FREEZE_FATAL_ERROR = 'A server error occurred. Please contact the system ' \
-    'administrator.'
-
 # ------------------------------------------------------------------------------
 class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
@@ -797,38 +791,19 @@ class AbstractWrapper(object):
         zopeObj.reindex()
         return appyObj
 
-    def freeze(self, fieldName):
-        '''This method freezes a POD document. TODO: allow to freeze Computed
-           fields.'''
-        rq = self.request
+    def freeze(self, fieldName, template=None, format='pdf'):
+        '''This method freezes the content of pod field named p_fieldName, for
+           the given p_template (several templates can be given in
+           podField.template), in the given p_format ("pdf" by default).'''
         field = self.o.getAppyType(fieldName)
-        if field.type != 'Pod': raise 'Cannot freeze non-Pod field.'
-        # Set the freeze format
-        rq.set('podFormat', field.freezeFormat)
-        # Generate the document.
-        doc = field.getValue(self.o)
-        if isinstance(doc, basestring):
-            self.log(FREEZE_ERROR % (field.freezeFormat, field.name, doc),
-                     type='error')
-            if field.freezeFormat == 'odt': raise FREEZE_FATAL_ERROR
-            self.log('Trying to freeze the ODT version...')
-            # Try to freeze the ODT version of the document, which does not
-            # require to call OpenOffice/LibreOffice, so the risk of error is
-            # smaller.
-            self.request.set('podFormat', 'odt')
-            doc = field.getValue(self.o)
-            if isinstance(doc, basestring):
-                self.log(FREEZE_ERROR % ('odt', field.name, doc), type='error')
-                raise FREEZE_FATAL_ERROR
-        field.store(self.o, doc)
+        if field.type!= 'Pod': raise Exception('Cannot freeze non-Pod field.')
+        return field.freeze(self, template, format)
 
-    def unFreeze(self, fieldName):
-        '''This method un freezes a POD document. TODO: allow to unfreeze
-           Computed fields.'''
-        rq = self.request
+    def unfreeze(self, fieldName, template=None, format='pdf'):
+        '''This method unfreezes a pod field.'''
         field = self.o.getAppyType(fieldName)
-        if field.type != 'Pod': raise 'Cannot unFreeze non-Pod field.'
-        field.store(self.o, None)
+        if field.type!= 'Pod': raise Exception('Cannot unfreeze non-Pod field.')
+        field.unfreeze(self, template, format)
 
     def delete(self):
         '''Deletes myself.'''
