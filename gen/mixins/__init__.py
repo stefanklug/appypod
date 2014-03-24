@@ -156,7 +156,7 @@ class BaseMixin:
             urlBack = self.getTool().getSiteUrl()
         else:
             urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('delete_done'))
+        self.say(self.translate('action_done'))
         self.goto(urlBack)
 
     def onDeleteEvent(self):
@@ -188,7 +188,7 @@ class BaseMixin:
         field = sourceObject.getAppyType(rq['fieldName'])
         field.unlinkObject(sourceObject, targetObject)
         urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('unlink_done'))
+        self.say(self.translate('action_done'))
         self.goto(urlBack)
 
     def onCreate(self):
@@ -327,7 +327,7 @@ class BaseMixin:
         obj = tool.getObject(rq['objectUid'])
         obj.removeLock(rq['pageName'], force=True)
         urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('unlock_done'))
+        self.say(self.translate('action_done'))
         self.goto(urlBack)
 
     def onCreateWithoutForm(self):

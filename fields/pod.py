@@ -33,29 +33,76 @@ class Pod(Field):
        want to put in it. It is the way gen uses pod.'''
     # Layout for rendering a POD field for exporting query results.
     rLayouts = {'view': Table('fl', width=None)}
-    allFormats = ('pdf', 'doc', 'odt')
+    allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
     NO_TEMPLATE = 'Please specify a pod template in field "template".'
-    UNAVAILABLE_TEMPLATE = 'You are not allow to perform this action.'
+    UNAUTHORIZED = 'You are not allow to perform this action.'
     TEMPLATE_NOT_FOUND = 'Template not found at %s.'
     FREEZE_ERROR = 'Error while trying to freeze a "%s" file in pod field ' \
                     '"%s" (%s).'
     FREEZE_FATAL_ERROR = 'Server error. Please contact the administrator.'
 
+    # Icon allowing to generate a given template in a given format.
+    pxIcon = Px('''
+     <img var="iconSuffix=frozen and 'Frozen' or ''"
+          src=":url(fmt + iconSuffix)" class="clickable"
+          title=":field.getIconTitle(obj, fmt, frozen)"
+          onclick=":'generatePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
+                    q(info.template), q(fmt), q(ztool.getQueryInfo()))"/>''')
+
     pxView = pxCell = Px('''
-     <table cellpadding="0" cellspacing="0">
+     <table cellpadding="0" cellspacing="0" var="uid=obj.uid">
       <tr>
-       <td for="template in field.getVisibleTemplates(obj)">
+       <td for="info in field.getVisibleTemplates(obj)">
         <table cellpadding="0" cellspacing="0" class="podTable">
          <tr>
-          <td for="fmt in field.getOutputFormats(obj)">
-           <img src=":url(fmt)" title=":fmt.upper()" class="clickable"
-                onclick=":'generatePodDocument(%s,%s,%s,%s,%s)' % \
-                          (q(obj.uid), q(name), q(template), q(fmt), \
-                           q(ztool.getQueryInfo()))"/>
+          <td for="fmt in info.formats"
+              var2="freezeAllowed=fmt in info.freezeFormats;
+                    frozen=field.isFrozen(obj, info.template, fmt)">
+           <!-- A clickable icon if no freeze action is allowed -->
+           <x if="not freezeAllowed">:field.pxIcon</x>
+           <!-- A clickable icon and a dropdown menu else. -->
+           <div if="freezeAllowed" class="dropdownMenu"
+                var2="dropdownId='%s_%s' % (uid, \
+                              field.getFreezeName(info.template, fmt, sep='_'))"
+                onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
+                onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), \
+                                                        q('none'))">
+            <x>:field.pxIcon</x>
+            <!-- The dropdown menu containing freeze actions -->
+            <table id=":dropdownId" class="dropdown">
+             <!-- Unfreeze -->
+             <tr if="frozen" valign="top">
+              <td>
+               <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
+                            q(info.template), q(fmt), q('unfreeze'))"
+                  class="podName">:_('unfreezeField')</a>
+              </td>
+              <td align="center"><img src=":url('unfreeze')"/></td>
+             </tr>
+             <!-- (Re-)freeze -->
+             <tr valign="top">
+              <td>
+               <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
+                            q(info.template), q(fmt), q('freeze'))"
+                  class="podName">:_('freezeField')</a>
+              </td>
+              <td align="center"><img src=":url('freeze')"/></td>
+             </tr>
+             <!-- (Re-)upload -->
+             <tr valign="top">
+              <td>
+               <a onclick=":'uploadPod(%s,%s,%s,%s)' % (q(uid), q(name), \
+                            q(info.template), q(fmt))"
+                  class="podName">:_('uploadField')</a>
+              </td>
+              <td align="center"><img src=":url('upload')"/></td>
+             </tr>
+            </table>
+           </div>
           </td>
-          <td class="podName">:field.getTemplateName(obj, template)</td>
+          <td class="podName">:field.getTemplateName(obj, info.template)</td>
          </tr>
         </table>
        </td>
@@ -71,7 +118,8 @@ class Pod(Field):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  template=None, templateName=None, showTemplate=None,
-                 context=None, stylesMapping={}, formats=None):
+                 freezeTemplate=None, context=None, stylesMapping={},
+                 formats=None):
         # Param "template" stores the path to the pod template(s).
         if not template: raise Exception(Pod.NO_TEMPLATE)
         if isinstance(template, basestring):
@@ -89,13 +137,48 @@ class Pod(Field):
         # "template" contains several templates and "templateName" is None, Appy
         # will produce names from template filenames.
         self.templateName = templateName
-        # "showTemplate", if specified, must be a method that will be called
-        # with the current template as single arg and that must return True if
-        # the template can be seen by the current user. "showTemplate" comes in
-        # addition to self.show. self.show dictates the visibility of the whole
-        # field (ie, all templates from self.template) while "showTemplate"
-        # dictates the visiblity of a specific template within self.template.
+        # "showTemplate" determines if the current user may generate documents
+        # based on this pod field. More precisely, "showTemplate", if specified,
+        # must be a method that will be called with the current template as
+        # single arg (one among self.template) and that must return the list or
+        # tuple of formats that the current user may use as output formats for
+        # generating a document. If the current user is not allowed at all to
+        # generate documents based on the current template, "showTemplate" must
+        # return an empty tuple/list. If "showTemplate" is not specified, the
+        # user will be able to generate documents based on the current template,
+        # in any format from self.formats (see below).
+        # "showTemplate" comes in addition to self.show. self.show dictates the
+        # visibility of the whole field (ie, all templates from self.template)
+        # while "showTemplate" dictates the visiblity of a specific template
+        # within self.template.
         self.showTemplate = showTemplate
+        # "freezeTemplate" determines if the current user may freeze documents
+        # normally generated dynamically from this pod field. More precisely,
+        # "freezeTemplate", if specified, must be a method that will be called
+        # with the current template as single arg and must return the (possibly
+        # empty) list or tuple of formats the current user may freeze. The
+        # "freezing-related actions" that are granted by "freezeTemplate" are
+        # the following. When no document is frozen yet for a given
+        # template/format, the user may:
+        # - freeze the document: pod will be called to produce a document from
+        #   the current database content and will store it in the database.
+        #   Subsequent user requests for this pod field will return the frozen
+        #   doc instead of generating on-the-fly documents;
+        # - upload a document: the user will be able to upload a document that
+        #   will be stored in the database. Subsequent user requests for this
+        #   pod field will return this doc instead of generating on-the-fly
+        #   documents.
+        # When a document is already frozen or uploaded for a given
+        # template/format, the user may:
+        # - unfreeze the document: the frozen or uploaded document will be
+        #   deleted from the database and subsequent user requests for the pod
+        #   field will again generate on-the-fly documents;
+        # - re-freeze the document: the frozen or uploaded document will be
+        #   deleted, a new document will be generated from the current database
+        #   content and will be frozen as a replacement to the deleted one;
+        # - upload a document: the frozen or uploaded document will be replaced
+        #   by a new document uploaded by the current user.
+        self.freezeTemplate = freezeTemplate
         # The context is a dict containing a specific pod context, or a method
         # that returns such a dict.
         self.context = context
@@ -118,12 +201,11 @@ class Pod(Field):
         # field is determined by freezing.
         self.validable = False
 
-    def getOutputFormats(self, obj):
-        '''Returns self.formats, excepted if there is a frozen document: in
-           this case, only the format of the frozen doc is returned.'''
-        if not obj.user.has_role('Manager'): return self.formats
-        # A manager can have all formats
-        return self.allFormats
+    def getAllFormats(self, template):
+        '''Gets all the outputy formats that are available for a given
+           p_template.'''
+        ext = os.path.splitext(template)[1]
+        return self.allFormats[ext]
 
     def getTemplateName(self, obj, fileName):
         '''Gets the name of a template given its p_fileName.'''
@@ -149,14 +231,25 @@ class Pod(Field):
 
     def getVisibleTemplates(self, obj):
         '''Returns, among self.template, the template(s) that can be shown.'''
-        if not self.showTemplate: return self.template # Show them all.
+        isManager = obj.user.has_role('Manager')
+        if not self.showTemplate:
+            # Show them all in any format.
+            res = []
+            for template in self.template:
+                res.append(Object(template=template,
+                        formats=self.getAllFormats(template),
+                        freezeFormats=self.getFreezeFormats(obj, template)))
         res = []
         for template in self.template:
-            if self.showTemplate(obj, template):
-                res.append(template)
+            formats = isManager and self.getAllFormats(template) or \
+                      self.showTemplate(obj, template)
+            if formats:
+                res.append(Object(template=template, formats=formats,
+                            freezeFormats=self.getFreezeFormats(obj, template)))
         return res
 
-    def getValue(self, obj, template=None, format=None, result=None):
+    def getValue(self, obj, template=None, format=None, result=None,
+                 noSecurity=False):
         '''For a pod field, getting its value means computing a pod document or
            returning a frozen one. A pod field differs from other field types
            because there can be several ways to produce the field value (ie:
@@ -172,12 +265,11 @@ class Pod(Field):
         template = template or rq.get('template') or self.template[0]
         format = format or rq.get('podFormat') or 'odt'
         # Security check.
-        if not self.showTemplate(obj, template):
-            raise Exception(self.UNAVAILABLE_TEMPLATE)
+        if not noSecurity and not self.showTemplate(obj, template):
+            raise Exception(self.UNAUTHORIZED)
         # Return the frozen document if frozen.
         frozen = self.isFrozen(obj, template, format)
         if frozen:
-            print 'RETURN FROZEN'
             fileName = self.getDownloadName(obj, template, format, False)
             return FileInfo(frozen, inDb=False, uploadName=fileName)
         # We must call pod to compute a pod document from "template".
@@ -254,12 +346,12 @@ class Pod(Field):
         # Get a FileInfo instance to manipulate the file on the filesystem.
         return FileInfo(result, inDb=False, uploadName=fileName)
 
-    def getFreezeName(self, template=None, format='pdf'):
+    def getFreezeName(self, template=None, format='pdf', sep='.'):
         '''Gets the name on disk on the frozen document corresponding to this
            pod field, p_template and p_format.'''
         template = template or self.template[0]
         templateName = os.path.splitext(template)[0].replace(os.sep, '_')
-        return '%s_%s.%s' % (self.name, templateName, format)
+        return '%s_%s%s%s' % (self.name, templateName, sep, format)
 
     def isFrozen(self, obj, template=None, format='pdf'):
         '''Is there a frozen document for thid pod field, on p_obj, for
@@ -271,9 +363,18 @@ class Pod(Field):
         res = os.path.join(dbFolder, folder, fileName)
         if os.path.exists(res): return res
 
-    def freeze(self, obj, template=None, format='pdf'):
+    def freeze(self, obj, template=None, format='pdf', noSecurity=True,
+               freezeOdtOnError=True):
         '''Freezes, on p_obj, a document for this pod field, for p_template in
-           p_format.'''
+           p_format. If p_noSecurity is True, the security check, based on
+           self.freezeTemplate, is bypassed. if freezeOdtOnError is True and
+           format is not "odt", if the freezing fails we try to freeze the odt
+           version, which is more robust because it does not require calling
+           LibreOffice.'''
+        # Security check.
+        if not noSecurity and \
+           (format not in self.getFreezeFormats(obj, template)):
+            raise Exception(self.UNAUTHORIZED)
         # Compute the absolute path where to store the frozen document in the
         # database.
         dbFolder, folder = obj.o.getFsFolder(create=True)
@@ -282,12 +383,12 @@ class Pod(Field):
         if os.path.exists(result):
             obj.log('Freeze: overwriting %s...' % result)
         # Generate the document.
-        doc = self.getValue(obj, template=template, format=format,
-                            result=result)
+        doc = self.getValue(obj, template=template, format=format,result=result)
         if isinstance(doc, basestring):
             # An error occurred, the document was not generated.
             obj.log(self.FREEZE_ERROR % (format, self.name, doc), type='error')
-            if format == 'odt': raise Exception(self.FREEZE_FATAL_ERROR)
+            if not freezeOdtOnError or (format == 'odt'):
+                raise Exception(self.FREEZE_FATAL_ERROR)
             obj.log('Trying to freeze the ODT version...')
             # Try to freeze the ODT version of the document, which does not
             # require to call LibreOffice: the risk of error is smaller.
@@ -303,12 +404,35 @@ class Pod(Field):
                 raise Exception(self.FREEZE_FATAL_ERROR)
         return doc
 
-    def unfreeze(self, obj, template=None, format='pdf'):
+    def unfreeze(self, obj, template=None, format='pdf', noSecurity=True):
         '''Unfreezes, on p_obj, the document for this pod field, for p_template
            in p_format.'''
+        # Security check.
+        if not noSecurity and \
+           (format not in self.getFreezeFormats(obj, template)):
+            raise Exception(self.UNAUTHORIZED)
         # Compute the absolute path to the frozen doc.
         dbFolder, folder = obj.o.getFsFolder()
         fileName = self.getFreezeName(template, format)
         frozenName = os.path.join(dbFolder, folder, fileName)
         if os.path.exists(frozenName): os.remove(frozenName)
+
+    def getFreezeFormats(self, obj, template=None):
+        '''What are the formats into which the current user may freeze
+           p_template?'''
+        # Manager can always perform freeze actions.
+        template = template or self.template[0]
+        isManager = obj.user.has_role('Manager')
+        if isManager: return self.getAllFormats(template)
+        # Others users can perform freeze actions depending on
+        # self.freezeTemplate.
+        if not self.freezeTemplate: return ()
+        return self.freezeTemplate(obj, template)
+
+    def getIconTitle(self, obj, format, frozen):
+        '''Get the title of the format icon.'''
+        res = obj.translate(format)
+        if frozen:
+            res += ' (%s)' % obj.translate('frozen')
+        return res
 # ------------------------------------------------------------------------------

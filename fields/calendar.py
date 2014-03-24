@@ -181,7 +181,7 @@ class Calendar(Field):
         <input type="hidden" name="actionType" value="deleteEvent"/>
         <input type="hidden" name="day"/>
 
-        <div align="center" style="margin-bottom: 5px">_('delete_confirm')</div>
+        <div align="center" style="margin-bottom: 5px">_('action_confirm')</div>
 
         <!-- Delete successive events ? -->
         <div class="discreet" style="margin-bottom: 10px"

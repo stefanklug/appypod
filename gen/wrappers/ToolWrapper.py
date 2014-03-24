@@ -128,15 +128,16 @@ class ToolWrapper(AbstractWrapper):
       <input type="hidden" name="objectUid"/>
       <input type="hidden" name="pageName"/>
      </form>
-     <!-- Global form for generating a document from a pod template -->
-     <form id="podTemplateForm" name="podTemplateForm" method="post"
-           action=":ztool.absolute_url() + '/generateDocument'">
+     <!-- Global form for generating/freezing a document from a pod template -->
+     <form id="podForm" name="podForm" method="post"
+           action=":ztool.absolute_url() + '/doPod'">
       <input type="hidden" name="objectUid"/>
       <input type="hidden" name="fieldName"/>
       <input type="hidden" name="template"/>
       <input type="hidden" name="podFormat"/>
       <input type="hidden" name="queryData"/>
       <input type="hidden" name="customParams"/>
+      <input type="hidden" name="action" value="generate"/>
      </form>''')
 
     pxPageBottom = Px('''

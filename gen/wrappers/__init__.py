@@ -123,6 +123,21 @@ class AbstractWrapper(object):
        </form>
       </div>
 
+      <!-- Popup for uploading a file in a pod field -->
+      <div id="uploadPopup" class="popup" align="center">
+       <form id="uploadForm" name="uploadForm" enctype="multipart/form-data"
+             method="post" action=":ztool.absolute_url() + '/uploadPod'">
+        <input type="hidden" name="objectUid"/>
+        <input type="hidden" name="fieldName"/>
+        <input type="hidden" name="template"/>
+        <input type="hidden" name="podFormat"/>
+        <input type="file" name="uploadedFile"/><br/><br/>
+        <input type="submit" value=":_('object_save')"/>
+        <input type="button" onclick="closePopup('uploadPopup')"
+               value=":_('object_cancel')"/>
+       </form>
+      </div>
+
       <!-- Popup for reinitializing the password -->
       <div id="askPasswordReinitPopup" class="popup"
            if="isAnon and ztool.showForgotPassword()">
@@ -791,19 +806,21 @@ class AbstractWrapper(object):
         zopeObj.reindex()
         return appyObj
 
-    def freeze(self, fieldName, template=None, format='pdf'):
+    def freeze(self, fieldName, template=None, format='pdf', noSecurity=True,
+               freezeOdtOnError=True):
         '''This method freezes the content of pod field named p_fieldName, for
            the given p_template (several templates can be given in
            podField.template), in the given p_format ("pdf" by default).'''
         field = self.o.getAppyType(fieldName)
         if field.type!= 'Pod': raise Exception('Cannot freeze non-Pod field.')
-        return field.freeze(self, template, format)
+        return field.freeze(self, template, format, noSecurity=noSecurity,
+                            freezeOdtOnError=freezeOdtOnError)
 
-    def unfreeze(self, fieldName, template=None, format='pdf'):
+    def unfreeze(self, fieldName, template=None, format='pdf', noSecurity=True):
         '''This method unfreezes a pod field.'''
         field = self.o.getAppyType(fieldName)
         if field.type!= 'Pod': raise Exception('Cannot unfreeze non-Pod field.')
-        field.unfreeze(self, template, format)
+        field.unfreeze(self, template, format, noSecurity=noSecurity)
 
     def delete(self):
         '''Deletes myself.'''

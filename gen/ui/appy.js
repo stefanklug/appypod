@@ -446,14 +446,14 @@ function triggerTransition(formId, transitionId, msg) {
 function onDeleteObject(objectUid) {
   f = document.getElementById('deleteForm');
   f.objectUid.value = objectUid;
-  askConfirm('form', 'deleteForm', delete_confirm);
+  askConfirm('form', 'deleteForm', action_confirm);
 }
 
 function onDeleteEvent(objectUid, eventTime) {
   f = document.getElementById('deleteEventForm');
   f.objectUid.value = objectUid;
   f.eventTime.value = eventTime;
-  askConfirm('form', 'deleteEventForm', delete_confirm);
+  askConfirm('form', 'deleteEventForm', action_confirm);
 }
 
 function onUnlinkObject(sourceUid, fieldName, targetUid) {
@@ -461,14 +461,14 @@ function onUnlinkObject(sourceUid, fieldName, targetUid) {
   f.sourceUid.value = sourceUid;
   f.fieldName.value = fieldName;
   f.targetUid.value = targetUid;
-  askConfirm('form', 'unlinkForm', unlink_confirm);
+  askConfirm('form', 'unlinkForm', action_confirm);
 }
 
 function onUnlockPage(objectUid, pageName) {
   f = document.getElementById('unlockForm');
   f.objectUid.value = objectUid;
   f.pageName.value = pageName;
-  askConfirm('form', 'unlockForm', unlock_confirm);
+  askConfirm('form', 'unlockForm', action_confirm);
 }
 
 function createCookie(name, value, days) {
@@ -521,17 +521,38 @@ function toggleCookie(cookieId) {
 }
 
 // Function that allows to generate a document from a pod template.
-function generatePodDocument(uid, fieldName, template, podFormat, queryData,
-                             customParams) {
-  var theForm = document.getElementById("podTemplateForm");
-  theForm.objectUid.value = uid;
-  theForm.fieldName.value = fieldName;
-  theForm.template.value = template;
-  theForm.podFormat.value = podFormat;
-  theForm.queryData.value = queryData;
-  if (customParams) { theForm.customParams.value = customParams; }
-  else { theForm.customParams.value = ''; }
-  theForm.submit();
+function generatePod(uid,fieldName,template,podFormat,queryData,customParams) {
+  var f = document.getElementById('podForm');
+  f.objectUid.value = uid;
+  f.fieldName.value = fieldName;
+  f.template.value = template;
+  f.podFormat.value = podFormat;
+  f.queryData.value = queryData;
+  if (customParams) { f.customParams.value = customParams; }
+  else { f.customParams.value = ''; }
+  f.action.value = 'generate';
+  f.submit();
+}
+
+// Function that allows to (un-)freeze a document from a pod template.
+function freezePod(uid, fieldName, template, podFormat, action) {
+  var f = document.getElementById('podForm');
+  f.objectUid.value = uid;
+  f.fieldName.value = fieldName;
+  f.template.value = template;
+  f.podFormat.value = podFormat;
+  f.action.value = action;
+  askConfirm('form', 'podForm', action_confirm);
+}
+
+// Function that allows to upload a file for freezing it in a od field.
+function uploadPod(uid, fieldName, template, podFormat) {
+  var f = document.getElementById('uploadForm');
+  f.objectUid.value = uid;
+  f.fieldName.value = fieldName;
+  f.template.value = template;
+  f.podFormat.value = podFormat;
+  openPopup('uploadPopup');
 }
 
 function protectAppyForm() {

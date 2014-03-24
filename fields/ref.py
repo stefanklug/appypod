@@ -214,7 +214,7 @@ class Ref(Field):
 
     # PX that displays referred objects as menus.
     pxViewMenus = Px('''
-     <table><tr style="font-size: 93%">
+     <table><tr valign="bottom">
       <td for="menu in field.getLinkedObjectsByMenu(obj, zobjects)">
 
        <!-- A single object in the menu: show a clickable icon to get it -->
@@ -234,7 +234,7 @@ class Ref(Field):
         <!-- Display the number of objects in the menu (if more than one) -->
         <x if="len(menu.zobjects) &gt; 1">:len(menu.zobjects)</x>
         <!-- The dropdown menu containing annexes -->
-        <div class="dropdown" id=":dropdownId">
+        <div id=":dropdownId" class="dropdown">
          <div for="ztied in menu.zobjects"
               var2="ztiedUrl=field.getMenuUrl(zobj, ztied)">
           <a href=":ztiedUrl">:ztied.title</a>

@@ -19,8 +19,7 @@ except ImportError:
     _noroles = []
 
 # Errors -----------------------------------------------------------------------
-jsMessages = ('no_elem_selected', 'delete_confirm', 'unlink_confirm',
-              'unlock_confirm', 'warn_leave_form')
+jsMessages = ('no_elem_selected', 'action_confirm', 'warn_leave_form')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):
@@ -108,21 +107,37 @@ class ToolMixin(BaseMixin):
         if not bg: return url
         return 'background-image: url(%s)' % url
 
-    def generateDocument(self):
-        '''Generates the document from field-related info. UID of object that
-           is the template target is given in the request.'''
+    def doPod(self):
+        '''Performs an action linked to a pod field: generate, freeze,
+           unfreeze... a document from a pod field.'''
         rq = self.REQUEST
-        # Get the object on which a document must be generated.
+        # Get the object that is the target of this action.
         obj = self.getObject(rq.get('objectUid'), appy=True)
         fieldName = rq.get('fieldName')
-        # Get the document by accessing the value of the pod field.
-        res = getattr(obj, fieldName)
-        if isinstance(res, basestring):
-            # An error has occurred, and p_res contains the error message
-            obj.say(res)
+        # What is the action to perform?
+        action = rq.get('action', 'generate')
+        if action == 'generate':
+            # Generate a (or get a frozen) document by accessing the value of
+            # the pod field.
+            res = getattr(obj, fieldName)
+            if isinstance(res, basestring):
+                # An error has occurred, and p_res contains the error message
+                obj.say(res)
+                return self.goto(rq.get('HTTP_REFERER'))
+            # res contains a FileInfo instance.
+            res.writeResponse(rq.RESPONSE)
+        elif action == 'freeze':
+            # (Re-)freeze a document in the database.
+            res = obj.freeze(fieldName, rq.get('template'), rq.get('podFormat'),
+                             noSecurity=False, freezeOdtOnError=False)
+            obj.say(obj.translate('action_done'))
             return self.goto(rq.get('HTTP_REFERER'))
-        # res contains a FileInfo instance.
-        res.writeResponse(rq.RESPONSE)
+        elif action == 'unfreeze':
+            # Unfreeze a document in the database.
+            obj.unfreeze(fieldName, rq.get('template'), rq.get('podFormat'),
+                         noSecurity=False)
+            obj.say(obj.translate('action_done'))
+            return self.goto(rq.get('HTTP_REFERER'))
 
     def getAppName(self):
         '''Returns the name of the application.'''

@@ -102,9 +102,8 @@ td.search { padding-top: 8px }
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey }
 .dropdown { display:none; position: absolute; border: 1px solid #cccccc;
-            background-color: white; padding-top: 4px }
-.dropdownMenu { cursor: pointer; padding-right: 4px }
-.dropdown a { padding: 0 0.5em }
+            background-color: white; padding: 3px 4px 0 }
+.dropdownMenu { cursor: pointer; padding-right: 4px; font-size: 93% }
 .dropdown a:hover { text-decoration: underline }
 .list { margin-bottom: 3px }
 .list td, .list th { border: 1px solid grey;
@@ -156,5 +155,5 @@ td.search { padding-top: 8px }
 .homeTable th { padding-top: 5px; font-size: 105% }
 .first { margin-top: 0px }
 .error { margin: 5px }
-.podName { font-size: 90%; padding-left: 3px }
+.podName { font-size: 90% }
 .podTable { margin-left: 15px }

@@ -203,28 +203,12 @@ msgstr ""
 msgid "page_unlock"
 msgstr ""
 
-#. Default: "Are you sure you want to delete this element?"
-msgid "delete_confirm"
+#. Default: "Are you sure?"
+msgid "action_confirm"
 msgstr ""
 
-#. Default: "Are you sure you want to unlink this element?"
-msgid "unlink_confirm"
-msgstr ""
-
-#. Default: "Are you sure you want to unlock this page?"
-msgid "unlock_confirm"
-msgstr ""
-
-#. Default: "The element has been deleted."
-msgid "delete_done"
-msgstr ""
-
-#. Default: "The element has been unlinked."
-msgid "unlink_done"
-msgstr ""
-
-#. Default: "The page has been unlocked."
-msgid "unlock_done"
+#. Default: "The action has been performed."
+msgid "action_done"
 msgstr ""
 
 #. Default: "Go to top"
@@ -287,16 +271,28 @@ msgstr ""
 msgid "doc"
 msgstr ""
 
-#. Default: "RTF"
-msgid "rtf"
-msgstr ""
-
 #. Default: "ODS"
 msgid "ods"
 msgstr ""
 
 #. Default: "XLS"
 msgid "xls"
+msgstr ""
+
+#. Default: "frozen"
+msgid "frozen"
+msgstr ""
+
+#. Default: "(Re-)freeze"
+msgid "freezeField"
+msgstr ""
+
+#. Default: "Unfreeze"
+msgid "unfreezeField"
+msgstr ""
+
+#. Default: "Upload a new file"
+msgid "uploadField"
 msgstr ""
 
 #. Default: "Welcome to this Appy-powered site."
