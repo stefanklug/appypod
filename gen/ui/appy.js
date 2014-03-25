@@ -545,13 +545,14 @@ function freezePod(uid, fieldName, template, podFormat, action) {
   askConfirm('form', 'podForm', action_confirm);
 }
 
-// Function that allows to upload a file for freezing it in a od field.
+// Function that allows to upload a file for freezing it in a pod field.
 function uploadPod(uid, fieldName, template, podFormat) {
   var f = document.getElementById('uploadForm');
   f.objectUid.value = uid;
   f.fieldName.value = fieldName;
   f.template.value = template;
   f.podFormat.value = podFormat;
+  f.uploadedFile.value = null;
   openPopup('uploadPopup');
 }
 

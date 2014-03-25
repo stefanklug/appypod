@@ -296,6 +296,10 @@ msgstr "Unfreeze"
 msgid "uploadField"
 msgstr "Upload a new file"
 
+#. Default: "Please upload a file of the same type."
+msgid "upload_invalid"
+msgstr "Please upload a file of the same type."
+
 #. Default: "Welcome to this Appy-powered site."
 msgid "front_page_text"
 msgstr "Welcome to this Appy-powered site."

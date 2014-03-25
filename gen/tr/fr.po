@@ -296,6 +296,10 @@ msgstr "Dégeler"
 msgid "uploadField"
 msgstr "Écraser par..."
 
+#. Default: "Please upload a file of the same type."
+msgid "upload_invalid"
+msgstr "Veuillez uploader un fichier du même type."
+
 #. Default: "Welcome to this Appy-powered site."
 msgid "front_page_text"
 msgstr "Bienvenue sur ce site fabriqué avec <a href=\"http://appyframework.org\" target=\"_blank\">Appy</a>"

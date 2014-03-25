@@ -126,11 +126,12 @@ class AbstractWrapper(object):
       <!-- Popup for uploading a file in a pod field -->
       <div id="uploadPopup" class="popup" align="center">
        <form id="uploadForm" name="uploadForm" enctype="multipart/form-data"
-             method="post" action=":ztool.absolute_url() + '/uploadPod'">
+             method="post" action=":ztool.absolute_url() + '/doPod'">
         <input type="hidden" name="objectUid"/>
         <input type="hidden" name="fieldName"/>
         <input type="hidden" name="template"/>
         <input type="hidden" name="podFormat"/>
+        <input type="hidden" name="action" value="upload"/>
         <input type="file" name="uploadedFile"/><br/><br/>
         <input type="submit" value=":_('object_save')"/>
         <input type="button" onclick="closePopup('uploadPopup')"

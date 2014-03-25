@@ -113,31 +113,7 @@ class ToolMixin(BaseMixin):
         rq = self.REQUEST
         # Get the object that is the target of this action.
         obj = self.getObject(rq.get('objectUid'), appy=True)
-        fieldName = rq.get('fieldName')
-        # What is the action to perform?
-        action = rq.get('action', 'generate')
-        if action == 'generate':
-            # Generate a (or get a frozen) document by accessing the value of
-            # the pod field.
-            res = getattr(obj, fieldName)
-            if isinstance(res, basestring):
-                # An error has occurred, and p_res contains the error message
-                obj.say(res)
-                return self.goto(rq.get('HTTP_REFERER'))
-            # res contains a FileInfo instance.
-            res.writeResponse(rq.RESPONSE)
-        elif action == 'freeze':
-            # (Re-)freeze a document in the database.
-            res = obj.freeze(fieldName, rq.get('template'), rq.get('podFormat'),
-                             noSecurity=False, freezeOdtOnError=False)
-            obj.say(obj.translate('action_done'))
-            return self.goto(rq.get('HTTP_REFERER'))
-        elif action == 'unfreeze':
-            # Unfreeze a document in the database.
-            obj.unfreeze(fieldName, rq.get('template'), rq.get('podFormat'),
-                         noSecurity=False)
-            obj.say(obj.translate('action_done'))
-            return self.goto(rq.get('HTTP_REFERER'))
+        return obj.getField(rq.get('fieldName')).onUiRequest(obj, rq)
 
     def getAppName(self):
         '''Returns the name of the application.'''

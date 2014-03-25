@@ -58,7 +58,8 @@ class Pod(Field):
         <table cellpadding="0" cellspacing="0" class="podTable">
          <tr>
           <td for="fmt in info.formats"
-              var2="freezeAllowed=fmt in info.freezeFormats;
+              var2="freezeAllowed=(fmt in info.freezeFormats) and \
+                                  (field.show != 'result');
                     frozen=field.isFrozen(obj, info.template, fmt)">
            <!-- A clickable icon if no freeze action is allowed -->
            <x if="not freezeAllowed">:field.pxIcon</x>
@@ -249,29 +250,39 @@ class Pod(Field):
         return res
 
     def getValue(self, obj, template=None, format=None, result=None,
-                 noSecurity=False):
+                 queryData=None, customParams=None, noSecurity=False):
         '''For a pod field, getting its value means computing a pod document or
            returning a frozen one. A pod field differs from other field types
            because there can be several ways to produce the field value (ie:
            self.template can hold various templates; output file format can be
            odt, pdf,.... We get those precisions about the way to produce the
-           file, either:
-           - from params p_template and p_format;
-           - from the request object;
-           - from default values (the request object may not be present, ie,
-             when Zope runs in test mode).'''
+           file, either from params, or from default values.
+           * p_template is the specific template, among self.template, that must
+             be used as base for generating the document;
+           * p_format is the output format of the resulting document;
+           * p_result, if given, must be the absolute path of the document that
+             will be computed by pod. If not given, pod will produce a doc in
+             the OS temp folder;
+           * if the pod document is related to a query, the query parameters
+             needed to re-trigger the query are given in p_queryData;
+           * p_customParams may be specified. Every custom param must have form
+             "name:value". Custom params override any other value available in
+             the context, including values from the field-specific context.
+        '''
         obj = obj.appy()
-        rq = obj.request
-        template = template or rq.get('template') or self.template[0]
-        format = format or rq.get('podFormat') or 'odt'
+        template = template or self.template[0]
+        format = format or 'odt'
         # Security check.
-        if not noSecurity and not self.showTemplate(obj, template):
+        if not noSecurity and not queryData and \
+           not self.showTemplate(obj, template):
             raise Exception(self.UNAUTHORIZED)
-        # Return the frozen document if frozen.
-        frozen = self.isFrozen(obj, template, format)
-        if frozen:
-            fileName = self.getDownloadName(obj, template, format, False)
-            return FileInfo(frozen, inDb=False, uploadName=fileName)
+        # Return the possibly frozen document (not applicable for query-related
+        # pods).
+        if not queryData:
+            frozen = self.isFrozen(obj, template, format)
+            if frozen:
+                fileName = self.getDownloadName(obj, template, format, False)
+                return FileInfo(frozen, inDb=False, uploadName=fileName)
         # We must call pod to compute a pod document from "template".
         tool = obj.tool
         diskFolder = tool.getDiskFolder()
@@ -293,13 +304,12 @@ class Pod(Field):
         podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
                       '_': obj.translate, 'projectFolder': diskFolder}
-        # If the POD document is related to a query, get it from the request,
-        # execute it and put the result in the context.
-        isQueryRelated = rq.get('queryData', None)
-        if isQueryRelated:
-            # Retrieve query params from the request
+        # If the pod document is related to a query, re-trigger it and put the
+        # result in the pod context.
+        if queryData:
+            # Retrieve query params
             cmd = ', '.join(tool.o.queryParamNames)
-            cmd += " = rq['queryData'].split(';')"
+            cmd += " = queryData.split(';')"
             exec cmd
             # (re-)execute the query, but without any limit on the number of
             # results; return Appy objects.
@@ -310,11 +320,7 @@ class Pod(Field):
         # Add the field-specific context if present.
         if specificContext:
             podContext.update(specificContext)
-        # If a custom param comes from the request, add it to the context. A
-        # custom param must have form "name:value". Custom params override any
-        # other value in the request, including values from the field-specific
-        # context.
-        customParams = rq.get('customParams', None)
+        # If a custom param comes from the request, add it to the context.
         if customParams:
             paramsDict = eval(customParams)
             podContext.update(paramsDict)
@@ -342,7 +348,7 @@ class Pod(Field):
                 obj.log(str(pe).strip(), type='error')
                 return Pod.POD_ERROR
         # Give a friendly name for this file
-        fileName = self.getDownloadName(obj, template, format, isQueryRelated)
+        fileName = self.getDownloadName(obj, template, format, queryData)
         # Get a FileInfo instance to manipulate the file on the filesystem.
         return FileInfo(result, inDb=False, uploadName=fileName)
 
@@ -364,13 +370,17 @@ class Pod(Field):
         if os.path.exists(res): return res
 
     def freeze(self, obj, template=None, format='pdf', noSecurity=True,
-               freezeOdtOnError=True):
+               upload=None, freezeOdtOnError=True):
         '''Freezes, on p_obj, a document for this pod field, for p_template in
            p_format. If p_noSecurity is True, the security check, based on
-           self.freezeTemplate, is bypassed. if freezeOdtOnError is True and
-           format is not "odt", if the freezing fails we try to freeze the odt
-           version, which is more robust because it does not require calling
-           LibreOffice.'''
+           self.freezeTemplate, is bypassed. If no p_upload file is specified,
+           we re-compute a pod document on-the-fly and we freeze this document.
+           Else, we store the uploaded file.
+           
+           If p_freezeOdtOnError is True and format is not "odt" (has only sense
+           when no p_upload file is specified), if the freezing fails we try to
+           freeze the odt version, which is more robust because it does not
+           require calling LibreOffice.'''
         # Security check.
         if not noSecurity and \
            (format not in self.getFreezeFormats(obj, template)):
@@ -381,27 +391,37 @@ class Pod(Field):
         fileName = self.getFreezeName(template, format)
         result = os.path.join(dbFolder, folder, fileName)
         if os.path.exists(result):
-            obj.log('Freeze: overwriting %s...' % result)
-        # Generate the document.
-        doc = self.getValue(obj, template=template, format=format,result=result)
-        if isinstance(doc, basestring):
-            # An error occurred, the document was not generated.
-            obj.log(self.FREEZE_ERROR % (format, self.name, doc), type='error')
-            if not freezeOdtOnError or (format == 'odt'):
-                raise Exception(self.FREEZE_FATAL_ERROR)
-            obj.log('Trying to freeze the ODT version...')
-            # Try to freeze the ODT version of the document, which does not
-            # require to call LibreOffice: the risk of error is smaller.
-            fileName = self.getFreezeName(template, 'odt')
-            result = os.path.join(dbFolder, folder, fileName)
-            if os.path.exists(result):
-                obj.log('Freeze: overwriting %s...' % result)
-            doc = self.getValue(obj, template=template, format='odt',
+            prefix = upload and 'Freeze (upload)' or 'Freeze'
+            obj.log('%s: overwriting %s...' % (prefix, result))
+        if not upload:
+            # Generate the document.
+            doc = self.getValue(obj, template=template, format=format,
                                 result=result)
             if isinstance(doc, basestring):
-                self.log(self.FREEZE_ERROR % ('odt', self.name, doc),
-                         type='error')
-                raise Exception(self.FREEZE_FATAL_ERROR)
+                # An error occurred, the document was not generated.
+                obj.log(self.FREEZE_ERROR % (format, self.name, doc),
+                        type='error')
+                if not freezeOdtOnError or (format == 'odt'):
+                    raise Exception(self.FREEZE_FATAL_ERROR)
+                obj.log('Trying to freeze the ODT version...')
+                # Try to freeze the ODT version of the document, which does not
+                # require to call LibreOffice: the risk of error is smaller.
+                fileName = self.getFreezeName(template, 'odt')
+                result = os.path.join(dbFolder, folder, fileName)
+                if os.path.exists(result):
+                    obj.log('Freeze: overwriting %s...' % result)
+                doc = self.getValue(obj, template=template, format='odt',
+                                    result=result)
+                if isinstance(doc, basestring):
+                    self.log(self.FREEZE_ERROR % ('odt', self.name, doc),
+                             type='error')
+                    raise Exception(self.FREEZE_FATAL_ERROR)
+        else:
+            # Store the uploaded file in the database.
+            f = file(result, 'wb')
+            doc = FileInfo(result, inDb=False)
+            doc.replicateFile(upload, f)
+            f.close()
         return doc
 
     def unfreeze(self, obj, template=None, format='pdf', noSecurity=True):
@@ -435,4 +455,53 @@ class Pod(Field):
         if frozen:
             res += ' (%s)' % obj.translate('frozen')
         return res
+
+    def onUiRequest(self, obj, rq):
+        '''This method is called when an action tied to this pod field
+           (generate, freeze, upload...) is triggered from the user
+           interface.'''
+        # What is the action to perform?
+        action = rq.get('action', 'generate')
+        # Security check.
+        obj.o.allows('read', raiseError=True)
+        # Perform the requested action.
+        tool = obj.tool.o
+        template = rq.get('template')
+        format = rq.get('podFormat')
+        if action == 'generate':
+            # Generate a (or get a frozen) document.
+            res = self.getValue(obj, template=template, format=format,
+                                queryData=rq.get('queryData'),
+                                customParams=rq.get('customParams'))
+            if isinstance(res, basestring):
+                # An error has occurred, and p_res contains the error message.
+                obj.say(res)
+                return tool.goto(rq.get('HTTP_REFERER'))
+            # res contains a FileInfo instance.
+            res.writeResponse(rq.RESPONSE)
+            return
+        # Performing any other action requires write access to p_obj.
+        obj.o.allows('write', raiseError=True)
+        msg = 'action_done'
+        if action == 'freeze':
+            # (Re-)freeze a document in the database.
+            self.freeze(obj, template, format, noSecurity=False,
+                        freezeOdtOnError=False)
+        elif action == 'unfreeze':
+            # Unfreeze a document in the database.
+            self.unfreeze(obj, template, format, noSecurity=False)
+        elif action == 'upload':
+            # Ensure a file from the correct type has been uploaded.
+            upload = rq.get('uploadedFile')
+            if not upload or not upload.filename or \
+               not upload.filename.endswith('.%s' % format):
+                # A wrong file has been uploaded (or no file at all)
+                msg = 'upload_invalid'
+            else:
+                # Store the uploaded file in the database.
+                self.freeze(obj, template, format, noSecurity=False,
+                            upload=upload)
+        # Return a message to the user interface.
+        obj.say(obj.translate(msg))
+        return tool.goto(rq.get('HTTP_REFERER'))
 # ------------------------------------------------------------------------------

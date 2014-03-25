@@ -295,6 +295,10 @@ msgstr ""
 msgid "uploadField"
 msgstr ""
 
+#. Default: "Please upload a file of the same type."
+msgid "upload_invalid"
+msgstr ""
+
 #. Default: "Welcome to this Appy-powered site."
 msgid "front_page_text"
 msgstr ""
