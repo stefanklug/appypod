@@ -624,7 +624,7 @@ class Field:
                 # master/slave relationships, we consider it not to be required.
                 return obj.translate('field_required')
             else:
-                return None
+                return
         # Perform security checks on p_value
         self.securityCheck(obj, value)
         # Triggers the sub-class-specific validation for this value
@@ -652,16 +652,7 @@ class Field:
             else:
                 # It is a regular expression
                 if not self.validator.match(value):
-                    # If the regular expression is among the default ones, we
-                    # generate a specific error message.
-                    if self.validator == String.EMAIL:
-                        return obj.translate('bad_email')
-                    elif self.validator == String.URL:
-                        return obj.translate('bad_url')
-                    elif self.validator == String.ALPHANUMERIC:
-                        return obj.translate('bad_alphanumeric')
-                    else:
-                        return obj.translate('field_invalid')
+                    return obj.translate('field_invalid')
 
     def store(self, obj, value):
         '''Stores the p_value (produced by m_getStorableValue) that complies to

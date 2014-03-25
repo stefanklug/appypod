@@ -163,18 +163,6 @@ msgstr ""
 msgid "bad_date"
 msgstr ""
 
-#. Default: "Please enter a valid email."
-msgid "bad_email"
-msgstr ""
-
-#. Default: "Please enter a valid URL."
-msgid "bad_url"
-msgstr ""
-
-#. Default: "Please enter a valid alphanumeric value."
-msgid "bad_alphanumeric"
-msgstr ""
-
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
 msgstr ""

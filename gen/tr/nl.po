@@ -163,18 +163,6 @@ msgstr "Vul een reële waarde in."
 msgid "bad_date"
 msgstr ""
 
-#. Default: "Please enter a valid email."
-msgid "bad_email"
-msgstr "Specifieer een geldig e-mail adres"
-
-#. Default: "Please enter a valid URL."
-msgid "bad_url"
-msgstr "Specifieer een geldig URL."
-
-#. Default: "Please enter a valid alphanumeric value."
-msgid "bad_alphanumeric"
-msgstr "Specifieer een geldige alfnumerische waarde."
-
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
 msgstr "Deze waarde wordt niet geaccepteerd voor dit veld."

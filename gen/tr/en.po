@@ -164,18 +164,6 @@ msgstr "A floating-point number is expected; use the dot as decimal separator, n
 msgid "bad_date"
 msgstr "Please specify a valid date."
 
-#. Default: "Please enter a valid email."
-msgid "bad_email"
-msgstr "Please enter a valid email."
-
-#. Default: "Please enter a valid URL."
-msgid "bad_url"
-msgstr "Please enter a valid URL."
-
-#. Default: "Please enter a valid alphanumeric value."
-msgid "bad_alphanumeric"
-msgstr "Please enter a valid alphanumeric value."
-
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
 msgstr "The value is not among possible values for this field."

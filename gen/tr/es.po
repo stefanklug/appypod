@@ -163,18 +163,6 @@ msgstr "Un valor real es requerido."
 msgid "bad_date"
 msgstr ""
 
-#. Default: "Please enter a valid email."
-msgid "bad_email"
-msgstr "Por favor especifique un e-mail válido.\""
-
-#. Default: "Please enter a valid URL."
-msgid "bad_url"
-msgstr "Por favor especifique un URL valído."
-
-#. Default: "Please enter a valid alphanumeric value."
-msgid "bad_alphanumeric"
-msgstr "Por favor especifique une valor alfanumérico válido."
-
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
 msgstr "Este valor no es permitido para este campo."

@@ -163,18 +163,6 @@ msgstr "Ci si aspetta un numero con decimali"
 msgid "bad_date"
 msgstr ""
 
-#. Default: "Please enter a valid email."
-msgid "bad_email"
-msgstr "Digiti un indirizzo e-mail valido"
-
-#. Default: "Please enter a valid URL."
-msgid "bad_url"
-msgstr "Digiti un URL valido."
-
-#. Default: "Please enter a valid alphanumeric value."
-msgid "bad_alphanumeric"
-msgstr "Digiti un valore alfanumerico valido."
-
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
 msgstr "Il valore digitato non è possibile per questo campo."

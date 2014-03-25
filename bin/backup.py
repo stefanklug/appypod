@@ -18,6 +18,7 @@ class ZodbBackuper:
        will pack the ZODB, perform a full backup, and, if successful, remove all
        previous (full and incremental) backups.'''
     fullBackupExts = ('.fs', '.fsz')
+    allBackupExts = ('.dat', '.deltafs', '.deltafsz') + fullBackupExts
     toRemoveExts = ('.doc', '.pdf', '.rtf', '.odt')
     def __init__(self, storageLocation, backupFolder, options):
         self.storageLocation = storageLocation
@@ -140,7 +141,8 @@ class ZodbBackuper:
             w('Last full backup date: %s' % str(oldestFullBackupDate))
         for backupFile in os.listdir(self.backupFolder):
             fileDate, ext = os.path.splitext(backupFile)
-            if self.getDate(fileDate) < oldestFullBackupDate:
+            if (ext in self.allBackupExts) and \
+               (self.getDate(fileDate) < oldestFullBackupDate):
                 fullFileName = '%s/%s' % (self.backupFolder, backupFile)
                 w('Removing old backup file %s...' % fullFileName)
                 os.remove(fullFileName)
