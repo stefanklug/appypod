@@ -486,6 +486,10 @@ class AbstractWrapper(object):
                             'date':lockDate};
                    lockMsg=_('page_locked', mapping=lockMap)"
               src=":url('lockedBig')" title=":lockMsg"/></a>
+        <a if="editable and locked and user.has_role('Manager')">
+         <img class="clickable" title=":_('page_unlock')"
+              src=":url('unlockBig')"
+              onclick=":'onUnlockPage(%s,%s)' % (q(zobj.UID()), q(page))"/></a>
        </td>
 
        <!-- Next -->
