@@ -43,4 +43,27 @@ class Object:
         '''Includes information from p_other into p_self.'''
         for k, v in other.__dict__.iteritems():
             setattr(self, k, v)
+
+# ------------------------------------------------------------------------------
+class Hack:
+    '''This class proposes methods for patching some existing code with
+       alternative methods.'''
+    @staticmethod
+    def patch(method, replacement):
+        '''This method replaces m_method with a p_replacement method, but
+           keeps p_method on its class under name
+           "_base_<initial_method_name>_". In the patched method, one may use
+           Hack.base to call the base method.'''
+        # Get the class on which the surgery will take place.
+        klass = method.im_class
+        # On this class, store m_method under its "base" name.
+        name = method.im_func.__name__
+        baseName = '_base_%s_' % name
+        setattr(klass, baseName, method)
+        # Store the replacement method on klass.
+        setattr(klass, name, replacement)
+
+    @staticmethod
+    def base(method):
+        return getattr(method.im_class, '_base_%s_' % method.im_func.__name__)
 # ------------------------------------------------------------------------------
