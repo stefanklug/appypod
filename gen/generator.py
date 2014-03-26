@@ -449,8 +449,9 @@ class ZopeGenerator(Generator):
                 baseLabels = po.PoParser(appyPoFileName).parse().messages
             else:
                 baseLabels = appyLabels
-            poFile.update(baseLabels + self.labels.get(),
-                self.options.i18nClean, keepExistingOrder=False)
+            poFile.update(baseLabels + self.labels.get() + \
+                          potFile.getCustomMessages(), self.options.i18nClean,
+                          keepExistingOrder=False)
             poFile.generate()
         # Generate corresponding fields on the Translation class
         page = '1'

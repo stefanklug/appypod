@@ -276,6 +276,11 @@ class PoFile:
             res = '%s-%s-%s.po' % (self.applicationName, self.domain, language)
         return res
 
+    def getCustomMessages(self):
+        '''Returns, the list of messages from self.messages whose ID starts with
+           "custom_".'''
+        return [m for m in self.messages if m.id.startswith('custom_')]
+
 class PoParser:
     '''Allows to parse a i18n file. The result is produced in self.res as a
        PoFile instance.'''

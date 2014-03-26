@@ -570,7 +570,7 @@ class AbstractWrapper(object):
                layoutTarget=obj">:tool.pxLayoutedObject</x>
       </form>
       <script type="text/javascript"
-              if="confirmMsg">:'askConfirm(%s,%s,%s)' % \
+              if="confirmMsg">::'askConfirm(%s,%s,%s)' % \
              (q('script'), q('postConfirmedEditForm()'), q(confirmMsg))</script>
       <x>:tool.pxPageBottom</x>
      </x>''', template=pxTemplate, hook='content')
