@@ -66,8 +66,13 @@ class ZopeInstaller:
         # the one from the app-specific folder is chosen.
         j = os.path.join
         uiFolders = [j(j(appy.getPath(), 'gen'), 'ui')]
-        appUi = j(self.config.diskFolder, 'ui')
-        if os.path.exists(appUi): uiFolders.insert(0, appUi)
+        for uiFolder in self.config.appConfig.uiFolders:
+            if uiFolder.startswith('..'):
+                folder = j(os.path.dirname(self.config.diskFolder),uiFolder[3:])
+            else:
+                folder = j(self.config.diskFolder, uiFolder)
+            if os.path.exists(folder):
+                uiFolders.insert(0, folder)
         for ui in uiFolders:
             for root, dirs, files in os.walk(ui):
                 folderName = root[len(ui):]

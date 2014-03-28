@@ -1470,7 +1470,8 @@ class BaseMixin:
 
     def getUserLanguage(self):
         '''Gets the language (code) of the current user.'''
-        if not hasattr(self, 'REQUEST'): return 'en'
+        if not hasattr(self, 'REQUEST'):
+            return self.getProductConfig().appConfig.languages[0]
         # Try the value which comes from the cookie. Indeed, if such a cookie is
         # present, it means that the user has explicitly chosen this language
         # via the language selector.
@@ -1484,7 +1485,7 @@ class BaseMixin:
         # language preferences as defined in the user's browser. Several
         # languages can be listed, from most to less wanted.
         res = self.REQUEST.get('HTTP_ACCEPT_LANGUAGE', None)
-        if not res: return 'en'
+        if not res: return self.getProductConfig().appConfig.languages[0]
         if ',' in res: res = res[:res.find(',')]
         if '-' in res: res = res[:res.find('-')]
         return res

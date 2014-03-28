@@ -171,4 +171,8 @@ class Config:
     # When using a LDAP for authenticating users, place an instance of class
     # LdapConfig above in the field below.
     ldap = None
+    # For an app, the default folder where to look for static content for the
+    # user interface (CSS, Javascript and image files) is folder "ui" within
+    # this app.
+    uiFolders = ['ui']
 # ------------------------------------------------------------------------------
