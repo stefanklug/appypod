@@ -122,6 +122,13 @@ class ToolWrapper(AbstractWrapper):
       <input type="hidden" name="fieldName"/>
       <input type="hidden" name="targetUid"/>
      </form>
+     <!-- Global form for linking an object -->
+     <form id="linkForm" method="post" action="do">
+      <input type="hidden" name="action" value="Link"/>
+      <input type="hidden" name="sourceUid"/>
+      <input type="hidden" name="fieldName"/>
+      <input type="hidden" name="targetUid"/>
+     </form>
      <!-- Global form for unlocking a page -->
      <form id="unlockForm" method="post" action="do">
       <input type="hidden" name="action" value="Unlock"/>

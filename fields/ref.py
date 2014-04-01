@@ -39,17 +39,17 @@ class Ref(Field):
     # ui/view.
     pxObjectTitle = Px('''
      <x var="includeShownInfo=includeShownInfo|False;
-             navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), field.name, \
-               field.pageName, loop.ztied.nb + 1 + startNumber, totalNumber);
+             navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
+               field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
              navInfo=not field.isBack and navInfo or '';
-             cssClass=ztied.getCssFor('title')">
-      <x>::ztied.getSupTitle(navInfo)</x>
+             cssClass=tied.o.getCssFor('title')">
+      <x>::tied.o.getSupTitle(navInfo)</x>
       <a var="pageName=field.isBack and field.back.pageName or 'main';
-              fullUrl=ztied.getUrl(page=pageName, nav=navInfo)"
+              fullUrl=tied.o.getUrl(page=pageName, nav=navInfo)"
          href=":fullUrl" class=":cssClass">:(not includeShownInfo) and \
-         ztied.Title() or field.getReferenceLabel(ztied.appy())
+         tied.title or field.getReferenceLabel(tied)
       </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
-            'display:none'">::ztied.getSubTitle()</span>
+            'display:none'">::tied.o.getSubTitle()</span>
      </x>''')
 
     # This PX displays icons for triggering actions on a given referenced object
@@ -58,11 +58,12 @@ class Ref(Field):
      <table class="noStyle" var="isBack=field.isBack">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if="not isBack and (len(zobjects)&gt;1) and changeOrder and canWrite"
-          var2="objectIndex=field.getIndexOf(zobj, ztied);
+       <td if="not isBack and (len(objects)&gt;1) and changeOrder and canWrite \
+               and not inPickList"
+          var2="objectIndex=field.getIndexOf(zobj, tied);
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
-                   q(ztied.UID()), q('move'), q('**v**')))">
+                   q(tied.o.id), q('move'), q('**v**')))">
         <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
              title=":_('move_up')"
              onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
@@ -71,25 +72,31 @@ class Ref(Field):
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
        </td>
        <!-- Workflow transitions -->
-       <td if="ztied.showTransitions('result')"
-           var2="targetObj=ztied">:targetObj.appy().pxTransitions</td>
+       <td if="tied.o.showTransitions('result')"
+           var2="targetObj=tied.o">:tied.pxTransitions</td>
        <!-- Edit -->
-       <td if="not field.noForm and ztied.mayEdit() and field.delete">
+       <td if="not field.noForm and tied.o.mayEdit() and field.delete">
         <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), field.name, \
-                        field.pageName, loop.ztied.nb+startNumber, totalNumber)"
-           href=":ztied.getUrl(mode='edit', page='main', nav=navInfo)">
+                        field.pageName, loop.tied.nb+startNumber, totalNumber)"
+           href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo)">
          <img src=":url('edit')" title=":_('object_edit')"/></a>
        </td>
        <!-- Delete -->
-       <td if="not isBack and field.delete and canWrite and ztied.mayDelete()">
+       <td if="not isBack and field.delete and canWrite and tied.o.mayDelete()">
         <img class="clickable" title=":_('object_delete')" src=":url('delete')"
-             onclick=":'onDeleteObject(%s)' % q(ztied.UID())"/>
+             onclick=":'onDeleteObject(%s)' % q(tied.o.id)"/>
        </td>
        <!-- Unlink -->
-       <td if="not isBack and field.unlink and canWrite">
+       <td if="not isBack and field.unlink and canWrite and not inPickList">
         <img class="clickable" title=":_('object_unlink')" src=":url('unlink')"
-             onclick=":'onUnlinkObject(%s,%s,%s)' % (q(zobj.UID()), \
-                        q(field.name), q(ztied.UID()))"/>
+             onclick=":'onUnlinkObject(%s,%s,%s)' % (q(zobj.id), \
+                        q(field.name), q(tied.o.id))"/>
+       </td>
+       <!-- Insert (if in pick list) -->
+       <td if="inPickList">
+        <img class="clickable" title=":_('object_link')" src=":url('link')"
+             onclick=":'onLinkObject(%s,%s,%s)' % (q(zobj.id), \
+                        q(field.name), q(tied.o.id))"/>
        </td>
       </tr>
      </table>''')
@@ -97,7 +104,7 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-      <input if="showPlusIcon" type="button" class="button"
+      <input if="showPlusIcon and not inPickList" type="button" class="button"
         var2="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), \
                 field.name, field.pageName, 0, totalNumber);
               formCall='goto(%s)' % \
@@ -129,115 +136,133 @@ class Ref(Field):
      </x>''')
 
     # PX that displays referred objects as a list.
-    pxViewList = Px('''<x>
-     <!-- Display a simplified widget if at most 1 referenced object. -->
-     <table if="atMostOneRef">
-      <tr valign="top">
-       <!-- If there is no object -->
-       <x if="not zobjects">
-        <td class="discreet">:_('no_ref')</td>
-        <td>:field.pxAdd</td>
-       </x>
-       <!-- If there is an object -->
-       <x if="zobjects">
-        <td for="ztied in zobjects"
-            var2="includeShownInfo=True">:field.pxObjectTitle</td>
-       </x>
-      </tr>
-     </table>
-
-     <!-- Display a table in all other cases -->
-     <x if="not atMostOneRef">
-      <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
-       (<x>:totalNumber</x>)
-       <x>:field.pxAdd</x>
-       <!-- The search button if field is queryable -->
-       <input if="zobjects and field.queryable" type="button" class="button"
-              style=":url('buttonSearch', bg=True)" value=":_('search_title')"
-              onclick=":'goto(%s)' % \
-                q('%s/search?className=%s&amp;ref=%s:%s' % \
-                (ztool.absolute_url(), tiedClassName, zobj.UID(), \
-                 field.name))"/>
-      </div>
-
-      <!-- (Top) navigation -->
-      <x>:tool.pxNavigate</x>
-
-      <!-- No object is present -->
-      <p class="discreet" if="not zobjects">:_('no_ref')</p>
-
-      <table if="zobjects" class=":innerRef and 'innerAppyTable' or ''"
-             width="100%">
-       <tr valign="bottom">
-        <td>
-         <!-- Show forward or backward reference(s) -->
-         <table class=":not innerRef and 'list' or ''"
-                width=":innerRef and '100%' or field.layouts['view'].width"
-                var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                       field.shownInfo, dir)">
-          <tr if="field.showHeaders">
-           <th for="column in columns" width=":column.width"
-               align="column.align" var2="refField=column.field">
-            <span>:_(refField.labelId)</span>
-            <x>:field.pxSortIcons</x>
-            <x var="className=tiedClassName;
-                    field=refField">:tool.pxShowDetails</x>
-           </th>
-          </tr>
-          <tr for="ztied in zobjects" valign="top"
-              class=":loop.ztied.odd and 'even' or 'odd'">
-           <td for="column in columns"
-               width=":column.width" align=":column.align"
-               var2="refField=column.field">
-            <!-- The "title" field -->
-            <x if="refField.name == 'title'">
-             <x>:field.pxObjectTitle</x>
-             <div if="ztied.mayAct()">:field.pxObjectActions</div>
-            </x>
-            <!-- Any other field -->
-            <x if="refField.name != 'title'">
-             <x var="zobj=ztied; obj=ztied.appy(); layoutType='cell';
-                     innerRef=True; field=refField"
-                if="zobj.showField(field.name, \
-                                   layoutType='result')">:field.pxRender</x>
-            </x>
-           </td>
-          </tr>
-         </table>
-        </td>
+    pxViewList = Px('''
+     <div id=":ajaxHookId">
+      <!-- Display a simplified widget if at most 1 referenced object. -->
+      <table if="atMostOneRef">
+       <tr valign="top">
+        <!-- If there is no object -->
+        <x if="not objects">
+         <td class="discreet">:_('no_ref')</td>
+         <td>:field.pxAdd</td>
+        </x>
+        <!-- If there is an object -->
+        <x if="objects">
+         <td for="tied in objects"
+             var2="includeShownInfo=True">:field.pxObjectTitle</td>
+        </x>
        </tr>
       </table>
 
-      <!-- (Bottom) navigation -->
-      <x>:tool.pxNavigate</x>
-     </x></x>''')
+      <!-- Display a table in all other cases -->
+      <x if="not atMostOneRef">
+       <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
+        <span if="subLabel" class="discreet">:_(subLabel)</span>
+        (<span class="discreet">:totalNumber</span>) 
+        <x>:field.pxAdd</x>
+        <!-- The search button if field is queryable -->
+        <input if="objects and field.queryable" type="button" class="button"
+               style=":url('buttonSearch', bg=True)" value=":_('search_title')"
+               onclick=":'goto(%s)' % \
+                q('%s/search?className=%s&amp;ref=%s:%s' % \
+                (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
+       </div>
+
+       <!-- (Top) navigation -->
+       <x>:tool.pxNavigate</x>
+
+       <!-- No object is present -->
+       <p class="discreet" if="not objects">:_('no_ref')</p>
+
+       <table if="objects" class=":innerRef and 'innerAppyTable' or ''"
+              width="100%">
+        <tr valign="bottom">
+         <td>
+          <!-- Show forward or backward reference(s) -->
+          <table class=":not innerRef and 'list' or ''"
+                 width=":innerRef and '100%' or field.layouts['view'].width"
+                 var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                        field.shownInfo, dir)">
+           <tr if="field.showHeaders">
+            <th for="column in columns" width=":column.width"
+                align="column.align" var2="refField=column.field">
+             <span>:_(refField.labelId)</span>
+             <x>:field.pxSortIcons</x>
+             <x var="className=tiedClassName;
+                     field=refField">:tool.pxShowDetails</x>
+            </th>
+           </tr>
+           <tr for="tied in objects" valign="top"
+               class=":loop.tied.odd and 'even' or 'odd'">
+            <td for="column in columns"
+                width=":column.width" align=":column.align"
+                var2="refField=column.field">
+             <!-- The "title" field -->
+             <x if="refField.name == 'title'">
+              <x>:field.pxObjectTitle</x>
+              <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+             </x>
+             <!-- Any other field -->
+             <x if="refField.name != 'title'">
+              <x var="zobj=tied.o; obj=tied; layoutType='cell';
+                      innerRef=True; field=refField"
+                 if="zobj.showField(field.name, \
+                                    layoutType='result')">:field.pxRender</x>
+             </x>
+            </td>
+           </tr>
+          </table>
+         </td>
+        </tr>
+       </table>
+
+       <!-- (Bottom) navigation -->
+       <x>:tool.pxNavigate</x>
+      </x></div>''')
+
+    # PX that displays the list of objects the user may select to insert into a
+    # ref field with link="list".
+    pxViewPickList = Px('''
+     <x var="ajaxHookId='%s_%s_poss' % (zobj.id, field.name);
+             inPickList=True;
+             startNumber=field.getStartNumber(render, req, ajaxHookId);
+             info=field.getPossibleValues(zobj, startNumber=startNumber, \
+                                          someObjects=True, removeLinked=True);
+             objects=info.objects;
+             totalNumber=info.totalNumber;
+             batchSize=info.batchSize;
+             batchNumber=len(objects);
+             navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
+                          (q(ajaxHookId), q(zobj.absolute_url()), \
+                           q(field.name), q(innerRef));
+             subLabel='selectable_objects'">:field.pxViewList</x>''')
 
     # PX that displays referred objects as menus.
     pxViewMenus = Px('''
      <table><tr valign="bottom">
-      <td for="menu in field.getLinkedObjectsByMenu(obj, zobjects)">
+      <td for="menu in field.getLinkedObjectsByMenu(obj, objects)">
 
        <!-- A single object in the menu: show a clickable icon to get it -->
-       <a if="len(menu.zobjects)==1" var2="ztied=menu.zobjects[0]"
-          class="dropdownMenu" href=":field.getMenuUrl(zobj, ztied)"
-          title=":ztied.title">
+       <a if="len(menu.objects) == 1" var2="tied=menu.objects[0]"
+          class="dropdownMenu" href=":field.getMenuUrl(zobj, tied)"
+          title=":tied.title">
         <img if="menu.icon" src=":menu.icon"/><x
              if="not menu.icon">:menu.text</x> 1</a>
 
        <!-- Several objects: put them in a dropdown menu -->
-       <div if="len(menu.zobjects) &gt; 1" class="dropdownMenu"
-            var2="dropdownId='%s_%d' % (zobj.UID(), loop.menu.nb)"
+       <div if="len(menu.objects) &gt; 1" class="dropdownMenu"
+            var2="dropdownId='%s_%d' % (zobj.id, loop.menu.nb)"
             onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
             onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
         <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x
              if="not menu.icon">:menu.text</x>
         <!-- Display the number of objects in the menu (if more than one) -->
-        <x if="len(menu.zobjects) &gt; 1">:len(menu.zobjects)</x>
+        <x if="len(menu.objects) &gt; 1">:len(menu.objects)</x>
         <!-- The dropdown menu containing annexes -->
         <div id=":dropdownId" class="dropdown">
-         <div for="ztied in menu.zobjects"
-              var2="ztiedUrl=field.getMenuUrl(zobj, ztied)">
-          <a href=":ztiedUrl">:ztied.title</a>
+         <div for="tied in menu.objects"
+              var2="tiedUrl=field.getMenuUrl(zobj, tied)">
+          <a href=":tiedUrl">:tied.title</a>
          </div>
         </div>
        </div>
@@ -246,46 +271,47 @@ class Ref(Field):
 
     # PX that displays referred objects through this field.
     pxView = Px('''
-     <div var="innerRef=req.get('innerRef', False) == 'True';
-               ajaxHookId=zobj.UID() + field.name;
-               render=render|'list';
-               startNumber=field.getStartNumber(render, req, ajaxHookId);
-               info=field.getLinkedObjects(zobj, startNumber);
-               zobjects=info.objects;
-               totalNumber=info.totalNumber;
-               batchSize=info.batchSize;
-               batchNumber=len(zobjects);
-               folder=zobj.getCreateFolder();
-               tiedClassName=ztool.getPortalType(field.klass);
-               canWrite=not field.isBack and zobj.allows(field.writePermission);
-               showPlusIcon=field.mayAdd(zobj);
-               atMostOneRef=(field.multiplicity[1] == 1) and \
-                            (len(zobjects)&lt;=1);
-               addConfirmMsg=field.addConfirm and \
-                             _('%s_addConfirm' % field.labelId) or '';
-               navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
-                            (q(ajaxHookId), q(zobj.absolute_url()), \
-                             q(field.name), q(innerRef));
-               changeOrder=field.changeOrderEnabled(zobj);
-               showSubTitles=req.get('showSubTitles', 'true') == 'true'"
-          id=":ajaxHookId">
+     <x var="innerRef=req.get('innerRef', False) == 'True';
+             ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
+             render=render|'list';
+             linkList=field.link == 'list';
+             inPickList=False;
+             startNumber=field.getStartNumber(render, req, ajaxHookId);
+             info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
+             objects=info.objects;
+             totalNumber=info.totalNumber;
+             batchSize=info.batchSize;
+             batchNumber=len(objects);
+             folder=zobj.getCreateFolder();
+             tiedClassName=ztool.getPortalType(field.klass);
+             canWrite=not field.isBack and zobj.allows(field.writePermission);
+             showPlusIcon=field.mayAdd(zobj);
+             atMostOneRef=(field.multiplicity[1]==1) and (len(objects)&lt;=1);
+             addConfirmMsg=field.addConfirm and \
+                           _('%s_addConfirm' % field.labelId) or '';
+             navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
+                          (q(ajaxHookId), q(zobj.absolute_url()), \
+                           q(field.name), q(innerRef));
+             changeOrder=field.changeOrderEnabled(zobj);
+             showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- The definition of "atMostOneRef" above may sound strange: we
            shouldn't check the actual number of referenced objects. But for
            back references people often forget to specify multiplicities. So
            concretely, multiplicities (0,None) are coded as (0,1). -->
-
-      <x if="render == 'list'">:field.pxViewList</x>
+      <x if="linkList">:field.pxViewPickList</x>
+      <x if="render == 'list'"
+         var2="subLabel=linkList and 'selected_objects' or \
+               None">:field.pxViewList</x>
       <x if="render == 'menus'">:field.pxViewMenus</x>
-     </div>''')
+     </x>''')
 
     # The "menus" render mode is only applicable in "cell", not in "view".
     pxCell = Px('''<x var="render=field.render">:field.pxView</x>''')
 
     pxEdit = Px('''
      <select if="field.link"
-             var2="objects=field.getPossibleValues(obj);
-                   uids=[o.UID() for o in \
-                         field.getLinkedObjects(zobj).objects]"
+             var2="objects=field.getPossibleValues(zobj);
+                   uids=getattr(zobj, field.name, ())"
              name=":name" id=":name" size=":isMultiple and field.height or ''"
              onchange=":field.getOnChange(zobj, layoutType)"
              multiple=":isMultiple">
@@ -311,7 +337,7 @@ class Ref(Field):
       <label lfor=":andName">:_('search_and')</label><br/>
      </x>
      <!-- The list of values -->
-     <select var="objects=field.getPossibleValues(tool);
+     <select var="objects=field.getPossibleValues(ztool);
                   selectAll='masterValues' in req"
              name=":widgetName" size=":field.sheight" multiple="multiple"
              onchange=":field.getOnChange(ztool, 'search', className)">
@@ -350,7 +376,13 @@ class Ref(Field):
         # the object will be created automatically, and no creation form will
         # be presented to the user.
         self.noForm = noForm
-        # May the user link existing objects through this ref?
+        # May the user link existing objects through this ref? If "link" is;
+        # True,    the user will, on the edit page, choose objects from a
+        #          dropdown menu;
+        # "list",  the user will, on the view page, choose objects from a list
+        #          of objects which is similar to those rendered in pxViewList;
+        # "popup", the user will, on the edit page, choose objects from a popup
+        #          menu.
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
@@ -444,7 +476,7 @@ class Ref(Field):
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, persist)
-        self.validable = self.link
+        self.validable = bool(self.link)
 
     def getDefaultLayouts(self):
         return {'view': Table('l-f', width='100%'), 'edit': 'lrv-f'}
@@ -454,22 +486,21 @@ class Ref(Field):
         if not res: return res
         # We add here specific Ref rules for preventing to show the field under
         # some inappropriate circumstances.
-        if (layoutType == 'edit') and \
-           (self.mayAdd(obj) or not self.link): return False
+        if layoutType == 'edit':
+            if self.mayAdd(obj): return False
+            if self.link in (False, 'list'): return False
         if self.isBack:
             if layoutType == 'edit': return False
             else: return getattr(obj.aq_base, self.name, None)
         return res
 
-    def getValue(self, obj, type='objects', noListIfSingleObj=False,
+    def getValue(self, obj, appy=True, noListIfSingleObj=False,
                  startNumber=None, someObjects=False):
-        '''Returns the objects linked to p_obj through this Ref field.
-           - If p_type is "objects",  it returns the Appy wrappers;
-           - If p_type is "zobjects", it returns the Zope objects;
-           - If p_type is "uids",     it returns UIDs of objects (= strings).
+        '''Returns the objects linked to p_obj through this Ref field. It
+           returns Appy wrappers if p_appy is True, the Zope objects else.
 
-           * If p_startNumber is None, it returns all referred objects.
-           * If p_startNumber is a number, it returns self.maxPerPage objects,
+           * If p_startNumber is None, it returns all referred objects;
+           * if p_startNumber is a number, it returns self.maxPerPage objects,
              starting at p_startNumber.
 
            If p_noListIfSingleObj is True, it returns the single reference as
@@ -482,12 +513,10 @@ class Ref(Field):
             # Maybe is there a default value?
             defValue = Field.getValue(self, obj)
             if defValue:
-                # I must prefix call to function "type" with "__builtins__"
-                # because this name was overridden by a method parameter.
-                if __builtins__['type'](defValue) in sutils.sequenceTypes:
-                    uids = [o.o.UID() for o in defValue]
+                if type(defValue) in sutils.sequenceTypes:
+                    uids = [o.o.id for o in defValue]
                 else:
-                    uids = [defValue.o.UID()]
+                    uids = [defValue.o.id]
         # Prepare the result: an instance of SomeObjects, that will be unwrapped
         # if not required.
         res = gutils.SomeObjects()
@@ -502,13 +531,9 @@ class Ref(Field):
         while i < (res.startNumber + res.batchSize):
             if i >= res.totalNumber: break
             # Retrieve every reference in the correct format according to p_type
-            if type == 'uids':
-                ref = uids[i]
-            else:
-                ref = obj.getTool().getObject(uids[i])
-                if type == 'objects':
-                    ref = ref.appy()
-            res.objects.append(ref)
+            tied = obj.getTool().getObject(uids[i])
+            if appy: tied = tied.appy()
+            res.objects.append(tied)
             i += 1
         # Manage parameter p_noListIfSingleObj
         if res.objects and noListIfSingleObj:
@@ -517,32 +542,96 @@ class Ref(Field):
         if someObjects: return res
         return res.objects
 
-    def getLinkedObjects(self, obj, startNumber=None):
-        '''Gets the objects linked to p_obj via this Ref field. If p_startNumber
-           is None, all linked objects are returned. If p_startNumber is a
-           number, self.maxPerPage objects will be returned, starting at
-           p_startNumber.'''
-        return self.getValue(obj, type='zobjects', someObjects=True,
-                             startNumber=startNumber)
+    def getPossibleValues(self, obj, startNumber=None, someObjects=False,
+                          removeLinked=False):
+        '''This method returns the list of all objects that can be selected
+           to be linked as references to p_obj via p_self. It is applicable only
+           for Ref fields with link!=False. If master values are present in the
+           request, we use field.masterValues method instead of self.select.
 
-    def getLinkedObjectsByMenu(self, obj, zobjects):
-        '''This method groups p_zobjects into sub-lists of objects, grouped by
+           If p_startNumber is a number, it returns self.maxPerPage objects,
+           starting at p_startNumber. If p_someObjects is True, it returns an
+           instance of SomeObjects instead of returning a list of objects.
+
+           If p_removeLinked is True, we remove, from the result, objects which
+           are already linked. For example, for Ref fields rendered as a
+           dropdown menu or a multi-selection box (with link=True), on the edit
+           page, we need to display all possible values: those that are already
+           linked appear to be selected in the widget. But for Ref fields
+           rendered as pick lists (link="list"), once an object is linked, it
+           must disappear from the "pick list".
+        '''
+        req = obj.REQUEST
+        obj = obj.appy()
+        if 'masterValues' in req:
+            # Convert masterValue(s) from id(s) to real object(s).
+            masterValues = req['masterValues'].strip()
+            if not masterValues: masterValues = None
+            else:
+                masterValues = masterValues.split('*')
+                tool = obj.tool
+                if len(masterValues) == 1:
+                    masterValues = tool.getObject(masterValues[0])
+                else:
+                    masterValues = [tool.getObject(v) for v in masterValues]
+            objects = self.masterValue(obj, masterValues)
+        else:
+            # If this field is an ajax-updatable slave, no need to compute
+            # possible values: it will be overridden by method self.masterValue
+            # by a subsequent ajax request (=the "if" statement above).
+            if self.masterValue and callable(self.masterValue):
+                objects = []
+            else:
+                if not self.select:
+                    # No select method has been defined: we must retrieve all
+                    # objects of the referred type that the user is allowed to
+                    # access.
+                    objects = obj.search(self.klass)
+                else:
+                    objects = self.select(obj)
+        # Remove already linked objects if required.
+        if removeLinked:
+            uids = getattr(obj.o.aq_base, self.name, None)
+            if uids:
+                # Browse objects in reverse order and remove linked objects.
+                i = len(objects) - 1
+                while i >= 0:
+                    if objects[i].uid in uids: del objects[i]
+                    i -= 1
+        # Restrict, if required, the result to self.maxPerPage starting at
+        # p_startNumber. Unlike m_getValue, we already have all objects in
+        # "objects": we can't limit objects "waking up" to at most
+        # self.maxPerPage.
+        total = len(objects)
+        if startNumber != None:
+            objects = objects[startNumber:startNumber + self.maxPerPage]
+        # Return the result, wrapped in a SomeObjects instance if required.
+        if not someObjects: return objects
+        res = gutils.SomeObjects()
+        res.totalNumber = total
+        res.batchSize = self.maxPerPage
+        res.startNumber = startNumber
+        res.objects = objects
+        return res
+
+    def getLinkedObjectsByMenu(self, obj, objects):
+        '''This method groups p_objects into sub-lists of objects, grouped by
            menu (happens when self.render == 'menus').'''
         res = []
         # We store in "menuIds" the already encountered menus:
         # ~{s_menuId : i_indexInRes}~
         menuIds = {}
-        # Browse every object from p_zobjects and put them in their menu
+        # Browse every object from p_objects and put them in their menu
         # (within "res").
-        for zobj in zobjects:
-            menuId = self.menuIdMethod(obj, zobj.appy())
+        for tied in objects:
+            menuId = self.menuIdMethod(obj, tied)
             if menuId in menuIds:
                 # We have already encountered this menu.
                 menuIndex = menuIds[menuId]
-                res[menuIndex].zobjects.append(zobj)
+                res[menuIndex].objects.append(tied)
             else:
                 # A new menu.
-                menu = Object(id=menuId, zobjects=[zobj])
+                menu = Object(id=menuId, objects=[tied])
                 res.append(menu)
                 menuIds[menuId] = len(res) - 1
         # Complete information about every menu by calling self.menuInfoMethod
@@ -552,16 +641,16 @@ class Ref(Field):
             menu.icon = icon
         return res
 
-    def getMenuUrl(self, zobj, ztied):
-        '''We must provide the URL of the tied object p_ztied, when shown in a
-           Ref field in render mode 'menus'. If self.menuUrlMethod is specified,
+    def getMenuUrl(self, zobj, tied):
+        '''We must provide the URL of the p_tied object, when shown in a Ref
+           field in render mode 'menus'. If self.menuUrlMethod is specified,
            use it. Else, returns the "normal" URL of the view page for the tied
            object, but without any navigation information, because in this
            render mode, tied object's order is lost and navigation is
            impossible.'''
         if self.menuUrlMethod:
-            return self.menuUrlMethod(zobj.appy(), ztied.appy())
-        return ztied.getUrl(nav='')
+            return self.menuUrlMethod(zobj.appy(), tied)
+        return tied.o.getUrl(nav='')
 
     def getStartNumber(self, render, req, ajaxHookId):
         '''This method returns the index of the first linked object that must be
@@ -594,17 +683,16 @@ class Ref(Field):
             return res
         else:
             # For the global search: return linked objects' titles.
-            res = [o.title for o in self.getValue(type='objects')]
+            res = [o.title for o in self.getValue()]
             if not res: res.append('')
             return res
 
     def validateValue(self, obj, value):
-        if not self.link: return None
+        if not self.link: return
         # We only check "link" Refs because in edit views, "add" Refs are
         # not visible. So if we check "add" Refs, on an "edit" view we will
         # believe that that there is no referred object even if there is.
-        # If the field is a reference, we must ensure itself that multiplicities
-        # are enforced.
+        # Also ensure that multiplicities are enforced.
         if not value:
             nbOfRefs = 0
         elif isinstance(value, basestring):
@@ -634,7 +722,7 @@ class Ref(Field):
             refs = obj.getProductConfig().PersistentList()
             setattr(obj, self.name, refs)
         # Insert p_value into it.
-        uid = value.o.UID()
+        uid = value.o.id
         if uid not in refs:
             # Where must we insert the object? At the start? At the end?
             if callable(self.add):
@@ -752,39 +840,6 @@ class Ref(Field):
         newIndex = oldIndex + move
         uids.insert(newIndex, uid)
 
-    def getPossibleValues(self, obj):
-        '''This method returns the list of all objects that can be selected
-           to be linked as references to p_obj via p_self. It is applicable only
-           for ref fields with link=True. If master values are present in the
-           request, we use field.masterValues method instead of self.select.
-        '''
-        req = obj.request
-        if 'masterValues' in req:
-            # Convert masterValue(s) from UID(s) to real object(s).
-            masterValues = req['masterValues'].strip()
-            if not masterValues: masterValues = None
-            else:
-                masterValues = masterValues.split('*')
-                tool = obj.tool
-                if len(masterValues) == 1:
-                    masterValues = tool.getObject(masterValues[0])
-                else:
-                    masterValues = [tool.getObject(v) for v in masterValues]
-            res = self.masterValue(obj, masterValues)
-            return res
-        else:
-            # If this field is an ajax-updatable slave, no need to compute
-            # possible values: it will be overridden by method self.masterValue
-            # by a subsequent ajax request (=the "if" statement above).
-            if self.masterValue and callable(self.masterValue): return []
-            if not self.select:
-                # No select method has been defined: we must retrieve all
-                # objects of the referred type that the user is allowed to
-                # access.
-                return obj.search(self.klass)
-            else:
-                return self.select(obj)
-
     xhtmlToText = re.compile('<.*?>', re.S)
     def getReferenceLabel(self, refObject, unlimited=False):
         '''p_self must have link=True. I need to display, on an edit view, the
@@ -813,7 +868,7 @@ class Ref(Field):
         '''Gets the position of p_refObj within this field on p_obj.'''
         uids = getattr(obj.aq_base, self.name, None)
         if not uids: raise IndexError()
-        return uids.index(refObj.UID())
+        return uids.index(refObj.o.id)
 
     def sort(self, obj):
         '''Called when the user wants to sort the content of this field.'''

@@ -83,6 +83,14 @@ msgstr "Nessun elemento"
 msgid "add_ref"
 msgstr "Aggiungi un nuovo"
 
+#. Default: "Selectable elements"
+msgid "selectable_objects"
+msgstr ""
+
+#. Default: "Selected elements"
+msgid "selected_objects"
+msgstr ""
+
 #. Default: "The action has been successfully executed."
 msgid "action_ok"
 msgstr "L'operazione è stata eseguita con successo"
@@ -185,6 +193,10 @@ msgstr "Elimina"
 
 #. Default: "Unlink"
 msgid "object_unlink"
+msgstr ""
+
+#. Default: "Insert"
+msgid "object_link"
 msgstr ""
 
 #. Default: "Unlock"

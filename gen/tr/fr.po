@@ -84,6 +84,14 @@ msgstr "Aucun élément."
 msgid "add_ref"
 msgstr "Ajouter"
 
+#. Default: "Selectable elements"
+msgid "selectable_objects"
+msgstr "Éléments sélectionnables"
+
+#. Default: "Selected elements"
+msgid "selected_objects"
+msgstr "Éléments sélectionnés"
+
 #. Default: "The action has been successfully executed."
 msgid "action_ok"
 msgstr "L'action a été effectuée."
@@ -187,6 +195,10 @@ msgstr "Supprimer"
 #. Default: "Unlink"
 msgid "object_unlink"
 msgstr "Dissocier"
+
+#. Default: "Insert"
+msgid "object_link"
+msgstr "Insérer"
 
 #. Default: "Unlock"
 msgid "page_unlock"

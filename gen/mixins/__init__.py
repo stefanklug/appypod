@@ -191,6 +191,18 @@ class BaseMixin:
         self.say(self.translate('action_done'))
         self.goto(urlBack)
 
+    def onLink(self):
+        '''Called when an object linking is triggered from the ui.'''
+        rq = self.REQUEST
+        tool = self.getTool()
+        sourceObject = tool.getObject(rq['sourceUid'])
+        targetObject = tool.getObject(rq['targetUid'])
+        field = sourceObject.getAppyType(rq['fieldName'])
+        field.linkObject(sourceObject, targetObject)
+        urlBack = self.getUrl(rq['HTTP_REFERER'])
+        self.say(self.translate('action_done'))
+        self.goto(urlBack)
+
     def onCreate(self):
         '''This method is called when a user wants to create a root object in
            the "data" folder or an object through a reference field. A temporary
@@ -1263,7 +1275,7 @@ class BaseMixin:
     # --------------------------------------------------------------------------
     def UID(self):
         '''Returns the unique identifier for this object.'''
-        return self._at_uid
+        return self.id
 
     def Title(self):
         '''Returns the title for this object.'''

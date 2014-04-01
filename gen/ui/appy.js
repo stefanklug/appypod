@@ -464,6 +464,14 @@ function onUnlinkObject(sourceUid, fieldName, targetUid) {
   askConfirm('form', 'unlinkForm', action_confirm);
 }
 
+function onLinkObject(sourceUid, fieldName, targetUid) {
+  f = document.getElementById('linkForm');
+  f.sourceUid.value = sourceUid;
+  f.fieldName.value = fieldName;
+  f.targetUid.value = targetUid;
+  f.submit();
+}
+
 function onUnlockPage(objectUid, pageName) {
   f = document.getElementById('unlockForm');
   f.objectUid.value = objectUid;
