@@ -84,13 +84,13 @@ msgstr "Aucun élément."
 msgid "add_ref"
 msgstr "Ajouter"
 
-#. Default: "Selectable elements"
+#. Default: "Available elements"
 msgid "selectable_objects"
 msgstr "Éléments sélectionnables"
 
-#. Default: "Selected elements"
+#. Default: "Inserted elements"
 msgid "selected_objects"
-msgstr "Éléments sélectionnés"
+msgstr "Éléments insérés"
 
 #. Default: "The action has been successfully executed."
 msgid "action_ok"
@@ -192,13 +192,21 @@ msgstr "Modifier"
 msgid "object_delete"
 msgstr "Supprimer"
 
-#. Default: "Unlink"
+#. Default: "Remove"
 msgid "object_unlink"
-msgstr "Dissocier"
+msgstr "Retirer"
 
 #. Default: "Insert"
 msgid "object_link"
 msgstr "Insérer"
+
+#. Default: "Insert selected elements"
+msgid "object_link_many"
+msgstr "Insérer la sélection"
+
+#. Default: "(Un)check everything"
+msgid "check_uncheck"
+msgstr "Tout (dé)sélectionner"
 
 #. Default: "Unlock"
 msgid "page_unlock"

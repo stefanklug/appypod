@@ -52,6 +52,16 @@ class Ref(Field):
             'display:none'">::tied.o.getSubTitle()</span>
      </x>''')
 
+    # This PX displays buttons for triggering global actions on several linked
+    # objects (delete many, unlink many,...)
+    pxGlobalActions = Px('''
+     <!-- Insert several objects (if in pick list) -->
+     <input if="inPickList" type="button" class="button"
+            value=":_('object_link_many')"
+            onClick=":'onLinkMany(%s)' % q(ajaxHookId)"
+            style=":url('linkMany', bg=True)"/>
+     ''')
+
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
@@ -88,14 +98,17 @@ class Ref(Field):
        </td>
        <!-- Unlink -->
        <td if="not isBack and field.unlink and canWrite and not inPickList">
-        <img class="clickable" title=":_('object_unlink')" src=":url('unlink')"
-             onclick=":'onUnlinkObject(%s,%s,%s)' % (q(zobj.id), \
+        <img var="imgName=linkList and 'unlinkUp' or 'unlink';
+                  action='unlink'"
+             class="clickable" title=":_('object_unlink')" src=":url(imgName)"
+             onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
                         q(field.name), q(tied.o.id))"/>
        </td>
        <!-- Insert (if in pick list) -->
        <td if="inPickList">
-        <img class="clickable" title=":_('object_link')" src=":url('link')"
-             onclick=":'onLinkObject(%s,%s,%s)' % (q(zobj.id), \
+        <img var="action='link'" class="clickable" title=":_('object_link')"
+             src=":url(action)"
+             onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
                         q(field.name), q(tied.o.id))"/>
        </td>
       </tr>
@@ -137,7 +150,6 @@ class Ref(Field):
 
     # PX that displays referred objects as a list.
     pxViewList = Px('''
-     <div id=":ajaxHookId">
       <!-- Display a simplified widget if at most 1 referenced object. -->
       <table if="atMostOneRef">
        <tr valign="top">
@@ -174,67 +186,86 @@ class Ref(Field):
        <!-- No object is present -->
        <p class="discreet" if="not objects">:_('no_ref')</p>
 
-       <table if="objects" class=":innerRef and 'innerAppyTable' or ''"
-              width="100%">
-        <tr valign="bottom">
-         <td>
-          <!-- Show forward or backward reference(s) -->
-          <table class=":not innerRef and 'list' or ''"
-                 width=":innerRef and '100%' or field.layouts['view'].width"
-                 var="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                        field.shownInfo, dir)">
-           <tr if="field.showHeaders">
-            <th for="column in columns" width=":column.width"
-                align="column.align" var2="refField=column.field">
-             <span>:_(refField.labelId)</span>
-             <x>:field.pxSortIcons</x>
-             <x var="className=tiedClassName;
-                     field=refField">:tool.pxShowDetails</x>
-            </th>
-           </tr>
-           <tr for="tied in objects" valign="top"
-               class=":loop.tied.odd and 'even' or 'odd'">
-            <td for="column in columns"
-                width=":column.width" align=":column.align"
-                var2="refField=column.field">
-             <!-- The "title" field -->
-             <x if="refField.name == 'title'">
-              <x>:field.pxObjectTitle</x>
-              <div if="tied.o.mayAct()">:field.pxObjectActions</div>
-             </x>
-             <!-- Any other field -->
-             <x if="refField.name != 'title'">
-              <x var="zobj=tied.o; obj=tied; layoutType='cell';
-                      innerRef=True; field=refField"
-                 if="zobj.showField(field.name, \
-                                    layoutType='result')">:field.pxRender</x>
-             </x>
-            </td>
-           </tr>
-          </table>
+       <!-- Show forward or backward reference(s) -->
+       <table if="objects" class=":not innerRef and 'list' or ''"
+              width=":innerRef and '100%' or field.layouts['view'].width"
+              var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                     field.shownInfo, dir)">
+        <tr if="field.showHeaders">
+         <th for="column in columns" width=":column.width"
+             align="column.align" var2="refField=column.field">
+          <span>:_(refField.labelId)</span>
+          <x>:field.pxSortIcons</x>
+          <x var="className=tiedClassName;
+                  field=refField">:tool.pxShowDetails</x>
+         </th>
+         <th if="checkboxes" class="cbCell">
+          <img src=":url('checkall')" class="clickable"
+               title=":_('check_uncheck')"
+               onclick=":'toggleAllRefCbs(%s)' % q(ajaxHookId)"/>
+         </th>
+        </tr>
+        <tr for="tied in objects" valign="top"
+            class=":loop.tied.odd and 'even' or 'odd'">
+         <td for="column in columns" width=":column.width" align=":column.align"
+             var2="refField=column.field">
+          <!-- The "title" field -->
+          <x if="refField.name == 'title'">
+           <x>:field.pxObjectTitle</x>
+           <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+          </x>
+          <!-- Any other field -->
+          <x if="refField.name != 'title'">
+           <x var="zobj=tied.o; obj=tied; layoutType='cell';
+                   innerRef=True; field=refField"
+              if="zobj.showField(field.name, \
+                                 layoutType='result')">:field.pxRender</x>
+          </x>
+         </td>
+         <td if="checkboxes" class="cbCell">
+          <input var="tiedUid=tied.uid" type="checkbox" name=":ajaxHookId"
+                checked="checked" value=":tiedUid" onclick="toggleRefCb(this)"/>
          </td>
         </tr>
        </table>
 
+       <!-- Global actions -->
+       <div if="canWrite and (totalNumber &gt; 1)"
+            align=":dright">:field.pxGlobalActions</div>
+
        <!-- (Bottom) navigation -->
        <x>:tool.pxNavigate</x>
-      </x></div>''')
+
+       <!-- Init checkboxes if present. -->
+       <script if="checkboxes"
+               type="text/javascript">:'initRefCbs(%s)' % q(ajaxHookId)</script>
+      </x>''')
 
     # PX that displays the list of objects the user may select to insert into a
     # ref field with link="list".
     pxViewPickList = Px('''
-     <x var="ajaxHookId='%s_%s_poss' % (zobj.id, field.name);
+     <x var="innerRef=False;
+             ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
              inPickList=True;
-             startNumber=field.getStartNumber(render, req, ajaxHookId);
+             startNumber=field.getStartNumber('list', req, ajaxHookId);
              info=field.getPossibleValues(zobj, startNumber=startNumber, \
                                           someObjects=True, removeLinked=True);
              objects=info.objects;
              totalNumber=info.totalNumber;
              batchSize=info.batchSize;
              batchNumber=len(objects);
+             tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
+             canWrite=canWrite|\
+                      not field.isBack and zobj.allows(field.writePermission);
+             showPlusIcon=False;
+             atMostOneRef=False;
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
+             changeOrder=False;
+             checkboxes=checkboxes|field.checkboxesEnabled(zobj);
+             showSubTitles=showSubTitles|\
+                           req.get('showSubTitles', 'true') == 'true';
              subLabel='selectable_objects'">:field.pxViewList</x>''')
 
     # PX that displays referred objects as menus.
@@ -269,12 +300,15 @@ class Ref(Field):
       </td>
      </tr></table>''')
 
-    # PX that displays referred objects through this field.
+    # PX that displays referred objects through this field. In mode link="list",
+    # if, in the request, key "scope" is present and holds value "objs", the
+    # pick list (containing possible values) will not be rendered.
     pxView = Px('''
      <x var="innerRef=req.get('innerRef', False) == 'True';
              ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
              render=render|'list';
              linkList=field.link == 'list';
+             renderAll=req.get('scope') != 'objs';
              inPickList=False;
              startNumber=field.getStartNumber(render, req, ajaxHookId);
              info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
@@ -293,15 +327,23 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=field.changeOrderEnabled(zobj);
+             checkboxes=field.checkboxesEnabled(zobj);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- The definition of "atMostOneRef" above may sound strange: we
            shouldn't check the actual number of referenced objects. But for
            back references people often forget to specify multiplicities. So
            concretely, multiplicities (0,None) are coded as (0,1). -->
-      <x if="linkList">:field.pxViewPickList</x>
+      <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
+      <script if="checkboxes and renderAll"
+              type="text/javascript">:field.getCbJsInit(zobj)</script>
+      <div if="linkList and renderAll"
+           var2="ajaxHookId='%s_%s_poss' % (zobj.id, field.name)"
+           id=":ajaxHookId">:field.pxViewPickList</div>
       <x if="render == 'list'"
-         var2="subLabel=linkList and 'selected_objects' or \
-               None">:field.pxViewList</x>
+         var2="subLabel=linkList and 'selected_objects' or None">
+       <div if="renderAll" id=":ajaxHookId">:field.pxViewList</div>
+       <x if="not renderAll">:field.pxViewList</x>
+      </x>
       <x if="render == 'menus'">:field.pxViewMenus</x>
      </x>''')
 
@@ -356,10 +398,10 @@ class Ref(Field):
                  width=None, height=5, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False, changeOrder=True, sdefault='', scolspan=1,
-                 swidth=None, sheight=None, sselect=None, persist=True,
-                 render='list', menuIdMethod=None, menuInfoMethod=None,
-                 menuUrlMethod=None):
+                 navigable=False, changeOrder=True, checkboxes=True,
+                 sdefault='', scolspan=1, swidth=None, sheight=None,
+                 sselect=None, persist=True, render='list', menuIdMethod=None,
+                 menuInfoMethod=None, menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -444,9 +486,13 @@ class Ref(Field):
         self.queryNbCols = queryNbCols
         # Within the portlet, will referred elements appear ?
         self.navigable = navigable
-        # If changeOrder is False, it even if the user has the right to modify
+        # If "changeOrder" is False, it even if the user has the right to modify
         # the field, it will not be possible to move objects or sort them.
         self.changeOrder = changeOrder
+        # If "checkboxes" is True, every linked object will be "selectable" vi
+        # a checkbox: global actions will be possible, that will act on the
+        # subset of selected objects: delete, unlink, etc.
+        self.checkboxes = checkboxes
         # There are different ways to render a bunch of linked objects:
         # - "list" (the default) renders them as a list (=a XHTML table);
         # - "menus" renders them as a series of popup menus, grouped by type.
@@ -708,9 +754,12 @@ class Ref(Field):
         elif nbOfRefs > maxRef:
             return obj.translate('max_ref_violated')
 
-    def linkObject(self, obj, value, back=False):
+    def linkObject(self, obj, value, back=False, noSecurity=True):
         '''This method links p_value (which can be a list of objects) to p_obj
            through this Ref field.'''
+        # Security check
+        if not noSecurity: obj.allows(self.writePermission, raiseError=True)
+        
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.linkObject(obj, v, back=back)
@@ -736,9 +785,11 @@ class Ref(Field):
             # Update the back reference
             if not back: self.back.linkObject(value, obj, back=True)
 
-    def unlinkObject(self, obj, value, back=False):
+    def unlinkObject(self, obj, value, back=False, noSecurity=True):
         '''This method unlinks p_value (which can be a list of objects) from
            p_obj through this Ref field.'''
+        # Security check
+        if not noSecurity: obj.allows(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.unlinkObject(obj, v, back=back)
@@ -827,6 +878,39 @@ class Ref(Field):
         else:
             return self.callMethod(obj, self.changeOrder)
 
+    def checkboxesEnabled(self, obj):
+        '''Are checkboxes enabled?'''
+        if isinstance(self.checkboxes, bool):
+            return self.checkboxes
+        else:
+            return self.callMethod(obj, self.checkboxes)
+
+    def getCbJsInit(self, obj):
+        '''When checkboxes are enabled, this method defines a JS associative
+           array (named "_appy_objs_cbs") that will store checkboxes' statuses.
+           This array is needed because all linked objects are not visible at
+           the same time (pagination).
+
+           Moreover, if self.link is "list", an additional array (named
+           "_appy_poss_cbs") is defined for possible values.
+
+           Initial semantics of this (those) array(s) is as follows: if a key
+           is present in it for a given linked object, it means that the
+           checkbox is unchecked. All linked objects are thus selected by
+           default. This semantics may be inverted: presence of a key may mean
+           that the checkbox is checked. The current array semantics is stored
+           in a variable named "_appy_objs_sem" (or "_appy_poss_sem") and may
+           hold "unchecked" (initial semantics) or "checked" (inversed
+           semantics). Inversing semantic allows to keep the array small even
+           when checking/unchecking all checkboxes.
+           
+           The mentioned JS arrays and variables are stored as attributes of the
+           DOM node representing this field.'''
+        code = "\nnode['_appy_%s_cbs']={};\nnode['_appy_%s_sem']='unchecked';"
+        poss = (self.link == 'list') and (code % ('poss', 'poss')) or ''
+        return "var node=document.getElementById('%s_%s');%s%s" % \
+               (obj.id, self.name, code % ('objs', 'objs'), poss)
+
     def doChangeOrder(self, obj):
         '''Moves a referred object up or down.'''
         rq = obj.REQUEST
@@ -876,6 +960,37 @@ class Ref(Field):
         sortKey = rq.get('sortKey')
         reverse = rq.get('reverse') == 'True'
         obj.appy().sort(self.name, sortKey=sortKey, reverse=reverse)
+
+    def onUiRequest(self, obj, rq):
+        '''This method is called when an action tied to this Ref field is
+           triggered from the user interface (link, unlink, link_many,
+           unlink_many...).'''
+        action = rq['linkAction']
+        tool = obj.getTool()
+        if action == 'link':
+            tied = tool.getObject(rq['targetUid'])
+            self.linkObject(obj, tied, noSecurity=False)
+        elif action == 'unlink':
+            tied = tool.getObject(rq['targetUid'])
+            self.unlinkObject(obj, tied, noSecurity=False)
+        elif action == 'link_many':
+            uids = rq['targetUid'].strip(',') or ();
+            if uids: uids = uids.split(',')
+            unchecked = rq['semantics'] == 'unchecked'
+            # Browse possible values
+            for tied in self.getPossibleValues(obj, removeLinked=True):
+                if unchecked:
+                    # Keep only tied objects not among uids.
+                    if tied.uid in uids: continue
+                else:
+                    # Keep only tied objects being in uids.
+                    if tied.uid not in uids: continue
+                self.linkObject(obj, tied.o, noSecurity=False)
+        elif action == 'unlink_many':
+            pass
+        urlBack = obj.getUrl(rq['HTTP_REFERER'])
+        obj.say(obj.translate('action_done'))
+        tool.goto(urlBack)
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be

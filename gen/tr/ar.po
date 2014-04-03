@@ -83,11 +83,11 @@ msgstr ""
 msgid "add_ref"
 msgstr ""
 
-#. Default: "Selectable elements"
+#. Default: "Available elements"
 msgid "selectable_objects"
 msgstr ""
 
-#. Default: "Selected elements"
+#. Default: "Inserted elements"
 msgid "selected_objects"
 msgstr ""
 
@@ -191,12 +191,20 @@ msgstr "تعديل"
 msgid "object_delete"
 msgstr ""
 
-#. Default: "Unlink"
+#. Default: "Remove"
 msgid "object_unlink"
 msgstr ""
 
 #. Default: "Insert"
 msgid "object_link"
+msgstr ""
+
+#. Default: "Insert selected elements"
+msgid "object_link_many"
+msgstr ""
+
+#. Default: "(Un)check everything"
+msgid "check_uncheck"
 msgstr ""
 
 #. Default: "Unlock"

@@ -66,7 +66,7 @@ img { border: 0; vertical-align: middle }
             background-color: #dbdde1; font-weight: bold }
 .navigate td { padding: 4px 9px }
 .login { margin: 3px; color: black }
-input.button { border-width: 0 !important; color: #666666; height: 23px;
+input.button { border-width: 0 !important; color: #666666; height: 24px;
            width: 150px; cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
            background-color: transparent !important }
 .buttons { margin-left: 4px }
@@ -157,3 +157,4 @@ td.search { padding-top: 8px }
 .error { margin: 5px }
 .podName { font-size: 90% }
 .podTable { margin-left: 15px }
+.cbCell { width: 10px; text-align: center}

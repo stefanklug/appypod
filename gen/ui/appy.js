@@ -229,13 +229,16 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
                      action, actionParams){
   // Sends an Ajax request for getting the content of a reference field.
   var startKey = hookId + '_startNumber';
-  var params = {'innerRef': innerRef };
+  var scope = hookId.split('_').pop();
+  var params = {'innerRef': innerRef, 'scope': scope};
   params[startKey] = startNumber;
   if (action) params['action'] = action;
   if (actionParams) {
     for (key in actionParams) { params[key] = actionParams[key]; };
   }
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
+  var px = (scope == 'objs')? ':pxView': ':pxViewPickList';
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName + px, params, null,
+               evalInnerScripts);
 }
 
 function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
@@ -251,12 +254,67 @@ function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
   askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
 }
 
-// Function used by checkbox widgets for having radio-button-like behaviour
+// Used by checkbox widgets for having radio-button-like behaviour.
 function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   vis = document.getElementById(visibleCheckbox);
   hidden = document.getElementById(hiddenBoolean);
   if (vis.checked) hidden.value = 'True';
   else hidden.value = 'False';
+}
+
+// (Un)checks a checkbox corresponding to a linked object.
+function toggleRefCb(checkbox) {
+  var name = checkbox.getAttribute('name');
+  var elems = name.split('_');
+  // Get the DOM node corresponding to the Ref field.
+  var node = document.getElementById(elems[0] + '_' + elems[1]);
+  // Get the array that stores checkbox statuses.
+  var statuses = node['_appy_' + elems[2] + '_cbs'];
+  // Get the array semantics
+  var semantics = node['_appy_' + elems[2] + '_sem'];
+  var uid = checkbox.value;
+  if (semantics == 'unchecked') {
+    if (!checkbox.checked) statuses[uid] = null;
+    else {if (uid in statuses) delete statuses[uid]};
+  }
+  else { // semantics is 'checked'
+    if (checkbox.checked) statuses[uid] = null;
+    else {if (uid in statuses) delete statuses[uid]};
+  }
+}
+
+// Initialise checkboxes of a Ref field.
+function initRefCbs(id) {
+  var elems = id.split('_');
+  // Get the DOM node corresponding to the Ref field.
+  var node = document.getElementById(elems[0] + '_' + elems[1]);
+  // Get the array that stores checkbox statuses.
+  var statuses = node['_appy_' + elems[2] + '_cbs'];
+  // Get the array semantics
+  var semantics = node['_appy_' + elems[2] + '_sem'];
+  var value = (semantics == 'unchecked')? false: true;
+  // Update visible checkboxes.
+  var checkboxes = getElementsHavingName('input', id);
+  for (var i=0; i < checkboxes.length; i++) {
+    if (checkboxes[i].value in statuses) checkboxes[i].checked = value;
+    else checkboxes[i].checked = !value;
+  }
+}
+
+// Toggle all checkboxes of a Ref field.
+function toggleAllRefCbs(id) {
+  var elems = id.split('_');
+  // Get the DOM node corresponding to the Ref field.
+  var node = document.getElementById(elems[0] + '_' + elems[1]);
+  // Empty the array that stores checkbox statuses.
+  var statuses = node['_appy_' + elems[2] + '_cbs'];
+  for (var key in statuses) delete statuses[key];
+  // Switch the array semantics.
+  var semAttr = '_appy_' + elems[2] + '_sem';
+  if (node[semAttr] == 'unchecked') node[semAttr] = 'checked';
+  else node[semAttr] = 'unchecked';
+  // Update the visible checkboxes
+  initRefCbs(id);
 }
 
 // Shows/hides a dropdown menu
@@ -456,20 +514,33 @@ function onDeleteEvent(objectUid, eventTime) {
   askConfirm('form', 'deleteEventForm', action_confirm);
 }
 
-function onUnlinkObject(sourceUid, fieldName, targetUid) {
-  f = document.getElementById('unlinkForm');
-  f.sourceUid.value = sourceUid;
-  f.fieldName.value = fieldName;
-  f.targetUid.value = targetUid;
-  askConfirm('form', 'unlinkForm', action_confirm);
-}
-
-function onLinkObject(sourceUid, fieldName, targetUid) {
+function onLink(action, sourceUid, fieldName, targetUid) {
   f = document.getElementById('linkForm');
+  f.linkAction.value = action;
   f.sourceUid.value = sourceUid;
   f.fieldName.value = fieldName;
   f.targetUid.value = targetUid;
   f.submit();
+}
+
+function onLinkMany(id) {
+  var elems = id.split('_');
+  // Get the DOM node corresponding to the Ref field.
+  var node = document.getElementById(elems[0] + '_' + elems[1]);
+  // Get the uids of (un-)checked objects.
+  var statuses = node['_appy_' + elems[2] + '_cbs'];
+  var uids = '';
+  for (var uid in statuses) uids += uid + ',';
+  // Get the array semantics
+  var semantics = node['_appy_' + elems[2] + '_sem'];
+  // Fill the form and ask for a confirmation
+  f = document.getElementById('linkForm');
+  f.linkAction.value = 'link_many';
+  f.sourceUid.value = elems[0];
+  f.fieldName.value = elems[1];
+  f.targetUid.value = uids;
+  f.semantics.value = semantics;
+  askConfirm('form', 'linkForm', action_confirm);
 }
 
 function onUnlockPage(objectUid, pageName) {

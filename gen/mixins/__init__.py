@@ -179,29 +179,13 @@ class BaseMixin:
                  (appy.user.login, appy.klass.__name__, appy.uid))
         self.goto(self.getUrl(rq['HTTP_REFERER']))
 
-    def onUnlink(self):
-        '''Called when an object unlinking is triggered from the ui.'''
-        rq = self.REQUEST
-        tool = self.getTool()
-        sourceObject = tool.getObject(rq['sourceUid'])
-        targetObject = tool.getObject(rq['targetUid'])
-        field = sourceObject.getAppyType(rq['fieldName'])
-        field.unlinkObject(sourceObject, targetObject)
-        urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('action_done'))
-        self.goto(urlBack)
-
     def onLink(self):
-        '''Called when an object linking is triggered from the ui.'''
+        '''Called when object (un)linking is triggered from the ui.'''
         rq = self.REQUEST
         tool = self.getTool()
         sourceObject = tool.getObject(rq['sourceUid'])
-        targetObject = tool.getObject(rq['targetUid'])
         field = sourceObject.getAppyType(rq['fieldName'])
-        field.linkObject(sourceObject, targetObject)
-        urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('action_done'))
-        self.goto(urlBack)
+        return field.onUiRequest(sourceObject, rq)
 
     def onCreate(self):
         '''This method is called when a user wants to create a root object in

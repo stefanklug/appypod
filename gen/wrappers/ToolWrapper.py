@@ -115,19 +115,14 @@ class ToolWrapper(AbstractWrapper):
       <input type="hidden" name="objectUid"/>
       <input type="hidden" name="eventTime"/>
      </form>
-     <!-- Global form for unlinking an object -->
-     <form id="unlinkForm" method="post" action="do">
-      <input type="hidden" name="action" value="Unlink"/>
-      <input type="hidden" name="sourceUid"/>
-      <input type="hidden" name="fieldName"/>
-      <input type="hidden" name="targetUid"/>
-     </form>
-     <!-- Global form for linking an object -->
+     <!-- Global form for (un)linking (an) object(s) -->
      <form id="linkForm" method="post" action="do">
       <input type="hidden" name="action" value="Link"/>
+      <input type="hidden" name="linkAction"/>
       <input type="hidden" name="sourceUid"/>
       <input type="hidden" name="fieldName"/>
       <input type="hidden" name="targetUid"/>
+      <input type="hidden" name="semantics"/>
      </form>
      <!-- Global form for unlocking a page -->
      <form id="unlockForm" method="post" action="do">
