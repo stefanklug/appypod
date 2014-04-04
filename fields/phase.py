@@ -82,10 +82,10 @@ class Phase:
 
     def addPageLinks(self, field, obj):
         '''If p_field is a navigable Ref, we must add, within self.pagesInfo,
-           objects linked to p_obj through this ReF as links.'''
+           objects linked to p_obj through this Ref as links.'''
         if field.page.name in self.hiddenPages: return
         infos = []
-        for ztied in field.getValue(obj, type='zobjects'):
+        for ztied in field.getValue(obj, appy=False):
             infos.append(Object(title=ztied.title, url=ztied.absolute_url()))
         self.pagesInfo[field.page.name].links = infos
 

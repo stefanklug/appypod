@@ -262,10 +262,26 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   else hidden.value = 'False';
 }
 
+// JS implementation of Python ''.rsplit.
+function _rsplit(s, delimiter, limit) {
+  var elems = s.split(delimiter);
+  var exc = elems.length - limit;
+  if (exc <= 0) return elems;
+  // Merge back first elements to get p_limit elements.
+  var head = '';
+  var res = [];
+  for (var i=0; i < elems.length; i++) {
+    if (exc > 0) { head += elems[i] + delimiter; exc -= 1 }
+    else { if (exc == 0) { res.push(head + elems[i]); exc -= 1 }
+           else res.push(elems[i]) }
+  }
+  return res;
+}
+
 // (Un)checks a checkbox corresponding to a linked object.
 function toggleRefCb(checkbox) {
   var name = checkbox.getAttribute('name');
-  var elems = name.split('_');
+  var elems = _rsplit(name, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the array that stores checkbox statuses.
@@ -285,7 +301,7 @@ function toggleRefCb(checkbox) {
 
 // Initialise checkboxes of a Ref field.
 function initRefCbs(id) {
-  var elems = id.split('_');
+  var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the array that stores checkbox statuses.
@@ -303,7 +319,7 @@ function initRefCbs(id) {
 
 // Toggle all checkboxes of a Ref field.
 function toggleAllRefCbs(id) {
-  var elems = id.split('_');
+  var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Empty the array that stores checkbox statuses.
@@ -523,8 +539,8 @@ function onLink(action, sourceUid, fieldName, targetUid) {
   f.submit();
 }
 
-function onLinkMany(id) {
-  var elems = id.split('_');
+function onLinkMany(action, id) {
+  var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the uids of (un-)checked objects.
@@ -535,7 +551,7 @@ function onLinkMany(id) {
   var semantics = node['_appy_' + elems[2] + '_sem'];
   // Fill the form and ask for a confirmation
   f = document.getElementById('linkForm');
-  f.linkAction.value = 'link_many';
+  f.linkAction.value = action + '_many';
   f.sourceUid.value = elems[0];
   f.fieldName.value = elems[1];
   f.targetUid.value = uids;

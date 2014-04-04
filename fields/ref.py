@@ -41,7 +41,7 @@ class Ref(Field):
      <x var="includeShownInfo=includeShownInfo|False;
              navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
                field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
-             navInfo=not field.isBack and navInfo or '';
+             navInfo=(not field.isBack and not inPickList) and navInfo or '';
              cssClass=tied.o.getCssFor('title')">
       <x>::tied.o.getSupTitle(navInfo)</x>
       <a var="pageName=field.isBack and field.back.pageName or 'main';
@@ -56,16 +56,29 @@ class Ref(Field):
     # objects (delete many, unlink many,...)
     pxGlobalActions = Px('''
      <!-- Insert several objects (if in pick list) -->
-     <input if="inPickList" type="button" class="button"
+     <input if="inPickList" var2="action='link'" type="button" class="button"
             value=":_('object_link_many')"
-            onClick=":'onLinkMany(%s)' % q(ajaxHookId)"
+            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
             style=":url('linkMany', bg=True)"/>
+     <!-- Unlink several objects -->
+     <input if="not isBack and field.unlink and canWrite and not inPickList"
+            var2="imgName=linkList and 'unlinkManyUp' or 'unlinkMany';
+                  action='unlink'"
+            type="button" class="button" value=":_('object_unlink_many')"
+            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
+            style=":url(imgName, bg=True)"/>
+     <!-- Delete several objects -->
+     <input if="not isBack and field.delete and canWrite"
+            var2="action='delete'"
+            type="button" class="button" value=":_('object_delete_many')"
+            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
+            style=":url('deleteMany', bg=True)"/>
      ''')
 
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <table class="noStyle" var="isBack=field.isBack">
+     <table class="noStyle">
       <tr>
        <!-- Arrows for moving objects up or down -->
        <td if="not isBack and (len(objects)&gt;1) and changeOrder and canWrite \
@@ -247,6 +260,7 @@ class Ref(Field):
      <x var="innerRef=False;
              ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
              inPickList=True;
+             isBack=field.isBack;
              startNumber=field.getStartNumber('list', req, ajaxHookId);
              info=field.getPossibleValues(zobj, startNumber=startNumber, \
                                           someObjects=True, removeLinked=True);
@@ -263,7 +277,7 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=False;
-             checkboxes=checkboxes|field.checkboxesEnabled(zobj);
+             checkboxes=field.checkboxesEnabled(zobj) and (totalNumber &gt; 1);
              showSubTitles=showSubTitles|\
                            req.get('showSubTitles', 'true') == 'true';
              subLabel='selectable_objects'">:field.pxViewList</x>''')
@@ -310,6 +324,7 @@ class Ref(Field):
              linkList=field.link == 'list';
              renderAll=req.get('scope') != 'objs';
              inPickList=False;
+             isBack=field.isBack;
              startNumber=field.getStartNumber(render, req, ajaxHookId);
              info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
              objects=info.objects;
@@ -327,16 +342,17 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=field.changeOrderEnabled(zobj);
-             checkboxes=field.checkboxesEnabled(zobj);
+             checkboxesEnabled=field.checkboxesEnabled(zobj);
+             checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- The definition of "atMostOneRef" above may sound strange: we
            shouldn't check the actual number of referenced objects. But for
            back references people often forget to specify multiplicities. So
            concretely, multiplicities (0,None) are coded as (0,1). -->
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
-      <script if="checkboxes and renderAll"
+      <script if="checkboxesEnabled and renderAll"
               type="text/javascript">:field.getCbJsInit(zobj)</script>
-      <div if="linkList and renderAll"
+      <div if="linkList and renderAll and canWrite"
            var2="ajaxHookId='%s_%s_poss' % (zobj.id, field.name)"
            id=":ajaxHookId">:field.pxViewPickList</div>
       <x if="render == 'list'"
@@ -759,7 +775,6 @@ class Ref(Field):
            through this Ref field.'''
         # Security check
         if not noSecurity: obj.allows(self.writePermission, raiseError=True)
-        
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.linkObject(obj, v, back=back)
@@ -964,30 +979,43 @@ class Ref(Field):
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this Ref field is
            triggered from the user interface (link, unlink, link_many,
-           unlink_many...).'''
+           unlink_many, delete_many).'''
         action = rq['linkAction']
         tool = obj.getTool()
-        if action == 'link':
+        if not action.endswith('_many'):
+            # "link" or "unlink"
             tied = tool.getObject(rq['targetUid'])
-            self.linkObject(obj, tied, noSecurity=False)
-        elif action == 'unlink':
-            tied = tool.getObject(rq['targetUid'])
-            self.unlinkObject(obj, tied, noSecurity=False)
-        elif action == 'link_many':
+            exec 'self.%sObject(obj, tied, noSecurity=False)' % action
+        else:
+            # "link_many", "unlink_many", "delete_many"
             uids = rq['targetUid'].strip(',') or ();
             if uids: uids = uids.split(',')
             unchecked = rq['semantics'] == 'unchecked'
-            # Browse possible values
-            for tied in self.getPossibleValues(obj, removeLinked=True):
+            if action == 'link_many':
+                # Get possible values (objects)
+                values = self.getPossibleValues(obj, removeLinked=True)
+                isObj = True
+            else:
+                # Get current values (uids)
+                values = list(getattr(obj.aq_base, self.name, ()))
+                isObj = False
+            mustDelete = action == 'delete_many'
+            for value in values:
+                uid = not isObj and value or value.uid
                 if unchecked:
-                    # Keep only tied objects not among uids.
-                    if tied.uid in uids: continue
+                    # Keep only objects not among uids.
+                    if uid in uids: continue
                 else:
-                    # Keep only tied objects being in uids.
-                    if tied.uid not in uids: continue
-                self.linkObject(obj, tied.o, noSecurity=False)
-        elif action == 'unlink_many':
-            pass
+                    # Keep only objects being in uids.
+                    if uid not in uids: continue
+                # (Un-)link or delete this object.
+                tied = not isObj and tool.getObject(value) or value.o
+                if mustDelete:
+                    if tied.mayDelete(): tied.delete()
+                else:
+                    # Link or unlink
+                    exec 'self.%sObject(obj, tied, noSecurity=False)' % \
+                        action.split('_')[0]
         urlBack = obj.getUrl(rq['HTTP_REFERER'])
         obj.say(obj.translate('action_done'))
         tool.goto(urlBack)

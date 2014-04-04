@@ -823,7 +823,7 @@ class XmlMarshaller:
                         v = field.getValue(instance)
                     elif field.type == 'Ref':
                         fieldType = 'ref'
-                        v = field.getValue(instance, type='zobjects')
+                        v = field.getValue(instance, appy=False)
                     else:
                         v = field.getValue(instance)
                     self.dumpField(res, field.name, v, fieldType=fieldType)

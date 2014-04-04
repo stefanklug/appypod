@@ -191,15 +191,23 @@ msgstr "Bearbeiten"
 msgid "object_delete"
 msgstr "Löschen"
 
+#. Default: "Delete selection"
+msgid "object_delete_many"
+msgstr ""
+
 #. Default: "Remove"
 msgid "object_unlink"
+msgstr ""
+
+#. Default: "Remove selection"
+msgid "object_unlink_many"
 msgstr ""
 
 #. Default: "Insert"
 msgid "object_link"
 msgstr ""
 
-#. Default: "Insert selected elements"
+#. Default: "Insert selection"
 msgid "object_link_many"
 msgstr ""
 
