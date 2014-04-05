@@ -277,7 +277,8 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=False;
-             checkboxes=field.checkboxesEnabled(zobj) and (totalNumber &gt; 1);
+             checkboxes=field.getAttribute(zobj, 'checkboxes') and \
+                        (totalNumber &gt; 1);
              showSubTitles=showSubTitles|\
                            req.get('showSubTitles', 'true') == 'true';
              subLabel='selectable_objects'">:field.pxViewList</x>''')
@@ -341,8 +342,8 @@ class Ref(Field):
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
-             changeOrder=field.changeOrderEnabled(zobj);
-             checkboxesEnabled=field.checkboxesEnabled(zobj);
+             changeOrder=field.getAttribute(zobj, 'changeOrder');
+             checkboxesEnabled=field.getAttribute(zobj, 'checkboxes');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- The definition of "atMostOneRef" above may sound strange: we
@@ -415,9 +416,9 @@ class Ref(Field):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, changeOrder=True, checkboxes=True,
-                 sdefault='', scolspan=1, swidth=None, sheight=None,
-                 sselect=None, persist=True, render='list', menuIdMethod=None,
-                 menuInfoMethod=None, menuUrlMethod=None):
+                 checkboxesDefault=None, sdefault='', scolspan=1, swidth=None,
+                 sheight=None, sselect=None, persist=True, render='list',
+                 menuIdMethod=None, menuInfoMethod=None, menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -509,6 +510,11 @@ class Ref(Field):
         # a checkbox: global actions will be possible, that will act on the
         # subset of selected objects: delete, unlink, etc.
         self.checkboxes = checkboxes
+        # Default value for checkboxes, if enabled.
+        if checkboxesDefault == None:
+            self.checkboxesDefault = bool(self.link)
+        else:
+            self.checkboxesDefault = checkboxesDefault
         # There are different ways to render a bunch of linked objects:
         # - "list" (the default) renders them as a list (=a XHTML table);
         # - "menus" renders them as a series of popup menus, grouped by type.
@@ -886,20 +892,6 @@ class Ref(Field):
             raise Unauthorized("User can't write Ref field '%s' (%s)." % \
                                (self.name, may.msg))
 
-    def changeOrderEnabled(self, obj):
-        '''Is changeOrder enabled?'''
-        if isinstance(self.changeOrder, bool):
-            return self.changeOrder
-        else:
-            return self.callMethod(obj, self.changeOrder)
-
-    def checkboxesEnabled(self, obj):
-        '''Are checkboxes enabled?'''
-        if isinstance(self.checkboxes, bool):
-            return self.checkboxes
-        else:
-            return self.callMethod(obj, self.checkboxes)
-
     def getCbJsInit(self, obj):
         '''When checkboxes are enabled, this method defines a JS associative
            array (named "_appy_objs_cbs") that will store checkboxes' statuses.
@@ -909,19 +901,23 @@ class Ref(Field):
            Moreover, if self.link is "list", an additional array (named
            "_appy_poss_cbs") is defined for possible values.
 
-           Initial semantics of this (those) array(s) is as follows: if a key
-           is present in it for a given linked object, it means that the
-           checkbox is unchecked. All linked objects are thus selected by
-           default. This semantics may be inverted: presence of a key may mean
-           that the checkbox is checked. The current array semantics is stored
-           in a variable named "_appy_objs_sem" (or "_appy_poss_sem") and may
-           hold "unchecked" (initial semantics) or "checked" (inversed
-           semantics). Inversing semantic allows to keep the array small even
+           Semantics of this (those) array(s) can be as follows: if a key is
+           present in it for a given linked object, it means that the
+           checkbox is unchecked. In this case, all linked objects are selected
+           by default. But the semantics can be inverted: presence of a key may
+           mean that the checkbox is checked. The current array semantics is
+           stored in a variable named "_appy_objs_sem" (or "_appy_poss_sem")
+           and may hold "unchecked" (initial semantics) or "checked" (inverted
+           semantics). Inverting semantics allows to keep the array small even
            when checking/unchecking all checkboxes.
            
            The mentioned JS arrays and variables are stored as attributes of the
            DOM node representing this field.'''
-        code = "\nnode['_appy_%s_cbs']={};\nnode['_appy_%s_sem']='unchecked';"
+        # The initial semantics depends on the checkboxes default value.
+        default = self.getAttribute(obj, 'checkboxesDefault') and \
+                  'unchecked' or 'checked'
+        code = "\nnode['_appy_%%s_cbs']={};\nnode['_appy_%%s_sem']='%s';" % \
+               default
         poss = (self.link == 'list') and (code % ('poss', 'poss')) or ''
         return "var node=document.getElementById('%s_%s');%s%s" % \
                (obj.id, self.name, code % ('objs', 'objs'), poss)
@@ -987,7 +983,11 @@ class Ref(Field):
             tied = tool.getObject(rq['targetUid'])
             exec 'self.%sObject(obj, tied, noSecurity=False)' % action
         else:
-            # "link_many", "unlink_many", "delete_many"
+            # "link_many", "unlink_many", "delete_many". As a preamble, perform
+            # a security check once, instead of doing it on every object-level
+            # operation.
+            obj.allows(self.writePermission, raiseError=True)
+            # Get the (un-)checked objects from the request.
             uids = rq['targetUid'].strip(',') or ();
             if uids: uids = uids.split(',')
             unchecked = rq['semantics'] == 'unchecked'
@@ -997,9 +997,10 @@ class Ref(Field):
                 isObj = True
             else:
                 # Get current values (uids)
-                values = list(getattr(obj.aq_base, self.name, ()))
+                values = getattr(obj.aq_base, self.name, ())
                 isObj = False
-            mustDelete = action == 'delete_many'
+            # Collect the objects onto which the action must be performed.
+            targets = []
             for value in values:
                 uid = not isObj and value or value.uid
                 if unchecked:
@@ -1008,16 +1009,27 @@ class Ref(Field):
                 else:
                     # Keep only objects being in uids.
                     if uid not in uids: continue
-                # (Un-)link or delete this object.
-                tied = not isObj and tool.getObject(value) or value.o
+                # Collect this object
+                target = not isObj and tool.getObject(value) or value.o
+                targets.append(target)
+            # Perform the action on every target. Count the number of failed
+            # operations.
+            mustDelete = action == 'delete_many'
+            failed = 0
+            for target in targets:
                 if mustDelete:
-                    if tied.mayDelete(): tied.delete()
+                    # Delete
+                    if target.mayDelete(): target.delete()
+                    else: failed += 1
                 else:
                     # Link or unlink
-                    exec 'self.%sObject(obj, tied, noSecurity=False)' % \
-                        action.split('_')[0]
+                    exec 'self.%sObject(obj, target)' % action.split('_')[0]
         urlBack = obj.getUrl(rq['HTTP_REFERER'])
-        obj.say(obj.translate('action_done'))
+        if not failed:
+            msg = obj.translate('action_done')
+        else:
+            msg = obj.translate('action_partial', mapping={'nb':failed})
+        obj.say(msg)
         tool.goto(urlBack)
 
 def autoref(klass, field):

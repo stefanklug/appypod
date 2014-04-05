@@ -228,6 +228,10 @@ msgstr "Êtes-vous sûr?"
 msgid "action_done"
 msgstr "L'action a été réalisée."
 
+#. Default: "Action could not be performed on ${nb} element(s)."
+msgid "action_partial"
+msgstr "L'action n'a pu être réalisée pour ${nb} élément(s)."
+
 #. Default: "Go to top"
 msgid "goto_first"
 msgstr "Aller au début"

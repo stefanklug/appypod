@@ -227,6 +227,10 @@ msgstr ""
 msgid "action_done"
 msgstr ""
 
+#. Default: "Action could not be performed on ${nb} element(s)."
+msgid "action_partial"
+msgstr ""
+
 #. Default: "Go to top"
 msgid "goto_first"
 msgstr "Ga naar het begin"

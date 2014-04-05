@@ -685,6 +685,13 @@ class Field:
             obj.log(sutils.Traceback.get(), type='error')
             raise e
 
+    def getAttribute(self, obj, name):
+        '''Gets the value of attribue p_name on p_self, which can be a simple
+           value or the result of a method call on p_obj.'''
+        res = getattr(self, name)
+        if not callable(res): return res
+        return self.callMethod(obj, res)
+
     def process(self, obj):
         '''This method is a general hook allowing a field to perform some
            processing after an URL on an object has been called, of the form
