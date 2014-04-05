@@ -43,6 +43,10 @@ msgstr ""
 msgid "appy_title"
 msgstr ""
 
+#. Default: "Ok"
+msgid "appy_ok"
+msgstr ""
+
 #. Default: "Data change"
 msgid "data_change"
 msgstr ""
@@ -89,14 +93,6 @@ msgstr ""
 
 #. Default: "Inserted elements"
 msgid "selected_objects"
-msgstr ""
-
-#. Default: "The action has been successfully executed."
-msgid "action_ok"
-msgstr ""
-
-#. Default: "A problem occurred while executing the action."
-msgid "action_ko"
 msgstr ""
 
 #. Default: "Move up"
@@ -227,8 +223,16 @@ msgstr ""
 msgid "action_done"
 msgstr ""
 
+#. Default: "A problem occurred while executing the action."
+msgid "action_ko"
+msgstr ""
+
 #. Default: "Action could not be performed on ${nb} element(s)."
 msgid "action_partial"
+msgstr ""
+
+#. Default: "Action had no effect."
+msgid "action_null"
 msgstr ""
 
 #. Default: "Go to top"

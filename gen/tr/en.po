@@ -44,6 +44,10 @@ msgstr "Owner"
 msgid "appy_title"
 msgstr "Title"
 
+#. Default: "Ok"
+msgid "appy_ok"
+msgstr "Ok"
+
 #. Default: "Data change"
 msgid "data_change"
 msgstr "Data change"
@@ -91,14 +95,6 @@ msgstr "Selectable elements"
 #. Default: "Inserted elements"
 msgid "selected_objects"
 msgstr "Inserted elements"
-
-#. Default: "The action has been successfully executed."
-msgid "action_ok"
-msgstr "The action has been successfully executed."
-
-#. Default: "A problem occurred while executing the action."
-msgid "action_ko"
-msgstr "A problem occurred while executing the action."
 
 #. Default: "Move up"
 msgid "move_up"
@@ -202,7 +198,7 @@ msgstr "Unlink"
 
 #. Default: "Remove selection"
 msgid "object_unlink_many"
-msgstr ""
+msgstr "Remove selection"
 
 #. Default: "Insert"
 msgid "object_link"
@@ -222,15 +218,23 @@ msgstr "Unlock"
 
 #. Default: "Are you sure?"
 msgid "action_confirm"
-msgstr ""
+msgstr "Are you sure?"
 
 #. Default: "The action has been performed."
 msgid "action_done"
-msgstr ""
+msgstr "The action has been performed."
+
+#. Default: "A problem occurred while executing the action."
+msgid "action_ko"
+msgstr "A problem occurred while executing the action."
 
 #. Default: "Action could not be performed on ${nb} element(s)."
 msgid "action_partial"
 msgstr "Action could not be performed on ${nb} element(s)."
+
+#. Default: "Action had no effect."
+msgid "action_null"
+msgstr "Action had no effect."
 
 #. Default: "Go to top"
 msgid "goto_first"

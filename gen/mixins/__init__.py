@@ -1175,7 +1175,7 @@ class BaseMixin:
         if not msg:
             # Use the default i18n messages
             suffix = 'ko'
-            if successfull: suffix = 'ok'
+            if successfull: suffix = 'done'
             msg = self.translate('action_%s' % suffix)
         if (resultType == 'computation') or not successfull:
             self.say(msg)

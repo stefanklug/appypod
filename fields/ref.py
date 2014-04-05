@@ -978,6 +978,7 @@ class Ref(Field):
            unlink_many, delete_many).'''
         action = rq['linkAction']
         tool = obj.getTool()
+        msg = None
         if not action.endswith('_many'):
             # "link" or "unlink"
             tied = tool.getObject(rq['targetUid'])
@@ -1012,23 +1013,25 @@ class Ref(Field):
                 # Collect this object
                 target = not isObj and tool.getObject(value) or value.o
                 targets.append(target)
-            # Perform the action on every target. Count the number of failed
-            # operations.
-            mustDelete = action == 'delete_many'
-            failed = 0
-            for target in targets:
-                if mustDelete:
-                    # Delete
-                    if target.mayDelete(): target.delete()
-                    else: failed += 1
-                else:
-                    # Link or unlink
-                    exec 'self.%sObject(obj, target)' % action.split('_')[0]
+            if not targets:
+                msg = obj.translate('action_null')
+            else:
+                # Perform the action on every target. Count the number of failed
+                # operations.
+                failed = 0
+                mustDelete = action == 'delete_many'
+                for target in targets:
+                    if mustDelete:
+                        # Delete
+                        if target.mayDelete(): target.delete()
+                        else: failed += 1
+                    else:
+                        # Link or unlink
+                        exec 'self.%sObject(obj, target)' % action.split('_')[0]
+                if failed:
+                    msg = obj.translate('action_partial', mapping={'nb':failed})
         urlBack = obj.getUrl(rq['HTTP_REFERER'])
-        if not failed:
-            msg = obj.translate('action_done')
-        else:
-            msg = obj.translate('action_partial', mapping={'nb':failed})
+        if not msg: msg = obj.translate('action_done')
         obj.say(msg)
         tool.goto(urlBack)
 

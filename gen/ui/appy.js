@@ -549,6 +549,11 @@ function onLinkMany(action, id) {
   for (var uid in statuses) uids += uid + ',';
   // Get the array semantics
   var semantics = node['_appy_' + elems[2] + '_sem'];
+  // Show an error messagge if non element is selected.
+  if ((semantics == 'checked') && (Object.keys(statuses).length == 0)) {
+    openPopup('alertPopup', no_elem_selected);
+    return;
+  }
   // Fill the form and ask for a confirmation
   f = document.getElementById('linkForm');
   f.linkAction.value = action + '_many';
@@ -666,7 +671,8 @@ function protectAppyForm() {
 function openPopup(popupId, msg) {
   // Put the message into the popup
   if (msg) {
-    var confirmElem = document.getElementById('appyConfirmText');
+    var msgHook = (popupId == 'alertPopup')? 'appyAlertText': 'appyConfirmText';
+    var confirmElem = document.getElementById(msgHook);
     confirmElem.innerHTML = msg;
   }
   // Open the popup

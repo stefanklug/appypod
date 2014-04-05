@@ -156,6 +156,16 @@ class AbstractWrapper(object):
        </form>
       </div>
 
+      <!-- Popup for displaying an error message (~JS alert()) -->
+      <div id="alertPopup" class="popup">
+       <img src=":url('warningBig')" align=":dleft" style="margin-right: 10px"/>
+       <p id="appyAlertText" style="margin-bottom: 15px"></p>
+       <div align="center">
+        <input type="button" onclick="closePopup('alertPopup')"
+               value=":_('appy_ok')"/>
+       </div>
+      </div>
+
       <table class="main" align="center" cellpadding="0">
        <tr class="top">
         <!-- Top banner -->

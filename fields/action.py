@@ -31,7 +31,7 @@ class Action(Field):
                 label=_(field.labelId)"
            id=":formId" action=":ztool.absolute_url() + '/do'">
       <input type="hidden" name="action" value="ExecuteAppyAction"/>
-      <input type="hidden" name="objectUid" value=":zobj.UID()"/>
+      <input type="hidden" name="objectUid" value=":zobj.id"/>
       <input type="hidden" name="fieldName" value=":name"/>
       <input if="field.confirm" type="button" class="button"
          var="labelConfirm=_(field.labelId + '_confirm')"
