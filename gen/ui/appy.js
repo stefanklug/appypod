@@ -42,6 +42,11 @@ function showLoginForm() {
 }
 
 function goto(url) { window.location = url }
+function len(dict) {
+  var res = 0;
+  for (var key in dict) res += 1;
+  return res;
+}
 
 function switchLanguage(selectWidget) {
   var language = selectWidget.options[selectWidget.selectedIndex].value;
@@ -92,7 +97,8 @@ function injectChunk(elem, content){
          a temporary DOM element. */
       var temp = document.createElement('div');
       temp.innerHTML = content;
-      elem.replaceChild(temp.firstChild, elem.firstChild);
+      temp.firstChild.id = elem.id;
+      elem.parentNode.replaceChild(temp.firstChild, elem);
     }
   }
 }
@@ -550,7 +556,7 @@ function onLinkMany(action, id) {
   // Get the array semantics
   var semantics = node['_appy_' + elems[2] + '_sem'];
   // Show an error messagge if non element is selected.
-  if ((semantics == 'checked') && (Object.keys(statuses).length == 0)) {
+  if ((semantics == 'checked') && (len(statuses) == 0)) {
     openPopup('alertPopup', no_elem_selected);
     return;
   }
@@ -678,24 +684,15 @@ function openPopup(popupId, msg) {
   // Open the popup
   var popup = document.getElementById(popupId);
   // Put it at the right place on the screen
-  var scrollTop = document.body.scrollTop || window.pageYOffset || 0;
+  var scrollTop = document.documentElement.scrollTop || window.pageYOffset || 0;
   popup.style.top = (scrollTop + 150) + 'px';
-  popup.style.display = "block";
-  // Show the greyed zone
-  var greyed = document.getElementById('grey');
-  greyed.style.top = scrollTop + 'px';
-  greyed.style.display = "block";
-  greyed.style.height = document.body.clientHeight;
-  greyed.style.width = document.body.clientWidth;
+  popup.style.display = 'block';
 }
 
 function closePopup(popupId) {
   // Close the popup
   var popup = document.getElementById(popupId);
-  popup.style.display = "none";
-  // Hide the greyed zone
-  var greyed = document.getElementById('grey');
-  greyed.style.display = "none";
+  popup.style.display = 'none';
 }
 
 // Function triggered when an action needs to be confirmed by the user

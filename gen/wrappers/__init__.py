@@ -101,9 +101,6 @@ class AbstractWrapper(object):
       <script var="gaCode=ztool.getGoogleAnalyticsCode()" if="gaCode"
               type="text/javascript">:gaCode</script>
 
-      <!-- Grey background shown when popups are shown -->
-      <div id="grey" class="grey"></div>
-
       <!-- Popup for confirming an action -->
       <div id="confirmActionPopup" class="popup">
        <form id="confirmActionForm" method="post">

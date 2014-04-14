@@ -32,7 +32,7 @@ class Pod(Field):
        from data contained in Appy class and linked objects or anything you
        want to put in it. It is the way gen uses pod.'''
     # Layout for rendering a POD field for exporting query results.
-    rLayouts = {'view': Table('fl', width=None)}
+    rLayouts = {'view': 'l-f!'}
     allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
@@ -103,7 +103,11 @@ class Pod(Field):
             </table>
            </div>
           </td>
-          <td class="podName">:field.getTemplateName(obj, info.template)</td>
+          <!-- Show the specific template name only if there is more than one
+               template. For a single template, the field label already does
+               the job. -->
+          <td if="len(field.template) &gt; 1"
+              class="podName">:field.getTemplateName(obj, info.template)</td>
          </tr>
         </table>
        </td>
@@ -232,20 +236,20 @@ class Pod(Field):
 
     def getVisibleTemplates(self, obj):
         '''Returns, among self.template, the template(s) that can be shown.'''
-        isManager = obj.user.has_role('Manager')
+        res = []
         if not self.showTemplate:
             # Show them all in any format.
-            res = []
             for template in self.template:
                 res.append(Object(template=template,
                         formats=self.getAllFormats(template),
                         freezeFormats=self.getFreezeFormats(obj, template)))
-        res = []
-        for template in self.template:
-            formats = isManager and self.getAllFormats(template) or \
-                      self.showTemplate(obj, template)
-            if formats:
-                res.append(Object(template=template, formats=formats,
+        else:
+            isManager = obj.user.has_role('Manager')
+            for template in self.template:
+                formats = isManager and self.getAllFormats(template) or \
+                          self.showTemplate(obj, template)
+                if formats:
+                    res.append(Object(template=template, formats=formats,
                             freezeFormats=self.getFreezeFormats(obj, template)))
         return res
 

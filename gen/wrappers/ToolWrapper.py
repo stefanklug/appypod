@@ -442,7 +442,7 @@ class ToolWrapper(AbstractWrapper):
 
        <!-- The title of the search -->
        <p>
-        <x>:uiSearch.translated</x> (<x>:totalNumber</x>)
+        <x>:uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
         <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
          &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
         </x>
