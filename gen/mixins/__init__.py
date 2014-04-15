@@ -1155,54 +1155,11 @@ class BaseMixin:
         if hasattr(appyObj, 'mayEdit'): return appyObj.mayEdit()
         return True
 
-    def executeAppyAction(self, actionName, reindex=True):
-        '''Executes action with p_fieldName on this object.'''
-        appyType = self.getAppyType(actionName)
-        actionRes = appyType(self.appy())
-        parent = self.getParentNode()
-        parentAq = getattr(parent, 'aq_base', parent)
-        if not hasattr(parentAq, self.id):
-            # Else, it means that the action has led to self's deletion.
-            self.reindex()
-        return appyType.result, actionRes
-
-    def onExecuteAppyAction(self):
+    def onExecuteAction(self):
         '''This method is called every time a user wants to execute an Appy
            action on an object.'''
         rq = self.REQUEST
-        resultType, actionResult = self.executeAppyAction(rq['fieldName'])
-        successfull, msg = actionResult
-        if not msg:
-            # Use the default i18n messages
-            suffix = 'ko'
-            if successfull: suffix = 'done'
-            msg = self.translate('action_%s' % suffix)
-        if (resultType == 'computation') or not successfull:
-            self.say(msg)
-            return self.goto(self.getUrl(rq['HTTP_REFERER']))
-        elif resultType.startswith('file'):
-            # msg does not contain a message, but a file instance.
-            response = self.REQUEST.RESPONSE
-            response.setHeader('Content-Type', sutils.getMimeType(msg.name))
-            response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
-                               os.path.basename(msg.name))
-            response.write(msg.read())
-            msg.close()
-            if resultType == 'filetmp':
-                # p_msg is a temp file. We need to delete it.
-                try:
-                    os.remove(msg.name)
-                    self.log('Temp file "%s" was deleted.' % msg.name)
-                except IOError, err:
-                    self.log('Could not remove temp "%s" (%s).' % \
-                             (msg.name, str(err)), type='warning')
-                except OSError, err:
-                    self.log('Could not remove temp "%s" (%s).' % \
-                             (msg.name, str(err)), type='warning')
-        elif resultType == 'redirect':
-            # msg does not contain a message, but the URL where to redirect
-            # the user.
-            return self.goto(msg)
+        return self.getAppyType(rq['fieldName']).onUiRequest(self, rq)
 
     def trigger(self, transitionName, comment='', doAction=True, doNotify=True,
                 doHistory=True, doSay=True, noSecurity=False):
