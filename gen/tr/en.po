@@ -112,6 +112,10 @@ msgstr "Move to top"
 msgid "move_bottom"
 msgstr "Move to bottom"
 
+#. Default: "Update the hereabove number and click here to move this element to a new position."
+msgid "move_number"
+msgstr "Update the hereabove number and click here to move this element to a new position."
+
 #. Default: "create"
 msgid "query_create"
 msgstr "create"

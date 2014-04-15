@@ -1,3 +1,5 @@
+var wrongTextInput = '#F9EDBE none';
+
 // Functions related to user authentication
 function cookiesAreEnabled() {
   // Test whether cookies are enabled by attempting to set a cookie and then
@@ -240,7 +242,20 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
   params[startKey] = startNumber;
   if (action) params['action'] = action;
   if (actionParams) {
-    for (key in actionParams) { params[key] = actionParams[key]; };
+    for (key in actionParams) {
+      if ((key == 'move') && (typeof actionParams[key] == 'object')) {
+        // Get the new index from an input field
+        var id = actionParams[key].id;
+        id = id.substr(0, id.length-4);
+        var input = document.getElementById(id);
+        if (isNaN(input.value)) {
+          input.style.background = wrongTextInput;
+          return;
+        }
+        params[key] = 'index_' + input.value;
+      }
+      else params[key] = actionParams[key];
+    };
   }
   var px = (scope == 'objs')? ':pxView': ':pxViewPickList';
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName + px, params, null,
@@ -735,7 +750,6 @@ function doConfirm() {
   }
 }
 
-var wrongTextInput = '#F9EDBE none';
 // Function triggered when the user asks password reinitialisation
 function doAskPasswordReinit() {
   // Check that the user has typed a login

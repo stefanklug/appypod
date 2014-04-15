@@ -78,13 +78,12 @@ class Ref(Field):
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <table class="noStyle" var="tiedUid=tied.o.id">
+     <table class="noStyle">
       <tr>
        <!-- Arrows for moving objects up or down -->
        <td if="not isBack and (totalNumber &gt;1) and changeOrder and canWrite \
                and not inPickList"
-          var2="objectIndex=field.getIndexOf(zobj, tiedUid);
-                ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
+          var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
                    q(tiedUid), q('move'), q('**v**')))">
         <!-- Move to top -->
@@ -108,9 +107,9 @@ class Ref(Field):
        <td if="tied.o.showTransitions('result')"
            var2="targetObj=tied.o">:tied.pxTransitions</td>
        <!-- Edit -->
-       <td if="not field.noForm and tied.o.mayEdit() and field.delete">
-        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), field.name, \
-                        field.pageName, loop.tied.nb+startNumber, totalNumber)"
+       <td if="not field.noForm and tied.o.mayEdit()">
+        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
+                   field.pageName, loop.tied.nb + 1 + startNumber, totalNumber)"
            href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo)">
          <img src=":url('edit')" title=":_('object_edit')"/></a>
        </td>
@@ -171,6 +170,25 @@ class Ref(Field):
            onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
      </x>''')
 
+    # Shows the object number in a numbered list of tied objects.
+    pxNumber = Px('''
+     <x if="not changeNumber">:objectIndex+1</x>
+     <div if="changeNumber" class="dropdownMenu"
+          var2="id='%s_%d' % (ajaxHookId, objectIndex);
+                dropdownId='%s_dd' % id"
+          onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
+          onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
+      <input type="text" size=":numberWidth" id=":id" value=":objectIndex+1"/>
+      <!-- The menu -->
+      <div id=":dropdownId" class="dropdown">
+       <img class="clickable" src=":url('move')" id=":id + '_img'"
+            title=":_('move_number')"
+            onclick=":navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:this}' % \
+                      (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
+                       q(tiedUid), q('move')))"/>
+      </div>
+     </div>''')
+
     # PX that displays referred objects as a list.
     pxViewList = Px('''
       <!-- Display a simplified widget if at most 1 referenced object. -->
@@ -215,6 +233,7 @@ class Ref(Field):
               var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                      field.shownInfo, dir)">
         <tr if="field.showHeaders">
+         <th if="not inPickList and numbered" width=":numbered"></th>
          <th for="column in columns" width=":column.width"
              align="column.align" var2="refField=column.field">
           <span>:_(refField.labelId)</span>
@@ -228,8 +247,12 @@ class Ref(Field):
                onclick=":'toggleAllRefCbs(%s)' % q(ajaxHookId)"/>
          </th>
         </tr>
+        <!-- Loop on every (tied or selectable) object. -->
         <tr for="tied in objects" valign="top"
-            class=":loop.tied.odd and 'even' or 'odd'">
+            class=":loop.tied.odd and 'even' or 'odd'"
+            var2="tiedUid=tied.o.id;
+                  objectIndex=field.getIndexOf(zobj, tiedUid)|None">
+         <td if="not inPickList and numbered">:field.pxNumber</td>
          <td for="column in columns" width=":column.width" align=":column.align"
              var2="refField=column.field">
           <!-- The "title" field -->
@@ -246,8 +269,8 @@ class Ref(Field):
           </x>
          </td>
          <td if="checkboxes" class="cbCell">
-          <input var="tiedUid=tied.uid" type="checkbox" name=":ajaxHookId"
-                checked="checked" value=":tiedUid" onclick="toggleRefCb(this)"/>
+          <input type="checkbox" name=":ajaxHookId" checked="checked"
+                 value=":tiedUid" onclick="toggleRefCb(this)"/>
          </td>
         </tr>
        </table>
@@ -287,6 +310,7 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=False;
+             changeNumber=False;
              checkboxes=field.getAttribute(zobj, 'checkboxes') and \
                         (totalNumber &gt; 1);
              showSubTitles=showSubTitles|\
@@ -340,6 +364,7 @@ class Ref(Field):
              info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
              objects=info.objects;
              totalNumber=info.totalNumber;
+             numberWidth=len(str(totalNumber));
              batchSize=info.batchSize;
              batchNumber=len(objects);
              folder=zobj.getCreateFolder();
@@ -353,6 +378,9 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
              changeOrder=field.getAttribute(zobj, 'changeOrder');
+             numbered=field.isNumbered(zobj);
+             changeNumber=not inPickList and numbered and canWrite and \
+                          changeOrder and (totalNumber &gt; 3);
              checkboxesEnabled=field.getAttribute(zobj, 'checkboxes');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
@@ -425,10 +453,11 @@ class Ref(Field):
                  width=None, height=5, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, queryable=False, queryFields=None, queryNbCols=1,
-                 navigable=False, changeOrder=True, checkboxes=True,
-                 checkboxesDefault=None, sdefault='', scolspan=1, swidth=None,
-                 sheight=None, sselect=None, persist=True, render='list',
-                 menuIdMethod=None, menuInfoMethod=None, menuUrlMethod=None):
+                 navigable=False, changeOrder=True, numbered=False,
+                 checkboxes=True, checkboxesDefault=None, sdefault='',
+                 scolspan=1, swidth=None, sheight=None, sselect=None,
+                 persist=True, render='list', menuIdMethod=None,
+                 menuInfoMethod=None, menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ?
@@ -513,12 +542,20 @@ class Ref(Field):
         self.queryNbCols = queryNbCols
         # Within the portlet, will referred elements appear ?
         self.navigable = navigable
-        # If "changeOrder" is False, it even if the user has the right to modify
-        # the field, it will not be possible to move objects or sort them.
+        # If "changeOrder" is or returns False, it even if the user has the
+        # right to modify the field, it will not be possible to move objects or
+        # sort them.
         self.changeOrder = changeOrder
-        # If "checkboxes" is True, every linked object will be "selectable" vi
-        # a checkbox: global actions will be possible, that will act on the
-        # subset of selected objects: delete, unlink, etc.
+        # If "numbered" is or returns True, a leading column will show the
+        # number of every tied object. Moreover, if the user can change order of
+        # tied objects, an input field will allow him to enter a new number for
+        # the tied object. If "numbered" is or returns a string, it will be used
+        # as width for the column containing the number. Else, a default width
+        # will be used.
+        self.numbered = numbered
+        # If "checkboxes" is or returns True, every linked object will be
+        # "selectable" via a checkbox. Global actions will be activated and will
+        # act on the subset of selected objects: delete, unlink, etc.
         self.checkboxes = checkboxes
         # Default value for checkboxes, if enabled.
         if checkboxesDefault == None:
@@ -717,6 +754,14 @@ class Ref(Field):
             text, icon = self.menuInfoMethod(obj, menu.id)
             menu.text = text
             menu.icon = icon
+        return res
+
+    def isNumbered(self, obj):
+        '''Must we show the order number of every tied object?'''
+        res = self.getAttribute(obj, 'numbered')
+        if not res: return res
+        # Returns the column width.
+        if not isinstance(res, basestring): return '15px'
         return res
 
     def getMenuUrl(self, zobj, tied):
@@ -941,9 +986,6 @@ class Ref(Field):
         uid = rq['refObjectUid']
         uids = getattr(obj.aq_base, self.name)
         oldIndex = uids.index(uid)
-        # Remove the object from its previous position.
-        uids.remove(uid)
-        # Re-insert the object at its new position.
         if move == 'up':
             newIndex = oldIndex - 1
         elif move == 'down':
@@ -951,8 +993,17 @@ class Ref(Field):
         elif move == 'top':
             newIndex = 0
         elif move == 'bottom':
-            newIndex = len(uids)
-        uids.insert(newIndex, uid)
+            newIndex = len(uids) - 1
+        elif move.startswith('index'):
+            # New index starts at 1 (oldIndex starts at 0).
+            try:
+                newIndex = int(move.split('_')[1]) - 1
+            except ValueError:
+                newIndex = -1
+        # If newIndex is negative, it means that the move can't occur.
+        if newIndex > -1:
+            uids.remove(uid)
+            uids.insert(newIndex, uid)
 
     xhtmlToText = re.compile('<.*?>', re.S)
     def getReferenceLabel(self, refObject, unlimited=False):

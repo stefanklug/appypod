@@ -112,6 +112,10 @@ msgstr "Déplacer en première position"
 msgid "move_bottom"
 msgstr "Déplacer en dernière position"
 
+#. Default: "Update the hereabove number and click here to move this element to a new position."
+msgid "move_number"
+msgstr "Modifiez le numéro ci-dessus et cliquez ici pour déplacer l'élément à une nouvelle position."
+
 #. Default: "create"
 msgid "query_create"
 msgstr "Créer"
