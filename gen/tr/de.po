@@ -103,6 +103,14 @@ msgstr "Nach oben verschieben"
 msgid "move_down"
 msgstr "Nach unten verschieben"
 
+#. Default: "Move to top"
+msgid "move_top"
+msgstr ""
+
+#. Default: "Move to bottom"
+msgid "move_bottom"
+msgstr ""
+
 #. Default: "create"
 msgid "query_create"
 msgstr "Anfertigen"

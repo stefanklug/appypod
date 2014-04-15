@@ -48,9 +48,9 @@ function len(dict) {
   return res;
 }
 
-function switchLanguage(selectWidget) {
+function switchLanguage(selectWidget, siteUrl) {
   var language = selectWidget.options[selectWidget.selectedIndex].value;
-  goto("/config/changeLanguage?language=" + language);
+  goto(siteUrl + '/config/changeLanguage?language=' + language);
 }
 
 var isIe = (navigator.appName == "Microsoft Internet Explorer");

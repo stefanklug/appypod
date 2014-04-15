@@ -31,9 +31,9 @@ class AbstractWrapper(object):
 
       <!-- Go to the first or previous page -->
       <a if="ni.firstUrl" href=":ni.firstUrl"><img title=":_('goto_first')"
-         src=":url('arrowLeftDouble')"/></a><a
+         src=":url('arrowsLeft')"/></a><a
          if="ni.previousUrl" href=":ni.previousUrl"><img
-         title=":_('goto_previous')" src=":url('arrowLeftSimple')"/></a>
+         title=":_('goto_previous')" src=":url('arrowLeft')"/></a>
 
       <!-- Explain which element is currently shown -->
       <span class="discreet"> 
@@ -42,9 +42,9 @@ class AbstractWrapper(object):
 
       <!-- Go to the next or last page -->
       <a if="ni.nextUrl" href=":ni.nextUrl"><img title=":_('goto_next')"
-         src=":url('arrowRightSimple')"/></a><a
+         src=":url('arrowRight')"/></a><a
          if="ni.lastUrl" href=":ni.lastUrl"><img title=":_('goto_last')"
-         src=":url('arrowRightDouble')"/></a>
+         src=":url('arrowsRight')"/></a>
      </div>''')
 
     pxNavigationStrip = Px('''
@@ -188,10 +188,10 @@ class AbstractWrapper(object):
              class="pageLink clickable">:_('app_connect')</a>
 
           <!-- Language selector -->
-          <select if="ztool.showLanguageSelector()"
+          <select if="ztool.showLanguageSelector()" class="pageLink"
                   var2="languages=ztool.getLanguages();
                        defaultLanguage=languages[0]"
-                  class="pageLink" onchange="switchLanguage(this)"> 
+                  onchange=":'switchLanguage(this,%s)' % q(ztool.getSiteUrl())">
            <option for="lg in languages" value=":lg"
                    selected=":lang == lg">:ztool.getLanguageName(lg)</option>
           </select>

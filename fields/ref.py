@@ -78,18 +78,28 @@ class Ref(Field):
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <table class="noStyle">
+     <table class="noStyle" var="tiedUid=tied.o.id">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if="not isBack and (len(objects)&gt;1) and changeOrder and canWrite \
+       <td if="not isBack and (totalNumber &gt;1) and changeOrder and canWrite \
                and not inPickList"
-          var2="objectIndex=field.getIndexOf(zobj, tied);
+          var2="objectIndex=field.getIndexOf(zobj, tiedUid);
                 ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
-                   q(tied.o.id), q('move'), q('**v**')))">
+                   q(tiedUid), q('move'), q('**v**')))">
+        <!-- Move to top -->
+        <img if="objectIndex &gt; 1" class="clickable"
+             src=":url('arrowsUp')" title=":_('move_top')"
+             onclick=":ajaxBaseCall.replace('**v**', 'top')"/>
+        <!-- Move to bottom -->
+        <img if="objectIndex &lt; (totalNumber-2)" class="clickable"
+             src=":url('arrowsDown')" title=":_('move_bottom')"
+             onclick=":ajaxBaseCall.replace('**v**', 'bottom')"/>
+        <!-- Move up -->
         <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
              title=":_('move_up')"
              onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
+        <!-- Move down -->
         <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
              src=":url('arrowDown')" title=":_('move_down')"
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
@@ -107,7 +117,7 @@ class Ref(Field):
        <!-- Delete -->
        <td if="not isBack and field.delete and canWrite and tied.o.mayDelete()">
         <img class="clickable" title=":_('object_delete')" src=":url('delete')"
-             onclick=":'onDeleteObject(%s)' % q(tied.o.id)"/>
+             onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
        </td>
        <!-- Unlink -->
        <td if="not isBack and field.unlink and canWrite and not inPickList">
@@ -115,14 +125,14 @@ class Ref(Field):
                   action='unlink'"
              class="clickable" title=":_('object_unlink')" src=":url(imgName)"
              onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
-                        q(field.name), q(tied.o.id))"/>
+                        q(field.name), q(tiedUid))"/>
        </td>
        <!-- Insert (if in pick list) -->
        <td if="inPickList">
         <img var="action='link'" class="clickable" title=":_('object_link')"
              src=":url(action)"
              onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
-                        q(field.name), q(tied.o.id))"/>
+                        q(field.name), q(tiedUid))"/>
        </td>
       </tr>
      </table>''')
@@ -923,16 +933,25 @@ class Ref(Field):
                (obj.id, self.name, code % ('objs', 'objs'), poss)
 
     def doChangeOrder(self, obj):
-        '''Moves a referred object up or down.'''
+        '''Moves a referred object up/down/top/bottom.'''
         rq = obj.REQUEST
-        # Move the item up (-1), down (+1) ?
-        move = (rq['move'] == 'down') and 1 or -1
-        # The UID of the referred object to move
+        # How to move the item?
+        move = rq['move']
+        # Get the UID of the tied object to move
         uid = rq['refObjectUid']
         uids = getattr(obj.aq_base, self.name)
         oldIndex = uids.index(uid)
+        # Remove the object from its previous position.
         uids.remove(uid)
-        newIndex = oldIndex + move
+        # Re-insert the object at its new position.
+        if move == 'up':
+            newIndex = oldIndex - 1
+        elif move == 'down':
+            newIndex = oldIndex + 1
+        elif move == 'top':
+            newIndex = 0
+        elif move == 'bottom':
+            newIndex = len(uids)
         uids.insert(newIndex, uid)
 
     xhtmlToText = re.compile('<.*?>', re.S)
@@ -959,11 +978,12 @@ class Ref(Field):
             res = refObject.tool.o.truncateValue(res, maxWidth)
         return res
 
-    def getIndexOf(self, obj, refObj):
-        '''Gets the position of p_refObj within this field on p_obj.'''
+    def getIndexOf(self, obj, tiedUid):
+        '''Gets the position of tied object identified by p_tiedUid within this
+           field on p_obj.'''
         uids = getattr(obj.aq_base, self.name, None)
         if not uids: raise IndexError()
-        return uids.index(refObj.o.id)
+        return uids.index(tiedUid)
 
     def sort(self, obj):
         '''Called when the user wants to sort the content of this field.'''

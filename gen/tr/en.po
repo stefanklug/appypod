@@ -104,6 +104,14 @@ msgstr "Move up"
 msgid "move_down"
 msgstr "Move down"
 
+#. Default: "Move to top"
+msgid "move_top"
+msgstr "Move to top"
+
+#. Default: "Move to bottom"
+msgid "move_bottom"
+msgstr "Move to bottom"
+
 #. Default: "create"
 msgid "query_create"
 msgstr "create"

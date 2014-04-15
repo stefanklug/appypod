@@ -104,6 +104,14 @@ msgstr "Déplacer vers le haut"
 msgid "move_down"
 msgstr "Déplacer vers le bas"
 
+#. Default: "Move to top"
+msgid "move_top"
+msgstr "Déplacer en première position"
+
+#. Default: "Move to bottom"
+msgid "move_bottom"
+msgstr "Déplacer en dernière position"
+
 #. Default: "create"
 msgid "query_create"
 msgstr "Créer"

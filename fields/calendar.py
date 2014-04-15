@@ -45,7 +45,7 @@ class Calendar(Field):
                 goForward=not endDate or (endDate.strftime(fmt) &gt; \
                                           grid[-1][-1].strftime(fmt))">
        <!-- Go to the previous month -->
-       <img class="clickable" if="goBack" src=":url('arrowLeftSimple')"
+       <img class="clickable" if="goBack" src=":url('arrowLeft')"
             onclick=":'askMonthView(%s,%s,%s,%s)' % \
                      (q(ajaxHookId),q(objUrl),q(field.name),q(previousMonth))"/>
        <!-- Go back to the default date -->
@@ -58,7 +58,7 @@ class Calendar(Field):
                                  q(objUrl), q(field.name), q(defaultDateMonth))"
               disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
        <!-- Go to the next month -->
-       <img class="clickable" if="goForward" src=":url('arrowRightSimple')"
+       <img class="clickable" if="goForward" src=":url('arrowRight')"
             onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
                                    q(objUrl), q(field.name), q(nextMonth))"/>
        <span>:_('month_%s' % monthDayOne.aMonth())</span>

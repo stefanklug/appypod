@@ -50,13 +50,13 @@ class ToolWrapper(AbstractWrapper):
        <tr valign="bottom">
         <!-- Go to the first page -->
         <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            class="clickable" src=":url('arrowLeftDouble')"
+            class="clickable" src=":url('arrowsLeft')"
             title=":_('goto_first')"
             onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
 
         <!-- Go to the previous page -->
         <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            class="clickable" src=":url('arrowLeftSimple')"
+            class="clickable" src=":url('arrowLeft')"
             title=":_('goto_previous')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
@@ -70,7 +70,7 @@ class ToolWrapper(AbstractWrapper):
         <!-- Go to the next page -->
         <td var="sNumber=startNumber + batchSize"
             if="sNumber &lt; totalNumber"><img class="clickable"
-            src=":url('arrowRightSimple')" title=":_('goto_next')"
+            src=":url('arrowRight')" title=":_('goto_next')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
 
@@ -82,7 +82,7 @@ class ToolWrapper(AbstractWrapper):
                  sNumber= nbOfCountedPages * batchSize"
             if="(startNumber != sNumber) and \
                 (startNumber != sNumber-batchSize)"><img class="clickable"
-            src=":url('arrowRightDouble')" title=":_('goto_last')"
+            src=":url('arrowsRight')" title=":_('goto_last')"
             onClick=":navBaseCall.replace('**v**', \
                                           str(sNumber)+sortAndFilter)"/></td>
        </tr>
