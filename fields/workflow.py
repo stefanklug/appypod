@@ -41,6 +41,10 @@ class Role:
         # An ungrantable role is one that is, like the Anonymous or
         # Authenticated roles, automatically attributed to a user.
 
+    def __repr__(self):
+        loc = self.local and ' (local)' or ''
+        return '<Role %s%s>' % (self.name, loc)
+
 # ------------------------------------------------------------------------------
 class State:
     '''Represents a workflow state.'''
@@ -94,17 +98,22 @@ class State:
                 self.permissions[permission] = rolesList
 
     def getUsedRoles(self): return self.usedRoles.values()
+    def updatePermissions(self, perms):
+        '''Update self.permissions with dict p_perms.'''
+        self.permissions.update(perms)
+        self.standardizeRoles()
 
 # ------------------------------------------------------------------------------
 class Transition:
     '''Represents a workflow transition.'''
     def __init__(self, states, condition=True, action=None, notify=None,
                  show=True, confirm=False, group=None):
-        self.states = states # In its simpler form, it is a tuple with 2
-        # states: (fromState, toState). But it can also be a tuple of several
-        # (fromState, toState) sub-tuples. This way, you may define only 1
+        # In its simpler form, "states" is a list of 2 states:
+        # (fromState, toState). But it can also be a list of several
+        # (fromState, toState) sub-lists. This way, you may define only 1
         # transition at several places in the state-transition diagram. It may
         # be useful for "undo" transitions, for example.
+        self.states = self.standardiseStates(states)
         self.condition = condition
         if isinstance(condition, basestring):
             # The condition specifies the name of a role.
@@ -116,6 +125,15 @@ class Transition:
         # the transition. It will only be possible by code.
         self.confirm = confirm # If True, a confirm popup will show up.
         self.group = Group.get(group)
+
+    def standardiseStates(self, states):
+        '''Get p_states as a list or a list of lists. Indeed, the user may also
+           specify p_states a tuple or tuple of tuples. Having lists allows us
+           to easily perform changes in states if required.'''
+        if isinstance(states[0], State):
+            if isinstance(states, tuple): return list(states)
+            return states
+        return [[start, end] for start, end in states]
 
     def getName(self, wf):
         '''Returns the name for this state in workflow p_wf.'''
@@ -134,6 +152,42 @@ class Transition:
         '''If this transition is only defined between 2 states, returns True.
            Else, returns False.'''
         return isinstance(self.states[0], State)
+
+    def _replaceStateIn(self, oldState, newState, states):
+        '''Replace p_oldState by p_newState in p_states.'''
+        if oldState not in states: return
+        i = states.index(oldState)
+        del states[i]
+        states.insert(i, newState)
+
+    def replaceState(self, oldState, newState):
+        '''Replace p_oldState by p_newState in self.states.'''
+        if self.isSingle():
+            self._replaceStateIn(oldState, newState, self.states)
+        else:
+            for i in range(len(self.states)):
+                self._replaceStateIn(oldState, newState, self.states[i])
+
+    def removeState(self, state):
+        '''For a multi-state transition, this method removes every state pair
+           containing p_state.'''
+        if self.isSingle(): raise Exception('To use for multi-transitions only')
+        i = len(self.states) - 1
+        while i >= 0:
+            if state in self.states[i]:
+                del self.states[i]
+            i -= 1
+        # This transition may become a single-state-pair transition.
+        if len(self.states) == 1:
+            self.states = self.states[0]
+
+    def setState(self, state):
+        '''Configure this transition as being an auto-transition on p_state.
+           This can be useful if, when changing a workflow, one wants to remove
+           a state by isolating him from the rest of the state diagram and
+           disable some transitions by making them auto-transitions of this
+           disabled state.'''
+        self.states = [state, state]
 
     def isShowable(self, workflow, obj):
         '''Is this transition showable?'''

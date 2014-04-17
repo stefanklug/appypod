@@ -699,7 +699,7 @@ class AbstractWrapper(object):
         elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)
-        # If we got an Appy type, return the value of this type for this object
+        # If we got an Appy field, return its value for this object
         if isinstance(res, Field):
             o = self.o
             if isinstance(res, Ref):
