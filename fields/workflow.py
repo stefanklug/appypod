@@ -43,7 +43,7 @@ class Role:
 
     def __repr__(self):
         loc = self.local and ' (local)' or ''
-        return '<Role %s%s>' % (self.name, loc)
+        return '<%s%s>' % (self.name, loc)
 
 # ------------------------------------------------------------------------------
 class State:
@@ -98,10 +98,69 @@ class State:
                 self.permissions[permission] = rolesList
 
     def getUsedRoles(self): return self.usedRoles.values()
-    def updatePermissions(self, perms):
-        '''Update self.permissions with dict p_perms.'''
-        self.permissions.update(perms)
-        self.standardizeRoles()
+
+    def addRoles(self, roleNames, permissions=()):
+        '''Adds p_roleNames in self.permissions. If p_permissions is specified,
+           roles are added to those permissions only. Else, roles are added for
+           every permission within self.permissions.'''
+        if isinstance(roleNames, basestring): roleNames = (roleNames,)
+        if isinstance(permissions, basestring): permissions = (permissions,)
+        for perm, roles in self.permissions.iteritems():
+            if permissions and (perm not in permissions): continue
+            for roleName in roleNames:
+                # Do nothing if p_roleName is already almong roles.
+                alreadyThere = False
+                for role in roles:
+                    if role.name == roleName:
+                        alreadyThere = True
+                        break
+                if alreadyThere: break
+                # Add the role for this permission. Here, I think we don't mind
+                # if the role is local but not noted as it in this Role
+                # instance.
+                roles.append(self.getRole(roleName))
+
+    def removeRoles(self, roleNames, permissions=()):
+        '''Removes p_roleNames within dict self.permissions. If p_permissions is
+           specified, removal is restricted to those permissions. Else, removal
+           occurs throughout the whole dict self.permissions.'''
+        if isinstance(roleNames, basestring): roleNames = (roleNames,)
+        if isinstance(permissions, basestring): permissions = (permissions,)
+        for perm, roles in self.permissions.iteritems():
+            if permissions and (perm not in permissions): continue
+            for roleName in roleNames:
+                # Remove this role if present in roles for this permission.
+                for role in roles:
+                    if role.name == roleName:
+                        roles.remove(role)
+                        break
+
+    def setRoles(self, roleNames, permissions=()):
+        '''Sets p_rolesNames for p_permissions if not empty, for every
+           permission in self.permissions else.'''
+        if isinstance(roleNames, basestring): roleNames = (roleNames,)
+        if isinstance(permissions, basestring): permissions = (permissions,)
+        for perm in self.permissions.iterkeys():
+            if permissions and (perm not in permissions): continue
+            roles = self.permissions[perm] = []
+            for roleName in roleNames:
+                roles.append(self.getRole(roleName))
+
+    def replaceRole(self, oldRoleName, newRoleName, permissions=()):
+        '''Replaces p_oldRoleName by p_newRoleName. If p_permissions is
+           specified, the replacement is restricted to those permissions. Else,
+           replacements apply to the whole dict self.permissions.'''
+        if isinstance(permissions, basestring): permissions = (permissions,)
+        for perm, roles in self.permissions.iteritems():
+            if permissions and (perm not in permissions): continue
+            # Find and delete p_oldRoleName.
+            for role in roles:
+                if role.name == oldRoleName:
+                    # Remove p_oldRoleName.
+                    roles.remove(role)
+                    # Add p_newRoleName.
+                    roles.append(self.getRole(newRoleName))
+                    break
 
 # ------------------------------------------------------------------------------
 class Transition:
