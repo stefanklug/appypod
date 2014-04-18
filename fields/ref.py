@@ -408,7 +408,7 @@ class Ref(Field):
     pxEdit = Px('''
      <select if="field.link"
              var2="objects=field.getPossibleValues(zobj);
-                   uids=getattr(zobj, field.name, ())"
+                   uids=[o.id for o in field.getValue(zobj, appy=False)]"
              name=":name" id=":name" size=":isMultiple and field.height or ''"
              onchange=":field.getOnChange(zobj, layoutType)"
              multiple=":isMultiple">
