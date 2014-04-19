@@ -70,7 +70,7 @@ class Field:
              tagCss=tagCss|'';
              tagCss=('%s %s' % (slaveCss, tagCss)).strip();
              zobj=zobj or ztool;
-             tagId='%s_%s' % (zobj.UID(), name);
+             tagId='%s_%s' % (zobj.id, name);
              tagName=field.master and 'slave' or '';
              layoutTarget=field">:tool.pxLayoutedObject</x>''')
 

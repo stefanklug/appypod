@@ -356,6 +356,7 @@ class Ref(Field):
      <x var="innerRef=req.get('innerRef', False) == 'True';
              ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
              render=render|'list';
+             layoutType=layoutType|'view';
              linkList=field.link == 'list';
              renderAll=req.get('scope') != 'objs';
              inPickList=False;
@@ -381,7 +382,8 @@ class Ref(Field):
              numbered=field.isNumbered(zobj);
              changeNumber=not inPickList and numbered and canWrite and \
                           changeOrder and (totalNumber &gt; 3);
-             checkboxesEnabled=field.getAttribute(zobj, 'checkboxes');
+             checkboxesEnabled=field.getAttribute(zobj, 'checkboxes') and \
+                               (layoutType != 'cell');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- The definition of "atMostOneRef" above may sound strange: we
