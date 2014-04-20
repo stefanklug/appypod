@@ -28,20 +28,20 @@ class Action(Field):
     # PX for viewing the Action button.
     pxView = pxCell = Px('''
      <form var="formId='%s_%s_form' % (zobj.id, name);
-                label=_(field.labelId)"
+                label=_(field.labelId);
+                buttonWidth=ztool.getButtonWidth(label)"
            id=":formId" action=":ztool.absolute_url() + '/do'">
       <input type="hidden" name="action" value="ExecuteAction"/>
       <input type="hidden" name="objectUid" value=":zobj.id"/>
       <input type="hidden" name="fieldName" value=":name"/>
       <input if="field.confirm" type="button" class="button"
-         var="labelConfirm=_(field.labelId + '_confirm')"
-         value=":ztool.truncateValue(label)" title=":label"
-         style=":url('buttonAction', bg=True)"
+         var="labelConfirm=_(field.labelId + '_confirm')" value=":label"
+         style=":'%s; %s' % (url('action', bg=True), buttonWidth)"
          onclick=":'askConfirm(%s,%s,%s)' % (q('form'), q(formId), \
                                              q(labelConfirm))"/>
       <input if="not field.confirm" type="submit" class="button" name="do"
-             value=":ztool.truncateValue(label)" title=":label"
-             style=":url('buttonAction', bg=True)"/>
+             value=":label"
+             style=":'%s; %s' % (url('action', bg=True), buttonWidth)"/>
      </form>''')
 
     # It is not possible to edit an action, not to search it.

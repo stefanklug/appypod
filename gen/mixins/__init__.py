@@ -855,7 +855,7 @@ class BaseMixin:
              can't trigger, but for which he needs to know for what reason he
              can't trigger it;
            * if p_includeNotShowable is True, it includes transitions for which
-             show=False. Indeed, because "showability" is only a GUI concern,
+             show=False. Indeed, because "showability" is only a UI concern,
              and not a security concern, in some cases it has sense to set
              includeNotShowable=True, because those transitions are triggerable
              from a security point of view.

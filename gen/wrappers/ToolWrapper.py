@@ -192,7 +192,9 @@ class ToolWrapper(AbstractWrapper):
          <!-- Create a new object from a web form. -->
          <input type="button" class="button"
                 if="mayCreate and ('form' in createMeans)"
-                style=":url('buttonAdd', bg=True)" value=":_('query_create')"
+                var2="label=_('query_create')" value=":label"
+                style=":'%s; %s' % (url('add', bg=True), \
+                                    ztool.getButtonWidth(label))"
                 onclick=":'goto(%s)' % \
                     q('%s/do?action=Create&amp;className=%s' % \
                     (toolUrl, className))"/>
@@ -209,7 +211,7 @@ class ToolWrapper(AbstractWrapper):
             <td><input type="text" size="14" name="w_SearchableText"
                        class="inputSearch"/></td>
             <td>
-             <input type="image" class="clickable" src=":url('search.gif')"
+             <input type="image" class="clickable" src=":url('search')"
                     title=":_('search_button')"/></td>
            </tr>
           </table>
@@ -521,8 +523,10 @@ class ToolWrapper(AbstractWrapper):
 
        <!-- Submit button -->
        <p align=":dright"><br/>
-        <input type="submit" class="button" value=":_('search_button')"
-               style=":url('buttonSearch', bg=True)"/>
+        <input type="submit" class="button" var="label=_('search_button')"
+               value=":label"
+               style=":'%s; %s' % (url('search', bg=True), \
+                                   ztool.getButtonWidth(label))"/>
        </p>
       </form>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')

@@ -56,23 +56,26 @@ class Ref(Field):
     # objects (delete many, unlink many,...)
     pxGlobalActions = Px('''
      <!-- Insert several objects (if in pick list) -->
-     <input if="inPickList" var2="action='link'" type="button" class="button"
-            value=":_('object_link_many')"
+     <input if="inPickList" type="button" class="button"
+            var2="action='link'; label=_('object_link_many')" value=":label"
             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":url('linkMany', bg=True)"/>
+            style=":'%s; %s' % (url('linkMany', bg=True), \
+                                ztool.getButtonWidth(label))"/>
      <!-- Unlink several objects -->
      <input if="not isBack and field.unlink and canWrite and not inPickList"
             var2="imgName=linkList and 'unlinkManyUp' or 'unlinkMany';
-                  action='unlink'"
-            type="button" class="button" value=":_('object_unlink_many')"
+                  action='unlink'; label=_('object_unlink_many')"
+            type="button" class="button" value=":label"
             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":url(imgName, bg=True)"/>
+            style=":'%s; %s' % (url(imgName, bg=True), \
+                                ztool.getButtonWidth(label))"/>
      <!-- Delete several objects -->
      <input if="not isBack and field.delete and canWrite"
-            var2="action='delete'"
-            type="button" class="button" value=":_('object_delete_many')"
+            var2="action='delete'; label=_('object_delete_many')"
+            type="button" class="button" value=":label"
             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":url('deleteMany', bg=True)"/>
+            style=":'%s; %s' % (url('deleteMany', bg=True), \
+                                ztool.getButtonWidth(label))"/>
      ''')
 
     # This PX displays icons for triggering actions on a given referenced object
@@ -152,9 +155,10 @@ class Ref(Field):
                            '%d,%s' % (startNumber, q('CreateWithoutForm')));
               noFormCall=not field.addConfirm and noFormCall or \
                 'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
-                                            q(addConfirmMsg))"
-        style=":url('buttonAdd', bg=True)" value=":_('add_ref')"
-        onclick=":field.noForm and noFormCall or formCall"/>''')
+                                            q(addConfirmMsg));
+              label=_('add_ref')"
+        style=":'%s; %s' % (url('add', bg=True), ztool.getButtonWidth(label))"
+        value=":label" onclick=":field.noForm and noFormCall or formCall"/>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
@@ -215,7 +219,9 @@ class Ref(Field):
         <x>:field.pxAdd</x>
         <!-- The search button if field is queryable -->
         <input if="objects and field.queryable" type="button" class="button"
-               style=":url('buttonSearch', bg=True)" value=":_('search_title')"
+               var2="label=_('search_title')" value=":label"
+               style=":'%s; %s' % (url('search', bg=True), \
+                                   ztool.getButtonWidth(label))"
                onclick=":'goto(%s)' % \
                 q('%s/search?className=%s&amp;ref=%s:%s' % \
                 (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
@@ -235,7 +241,7 @@ class Ref(Field):
         <tr if="field.showHeaders">
          <th if="not inPickList and numbered" width=":numbered"></th>
          <th for="column in columns" width=":column.width"
-             align="column.align" var2="refField=column.field">
+             align=":column.align" var2="refField=column.field">
           <span>:_(refField.labelId)</span>
           <x>:field.pxSortIcons</x>
           <x var="className=tiedClassName;

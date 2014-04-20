@@ -370,7 +370,7 @@ class AbstractWrapper(object):
       <!-- Input field for storing the comment coming from the popup -->
       <textarea id="comment" name="comment" cols="30" rows="3"
                 style="display:none"></textarea>
-      <table>
+      <table cellpadding="0" cellspacing="0">
        <tr valign="middle">
         <td align=":dright" for="transition in transitions">
          <!-- Render a transition or a group of transitions. -->
@@ -448,31 +448,36 @@ class AbstractWrapper(object):
                  pageInfo=phaseObj.pagesInfo[page]">
       <tr valign="top">
        <!-- Previous -->
-       <td if="previousPage and pageInfo.showPrevious">
+       <td if="previousPage and pageInfo.showPrevious"
+           var2="label=_('page_previous');
+                 buttonWidth=ztool.getButtonWidth(label)">
         <!-- Button on the edit page -->
         <x if="isEdit">
-         <input type="button" class="button" value=":_('page_previous')"
+         <input type="button" class="button" value=":label"
                 onClick="submitAppyForm('previous')"
-                style=":url('buttonPrevious', bg=True)"/>
+                style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"/>
          <input type="hidden" name="previousPage" value=":previousPage"/>
         </x>
         <!-- Button on the view page -->
-        <input if="not isEdit" type="button" class="button"
-               value=":_('page_previous')"
-               style=":url('buttonPrevious', bg=True)"
+        <input if="not isEdit" type="button" class="button" value=":label"
+               style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"
                onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage))"/>
        </td>
 
        <!-- Save -->
        <td if="isEdit and pageInfo.showSave">
         <input type="button" class="button" onClick="submitAppyForm('save')"
-               style=":url('buttonSave', bg=True)" value=":_('object_save')"/>
+               var="label=_('object_save')" value=":label"
+               style=":'%s; %s' % (url('save', bg=True), \
+                                   ztool.getButtonWidth(label))" />
        </td>
 
        <!-- Cancel -->
        <td if="isEdit and pageInfo.showCancel">
         <input type="button" class="button" onClick="submitAppyForm('cancel')"
-             style=":url('buttonCancel', bg=True)" value=":_('object_cancel')"/>
+               var="label=_('object_cancel')" value=":label"
+               style=":'%s; %s' % (url('cancel', bg=True), \
+                                   ztool.getButtonWidth(label))"/>
        </td>
 
        <td if="not isEdit"
@@ -482,7 +487,9 @@ class AbstractWrapper(object):
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"
-               style=":url('buttonEdit', bg=True)" value=":_('object_edit')"
+               var="label=_('object_edit')" value=":label"
+               style=":'%s; %s' % (url('edit', bg=True), \
+                                   ztool.getButtonWidth(label))"
                onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page))"/>
 
         <!-- Locked -->
@@ -496,20 +503,23 @@ class AbstractWrapper(object):
         <a if="editable and locked and user.has_role('Manager')">
          <img class="clickable" title=":_('page_unlock')"
               src=":url('unlockBig')"
-              onclick=":'onUnlockPage(%s,%s)' % (q(zobj.UID()), q(page))"/></a>
+              onclick=":'onUnlockPage(%s,%s)' % (q(zobj.id), q(page))"/></a>
        </td>
 
        <!-- Next -->
-       <td if="nextPage and pageInfo.showNext">
+       <td if="nextPage and pageInfo.showNext"
+           var2="label=_('page_next');
+                 buttonWidth=ztool.getButtonWidth(label)">
         <!-- Button on the edit page -->
         <x if="isEdit">
          <input type="button" class="button" onClick="submitAppyForm('next')"
-                style=":url('buttonNext', bg=True)" value=":_('page_next')"/>
+                style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
+                value=":label"/>
          <input type="hidden" name="nextPage" value=":nextPage"/>
         </x>
         <!-- Button on the view page -->
-        <input if="not isEdit" type="button" class="button"
-               style=":url('buttonNext', bg=True)" value=":_('page_next')"
+        <input if="not isEdit" type="button" class="button" value=":label"
+               style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
                onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage))"/>
        </td>
 

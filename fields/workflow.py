@@ -310,8 +310,8 @@ class Transition:
                     if user.has_role(condition, obj):
                         hasRole = True
                 else: # It is a method
-                    if not condition(wf, obj.appy()):
-                        return False
+                    res = condition(wf, obj.appy())
+                    if not res: return res # False or a No instance.
             if hasRole != False:
                 return True
 
@@ -387,18 +387,20 @@ class UiTransition:
     
     pxView = Px('''<x>
       <!-- Real button -->
-      <input if="transition.mayTrigger"
-             type="button" class="button" title=":transition.title"
-             style=":url('buttonTransition', bg=True)"
-             value=":ztool.truncateValue(transition.title)"
+      <input if="transition.mayTrigger" type="button" class="button"
+             var2="label=transition.title"
+             style=":'%s; %s' % (url('transition', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             value=":label"
              onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
                         q(transition.name), q(transition.confirm))"/>
 
       <!-- Fake button, explaining why the transition can't be triggered -->
-      <input type="button" class="button" if="not transition.mayTrigger"
-             style=":url('buttonFake', bg=True) + ';cursor: help'"
-             value=":ztool.truncateValue(transition.title)"
-             title=":'%s: %s' % (transition.title, transition.reason)"/>
+      <input if="not transition.mayTrigger" type="button"
+             class="fakeButton button" var2="label=transition.title"
+             style=":'%s; %s' % (url('fake', bg=True),
+                                 ztool.getButtonWidth(label))"
+             value=":label" title=":'%s: %s' % (label, transition.reason)"/>
      </x>''')
 
     def __init__(self, name, transition, obj, mayTrigger, ):

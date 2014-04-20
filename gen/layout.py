@@ -211,15 +211,10 @@ class Table:
 # Some base layouts to use, for fields and pages -------------------------------
 # The default layouts for pages.
 defaultPageLayouts  = {
-    'view': Table('w|-b|', align="center"),
-    'edit': Table('w|-b|', width=None)}
+    'view': Table('w-b'), 'edit': Table('w-b', width=None)}
 # A layout for pages, containing the page summary.
-summaryPageLayouts = {'view': Table('s-w|-b|', align="center"),
-                      'edit': Table('w|-b|', width=None)}
-widePageLayouts = {
-    'view': Table('w|-b|', align="center"),
-    'edit': Table('w|-b|')
-}
+summaryPageLayouts = {'view': Table('s-w-b'), 'edit': Table('w-b', width=None)}
+widePageLayouts = {'view': Table('w-b'), 'edit': Table('w-b')}
 centeredPageLayouts = {
     'view': Table('w|-b|', align="center"),
     'edit': Table('w|-b|', width=None, align='center')

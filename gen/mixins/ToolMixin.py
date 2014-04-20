@@ -1352,4 +1352,15 @@ class ToolMixin(BaseMixin):
                "s.parentNode.insertBefore(ga, s);\n" \
                "})();\n" % gaId
         return code
+
+    def getButtonWidth(self, label):
+        '''Determine button width, in pixels, corresponding to the button
+           p_label.'''
+        l = len(label)
+        if l < 10:
+            width = '130px'
+        else:
+            # Consider 1 char = 6 pixels wide.
+            width = '%dpx' % (130 + ((l-10)*4))
+        return 'width:%s' % width
 # ------------------------------------------------------------------------------

@@ -66,9 +66,11 @@ img { border: 0; vertical-align: middle }
             background-color: #dbdde1; font-weight: bold }
 .navigate td { padding: 4px 9px }
 .login { margin: 3px; color: black }
-input.button { border-width: 0 !important; color: #666666; height: 24px;
-           width: 150px; cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
-           background-color: transparent !important }
+input.button { color: #666666; height: 20px; width: 130px;
+               cursor:pointer; font-size: 90%; padding-left: 10px;
+               background-color: white; background-repeat: no-repeat;
+               background-position: 5% 25%; box-shadow: 2px 2px 2px #888888}
+.fakeButton { background-color: #e6e6e6 !important ; cursor:help !important }
 .buttons { margin-left: 4px }
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
