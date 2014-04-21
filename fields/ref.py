@@ -106,9 +106,6 @@ class Ref(Field):
              src=":url('arrowDown')" title=":_('move_down')"
              onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
        </td>
-       <!-- Workflow transitions -->
-       <td if="tied.o.showTransitions('result')"
-           var2="targetObj=tied.o">:tied.pxTransitions</td>
        <!-- Edit -->
        <td if="not field.noForm and tied.o.mayEdit()">
         <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
@@ -136,6 +133,9 @@ class Ref(Field):
              onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
                         q(field.name), q(tiedUid))"/>
        </td>
+       <!-- Workflow transitions -->
+       <td if="tied.o.showTransitions('result')"
+           var2="targetObj=tied.o; buttonsMode='small'">:tied.pxTransitions</td>
       </tr>
      </table>''')
 

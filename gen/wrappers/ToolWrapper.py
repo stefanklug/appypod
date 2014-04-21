@@ -190,7 +190,7 @@ class ToolWrapper(AbstractWrapper):
         <x var="mayCreate=ztool.userMayCreate(rootClass);
                 createMeans=ztool.getCreateMeans(rootClass)">
          <!-- Create a new object from a web form. -->
-         <input type="button" class="button"
+         <input type="button" class="buttonSmall button"
                 if="mayCreate and ('form' in createMeans)"
                 var2="label=_('query_create')" value=":label"
                 style=":'%s; %s' % (url('add', bg=True), \
@@ -323,7 +323,7 @@ class ToolWrapper(AbstractWrapper):
 
       <!-- Actions -->
       <table class="noStyle" if="zobj.mayAct()">
-       <tr valign="top">
+       <tr>
         <!-- Edit -->
         <td if="zobj.mayEdit()">
          <a var="navInfo='search.%s.%s.%d.%d' % \
@@ -340,7 +340,8 @@ class ToolWrapper(AbstractWrapper):
         </td>
         <!-- Workflow transitions -->
         <td if="zobj.showTransitions('result')"
-            var2="targetObj=zobj">:targetObj.appy().pxTransitions</td>
+            var2="targetObj=zobj;
+                  buttonsMode='small'">:targetObj.appy().pxTransitions</td>
        </tr>
       </table>
      </x>

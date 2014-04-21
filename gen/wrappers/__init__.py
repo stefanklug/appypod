@@ -363,7 +363,7 @@ class AbstractWrapper(object):
 
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
-           var2="formId='trigger_%s' % targetObj.UID()" method="post"
+           var2="formId='trigger_%s' % targetObj.id" method="post"
            id=":formId" action=":targetObj.absolute_url() + '/do'">
       <input type="hidden" name="action" value="Trigger"/>
       <input type="hidden" name="transition"/>
@@ -524,7 +524,7 @@ class AbstractWrapper(object):
        </td>
 
        <!-- Workflow transitions -->
-       <td var="targetObj=zobj"
+       <td var="targetObj=zobj; buttonsMode='normal'"
            if="targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
 
        <!-- Refresh -->
