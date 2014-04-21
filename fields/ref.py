@@ -270,8 +270,7 @@ class Ref(Field):
           <x if="refField.name != 'title'">
            <x var="zobj=tied.o; obj=tied; layoutType='cell';
                    innerRef=True; field=refField"
-              if="zobj.showField(field.name, \
-                                 layoutType='result')">:field.pxRender</x>
+              if="field.isShowable(zobj, 'result')">:field.pxRender</x>
           </x>
          </td>
          <td if="checkboxes" class="cbCell">

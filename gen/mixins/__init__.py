@@ -663,16 +663,6 @@ class BaseMixin:
                 self.REQUEST.set(field.name, '')
         return self.edit()
 
-    def showField(self, name, layoutType='view'):
-        '''Must I show field named p_name on this p_layoutType ?'''
-        return self.getAppyType(name).isShowable(self, layoutType)
-
-    def getMethod(self, methodName):
-        '''Returns the method named p_methodName.'''
-        # If I write "self.aq_base" instead of self, acquisition will be
-        # broken on returned object.
-        return getattr(self, methodName, None)
-
     def getCreateFolder(self):
         '''When an object must be created from this one through a Ref field, we
            must know where to put the newly create object: within this one if it
@@ -847,55 +837,6 @@ class BaseMixin:
             return klass.styles[elem]
         return elem
 
-    def getTransitions(self, includeFake=True, includeNotShowable=False,
-                       grouped=True):
-        '''This method returns info about transitions (as UiTransition
-           instances) that one can trigger from the user interface.
-           * if p_includeFake is True, it retrieves transitions that the user
-             can't trigger, but for which he needs to know for what reason he
-             can't trigger it;
-           * if p_includeNotShowable is True, it includes transitions for which
-             show=False. Indeed, because "showability" is only a UI concern,
-             and not a security concern, in some cases it has sense to set
-             includeNotShowable=True, because those transitions are triggerable
-             from a security point of view.
-           * If p_grouped is True, transitions are grouped according to their
-             "group" attribute, in a similar way to fields or searches.
-        '''
-        res = []
-        groups = {} # The already encountered groups of transitions.
-        wfPage = gen.Page('workflow')
-        wf = self.getWorkflow()
-        currentState = self.State(name=False)
-        # Loop on every transition
-        for name in dir(wf):
-            transition = getattr(wf, name)
-            if (transition.__class__.__name__ != 'Transition'): continue
-            # Filter transitions that do not have currentState as start state
-            if not transition.hasState(currentState, True): continue
-            # Check if the transition can be triggered
-            mayTrigger = transition.isTriggerable(self, wf)
-            # Compute the condition that will lead to including or not this
-            # transition
-            if not includeFake:
-                includeIt = mayTrigger
-            else:
-                includeIt = mayTrigger or isinstance(mayTrigger, gen.No)
-            if not includeNotShowable:
-                includeIt = includeIt and transition.isShowable(wf, self)
-            if not includeIt: continue
-            # Create the UiTransition instance.
-            info = UiTransition(name, transition, self, mayTrigger)
-            # Add the transition into the result.
-            if not transition.group or not grouped:
-                res.append(info)
-            else:
-                # Insert the UiGroup instance corresponding to transition.group.
-                uiGroup = transition.group.insertInto(res, groups, wfPage,
-                                 self.__class__.__name__, content='transitions')
-                uiGroup.addElement(info)
-        return res
-
     def getAppyPhases(self, currentOnly=False, layoutType='view'):
         '''Gets the list of phases that are defined for this content type. If
            p_currentOnly is True, the search is limited to the phase where the
@@ -965,10 +906,10 @@ class BaseMixin:
         if hasattr(appyObj, 'getSubTitle'): return appyObj.getSubTitle()
         return ''
 
-    def notifyWorkflowCreated(self):
-        '''This method is called every time an object is created, be it temp or
-           not. The objective here is to initialise workflow-related data on
-           the object.'''
+    # Workflow methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def initializeWorkflow(self):
+        '''Called when an object is created, be it temp or not, for initializing
+           workflow-related data on the object.'''
         wf = self.getWorkflow()
         # Get the initial workflow state
         initialState = self.State(name=False)
@@ -993,6 +934,55 @@ class BaseMixin:
            can also represent the name of a transition.'''
         stateName = stateName or self.State()
         return '%s_%s' % (self.getWorkflow(name=True), stateName)
+
+    def getTransitions(self, includeFake=True, includeNotShowable=False,
+                       grouped=True):
+        '''This method returns info about transitions (as UiTransition
+           instances) that one can trigger from the user interface.
+           * if p_includeFake is True, it retrieves transitions that the user
+             can't trigger, but for which he needs to know for what reason he
+             can't trigger it;
+           * if p_includeNotShowable is True, it includes transitions for which
+             show=False. Indeed, because "showability" is only a UI concern,
+             and not a security concern, in some cases it has sense to set
+             includeNotShowable=True, because those transitions are triggerable
+             from a security point of view.
+           * If p_grouped is True, transitions are grouped according to their
+             "group" attribute, in a similar way to fields or searches.
+        '''
+        res = []
+        groups = {} # The already encountered groups of transitions.
+        wfPage = gen.Page('workflow')
+        wf = self.getWorkflow()
+        currentState = self.State(name=False)
+        # Loop on every transition
+        for name in dir(wf):
+            transition = getattr(wf, name)
+            if (transition.__class__.__name__ != 'Transition'): continue
+            # Filter transitions that do not have currentState as start state
+            if not transition.hasState(currentState, True): continue
+            # Check if the transition can be triggered
+            mayTrigger = transition.isTriggerable(self, wf)
+            # Compute the condition that will lead to including or not this
+            # transition
+            if not includeFake:
+                includeIt = mayTrigger
+            else:
+                includeIt = mayTrigger or isinstance(mayTrigger, gen.No)
+            if not includeNotShowable:
+                includeIt = includeIt and transition.isShowable(wf, self)
+            if not includeIt: continue
+            # Create the UiTransition instance.
+            info = UiTransition(name, transition, self, mayTrigger)
+            # Add the transition into the result.
+            if not transition.group or not grouped:
+                res.append(info)
+            else:
+                # Insert the UiGroup instance corresponding to transition.group.
+                uiGroup = transition.group.insertInto(res, groups, wfPage,
+                                 self.__class__.__name__, content='transitions')
+                uiGroup.addElement(info)
+        return res
 
     def applyUserIdChange(self, oldId, newId):
         '''A user whose ID was p_oldId has now p_newId. If the old ID was
@@ -1156,34 +1146,20 @@ class BaseMixin:
         return True
 
     def onExecuteAction(self):
-        '''This method is called every time a user wants to execute an Appy
-           action on an object.'''
+        '''Called when a user wants to execute an Appy action on an object.'''
         rq = self.REQUEST
         return self.getAppyType(rq['fieldName']).onUiRequest(self, rq)
 
-    def trigger(self, transitionName, comment='', doAction=True, doNotify=True,
-                doHistory=True, doSay=True, noSecurity=False):
-        '''Triggers transition named p_transitionName.'''
-        # Check that this transition exists.
-        wf = self.getWorkflow()
-        if not hasattr(wf, transitionName) or \
-           getattr(wf, transitionName).__class__.__name__ != 'Transition':
-            raise 'Transition "%s" was not found.' % transitionName
-        # Is this transition triggerable?
-        transition = getattr(wf, transitionName)
-        if not transition.isTriggerable(self, wf, noSecurity=noSecurity):
-            raise 'Transition "%s" can\'t be triggered.' % transitionName
-        # Trigger the transition
-        transition.trigger(transitionName, self, wf, comment, doAction=doAction,
-                           doNotify=doNotify, doHistory=doHistory, doSay=doSay)
-
     def onTrigger(self):
-        '''This method is called whenever a user wants to trigger a workflow
-           transition on an object.'''
+        '''Called when a user wants to trigger a transition on an object.'''
         rq = self.REQUEST
-        self.trigger(rq['workflow_action'], comment=rq.get('comment', ''))
-        self.reindex()
-        return self.goto(self.getUrl(rq['HTTP_REFERER']))
+        wf = self.getWorkflow()
+        # Get the transition
+        name = rq['transition']
+        transition = getattr(wf, name, None)
+        if not transition or (transition.__class__.__name__ != 'Transition'):
+            raise Exception('Transition "%s" not found.' % name)
+        return transition.onUiRequest(self, wf, name, rq)
 
     def getRolesFor(self, permission):
         '''Gets, according to the workflow, the roles that are currently granted

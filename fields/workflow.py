@@ -331,7 +331,7 @@ class Transition:
         return msg
 
     def trigger(self, transitionName, obj, wf, comment, doAction=True,
-                doNotify=True, doHistory=True, doSay=True):
+                doNotify=True, doHistory=True, doSay=True, reindex=True):
         '''This method triggers this transition on p_obj. The transition is
            supposed to be triggerable (call to self.isTriggerable must have been
            performed before calling this method). If p_doAction is False, the
@@ -341,7 +341,9 @@ class Transition:
            transition has been triggered will not be launched. If p_doHistory is
            False, there will be no trace from this transition triggering in the
            workflow history. If p_doSay is False, we consider the transition is
-           trigger programmatically, and no message is returned to the user.'''
+           trigger programmatically, and no message is returned to the user.
+           If p_reindex is False, object reindexing will be performed by the
+           calling method.'''
         # Create the workflow_history dict if it does not exist.
         if not hasattr(obj.aq_base, 'workflow_history'):
             from persistent.mapping import PersistentMapping
@@ -368,12 +370,12 @@ class Transition:
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
-        # Reindex the object if required. Not only security-related indexes
-        # (Allowed, State) need to be updated here.
-        if not obj.isTemporary(): obj.reindex()
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
+        # Reindex the object if required. Not only security-related indexes
+        # (Allowed, State) need to be updated here.
+        if reindex and not obj.isTemporary(): obj.reindex()
         # Send notifications if needed
         if doNotify and self.notify and obj.getTool(True).mailEnabled:
             sendNotification(obj.appy(), self, transitionName, wf)
@@ -382,10 +384,21 @@ class Transition:
         if not msg: msg = obj.translate('object_saved')
         obj.say(msg)
 
+    def onUiRequest(self, obj, wf, name, rq):
+        '''Executed when a user wants to trigger this transition from the UI.'''
+        tool = obj.getTool()
+        # Is this transition triggerable?
+        if not self.isTriggerable(obj, wf):
+            raise Exception('Transition "%s" can\'t be triggered.' % name)
+        # Trigger the transition
+        self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
+        # Reindex obj if required.
+        if not obj.isTemporary(): obj.reindex()
+        return tool.goto(obj.getUrl(rq['HTTP_REFERER']))
+
 class UiTransition:
     '''Represents a widget that displays a transition.'''
-    
-    pxView = Px('''<x>
+    pxView = Px('''
       <!-- Real button -->
       <input if="transition.mayTrigger" type="button" class="button"
              var2="label=transition.title"
@@ -397,11 +410,10 @@ class UiTransition:
 
       <!-- Fake button, explaining why the transition can't be triggered -->
       <input if="not transition.mayTrigger" type="button"
-             class="fakeButton button" var2="label=transition.title"
+             class="fake button" var2="label=transition.title"
              style=":'%s; %s' % (url('fake', bg=True),
                                  ztool.getButtonWidth(label))"
-             value=":label" title=":'%s: %s' % (label, transition.reason)"/>
-     </x>''')
+             value=":label" title=":transition.reason"/>''')
 
     def __init__(self, name, transition, obj, mayTrigger, ):
         self.name = name
@@ -419,7 +431,7 @@ class UiTransition:
         if not mayTrigger:
             self.mayTrigger = False
             self.reason = mayTrigger.msg
-        # Require by the UiGroup.
+        # Required by the UiGroup.
         self.colspan = 1
 
 # ------------------------------------------------------------------------------

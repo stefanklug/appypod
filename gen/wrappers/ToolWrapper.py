@@ -347,7 +347,7 @@ class ToolWrapper(AbstractWrapper):
      <!-- Any other field -->
      <x if="field.name != 'title'">
       <x var="layoutType='cell'; innerRef=True"
-         if="zobj.showField(field.name, 'result')">:field.pxRender</x>
+         if="field.isShowable(zobj, 'result')">:field.pxRender</x>
      </x>''')
 
     # Show query results as a list.

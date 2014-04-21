@@ -366,7 +366,7 @@ class AbstractWrapper(object):
            var2="formId='trigger_%s' % targetObj.UID()" method="post"
            id=":formId" action=":targetObj.absolute_url() + '/do'">
       <input type="hidden" name="action" value="Trigger"/>
-      <input type="hidden" name="workflow_action"/>
+      <input type="hidden" name="transition"/>
       <!-- Input field for storing the comment coming from the popup -->
       <textarea id="comment" name="comment" cols="30" rows="3"
                 style="display:none"></textarea>
@@ -854,13 +854,17 @@ class AbstractWrapper(object):
         return self.o.translate(label, mapping, domain, language=language,
                                 format=format)
 
-    def do(self, transition, comment='', doAction=True, doNotify=True,
-           doHistory=True, noSecurity=False):
-        '''This method allows to trigger on p_self a workflow p_transition
-           programmatically. See doc in self.o.do.'''
-        return self.o.trigger(transition, comment, doAction=doAction,
-                              doNotify=doNotify, doHistory=doHistory,
-                              doSay=False, noSecurity=noSecurity)
+    def do(self, name, comment='', doAction=True, doNotify=True, doHistory=True,
+           noSecurity=False):
+        '''Triggers on p_self a transition named p_name programmatically.'''
+        o = self.o
+        wf = o.getWorkflow()
+        tr = getattr(wf, name, None)
+        if not tr or (tr.__class__.__name__ != 'Transition'):
+            raise Exception('Transition "%s" not found.' % name)
+        return tr.trigger(name, o, wf, comment, doAction=doAction,
+                          doNotify=doNotify, doHistory=doHistory, doSay=False,
+                          noSecurity=noSecurity)
 
     def log(self, message, type='info'): return self.o.log(message, type)
     def say(self, message, type='info'): return self.o.say(message, type)

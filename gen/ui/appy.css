@@ -70,7 +70,7 @@ input.button { color: #666666; height: 20px; width: 130px;
                cursor:pointer; font-size: 90%; padding-left: 10px;
                background-color: white; background-repeat: no-repeat;
                background-position: 5% 25%; box-shadow: 2px 2px 2px #888888}
-.fakeButton { background-color: #e6e6e6 !important ; cursor:help !important }
+.fake { background-color: #e6e6e6 !important ; cursor:help !important }
 .buttons { margin-left: 4px }
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
@@ -99,7 +99,7 @@ td.search { padding-top: 8px }
 .content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
-         border: 1px solid grey }
+         border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
 .dropdown { display:none; position: absolute; border: 1px solid #cccccc;
             background-color: white; padding: 3px 4px 0 }
 .dropdownMenu { cursor: pointer; padding-right: 4px; font-size: 93% }

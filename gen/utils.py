@@ -46,7 +46,7 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
     obj.modified = obj.created
     from persistent.mapping import PersistentMapping
     obj.__ac_local_roles__ = PersistentMapping({ userId: ['Owner'] })
-    if wf: obj.notifyWorkflowCreated()
+    if wf: obj.initializeWorkflow()
     return obj
 
 # ------------------------------------------------------------------------------
