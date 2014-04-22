@@ -1129,6 +1129,36 @@ def autoref(klass, field):
        class A:
            attr1 = Ref(None)
        autoref(A, A.attr1)
+
+       This function can also be used to avoid circular imports between 2
+       classes from 2 different packages. Imagine class P1 in package p1 has a
+       Ref to class P2 in package p2; and class P2 has another Ref to p1.P1
+       (which is not the back Ref of the previous one: it is another,
+       independent Ref).
+
+       In p1, you have
+
+       from p2 import P2
+       class P1:
+           ref1 = Ref(P2)
+
+       Then, if you write the following in p2, python will complain because of a
+       circular import:
+
+       from p1 import P1
+       class P2:
+           ref2 = Ref(P1)
+
+       The solution is to write this. In p1:
+
+       from p2 import P2
+       class P1:
+           ref1 = Ref(P2)
+       autoref(P1, P2.ref2)
+
+       And, in p2:
+       class P2:
+           ref2 = Ref(None)
     '''
     field.klass = klass
     setattr(klass, field.back.attribute, field.back)

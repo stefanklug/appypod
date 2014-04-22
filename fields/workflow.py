@@ -332,23 +332,21 @@ class Transition:
             if msgPart: msg += msgPart
         return msg
 
-    def trigger(self, transitionName, obj, wf, comment, doAction=True,
-                doNotify=True, doHistory=True, doSay=True, reindex=True,
-                noSecurity=False):
-        '''This method triggers this transition on p_obj. The transition is
-           supposed to be triggerable (call to self.isTriggerable must have been
-           performed before calling this method). If p_doAction is False, the
-           action that must normally be executed after the transition has been
-           triggered will not be executed. If p_doNotify is False, the
-           email notifications that must normally be launched after the
-           transition has been triggered will not be launched. If p_doHistory is
-           False, there will be no trace from this transition triggering in the
-           workflow history. If p_doSay is False, we consider the transition is
-           trigger programmatically, and no message is returned to the user.
-           If p_reindex is False, object reindexing will be performed by the
-           calling method.'''
-        # Security check
-        if not noSecurity and not self.isTriggerable(obj, wf):
+    def trigger(self, name, obj, wf, comment, doAction=True, doNotify=True,
+                doHistory=True, doSay=True, reindex=True, noSecurity=False):
+        '''This method triggers this transition (named p_name) on p_obj. If
+           p_doAction is False, the action that must normally be executed after
+           the transition has been triggered will not be executed. If p_doNotify
+           is False, the email notifications that must normally be launched
+           after the transition has been triggered will not be launched. If
+           p_doHistory is False, there will be no trace from this transition
+           triggering in the workflow history. If p_doSay is False, we consider
+           the transition is triggered programmatically, and no message is
+           returned to the user. If p_reindex is False, object reindexing will
+           be performed by the calling method.'''
+        # "Triggerability" and security checks.
+        if (name != '_init_') and \
+           not self.isTriggerable(obj, wf, noSecurity=noSecurity):
             raise Exception('Transition "%s" can\'t be triggered.' % name)
         # Create the workflow_history dict if it does not exist.
         if not hasattr(obj.aq_base, 'workflow_history'):
@@ -371,8 +369,8 @@ class Transition:
                     targetStateName = targetState.getName(wf)
                     break
         # Create the event and add it in the object history
-        action = transitionName
-        if transitionName == '_init_': action = None
+        action = name
+        if name == '_init_': action = None
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
@@ -384,9 +382,9 @@ class Transition:
         if reindex and not obj.isTemporary(): obj.reindex()
         # Send notifications if needed
         if doNotify and self.notify and obj.getTool(True).mailEnabled:
-            sendNotification(obj.appy(), self, transitionName, wf)
+            sendNotification(obj.appy(), self, name, wf)
         # Return a message to the user if needed
-        if not doSay or (transitionName == '_init_'): return
+        if not doSay or (name == '_init_'): return
         if not msg: msg = obj.translate('object_saved')
         obj.say(msg)
 

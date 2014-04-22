@@ -324,7 +324,6 @@ class ToolMixin(BaseMixin):
 
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
-
         params = {'ClassName': className}
         appyClass = self.getAppyClass(className, wrapper=True)
         if not brainsOnly: params['batch'] = True

@@ -874,19 +874,22 @@ class AbstractWrapper(object):
            replaced with normal chars.'''
         return normalizeString(s, usage)
 
-    def search(self, klass, sortBy='', maxResults=None, noSecurity=False,
-               **fields):
+    def search(self, klass, sortBy='', sortOrder='asc', maxResults=None,
+               noSecurity=False, **fields):
         '''Searches objects of p_klass. p_sortBy must be the name of an indexed
-           field (declared with indexed=True); every param in p_fields must
-           take the name of an indexed field and take a possible value of this
-           field. You can optionally specify a maximum number of results in
-           p_maxResults. If p_noSecurity is specified, you get all objects,
-           even if the logged user does not have the permission to view it.'''
+           field (declared with indexed=True); p_sortOrder can be "asc"
+           (ascending, the defaut) or "desc" (descending); every param in
+           p_fields must take the name of an indexed field and take a possible
+           value of this field. You can optionally specify a maximum number of
+           results in p_maxResults. If p_noSecurity is specified, you get all
+           objects, even if the logged user does not have the permission to
+           view it.'''
         # Find the content type corresponding to p_klass
         tool = self.tool.o
         contentType = tool.getPortalType(klass)
         # Create the Search object
-        search = Search('customSearch', sortBy=sortBy, **fields)
+        search = Search('customSearch', sortBy=sortBy, sortOrder=sortOrder,
+                        **fields)
         if not maxResults:
             maxResults = 'NO_LIMIT'
             # If I let maxResults=None, only a subset of the results will be
