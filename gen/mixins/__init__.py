@@ -1180,7 +1180,7 @@ class BaseMixin:
             rq = self.getProductConfig().fakeRequest
         if not hasattr(rq, 'wrappers'): rq.wrappers = {}
         # Return the Appy wrapper if already present in the cache
-        uid = self.UID()
+        uid = self.id
         if uid in rq.wrappers: return rq.wrappers[uid]
         # Create the Appy wrapper, cache it in rq.wrappers and return it
         wrapper = self.wrapperClass(self)
@@ -1559,4 +1559,11 @@ class BaseMixin:
         '''This method is a general hook for transfering processing of a request
            to a given field, whose name must be in the request.'''
         return self.getAppyType(self.REQUEST['name']).process(self)
+
+    def onCall(self):
+        '''Calls a specific method on the corresponding wrapper.'''
+        self.allows('read', raiseError=True)
+        method = self.REQUEST['method']
+        obj = self.appy()
+        return getattr(obj, method)()
 # ------------------------------------------------------------------------------

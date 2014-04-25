@@ -62,7 +62,7 @@ class Ref(Field):
             style=":'%s; %s' % (url('linkMany', bg=True), \
                                 ztool.getButtonWidth(label))"/>
      <!-- Unlink several objects -->
-     <input if="not isBack and field.unlink and canWrite and not inPickList"
+     <input if="mayUnlink"
             var2="imgName=linkList and 'unlinkManyUp' or 'unlinkMany';
                   action='unlink'; label=_('object_unlink_many')"
             type="button" class="button" value=":label"
@@ -119,9 +119,8 @@ class Ref(Field):
              onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
        </td>
        <!-- Unlink -->
-       <td if="not isBack and field.unlink and canWrite and not inPickList">
-        <img var="imgName=linkList and 'unlinkUp' or 'unlink';
-                  action='unlink'"
+       <td if="mayUnlink">
+        <img var="imgName=linkList and 'unlinkUp' or 'unlink'; action='unlink'"
              class="clickable" title=":_('object_unlink')" src=":url(imgName)"
              onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
                         q(field.name), q(tiedUid))"/>
@@ -142,9 +141,10 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-      <input if="showPlusIcon and not inPickList" type="button" class="button"
-        var2="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.UID(), \
-                field.name, field.pageName, 0, totalNumber);
+      <input if="showPlusIcon and not inPickList" type="button"
+             class="buttonSmall button"
+        var2="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
+                                              field.pageName, 0, totalNumber);
               formCall='goto(%s)' % \
                 q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
                   (folder.absolute_url(), tiedClassName, navInfo));
@@ -218,8 +218,9 @@ class Ref(Field):
         (<span class="discreet">:totalNumber</span>) 
         <x>:field.pxAdd</x>
         <!-- The search button if field is queryable -->
-        <input if="objects and field.queryable" type="button" class="button"
-               var2="label=_('search_title')" value=":label"
+        <input if="objects and field.queryable" type="button"
+               class="buttonSmall button"
+               var2="label=_('search_button')" value=":label"
                style=":'%s; %s' % (url('search', bg=True), \
                                    ztool.getButtonWidth(label))"
                onclick=":'goto(%s)' % \
@@ -309,6 +310,7 @@ class Ref(Field):
              tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
              canWrite=canWrite|\
                       not field.isBack and zobj.allows(field.writePermission);
+             mayUnlink=False;
              showPlusIcon=False;
              atMostOneRef=False;
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
@@ -324,7 +326,7 @@ class Ref(Field):
 
     # PX that displays referred objects as menus.
     pxViewMenus = Px('''
-     <table><tr valign="bottom">
+     <table if="objects"><tr valign="bottom">
       <td for="menu in field.getLinkedObjectsByMenu(obj, objects)">
 
        <!-- A single object in the menu: show a clickable icon to get it -->
@@ -376,6 +378,8 @@ class Ref(Field):
              folder=zobj.getCreateFolder();
              tiedClassName=ztool.getPortalType(field.klass);
              canWrite=not field.isBack and zobj.allows(field.writePermission);
+             mayUnlink=not isBack and canWrite and \
+                       field.getAttribute(zobj, 'unlink');
              showPlusIcon=field.mayAdd(zobj);
              atMostOneRef=(field.multiplicity[1]==1) and (len(objects)&lt;=1);
              addConfirmMsg=field.addConfirm and \
