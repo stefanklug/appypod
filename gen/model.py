@@ -257,8 +257,8 @@ class Tool(ModelClass):
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
                     back=gen.Ref(attribute='toTool', show=False), page=userPage,
                     queryable=True, queryFields=('title', 'login'),
-                    show=isManager,
-                    showHeaders=True, shownInfo=('title', 'login', 'roles'))
+                    show=isManager, showHeaders=True,
+                    shownInfo=('title', 'login*120px', 'roles*120px'))
     def computeConnectedUsers(self): pass
     connectedUsers = gen.Computed(method=computeConnectedUsers, page=userPage,
                                   plainText=False, show=isManager)
@@ -266,7 +266,8 @@ class Tool(ModelClass):
                      back=gen.Ref(attribute='toTool2', show=False),
                      page=gen.Page('groups', show=isManager), show=isManager,
                      queryable=True, queryFields=('title', 'login'),
-                     showHeaders=True, shownInfo=('title', 'login', 'roles'))
+                     showHeaders=True,
+                     shownInfo=('title', 'login*120px', 'roles*120px'))
     pt = gen.Page('translations', show=isManager)
     translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
                            link=False, show='view', page=pt, 

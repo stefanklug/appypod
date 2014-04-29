@@ -154,24 +154,14 @@ class ToolWrapper(AbstractWrapper):
              currentSearch=req.get('search', None);
              currentClass=req.get('className', None);
              currentPage=req['PATH_INFO'].rsplit('/',1)[-1];
-             rootClasses=ztool.getRootClasses();
-             phases=zobj and zobj.getAppyPhases() or None">
-
-      <table class="portletContent"
-             if="zobj and phases and zobj.mayNavigate()"
-             var2="singlePhase=phases and (len(phases) == 1);
-                   page=req.get('page', '');
-                   mayEdit=zobj.mayEdit()">
-       <x for="phase in phases">:phase.pxView</x>
-      </table>
+             rootClasses=ztool.getRootClasses()">
 
       <!-- One section for every searchable root class -->
       <x for="rootClass in rootClasses" if="ztool.userMaySearch(rootClass)"
          var2="className=ztool.getPortalType(rootClass)">
 
        <!-- A separator if required -->
-       <div class="portletSep" var="nb=loop.rootClass.nb"
-            if="(nb != 0) or ((nb == 0) and phases)"></div>
+       <div class="portletSep" if="loop.rootClass.nb != 0"></div>
 
        <!-- Section title (link triggers the default search) -->
        <div class="portletContent"
@@ -183,7 +173,7 @@ class ToolWrapper(AbstractWrapper):
                    (queryUrl, className, queryParam)"
             class=":(not currentSearch and (currentClass==className) and \
                     (currentPage=='query')) and \
-                    'portletCurrent' or ''">::_(className + '_plural')</a>
+                    'current' or ''">::_(className + '_plural')</a>
         </div>
 
         <!-- Actions -->
@@ -220,7 +210,7 @@ class ToolWrapper(AbstractWrapper):
          <!-- Advanced search -->
          <div var="highlighted=(currentClass == className) and \
                                (currentPage == 'search')"
-              class=":highlighted and 'portletSearch portletCurrent' or \
+              class=":highlighted and 'portletSearch current' or \
                      'portletSearch'"
               align=":dright">
           <a var="text=_('search_title')" style="font-size: 88%"
@@ -234,6 +224,8 @@ class ToolWrapper(AbstractWrapper):
          <x if="search.type == 'group'">:search.px</x>
          <x if="search.type != 'group'">:search.pxView</x>
         </x>
+        <!-- Portlet bottom, potentially customized by the app -->
+        <x>::ztool.portletBottom(rootClass)</x>
        </div>
       </x>
      </x>''')

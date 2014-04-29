@@ -896,14 +896,28 @@ class BaseMixin:
     def getSupTitle(self, navInfo=''):
         '''Gets the html code (icons,...) that can be shown besides the title
            of an object.'''
-        appyObj = self.appy()
-        if hasattr(appyObj, 'getSupTitle'): return appyObj.getSupTitle(navInfo)
+        obj = self.appy()
+        if hasattr(obj, 'getSupTitle'): return obj.getSupTitle(navInfo)
         return ''
 
     def getSubTitle(self):
         '''Gets the content that must appear below the title of an object.'''
-        appyObj = self.appy()
-        if hasattr(appyObj, 'getSubTitle'): return appyObj.getSubTitle()
+        obj = self.appy()
+        if hasattr(obj, 'getSubTitle'): return obj.getSubTitle()
+        return ''
+
+    def getSupBreadCrumb(self):
+        '''Gets the html code that can be shown besides the title of an object
+           in the breadcrumb.'''
+        obj = self.appy()
+        if hasattr(obj, 'getSupBreadCrumb'): return obj.getSupBreadCrumb()
+        return ''
+
+    def getSubBreadCrumb(self):
+        '''Gets the content that must appear below the title of an object in the
+           breadcrumb.'''
+        obj = self.appy()
+        if hasattr(obj, 'getSubBreadCrumb'): return obj.getSubBreadCrumb()
         return ''
 
     # Workflow methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -257,17 +257,16 @@ class UiGroup:
        <table width=":field.wide" class=":groupCss" id=":tagId" name=":tagName">
         <!-- First row: the tabs. -->
         <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
-         <table style="position:relative; bottom:-2px"
-                cellpadding="0" cellspacing="0">
-          <tr valign="bottom">
+         <table class="tabs" cellpadding="0" cellspacing="0">
+          <tr valign="middle">
            <x for="row in field.elements"
-              var2="rowNb=loop.row.nb;
-                    tabId='tab_%s_%d_%d' % (field.name, rowNb, lenFields)">
+              var2="nb = loop.row.nb + 1;
+                    suffix='%s_%d_%d' % (field.name, nb, lenFields);
+                    tabId='tab_%s' % suffix">
             <td><img src=":url('tabLeft')" id=":'%s_left' % tabId"/></td>
-            <td style=":url('tabBg', bg=True)" id=":tabId">
-             <a onclick=":'showTab(%s)' % q('%s_%d_%d' % (field.name, rowNb, \
-                                                          lenFields))"
-                class="clickable">:_('%s_col%d' % (field.labelId, rowNb))</a>
+            <td style=":url('tabBg', bg=True)" class="tab" id=":tabId">
+             <a onclick=":'showTab(%s)' % q(suffix)"
+                class="clickable">:_('%s_col%d' % (field.labelId, nb))</a>
             </td>
             <td><img id=":'%s_right' % tabId" src=":url('tabRight')"/></td>
            </x>
@@ -277,8 +276,9 @@ class UiGroup:
 
         <!-- Other rows: the fields -->
         <tr for="row in field.elements"
-            id=":'tabcontent_%s_%d_%d' % (field.name, loop.row.nb, lenFields)"
-            style=":loop.row.nb==0 and 'display:table-row' or 'display:none')">
+            var2="nb=loop.row.nb + 1"
+            id=":'tabcontent_%s_%d_%d' % (field.name, nb, lenFields)"
+            style=":(nb == 1) and 'display:table-row' or 'display:none'">
          <td var="field=row[0]">
           <x if="field.type == 'group'">:field.pxView</x>
           <x if="field.type != 'group'">:field.pxRender</x>
@@ -286,7 +286,7 @@ class UiGroup:
         </tr>
        </table>
        <script type="text/javascript">:'initTab(%s,%s)' % \
-        (q('tab_%s' % field.name), q('%s_1_%d' % (field.name, lenFields)))">
+        (q('tab_%s' % field.name), q('%s_1_%d' % (field.name, lenFields)))
        </script>
       </x>
      </x>''')

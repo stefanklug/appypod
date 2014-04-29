@@ -749,6 +749,14 @@ class ToolMixin(BaseMixin):
         # advanced search.
         return klass.searchAdvanced.isShowable(klass, self.appy())
 
+    def portletBottom(self, klass):
+        '''Is there a custom zone to display at the bottom of the portlet zone
+           for p_klass?'''
+        if not hasattr(klass, 'getPortletBottom'): return ''
+        res = klass.getPortletBottom(self.appy())
+        if not res: return ''
+        return res
+
     def getQueryUrl(self, contentType, searchName, startNumber=None):
         '''This method creates the URL that allows to perform a (non-Ajax)
            request for getting queried objects from a search named p_searchName

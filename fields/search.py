@@ -148,7 +148,7 @@ class UiSearch:
      <div class="portletSearch">
       <a href=":'%s?className=%s&amp;search=%s' % \
                  (queryUrl, className, search.name)"
-         class=":search.name == currentSearch and 'portletCurrent' or ''"
+         class=":(search.name == currentSearch) and 'current' or ''"
          title=":search.translatedDescr">:search.translated</a>
      </div>''')
 

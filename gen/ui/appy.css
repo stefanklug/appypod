@@ -52,6 +52,7 @@ img { border: 0; vertical-align: middle }
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
+.refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
 .main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9;
         border-style: solid; border-width: 1px; border-color: grey}
 .top { height: 89px; margin-left: 3em; vertical-align: top;
@@ -62,9 +63,7 @@ img { border: 0; vertical-align: middle }
 .userStripText { padding: 0 0.3em 0 0.3em; color: white }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
-.navigate { border-bottom: 1px solid #5F7983; height: 100%;
-            background-color: #dbdde1; font-weight: bold }
-.navigate td { padding: 4px 9px }
+.breadcrumb { font-size: 11pt }
 .login { margin: 3px; color: black }
 input.button { color: #666666; height: 20px; width: 130px;
                cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
@@ -84,26 +83,25 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .focus td { padding: 4px 0px 4px 4px }
 .discreet { font-size: 90%; color: grey }
 .title { color: #BA9440 }
-.breadcrumb { color: #BA9440; font-size: 13px }
 .lostPassword { font-size: 90%; color: white; padding-left: 1em }
+.current { font-weight: bold }
 .portlet { width: 150px; border-right: 1px solid #5F7983;
            background-color: #ededed }
 .portletContent { margin: 4px 9px }
 .portletTitle { font-size: 110%; margin-bottom: 4px }
-.portletCurrent { font-weight: bold; color: grey }
 .portletSep { border-top: 1px solid #5F7983; margin-top: 2px }
-.portletPage { font-style: italic }
 .portletGroup { font-variant: small-caps; font-weight: bold; font-size: 110%;
                 margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey }
 .portletSearch { font-size: 90%; font-style: italic }
 .inputSearch { height: 15px; width: 132px; margin: 3px 3px 2px 3px !important }
 td.search { padding-top: 8px }
-.content { padding: 14px 14px 9px 15px; background-color: #f1f1f1 }
+.content { padding: 9px; background-color: #f1f1f1 }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
 .dropdown { display:none; position: absolute; border: 1px solid #cccccc;
-            background-color: white; padding: 3px 4px 0 }
+            background-color: white; padding: 3px 4px 0; font-size: 8pt;
+            font-weight: normal }
 .dropdownMenu { cursor: pointer; padding-right: 4px; font-size: 93% }
 .dropdown a:hover { text-decoration: underline }
 .list { margin-bottom: 3px }
@@ -130,18 +128,20 @@ td.search { padding-top: 8px }
             color: white }
 .even { background-color: #f9f9f9 }
 .odd { background-color: #f4f4f4 }
-.summary { margin-bottom: 5px; background-color: #f9f9f9;
-           border-bottom: 1px dashed #cccccc; border-top: 1px dashed #cccccc; }
-.objectTitle { font-size: 11pt; border-bottom: 3px solid grey;
-               font-weight: bold }
+.summary { margin-bottom: 5px; background-color: #f9f9f9 }
 .by { padding: 5px; color: grey; font-size: 97% }
 .underline { border-bottom: 1px dotted grey }
 .state { font-weight: bold; border-bottom: 1px dashed grey }
 .historyLabel { font-variant: small-caps; font-weight: bold }
-.history td { border-top: 1px solid grey; padding: 0 5px 0 5px }
+.history td { border-top: 1px solid #e6e6e6; padding: 0 5px 0 5px }
 .history th { font-style: italic; text-align: left; padding: 0 5px 0 5px }
 .topSpace { margin-top: 15px }
 .bottomSpace { margin-bottom: 15px }
+.phase { background-color: white; border: 1px solid #d0d0d0;
+         box-shadow: 2px 2px 2px #888888; margin-bottom: 7px }
+.phase td { padding: 3px 7px 3px 7px; border-right: 1px solid #d0d0d0;
+            font-size: 96% }
+.currentPage { background-color: #e6e6e6 }
 .pageLink { margin-right: 8px }
 .footer { font-size: 95%; height: 100% }
 .footer td { background-color: #CBCBC9; border-top: 1px solid grey;
@@ -159,3 +159,6 @@ td.search { padding-top: 8px }
 .podName { font-size: 90% }
 .podTable { margin-left: 15px }
 .cbCell { width: 10px; text-align: center}
+.tabs { position:relative; bottom:-2px }
+.tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;
+       font-weight: bold}

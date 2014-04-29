@@ -48,10 +48,13 @@ class AbstractWrapper(object):
      </div>''')
 
     pxNavigationStrip = Px('''
-     <table width="100%" class="navigate">
+     <table width="100%">
       <tr>
        <!-- Breadcrumb -->
-       <td var="breadcrumb=zobj.getBreadCrumb()" class="breadcrumb">
+       <td var="sup=zobj.getSupBreadCrumb();
+                breadcrumb=zobj.getBreadCrumb();
+                sub=zobj.getSubBreadCrumb()" class="breadcrumb">
+        <x if="sup">::sup</x>
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
          <img if="nb != 0" src=":url('to')"/>
          <!-- Display only the title of the current object -->
@@ -59,11 +62,15 @@ class AbstractWrapper(object):
          <!-- Display a link for parent objects -->
          <a if="nb != len(breadcrumb)-1" href=":bc.url">:bc.title</a>
         </x>
+        <x if="sub">::sub</x>
        </td>
        <!-- Object navigation -->
        <td align=":dright">:obj.pxNavigateSiblings</td>
       </tr>
-     </table>''')
+     </table>
+     <!-- Object phases and pages -->
+     <x var="phases=zobj.getAppyPhases()"
+        if="phases and zobj.mayNavigate()">:phases[0].pxAllPhases</x>''')
 
     # The template PX for all pages.
     pxTemplate = Px('''
@@ -267,19 +274,22 @@ class AbstractWrapper(object):
          </table>
         </td>
        </tr>
-
-       <!-- The navigation strip -->
-       <tr height="26px" if="zobj and showPortlet and (layoutType != 'edit')">
-        <td>:obj.pxNavigationStrip</td>
-       </tr>
        <tr valign="top">
         <td>
          <table width="100%" height="100%" cellpadding="0" cellspacing="0">
           <tr valign="top">
            <!-- The portlet -->
            <td if="showPortlet" class="portlet">:tool.pxPortlet</td>
-           <!-- Page content -->
-           <td class="content">:content</td>
+           <td class="content">
+            <table cellpadding="0" cellspacing="0" width="100%">
+             <!-- Navigation strip -->
+              <tr if="zobj and (layoutType != 'edit')"
+                  height="26px"><td>:obj.pxNavigationStrip</td>
+              </tr>
+              <!-- Page content -->
+              <tr><td>:content</td></tr>
+            </table>
+           </td>
           </tr>
          </table>
         </td>

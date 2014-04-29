@@ -23,19 +23,16 @@ class Phase:
     '''A group of pages.'''
 
     pxView = Px('''
-     <tr var="singlePage=len(phase.pages) == 1">
-      <td var="label='%s_phase_%s' % (zobj.meta_type, phase.name)">
-
-       <!-- The title of the phase -->
-       <div class="portletGroup"
-            if="not singlePhase and not singlePage">::_(label)</div>
-
+     <table class="phase"
+            var="singlePage=len(phase.pages) == 1;
+                 label='%s_phase_%s' % (zobj.meta_type, phase.name)">
+      <tr valign="top">
        <!-- The page(s) within the phase -->
-       <x for="aPage in phase.pages" var2="aPageInfo=phase.pagesInfo[aPage]">
+       <td for="aPage in phase.pages"
+           var2="aPageInfo=phase.pagesInfo[aPage]"
+           class=":(aPage == page) and 'currentPage' or ''">
         <!-- First line: page name and icons -->
-        <div if="not (singlePhase and singlePage)"
-             class=":aPage==page and 'portletCurrent portletPage' or \
-                     'portletPage'">
+        <span if="not (singlePhase and singlePage)">
          <a href=":zobj.getUrl(page=aPage)">::aPageInfo.page.getLabel(zobj)</a>
          <x var="locked=zobj.isLocked(user, aPage);
                  editable=mayEdit and aPageInfo.showOnEdit and \
@@ -52,17 +49,60 @@ class Phase:
                 src=":url('locked')" title=":lockMsg"/></a>
           <a if="editable and locked and user.has_role('Manager')">
            <img class="clickable" title=":_('page_unlock')" src=":url('unlock')"
-                onclick=":'onUnlockPage(%s,%s)' % \
-                          (q(zobj.UID()), q(aPage))"/></a>
+                onclick=":'onUnlockPage(%s,%s)' % (q(zobj.id), q(aPage))"/></a>
          </x>
-        </div>
+        </span>
         <!-- Next lines: links -->
         <x var="links=aPageInfo.links" if="links">
-         <div for="link in links"><a href=":link.url">:link.title</a></div>
+         <div for="link in links" class="refLink">
+          <a href=":link.url">:link.title</a></div>
         </x>
-       </x>
-      </td>
-     </tr>''')
+       </td>
+      </tr>
+     </table>''')
+
+    # "Static" PX that displays all phases of a given object.
+    pxAllPhases = Px('''
+     <x var="singlePhase=len(phases)==1;
+             page=req.get('page', '');
+             uid=zobj.id;
+             mayEdit=zobj.mayEdit()">
+      <x if="singlePhase" var2="phase=phases[0]">:phase.pxView</x>
+      <!-- Display several phases in tabs. -->
+      <x if="not singlePhase">
+       <table cellpadding="0" cellspacing="0">
+        <!-- First row: the tabs. -->
+        <tr><td style="border-bottom: 1px solid #ff8040; padding-bottom: 1px">
+         <table cellpadding="0" cellspacing="0" class="tabs">
+          <tr valign="middle">
+           <x for="phase in phases"
+              var2="nb=loop.phase.nb + 1;
+                    suffix='%s_%d_%d' % (uid, nb, len(phases));
+                    tabId='tab_%s' % suffix">
+            <td><img src=":url('tabLeft')" id=":'%s_left' % tabId"/></td>
+            <td style=":url('tabBg',bg=True)" id=":tabId" class="tab">
+             <a onclick=":'showTab(%s)' % q(suffix)"
+                class="clickable">:_('%s_phase_%s' % (zobj.meta_type, \
+                                                      phase.name))</a>
+            </td>
+            <td><img id=":'%s_right' % tabId" src=":url('tabRight')"/></td>
+           </x>
+          </tr>
+         </table>
+        </td></tr>
+        <!-- Other rows: the fields -->
+        <tr for="phase in phases"
+            var2="nb=loop.phase.nb + 1"
+            id=":'tabcontent_%s_%d_%d' % (uid, nb, len(phases))"
+            style=":(nb == 1) and 'display:table-row' or 'display:none'">
+         <td>:phase.pxView</td>
+        </tr>
+       </table>
+       <script type="text/javascript">:'initTab(%s,%s)' % \
+        (q('tab_%s' % uid), q('%s_1_%d' % (uid, len(phases))))
+       </script>
+      </x>
+     </x>''')
 
     def __init__(self, name, obj):
         self.name = name
