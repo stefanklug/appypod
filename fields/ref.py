@@ -195,24 +195,10 @@ class Ref(Field):
 
     # PX that displays referred objects as a list.
     pxViewList = Px('''
-      <!-- Display a simplified widget if at most 1 referenced object. -->
-      <table if="atMostOneRef">
-       <tr valign="top">
-        <!-- If there is no object -->
-        <x if="not objects">
-         <td class="discreet">:_('no_ref')</td>
-         <td>:field.pxAdd</td>
-        </x>
-        <!-- If there is an object -->
-        <x if="objects">
-         <td for="tied in objects"
-             var2="includeShownInfo=True">:field.pxObjectTitle</td>
-        </x>
-       </tr>
-      </table>
+      <!-- No object at all -->
+      <div if="not objects" class="smaller">:_('no_ref')</div>
 
-      <!-- Display a table in all other cases -->
-      <x if="not atMostOneRef">
+      <x if="objects">
        <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
         <span if="subLabel" class="discreet">:_(subLabel)</span>
         (<span class="discreet">:totalNumber</span>) 
@@ -231,10 +217,7 @@ class Ref(Field):
        <!-- (Top) navigation -->
        <x>:tool.pxNavigate</x>
 
-       <!-- No object is present -->
-       <p class="discreet" if="not objects">:_('no_ref')</p>
-
-       <!-- Show forward or backward reference(s) -->
+       <!-- Linked objects -->
        <table if="objects" class=":not innerRef and 'list' or ''"
               width=":innerRef and '100%' or field.layouts['view'].width"
               var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
@@ -312,7 +295,6 @@ class Ref(Field):
                       not field.isBack and zobj.allows(field.writePermission);
              mayUnlink=False;
              showPlusIcon=False;
-             atMostOneRef=False;
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
@@ -356,14 +338,19 @@ class Ref(Field):
       </td>
      </tr></table>''')
 
+    # Simplified widget showing comma-separated not-clickable object titles.
+    pxViewTitles = Px('''<span class="smaller"
+     var2="titles=[o.title for o in objects]">:', '.join(titles) or \
+     _('no_ref')</span>''')
+
     # PX that displays referred objects through this field. In mode link="list",
     # if, in the request, key "scope" is present and holds value "objs", the
     # pick list (containing possible values) will not be rendered.
     pxView = Px('''
      <x var="innerRef=req.get('innerRef', False) == 'True';
              ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
-             render=render|'list';
              layoutType=layoutType|'view';
+             render=field.getRenderMode(layoutType);
              linkList=field.link == 'list';
              renderAll=req.get('scope') != 'objs';
              inPickList=False;
@@ -381,7 +368,6 @@ class Ref(Field):
              mayUnlink=not isBack and canWrite and \
                        field.getAttribute(zobj, 'unlink');
              showPlusIcon=field.mayAdd(zobj);
-             atMostOneRef=(field.multiplicity[1]==1) and (len(objects)&lt;=1);
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
@@ -395,10 +381,6 @@ class Ref(Field):
                                (layoutType != 'cell');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
-      <!-- The definition of "atMostOneRef" above may sound strange: we
-           shouldn't check the actual number of referenced objects. But for
-           back references people often forget to specify multiplicities. So
-           concretely, multiplicities (0,None) are coded as (0,1). -->
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
       <script if="checkboxesEnabled and renderAll"
               type="text/javascript">:field.getCbJsInit(zobj)</script>
@@ -410,12 +392,11 @@ class Ref(Field):
        <div if="renderAll" id=":ajaxHookId">:field.pxViewList</div>
        <x if="not renderAll">:field.pxViewList</x>
       </x>
-      <x if="render == 'menus'">:field.pxViewMenus</x>
+      <x if="render in ('menus','titles')">:getattr(field, 'pxView%s' % \
+         render.capitalize())</x>
      </x>''')
 
-    # The "menus" render mode is only applicable in "cell", not in "view".
-    pxCell = Px('''<x var="render=field.render">:field.pxView</x>''')
-
+    pxCell = pxView
     pxEdit = Px('''
      <select if="field.link"
              var2="objects=field.getPossibleValues(zobj);
@@ -579,7 +560,9 @@ class Ref(Field):
         # Note that render mode "menus" will only be applied in "cell" layouts.
         # Indeed, we need to keep the "list" rendering in the "view" layout
         # because the "menus" rendering is minimalist and does not allow to
-        # perform all operations on Ref objects (add, move, delete, edit...).
+        # perform all operations on linked objects (add, move, delete, edit...);
+        # - "titles" renders a list of comma-separated, not-even-clickable,
+        # titles.
         self.render = render
         # If render is 'menus', 2 methods must be provided.
         # "menuIdMethod" will be called, with every linked object as single arg,
@@ -1053,6 +1036,12 @@ class Ref(Field):
         sortKey = rq.get('sortKey')
         reverse = rq.get('reverse') == 'True'
         obj.appy().sort(self.name, sortKey=sortKey, reverse=reverse)
+
+    def getRenderMode(self, layoutType):
+        '''Gets the render mode, determined by self.render and some
+           exceptions.'''
+        if (layoutType == 'view') and (self.render == 'menus'): return 'list'
+        return self.render
 
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this Ref field is

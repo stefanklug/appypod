@@ -80,9 +80,9 @@ msgstr "Vous devez choisir plus d'éléments ici."
 msgid "max_ref_violated"
 msgstr "Trop d'éléments sont sélectionnés ici."
 
-#. Default: "No object."
+#. Default: "-"
 msgid "no_ref"
-msgstr "Aucun élément."
+msgstr "-"
 
 #. Default: "Add a new one"
 msgid "add_ref"

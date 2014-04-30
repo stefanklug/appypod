@@ -79,7 +79,7 @@ msgstr ""
 msgid "max_ref_violated"
 msgstr ""
 
-#. Default: "No object."
+#. Default: "-"
 msgid "no_ref"
 msgstr ""
 

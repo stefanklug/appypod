@@ -78,7 +78,7 @@ class Pod(Field):
               <td>
                <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
                             q(info.template), q(fmt), q('unfreeze'))"
-                  class="podName">:_('unfreezeField')</a>
+                  class="smaller">:_('unfreezeField')</a>
               </td>
               <td align="center"><img src=":url('unfreeze')"/></td>
              </tr>
@@ -87,7 +87,7 @@ class Pod(Field):
               <td>
                <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
                             q(info.template), q(fmt), q('freeze'))"
-                  class="podName">:_('freezeField')</a>
+                  class="smaller">:_('freezeField')</a>
               </td>
               <td align="center"><img src=":url('freeze')"/></td>
              </tr>
@@ -96,7 +96,7 @@ class Pod(Field):
               <td>
                <a onclick=":'uploadPod(%s,%s,%s,%s)' % (q(uid), q(name), \
                             q(info.template), q(fmt))"
-                  class="podName">:_('uploadField')</a>
+                  class="smaller">:_('uploadField')</a>
               </td>
               <td align="center"><img src=":url('upload')"/></td>
              </tr>
@@ -107,7 +107,7 @@ class Pod(Field):
                template. For a single template, the field label already does
                the job. -->
           <td if="len(field.template) &gt; 1"
-              class="podName">:field.getTemplateName(obj, info.template)</td>
+              class="smaller">:field.getTemplateName(obj, info.template)</td>
          </tr>
         </table>
        </td>

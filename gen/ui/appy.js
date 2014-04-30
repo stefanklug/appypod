@@ -275,6 +275,22 @@ function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
   askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
 }
 
+function doInlineSave(objectUid, name, objectUrl, content){
+  /* Ajax-saves p_content of field named p_name on object whose id is
+     p_objectUid and whose URL is p_objectUrl. Asks a confirmation before
+     doing it. */
+  var doIt = confirm('Do it?');
+  var params = {'action': 'storeFromAjax', 'layoutType': 'view'};
+  var hook = null;
+  if (!doIt) {
+    params['cancel'] = 'True';
+    hook = objectUid + '_' + name;
+  }
+  else { params['fieldContent'] = encodeURIComponent(content) }
+  askAjaxChunk(hook, 'POST', objectUrl, name + ':pxRender', params, null,
+               evalInnerScripts);
+}
+
 // Used by checkbox widgets for having radio-button-like behaviour.
 function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   vis = document.getElementById(visibleCheckbox);

@@ -97,12 +97,13 @@ class String(Field):
       <!-- Unformatted text -->
       <x if="value and (fmt == 1)">::zobj.formatText(value, format='html')</x>
       <!-- XHTML text -->
-      <x if="value and (fmt == 2)">
-       <div if="not mayAjaxEdit" class="xhtml">::value</div>
+      <x if="fmt == 2">
+       <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
        <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
-            id=":'%s_%s_ck' % (zobj.UID(), name)">::value</div>
-       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj)"></script>
+            id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
+       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj)</script>
       </x>
+      <span if="not value and (fmt != 2)" class="smaller">-</span>
       <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
              name=":name" id=":name"/>
      </x>''')
@@ -298,7 +299,7 @@ class String(Field):
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  persist=True, transform='none',
                  styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
-                 inlineEdit=False):
+                 spellcheck=False, contentLanguage=None, inlineEdit=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -310,6 +311,10 @@ class String(Field):
         self.styles = styles
         # When format is XHTML, do we allow the user to upload images in it ?
         self.allowImageUpload = allowImageUpload
+        # When format is XHTML, do we run the CK spellchecker ?
+        self.spellcheck = spellcheck
+        # What is the language of field content?
+        self.contentLanguage = contentLanguage
         # When format in XHTML, can the field be inline-edited (ckeditor)?
         self.inlineEdit = inlineEdit
         # The following field has a direct impact on the text entered by the
@@ -408,6 +413,12 @@ class String(Field):
                 obj.log('Unparsable XHTML content in field "%s".' % self.name,
                         type='warning')
         Field.store(self, obj, value)
+
+    def storeFromAjax(self, obj):
+        '''Stores the new field value from an Ajax request, or do nothing if
+           the action was canceled.'''
+        rq = obj.REQUEST
+        if rq.get('cancel') != 'True': self.store(obj, rq['fieldContent'])
 
     def getDiffValue(self, obj, value):
         '''Returns a version of p_value that includes the cumulative diffs
@@ -656,27 +667,52 @@ class String(Field):
            generator).'''
         return self.getCaptchaChallenge({})['text']
 
-    def getJsInit(self, obj):
-        '''Gets the Javascript init code for displaying a rich editor for this
-           field (rich field only).'''
-        # Define the attributes that will initialize the ckeditor instance for
-        # this field.
+    ckLanguages = {'en': 'en_US', 'pt': 'pt_BR', 'da': 'da_DK', 'nl': 'nl_NL',
+                   'fi': 'fi_FI', 'fr': 'fr_FR', 'de': 'de_DE', 'el': 'el_GR',
+                   'it': 'it_IT', 'nb': 'nb_NO', 'pt': 'pt_PT', 'es': 'es_ES',
+                   'sv': 'sv_SE'}
+    def getCkLanguage(self):
+        '''Gets the language for CK editor SCAYT. We will use
+           self.contentLanguage. If it is not supported by CK, we use
+           english.'''
+        lang = self.contentLanguage
+        if lang and (lang in self.ckLanguages): return self.ckLanguages[lang]
+        return 'en_US'
+
+    def getCkParams(self, obj):
+        '''Gets the base params to set on a rich text field.'''
         ckAttrs = {'toolbar': 'Appy',
-                   'format_tags': '%s' % ';'.join(self.styles)}
+                   'format_tags': ';'.join(self.styles),
+                   'scayt_sLang': self.getCkLanguage()}
         if self.width: ckAttrs['width'] = self.width
+        if self.spellcheck: ckAttrs['scayt_autoStartup'] = True
         if self.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % obj.absolute_url()
         ck = []
         for k, v in ckAttrs.iteritems():
             if isinstance(v, int): sv = str(v)
+            if isinstance(v, bool): sv = str(v).lower()
             else: sv = '"%s"' % v
             ck.append('%s: %s' % (k, sv))
-        return 'CKEDITOR.replace("%s", {%s})' % (self.name, ', '.join(ck))
+        return ', '.join(ck)
+
+    def getJsInit(self, obj):
+        '''Gets the Javascript init code for displaying a rich editor for this
+           field (rich field only).'''
+        return 'CKEDITOR.replace("%s", {%s})' % \
+               (self.name, self.getCkParams(obj))
 
     def getJsInlineInit(self, obj):
         '''Gets the Javascript init code for enabling inline edition of this
            field (rich text only).'''
-        uid = obj.UID()
+        uid = obj.id
+        return "CKEDITOR.disableAutoInline = true;\n" \
+               "CKEDITOR.inline('%s_%s_ck', {%s, on: {blur: " \
+               "function( event ) { var content = event.editor.getData(); " \
+               "doInlineSave('%s', '%s', '%s', content)}}})" % \
+               (uid, self.name, self.getCkParams(obj), uid, self.name,
+                obj.absolute_url())
+
         return "CKEDITOR.disableAutoInline = true;\n" \
                "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
                "function( event ) { var data = event.editor.getData(); " \

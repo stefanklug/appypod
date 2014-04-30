@@ -40,6 +40,7 @@ class Field:
     cssFiles = {}
     jsFiles = {}
     dLayouts = 'lrv-d-f'
+    hLayouts = 'lhrv-f'
     wLayouts = Table('lrv-f')
 
     # Render a field. Optional vars:

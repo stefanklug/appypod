@@ -79,9 +79,9 @@ msgstr "U moet hier meerdere elementen selecteren."
 msgid "max_ref_violated"
 msgstr "U hebt teveel elementen geselecteerd."
 
-#. Default: "No object."
+#. Default: "-"
 msgid "no_ref"
-msgstr "Geen element."
+msgstr "-"
 
 #. Default: "Add a new one"
 msgid "add_ref"
