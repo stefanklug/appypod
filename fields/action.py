@@ -74,6 +74,7 @@ class Action(Field):
                        master, masterValue, focus, historized, mapping, label,
                        None, None, None, None, False)
         self.validable = False
+        self.renderLabel = False # Label is rendered directly within the button.
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
 

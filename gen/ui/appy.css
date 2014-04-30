@@ -47,8 +47,7 @@ img { border: 0; vertical-align: middle }
 
 /* Styles that apply when viewing content of XHTML fields, that mimic styles
    that ckeditor uses for displaying XHTML content in the edit view. */
-.xhtml { margin-top: 5px; background-color: white;
-         padding: 6px; border: 1px dashed grey; border-radius: 0.3em }
+.xhtml { background-color: white; padding: 6px; font-size: 95% }
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
@@ -156,7 +155,7 @@ td.search { padding-top: 8px }
 .homeTable th { padding-top: 5px; font-size: 105% }
 .first { margin-top: 0px }
 .error { margin: 5px }
-.podName { font-size: 90% }
+.podName { font-size: 95% }
 .podTable { margin-left: 15px }
 .cbCell { width: 10px; text-align: center}
 .tabs { position:relative; bottom:-2px }

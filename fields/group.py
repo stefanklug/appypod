@@ -81,8 +81,7 @@ class Group:
             self.hasLabel = self.hasDescr = self.hasHelp = False
             # The rendering is forced to a single column
             self.columns = self.columns[:1]
-            # Header labels will be used as labels for the tabs.
-            self.hasHeaders = True
+            # Inner field/group labels will be used as tab labels.
         self.css_class = css_class
         self.master = master
         self.masterValue = gutils.initMasterValue(masterValue)
@@ -194,7 +193,7 @@ class UiGroup:
     pxHelp = Px('''<acronym title="obj.translate('help', field=field)"><img
      src=":url('help')"/></acronym>''')
 
-    # PX that renders the content of a group (which is refered as var "field").
+    # PX that renders the content of a group (which is referred as var "field").
     pxContent = Px('''
      <table var="cellgap=field.cellgap" width=":field.wide"
             align=":ztool.flipLanguageDirection(field.align, dir)"
@@ -253,20 +252,20 @@ class UiGroup:
       <x if="field.style not in ('fieldset', 'tabs')">:field.pxContent</x>
 
       <!-- Render the group as tabs if required -->
-      <x if="field.style == 'tabs'" var2="lenFields=len(field.elements)">
+      <x if="field.style == 'tabs'" var2="tabsCount=len(field.elements)">
        <table width=":field.wide" class=":groupCss" id=":tagId" name=":tagName">
         <!-- First row: the tabs. -->
         <tr valign="middle"><td style="border-bottom: 1px solid #ff8040">
          <table class="tabs" cellpadding="0" cellspacing="0">
           <tr valign="middle">
-           <x for="row in field.elements"
-              var2="nb = loop.row.nb + 1;
-                    suffix='%s_%d_%d' % (field.name, nb, lenFields);
+           <x for="sub in field.elements"
+              var2="nb = loop.sub.nb + 1;
+                    suffix='%s_%d_%d' % (field.name, nb, tabsCount);
                     tabId='tab_%s' % suffix">
             <td><img src=":url('tabLeft')" id=":'%s_left' % tabId"/></td>
             <td style=":url('tabBg', bg=True)" class="tab" id=":tabId">
              <a onclick=":'showTab(%s)' % q(suffix)"
-                class="clickable">:_('%s_col%d' % (field.labelId, nb))</a>
+                class="clickable">:_(sub.labelId)</a>
             </td>
             <td><img id=":'%s_right' % tabId" src=":url('tabRight')"/></td>
            </x>
@@ -275,18 +274,18 @@ class UiGroup:
         </td></tr>
 
         <!-- Other rows: the fields -->
-        <tr for="row in field.elements"
-            var2="nb=loop.row.nb + 1"
-            id=":'tabcontent_%s_%d_%d' % (field.name, nb, lenFields)"
+        <tr for="sub in field.elements"
+            var2="nb=loop.sub.nb + 1"
+            id=":'tabcontent_%s_%d_%d' % (field.name, nb, tabsCount)"
             style=":(nb == 1) and 'display:table-row' or 'display:none'">
-         <td var="field=row[0]">
+         <td var="field=sub">
           <x if="field.type == 'group'">:field.pxView</x>
           <x if="field.type != 'group'">:field.pxRender</x>
          </td>
         </tr>
        </table>
        <script type="text/javascript">:'initTab(%s,%s)' % \
-        (q('tab_%s' % field.name), q('%s_1_%d' % (field.name, lenFields)))
+        (q('tab_%s' % field.name), q('%s_1_%d' % (field.name, tabsCount)))
        </script>
       </x>
      </x>''')
@@ -365,16 +364,24 @@ class UiGroup:
         self.helpId  = self.labelId + '_help'
         # The name of the page where the group lies
         self.page = page.name
-        # The elements contained in the group, that the current user may see.
-        # They will be stored by m_addElement below as a list of lists because
-        # they will be rendered as a table.
-        self.elements = [[]]
+        # The elements (fields or sub-groups) contained in the group, that the
+        # current user may see. They will be inserted by m_addElement below.
+        if self.style != 'tabs':
+            # In most cases, "elements" will be a list of lists for rendering
+            # them as a table.
+            self.elements = [[]]
+        else:
+            # If the group is a tab, elements will be stored as a simple list.
+            self.elements = []
         # PX to use for rendering this group.
         self.px = self.pxByContent[content]
 
     def addElement(self, element):
         '''Adds p_element into self.elements. We try first to add p_element into
            the last row. If it is not possible, we create a new row.'''
+        if self.style == 'tabs':
+            self.elements.append(element)
+            return
         # Get the last row
         lastRow = self.elements[-1]
         numberOfColumns = len(self.columnsWidths)

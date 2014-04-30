@@ -75,15 +75,15 @@ class Field:
              layoutTarget=field">:tool.pxLayoutedObject</x>''')
 
     # Displays a field label.
-    pxLabel = Px('''<label if="field.hasLabel and (field.type != 'Action')"
-     lfor=":field.name">::zobj.translate('label', field=field)</label>''')
+    pxLabel = Px('''<label if="field.hasLabel and field.renderLabel"
+     lfor=":field.name">::_('label', field=field)</label>''')
 
     # Displays a field description.
     pxDescription = Px('''<span if="field.hasDescr"
-     class="discreet">::zobj.translate('descr', field=field)</span>''')
+     class="discreet">::_('descr', field=field)</span>''')
 
     # Displays a field help.
-    pxHelp = Px('''<acronym title=":zobj.translate('help', field=field)"><img
+    pxHelp = Px('''<acronym title=":_('help', field=field)"><img
      src=":url('help')"/></acronym>''')
 
     # Displays validation-error-related info about a field.
@@ -424,6 +424,13 @@ class Field:
                 layouts[layoutType].removeElement('r')
         # Derive some boolean values from the layouts.
         self.hasLabel = self.hasLayoutElement('l', layouts)
+        # "renderLabel" indicates if the existing label (if hasLabel is True)
+        # must be rendered by pxLabel. For example, if field is an action, the
+        # label will be rendered within the button, not by pxLabel.
+        self.renderLabel = self.hasLabel
+        # If field is within a group rendered like a tab, the label will already
+        # be rendered in the corresponding tab.
+        if self.group and (self.group.style == 'tabs'): self.renderLabel = False
         self.hasDescr = self.hasLayoutElement('d', layouts)
         self.hasHelp  = self.hasLayoutElement('h', layouts)
         return layouts

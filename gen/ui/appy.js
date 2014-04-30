@@ -811,10 +811,16 @@ function showTab(tabId) {
 }
 
 // Function that initializes the state of a tab
-function initTab(cookieId, defaultValue) {
-  var toSelect = readCookie(cookieId);
-  if (!toSelect) { showTab(defaultValue) }
-  else { showTab(toSelect); }
+function initTab(tabsId, defaultValue) {
+  var selectedTabId = readCookie(tabsId);
+  if (!selectedTabId) { showTab(defaultValue) }
+  else {
+    /* Ensure the selected tab exists (it could be absent because of field
+       visibility settings) */
+    var selectedTab = document.getElementById('tab_' + selectedTabId);
+    if (selectedTab) { showTab(selectedTabId) }
+    else { showTab(defaultValue) }
+  }
 }
 
 // List-related Javascript functions

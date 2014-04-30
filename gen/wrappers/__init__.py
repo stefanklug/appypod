@@ -457,6 +457,12 @@ class AbstractWrapper(object):
                  isEdit=layoutType == 'edit';
                  pageInfo=phaseObj.pagesInfo[page]">
       <tr valign="top">
+       <!-- Refresh -->
+       <td if="zobj.isDebug()">
+        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
+         <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
+        </a>
+       </td>
        <!-- Previous -->
        <td if="previousPage and pageInfo.showPrevious"
            var2="label=_('page_previous');
@@ -536,13 +542,6 @@ class AbstractWrapper(object):
        <!-- Workflow transitions -->
        <td var="targetObj=zobj; buttonsMode='normal'"
            if="targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
-
-       <!-- Refresh -->
-       <td if="zobj.isDebug()">
-        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
-         <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
-        </a>
-       </td>
       </tr>
      </table>''')
 
