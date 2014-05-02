@@ -212,7 +212,7 @@ class ToolWrapper(AbstractWrapper):
                                (currentPage == 'search')"
               class=":highlighted and 'portletSearch current' or \
                      'portletSearch'"
-              align=":dright">
+              align=":dright" style="margin-bottom: 4px">
           <a var="text=_('search_title')" style="font-size: 88%"
              href=":'%s/search?className=%s' % (toolUrl, className)"
              title=":text"><x>:text</x>...</a>

@@ -57,9 +57,9 @@ img { border: 0; vertical-align: middle }
 .top { height: 89px; margin-left: 3em; vertical-align: top;
        background-color: white }
 .lang { margin-right: 6px }
-.userStrip { background-color: #6282B3; border-top: 3px solid #034984;
-             border-bottom: 2px solid #034984; width: 100%; height: 100% }
-.userStripText { padding: 0 0.3em 0 0.3em; color: white }
+.userStrip { background-color: #A3A3C8; border-top: 3px solid #cbcbcb;
+             border-bottom: 2px solid #e4e4e4; width: 100%; height: 100% }
+.userStripText { padding: 0 0.3em 0 0.3em; color: whitesmoke }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
 .breadcrumb { font-size: 11pt; padding-bottom: 6px }
@@ -84,17 +84,17 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .title { color: #BA9440 }
 .lostPassword { font-size: 90%; color: white; padding-left: 1em }
 .current { font-weight: bold }
-.portlet { width: 150px; border-right: 1px solid #5F7983;
-           background-color: #ededed }
-.portletContent { margin: 4px 9px }
+.portlet { width: 150px; border-right: 3px solid #e4e4e4;
+           background-color: #f3f3f3 }
+.portletContent { padding: 4px 9px }
 .portletTitle { font-size: 110%; margin-bottom: 4px }
-.portletSep { border-top: 1px solid #5F7983; margin-top: 2px }
+.portletSep { border-top: 3px solid #e4e4e4 }
 .portletGroup { font-variant: small-caps; font-weight: bold; font-size: 110%;
-                margin: 0.1em 0 0.3em ; border-bottom: 1px dashed grey }
+                margin: 0.1em 0 0.3em ; border-bottom: 1px dashed #c0c0c0 }
 .portletSearch { font-size: 90%; font-style: italic }
 .inputSearch { height: 15px; width: 132px; margin: 3px 3px 2px 3px !important }
 td.search { padding-top: 8px }
-.content { padding: 9px; background-color: #f1f1f1 }
+.content { padding: 9px; background-color: whitesmoke }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
@@ -127,6 +127,7 @@ td.search { padding-top: 8px }
             color: white }
 .even { background-color: #f9f9f9 }
 .odd { background-color: #f4f4f4 }
+.odd2 { background-color: #f2f2f2 }
 .summary { margin-bottom: 5px; background-color: #f9f9f9;
            border: 2px solid #f9f9f9 }
 .by { padding: 5px; color: grey; font-size: 97% }
@@ -144,7 +145,7 @@ td.search { padding-top: 8px }
 .currentPage { background-color: #e6e6e6 }
 .pageLink { margin-right: 8px }
 .footer { font-size: 95%; height: 100% }
-.footer td { background-color: #CBCBC9; border-top: 1px solid grey;
+.footer td { background-color: #CBCBC9; border-top: 3px solid #e4e4e4;
              padding: 0.4em 1em 0.5em }
 .code { font-family: "Lucida Console","Courier New" }
 .codePara { background-color: #EEFFCC; border-color: grey;

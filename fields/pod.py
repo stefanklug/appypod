@@ -106,7 +106,7 @@ class Pod(Field):
           <!-- Show the specific template name only if there is more than one
                template. For a single template, the field label already does
                the job. -->
-          <td if="len(field.template) &gt; 1"
+          <td if="len(field.template) &gt; 1" style="padding-left: 3px"
               class="smaller">:field.getTemplateName(obj, info.template)</td>
          </tr>
         </table>
@@ -246,11 +246,11 @@ class Pod(Field):
         else:
             isManager = obj.user.has_role('Manager')
             for template in self.template:
-                formats = isManager and self.getAllFormats(template) or \
-                          self.showTemplate(obj, template)
-                if formats:
-                    res.append(Object(template=template, formats=formats,
-                            freezeFormats=self.getFreezeFormats(obj, template)))
+                formats = self.showTemplate(obj, template)
+                if not formats: continue
+                formats = isManager and self.getAllFormats(template) or formats
+                res.append(Object(template=template, formats=formats,
+                           freezeFormats=self.getFreezeFormats(obj, template)))
         return res
 
     def getValue(self, obj, template=None, format=None, result=None,
