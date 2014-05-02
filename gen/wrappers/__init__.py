@@ -1083,4 +1083,14 @@ class AbstractWrapper(object):
            p_name.'''
         v = getattr(self, name)
         if v: return v.getFilePath(self)
+
+    def getIndexOf(self, name, obj):
+        '''Returns, as an integer starting at 0, the position of p_obj within
+           objects linked to p_self via field p_name.'''
+        o = self.o
+        return o.getAppyType(name).getIndexOf(o, obj.uid)
+
+    def allows(self, permission, raiseError=False):
+        '''Check doc @Mixin.allows.'''
+        return self.o.allows(permission, raiseError=raiseError)
 # ------------------------------------------------------------------------------

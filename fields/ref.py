@@ -1022,12 +1022,18 @@ class Ref(Field):
             res = refObject.tool.o.truncateValue(res, maxWidth)
         return res
 
-    def getIndexOf(self, obj, tiedUid):
+    def getIndexOf(self, obj, tiedUid, raiseError=True):
         '''Gets the position of tied object identified by p_tiedUid within this
            field on p_obj.'''
         uids = getattr(obj.aq_base, self.name, None)
-        if not uids: raise IndexError()
-        return uids.index(tiedUid)
+        if not uids:
+            if raiseError: raise IndexError()
+            else: return
+        if tiedUid in uids:
+            return uids.index(tiedUid)
+        else:
+            if raiseError: raise IndexError()
+            else: return
 
     def sort(self, obj):
         '''Called when the user wants to sort the content of this field.'''
