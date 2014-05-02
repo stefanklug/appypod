@@ -219,8 +219,7 @@ class UiGroup:
       </tr>
       <!-- The rows of widgets -->
       <tr valign=":field.valign" for="row in field.elements">
-       <td for="field in row"
-           colspan="field.colspan"
+       <td for="field in row" colspan=":field.colspan"
            style=":not loop.field.last and ('padding-right:%s'% cellgap) or ''">
         <x if="field">
          <x if="field.type == 'group'">:field.pxView</x>

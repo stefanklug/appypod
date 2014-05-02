@@ -195,86 +195,85 @@ class Ref(Field):
 
     # PX that displays referred objects as a list.
     pxViewList = Px('''
-      <!-- No object at all -->
-      <div if="not objects" class="smaller">:_('no_ref')</div>
+     <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
+      <span if="subLabel" class="discreet">:_(subLabel)</span>
+      (<span class="discreet">:totalNumber</span>) 
+      <x>:field.pxAdd</x>
+      <!-- The search button if field is queryable -->
+      <input if="objects and field.queryable" type="button"
+             class="buttonSmall button"
+             var2="label=_('search_button')" value=":label"
+             style=":'%s; %s' % (url('search', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             onclick=":'goto(%s)' % \
+              q('%s/search?className=%s&amp;ref=%s:%s' % \
+              (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
+     </div>
 
-      <x if="objects">
-       <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
-        <span if="subLabel" class="discreet">:_(subLabel)</span>
-        (<span class="discreet">:totalNumber</span>) 
-        <x>:field.pxAdd</x>
-        <!-- The search button if field is queryable -->
-        <input if="objects and field.queryable" type="button"
-               class="buttonSmall button"
-               var2="label=_('search_button')" value=":label"
-               style=":'%s; %s' % (url('search', bg=True), \
-                                   ztool.getButtonWidth(label))"
-               onclick=":'goto(%s)' % \
-                q('%s/search?className=%s&amp;ref=%s:%s' % \
-                (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
-       </div>
+     <!-- (Top) navigation -->
+     <x>:tool.pxNavigate</x>
 
-       <!-- (Top) navigation -->
-       <x>:tool.pxNavigate</x>
+     <!-- No object is present -->
+     <p class="discreet" if="not objects and not showPlusIcon">:_('no_ref')</p>
 
-       <!-- Linked objects -->
-       <table if="objects" class=":not innerRef and 'list' or ''"
-              width=":innerRef and '100%' or field.layouts['view'].width"
-              var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                     field.shownInfo, dir)">
-        <tr if="field.showHeaders">
-         <th if="not inPickList and numbered" width=":numbered"></th>
-         <th for="column in columns" width=":column.width"
-             align=":column.align" var2="refField=column.field">
-          <span>:_(refField.labelId)</span>
-          <x>:field.pxSortIcons</x>
-          <x var="className=tiedClassName;
-                  field=refField">:tool.pxShowDetails</x>
-         </th>
-         <th if="checkboxes" class="cbCell">
-          <img src=":url('checkall')" class="clickable"
-               title=":_('check_uncheck')"
-               onclick=":'toggleAllRefCbs(%s)' % q(ajaxHookId)"/>
-         </th>
-        </tr>
-        <!-- Loop on every (tied or selectable) object. -->
-        <tr for="tied in objects" valign="top"
-            class=":loop.tied.odd and 'even' or 'odd'"
-            var2="tiedUid=tied.o.id;
-                  objectIndex=field.getIndexOf(zobj, tiedUid)|None">
-         <td if="not inPickList and numbered">:field.pxNumber</td>
-         <td for="column in columns" width=":column.width" align=":column.align"
-             var2="refField=column.field">
-          <!-- The "title" field -->
-          <x if="refField.name == 'title'">
-           <x>:field.pxObjectTitle</x>
-           <div if="tied.o.mayAct()">:field.pxObjectActions</div>
-          </x>
-          <!-- Any other field -->
-          <x if="refField.name != 'title'">
-           <x var="zobj=tied.o; obj=tied; layoutType='cell';
-                   innerRef=True; field=refField"
-              if="field.isShowable(zobj, 'result')">:field.pxRender</x>
-          </x>
-         </td>
-         <td if="checkboxes" class="cbCell">
-          <input type="checkbox" name=":ajaxHookId" checked="checked"
-                 value=":tiedUid" onclick="toggleRefCb(this)"/>
-         </td>
-        </tr>
-       </table>
+     <!-- Linked objects -->
+     <table if="objects" class=":not innerRef and 'list' or ''"
+            width=":innerRef and '100%' or field.layouts['view'].width"
+            var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                   field.shownInfo, dir)">
+      <tr if="field.showHeaders">
+       <th if="not inPickList and numbered" width=":numbered"></th>
+       <th for="column in columns" width=":column.width"
+           align=":column.align" var2="refField=column.field">
+        <span>:_(refField.labelId)</span>
+        <x>:field.pxSortIcons</x>
+        <x var="className=tiedClassName;
+                field=refField">:tool.pxShowDetails</x>
+       </th>
+       <th if="checkboxes" class="cbCell">
+        <img src=":url('checkall')" class="clickable"
+             title=":_('check_uncheck')"
+             onclick=":'toggleAllRefCbs(%s)' % q(ajaxHookId)"/>
+       </th>
+      </tr>
+      <!-- Loop on every (tied or selectable) object. -->
+      <tr for="tied in objects" valign="top"
+          class=":loop.tied.odd and 'even' or 'odd'"
+          var2="tiedUid=tied.o.id;
+                objectIndex=field.getIndexOf(zobj, tiedUid)|None">
+       <td if="not inPickList and numbered">:field.pxNumber</td>
+       <td for="column in columns" width=":column.width" align=":column.align"
+           var2="refField=column.field">
+        <!-- The "title" field -->
+        <x if="refField.name == 'title'">
+         <x>:field.pxObjectTitle</x>
+         <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+        </x>
+        <!-- Any other field -->
+        <x if="refField.name != 'title'">
+         <x var="zobj=tied.o; obj=tied; layoutType='cell';
+                 innerRef=True; field=refField"
+            if="field.isShowable(zobj, 'result')">:field.pxRender</x>
+        </x>
+       </td>
+       <td if="checkboxes" class="cbCell">
+        <input type="checkbox" name=":ajaxHookId" checked="checked"
+               value=":tiedUid" onclick="toggleRefCb(this)"/>
+       </td>
+      </tr>
+     </table>
 
-       <!-- Global actions -->
-       <div if="canWrite and (totalNumber &gt; 1)"
-            align=":dright">:field.pxGlobalActions</div>
+     <!-- Global actions -->
+     <div if="canWrite and (totalNumber &gt; 1)"
+          align=":dright">:field.pxGlobalActions</div>
 
-       <!-- (Bottom) navigation -->
-       <x>:tool.pxNavigate</x>
+     <!-- (Bottom) navigation -->
+     <x>:tool.pxNavigate</x>
 
-       <!-- Init checkboxes if present. -->
-       <script if="checkboxes"
-               type="text/javascript">:'initRefCbs(%s)' % q(ajaxHookId)</script>
-      </x>''')
+     <!-- Init checkboxes if present. -->
+     <script if="checkboxes"
+             type="text/javascript">:'initRefCbs(%s)' % q(ajaxHookId)
+     </script>''')
 
     # PX that displays the list of objects the user may select to insert into a
     # ref field with link="list".
@@ -410,7 +409,7 @@ class Ref(Field):
                     title=field.getReferenceLabel(tied, unlimited=True)"
               selected=":inRequest and (uid in requestValue) or \
                                        (uid in uids)" value=":uid"
-              title=":title">:ztool.truncateValue(title, field.swidth)</option>
+              title=":title">:ztool.truncateValue(title, field.width)</option>
      </select>''')
 
     pxSearch = Px('''

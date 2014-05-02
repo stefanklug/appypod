@@ -18,8 +18,9 @@ try:
 except ImportError:
     _noroles = []
 
-# Errors -----------------------------------------------------------------------
-jsMessages = ('no_elem_selected', 'action_confirm', 'warn_leave_form')
+# Global JS internationalized messages that will be computed in every page -----
+jsMessages = ('no_elem_selected', 'action_confirm', 'save_confirm',
+              'warn_leave_form')
 
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):
@@ -389,25 +390,26 @@ class ToolMixin(BaseMixin):
             k = self.getAppyClass(className)
             return hasattr(k, 'listColumns') and k.listColumns or ('title',)
 
-    def truncateValue(self, value, width=15):
-        '''Truncates the p_value according to p_width.'''
+    def truncateValue(self, value, width=20):
+        '''Truncates the p_value according to p_width. p_value has to be
+           unicode-encoded for being truncated (else, one char may be spread on
+           2 chars).'''
+        # Param p_width can be None.
+        if not width: width = 20
         if isinstance(value, str): value = value.decode('utf-8')
-        if len(value) > width:
-            return value[:width].encode('utf-8') + '...'
-        return value.encode('utf-8')
+        if len(value) > width: return value[:width] + '...'
+        return value
 
-    def truncateText(self, text, width=15):
+    def truncateText(self, text, width=20):
         '''Truncates p_text to max p_width chars. If the text is longer than
-           p_width, the truncated part is put in a "acronym" html tag.'''
-        # p_text has to be unicode-encoded for being truncated (else, one char
-        # may be spread on 2 chars). But this method must return an encoded
-        # string, else, ZPT crashes. The same remark holds for m_truncateValue
-        # above.
-        uText = text # uText will store the unicode version
-        if isinstance(text, str): uText = text.decode('utf-8')
-        if len(uText) <= width: return text
-        return '<acronym title="%s">%s</acronym>' % \
-               (text, uText[:width].encode('utf-8') + '...')
+           p_width, the truncated part is put in a "acronym" html tag. p_text
+           has to be unicode-encoded for being truncated (else, one char may be
+           spread on 2 chars).'''
+        # Param p_width can be None.
+        if not width: width = 20
+        if isinstance(text, str): text = text.decode('utf-8')
+        if len(text) <= width: return text
+        return '<acronym title="%s">%s...</acronym>' % (text, text[:width])
 
     def splitList(self, l, sub):
         '''Returns a list made of the same elements as p_l, but grouped into
@@ -1226,13 +1228,13 @@ class ToolMixin(BaseMixin):
         return [f for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
 
-    def formatDate(self, aDate, withHour=True):
-        '''Returns aDate formatted as specified by tool.dateFormat.
+    def formatDate(self, date, withHour=True):
+        '''Returns p_date formatted as specified by tool.dateFormat.
            If p_withHour is True, hour is appended, with a format specified
            in tool.hourFormat.'''
         tool = self.appy()
-        res = aDate.strftime(tool.dateFormat)
-        if withHour: res += ' (%s)' % aDate.strftime(tool.hourFormat)
+        res = date.strftime(tool.dateFormat)
+        if withHour: res += ' (%s)' % date.strftime(tool.hourFormat)
         return res
 
     def generateUid(self, className):

@@ -247,6 +247,10 @@ msgstr ""
 msgid "action_null"
 msgstr ""
 
+#. Default: "Are you sure you want to apply this change?"
+msgid "save_confirm"
+msgstr ""
+
 #. Default: "Go to top"
 msgid "goto_first"
 msgstr ""

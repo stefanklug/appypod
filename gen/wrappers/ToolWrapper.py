@@ -587,6 +587,14 @@ class ToolWrapper(AbstractWrapper):
         '''Sends a mail. See doc for appy.gen.mail.sendMail.'''
         sendMail(self, to, subject, body, attachments=attachments)
 
+    def formatDate(self, date, withHour=True):
+        '''Check doc @ToolMixin::formatDate.'''
+        if not date: return
+        return self.o.formatDate(date, withHour=withHour)
+
+    def getUserName(self, login=None, normalized=False):
+        return self.o.getUserName(login=login, normalized=normalized)
+
     def refreshCatalog(self, startObject=None):
         '''Reindex all Appy objects. For some unknown reason, method
            catalog.refreshCatalog is not able to recatalog Appy objects.'''

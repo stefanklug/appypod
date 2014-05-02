@@ -397,6 +397,30 @@ class Transition:
         if not obj.isTemporary(): obj.reindex()
         return tool.goto(obj.getUrl(rq['HTTP_REFERER']))
 
+    @staticmethod
+    def getBack(workflow, transition):
+        '''Returns the name of the transition (in p_workflow) that "cancels" the
+           triggering of p_transition and allows to go back to p_transition's
+           start state.'''
+        # Get the end state(s) of p_transition
+        transition = getattr(workflow, transition)
+        # Browse all transitions and find the one starting at p_transition's end
+        # state and coming back to p_transition's start state.
+        for trName, tr in workflow.__dict__.iteritems():
+            if not isinstance(tr, Transition) or (tr == transition): continue
+            if transition.isSingle():
+                if tr.hasState(transition.states[1], True) and \
+                   tr.hasState(transition.states[0], False): return trName
+            else:
+                startOk = False
+                endOk = False
+                for start, end in transition.states:
+                    if (not startOk) and tr.hasState(end, True):
+                        startOk = True
+                    if (not endOk) and tr.hasState(start, False):
+                        endOk = True
+                    if startOk and endOk: return trName
+
 class UiTransition:
     '''Represents a widget that displays a transition.'''
     pxView = Px('''<x var="buttonCss = (buttonsMode == 'small') and \

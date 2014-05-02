@@ -248,6 +248,10 @@ msgstr "Action could not be performed on ${nb} element(s)."
 msgid "action_null"
 msgstr "Action had no effect."
 
+#. Default: "Are you sure you want to apply this change?"
+msgid "save_confirm"
+msgstr "Are you sure you want to apply this change?"
+
 #. Default: "Go to top"
 msgid "goto_first"
 msgstr "Go to top"

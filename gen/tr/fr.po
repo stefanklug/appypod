@@ -248,6 +248,10 @@ msgstr "L'action n'a pu être réalisée pour ${nb} élément(s)."
 msgid "action_null"
 msgstr "L'action n'a eu aucun effet."
 
+#. Default: "Are you sure you want to apply this change?"
+msgid "save_confirm"
+msgstr "Êtes-vous sûr de vouloir appliquer ce changement?"
+
 #. Default: "Go to top"
 msgid "goto_first"
 msgstr "Aller au début"

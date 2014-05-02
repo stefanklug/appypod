@@ -279,7 +279,7 @@ function doInlineSave(objectUid, name, objectUrl, content){
   /* Ajax-saves p_content of field named p_name on object whose id is
      p_objectUid and whose URL is p_objectUrl. Asks a confirmation before
      doing it. */
-  var doIt = confirm('Do it?');
+  var doIt = confirm(save_confirm);
   var params = {'action': 'storeFromAjax', 'layoutType': 'view'};
   var hook = null;
   if (!doIt) {

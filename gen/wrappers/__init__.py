@@ -329,18 +329,17 @@ class AbstractWrapper(object):
         <th align=":dleft">:_('action_comment')</th>
        </tr>
        <tr for="event in objs"
-           var2="odd=loop.event.odd;
-                 rhComments=event.get('comments', None);
+           var2="rhComments=event.get('comments', None);
                  state=event.get('review_state', None);
                  action=event['action'];
                  isDataChange=action == '_datachange_'"
-           class="odd and 'even' or 'odd'" valign="top">
+           class=":loop.event.odd and 'even' or 'odd'" valign="top">
         <td if="isDataChange">
          <x>:_('data_change')</x>
          <img if="user.has_role('Manager')" class="clickable"
               src=":url('delete')"
               onclick=":'onDeleteEvent(%s,%s)' % \
-                        (q(zobj.UID()), q(event['time']))"/>
+                        (q(zobj.id), q(event['time']))"/>
         </td>
         <td if="not isDataChange">:_(zobj.getWorkflowLabel(action))</td>
         <td var="actorId=event.get('actor')">
@@ -408,7 +407,7 @@ class AbstractWrapper(object):
           <img class="clickable" onclick="toggleCookie('appyHistory')"
              src=":historyExpanded and url('collapse.gif') or url('expand.gif')"
              align=":dleft" id="appyHistory_img" style="padding-right:4px"/>
-          <x>:_('object_history')</x> || 
+          <x>:_('object_history')</x> &mdash;
          </x>
 
          <!-- Creator and last modification date -->
@@ -437,7 +436,7 @@ class AbstractWrapper(object):
         <td colspan="2">
          <span id="appyHistory"
                style=":historyExpanded and 'display:block' or 'display:none'">
-          <div var="ajaxHookId=zobj.UID() + '_history'" id=":ajaxHookId">
+          <div var="ajaxHookId=zobj.id + '_history'" id=":ajaxHookId">
            <script type="text/javascript">::'askObjectHistory(%s,%s,%d,0)' % \
              (q(ajaxHookId), q(zobj.absolute_url()), \
               historyMaxPerPage)</script>
@@ -701,9 +700,10 @@ class AbstractWrapper(object):
         elif name == 'session': return self.o.REQUEST.SESSION
         elif name == 'typeName': return self.__class__.__bases__[-1].__name__
         elif name == 'id': return self.o.id
-        elif name == 'uid': return self.o.UID()
+        elif name == 'uid': return self.o.id
         elif name == 'klass': return self.__class__.__bases__[-1]
         elif name == 'created': return self.o.created
+        elif name == 'creator': return self.o.creator
         elif name == 'modified': return self.o.modified
         elif name == 'url': return self.o.absolute_url()
         elif name == 'state': return self.o.State()
@@ -751,6 +751,14 @@ class AbstractWrapper(object):
         if custom: return custom(self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
+    def getLabel(self, name, type='field'):
+        '''Gets the translated label of field named p_name. If p_type is
+           "workflow", p_name denotes a workflow state or transition, not a
+           field.'''
+        o = self.o
+        if type == 'field': return o.translate(o.getAppyType(name).labelId)
+        elif type == 'workflow': return o.translate(o.getWorkflowLabel(name))
+
     def isEmpty(self, name):
         '''Returns True if value of field p_name is considered as being
            empty.'''
@@ -1004,7 +1012,7 @@ class AbstractWrapper(object):
             # Determine where to put the result
             toDisk = (at != 'string')
             if toDisk and not at:
-                at = getOsTempFolder() + '/' + self.o.UID() + '.xml'
+                at = getOsTempFolder() + '/' + self.o.id + '.xml'
             # Create the XML version of the object
             marshaller = XmlMarshaller(cdata=True, dumpUnicode=True,
                                        dumpXmlPrologue=toDisk,
@@ -1036,7 +1044,7 @@ class AbstractWrapper(object):
            whose values are the previous field values.'''
         self.o.addDataChange(data)
 
-    def getLastEvent(self, transition, notBefore=''):
+    def getLastEvent(self, transition, notBefore=None):
         '''Gets, from the object history, the last occurrence of transition
            named p_transition. p_transition can be a list of names: in this
            case, it returns the most recent occurrence of those transitions. If
@@ -1069,4 +1077,10 @@ class AbstractWrapper(object):
             if getattr(workflow, name).__class__.__name__ != 'State': continue
             res.append((name, o.translate(o.getWorkflowLabel(name))))
         return res
+
+    def path(self, name):
+        '''Returns the absolute file name of file stored in File field p_nnamed
+           p_name.'''
+        v = getattr(self, name)
+        if v: return v.getFilePath(self)
 # ------------------------------------------------------------------------------

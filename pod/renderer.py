@@ -288,17 +288,18 @@ class Renderer:
            supposed to be in binary format in p_content. The document
            p_format may be: odt or any format in imageFormats.
 
-           p_anchor, p_wrapInPara and p_size are only relevant for images:
+           p_anchor, p_wrapInPara and p_size, p_sizeUnit and p_style are only
+           relevant for images:
            * p_anchor defines the way the image is anchored into the document;
                       Valid values are 'page','paragraph', 'char' and 'as-char';
            * p_wrapInPara, if true, wraps the resulting 'image' tag into a 'p'
                            tag;
            * p_size, if specified, is a tuple of float or integers
                      (width, height) expressing size in p_sizeUnit (see below).
-                     If not specified, size will be computed from image info.
+                     If not specified, size will be computed from image info;
            * p_sizeUnit is the unit for p_size elements, it can be "cm"
-             (centimeters) or "px" (pixels).
-           * If p_style is given, it is the content of a "style" attribute,
+             (centimeters) or "px" (pixels);
+           * if p_style is given, it is the content of a "style" attribute,
              containing CSS attributes. If "width" and "heigth" attributes are
              found there, they will override p_size and p_sizeUnit.
 
@@ -308,8 +309,7 @@ class Renderer:
         '''
         importer = None
         # Is there someting to import?
-        if not content and not at:
-            raise PodError(DOC_NOT_SPECIFIED)
+        if not content and not at: raise PodError(DOC_NOT_SPECIFIED)
         # Convert Zope files into Appy wrappers.
         if content.__class__.__name__ in ('File', 'Image'):
             content = FileWrapper(content)

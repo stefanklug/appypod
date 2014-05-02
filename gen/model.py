@@ -203,7 +203,7 @@ class Translation(ModelClass):
     title = gen.String(show=False, indexed=True,
                        page=gen.Page('main',label='Main'))
     def getPoFile(self): pass
-    po = gen.Action(action=getPoFile, result='filetmp')
+    po = gen.Action(action=getPoFile, result='file')
     sourceLanguage = gen.String(width=4)
     def label(self): pass
     def show(self, name): pass

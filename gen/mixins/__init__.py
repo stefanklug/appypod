@@ -942,12 +942,11 @@ class BaseMixin:
         if not name: return wf
         return WorkflowDescriptor.getWorkflowName(wf)
 
-    def getWorkflowLabel(self, stateName=None):
-        '''Gets the i18n label for p_stateName, or for the current object state
-           if p_stateName is not given. Note that if p_stateName is given, it
-           can also represent the name of a transition.'''
-        stateName = stateName or self.State()
-        return '%s_%s' % (self.getWorkflow(name=True), stateName)
+    def getWorkflowLabel(self, name=None):
+        '''Gets the i18n label for p_name (which can denote a state or a
+           transition), or for the current object state if p_name is None.'''
+        name = name or self.State()
+        return '%s_%s' % (self.getWorkflow(name=True), name)
 
     def getTransitions(self, includeFake=True, includeNotShowable=False,
                        grouped=True):

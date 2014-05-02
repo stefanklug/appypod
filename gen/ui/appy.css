@@ -62,7 +62,7 @@ img { border: 0; vertical-align: middle }
 .userStripText { padding: 0 0.3em 0 0.3em; color: white }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
-.breadcrumb { font-size: 11pt }
+.breadcrumb { font-size: 11pt; padding-bottom: 6px }
 .login { margin: 3px; color: black }
 input.button { color: #666666; height: 20px; width: 130px;
                cursor:pointer; font-size: 90%; padding: 1px 0 0 10px;
@@ -104,12 +104,12 @@ td.search { padding-top: 8px }
 .dropdownMenu { cursor: pointer; padding-right: 4px; font-size: 93% }
 .dropdown a:hover { text-decoration: underline }
 .list { margin-bottom: 3px }
-.list td, .list th { border: 1px solid grey;
-                     padding-left: 5px; padding-right: 5px; padding-top: 3px }
+.list td, .list th { border: 3px solid #ededed; color: grey;
+                     padding: 3px 5px 0 5px }
 .list th { background-color: #e5e5e5; font-style: italic; font-weight: normal }
 .grid th { font-style: italic; font-weight: normal;
-           border-bottom: 2px solid grey; padding: 2px 2px }
-.grid td { padding-right: 5px }
+           border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
+.grid td { padding: 3px 3px 0 3px }
 .cellGap { padding-right: 0.4em }
 .cellDashed { border: 1px dashed grey !important }
 .noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important }
@@ -127,7 +127,8 @@ td.search { padding-top: 8px }
             color: white }
 .even { background-color: #f9f9f9 }
 .odd { background-color: #f4f4f4 }
-.summary { margin-bottom: 5px; background-color: #f9f9f9 }
+.summary { margin-bottom: 5px; background-color: #f9f9f9;
+           border: 2px solid #f9f9f9 }
 .by { padding: 5px; color: grey; font-size: 97% }
 .underline { border-bottom: 1px dotted grey }
 .state { font-weight: bold; border-bottom: 1px dashed grey }
