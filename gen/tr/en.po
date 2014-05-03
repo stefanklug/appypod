@@ -711,3 +711,7 @@ msgstr "${date} - This page is locked by ${user}."
 #. Default: "In some situations, by leaving this page this way, you may lose encoded data or prevent other users from editing it afterwards. Please use buttons instead."
 msgid "warn_leave_form"
 msgstr "In some situations, by leaving this page this way, you may lose encoded data or prevent other users from editing it afterwards. Please use buttons instead."
+
+#. Default: "You are not allowed to consult this."
+msgid "unauthorized"
+msgstr "You are not allowed to consult this."

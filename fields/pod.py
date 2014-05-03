@@ -249,6 +249,7 @@ class Pod(Field):
                 formats = self.showTemplate(obj, template)
                 if not formats: continue
                 formats = isManager and self.getAllFormats(template) or formats
+                if isinstance(formats, basestring): formats = (formats,)
                 res.append(Object(template=template, formats=formats,
                            freezeFormats=self.getFreezeFormats(obj, template)))
         return res

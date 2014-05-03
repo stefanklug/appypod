@@ -394,7 +394,7 @@ class ToolWrapper(AbstractWrapper):
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
                refField=refInfo[1];
-               refUrlPart=refObject and ('&amp;ref=%s:%s' % (refObject.UID(), \
+               refUrlPart=refObject and ('&amp;ref=%s:%s' % (refObject.id, \
                                                              refField)) or '';
                startNumber=req.get('startNumber', '0');
                startNumber=int(startNumber);

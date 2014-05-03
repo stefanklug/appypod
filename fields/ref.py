@@ -214,7 +214,8 @@ class Ref(Field):
      <x>:tool.pxNavigate</x>
 
      <!-- No object is present -->
-     <p class="discreet" if="not objects and not showPlusIcon">:_('no_ref')</p>
+     <p class="discreet"
+        if="not objects and (innerRef and showPlusIcon)">:_('no_ref')</p>
 
      <!-- Linked objects -->
      <table if="objects" class=":not innerRef and 'list' or ''"
@@ -240,23 +241,29 @@ class Ref(Field):
       <tr for="tied in objects" valign="top"
           class=":loop.tied.odd and 'even' or 'odd'"
           var2="tiedUid=tied.o.id;
-                objectIndex=field.getIndexOf(zobj, tiedUid)|None">
+                objectIndex=field.getIndexOf(zobj, tiedUid)|None;
+                mayView=tied.allows('read')">
        <td if="not inPickList and numbered">:field.pxNumber</td>
        <td for="column in columns" width=":column.width" align=":column.align"
            var2="refField=column.field">
         <!-- The "title" field -->
         <x if="refField.name == 'title'">
-         <x>:field.pxObjectTitle</x>
-         <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+         <x if="mayView">
+          <x>:field.pxObjectTitle</x>
+          <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+         </x>
+         <div if="not mayView">
+          <img src=":url('fake')" style="margin-right: 5px"/>
+          <x>:_('unauthorized')</x></div>
         </x>
         <!-- Any other field -->
-        <x if="refField.name != 'title'">
+        <x if="(refField.name != 'title') and mayView">
          <x var="zobj=tied.o; obj=tied; layoutType='cell';
                  innerRef=True; field=refField"
             if="field.isShowable(zobj, 'result')">:field.pxRender</x>
         </x>
        </td>
-       <td if="checkboxes" class="cbCell">
+       <td if="checkboxes and mayView" class="cbCell">
         <input type="checkbox" name=":ajaxHookId" checked="checked"
                value=":tiedUid" onclick="toggleRefCb(this)"/>
        </td>

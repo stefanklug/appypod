@@ -225,8 +225,7 @@ class No:
        can't be triggered, do not return False, return an instance of No
        instead. When creating such an instance, you can specify an error
        message.'''
-    def __init__(self, msg):
-        self.msg = msg
-    def __nonzero__(self):
-        return False
+    def __init__(self, msg): self.msg = msg
+    def __nonzero__(self): return False
+    def __repr__(self): return '<No: %s>' % self.msg
 # ------------------------------------------------------------------------------

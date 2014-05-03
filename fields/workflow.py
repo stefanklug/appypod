@@ -395,7 +395,14 @@ class Transition:
         self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
         # Reindex obj if required.
         if not obj.isTemporary(): obj.reindex()
-        return tool.goto(obj.getUrl(rq['HTTP_REFERER']))
+        # If we are viewing the object and if the logged user looses the
+        # permission to view it, redirect the user to its home page.
+        if not obj.allows('read') and \
+           (obj.absolute_url_path() in rq['HTTP_REFERER']):
+            back = tool.getHomePage()
+        else:
+            back = obj.getUrl(rq['HTTP_REFERER'])
+        return tool.goto(back)
 
     @staticmethod
     def getBack(workflow, transition):

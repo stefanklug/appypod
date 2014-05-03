@@ -711,3 +711,7 @@ msgstr "${date} - Cette page est verrouillée par ${user}."
 #. Default: "In some situations, by leaving this page this way, you may lose encoded data or prevent other users from editing it afterwards. Please use buttons instead."
 msgid "warn_leave_form"
 msgstr "Dans certaines situations, en quittant cette page de cette manière, vous pouvez perdre les données encodées ou empêcher d'autres utilisateurs de les éditer par la suite. Veuillez utilisez les boutons ad hoc."
+
+#. Default: "You are not allowed to consult this."
+msgid "unauthorized"
+msgstr "Vous n'êtes pas autorisé à consulter ceci."

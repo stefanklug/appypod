@@ -52,8 +52,7 @@ img { border: 0; vertical-align: middle }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
 .refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
-.main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9;
-        border-style: solid; border-width: 1px; border-color: grey}
+.main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9 }
 .top { height: 89px; margin-left: 3em; vertical-align: top;
        background-color: white }
 .lang { margin-right: 6px }
