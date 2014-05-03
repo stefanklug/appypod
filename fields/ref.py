@@ -70,7 +70,7 @@ class Ref(Field):
             style=":'%s; %s' % (url(imgName, bg=True), \
                                 ztool.getButtonWidth(label))"/>
      <!-- Delete several objects -->
-     <input if="not isBack and field.delete and canWrite"
+     <input if="mayEdit and field.delete"
             var2="action='delete'; label=_('object_delete_many')"
             type="button" class="button" value=":label"
             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
@@ -84,8 +84,7 @@ class Ref(Field):
      <table class="noStyle">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if="not isBack and (totalNumber &gt;1) and changeOrder and canWrite \
-               and not inPickList"
+       <td if="(totalNumber &gt;1) and changeOrder and not inPickList"
           var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
                    q(tiedUid), q('move'), q('**v**')))">
@@ -114,7 +113,7 @@ class Ref(Field):
          <img src=":url('edit')" title=":_('object_edit')"/></a>
        </td>
        <!-- Delete -->
-       <td if="not isBack and field.delete and canWrite and tied.o.mayDelete()">
+       <td if="mayEdit and field.delete and tied.o.mayDelete()">
         <img class="clickable" title=":_('object_delete')" src=":url('delete')"
              onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
        </td>
@@ -141,7 +140,7 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-      <input if="showPlusIcon and not inPickList" type="button"
+      <input if="mayAdd and not inPickList" type="button"
              class="buttonSmall button"
         var2="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
                                               field.pageName, 0, totalNumber);
@@ -163,8 +162,7 @@ class Ref(Field):
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
-     <x if="changeOrder and canWrite and ztool.isSortable(refField.name, \
-            tiedClassName, 'ref')"
+     <x if="changeOrder and ztool.isSortable(refField.name,tiedClassName,'ref')"
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
                 q('reverse'), q('**v**')))">
@@ -195,7 +193,7 @@ class Ref(Field):
 
     # PX that displays referred objects as a list.
     pxViewList = Px('''
-     <div if="not innerRef or showPlusIcon" style="margin-bottom: 4px">
+     <div if="not innerRef or mayAdd" style="margin-bottom: 4px">
       <span if="subLabel" class="discreet">:_(subLabel)</span>
       (<span class="discreet">:totalNumber</span>) 
       <x>:field.pxAdd</x>
@@ -215,7 +213,7 @@ class Ref(Field):
 
      <!-- No object is present -->
      <p class="discreet"
-        if="not objects and (innerRef and showPlusIcon)">:_('no_ref')</p>
+        if="not objects and (innerRef and mayAdd)">:_('no_ref')</p>
 
      <!-- Linked objects -->
      <table if="objects" class=":not innerRef and 'list' or ''"
@@ -242,7 +240,7 @@ class Ref(Field):
           class=":loop.tied.odd and 'even' or 'odd'"
           var2="tiedUid=tied.o.id;
                 objectIndex=field.getIndexOf(zobj, tiedUid)|None;
-                mayView=tied.allows('read')">
+                mayView=tied.o.mayView()">
        <td if="not inPickList and numbered">:field.pxNumber</td>
        <td for="column in columns" width=":column.width" align=":column.align"
            var2="refField=column.field">
@@ -263,15 +261,15 @@ class Ref(Field):
             if="field.isShowable(zobj, 'result')">:field.pxRender</x>
         </x>
        </td>
-       <td if="checkboxes and mayView" class="cbCell">
-        <input type="checkbox" name=":ajaxHookId" checked="checked"
+       <td if="checkboxes" class="cbCell">
+        <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
                value=":tiedUid" onclick="toggleRefCb(this)"/>
        </td>
       </tr>
      </table>
 
      <!-- Global actions -->
-     <div if="canWrite and (totalNumber &gt; 1)"
+     <div if="mayEdit and (totalNumber &gt; 1)"
           align=":dright">:field.pxGlobalActions</div>
 
      <!-- (Bottom) navigation -->
@@ -288,7 +286,6 @@ class Ref(Field):
      <x var="innerRef=False;
              ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
              inPickList=True;
-             isBack=field.isBack;
              startNumber=field.getStartNumber('list', req, ajaxHookId);
              info=field.getPossibleValues(zobj, startNumber=startNumber, \
                                           someObjects=True, removeLinked=True);
@@ -297,10 +294,10 @@ class Ref(Field):
              batchSize=info.batchSize;
              batchNumber=len(objects);
              tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
-             canWrite=canWrite|\
-                      not field.isBack and zobj.allows(field.writePermission);
+             mayEdit=mayEdit|\
+                     not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=False;
-             showPlusIcon=False;
+             mayAdd=False;
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
@@ -360,7 +357,6 @@ class Ref(Field):
              linkList=field.link == 'list';
              renderAll=req.get('scope') != 'objs';
              inPickList=False;
-             isBack=field.isBack;
              startNumber=field.getStartNumber(render, req, ajaxHookId);
              info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
              objects=info.objects;
@@ -370,19 +366,18 @@ class Ref(Field):
              batchNumber=len(objects);
              folder=zobj.getCreateFolder();
              tiedClassName=ztool.getPortalType(field.klass);
-             canWrite=not field.isBack and zobj.allows(field.writePermission);
-             mayUnlink=not isBack and canWrite and \
-                       field.getAttribute(zobj, 'unlink');
-             showPlusIcon=field.mayAdd(zobj);
+             mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
+             mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
+             mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
              navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), \
                            q(field.name), q(innerRef));
-             changeOrder=field.getAttribute(zobj, 'changeOrder');
+             changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
              numbered=field.isNumbered(zobj);
-             changeNumber=not inPickList and numbered and canWrite and \
-                          changeOrder and (totalNumber &gt; 3);
+             changeNumber=not inPickList and numbered and changeOrder and \
+                          (totalNumber &gt; 3);
              checkboxesEnabled=field.getAttribute(zobj, 'checkboxes') and \
                                (layoutType != 'cell');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
@@ -390,7 +385,7 @@ class Ref(Field):
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
       <script if="checkboxesEnabled and renderAll"
               type="text/javascript">:field.getCbJsInit(zobj)</script>
-      <div if="linkList and renderAll and canWrite"
+      <div if="linkList and renderAll and mayEdit"
            var2="ajaxHookId='%s_%s_poss' % (zobj.id, field.name)"
            id=":ajaxHookId">:field.pxViewPickList</div>
       <x if="render == 'list'"
@@ -602,10 +597,10 @@ class Ref(Field):
         # We add here specific Ref rules for preventing to show the field under
         # some inappropriate circumstances.
         if layoutType == 'edit':
-            if self.mayAdd(obj): return False
-            if self.link in (False, 'list'): return False
+            if self.mayAdd(obj): return
+            if self.link in (False, 'list'): return
         if self.isBack:
-            if layoutType == 'edit': return False
+            if layoutType == 'edit': return
             else: return getattr(obj.aq_base, self.name, None)
         return res
 
@@ -835,7 +830,7 @@ class Ref(Field):
         '''This method links p_value (which can be a list of objects) to p_obj
            through this Ref field.'''
         # Security check
-        if not noSecurity: obj.allows(self.writePermission, raiseError=True)
+        if not noSecurity: obj.mayEdit(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.linkObject(obj, v, back=back)
@@ -865,7 +860,7 @@ class Ref(Field):
         '''This method unlinks p_value (which can be a list of objects) from
            p_obj through this Ref field.'''
         # Security check
-        if not noSecurity: obj.allows(self.writePermission, raiseError=True)
+        if not noSecurity: obj.mayEdit(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.unlinkObject(obj, v, back=back)
@@ -916,8 +911,12 @@ class Ref(Field):
         if objects:
             self.linkObject(obj, objects)
 
-    def mayAdd(self, obj):
-        '''May the user create a new referred object from p_obj via this Ref?'''
+    def mayAdd(self, obj, checkMayEdit=True):
+        '''May the user create a new referred object from p_obj via this Ref?
+           If p_checkMayEdit is False, it means that the condition of being
+           allowed to edit this Ref field has already been checked somewhere
+           else (it is always required, we just want to avoid checking it
+           twice).'''
         # We can't (yet) do that on back references.
         if self.isBack: return gutils.No('is_back')
         # Check if this Ref is addable
@@ -931,8 +930,9 @@ class Ref(Field):
             refCount = len(getattr(obj, self.name, ()))
             if refCount >= self.multiplicity[1]: return gutils.No('max_reached')
         # May the user edit this Ref field?
-        if not obj.allows(self.writePermission):
-            return gutils.No('no_write_perm')
+        if checkMayEdit:
+            if not obj.mayEdit(self.writePermission):
+                return gutils.No('no_write_perm')
         # May the user create instances of the referred class?
         if not obj.getTool().userMayCreate(self.klass):
             return gutils.No('no_add_perm')
@@ -943,9 +943,8 @@ class Ref(Field):
            m_mayAdd returns False.'''
         may = self.mayAdd(obj)
         if not may:
-            from AccessControl import Unauthorized
-            raise Unauthorized("User can't write Ref field '%s' (%s)." % \
-                               (self.name, may.msg))
+            obj.raiseUnauthorized("User can't write Ref field '%s' (%s)." % \
+                                  (self.name, may.msg))
 
     def getCbJsInit(self, obj):
         '''When checkboxes are enabled, this method defines a JS associative
@@ -1070,7 +1069,7 @@ class Ref(Field):
             # "link_many", "unlink_many", "delete_many". As a preamble, perform
             # a security check once, instead of doing it on every object-level
             # operation.
-            obj.allows(self.writePermission, raiseError=True)
+            obj.mayEdit(self.writePermission, raiseError=True)
             # Get the (un-)checked objects from the request.
             uids = rq['targetUid'].strip(',') or ();
             if uids: uids = uids.split(',')

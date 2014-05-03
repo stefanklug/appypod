@@ -16,7 +16,7 @@ class Calendar(Field):
     # Month view for a calendar. Called by pxView, and directly from the UI,
     # via Ajax, when the user selects another month.
     pxMonthView = Px('''
-     <div var="ajaxHookId=zobj.UID() + field.name;
+     <div var="ajaxHookId=zobj.id + field.name;
                month=req['month'];
                monthDayOne=DateTime('%s/01' % month);
                today=DateTime('00:00');
@@ -27,7 +27,7 @@ class Calendar(Field):
                defaultDateMonth=defaultDate.strftime('%Y/%m');
                previousMonth=field.getSiblingMonth(month, 'previous');
                nextMonth=field.getSiblingMonth(month, 'next');
-               mayEdit=zobj.allows(field.writePermission);
+               mayEdit=zobj.mayEdit(field.writePermission);
                objUrl=zobj.absolute_url();
                startDate=field.getStartDate(zobj);
                endDate=field.getEndDate(zobj);
@@ -630,6 +630,8 @@ class Calendar(Field):
            or deletion of a calendar event.'''
         rq = obj.REQUEST
         action = rq['actionType']
+        # Security check
+        obj.mayEdit(self.writePermission, raiseError=True)
         # Get the date for this action
         if action == 'createEvent':
             return self.createEvent(obj, DateTime(rq['day']))

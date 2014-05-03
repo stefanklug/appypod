@@ -307,9 +307,9 @@ class Field:
         '''When displaying p_obj on a given p_layoutType, must we show this
            field?'''
         # Check if the user has the permission to view or edit the field
-        if layoutType == 'edit': perm = self.writePermission
-        else:                    perm = self.readPermission
-        if not obj.allows(perm): return False
+        perm = (layoutType == 'edit') and self.writePermission or \
+                                          self.readPermission
+        if not obj.allows(perm): return
         # Evaluate self.show
         if callable(self.show):
             res = self.callMethod(obj, self.show)
@@ -319,7 +319,7 @@ class Field:
         if type(res) in sutils.sequenceTypes:
             for r in res:
                 if r == layoutType: return True
-            return False
+            return
         elif res in ('view', 'edit', 'result'):
             return res == layoutType
         return bool(res)

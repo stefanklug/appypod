@@ -468,7 +468,7 @@ class Pod(Field):
         # What is the action to perform?
         action = rq.get('action', 'generate')
         # Security check.
-        obj.o.allows('read', raiseError=True)
+        obj.o.mayView(self.readPermission, raiseError=True)
         # Perform the requested action.
         tool = obj.tool.o
         template = rq.get('template')
@@ -486,7 +486,7 @@ class Pod(Field):
             res.writeResponse(rq.RESPONSE)
             return
         # Performing any other action requires write access to p_obj.
-        obj.o.allows('write', raiseError=True)
+        obj.o.mayEdit(self.writePermission, raiseError=True)
         msg = 'action_done'
         if action == 'freeze':
             # (Re-)freeze a document in the database.

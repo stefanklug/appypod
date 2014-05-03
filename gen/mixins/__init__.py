@@ -276,8 +276,7 @@ class BaseMixin:
         # used back/forward buttons of its browser...
         userId = user.login
         if (page in self.locks) and (userId != self.locks[page][0]):
-            from AccessControl import Unauthorized
-            raise Unauthorized('This page is locked.')
+            self.raiseUnauthorized('This page is locked.')
         # Set the lock
         from DateTime import DateTime
         self.locks[page] = (userId, DateTime())
@@ -301,8 +300,7 @@ class BaseMixin:
         if not force:
             userId = self.getTool().getUser().login
             if self.locks[page][0] != userId:
-                from AccessControl import Unauthorized
-                raise Unauthorized('This page was locked by someone else.')
+                self.raiseUnauthorized('This page was locked by someone else.')
         # Remove the lock
         del self.locks[page]
 
@@ -444,10 +442,9 @@ class BaseMixin:
         # onEdit), redirect to the main site page.
         if not getattr(obj.getParentNode().aq_base, obj.id, None):
             return self.goto(tool.getSiteUrl(), msg)
-        # If the user can't access the object anymore, redirect him to the
-        # main site page.
-        if not obj.allows('read'):
-            return self.goto(tool.getSiteUrl(), msg)
+        # If the user can't access the object anymore, redirect him to its home
+        # page.
+        if not obj.mayView(): return self.goto(tool.getHomePage(), msg)
         if (buttonClicked == 'save') or saveConfirmed:
             obj.say(msg)
             if isNew and initiator:
@@ -520,8 +517,7 @@ class BaseMixin:
            corresponding Appy wrapper and returns, as XML, its result.'''
         self.REQUEST.RESPONSE.setHeader('Content-Type','text/xml;charset=utf-8')
         # Check if the user is allowed to consult this object
-        if not self.allows('read'):
-            return XmlMarshaller().marshall('Unauthorized')
+        if not self.mayView(): return XmlMarshaller().marshall('Unauthorized')
         if not action:
             marshaller = XmlMarshaller(rootTag=self.getClass().__name__,
                                        dumpUnicode=True)
@@ -575,6 +571,12 @@ class BaseMixin:
             obj = self
         if rq.get('appy', None) == '1': obj = obj.appy()
         return getattr(obj, 'on'+action)()
+
+    def raiseUnauthorized(self, msg=None):
+        '''Raise an error "Unauthorized access".'''
+        from AccessControl import Unauthorized
+        if msg: raise Unauthorized(msg)
+        raise Unauthorized()
 
     def rememberPreviousData(self, fields):
         '''This method is called before updating an object and remembers, for
@@ -1131,10 +1133,11 @@ class BaseMixin:
         return 'main'
 
     def mayAct(self):
-        '''May the currently logged user see column "actions" for this
-           object? This can be used for hiding the "edit" icon, for example:
-           when a user may edit only a restricted set of fields on an object,
-           we may avoid showing him the global "edit" icon.'''
+        '''m_mayAct allows to hide the whole set of actions for an object.
+           Indeed, beyond workflow security, it can be useful to hide controls
+           like "edit" icons/buttons. For example, if a user may only edit some
+           Ref fields with add=True on an object, when clicking on "edit", he
+           will see an empty edit form.'''
         appyObj = self.appy()
         if hasattr(appyObj, 'mayAct'): return appyObj.mayAct()
         return True
@@ -1148,14 +1151,34 @@ class BaseMixin:
         if hasattr(appyObj, 'mayDelete'): return appyObj.mayDelete()
         return True
 
-    def mayEdit(self, permission='write'):
-        '''May the currently logged user edit this object? p_perm can be a
-           field-specific permission.'''
-        res = self.allows(permission)
+    def mayEdit(self, permission='write', permOnly=False, raiseError=False):
+        '''May the currently logged user edit this object? p_permission can be a
+           field-specific permission. If p_permOnly is True, the specific
+           user-defined condition is not evaluated. If p_raiseError is True, if
+           the user may not edit p_self, an error is raised.'''
+        res = self.allows(permission, raiseError=raiseError)
+        if not res: return
+        if permOnly: return res
+        # An additional, user-defined condition, may refine the base permission.
+        appyObj = self.appy()
+        if hasattr(appyObj, 'mayEdit'):
+            res = appyObj.mayEdit()
+            if not res and raiseError: self.raiseUnauthorized()
+            return res
+        return True
+
+    def mayView(self, permission='read', raiseError=False):
+        '''May the currently logged user view this object? p_permission can be a
+           field-specific permission. If p_raiseError is True, if the user may
+           not view p_self, an error is raised.'''
+        res = self.allows(permission, raiseError=raiseError)
         if not res: return
         # An additional, user-defined condition, may refine the base permission.
         appyObj = self.appy()
-        if hasattr(appyObj, 'mayEdit'): return appyObj.mayEdit()
+        if hasattr(appyObj, 'mayView'):
+            res = appyObj.mayView()
+            if not res and raiseError: self.raiseUnauthorized()
+            return res
         return True
 
     def onExecuteAction(self):
@@ -1512,14 +1535,12 @@ class BaseMixin:
            is retrieved from the request.'''
         name = self.REQUEST.get('name')
         if not name: return
+        # Security check
         if '_img_' not in name:
-            appyType = self.getAppyType(name)
+            field = self.getAppyType(name)
         else:
-            appyType = self.getAppyType(name.split('_img_')[0])
-        if (not appyType.isShowable(self, 'view')) and \
-           (not appyType.isShowable(self, 'result')):
-            from zExceptions import NotFound
-            raise NotFound()
+            field = self.getAppyType(name.split('_img_')[0])
+        self.mayView(field.readPermission, raiseError=True)
         info = getattr(self.aq_base, name, None)
         if info:
             # Write the file in the HTTP response.
@@ -1556,16 +1577,13 @@ class BaseMixin:
     def allows(self, permission, raiseError=False):
         '''Has the logged user p_permission on p_self ?'''
         res = self.getTool().getUser().has_permission(permission, self)
-        if not res and raiseError:
-            from AccessControl import Unauthorized
-            raise Unauthorized
+        if not res and raiseError: self.raiseUnauthorized()
         return res
 
     def isTemporary(self):
         '''Is this object temporary ?'''
         parent = self.getParentNode()
-        if not parent: # Is propably being created through code
-            return False
+        if not parent: return # Is probably being created through code
         return parent.getId() == 'temp_folder'
 
     def onProcess(self):
@@ -1575,7 +1593,7 @@ class BaseMixin:
 
     def onCall(self):
         '''Calls a specific method on the corresponding wrapper.'''
-        self.allows('read', raiseError=True)
+        self.mayView(raiseError=True)
         method = self.REQUEST['method']
         obj = self.appy()
         return getattr(obj, method)()

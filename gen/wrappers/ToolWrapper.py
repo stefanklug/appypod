@@ -302,43 +302,49 @@ class ToolWrapper(AbstractWrapper):
     # Show on query list or grid, the field content for a given object.
     pxQueryField = Px('''
      <!-- Title -->
-     <x if="field.name == 'title'"
-        var2="navInfo='search.%s.%s.%d.%d' % \
+     <x if="field.name == 'title'">
+      <x if="mayView"
+         var2="navInfo='search.%s.%s.%d.%d' % \
                 (className, searchName, startNumber+currentNumber, totalNumber);
-              cssClass=zobj.getCssFor('title')">
-      <x>::zobj.getSupTitle(navInfo)</x>
-      <a href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage())"
-         if="enableLinks" class=":cssClass">:zobj.Title()</a><span
-         if="not enableLinks" class=":cssClass">:zobj.Title()</span><span
-         style=":showSubTitles and 'display:inline' or 'display:none'"
-         name="subTitle">::zobj.getSubTitle()</span>
+               cssClass=zobj.getCssFor('title')">
+       <x>::zobj.getSupTitle(navInfo)</x>
+       <a href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage())"
+          if="enableLinks" class=":cssClass">:zobj.Title()</a><span
+          if="not enableLinks" class=":cssClass">:zobj.Title()</span><span
+          style=":showSubTitles and 'display:inline' or 'display:none'"
+          name="subTitle">::zobj.getSubTitle()</span>
 
-      <!-- Actions -->
-      <table class="noStyle" if="zobj.mayAct()">
-       <tr>
-        <!-- Edit -->
-        <td if="zobj.mayEdit()">
-         <a var="navInfo='search.%s.%s.%d.%d' % \
+       <!-- Actions -->
+       <table class="noStyle" if="zobj.mayAct()">
+        <tr>
+         <!-- Edit -->
+         <td if="zobj.mayEdit()">
+          <a var="navInfo='search.%s.%s.%d.%d' % \
                (className, searchName, loop.zobj.nb+1+startNumber, totalNumber)"
-            href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
-                               nav=navInfo)">
-         <img src=":url('edit')" title=":_('object_edit')"/></a>
-        </td>
-        <td>
-         <!-- Delete -->
-         <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
-              title=":_('object_delete')"
-              onClick=":'onDeleteObject(%s)' % q(zobj.UID())"/>
-        </td>
-        <!-- Workflow transitions -->
-        <td if="zobj.showTransitions('result')"
-            var2="targetObj=zobj;
-                  buttonsMode='small'">:targetObj.appy().pxTransitions</td>
-       </tr>
-      </table>
+             href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
+                                nav=navInfo)">
+          <img src=":url('edit')" title=":_('object_edit')"/></a>
+         </td>
+         <td>
+          <!-- Delete -->
+          <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
+               title=":_('object_delete')"
+               onClick=":'onDeleteObject(%s)' % q(zobj.id)"/>
+         </td>
+         <!-- Workflow transitions -->
+         <td if="zobj.showTransitions('result')"
+             var2="targetObj=zobj;
+                   buttonsMode='small'">:targetObj.appy().pxTransitions</td>
+        </tr>
+       </table>
+      </x>
+      <x if="not mayView">
+       <img src=":url('fake')" style="margin-right: 5px"/>
+       <x>:_('unauthorized')</x>
+      </x>
      </x>
      <!-- Any other field -->
-     <x if="field.name != 'title'">
+     <x if="(field.name != 'title') and mayView">
       <x var="layoutType='cell'; innerRef=True"
          if="field.isShowable(zobj, 'result')">:field.pxRender</x>
      </x>''')
@@ -361,7 +367,7 @@ class ToolWrapper(AbstractWrapper):
       <!-- Results -->
       <tr for="zobj in zobjects" id="query_row" valign="top"
           var2="currentNumber=currentNumber + 1;
-                obj=zobj.appy()"
+                obj=zobj.appy(); mayView=zobj.mayView()"
           class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
             var2="field=column.field" id=":'field_%s' % field.name"
@@ -378,7 +384,8 @@ class ToolWrapper(AbstractWrapper):
                  rows=ztool.splitList(zobjects, cols)">
       <tr for="row in rows" valign="middle">
        <td for="zobj in row" width=":'%d%%' % (100/cols)" align="center"
-           style="padding-top: 25px" var2="obj=zobj.appy()">
+           style="padding-top: 25px"
+           var2="obj=zobj.appy(); mayView=zobj.mayView()">
         <x var="currentNumber=currentNumber + 1"
            for="column in columns"
            var2="field=column.field">:tool.pxQueryField</x>

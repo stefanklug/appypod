@@ -397,7 +397,7 @@ class Transition:
         if not obj.isTemporary(): obj.reindex()
         # If we are viewing the object and if the logged user looses the
         # permission to view it, redirect the user to its home page.
-        if not obj.allows('read') and \
+        if not obj.mayView() and \
            (obj.absolute_url_path() in rq['HTTP_REFERER']):
             back = tool.getHomePage()
         else:

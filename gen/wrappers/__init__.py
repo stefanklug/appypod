@@ -454,6 +454,7 @@ class AbstractWrapper(object):
             var="previousPage=phaseObj.getPreviousPage(page)[0];
                  nextPage=phaseObj.getNextPage(page)[0];
                  isEdit=layoutType == 'edit';
+                 mayAct=not isEdit and zobj.mayAct();
                  pageInfo=phaseObj.pagesInfo[page]">
       <tr valign="top">
        <!-- Refresh -->
@@ -486,7 +487,6 @@ class AbstractWrapper(object):
                style=":'%s; %s' % (url('save', bg=True), \
                                    ztool.getButtonWidth(label))" />
        </td>
-
        <!-- Cancel -->
        <td if="isEdit and pageInfo.showCancel">
         <input type="button" class="button" onClick="submitAppyForm('cancel')"
@@ -494,11 +494,10 @@ class AbstractWrapper(object):
                style=":'%s; %s' % (url('cancel', bg=True), \
                                    ztool.getButtonWidth(label))"/>
        </td>
-
        <td if="not isEdit"
            var2="locked=zobj.isLocked(user, page);
                  editable=pageInfo.showOnEdit and pageInfo.showEdit and \
-                          zobj.mayEdit()">
+                          mayAct and zobj.mayEdit()">
 
         <!-- Edit -->
         <input type="button" class="button" if="editable and not locked"
@@ -540,7 +539,8 @@ class AbstractWrapper(object):
 
        <!-- Workflow transitions -->
        <td var="targetObj=zobj; buttonsMode='normal'"
-           if="targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
+           if="mayAct and \
+               targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
       </tr>
      </table>''')
 
@@ -554,7 +554,7 @@ class AbstractWrapper(object):
      </table>''')
 
     pxView = Px('''
-     <x var="x=zobj.allows('read', raiseError=True);
+     <x var="x=zobj.mayView(raiseError=True);
              errors=req.get('errors', {});
              layout=zobj.getPageLayout(layoutType);
              phaseObj=zobj.getAppyPhases(currentOnly=True, layoutType='view');
@@ -570,7 +570,7 @@ class AbstractWrapper(object):
      </x>''', template=pxTemplate, hook='content')
 
     pxEdit = Px('''
-     <x var="x=zobj.allows('write', raiseError=True);
+     <x var="x=zobj.mayEdit(raiseError=True, permOnly=zobj.isTemporary());
              errors=req.get('errors', {});
              layout=zobj.getPageLayout(layoutType);
              cssJs={};
