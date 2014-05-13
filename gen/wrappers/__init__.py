@@ -86,7 +86,7 @@ class AbstractWrapper(object):
                 layoutType=ztool.getLayoutType();
                 showPortlet=ztool.showPortlet(obj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
-                discreetLogin=ztool.getProductConfig(True).discreetLogin;
+                cfg=ztool.getProductConfig(True);
                 dleft=(dir == 'ltr') and 'left' or 'right';
                 dright=(dir == 'ltr') and 'right' or 'left';
                 x=resp.setHeader('Content-type', ztool.xhtmlEncoding);
@@ -103,7 +103,7 @@ class AbstractWrapper(object):
                src=":url(name)"></script>
       </x>
      </head>
-     <body>
+     <body style=":(cfg.skin == 'wide') and 'margin:0' or ''">
       <!-- Google Analytics stuff, if enabled -->
       <script var="gaCode=ztool.getGoogleAnalyticsCode()" if="gaCode"
               type="text/javascript">:gaCode</script>
@@ -170,7 +170,8 @@ class AbstractWrapper(object):
        </div>
       </div>
 
-      <table class="main" align="center" cellpadding="0">
+      <table class=":(cfg.skin == 'wide') and 'mainWide main' or 'main'"
+             align="center" cellpadding="0">
        <tr class="top">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
@@ -190,7 +191,7 @@ class AbstractWrapper(object):
              href=":page.url">:page.title</a>
 
           <!-- Connect link if discreet login -->
-          <a if="isAnon and discreetLogin" id="loginLink" name="loginLink"
+          <a if="isAnon and cfg.discreetLogin" id="loginLink" name="loginLink"
              onclick="showLoginForm()"
              class="pageLink clickable">:_('app_connect')</a>
 
@@ -212,7 +213,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The user strip -->
-       <tr height=":discreetLogin and '5px' or '28px'">
+       <tr height=":cfg.discreetLogin and '5px' or '28px'">
         <td>
          <table class="userStrip">
           <tr>
@@ -226,10 +227,11 @@ class AbstractWrapper(object):
                     value=""/>
              <input type="hidden" name="login_name" id="login_name" value=""/>
              <input type="hidden" name="pwd_empty" id="pwd_empty" value="0"/>
-             <!-- Login fields, directly shown or not (depends on
-                  discreetLogin) -->
+             <!-- Login fields directly shown or not depending on
+                  discreetLogin. -->
              <span id="loginFields" name="loginFields"
-                   style=":discreetLogin and 'display:none' or 'display:block'">
+                   style=":cfg.discreetLogin and 'display:none' or \
+                           'display:block'">
               <span class="userStripText">:_('app_login')</span>
               <input type="text" name="__ac_name" id="__ac_name" value=""
                      style="width: 142px"/>&nbsp;

@@ -59,9 +59,12 @@ class ToolMixin(BaseMixin):
         '''Return the home page when a user hits the app.'''
         # If the app defines a method "getHomePage", call it.
         tool = self.appy()
+        url = None
         try:
             url = tool.getHomePage()
         except AttributeError:
+            pass
+        if not url:
             # Bring Managers to the config, lead others to pxHome.
             user = self.getUser()
             if user.has_role('Manager'):
@@ -179,10 +182,6 @@ class ToolMixin(BaseMixin):
         # CSS changes for left-to-right languages
         names.remove('appyrtl.css')
         if dir == 'rtl': names.insert(0, 'appyrtl.css')
-        # CSS changes if the "wide" skin is in use
-        names.remove('appywide.css')
-        cfg = self.getProductConfig().appConfig
-        if cfg.skin == 'wide': names.insert(0, 'appywide.css')
         names.remove('appy.css'); names.insert(0, 'appy.css')
         return names
 

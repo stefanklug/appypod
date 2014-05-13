@@ -43,6 +43,7 @@ class Migrator:
         appyVersion = self.tool.appyVersion
         if force or not appyVersion or (appyVersion < '0.9.0'):
             # Migration is required.
+            self.logger.info('Appy version (DB) is %s' % appyVersion)
             startTime = time.time()
             self.migrateTo_0_9_0()
             stopTime = time.time()

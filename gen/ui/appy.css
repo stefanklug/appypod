@@ -45,14 +45,8 @@ ul li { margin: 0; background-image: url("ui/li.gif"); padding-left: 10px;
         background-repeat: no-repeat; background-position: 0 4px }
 img { border: 0; vertical-align: middle }
 
-/* Styles that apply when viewing content of XHTML fields, that mimic styles
-   that ckeditor uses for displaying XHTML content in the edit view. */
-.xhtml { background-color: white; padding: 6px; font-size: 95% }
-.xhtml img { margin-right: 5px }
-.xhtml p { margin: 3px 0 7px 0 }
-.clickable { cursor: pointer }
-.refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
 .main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9 }
+.mainWide { width: 100%; height: 100% }
 .top { height: 89px; margin-left: 3em; vertical-align: top;
        background-color: white }
 .lang { margin-right: 6px }
@@ -70,6 +64,11 @@ input.button { color: #666666; height: 20px; width: 130px;
 input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
                     margin-bottom: 3px}
 .fake { background-color: #e6e6e6 !important ; cursor:help !important }
+.xhtml { background-color: white; padding: 6px; font-size: 95% }
+.xhtml img { margin-right: 5px }
+.xhtml p { margin: 3px 0 7px 0 }
+.clickable { cursor: pointer }
+.refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
 .buttons { margin-left: 4px }
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
