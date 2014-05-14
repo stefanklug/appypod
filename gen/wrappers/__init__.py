@@ -730,7 +730,7 @@ class AbstractWrapper(object):
         return res
 
     def __repr__(self):
-        return '<%s appyobj at %s>' % (self.klass.__name__, id(self))
+        return '<%s at %s>' % (self.klass.__name__, id(self))
 
     def __cmp__(self, other):
         if other: return cmp(self.o, other.o)

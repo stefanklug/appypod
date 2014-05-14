@@ -647,4 +647,8 @@ class ToolWrapper(AbstractWrapper):
             except Exception, e:
                 failed.append(startObject)
             return nb, failed
+
+    def _login(self, login):
+        '''Performs a login programmatically. Used by the test system.'''
+        self.request.user = self.search1('User', noSecurity=True, login=login)
 # ------------------------------------------------------------------------------

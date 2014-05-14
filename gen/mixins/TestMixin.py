@@ -9,11 +9,6 @@ except ImportError:
 # ------------------------------------------------------------------------------
 class TestMixin:
     '''This class is mixed in with any ZopeTestCase.'''
-    def changeUser(self, userId):
-        '''Logs out currently logged user and logs in p_loginName.'''
-        self.logout()
-        self.login(userId)
-
     def getNonEmptySubModules(self, moduleName):
         '''Returns the list of sub-modules of p_app that are non-empty.'''
         res = []
@@ -53,16 +48,7 @@ class TestMixin:
         for arg in sys.argv:
             if arg.startswith('[coverage'):
                 return arg[10:].strip(']')
-        return None
-
-    def login(self, name='admin'):
-        user = self.app.acl_users.getUserById(name)
-        newSecurityManager(None, user)
-
-    def logout(self):
-        '''Logs out.'''
-        noSecurityManager()
-
+        return
     def _setup(self): pass
 
 # Functions executed before and after every test -------------------------------
@@ -74,7 +60,6 @@ def beforeTest(test):
     g['appFolder'] = cfg.diskFolder
     moduleOrClassName = g['test'].name # Not used yet.
     # Initialize the test
-    test.login('admin')
     g['t'] = g['test']
 
 def afterTest(test):

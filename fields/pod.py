@@ -278,9 +278,9 @@ class Pod(Field):
         template = template or self.template[0]
         format = format or 'odt'
         # Security check.
-        if not noSecurity and not queryData and \
-           not self.showTemplate(obj, template):
-            raise Exception(self.UNAUTHORIZED)
+        if not noSecurity and not queryData:
+            if self.showTemplate and not self.showTemplate(obj, template):
+                raise Exception(self.UNAUTHORIZED)
         # Return the possibly frozen document (not applicable for query-related
         # pods).
         if not queryData:
@@ -445,7 +445,9 @@ class Pod(Field):
     def getFreezeFormats(self, obj, template=None):
         '''What are the formats into which the current user may freeze
            p_template?'''
-        # Manager can always perform freeze actions.
+        # One may have the right to edit the field to freeze anything in it.
+        if not obj.o.mayEdit(self.writePermission): return ()
+        # Manager can perform all freeze actions.
         template = template or self.template[0]
         isManager = obj.user.has_role('Manager')
         if isManager: return self.getAllFormats(template)

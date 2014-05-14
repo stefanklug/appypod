@@ -1201,6 +1201,11 @@ class BaseMixin:
         '''Gets, according to the workflow, the roles that are currently granted
            p_permission on this object.'''
         state = self.State(name=False)
+        if permission not in state.permissions:
+            wf = self.getWorkflow().__name__
+            raise Exception('Permission "%s" not in permissions dict for ' \
+                            'state %s.%s' % \
+                            (permission, wf, self.State(name=True)))
         roles = state.permissions[permission]
         if roles: return [role.name for role in roles]
         return ()

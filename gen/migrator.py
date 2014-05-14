@@ -1,6 +1,7 @@
 # ------------------------------------------------------------------------------
-import time
+import os.path, time
 from appy.fields.file import FileInfo
+from appy.shared import utils as sutils
 
 # ------------------------------------------------------------------------------
 class Migrator:
@@ -13,29 +14,58 @@ class Migrator:
         self.tool = self.app.config.appy()
 
     @staticmethod
-    def migrateFileFields(obj):
-        '''Ensures all file fields on p_obj are FileInfo instances.'''
+    def migrateBinaryFields(obj):
+        '''Ensures all file and frozen pod fields on p_obj are FileInfo
+           instances.'''
         migrated = 0 # Count the number of migrated fields
         for field in obj.fields:
-            if field.type != 'File': continue
-            oldValue = getattr(obj, field.name)
-            if oldValue and not isinstance(oldValue, FileInfo):
-                # A legacy File object. Convert it to a FileInfo instance and
-                # extract the binary to the filesystem.
-                setattr(obj, field.name, oldValue)
-                migrated += 1
+            if field.type == 'File':
+                oldValue = getattr(obj, field.name)
+                if oldValue and not isinstance(oldValue, FileInfo):
+                    # A legacy File object. Convert it to a FileInfo instance
+                    # and extract the binary to the filesystem.
+                    setattr(obj, field.name, oldValue)
+                    migrated += 1
+            elif field.type == 'Pod':
+                frozen = getattr(obj.o, field.name, None)
+                if frozen:
+                    # Dump this file on disk.
+                    tempFolder = sutils.getOsTempFolder()
+                    fmt = os.path.splitext(frozen.filename)[1][1:]
+                    fileName = os.path.join(tempFolder,
+                                            '%f.%s' % (time.time(), fmt))
+                    f = file(fileName, 'wb')
+                    if frozen.data.__class__.__name__ == 'Pdata':
+                        # The file content is splitted in several chunks.
+                        f.write(frozen.data.data)
+                        nextPart = frozen.data.next
+                        while nextPart:
+                            f.write(nextPart.data)
+                            nextPart = nextPart.next
+                    else:
+                        # Only one chunk
+                        f.write(frozen.data)
+                    f.close()
+                    f = file(fileName)
+                    field.freeze(obj, template=field.template[0], format=fmt,
+                                 noSecurity=True, upload=f,
+                                 freezeOdtOnError=False)
+                    f.close()
+                    # Remove the legacy in-zodb file object
+                    setattr(obj.o, field.name, None)
+                    migrated += 1
         return migrated
 
     def migrateTo_0_9_0(self):
         '''Migrates this DB to Appy 0.9.x.'''
         # Put all binaries to the filesystem
         tool = self.tool
-        tool.log('Migrating file fields...')
-        context = {'migrate': self.migrateFileFields, 'nb': 0}
+        tool.log('Migrating binary fields...')
+        context = {'migrate': self.migrateBinaryFields, 'nb': 0}
         for className in tool.o.getAllClassNames():
             tool.compute(className, context=context, noSecurity=True,
                          expression="ctx['nb'] += ctx['migrate'](obj)")
-        tool.log('Migrated %d File field(s).' % context['nb'])
+        tool.log('Migrated %d binary field(s).' % context['nb'])
 
     def run(self, force=False):
         '''Executes a migration when relevant, or do it for sure if p_force is

@@ -393,6 +393,7 @@ class File(Field):
             cfg = zobj.getProductConfig()
             if isinstance(value, cfg.FileUpload) or isinstance(value, cfg.File):
                 # Cases a, b
+                value.filename = value.filename.replace('/', '-')
                 info.writeFile(self.name, value, dbFolder)
             elif isinstance(value, UnmarshalledFile):
                 # Case c

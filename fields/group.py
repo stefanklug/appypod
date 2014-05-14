@@ -231,12 +231,12 @@ class UiGroup:
 
     # PX that renders a group of fields (the group is refered as var "field").
     pxView = Px('''
-     <x var="tagCss=field.master and ('slave_%s_%s' % \
-                    (field.masterName, '_'.join(field.masterValue))) or '';
+     <x var="tagCss=field.master and ('slave*%s*%s' % \
+                    (field.masterName, '*'.join(field.masterValue))) or '';
              widgetCss=field.css_class;
              groupCss=tagCss and ('%s %s' % (tagCss, widgetCss)) or widgetCss;
              tagName=field.master and 'slave' or '';
-             tagId='%s_%s' % (zobj.UID(), field.name)">
+             tagId='%s_%s' % (zobj.id, field.name)">
 
       <!-- Render the group as a fieldset if required -->
       <fieldset if="field.style == 'fieldset'">
