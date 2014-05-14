@@ -32,7 +32,7 @@ class Pod(Field):
        from data contained in Appy class and linked objects or anything you
        want to put in it. It is the way gen uses pod.'''
     # Layout for rendering a POD field for exporting query results.
-    rLayouts = {'view': 'l-f!'}
+    rLayouts = {'view': 'fl!'}
     allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
@@ -52,67 +52,60 @@ class Pod(Field):
                     q(info.template), q(fmt), q(ztool.getQueryInfo()))"/>''')
 
     pxView = pxCell = Px('''
-     <table cellpadding="0" cellspacing="0" var="uid=obj.uid">
-      <tr>
-       <td for="info in field.getVisibleTemplates(obj)">
-        <table cellpadding="0" cellspacing="0" class="podTable">
-         <tr>
-          <td for="fmt in info.formats"
-              var2="freezeAllowed=(fmt in info.freezeFormats) and \
-                                  (field.show != 'result');
-                    frozen=field.isFrozen(obj, info.template, fmt)">
-           <!-- A clickable icon if no freeze action is allowed -->
-           <x if="not freezeAllowed">:field.pxIcon</x>
-           <!-- A clickable icon and a dropdown menu else. -->
-           <div if="freezeAllowed" class="dropdownMenu"
-                var2="dropdownId='%s_%s' % (uid, \
+     <x var="uid=obj.uid"
+        for="info in field.getVisibleTemplates(obj)">
+      <x for="fmt in info.formats"
+         var2="freezeAllowed=(fmt in info.freezeFormats) and \
+                             (field.show != 'result');
+               frozen=field.isFrozen(obj, info.template, fmt)">
+       <!-- A clickable icon if no freeze action is allowed -->
+       <x if="not freezeAllowed">:field.pxIcon</x>
+       <!-- A clickable icon and a dropdown menu else. -->
+       <span if="freezeAllowed" class="dropdownMenu"
+             var2="dropdownId='%s_%s' % (uid, \
                               field.getFreezeName(info.template, fmt, sep='_'))"
-                onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
-                onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), \
-                                                        q('none'))">
-            <x>:field.pxIcon</x>
-            <!-- The dropdown menu containing freeze actions -->
-            <table id=":dropdownId" class="dropdown">
-             <!-- Unfreeze -->
-             <tr if="frozen" valign="top">
-              <td>
-               <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
-                            q(info.template), q(fmt), q('unfreeze'))"
-                  class="smaller">:_('unfreezeField')</a>
-              </td>
-              <td align="center"><img src=":url('unfreeze')"/></td>
-             </tr>
-             <!-- (Re-)freeze -->
-             <tr valign="top">
-              <td>
-               <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
-                            q(info.template), q(fmt), q('freeze'))"
-                  class="smaller">:_('freezeField')</a>
-              </td>
-              <td align="center"><img src=":url('freeze')"/></td>
-             </tr>
-             <!-- (Re-)upload -->
-             <tr valign="top">
-              <td>
-               <a onclick=":'uploadPod(%s,%s,%s,%s)' % (q(uid), q(name), \
-                            q(info.template), q(fmt))"
-                  class="smaller">:_('uploadField')</a>
-              </td>
-              <td align="center"><img src=":url('upload')"/></td>
-             </tr>
-            </table>
-           </div>
+             onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
+             onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
+        <x>:field.pxIcon</x>
+        <!-- The dropdown menu containing freeze actions -->
+        <table id=":dropdownId" class="dropdown" width="75px">
+         <!-- Unfreeze -->
+         <tr if="frozen" valign="top">
+          <td>
+           <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
+                        q(info.template), q(fmt), q('unfreeze'))"
+              class="smaller">:_('unfreezeField')</a>
           </td>
-          <!-- Show the specific template name only if there is more than one
-               template. For a single template, the field label already does
-               the job. -->
-          <td if="len(field.template) &gt; 1" style="padding-left: 3px"
-              class="smaller">:field.getTemplateName(obj, info.template)</td>
+          <td align="center"><img src=":url('unfreeze')"/></td>
+         </tr>
+         <!-- (Re-)freeze -->
+         <tr valign="top">
+          <td>
+           <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
+                        q(info.template), q(fmt), q('freeze'))"
+              class="smaller">:_('freezeField')</a>
+          </td>
+          <td align="center"><img src=":url('freeze')"/></td>
+         </tr>
+         <!-- (Re-)upload -->
+         <tr valign="top">
+          <td>
+           <a onclick=":'uploadPod(%s,%s,%s,%s)' % (q(uid), q(name), \
+                        q(info.template), q(fmt))"
+              class="smaller">:_('uploadField')</a>
+          </td>
+          <td align="center"><img src=":url('upload')"/></td>
          </tr>
         </table>
-       </td>
-      </tr>
-     </table>''')
+       </span>
+      </x> 
+      <!-- Show the specific template name only if there is more than one
+           template. For a single template, the field label already does the
+           job. -->
+      <span if="len(field.template) &gt; 1"
+            class=":not loop.info.last and 'pod smaller' or \
+                    'smaller'">:field.getTemplateName(obj, info.template)</span>
+     </x>''')
 
     pxEdit = pxSearch = ''
 

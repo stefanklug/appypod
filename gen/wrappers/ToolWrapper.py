@@ -438,13 +438,14 @@ class ToolWrapper(AbstractWrapper):
               if="zobjects and fields" align=":dright">
         <tr>
          <td var="zobj=zobjects[0]; obj=zobj.appy()"
-             for="field in fields">:field.pxRender</td>
+             for="field in fields"
+             class=":not loop.field.last and 'pod' or ''">:field.pxRender</td>
         </tr>
        </table>
 
        <!-- The title of the search -->
        <p>
-        <x>:uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
+        <x>::uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
         <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
          &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
         </x>

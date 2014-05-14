@@ -99,7 +99,7 @@ td.search { padding-top: 8px }
 .dropdown { display:none; position: absolute; border: 1px solid #cccccc;
             background-color: white; padding: 3px 4px 0; font-size: 8pt;
             font-weight: normal; z-index: 2 }
-.dropdownMenu { cursor: pointer; padding-right: 4px; font-size: 93% }
+.dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
 .list { margin-bottom: 3px }
 .list td, .list th { border: 3px solid #ededed; color: grey;
@@ -156,7 +156,7 @@ td.search { padding-top: 8px }
 .first { margin-top: 0px }
 .error { margin: 5px }
 .smaller { font-size: 95% }
-.podTable { margin-left: 15px }
+.pod { padding-right: 15px }
 .cbCell { width: 10px; text-align: center}
 .tabs { position:relative; bottom:-2px }
 .tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;
