@@ -213,7 +213,7 @@ class UiGroup:
       <!-- The column headers -->
       <tr>
        <th for="colNb in range(len(field.columnsWidths))"
-           align="ztool.flipLanguageDirection(field.columnsAligns[colNb], dir)"
+           align=":ztool.flipLanguageDirection(field.columnsAligns[colNb], dir)"
            width=":field.columnsWidths[colNb]">::field.hasHeaders and \
             _('%s_col%d' % (field.labelId, (colNb+1))) or ''</th>
       </tr>
