@@ -275,8 +275,9 @@ class ToolMixin(BaseMixin):
     def getAllowedValue(self):
         '''Gets, for the current user, the value of index "Allowed".'''
         user = self.getUser()
-        # Get the user roles
-        res = user.getRoles()
+        # Get the user roles. If we do not make a copy of the list here, we will
+        # really add user logins among user roles!
+        res = user.getRoles()[:]
         # Get the user logins
         if user.login != 'anon':
             for login in user.getLogins():
@@ -1160,7 +1161,7 @@ class ToolMixin(BaseMixin):
     BasicUserFolder.validate = validate
 
     def getUserLine(self):
-        '''Returns a info about the currently logged user as a 2-tuple: first
+        '''Returns info about the currently logged user as a 2-tuple: first
            elem is the one-line user info as shown on every page; second line is
            the URL to edit user info.'''
         user = self.getUser()
