@@ -122,9 +122,10 @@ class String(Field):
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
-      <x if="isOneLine and not field.isSelect">
+      <x if="isOneLine and not field.isSelect"
+         var2="placeholder=field.getAttribute(obj, 'placeholder') or ''">
        <input id=":name" name=":name" size=":field.width"
-              maxlength=":field.maxChars"
+              maxlength=":field.maxChars" placeholder=":placeholder"
               value=":inRequest and requestValue or value"
               style=":'text-transform:%s' % field.transform"
               type=":(fmt == 3) and 'password' or 'text'"/>
@@ -297,7 +298,7 @@ class String(Field):
                  width=None, height=None, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
-                 persist=True, transform='none',
+                 persist=True, transform='none', placeholder=None,
                  styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
                  spellcheck=False, contentLanguage=None, inlineEdit=False):
         # According to format, the widget will be different: input field,
@@ -323,6 +324,13 @@ class String(Field):
         # CSS property: "none" (default), "uppercase", "capitalize" or
         # "lowercase".
         self.transform = transform
+        # "placeholder", similar to the HTML attribute of the same name, allows
+        # to specify a short hint that describes the expected value of the input
+        # field. It is shown inside the input field and disappears as soon as
+        # the user encodes something in it. Works only for strings whose format
+        # is LINE. Does not work with IE < 10. You can specify a method here,
+        # that can, for example, return an internationalized value.
+        self.placeholder = placeholder
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, searchable,
                        specificReadPermission, specificWritePermission, width,
