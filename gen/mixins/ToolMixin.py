@@ -1365,11 +1365,7 @@ class ToolMixin(BaseMixin):
     def getButtonWidth(self, label):
         '''Determine button width, in pixels, corresponding to the button
            p_label.'''
-        l = len(label)
-        if l < 10:
-            width = '130px'
-        else:
-            # Consider 1 char = 6 pixels wide.
-            width = '%dpx' % (130 + ((l-10)*4))
-        return 'width:%s' % width
+        # Set a minimum width for small labels.
+        if len(label) < 15: return 'width:130px'
+        return 'padding-left: 26px; padding-right: 8px'
 # ------------------------------------------------------------------------------

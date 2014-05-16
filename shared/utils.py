@@ -269,6 +269,20 @@ def getStringDict(d):
         res.append(value)
     return '{%s}' % ','.join(res)
 
+def stretchText(s, pattern, char=' '):
+    '''Inserts occurrences of p_char within p_s according to p_pattern.
+       Example: stretchText("475123456", (3,2,2,2)) returns '475 12 34 56'.'''
+    res = ''
+    i = 0
+    for nb in pattern:
+        j = 0
+        while j < nb:
+            res += s[i+j]
+            j += 1
+        res += char
+        i += nb
+    return res
+
 # ------------------------------------------------------------------------------
 def formatNumber(n, sep=',', precision=2, tsep=' '):
     '''Returns a string representation of number p_n, which can be a float
