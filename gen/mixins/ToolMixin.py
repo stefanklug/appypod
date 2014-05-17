@@ -585,7 +585,7 @@ class ToolMixin(BaseMixin):
                 hasStar = name.find('*') != -1
                 fieldName = not hasStar and name[2:] or name[2:name.find('*')]
                 field = self.getAppyType(fieldName, rq.form['className'])
-                if field and not field.persist: continue
+                if field and not field.persist and not field.indexed: continue
                 # We have a(n interval of) value(s) that is not empty for a
                 # given field or index.
                 value = rq.form[name]

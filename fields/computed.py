@@ -26,8 +26,9 @@ class Computed(Field):
       <x if="not field.plainText">::value</x>''')
 
     pxSearch = Px('''
-     <input type="text" name=":'%s*string' % name" maxlength=":field.maxChars"
-            size=":field.width" value=":field.sdefault"/>''')
+     <input type="text" name=":'%s*string' % widgetName"
+            maxlength=":field.maxChars" size=":field.width"
+            value=":field.sdefault"/>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=('view', 'result'), page='main', group=None,

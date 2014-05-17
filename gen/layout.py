@@ -222,7 +222,7 @@ centeredPageLayouts = {
 
 # The default layout for fields. Alternative layouts may exist and are declared
 # as static attributes of the concerned Type subclass.
-defaultFieldLayouts = {'edit': 'lrv-f'}
+defaultFieldLayouts = {'edit': 'lrv-f', 'search': 'l-f'}
 
 # ------------------------------------------------------------------------------
 class ColumnLayout:

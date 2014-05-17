@@ -75,7 +75,8 @@ class Boolean(Field):
     cLayouts = {'view': 'lf|', 'edit': 'flrv|'}
 
     def getDefaultLayouts(self):
-        return {'view': 'lf', 'edit': Table('f;lrv;=', width=None)}
+        return {'view': 'lf', 'edit': Table('f;lrv;=', width=None),
+                'search': 'l-f'}
 
     def getValue(self, obj):
         '''Never returns "None". Returns always "True" or "False", even if

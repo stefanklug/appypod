@@ -366,7 +366,7 @@ class ToolWrapper(AbstractWrapper):
 
       <!-- Results -->
       <tr for="zobj in zobjects" id="query_row" valign="top"
-          var2="currentNumber=currentNumber + 1;
+          var2="@currentNumber=currentNumber + 1;
                 obj=zobj.appy(); mayView=zobj.mayView()"
           class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
