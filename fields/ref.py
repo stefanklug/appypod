@@ -151,7 +151,7 @@ class Ref(Field):
                 'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
                                           q(addConfirmMsg));
               noFormCall=navBaseCall.replace('**v**', \
-                           '%d,%s' % (startNumber, q('CreateWithoutForm')));
+                           '%d,%s' % (startNumber, q('doCreateWithoutForm')));
               noFormCall=not field.addConfirm and noFormCall or \
                 'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
                                             q(addConfirmMsg));
@@ -341,10 +341,10 @@ class Ref(Field):
       </td>
      </tr></table>''')
 
-    # Simplified widget showing comma-separated not-clickable object titles.
-    pxViewTitles = Px('''<span class="smaller"
-     var2="titles=[o.title for o in objects]">:', '.join(titles) or \
-     _('no_ref')</span>''')
+    # Simplified widget showing minimal info about tied objects.
+    pxViewMinimal = Px('''
+     <x var2="infos=[field.getReferenceLabel(o, True) \
+                     for o in objects]">:', '.join(infos) or _('no_ref')</x>''')
 
     # PX that displays referred objects through this field. In mode link="list",
     # if, in the request, key "scope" is present and holds value "objs", the
@@ -383,7 +383,7 @@ class Ref(Field):
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
-      <script if="checkboxesEnabled and renderAll"
+      <script if="checkboxesEnabled and renderAll and (render == 'list')"
               type="text/javascript">:field.getCbJsInit(zobj)</script>
       <div if="linkList and renderAll and mayEdit"
            var2="ajaxHookId='%s_%s_poss' % (zobj.id, field.name)"
@@ -393,7 +393,7 @@ class Ref(Field):
        <div if="renderAll" id=":ajaxHookId">:field.pxViewList</div>
        <x if="not renderAll">:field.pxViewList</x>
       </x>
-      <x if="render in ('menus','titles')">:getattr(field, 'pxView%s' % \
+      <x if="render in ('menus','minimal')">:getattr(field, 'pxView%s' % \
          render.capitalize())</x>
      </x>''')
 
@@ -562,8 +562,8 @@ class Ref(Field):
         # Indeed, we need to keep the "list" rendering in the "view" layout
         # because the "menus" rendering is minimalist and does not allow to
         # perform all operations on linked objects (add, move, delete, edit...);
-        # - "titles" renders a list of comma-separated, not-even-clickable,
-        # titles.
+        # - "minimal" renders a list of comma-separated, not-even-clickable,
+        # data about the tied objects (according to shownInfo).
         self.render = render
         # If render is 'menus', 2 methods must be provided.
         # "menuIdMethod" will be called, with every linked object as single arg,
@@ -1003,6 +1003,11 @@ class Ref(Field):
         if newIndex > -1:
             uids.remove(uid)
             uids.insert(newIndex, uid)
+
+    def doCreateWithoutForm(self, obj):
+        '''This method is called when a user wants to create a object from a
+           reference field, automatically (without displaying a form).'''
+        obj.appy().create(self.name)
 
     xhtmlToText = re.compile('<.*?>', re.S)
     def getReferenceLabel(self, refObject, unlimited=False):

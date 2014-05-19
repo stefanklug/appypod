@@ -419,7 +419,7 @@ class ToolMixin(BaseMixin):
     def quote(self, s):
         '''Returns the quoted version of p_s.'''
         if not isinstance(s, basestring): s = str(s)
-        s = s.replace('\r\n', '').replace('\n', '').replace("'", "\\'")
+        s = s.replace('\r\n', '').replace('\n', '').replace("'", "&apos;")
         return "'%s'" % s
 
     def getLayoutType(self):
@@ -962,7 +962,7 @@ class ToolMixin(BaseMixin):
         # c. Identify the user from the authentication form.
         if not login:
             login = req.get('__ac_name', None)
-            password = req.get('__ac_password', None)
+            password = req.get('__ac_password', '')
         # Stop identification here if we don't need to return a special user
         if not alsoSpecial: return login, password
         # d. All the identification methods failed. So identify the user as

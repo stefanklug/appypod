@@ -324,12 +324,6 @@ class BaseMixin:
         self.say(self.translate('action_done'))
         self.goto(urlBack)
 
-    def onCreateWithoutForm(self):
-        '''This method is called when a user wants to create a object from a
-           reference field, automatically (without displaying a form).'''
-        rq = self.REQUEST
-        self.appy().create(rq['fieldName'])
-
     def intraFieldValidation(self, errors, values):
         '''This method performs field-specific validation for every field from
            the page that is being created or edited. For every field whose

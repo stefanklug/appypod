@@ -74,7 +74,7 @@ class UserWrapper(AbstractWrapper):
         '''Sets a p_newPassword for self. If p_newPassword is not given, we
            generate one. This method returns the generated password (or simply
            p_newPassword if no generation occurred).'''
-        if newPassword:
+        if newPassword != None:
             msgPart = 'changed'
         else:
             newPassword = self.getField('password1').generatePassword()
