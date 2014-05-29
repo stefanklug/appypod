@@ -311,8 +311,10 @@ class Ref(Field):
 
     # PX that displays referred objects as menus.
     pxViewMenus = Px('''
-     <table if="objects"><tr valign="bottom">
-      <td for="menu in field.getLinkedObjectsByMenu(obj, objects)">
+     <div if="objects"
+          for="menu in field.getLinkedObjectsByMenu(obj, objects)"
+          var2="dtc='display: table-cell'"
+          style=":not loop.menu.last and ('%s;padding-right:7px') % dtc or dtc">
 
        <!-- A single object in the menu: show a clickable icon to get it -->
        <a if="len(menu.objects) == 1" var2="tied=menu.objects[0]"
@@ -331,15 +333,15 @@ class Ref(Field):
         <!-- Display the number of objects in the menu (if more than one) -->
         <x if="len(menu.objects) &gt; 1">:len(menu.objects)</x>
         <!-- The dropdown menu containing annexes -->
-        <div id=":dropdownId" class="dropdown">
+        <div id=":dropdownId" class="dropdown" style="width:150px">
          <div for="tied in menu.objects"
+              class=":not loop.tied.first and 'refMenuItem' or ''"
               var2="tiedUrl=field.getMenuUrl(zobj, tied)">
           <a href=":tiedUrl">:tied.title</a>
          </div>
         </div>
        </div>
-      </td>
-     </tr></table>''')
+     </div>''')
 
     # Simplified widget showing minimal info about tied objects.
     pxViewMinimal = Px('''
