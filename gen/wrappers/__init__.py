@@ -1095,4 +1095,12 @@ class AbstractWrapper(object):
     def allows(self, permission, raiseError=False):
         '''Check doc @Mixin.allows.'''
         return self.o.allows(permission, raiseError=raiseError)
+
+    def resetLocalRoles(self):
+        '''Removes all local roles defined on this object, excepted local role
+           Owner, granted to the item creator.'''
+        from persistent.mapping import PersistentMapping
+        localRoles = PersistentMapping({ self.o.creator: ['Owner'] })
+        self.o.__ac_local_roles__ = localRoles
+        return localRoles
 # ------------------------------------------------------------------------------

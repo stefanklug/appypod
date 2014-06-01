@@ -937,7 +937,7 @@ class Ref(Field):
                 return gutils.No('no_write_perm')
         # May the user create instances of the referred class?
         if not obj.getTool().userMayCreate(self.klass):
-            return gutils.No('no_add_perm')
+            return gutils.No('no_create_perm')
         return True
 
     def checkAdd(self, obj):

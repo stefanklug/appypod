@@ -162,6 +162,32 @@ class State:
                     roles.append(self.getRole(newRoleName))
                     break
 
+    def isIsolated(self, wf):
+        '''Returns True if, from this state, we cannot reach another state. The
+           workflow class is given in p_wf. Modifying a workflow for getting a
+           state with auto-transitions only is a common technique for disabling
+           a state in a workflow. Note that if this state is in a single-state
+           worklflow, this method will always return True (I mean: in this case,
+           having an isolated state does not mean the state has been
+           deactivated).'''
+        for tr in wf.__dict__.itervalues():
+            if not isinstance(tr, Transition): continue
+            if not tr.hasState(self, True): continue
+            # Transition "tr" has this state as start state. If the end state is
+            # different from the start state, it means that the state is not
+            # isolated.
+            if tr.isSingle():
+                if tr.states[1] != self: return
+            else:
+                for start, end in tr.states:
+                    # Bypass (start, end) pairs that have nothing to do with
+                    # self.
+                    if start != self: continue
+                    if end != self: return
+        # If we are here, either there was no transition starting from self,
+        # either all transitions were auto-transitions: self is then isolated.
+        return True
+
 # ------------------------------------------------------------------------------
 class Transition:
     '''Represents a workflow transition.'''
