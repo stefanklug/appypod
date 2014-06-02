@@ -358,6 +358,14 @@ class Transition:
             if msgPart: msg += msgPart
         return msg
 
+    def executeCommonAction(self, obj, name, wf):
+        '''Executes the action that is common to any transition, named
+           "onTrigger" on the workflow class by convention. The common action is
+           executed before the transition-specific action (if any).'''
+        obj = obj.appy()
+        wf = wf.__instance__ # We need the prototypical instance here.
+        wf.onTrigger(obj, name)
+
     def trigger(self, name, obj, wf, comment, doAction=True, doNotify=True,
                 doHistory=True, doSay=True, reindex=True, noSecurity=False):
         '''This method triggers this transition (named p_name) on p_obj. If
@@ -400,6 +408,9 @@ class Transition:
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
+        # Execute the action that is common to all transitions, if defined.
+        if doAction and hasattr(wf, 'onTrigger'):
+            self.executeCommonAction(obj, name, wf)
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
