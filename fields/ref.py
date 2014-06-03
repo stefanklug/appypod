@@ -314,7 +314,7 @@ class Ref(Field):
      <div if="objects"
           for="menu in field.getLinkedObjectsByMenu(obj, objects)"
           var2="dtc='display: table-cell'"
-          style=":not loop.menu.last and ('%s;padding-right:7px') % dtc or dtc">
+          style=":not loop.menu.last and ('%s;padding-right:4px') % dtc or dtc">
 
        <!-- A single object in the menu: show a clickable icon to get it -->
        <a if="len(menu.objects) == 1" var2="tied=menu.objects[0]"
@@ -325,7 +325,7 @@ class Ref(Field):
 
        <!-- Several objects: put them in a dropdown menu -->
        <div if="len(menu.objects) &gt; 1" class="dropdownMenu"
-            var2="dropdownId='%s_%d' % (zobj.id, loop.menu.nb)"
+            var2="dropdownId='%s_%s_%d' % (zobj.id, name, loop.menu.nb)"
             onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
             onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
         <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x

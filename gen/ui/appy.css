@@ -83,7 +83,7 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .lostPassword { font-size: 90%; color: white; padding-left: 1em }
 .current { font-weight: bold }
 .portlet { width: 150px; border-right: 3px solid #e4e4e4;
-           background-color: #f3f3f3 }
+           background-color: whitesmoke }
 .portletContent { padding: 4px 9px }
 .portletTitle { font-size: 110%; margin-bottom: 4px }
 .portletSep { border-top: 3px solid #e4e4e4 }
@@ -92,7 +92,7 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .portletSearch { font-size: 90%; font-style: italic }
 .inputSearch { height: 15px; width: 132px; margin: 3px 3px 2px 3px !important }
 td.search { padding-top: 8px }
-.content { padding: 9px; background-color: whitesmoke }
+.content { padding: 9px; background-color: #fbfbfb }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
@@ -123,8 +123,8 @@ td.search { padding-top: 8px }
 .section3 { font-size: 11px; font-weight: bold; text-transform: uppercase;
             padding: 2px 0px; background-color: #a1aeb5; text-align: center;
             color: white }
-.even { background-color: #f9f9f9 }
-.odd { background-color: #f4f4f4 }
+.even { background-color: #fbfbfb }
+.odd { background-color: #f6f6f6 }
 .odd2 { background-color: #f2f2f2 }
 .refMenuItem { border-top: grey 1px dashed; margin: 3px 0; padding-top: 3px }
 .summary { margin-bottom: 5px; background-color: #f9f9f9;
@@ -137,7 +137,7 @@ td.search { padding-top: 8px }
 .history th { font-style: italic; text-align: left; padding: 0 5px 0 5px }
 .topSpace { margin-top: 15px }
 .bottomSpace { margin-bottom: 15px }
-.phase { background-color: white; border: 1px solid #d0d0d0;
+.phase { background-color: whitesmoke; border: 1px solid #d0d0d0;
          box-shadow: 2px 2px 2px #888888; margin-bottom: 7px }
 .phase td { padding: 3px 7px 3px 7px; border-right: 1px solid #d0d0d0;
             font-size: 96% }
