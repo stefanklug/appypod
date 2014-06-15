@@ -176,22 +176,24 @@ class ToolWrapper(AbstractWrapper):
                     'current' or ''">::_(className + '_plural')</a>
         </div>
 
-        <!-- Actions -->
-        <x var="mayCreate=ztool.userMayCreate(rootClass);
-                createMeans=ztool.getCreateMeans(rootClass)">
-         <!-- Create a new object from a web form. -->
-         <input type="button" class="buttonSmall button"
-                if="mayCreate and ('form' in createMeans)"
-                var2="label=_('query_create')" value=":label"
+        <!-- Create instances of this class -->
+        <form if="ztool.userMayCreate(rootClass) and \
+                  ('form' in ztool.getCreateMeans(rootClass))" class="addForm"
+              var2="target=ztool.getLinksTargetInfo(rootClass)"
+              action=":'%s/do' % toolUrl" target=":target.target">
+         <input type="hidden" name="action" value="Create"/>
+         <input type="hidden" name="className" value=":className"/>
+         <input type="hidden" name="popup"
+               value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
+         <input type="submit" class="buttonSmall button"
+                var="label=_('query_create')" value=":label"
+                onclick=":target.openPopup"
                 style=":'%s; %s' % (url('add', bg=True), \
-                                    ztool.getButtonWidth(label))"
-                onclick=":'goto(%s)' % \
-                    q('%s/do?action=Create&amp;className=%s' % \
-                    (toolUrl, className))"/>
-        </x>
+                                    ztool.getButtonWidth(label))"/>
+        </form>
+
         <!-- Searches -->
         <x if="ztool.advancedSearchEnabledFor(rootClass)">
-
          <!-- Live search -->
          <form action=":'%s/do' % toolUrl">
           <input type="hidden" name="action" value="SearchObjects"/>
@@ -232,7 +234,8 @@ class ToolWrapper(AbstractWrapper):
 
     # The message that is shown when a user triggers an action.
     pxMessage = Px('''
-     <div var="messages=ztool.consumeMessages()" if="messages" class="message">
+     <div var="messages=ztool.consumeMessages()" if="messages"
+          class=":inPopup and 'messagePopup message' or 'message'">
       <!-- The icon for closing the message -->
       <img src=":url('close')" align=":dright" class="clickable"
            onclick="this.parentNode.style.display='none'"/>
@@ -308,8 +311,11 @@ class ToolWrapper(AbstractWrapper):
                 (className, searchName, startNumber+currentNumber, totalNumber);
                cssClass=zobj.getCssFor('title')">
        <x>::zobj.getSupTitle(navInfo)</x>
-       <a href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage())"
-          if="enableLinks" class=":cssClass">:zobj.Title()</a><span
+       <a if="enableLinks" class=":cssClass"
+          var2="linkInPopup=inPopup or (target.target != '_self')"
+          target=":target.target" onclick=":target.openPopup"
+          href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage(), \
+                 inPopup=linkInPopup)">:zobj.Title()</a><span
           if="not enableLinks" class=":cssClass">:zobj.Title()</span><span
           style=":showSubTitles and 'display:inline' or 'display:none'"
           name="subTitle">::zobj.getSubTitle()</span>
@@ -320,9 +326,11 @@ class ToolWrapper(AbstractWrapper):
          <!-- Edit -->
          <td if="zobj.mayEdit()">
           <a var="navInfo='search.%s.%s.%d.%d' % \
-               (className, searchName, loop.zobj.nb+1+startNumber, totalNumber)"
+               (className, searchName, loop.zobj.nb+1+startNumber, totalNumber);
+                  linkInPopup=inPopup or (target.target != '_self')"
+             target=":target.target" onclick=":target.openPopup"
              href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
-                                nav=navInfo)">
+                                nav=navInfo, inPopup=linkInPopup)">
           <img src=":url('edit')" title=":_('object_edit')"/></a>
          </td>
          <td>
@@ -429,7 +437,8 @@ class ToolWrapper(AbstractWrapper):
                newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
-               resultMode=ztool.getResultMode(className)">
+               resultMode=ztool.getResultMode(className);
+               target=ztool.getLinksTargetInfo(ztool.getAppyClass(className))">
 
       <x if="zobjects">
        <!-- Display here POD templates if required. -->
@@ -531,6 +540,17 @@ class ToolWrapper(AbstractWrapper):
        </p>
       </form>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
+
+    pxBack = Px('''
+     <html>
+      <head>
+       <script src=":ztool.getIncludeUrl('appy.js')" type="text/javascript">
+       </script>
+      </head>
+      <body>
+       <script type="text/javascript">backFromPopup()</script>
+      </body>
+     </html>''')
 
     def isManager(self):
         '''Some pages on the tool can only be accessed by managers.'''

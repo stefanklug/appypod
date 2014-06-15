@@ -416,10 +416,11 @@ class ToolMixin(BaseMixin):
            sub-lists of p_sub elements.'''
         return sutils.splitList(l, sub)
 
-    def quote(self, s):
+    def quote(self, s, escapeWithEntity=True):
         '''Returns the quoted version of p_s.'''
         if not isinstance(s, basestring): s = str(s)
-        s = s.replace('\r\n', '').replace('\n', '').replace("'", "&apos;")
+        repl = escapeWithEntity and '&apos;' or "\\'"
+        s = s.replace('\r\n', '').replace('\n', '').replace("'", repl)
         return "'%s'" % s
 
     def getLayoutType(self):
@@ -789,7 +790,7 @@ class ToolMixin(BaseMixin):
                 startNumber += batchSize
         return startNumber
 
-    def getNavigationInfo(self):
+    def getNavigationInfo(self, inPopup=False):
         '''Extracts navigation information from request/nav and returns an
            object with the info that a page can use for displaying object
            navigation.'''
@@ -841,7 +842,7 @@ class ToolMixin(BaseMixin):
             uids = getattr(masterObj, fieldName)
             # Display the reference widget at the page where the current object
             # lies.
-            startNumberKey = '%s%s_startNumber' % (masterObj.UID(), fieldName)
+            startNumberKey = '%s%s_startNumber' % (masterObj.id, fieldName)
             startNumber = self.computeStartNumberFrom(res.currentNumber-1,
                 res.totalNumber, batchSize)
             res.sourceUrl = masterObj.getUrl(**{startNumberKey:startNumber,
@@ -895,7 +896,7 @@ class ToolMixin(BaseMixin):
                         sibling = brain.getObject()
                         setattr(res, urlKey, sibling.getUrl(\
                             nav=newNav % (index + 1),
-                            page=rq.get('page', 'main')))
+                            page=rq.get('page', 'main'), inPopup=inPopup))
         return res
 
     def getGroupedSearchFields(self, searchInfo):
@@ -1368,4 +1369,30 @@ class ToolMixin(BaseMixin):
         # Set a minimum width for small labels.
         if len(label) < 15: return 'width:130px'
         return 'padding-left: 26px; padding-right: 8px'
+
+    def getLinksTargetInfo(self, klass):
+        '''Appy allows to open links to view or edit instances of p_klass
+           either via the same browser window, or via a popup. This method
+           returns info about that, as an object having 2 attributes:
+           - target is "_self" if the link leads to the same browser window,
+                    "appyIFrame" if the link must be opened in a popup;
+           - openPopup  is unused if target is "_self" and contains the
+                        Javascript code to open the popup.'''
+        res = Object(target='_self', openPopup='')
+        if hasattr(klass, 'popup'):
+            res.target = 'appyIFrame'
+            d = klass.popup
+            if isinstance(d, basestring):
+                # Width only
+                params = int(d[:-2])
+            else:
+                # Width and height
+                params = "%s, %s" % (d[0][:-2], d[1][:-2])
+            res.openPopup = "openPopup('iframePopup',null,%s)" % params
+        return res
+
+    def backFromPopup(self):
+        '''Returns the PX allowing to close the iframe popup and refresh the
+           base page.'''
+        return self.appy().pxBack({'ztool': self})
 # ------------------------------------------------------------------------------

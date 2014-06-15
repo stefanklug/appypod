@@ -33,12 +33,13 @@ class Phase:
            class=":(aPage == page) and 'currentPage' or ''">
         <!-- First line: page name and icons -->
         <span if="not (singlePhase and singlePage)">
-         <a href=":zobj.getUrl(page=aPage)">::aPageInfo.page.getLabel(zobj)</a>
+         <a href=":zobj.getUrl(page=aPage, \
+                           inPopup=inPopup)">::aPageInfo.page.getLabel(zobj)</a>
          <x var="locked=zobj.isLocked(user, aPage);
                  editable=mayEdit and aPageInfo.showOnEdit and \
                           aPageInfo.showEdit">
           <a if="editable and not locked"
-             href=":zobj.getUrl(mode='edit', page=aPage)">
+             href=":zobj.getUrl(mode='edit', page=aPage, inPopup=inPopup)">
            <img src=":url('edit')" title=":_('object_edit')"/></a>
           <a if="editable and locked">
            <img style="cursor: help"

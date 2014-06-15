@@ -196,7 +196,8 @@ class BaseMixin:
         className = rq.get('className')
         # Create the params to add to the URL we will redirect the user to
         # create the object.
-        urlParams = {'mode':'edit', 'page':'main', 'nav':''}
+        urlParams = {'mode':'edit', 'page':'main', 'nav':'',
+                     'inPopup':rq.get('popup') == '1'}
         initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
         if initiator:
             # The object to create will be linked to an initiator object through
@@ -379,12 +380,15 @@ class BaseMixin:
         tool = self.getTool()
         errorMessage = self.translate('validation_error')
         isNew = self.isTemporary()
+        inPopup = rq.get('popup') == '1'
         # If this object is created from an initiator, get info about him.
         initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
         # If the user clicked on 'Cancel', go back to the previous page.
         buttonClicked = rq.get('button')
         if buttonClicked == 'cancel':
-            if initiator:
+            if inPopup:
+                back = tool.backFromPopup()
+            elif initiator:
                 # Go back to the initiator page.
                 urlBack = initiator.getUrl(page=initiatorPage, nav='')
             else:
@@ -395,6 +399,7 @@ class BaseMixin:
                    urlBack = self.getUrl()
             self.say(self.translate('object_canceled'))
             self.removeLock(rq['page'])
+            if inPopup: return back
             return self.goto(urlBack)
 
         # Object for storing validation errors
@@ -433,18 +438,18 @@ class BaseMixin:
         if not msg: msg = self.translate('object_saved')
         # If the object has already been deleted (ie, it is a kind of transient
         # object like a one-shot form and has already been deleted in method
-        # onEdit), redirect to the main site page.
-        if not getattr(obj.getParentNode().aq_base, obj.id, None):
-            return self.goto(tool.getSiteUrl(), msg)
-        # If the user can't access the object anymore, redirect him to its home
-        # page.
-        if not obj.mayView(): return self.goto(tool.getHomePage(), msg)
+        # onEdit) or if the user can't access the object anymore, redirect him
+        # to the user's home page.
+        if not getattr(obj.getParentNode().aq_base, obj.id, None) or \
+           not obj.mayView():
+            if inPopup: return tool.backFromPopup()
+            return self.goto(tool.getHomePage(), msg)
         if (buttonClicked == 'save') or saveConfirmed:
             obj.say(msg)
+            if inPopup: return tool.backFromPopup()
             if isNew and initiator:
                 return self.goto(initiator.getUrl(page=initiatorPage, nav=''))
-            else:
-                return self.goto(obj.getUrl())
+            return self.goto(obj.getUrl())
         if buttonClicked == 'previous':
             # Go to the previous page for this object.
             # We recompute the list of phases and pages because things
@@ -462,29 +467,30 @@ class BaseMixin:
                     # I do not use gotoEdit here because I really need to
                     # redirect the user to the edit page. Indeed, the object
                     # edit URL may have moved from temp_folder to another place.
-                    return self.goto(obj.getUrl(mode='edit', page=pageName))
+                    return self.goto(obj.getUrl(mode='edit', page=pageName,
+                                                inPopup=inPopup))
                 else:
-                    return self.goto(obj.getUrl(page=pageName))
+                    return self.goto(obj.getUrl(page=pageName, inPopup=inPopup))
             else:
                 obj.say(msg)
-                return self.goto(obj.getUrl())
+                return self.goto(obj.getUrl(inPopup=inPopup))
         if buttonClicked == 'next':
             # Go to the next page for this object.
             # We remember page name, because the next method may set a new
             # current page if the current one is not visible anymore.
-            pageName = rq['page']
             phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = phaseObj.getNextPage(pageName)
+            pageName, pageInfo = phaseObj.getNextPage(rq['page'])
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo.showOnEdit:
                     # Same remark as above (click on "previous").
-                    return self.goto(obj.getUrl(mode='edit', page=pageName))
+                    return self.goto(obj.getUrl(mode='edit', page=pageName,
+                                                inPopup=inPopup))
                 else:
-                    return self.goto(obj.getUrl(page=pageName))
+                    return self.goto(obj.getUrl(page=pageName, inPopup=inPopup))
             else:
                 obj.say(msg)
-                return self.goto(obj.getUrl())
+                return self.goto(obj.getUrl(inPopup=inPopup))
         return obj.gotoEdit()
 
     def reindex(self, indexes=None, unindex=False):
@@ -1326,11 +1332,15 @@ class BaseMixin:
         return layoutType in showValue
 
     getUrlDefaults = {'page':True, 'nav':True}
-    def getUrl(self, base=None, mode='view', **kwargs):
+    def getUrl(self, base=None, mode='view', inPopup=False, **kwargs):
         '''Returns an URL for this object.
            * If p_base is None, it will be the base URL for this object
              (ie, Zope self.absolute_url()).
            * p_mode can be "edit", "view" or "raw" (a non-param, base URL)
+           * If p_inPopup is True, the link will be opened in the Appy iframe.
+             An additional param "popup=1" will be added to URL params, in order
+             to tell Appy that the link target will be shown in a popup, in a
+             minimalistic way (no portlet...).
            * p_kwargs can store additional parameters to add to the URL.
              In this dict, every value that is a string will be added to the
              URL as-is. Every value that is True will be replaced by the value
@@ -1355,6 +1365,7 @@ class BaseMixin:
         if not kwargs: kwargs = self.getUrlDefaults
         if 'page' not in kwargs: kwargs['page'] = True
         if 'nav'  not in kwargs: kwargs['nav'] = True
+        kwargs['popup'] = inPopup and '1' or '0'
         # Create URL parameters from kwargs
         params = []
         for name, value in kwargs.iteritems():
@@ -1392,18 +1403,19 @@ class BaseMixin:
             return False
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
-    def getBreadCrumb(self):
+    def getBreadCrumb(self, inPopup=False):
         '''Gets breadcrumb info about this object and its parents (if it must
            be shown).'''
         # Return an empty breadcrumb if it must not be shown.
         klass = self.getClass()
         if hasattr(klass, 'breadcrumb') and not klass.breadcrumb: return ()
         # Compute the breadcrumb
-        res = [Object(url=self.absolute_url(),
+        res = [Object(url=self.getUrl(inPopup=inPopup),
                       title=self.getFieldValue('title', layoutType='view'))]
+        # In a popup: limit the breadcrumb to the current object.
+        if inPopup: return res
         parent = self.getParent()
-        if parent:
-            res = parent.getBreadCrumb() + res
+        if parent: res = parent.getBreadCrumb() + res
         return res
 
     def index_html(self):

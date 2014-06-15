@@ -35,8 +35,7 @@ class Ref(Field):
     # reach the consult view for this object. If we are on a back reference, the
     # link allows to reach the correct page where the forward reference is
     # defined. If we are on a forward reference, the "nav" parameter is added to
-    # the URL for allowing to navigate from one object to the next/previous on
-    # ui/view.
+    # the URL for allowing to navigate from one object to the next/previous one.
     pxObjectTitle = Px('''
      <x var="includeShownInfo=includeShownInfo|False;
              navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
@@ -45,12 +44,14 @@ class Ref(Field):
              cssClass=tied.o.getCssFor('title')">
       <x>::tied.o.getSupTitle(navInfo)</x>
       <a var="pageName=field.isBack and field.back.pageName or 'main';
-              fullUrl=tied.o.getUrl(page=pageName, nav=navInfo)"
-         href=":fullUrl" class=":cssClass">:(not includeShownInfo) and \
+              linkInPopup=inPopup or (target.target != '_self');
+              fullUrl=tied.o.getUrl(page=pageName, nav=navInfo, \
+                                    inPopup=linkInPopup)"
+         href=":fullUrl" class=":cssClass" target=":target.target"
+         onclick=":target.openPopup">:(not includeShownInfo) and \
          tied.title or field.getReferenceLabel(tied)
       </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
-            'display:none'">::tied.o.getSubTitle()</span>
-     </x>''')
+            'display:none'">::tied.o.getSubTitle()</span></x>''')
 
     # This PX displays buttons for triggering global actions on several linked
     # objects (delete many, unlink many,...)
@@ -84,7 +85,8 @@ class Ref(Field):
      <table class="noStyle">
       <tr>
        <!-- Arrows for moving objects up or down -->
-       <td if="(totalNumber &gt;1) and changeOrder and not inPickList"
+       <td if="(totalNumber &gt;1) and changeOrder and not inPickList \
+               and not inMenu"
           var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
                   (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
                    q(tiedUid), q('move'), q('**v**')))">
@@ -108,8 +110,11 @@ class Ref(Field):
        <!-- Edit -->
        <td if="not field.noForm and tied.o.mayEdit()">
         <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
-                   field.pageName, loop.tied.nb + 1 + startNumber, totalNumber)"
-           href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo)">
+                   field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
+                linkInPopup=inPopup or (target.target != '_self')"
+           href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo, \
+                                inPopup=linkInPopup)"
+           target=":target.target" onclick=":target.openPopup">
          <img src=":url('edit')" title=":_('object_edit')"/></a>
        </td>
        <!-- Delete -->
@@ -140,24 +145,27 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-      <input if="mayAdd and not inPickList" type="button"
-             class="buttonSmall button"
-        var2="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
-                                              field.pageName, 0, totalNumber);
-              formCall='goto(%s)' % \
-                q('%s/do?action=Create&amp;className=%s&amp;nav=%s' % \
-                  (folder.absolute_url(), tiedClassName, navInfo));
-              formCall=not field.addConfirm and formCall or \
-                'askConfirm(%s,%s,%s)' % (q('script'), q(formCall), \
-                                          q(addConfirmMsg));
-              noFormCall=navBaseCall.replace('**v**', \
-                           '%d,%s' % (startNumber, q('doCreateWithoutForm')));
-              noFormCall=not field.addConfirm and noFormCall or \
-                'askConfirm(%s, %s, %s)' % (q('script'), q(noFormCall), \
-                                            q(addConfirmMsg));
-              label=_('add_ref')"
-        style=":'%s; %s' % (url('add', bg=True), ztool.getButtonWidth(label))"
-        value=":label" onclick=":field.noForm and noFormCall or formCall"/>''')
+      <form if="mayAdd and not inPickList"
+            class=":inMenu and 'addFormMenu' or 'addForm'"
+            var2="formName='%s_%s_add' % (zobj.id, field.name)"
+            name=":formName" id=":formName" target=":target.target"
+            action=":'%s/do' % folder.absolute_url()">
+       <input type="hidden" name="action" value="Create"/>
+       <input type="hidden" name="className" value=":tiedClassName"/>
+       <input type="hidden" name="nav"
+              value=":'ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
+                                              field.pageName, 0, totalNumber)"/>
+       <input type="hidden" name="popup"
+              value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
+       <input
+        type=":(field.addConfirm or field.noForm) and 'button' or 'submit'"
+        class="buttonSmall button"
+        var="label=_('add_ref')" value=":label"
+             style=":'%s; %s' % (url('add', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             onclick=":field.getOnAdd(q, formName, addConfirmMsg, target, \
+                                      navBaseCall, startNumber)"/>
+      </form>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
@@ -309,39 +317,60 @@ class Ref(Field):
                            req.get('showSubTitles', 'true') == 'true';
              subLabel='selectable_objects'">:field.pxViewList</x>''')
 
-    # PX that displays referred objects as menus.
+    # PX that displays referred objects as dropdown menus.
+    pxMenu = Px('''
+     <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x
+          if="not menu.icon">:menu.text</x>
+     <!-- Nb of objects in the menu -->
+     <x>:len(menu.objects)</x>''')
+
     pxViewMenus = Px('''
-     <div if="objects"
-          for="menu in field.getLinkedObjectsByMenu(obj, objects)"
-          var2="dtc='display: table-cell'"
+     <x var2="dtc='display: table-cell'; inMenu=True">
+      <!-- No object is present -->
+      <div if="not objects" style=":'padding-left: 3px; %s' % dtc"
+           class="discreet">-</div>
+
+      <!-- One menu for every object type -->
+      <div for="menu in field.getLinkedObjectsByMenu(obj, objects)"
           style=":not loop.menu.last and ('%s;padding-right:4px') % dtc or dtc">
-
-       <!-- A single object in the menu: show a clickable icon to get it -->
-       <a if="len(menu.objects) == 1" var2="tied=menu.objects[0]"
-          class="dropdownMenu" href=":field.getMenuUrl(zobj, tied)"
-          title=":tied.title">
-        <img if="menu.icon" src=":menu.icon"/><x
-             if="not menu.icon">:menu.text</x> 1</a>
-
-       <!-- Several objects: put them in a dropdown menu -->
-       <div if="len(menu.objects) &gt; 1" class="dropdownMenu"
-            var2="dropdownId='%s_%s_%d' % (zobj.id, name, loop.menu.nb)"
+       <div class="dropdownMenu"
+            var2="dropdownId='%s_%s_%d' % (zobj.id, name, loop.menu.nb);
+                  singleObject=len(menu.objects) == 1"
             onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
             onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
-        <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x
-             if="not menu.icon">:menu.text</x>
-        <!-- Display the number of objects in the menu (if more than one) -->
-        <x if="len(menu.objects) &gt; 1">:len(menu.objects)</x>
-        <!-- The dropdown menu containing annexes -->
+
+        <!-- The menu name and/or icon, that is clickable if there is a single
+             object in the menu. -->
+        <x if="singleObject" var2="tied=menu.objects[0]">
+         <a if="field.menuUrlMethod" class="dropdownMenu"
+            href=":field.getMenuUrl(zobj, tied)"
+            title=":tied.title">:field.pxMenu</a>
+         <a if="not field.menuUrlMethod" class="dropdownMenu"
+            var2="linkInPopup=inPopup or (target.target != '_self')"
+            target=":target.target" onclick=":target.openPopup"
+            href=":tied.o.getUrl(nav='',inPopup=linkInPopup)"
+            title=":tied.title">:field.pxMenu</a>
+        </x>
+        <x if="not singleObject">:field.pxMenu</x>
+
+        <!-- The dropdown menu containing tied objects -->
         <div id=":dropdownId" class="dropdown" style="width:150px">
          <div for="tied in menu.objects"
-              class=":not loop.tied.first and 'refMenuItem' or ''"
-              var2="tiedUrl=field.getMenuUrl(zobj, tied)">
-          <a href=":tiedUrl">:tied.title</a>
+              var2="startNumber=0;
+                    totalNumber=len(menu.objects);
+                    tiedUid=tied.uid"
+              class=":not loop.tied.first and 'refMenuItem' or ''">
+          <!-- A specific link may have to be computed from
+               field.menuUrlMethod -->
+          <a if="field.menuUrlMethod"
+             href=":field.getMenuUrl(zobj, tied)">:tied.title</a>
+          <!-- Show standard pxObjectTitle else -->
+          <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
+          <div if="tied.o.mayAct()">:field.pxObjectActions</div>
          </div>
         </div>
        </div>
-     </div>''')
+      </div><x>:field.pxAdd</x></x> ''')
 
     # Simplified widget showing minimal info about tied objects.
     pxViewMinimal = Px('''
@@ -359,6 +388,7 @@ class Ref(Field):
              linkList=field.link == 'list';
              renderAll=req.get('scope') != 'objs';
              inPickList=False;
+             inMenu=False;
              startNumber=field.getStartNumber(render, req, ajaxHookId);
              info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
              objects=info.objects;
@@ -368,6 +398,7 @@ class Ref(Field):
              batchNumber=len(objects);
              folder=zobj.getCreateFolder();
              tiedClassName=ztool.getPortalType(field.klass);
+             target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
              mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
@@ -729,6 +760,7 @@ class Ref(Field):
     def getLinkedObjectsByMenu(self, obj, objects):
         '''This method groups p_objects into sub-lists of objects, grouped by
            menu (happens when self.render == 'menus').'''
+        if not objects: return ()
         res = []
         # We store in "menuIds" the already encountered menus:
         # ~{s_menuId : i_indexInRes}~
@@ -947,6 +979,29 @@ class Ref(Field):
         if not may:
             obj.raiseUnauthorized("User can't write Ref field '%s' (%s)." % \
                                   (self.name, may.msg))
+
+    def getOnAdd(self, q, formName, addConfirmMsg, target, navBaseCall,
+                 startNumber):
+        '''Computes the JS code to execute when button "add" is clicked.'''
+        if self.noForm:
+            # Ajax-refresh the Ref with a special param to link a newly created
+            # object.
+            res = navBaseCall.replace('**v**',
+                                      "%d,'doCreateWithoutForm'" % startNumber)
+            if self.addConfirm:
+                res = "askConfirm('script', %s, %s)" % \
+                      (q(res, False), q(addConfirmMsg))
+        else:
+            # In the basic case, no JS code is executed: target.openPopup is
+            # empty and the button-related form is submitted in the main page.
+            res = target.openPopup
+            if self.addConfirm and not target.openPopup:
+                res = "askConfirm('form','%s',%s)" % (formName,q(addConfirmMsg))
+            elif self.addConfirm and target.openPopup:
+                res = "askConfirm('form+script',%s,%s)" % \
+                      (q(formName + '+' + target.openPopup, False), \
+                       q(addConfirmMsg))
+        return res
 
     def getCbJsInit(self, obj):
         '''When checkboxes are enabled, this method defines a JS associative

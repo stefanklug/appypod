@@ -62,7 +62,7 @@ input.button { color: #666666; height: 20px; margin-bottom: 5px;
                background-color: white; background-repeat: no-repeat;
                background-position: 8px 25%; box-shadow: 2px 2px 2px #888888}
 input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
-                    margin-bottom: 3px}
+                    margin-bottom: 3px }
 .fake { background-color: #e6e6e6 !important ; cursor:help !important }
 .xhtml { background-color: white; padding: 6px; font-size: 95% }
 .xhtml img { margin-right: 5px }
@@ -74,6 +74,7 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
            background-color: #F9EDBE; text-align: center; margin-left: -300px;
            border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9 }
+.messagePopup { width: 80%; top: 0; left: 0; margin-left: 10px }
 .focus { font-size: 90%; margin: 7px 0 7px 0; padding: 7px;
          background-color: #d7dee4; border-radius: 2px 2px 2px 2px;
          box-shadow: 0 2px 4px #A9A9A9 }
@@ -101,6 +102,8 @@ td.search { padding-top: 8px }
             font-weight: normal; text-align: left; z-index: 2 }
 .dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
+.addForm { display: inline }
+.addFormMenu { display: table-cell; padding-left: 7px }
 .list { margin-bottom: 3px }
 .list td, .list th { border: 3px solid #ededed; color: grey;
                      padding: 3px 5px 3px 5px }
@@ -127,8 +130,8 @@ td.search { padding-top: 8px }
 .odd { background-color: #f6f6f6 }
 .odd2 { background-color: #f2f2f2 }
 .refMenuItem { border-top: grey 1px dashed; margin: 3px 0; padding-top: 3px }
-.summary { margin-bottom: 5px; background-color: #f9f9f9;
-           border: 2px solid #f9f9f9 }
+.summary { margin-bottom: 5px; background-color: whitesmoke;
+           border: 3px solid white }
 .by { padding: 5px; color: grey; font-size: 97% }
 .underline { border-bottom: 1px dotted grey }
 .state { font-weight: bold; border-bottom: 1px dashed grey }

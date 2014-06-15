@@ -714,3 +714,7 @@ msgstr ""
 #. Default: "You are not allowed to consult this."
 msgid "unauthorized"
 msgstr ""
+
+#. Default: "Close"
+msgid "window_close"
+msgstr ""

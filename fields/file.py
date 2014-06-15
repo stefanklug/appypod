@@ -307,7 +307,7 @@ class File(Field):
              size=":field.width"/>
       <script var="isDisabled=not value and 'false' or 'true'"
              type="text/javascript">:'document.getElementById(%s).disabled=%s'%\
-                                     (q(fName), q(isDisabled))</script></x>''')
+                                     (fName, isDisabled)</script></x>''')
 
     pxSearch = ''
 

@@ -21,9 +21,9 @@ class AbstractWrapper(object):
     # Buttons for going to next/previous objects if this one is among bunch of
     # referenced or searched objects. currentNumber starts with 1.
     pxNavigateSiblings = Px('''
-     <div if="req.get('nav', None)" var2="ni=ztool.getNavigationInfo()">
+     <div if="req.get('nav', None)" var2="ni=ztool.getNavigationInfo(inPopup)">
       <!-- Go to the source URL (search or referred object) -->
-      <a if="ni.sourceUrl" href=":ni.sourceUrl"><img
+      <a if="not inPopup and ni.sourceUrl" href=":ni.sourceUrl"><img
          var="gotoSource=_('goto_source');
               goBack=ni.backText and ('%s - %s' % (ni.backText, gotoSource)) \
                      or gotoSource"
@@ -52,7 +52,7 @@ class AbstractWrapper(object):
       <tr>
        <!-- Breadcrumb -->
        <td var="sup=zobj.getSupBreadCrumb();
-                breadcrumb=zobj.getBreadCrumb();
+                breadcrumb=zobj.getBreadCrumb(inPopup=inPopup);
                 sub=zobj.getSubBreadCrumb()" class="breadcrumb">
         <x if="sup">::sup</x>
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
@@ -84,7 +84,8 @@ class AbstractWrapper(object):
                 dummy=setattr(req, 'pxContext', _ctx_);
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
-                showPortlet=ztool.showPortlet(obj, layoutType);
+                inPopup=req.get('popup') == '1';
+                showPortlet=not inPopup and ztool.showPortlet(obj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 cfg=ztool.getProductConfig(True);
                 dleft=(dir == 'ltr') and 'left' or 'right';
@@ -170,9 +171,17 @@ class AbstractWrapper(object):
        </div>
       </div>
 
+      <!-- Popup containing the Appy iframe -->
+      <div id="iframePopup" class="popup" if="not inPopup"
+           style="background-color: #fbfbfb">
+       <img align=":dright" src=":url('close')" class="clickable"
+            onclick="closePopup('iframePopup')"/>
+       <iframe id="appyIFrame" name="appyIFrame" frameborder="0"></iframe>
+      </div>
+
       <table class=":(cfg.skin == 'wide') and 'mainWide main' or 'main'"
              align="center" cellpadding="0">
-       <tr class="top">
+       <tr class="top" if="not inPopup">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"
             style=":url(bannerName, bg=True) + '; background-repeat:no-repeat;\
@@ -213,7 +222,7 @@ class AbstractWrapper(object):
        </tr>
 
        <!-- The user strip -->
-       <tr height=":cfg.discreetLogin and '5px' or '28px'">
+       <tr height=":cfg.discreetLogin and '5px' or '28px'" if="not inPopup">
         <td>
          <table class="userStrip">
           <tr>
@@ -297,7 +306,7 @@ class AbstractWrapper(object):
         </td>
        </tr>
        <!-- Footer -->
-       <tr height="26px"><td>:tool.pxFooter</td></tr>
+       <tr height="26px" if="not inPopup"><td>:tool.pxFooter</td></tr>
       </table>
      </body>
     </html>''', prologue=Px.xhtmlPrologue)
@@ -401,7 +410,7 @@ class AbstractWrapper(object):
                 historyMaxPerPage=req.get('maxPerPage', 5);
                 historyExpanded=req.get('appyHistory','collapsed')=='expanded';
                 creator=zobj.Creator()">
-      <table width="100%" class="summary">
+      <table width="100%" class="summary" cellpadding="0" cellspacing="0">
        <tr>
         <td colspan="2" class="by">
          <!-- Plus/minus icon for accessing history -->
@@ -461,7 +470,8 @@ class AbstractWrapper(object):
       <tr valign="top">
        <!-- Refresh -->
        <td if="zobj.isDebug()">
-        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes')">
+        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes', \
+                              inPopup=inPopup)">
          <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
         </a>
        </td>
@@ -479,7 +489,8 @@ class AbstractWrapper(object):
         <!-- Button on the view page -->
         <input if="not isEdit" type="button" class="button" value=":label"
                style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"
-               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage, \
+                                                    inPopup=inPopup))"/>
        </td>
 
        <!-- Save -->
@@ -506,7 +517,8 @@ class AbstractWrapper(object):
                var="label=_('object_edit')" value=":label"
                style=":'%s; %s' % (url('edit', bg=True), \
                                    ztool.getButtonWidth(label))"
-               onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page, \
+                                                    inPopup=inPopup))"/>
 
         <!-- Locked -->
         <a if="editable and locked">
@@ -536,7 +548,8 @@ class AbstractWrapper(object):
         <!-- Button on the view page -->
         <input if="not isEdit" type="button" class="button" value=":label"
                style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
-               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage))"/>
+               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage, \
+                                                    inPopup=inPopup))"/>
        </td>
 
        <!-- Workflow transitions -->
@@ -590,6 +603,7 @@ class AbstractWrapper(object):
             enctype="multipart/form-data" action=":zobj.absolute_url()+'/do'">
        <input type="hidden" name="action" value="Update"/>
        <input type="hidden" name="button" value=""/>
+       <input type="hidden" name="popup" value=":inPopup and '1' or '0'"/>
        <input type="hidden" name="page" value=":page"/>
        <input type="hidden" name="nav" value=":req.get('nav', None)"/>
        <input type="hidden" name="confirmed" value="False"/>
@@ -615,6 +629,7 @@ class AbstractWrapper(object):
              lang=ztool.getUserLanguage();   q=ztool.quote;
              action=req.get('action', None);
              px=req['px'].split(':');
+             inPopup=req.get('popup') == '1';
              className=(len(px) == 3) and px[0] or None;
              field=className and zobj.getAppyType(px[1], className) or None;
              field=(len(px) == 2) and zobj.getAppyType(px[0]) or field;

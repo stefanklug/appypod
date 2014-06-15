@@ -703,7 +703,7 @@ function protectAppyForm() {
 }
 
 // Functions for opening and closing a popup
-function openPopup(popupId, msg) {
+function openPopup(popupId, msg, width, height) {
   // Put the message into the popup
   if (msg) {
     var msgHook = (popupId == 'alertPopup')? 'appyAlertText': 'appyConfirmText';
@@ -715,13 +715,35 @@ function openPopup(popupId, msg) {
   // Put it at the right place on the screen
   var scrollTop = document.documentElement.scrollTop || window.pageYOffset || 0;
   popup.style.top = (scrollTop + 150) + 'px';
+  if (width) popup.style.width = width + 'px';
+  if (popupId == 'iframePopup') {
+    // Initialize iframe's width.
+    var iframe = document.getElementById('appyIFrame');
+    iframe.style.width = (width-20) + 'px';
+    if (height) iframe.style.height = height + 'px';
+  }
   popup.style.display = 'block';
 }
 
 function closePopup(popupId) {
   // Close the popup
-  var popup = document.getElementById(popupId);
+  var container = window.parent.document;
+  var popup = container.getElementById(popupId);
   popup.style.display = 'none';
+  popup.style.width = null;
+  if (popupId == 'iframePopup') {
+    // Reinitialise the enclosing iframe.
+    var iframe = container.getElementById('appyIFrame');
+    iframe.style.width = null;
+    iframe.innerHTML = '';
+    // Leave the form silently if we are on an edit page
+    iframe.contentWindow.onbeforeunload = null;
+  }
+}
+
+function backFromPopup() {
+  closePopup('iframePopup');
+  window.parent.location = window.parent.location;
 }
 
 // Function triggered when an action needs to be confirmed by the user
@@ -734,8 +756,8 @@ function askConfirm(actionType, action, msg, showComment) {
   confirmForm.actionType.value = actionType;
   confirmForm.action.value = action;
   var commentArea = document.getElementById('commentArea');
-  if (showComment) commentArea.style.display = "block";
-  else commentArea.style.display = "none";
+  if (showComment) commentArea.style.display = 'block';
+  else commentArea.style.display = 'none';
   openPopup("confirmActionPopup", msg);
 }
 
@@ -761,6 +783,12 @@ function doConfirm() {
   else if (actionType == 'script') {
     // We must execute Javascript code in "action"
     eval(action);
+  }
+  else if (actionType == 'form+script') {
+    var elems = action.split('+');
+    // Submit the form in elems[0] and execute the JS code in elems[1]
+    document.getElementById(elems[0]).submit();
+    eval(elems[1]);
   }
 }
 
@@ -952,4 +980,4 @@ function onSelectDate(cal) {
   if (update && p.singleClick && cal.dateClicked) {
     cal.callCloseHandler();
   }
-};
+}
