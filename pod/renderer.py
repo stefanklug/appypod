@@ -103,17 +103,17 @@ class Renderer:
                  finalizeFunction=None, overwriteExisting=False,
                  raiseOnError=False, imageResolver=None):
         '''This Python Open Document Renderer (PodRenderer) loads a document
-           template (p_template) which is an ODT file with some elements written
-           in Python. Based on this template and some Python objects defined in
-           p_context, the renderer generates an ODT file (p_result) that
-           instantiates the p_template and fills it with objects from the
+           template (p_template) which is an ODT or ODS file with some elements
+           written in Python. Based on this template and some Python objects
+           defined in p_context, the renderer generates an ODT file (p_result)
+           that instantiates the p_template and fills it with objects from the
            p_context.
 
-         - If p_result does not end with .odt, the Renderer will call
+         - If p_result does not end with .odt or .ods, the Renderer will call
            LibreOffice to perform a conversion. If p_forceOoCall is True, even
            if p_result ends with .odt, LibreOffice will be called, not for
            performing a conversion, but for updating some elements like indexes
-           (table of contents, etc) and sections containing links to externa
+           (table of contents, etc) and sections containing links to external
            files (which is the case, for example, if you use the default
            function "document").
 
@@ -168,7 +168,6 @@ class Renderer:
         # ODT file (to dump in manifest.xml); values are original paths of
         # included images (used for avoiding to create multiple copies of a file
         # which is imported several times).
-        # imported file).
         self.fileNames = {}
         self.prepareFolders()
         # Unzip template
@@ -179,8 +178,11 @@ class Renderer:
             # intermediary subfolder(s) if needed.
             fileName = None
             if zippedFile.endswith('/') or zippedFile.endswith(os.sep):
-                # This is an empty folder. Create it nevertheless.
-                os.makedirs(os.path.join(self.unzipFolder, zippedFile))
+                # This is an empty folder. Create it nevertheless. If zippedFile
+                # starts with a '/', os.path.join will consider it an absolute
+                # path and will throw away self.unzipFolder.
+                os.makedirs(os.path.join(self.unzipFolder,
+                                         zippedFile.lstrip('/')))
             else:
                 fileName = os.path.basename(zippedFile)
                 folderName = os.path.dirname(zippedFile)

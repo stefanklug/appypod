@@ -285,7 +285,7 @@ class MemoryBuffer(Buffer):
         return res
 
     def isMainElement(self, elem):
-        '''Is p_elem the main elemen within this buffer?'''
+        '''Is p_elem the main element within this buffer?'''
         mainElem = self.getMainElement()
         if not mainElem: return
         if hasattr(mainElem, 'OD'): mainElem = mainElem.OD.elem
