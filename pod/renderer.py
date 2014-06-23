@@ -127,11 +127,11 @@ class Renderer:
            specify a styles mapping in p_stylesMapping.
 
          - If you specify a function in p_finalizeFunction, this function will
-           be called by the renderer before re-zipping the ODT result. This way,
-           you can still perform some actions on the content of the ODT file
-           before it is zipped and potentially converted. This function must
-           accept one arg: the absolute path to the temporary folder containing
-           the un-zipped content of the ODT result.
+           be called by the renderer before re-zipping the ODT/S result. This
+           way, you can still perform some actions on the content of the ODT/S
+           file before it is zipped and potentially converted. This function
+           must accept one arg: the absolute path to the temporary folder
+           containing the un-zipped content of the ODT/S result.
 
          - If you set p_overwriteExisting to True, the renderer will overwrite
            the result file. Else, an exception will be thrown if the result file
@@ -195,6 +195,7 @@ class Renderer:
             if fileName:
                 fullFileName = os.path.join(fullFolderName, fileName)
                 f = open(fullFileName, 'wb')
+                print fullFileName
                 fileContent = self.templateZip.read(zippedFile)
                 if (fileName == 'content.xml') and not folderName:
                     # content.xml files may reside in subfolders.

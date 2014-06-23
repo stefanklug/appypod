@@ -574,7 +574,8 @@ class MemoryBuffer(Buffer):
     def getElementIndexes(self, expressions=True):
         res = []
         for index, elem in self.elements.iteritems():
-            condition = isinstance(elem, Expression)
+            condition = isinstance(elem, Expression) or \
+                        isinstance(elem, Attributes)
             if not expressions:
                 condition = not condition
             if condition:
