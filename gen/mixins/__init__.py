@@ -450,6 +450,9 @@ class BaseMixin:
             if isNew and initiator:
                 return self.goto(initiator.getUrl(page=initiatorPage, nav=''))
             return self.goto(obj.getUrl())
+        # Get the current page name. We keep it in "pageName" because rq['page']
+        # can be changed by m_getAppyPhases called below.
+        pageName = rq['page']
         if buttonClicked == 'previous':
             # Go to the previous page for this object.
             # We recompute the list of phases and pages because things
@@ -459,7 +462,7 @@ class BaseMixin:
             # pages may not be available in "edit" mode, so we return the edit
             # or view pages depending on page.show.
             phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = phaseObj.getPreviousPage(rq['page'])
+            pageName, pageInfo = phaseObj.getPreviousPage(pageName)
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo.showOnEdit:
@@ -476,10 +479,8 @@ class BaseMixin:
                 return self.goto(obj.getUrl(inPopup=inPopup))
         if buttonClicked == 'next':
             # Go to the next page for this object.
-            # We remember page name, because the next method may set a new
-            # current page if the current one is not visible anymore.
             phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = phaseObj.getNextPage(rq['page'])
+            pageName, pageInfo = phaseObj.getNextPage(pageName)
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo.showOnEdit:

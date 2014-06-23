@@ -46,8 +46,6 @@ class BufferAction:
         # content. If 'from', we must dump what comes from the 'from' part of
         # the action (='fromExpr')
         self.fromExpr = fromExpr
-        # When an error occurs, must we raise it or write it into the buffer?
-        self.raiseErrors = not self.buffer.pod
         # Several actions may co-exist for the same buffer, as a chain of
         # BufferAction instances, defined via the following attribute.
         self.subAction = None
@@ -59,8 +57,8 @@ class BufferAction:
 
     def manageError(self, result, context, errorMessage, dumpTb=True):
         '''Manage the encountered error: dump it into the buffer or raise an
-           exception if self.raiseErrors is True.'''
-        if self.raiseErrors:
+           exception.'''
+        if self.buffer.env.raiseOnError:
             if not self.buffer.pod:
                 # Add in the error message the line nb where the errors occurs
                 # within the PX.

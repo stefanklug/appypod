@@ -224,7 +224,11 @@ class FileBuffer(Buffer):
             if escape: self.dumpContent(res)
             else: self.write(res)
         except Exception, e:
-            PodError.dump(self, EVAL_EXPR_ERROR % (expression, e), dumpTb=False)
+            if not self.env.raiseOnError:
+                PodError.dump(self, EVAL_EXPR_ERROR % (expression, e),
+                              dumpTb=False)
+            else:
+                raise Exception(EVAL_EXPR_ERROR % (expression, e))
 
     def addAttributes(self):
         # Into a FileBuffer, it is not possible to insert Attributes. Every
@@ -666,10 +670,10 @@ class MemoryBuffer(Buffer):
                         if escape: result.dumpContent(res)
                         else: result.write(res)
                     except Exception, e:
-                        if self.pod:
+                        if not self.env.raiseOnError:
                             PodError.dump(result, EVAL_EXPR_ERROR % (
                                           evalEntry.expr, e), dumpTb=False)
-                        else: # px
+                        else:
                             raise Exception(EVAL_EXPR_ERROR %(evalEntry.expr,e))
                 elif isinstance(evalEntry, Attributes) or \
                      isinstance(evalEntry, Attribute):
