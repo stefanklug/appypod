@@ -195,7 +195,6 @@ class Renderer:
             if fileName:
                 fullFileName = os.path.join(fullFolderName, fileName)
                 f = open(fullFileName, 'wb')
-                print fullFileName
                 fileContent = self.templateZip.read(zippedFile)
                 if (fileName == 'content.xml') and not folderName:
                     # content.xml files may reside in subfolders.
@@ -205,6 +204,15 @@ class Renderer:
                     # Same remark as above.
                     self.stylesManager = StylesManager(fileContent)
                     self.stylesXml = fileContent
+                elif (fileName == 'mimetype') and \
+                     (fileContent == mimeTypes['ods']):
+                    # From LibreOffice 3.5, it is not possible anymore to dump
+                    # errors into the resulting ods as annotations. Indeed,
+                    # annotations can't reside anymore within paragraphs. ODS
+                    # files generated with pod and containing error messages in
+                    # annotations cause LibreOffice 3.5 and 4.0 to crash.
+                    # LibreOffice >= 4.1 simply does not show the annotation.
+                    self.raiseOnError = True
                 f.write(fileContent)
                 f.close()
         self.templateZip.close()
