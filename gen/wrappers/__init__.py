@@ -788,12 +788,12 @@ class AbstractWrapper(object):
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one
            through reference field p_fieldName.'''
-        return self.getField(fieldName).linkObject(self.o, obj)
+        return self.getField(fieldName).linkObject(self, obj)
 
     def unlink(self, fieldName, obj):
         '''This method unlinks p_obj (which can be a list of objects) from this
            one through reference field p_fieldName.'''
-        return self.getField(fieldName).unlinkObject(self.o, obj)
+        return self.getField(fieldName).unlinkObject(self, obj)
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
@@ -854,7 +854,7 @@ class AbstractWrapper(object):
             setattr(appyObj, attrName, attrValue)
         if isField:
             # Link the object to this one
-            appyType.linkObject(self.o, zopeObj)
+            appyType.linkObject(self, appyObj)
         # Call custom initialization
         if externalData: param = externalData
         else: param = True

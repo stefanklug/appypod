@@ -135,7 +135,7 @@ class BaseMixin:
         for field in self.getAllAppyTypes():
             if field.type != 'Ref': continue
             for obj in field.getValue(self):
-                field.back.unlinkObject(obj, self, back=True)
+                field.back.unlinkObject(obj, appyObj, back=True)
         # Uncatalog the object
         self.reindex(unindex=True)
         # Delete the filesystem folder corresponding to this object

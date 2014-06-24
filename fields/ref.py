@@ -471,8 +471,8 @@ class Ref(Field):
 
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), default=None, add=False, addConfirm=False,
-                 delete=None, noForm=False, link=True, unlink=None, back=None,
-                 show=True, page='main', group=None, layouts=None,
+                 delete=None, noForm=False, link=True, unlink=None, insert=None,
+                 back=None, show=True, page='main', group=None, layouts=None,
                  showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
                  move=0, indexed=False, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
@@ -486,7 +486,8 @@ class Ref(Field):
                  menuInfoMethod=None, menuUrlMethod=None):
         self.klass = klass
         self.attribute = attribute
-        # May the user add new objects through this ref ?
+        # May the user add new objects through this ref ? "add" may also contain
+        # a method whose result must be a boolean value.
         self.add = add
         # When the user adds a new object, must a confirmation popup be shown?
         self.addConfirm = addConfirm
@@ -510,6 +511,24 @@ class Ref(Field):
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
+        # When an object is inserted through this Ref field, at what position is
+        # it inserted? If "insert" is:
+        # None,     it will be inserted at the end;
+        # "start",  it will be inserted at the start of the tied objects;
+        # a method, (called with the object to insert as single arg), its return
+        #           value (a number or a tuple of numbers) will be
+        #           used to insert the object at the corresponding position
+        #           (this method will also be applied to other objects to know
+        #           where to insert the new one);
+        # a tuple,  ('sort', method), the given method (called with the object
+        #           to insert as single arg) will be used to sort tied objects
+        #           and will be given as param "key" of the standard Python
+        #           method "sort" applied on the list of tied objects.
+        # With value ('sort', method), a full sort is performed and may hardly
+        # reshake the tied objects; with value "method" alone, the tied
+        # object is inserted at some given place: tied objects are more
+        # maintained in the order of their insertion.
+        self.insert = insert
         if unlink == None:
             # By default, one may unlink objects via a Ref for which one can
             # link objects.
@@ -863,47 +882,64 @@ class Ref(Field):
     def linkObject(self, obj, value, back=False, noSecurity=True):
         '''This method links p_value (which can be a list of objects) to p_obj
            through this Ref field.'''
+        zobj = obj.o
         # Security check
-        if not noSecurity: obj.mayEdit(self.writePermission, raiseError=True)
+        if not noSecurity: zobj.mayEdit(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.linkObject(obj, v, back=back)
             return
         # Gets the list of referred objects (=list of uids), or create it.
-        obj = obj.o
-        refs = getattr(obj.aq_base, self.name, None)
+        refs = getattr(zobj.aq_base, self.name, None)
         if refs == None:
-            refs = obj.getProductConfig().PersistentList()
-            setattr(obj, self.name, refs)
+            refs = zobj.getProductConfig().PersistentList()
+            setattr(zobj, self.name, refs)
         # Insert p_value into it.
         uid = value.o.id
-        if uid not in refs:
-            # Where must we insert the object? At the start? At the end?
-            if callable(self.add):
-                add = self.callMethod(obj, self.add)
-            else:
-                add = self.add
-            if add == 'start':
-                refs.insert(0, uid)
-            else:
-                refs.append(uid)
-            # Update the back reference
-            if not back: self.back.linkObject(value, obj, back=True)
+        if uid in refs: return
+        # Where must we insert the object?
+        if not self.insert:
+            refs.append(uid)
+        elif self.insert == 'start':
+            refs.insert(0, uid)
+        elif callable(self.insert):
+            # It is a method. Use it on every tied object until we find where to
+            # insert the new object.
+            tool = zobj.getTool()
+            insertOrder = self.insert(obj, value)
+            i = 0
+            inserted = False
+            while i < len(refs):
+                tied = tool.getObject(refs[i], appy=True)
+                if self.insert(obj, tied) > insertOrder:
+                    refs.insert(i, uid)
+                    inserted = True
+                    break
+                i += 1
+            if not inserted: refs.append(uid)
+        else:
+            # It is a tuple ('sort', method). Perform a full sort.
+            refs.append(uid)
+            tool = zobj.getTool()
+            refs.sort(key=lambda uid:self.insert[1](obj, \
+                                                tool.getObject(uid, appy=True)))
+        # Update the back reference
+        if not back: self.back.linkObject(value, obj, back=True)
 
     def unlinkObject(self, obj, value, back=False, noSecurity=True):
         '''This method unlinks p_value (which can be a list of objects) from
            p_obj through this Ref field.'''
+        zobj = obj.o
         # Security check
-        if not noSecurity: obj.mayEdit(self.writePermission, raiseError=True)
+        if not noSecurity: zobj.mayEdit(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.unlinkObject(obj, v, back=back)
             return
-        obj = obj.o
-        refs = getattr(obj.aq_base, self.name, None)
+        refs = getattr(zobj.aq_base, self.name, None)
         if not refs: return
         # Unlink p_value
-        uid = value.o.UID()
+        uid = value.o.id
         if uid in refs:
             refs.remove(uid)
             # Update the back reference
@@ -919,19 +955,20 @@ class Ref(Field):
            * a Appy object;
            * a list of Appy or Zope objects.'''
         if not self.persist: return
-        # Standardize p_value into a list of Zope objects
+        # Standardize p_value into a list of Appy objects
         objects = value
         if not objects: objects = []
         if type(objects) not in sutils.sequenceTypes: objects = [objects]
         tool = obj.getTool()
         for i in range(len(objects)):
             if isinstance(objects[i], basestring):
-                # We have a UID here
-                objects[i] = tool.getObject(objects[i])
+                # We have an UID here
+                objects[i] = tool.getObject(objects[i], appy=True)
             else:
-                # Be sure to have a Zope object
-                objects[i] = objects[i].o
-        uids = [o.UID() for o in objects]
+                # Be sure to have an Appy object
+                objects[i] = objects[i].appy()
+        uids = [o.o.id for o in objects]
+        appyObj = obj.appy()
         # Unlink objects that are not referred anymore
         refs = getattr(obj.aq_base, self.name, None)
         if refs:
@@ -939,11 +976,11 @@ class Ref(Field):
             while i >= 0:
                 if refs[i] not in uids:
                     # Object having this UID must unlink p_obj
-                    self.back.unlinkObject(tool.getObject(refs[i]), obj)
+                    tied = tool.getObject(refs[i], appy=True)
+                    self.back.unlinkObject(tied, appyObj)
                 i -= 1
         # Link new objects
-        if objects:
-            self.linkObject(obj, objects)
+        if objects: self.linkObject(appyObj, objects)
 
     def mayAdd(self, obj, checkMayEdit=True):
         '''May the user create a new referred object from p_obj via this Ref?
@@ -954,10 +991,7 @@ class Ref(Field):
         # We can't (yet) do that on back references.
         if self.isBack: return gutils.No('is_back')
         # Check if this Ref is addable
-        if callable(self.add):
-            add = self.callMethod(obj, self.add)
-        else:
-            add = self.add
+        add = self.getAttribute(obj, 'add')
         if not add: return gutils.No('no_add')
         # Have we reached the maximum number of referred elements?
         if self.multiplicity[1] != None:
