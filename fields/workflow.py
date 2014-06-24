@@ -322,7 +322,7 @@ class Transition:
             # Condition is a role. Transition may be triggered if the user has
             # this role.
             return user.has_role(self.condition.name, obj)
-        elif type(self.condition) == types.FunctionType:
+        elif callable(self.condition):
             return self.condition(wf, obj.appy())
         elif type(self.condition) in (tuple, list):
             # It is a list of roles and/or functions. Transition may be

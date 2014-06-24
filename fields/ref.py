@@ -921,8 +921,11 @@ class Ref(Field):
             # It is a tuple ('sort', method). Perform a full sort.
             refs.append(uid)
             tool = zobj.getTool()
-            refs.sort(key=lambda uid:self.insert[1](obj, \
+            # Warning: "refs" is a persistent list whose method "sort" has no
+            # param "key".
+            refs.data.sort(key=lambda uid:self.insert[1](obj, \
                                                 tool.getObject(uid, appy=True)))
+            refs._p_changed = 1
         # Update the back reference
         if not back: self.back.linkObject(value, obj, back=True)
 
