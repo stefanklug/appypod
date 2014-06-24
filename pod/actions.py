@@ -51,8 +51,9 @@ class BufferAction:
         self.subAction = None
 
     def getExceptionLine(self, e):
-        '''Gets the line describing exception p_e, containing the pathname of
-           the exception class, the exception's message and line number.'''
+        '''Gets the line describing exception p_e, containing the exception
+           class, message and line number.'''
+        return '%s: %s' % (e.__class__.__name__, str(e))
         return '%s.%s: %s' % (e.__module__, e.__class__.__name__, str(e))
 
     def manageError(self, result, context, errorMessage, dumpTb=True):
