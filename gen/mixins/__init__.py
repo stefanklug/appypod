@@ -1353,6 +1353,9 @@ class BaseMixin:
         # Define base URL if omitted
         if not base:
             base = self.absolute_url() + suffix
+            existingParams = ''
+        else:
+            existingParams = urllib.splitquery(base)[1]
         # If a raw URL is asked, remove any param and suffix.
         if mode == 'raw':
             if '?' in base: base = base[:base.index('?')]
@@ -1366,7 +1369,6 @@ class BaseMixin:
         if not kwargs: kwargs = self.getUrlDefaults
         if 'page' not in kwargs: kwargs['page'] = True
         if 'nav'  not in kwargs: kwargs['nav'] = True
-        kwargs['popup'] = inPopup and '1' or '0'
         # Create URL parameters from kwargs
         params = []
         for name, value in kwargs.iteritems():
@@ -1374,6 +1376,9 @@ class BaseMixin:
                 params.append('%s=%s' % (name, value))
             elif self.REQUEST.get(name, ''):
                 params.append('%s=%s' % (name, self.REQUEST[name]))
+        # Manage inPopup
+        if inPopup and ('popup=' not in existingParams):
+            params.append('popup=1')
         if params:
             params = '&'.join(params)
             if base.find('?') != -1: params = '&' + params

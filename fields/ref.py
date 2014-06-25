@@ -472,13 +472,14 @@ class Ref(Field):
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), default=None, add=False, addConfirm=False,
                  delete=None, noForm=False, link=True, unlink=None, insert=None,
-                 back=None, show=True, page='main', group=None, layouts=None,
-                 showHeaders=False, shownInfo=(), select=None, maxPerPage=30,
-                 move=0, indexed=False, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=5, maxChars=None, colspan=1, master=None,
-                 masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, queryable=False, queryFields=None, queryNbCols=1,
+                 beforeLink=None, afterUnlink=None, back=None, show=True,
+                 page='main', group=None, layouts=None, showHeaders=False,
+                 shownInfo=(), select=None, maxPerPage=30, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=5,
+                 maxChars=None, colspan=1, master=None, masterValue=None,
+                 focus=False, historized=False, mapping=None, label=None,
+                 queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, changeOrder=True, numbered=False,
                  checkboxes=True, checkboxesDefault=None, sdefault='',
                  scolspan=1, swidth=None, sheight=None, sselect=None,
@@ -511,6 +512,10 @@ class Ref(Field):
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
+        if unlink == None:
+            # By default, one may unlink objects via a Ref for which one can
+            # link objects.
+            self.unlink = bool(self.link)
         # When an object is inserted through this Ref field, at what position is
         # it inserted? If "insert" is:
         # None,     it will be inserted at the end;
@@ -529,10 +534,14 @@ class Ref(Field):
         # object is inserted at some given place: tied objects are more
         # maintained in the order of their insertion.
         self.insert = insert
-        if unlink == None:
-            # By default, one may unlink objects via a Ref for which one can
-            # link objects.
-            self.unlink = bool(self.link)
+        # Immediately before an object is going to be linked via this Ref field,
+        # method specified in "beforeLink" wil be executed if specified and will
+        # take the object to link as single parameter.
+        self.beforeLink = beforeLink
+        # Immediately after an object as been unlinked from this Ref field,
+        # method specified in "afterUnlink" will be executed if specified and
+        # will take the unlinked object as single parameter.
+        self.afterUnlink = afterUnlink
         self.back = None
         if back:
             # It is a forward reference
@@ -897,6 +906,8 @@ class Ref(Field):
         # Insert p_value into it.
         uid = value.o.id
         if uid in refs: return
+        # Execute self.beforeLink if present
+        if self.beforeLink: self.beforeLink(obj, value)
         # Where must we insert the object?
         if not self.insert:
             refs.append(uid)
@@ -945,6 +956,8 @@ class Ref(Field):
         uid = value.o.id
         if uid in refs:
             refs.remove(uid)
+            # Execute self.afterUnlink if present
+            if self.afterUnlink: self.afterUnlink(obj, value)
             # Update the back reference
             if not back: self.back.unlinkObject(value, obj, back=True)
 
@@ -1160,17 +1173,18 @@ class Ref(Field):
         action = rq['linkAction']
         tool = obj.getTool()
         msg = None
+        appyObj = obj.appy()
         if not action.endswith('_many'):
             # "link" or "unlink"
-            tied = tool.getObject(rq['targetUid'])
-            exec 'self.%sObject(obj, tied, noSecurity=False)' % action
+            tied = tool.getObject(rq['targetUid'], appy=True)
+            exec 'self.%sObject(appyObj, tied, noSecurity=False)' % action
         else:
             # "link_many", "unlink_many", "delete_many". As a preamble, perform
             # a security check once, instead of doing it on every object-level
             # operation.
             obj.mayEdit(self.writePermission, raiseError=True)
             # Get the (un-)checked objects from the request.
-            uids = rq['targetUid'].strip(',') or ();
+            uids = rq['targetUid'].strip(',') or ()
             if uids: uids = uids.split(',')
             unchecked = rq['semantics'] == 'unchecked'
             if action == 'link_many':
@@ -1192,7 +1206,8 @@ class Ref(Field):
                     # Keep only objects being in uids.
                     if uid not in uids: continue
                 # Collect this object
-                target = not isObj and tool.getObject(value) or value.o
+                target = not isObj and tool.getObject(value, appy=True) or \
+                         value
                 targets.append(target)
             if not targets:
                 msg = obj.translate('action_null')
@@ -1204,16 +1219,17 @@ class Ref(Field):
                 for target in targets:
                     if mustDelete:
                         # Delete
-                        if target.mayDelete(): target.delete()
+                        if target.o.mayDelete(): target.o.delete()
                         else: failed += 1
                     else:
                         # Link or unlink
-                        exec 'self.%sObject(obj, target)' % action.split('_')[0]
+                        exec 'self.%sObject(appyObj, target)' % \
+                             action.split('_')[0]
                 if failed:
                     msg = obj.translate('action_partial', mapping={'nb':failed})
         urlBack = obj.getUrl(rq['HTTP_REFERER'])
         if not msg: msg = obj.translate('action_done')
-        obj.say(msg)
+        appyObj.say(msg)
         tool.goto(urlBack)
 
 def autoref(klass, field):
