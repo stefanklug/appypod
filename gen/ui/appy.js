@@ -656,7 +656,8 @@ function toggleCookie(cookieId) {
 }
 
 // Function that allows to generate a document from a pod template.
-function generatePod(uid,fieldName,template,podFormat,queryData,customParams) {
+function generatePod(uid, fieldName, template, podFormat, queryData,
+                     customParams, getChecked) {
   var f = document.getElementById('podForm');
   f.objectUid.value = uid;
   f.fieldName.value = fieldName;
@@ -666,6 +667,18 @@ function generatePod(uid,fieldName,template,podFormat,queryData,customParams) {
   if (customParams) { f.customParams.value = customParams; }
   else { f.customParams.value = ''; }
   f.action.value = 'generate';
+  f.checkedUids.value = '';
+  f.checkedSem.value = '';
+  if (getChecked) {
+    // We must collect selected objects from a Ref field.
+    var node = document.getElementById(uid + '_' + getChecked);
+    if (node && node.hasOwnProperty('_appy_objs_cbs')) {
+      var uids = [];
+      for (var uid in node['_appy_objs_cbs']) uids.push(uid);
+      f.checkedUids.value = uids.join();
+      f.checkedSem.value = node['_appy_objs_sem'];
+    }
+  }
   f.submit();
 }
 

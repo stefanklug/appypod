@@ -45,11 +45,12 @@ class Pod(Field):
 
     # Icon allowing to generate a given template in a given format.
     pxIcon = Px('''
-     <img var="iconSuffix=frozen and 'Frozen' or ''"
+     <img var="iconSuffix=frozen and 'Frozen' or '';
+               gc=field.getChecked and q(field.getChecked) or 'null'"
           src=":url(fmt + iconSuffix)" class="clickable"
           title=":field.getIconTitle(obj, fmt, frozen)"
-          onclick=":'generatePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
-                    q(info.template), q(fmt), q(ztool.getQueryInfo()))"/>''')
+          onclick=":'generatePod(%s,%s,%s,%s,%s,null,%s)' % (q(uid), q(name), \
+                   q(info.template), q(fmt), q(ztool.getQueryInfo()), gc)"/>''')
 
     pxView = pxCell = Px('''
      <x var="uid=obj.uid"
@@ -117,7 +118,7 @@ class Pod(Field):
                  focus=False, historized=False, mapping=None, label=None,
                  template=None, templateName=None, showTemplate=None,
                  freezeTemplate=None, context=None, stylesMapping={},
-                 formats=None):
+                 formats=None, getChecked=None):
         # Param "template" stores the path to the pod template(s).
         if not template: raise Exception(Pod.NO_TEMPLATE)
         if isinstance(template, basestring):
@@ -184,6 +185,13 @@ class Pod(Field):
         self.stylesMapping = stylesMapping
         # What are the output formats when generating documents from this pod ?
         self.formats = formats
+        # Parameter "getChecked" can specify the name of a Ref field belonging
+        # to the same gen class. If it is the case, the context of the pod
+        # template will contain an additional object, name "_checked", and
+        # "_checked.<name of the Ref field>" will contain the list of the UIDs
+        # of the referred objects via the Ref field that are currently selected
+        # in the user interface.
+        self.getChecked = getChecked
         if not formats:
             # Compute default ones
             if self.template[0].endswith('.ods'):
@@ -248,7 +256,7 @@ class Pod(Field):
         return res
 
     def getValue(self, obj, template=None, format=None, result=None,
-                 queryData=None, customParams=None, noSecurity=False):
+                 queryData=None, customContext=None, noSecurity=False):
         '''For a pod field, getting its value means computing a pod document or
            returning a frozen one. A pod field differs from other field types
            because there can be several ways to produce the field value (ie:
@@ -263,9 +271,9 @@ class Pod(Field):
              the OS temp folder;
            * if the pod document is related to a query, the query parameters
              needed to re-trigger the query are given in p_queryData;
-           * p_customParams may be specified. Every custom param must have form
-             "name:value". Custom params override any other value available in
-             the context, including values from the field-specific context.
+           * dict p_customContext may be specified and will override any other
+             value available in the context, including values from the
+             field-specific context.
         '''
         obj = obj.appy()
         template = template or self.template[0]
@@ -315,13 +323,9 @@ class Pod(Field):
                      sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
                      filterValue=filterValue, maxResults='NO_LIMIT')
             podContext['objects'] = [o.appy() for o in objs.objects]
-        # Add the field-specific context if present.
-        if specificContext:
-            podContext.update(specificContext)
-        # If a custom param comes from the request, add it to the context.
-        if customParams:
-            paramsDict = eval(customParams)
-            podContext.update(paramsDict)
+        # Add the field-specific and custom contexts if present.
+        if specificContext: podContext.update(specificContext)
+        if customContext: podContext.update(customContext)
         # Define a potential global styles mapping
         if callable(self.stylesMapping):
             stylesMapping = self.callMethod(obj, self.stylesMapping)
@@ -456,6 +460,30 @@ class Pod(Field):
             res += ' (%s)' % obj.translate('frozen')
         return res
 
+    def getCustomContext(self, obj, rq):
+        '''Before calling pod to compute a result, if specific elements must be
+           added to the context, compute it here.'''
+        res = {}
+        # Get potential custom params from the request. Custom params must be
+        # coded as a string containing a valid Python dict.
+        customParams = rq.get('customParams')
+        if customParams:
+            paramsDict = eval(customParams)
+            res.update(paramsDict)
+        # Compute the selected UIDS if self.getChecked is specified.
+        if self.getChecked:
+            # Get the UIDs specified in the request
+            reqUids = rq['checkedUids'] and rq['checkedUids'].split(',') or []
+            unchecked = rq['checkedSem'] == 'unchecked'
+            uids = {}
+            for uid in getattr(obj.o.aq_base, self.getChecked, ()):
+                if unchecked: condition = uid not in reqUids
+                else:         condition = uid in reqUids
+                if condition: uids[uid] = None
+            res['_checked'] = Object()
+            setattr(res['_checked'], self.getChecked, uids)
+        return res
+
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this pod field
            (generate, freeze, upload...) is triggered from the user
@@ -472,7 +500,7 @@ class Pod(Field):
             # Generate a (or get a frozen) document.
             res = self.getValue(obj, template=template, format=format,
                                 queryData=rq.get('queryData'),
-                                customParams=rq.get('customParams'))
+                                customContext=self.getCustomContext(obj, rq))
             if isinstance(res, basestring):
                 # An error has occurred, and p_res contains the error message.
                 obj.say(res)
