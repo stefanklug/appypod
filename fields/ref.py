@@ -123,7 +123,7 @@ class Ref(Field):
              onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
        </td>
        <!-- Unlink -->
-       <td if="mayUnlink">
+       <td if="mayUnlink and field.mayUnlinkElement(obj, tied)">
         <img var="imgName=linkList and 'unlinkUp' or 'unlink'; action='unlink'"
              class="clickable" title=":_('object_unlink')" src=":url(imgName)"
              onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
@@ -471,8 +471,9 @@ class Ref(Field):
 
     def __init__(self, klass=None, attribute=None, validator=None,
                  multiplicity=(0,1), default=None, add=False, addConfirm=False,
-                 delete=None, noForm=False, link=True, unlink=None, insert=None,
-                 beforeLink=None, afterUnlink=None, back=None, show=True,
+                 delete=None, noForm=False, link=True, unlink=None,
+                 unlinkElement=None, insert=None, beforeLink=None,
+                 afterLink=None, afterUnlink=None, back=None, show=True,
                  page='main', group=None, layouts=None, showHeaders=False,
                  shownInfo=(), select=None, maxPerPage=30, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
@@ -516,6 +517,11 @@ class Ref(Field):
             # By default, one may unlink objects via a Ref for which one can
             # link objects.
             self.unlink = bool(self.link)
+        # "unlink" above is a global flag. If it is True, you can go further and
+        # determine, for every linked object, if it can be unlinked or not by
+        # defining a method in parameter "unlinkElement" below. This method
+        # accepts the linked object as unique arg.
+        self.unlinkElement = unlinkElement
         # When an object is inserted through this Ref field, at what position is
         # it inserted? If "insert" is:
         # None,     it will be inserted at the end;
@@ -535,11 +541,15 @@ class Ref(Field):
         # maintained in the order of their insertion.
         self.insert = insert
         # Immediately before an object is going to be linked via this Ref field,
-        # method specified in "beforeLink" wil be executed if specified and will
+        # method potentially specified in "beforeLink" will be executed and will
         # take the object to link as single parameter.
         self.beforeLink = beforeLink
+        # Immediately after an object has been linked via this Ref field, method
+        # potentially specified in "afterLink" will be executed and will take
+        # the linked object as single parameter.
+        self.afterLink = afterLink
         # Immediately after an object as been unlinked from this Ref field,
-        # method specified in "afterUnlink" will be executed if specified and
+        # method potentially specified in "afterUnlink" will be executed and
         # will take the unlinked object as single parameter.
         self.afterUnlink = afterUnlink
         self.back = None
@@ -937,6 +947,8 @@ class Ref(Field):
             refs.data.sort(key=lambda uid:self.insert[1](obj, \
                                                 tool.getObject(uid, appy=True)))
             refs._p_changed = 1
+        # Execute self.afterLink if present
+        if self.afterLink: self.afterLink(obj, value)
         # Update the back reference
         if not back: self.back.linkObject(value, obj, back=True)
 
@@ -945,7 +957,9 @@ class Ref(Field):
            p_obj through this Ref field.'''
         zobj = obj.o
         # Security check
-        if not noSecurity: zobj.mayEdit(self.writePermission, raiseError=True)
+        if not noSecurity:
+            zobj.mayEdit(self.writePermission, raiseError=True)
+            self.mayUnlinkElement(obj, value, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
             for v in value: self.unlinkObject(obj, v, back=back)
@@ -1052,6 +1066,17 @@ class Ref(Field):
                       (q(formName + '+' + target.openPopup, False), \
                        q(addConfirmMsg))
         return res
+
+    def mayUnlinkElement(self, obj, tied, raiseError=False):
+        '''May we unlink from this Ref field this specific p_tied object?'''
+        if not self.unlinkElement: return True
+        res = self.unlinkElement(obj, tied)
+        if res: return True
+        else:
+            if not raiseError: return
+            # Raise an exception.
+            obj.o.raiseUnauthorized('field.unlinkElement prevents you to ' \
+                                    'unlink this object.')
 
     def getCbJsInit(self, obj):
         '''When checkboxes are enabled, this method defines a JS associative
@@ -1215,16 +1240,21 @@ class Ref(Field):
                 # Perform the action on every target. Count the number of failed
                 # operations.
                 failed = 0
-                mustDelete = action == 'delete_many'
+                singleAction = action.split('_')[0]
+                mustDelete = singleAction == 'delete'
                 for target in targets:
                     if mustDelete:
                         # Delete
                         if target.o.mayDelete(): target.o.delete()
                         else: failed += 1
                     else:
-                        # Link or unlink
-                        exec 'self.%sObject(appyObj, target)' % \
-                             action.split('_')[0]
+                        # Link or unlink. For unlinking, we need to perform an
+                        # additional check.
+                        if (singleAction == 'unlink') and \
+                           not self.mayUnlinkElement(appyObj, target):
+                            failed += 1
+                        else:
+                            exec 'self.%sObject(appyObj, target)' % singleAction
                 if failed:
                     msg = obj.translate('action_partial', mapping={'nb':failed})
         urlBack = obj.getUrl(rq['HTTP_REFERER'])

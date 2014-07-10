@@ -267,7 +267,9 @@ class Date(Field):
         '''Gets the Javascript init code for displaying a calendar popup for
            this field, for an input named p_name (which can be different from
            self.name if, ie, it is a search field).'''
+        # Always express the range of years in chronological order.
+        years = [years[0], years[-1]]
+        years.sort()
         return 'Calendar.setup({inputField: "%s", button: "%s_img", ' \
-               'onSelect: onSelectDate, range:[%d,%d]});' % \
-               (name, name, years[0], years[-1])
+               'onSelect: onSelectDate, range:%s})' % (name, name, str(years))
 # ------------------------------------------------------------------------------

@@ -153,7 +153,7 @@ class User(ModelClass):
                         'toTool']
     # All methods defined below are fake. Real versions are in the wrapper.
     title = gen.String(show=False, indexed=True)
-    gm = {'group': 'main', 'width': 25}
+    gm = {'group': 'main', 'width': 34}
     def showName(self): pass
     name = gen.String(show=showName, **gm)
     firstName = gen.String(show=showName, **gm)

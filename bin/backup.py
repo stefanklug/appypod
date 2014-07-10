@@ -172,6 +172,9 @@ class ZodbBackuper:
             if res:
                 w('Could not send mail to some recipients. %s' % str(res))
             w('Done.')
+        except smtplib.SMTPException, sme:
+            w('Error while contacting SMTP server %s (%s).' % \
+              (self.options.smtpServer, str(se)))
         except socket.error, se:
             w('Could not connect to SMTP server %s (%s).' % \
               (self.options.smtpServer, str(se)))

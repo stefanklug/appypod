@@ -54,7 +54,6 @@ class BufferAction:
         '''Gets the line describing exception p_e, containing the exception
            class, message and line number.'''
         return '%s: %s' % (e.__class__.__name__, str(e))
-        return '%s.%s: %s' % (e.__module__, e.__class__.__name__, str(e))
 
     def manageError(self, result, context, errorMessage, dumpTb=True):
         '''Manage the encountered error: dump it into the buffer or raise an

@@ -187,8 +187,8 @@ class AbstractWrapper(object):
             style=":url(bannerName, bg=True) + '; background-repeat:no-repeat;\
                    position:relative'">
          <!-- Logo (transparent clickable zone by default) -->
-         <div align=":dleft" style="position: absolute"><a href="/">
-          <img src=":url('logo')"/></a></div>
+         <div align=":dleft" style="position: absolute">
+          <a href=":ztool.getSiteUrl()"><img src=":url('logo')"/></a></div>
 
          <!-- Top links -->
          <div style="margin-top: 4px" align=":dright">
