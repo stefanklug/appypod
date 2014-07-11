@@ -188,9 +188,9 @@ class Pod(Field):
         # Parameter "getChecked" can specify the name of a Ref field belonging
         # to the same gen class. If it is the case, the context of the pod
         # template will contain an additional object, name "_checked", and
-        # "_checked.<name of the Ref field>" will contain the list of the UIDs
-        # of the referred objects via the Ref field that are currently selected
-        # in the user interface.
+        # "_checked.<name of the Ref field>" will contain the list of the
+        # objects linked via the Ref field that are currently selected in the
+        # user interface.
         self.getChecked = getChecked
         if not formats:
             # Compute default ones
@@ -227,13 +227,15 @@ class Pod(Field):
 
     def getDownloadName(self, obj, template, format, queryRelated):
         '''Gets the name of the pod result as will be seen by the user that will
-           download it.'''
-        fileName = self.getTemplateName(obj, template)
+           download it. Ensure the returned name is not too long for the OS that
+           will store the downloaded file with this name.'''
+        norm = obj.tool.normalize
+        fileName = norm(self.getTemplateName(obj, template))[:100]
         if not queryRelated:
             # This is a POD for a single object: personalize the file name with
             # the object title.
-            fileName = '%s-%s' % (obj.title, fileName)
-        return obj.tool.normalize(fileName) + '.' + format
+            fileName = '%s-%s' % (norm(obj.title)[:140], fileName)
+        return fileName + '.' + format
 
     def getVisibleTemplates(self, obj):
         '''Returns, among self.template, the template(s) that can be shown.'''
@@ -470,18 +472,23 @@ class Pod(Field):
         if customParams:
             paramsDict = eval(customParams)
             res.update(paramsDict)
-        # Compute the selected UIDS if self.getChecked is specified.
-        if self.getChecked:
+        # Compute the selected linked objects if self.getChecked is specified
+        # and if the user can read this Ref field.
+        if self.getChecked and \
+           obj.allows(obj.getField(self.getChecked).readPermission):
             # Get the UIDs specified in the request
             reqUids = rq['checkedUids'] and rq['checkedUids'].split(',') or []
             unchecked = rq['checkedSem'] == 'unchecked'
-            uids = {}
+            objects = []
+            tool = obj.tool
             for uid in getattr(obj.o.aq_base, self.getChecked, ()):
                 if unchecked: condition = uid not in reqUids
                 else:         condition = uid in reqUids
-                if condition: uids[uid] = None
+                if condition:
+                    tied = tool.getObject(uid)
+                    if tied.allows('read'): objects.append(tied)
             res['_checked'] = Object()
-            setattr(res['_checked'], self.getChecked, uids)
+            setattr(res['_checked'], self.getChecked, objects)
         return res
 
     def onUiRequest(self, obj, rq):
