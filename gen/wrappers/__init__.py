@@ -785,6 +785,10 @@ class AbstractWrapper(object):
             return field.isEmptyValue(getattr(obj, name))
         return True
 
+    def isTemp(self):
+        '''Is this object a temporary object being created?'''
+        return self.o.isTemporary()
+
     def link(self, fieldName, obj):
         '''This method links p_obj (which can be a list of objects) to this one
            through reference field p_fieldName.'''
