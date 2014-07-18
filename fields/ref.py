@@ -18,6 +18,7 @@
 import sys, re
 from appy import Object
 from appy.fields import Field
+from appy.fields.search import Search
 from appy.px import Px
 from appy.gen.layout import Table
 from appy.gen import utils as gutils
@@ -302,6 +303,7 @@ class Ref(Field):
              batchSize=info.batchSize;
              batchNumber=len(objects);
              tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
+             target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=mayEdit|\
                      not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=False;
@@ -431,8 +433,8 @@ class Ref(Field):
      </x>''')
 
     pxCell = pxView
-    pxEdit = Px('''
-     <select if="field.link"
+    pxEdit = Px('''<x if="(field.link) and (field.link != 'list')">
+     <select if="field.link != 'popup'"
              var2="objects=field.getPossibleValues(zobj);
                    uids=[o.id for o in field.getValue(zobj, appy=False)]"
              name=":name" id=":name" size=":isMultiple and field.height or ''"
@@ -445,7 +447,19 @@ class Ref(Field):
               selected=":inRequest and (uid in requestValue) or \
                                        (uid in uids)" value=":uid"
               title=":title">:ztool.truncateValue(title, field.width)</option>
-     </select>''')
+     </select>
+     <!-- A button for opening the popup if field.link is "popup". -->
+     <a if="field.link == 'popup'" target="appyIFrame"
+        var2="tiedClassName=ztool.getPortalType(field.klass);
+              className=ztool.getPortalType(obj.klass)"
+        href=":'%s/query?className=%s&amp;search=%s:%s&amp;popup=1' % \
+               (ztool.absolute_url(), tiedClassName, className, field.name)">
+      <input type="button" class="buttonSmall button"
+             var="label=_('search_button')" value=":label"
+             style=":'%s; %s' % (url('search', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             onclick="openPopup('iframePopup')"/>
+     </a></x>''')
 
     pxSearch = Px('''
      <!-- The "and" / "or" radio buttons -->
@@ -509,7 +523,8 @@ class Ref(Field):
         # "list",  the user will, on the view page, choose objects from a list
         #          of objects which is similar to those rendered in pxViewList;
         # "popup", the user will, on the edit page, choose objects from a popup
-        #          menu.
+        #          menu. In this case, parameter "select" must hold a Search
+        #          instance.
         self.link = link
         # May the user unlink existing objects?
         self.unlink = unlink
@@ -558,7 +573,6 @@ class Ref(Field):
             self.isBack = False
             # Initialise the backward reference
             self.back = back
-            back.isBack = True
             back.back = self
             # klass may be None in the case we are defining an auto-Ref to the
             # same class as the class where this field is defined. In this case,
@@ -568,6 +582,8 @@ class Ref(Field):
             # K.myField.klass = K
             # setattr(K, K.myField.back.attribute, K.myField.back)
             if klass: setattr(klass, back.attribute, back)
+        else:
+            self.isBack = True
         # When displaying a tabular list of referenced objects, must we show
         # the table headers?
         self.showHeaders = showHeaders
@@ -586,9 +602,13 @@ class Ref(Field):
         #  - necessary because in some cases we do not have an instance at our
         #    disposal, ie, when we need to compute a list of objects on a
         #    search screen.
+        # "select" can also hold a Search instance. In this case, put any name
+        # in Search's mandatory parameter "name": it will be ignored and
+        # replaced with an internal technical name.
         # NOTE that when a method is defined in field "masterValue" (see parent
         # class "Field"), it will be used instead of select (or sselect below).
         self.select = select
+        if isinstance(select, Search): self.select.name = '_field_'
         # If you want to specify, for the search screen, a list of objects that
         # is different from the one produced by self.select, define an
         # alternative method in field "sselect" below.
@@ -658,6 +678,17 @@ class Ref(Field):
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, persist)
         self.validable = bool(self.link)
+        self.checkParameters()
+
+    def checkParameters(self):
+        '''Ensures this Ref is correctly defined.'''
+        # For forward Refs, "add" and "link" can't both be used.
+        if not self.isBack and (self.add and self.link):
+            raise Exception('Parameters "add" and "link" can\'t both be used.')
+        # If link is "popup", "select" must hold a Search instance.
+        if (self.link == 'popup') and not isinstance(self.select, Search):
+            raise Exception('When "link" is "popup", "select" must be a ' \
+                            'appy.fields.search.Search instance.')
 
     def getDefaultLayouts(self):
         return {'view': Table('l-f', width='100%'), 'edit': 'lrv-f'}
@@ -744,6 +775,8 @@ class Ref(Field):
         '''
         req = obj.REQUEST
         obj = obj.appy()
+        paginated = startNumber != None
+        isSearch = False
         if 'masterValues' in req:
             # Convert masterValue(s) from id(s) to real object(s).
             masterValues = req['masterValues'].strip()
@@ -764,30 +797,46 @@ class Ref(Field):
                 objects = []
             else:
                 if not self.select:
-                    # No select method has been defined: we must retrieve all
-                    # objects of the referred type that the user is allowed to
-                    # access.
+                    # No select method or search has been defined: we must
+                    # retrieve all objects of the referred type that the user
+                    # is allowed to access.
                     objects = obj.search(self.klass)
                 else:
-                    objects = self.select(obj)
+                    if isinstance(self.select, Search):
+                        isSearch = True
+                        maxResults = paginated and self.maxPerPage or 'NO_LIMIT'
+                        start = startNumber or 0
+                        className = obj.tool.o.getPortalType(self.klass)
+                        objects = obj.o.executeQuery(className,
+                            startNumber=start, search=self.select,
+                            maxResults=maxResults)
+                        objects.objects = [o.appy() for o in objects.objects]
+                    else:
+                        objects = self.select(obj)
         # Remove already linked objects if required.
         if removeLinked:
             uids = getattr(obj.o.aq_base, self.name, None)
             if uids:
                 # Browse objects in reverse order and remove linked objects.
-                i = len(objects) - 1
+                if isSearch: objs = objects.objects
+                else: objs = objects
+                i = len(objs) - 1
                 while i >= 0:
-                    if objects[i].uid in uids: del objects[i]
+                    if objs[i].id in uids: del objs[i]
                     i -= 1
-        # Restrict, if required, the result to self.maxPerPage starting at
-        # p_startNumber. Unlike m_getValue, we already have all objects in
-        # "objects": we can't limit objects "waking up" to at most
+        # If possible values are not retrieved from a Search, restrict (if
+        # required) the result to self.maxPerPage starting at p_startNumber.
+        # Indeed, in this case, unlike m_getValue, we already have all objects
+        # in "objects": we can't limit objects "waking up" to at most
         # self.maxPerPage.
-        total = len(objects)
-        if startNumber != None:
+        if paginated and not isSearch:
+            total = len(objects)
             objects = objects[startNumber:startNumber + self.maxPerPage]
         # Return the result, wrapped in a SomeObjects instance if required.
-        if not someObjects: return objects
+        if not someObjects:
+            if isSearch: return objects.objects
+            return objects
+        if isSearch: return objects
         res = gutils.SomeObjects()
         res.totalNumber = total
         res.batchSize = self.maxPerPage

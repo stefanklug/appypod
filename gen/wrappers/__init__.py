@@ -75,16 +75,16 @@ class AbstractWrapper(object):
     # The template PX for all pages.
     pxTemplate = Px('''
      <html var="ztool=tool.o;                   user=tool.user;
-                obj=obj or ztool.getHomeObject();
+                req=ztool.REQUEST;              resp=req.RESPONSE;
+                inPopup=req.get('popup') == '1';
+                obj=obj or ztool.getHomeObject(inPopup);
                 zobj=obj and obj.o or None;
                 isAnon=user.login=='anon';      app=ztool.getApp();
                 appFolder=app.data;             url = ztool.getIncludeUrl;
                 appName=ztool.getAppName();     _=ztool.translate;
-                req=ztool.REQUEST;              resp=req.RESPONSE;
                 dummy=setattr(req, 'pxContext', _ctx_);
                 lang=ztool.getUserLanguage();   q=ztool.quote;
                 layoutType=ztool.getLayoutType();
-                inPopup=req.get('popup') == '1';
                 showPortlet=not inPopup and ztool.showPortlet(obj, layoutType);
                 dir=ztool.getLanguageDirection(lang);
                 cfg=ztool.getProductConfig(True);

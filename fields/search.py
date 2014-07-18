@@ -167,12 +167,12 @@ class UiSearch:
                 label = '%s_plural' % className
             elif search.name == 'customSearch':
                 label = 'search_results'
+            elif search.name == '_field_':
+                label = None
             else:
                 label = '%s_search_%s' % (className, search.name)
                 labelDescr = label + '_descr'
-            self.translated = tool.translate(label)
-            if labelDescr:
-                self.translatedDescr = tool.translate(labelDescr)
-            else:
-                self.translatedDescr = ''
+            _ = tool.translate
+            self.translated = label and _(label) or ''
+            self.translatedDescr = labelDescr and _(labelDescr) or ''
 # ------------------------------------------------------------------------------

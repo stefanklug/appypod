@@ -431,9 +431,9 @@ class ToolWrapper(AbstractWrapper):
                batchSize=queryResult.batchSize;
                batchNumber=len(zobjects);
                ajaxHookId='queryResult';
-               navBaseCall='askQueryResult(%s,%s,%s,%s,**v**)' % \
+               navBaseCall='askQueryResult(%s,%s,%s,%s,%s,**v**)' % \
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
-                  q(searchName));
+                  q(searchName),int(inPopup));
                showNewSearch=showNewSearch|True;
                enableLinks=enableLinks|True;
                newSearchUrl='%s/search?className=%s%s' % \
@@ -446,7 +446,7 @@ class ToolWrapper(AbstractWrapper):
        <!-- Display here POD templates if required. -->
        <table var="fields=ztool.getResultPodFields(className);
                    layoutType='view'"
-              if="zobjects and fields" align=":dright">
+              if="not inPopup and zobjects and fields" align=":dright">
         <tr>
          <td var="zobj=zobjects[0]; obj=zobj.appy()"
              for="field in fields"
@@ -455,7 +455,7 @@ class ToolWrapper(AbstractWrapper):
        </table>
 
        <!-- The title of the search -->
-       <p>
+       <p if="not inPopup">
         <x>::uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
         <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
          &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>

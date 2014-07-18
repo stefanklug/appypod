@@ -73,13 +73,15 @@ class ToolMixin(BaseMixin):
                 url = self.goto('%s/home' % self.absolute_url())
         return url
 
-    def getHomeObject(self):
+    def getHomeObject(self, inPopup=False):
         '''The concept of "home object" is the object where the user must "be",
            even if he is "nowhere". For example, if the user is on a search
            screen, there is no contextual object. In this case, if we have a
            home object for him, we will use it as contextual object, and its
            portlet menu will nevertheless appear: the user will not have the
            feeling of being lost.'''
+        # If we are in the popup, we do not want any home object in the way.
+        if inPopup: return
         # If the app defines a method "getHomeObject", call it.
         try:
             return self.appy().getHomeObject()
@@ -727,6 +729,10 @@ class ToolMixin(BaseMixin):
             # It is a custom search whose parameters are in the session.
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
+        elif ':' in name:
+            # The search is defined in a Ref field with link=popup
+            refClass, ref = name.split(':')
+            res = getattr(self.getAppyClass(refClass), ref).select
         elif name:
             appyClass = self.getAppyClass(className)
             # Search among static searches

@@ -6,6 +6,7 @@ from appy.gen import utils as gutils
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):
     workflow = WorkflowOwner
+    specialUsers = ('system', 'anon', 'admin')
 
     def showLogin(self):
         '''When must we show the login field?'''
@@ -42,7 +43,7 @@ class UserWrapper(AbstractWrapper):
         if not self.login or (login != self.login):
             # A new p_login is requested. Check if it is valid and free.
             # Some logins are not allowed.
-            if login in ('admin', 'anon', 'system'):
+            if login in self.specialUsers:
                 return self.translate('login_reserved')
             # Check that no user or group already uses this login.
             if self.count('User', noSecurity=True, login=login) or \
@@ -219,7 +220,7 @@ class UserWrapper(AbstractWrapper):
 
     def mayEdit(self):
         '''No one can edit users "system" and "anon".'''
-        if self.o.id in ('system', 'anon'): return
+        if self.o.id in ('anon', 'system'): return
         # Call custom "mayEdit" when present.
         custom = self._getCustomMethod('mayEdit')
         if custom: return self._callCustom('mayEdit')
@@ -227,7 +228,7 @@ class UserWrapper(AbstractWrapper):
 
     def mayDelete(self):
         '''No one can delete users "system", "anon" and "admin".'''
-        if self.o.id in ('system', 'anon', 'admin'): return
+        if self.o.id in self.specialUsers: return
         # Call custom "mayDelete" when present.
         custom = self._getCustomMethod('mayDelete')
         if custom: return self._callCustom('mayDelete')

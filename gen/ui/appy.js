@@ -210,11 +210,11 @@ function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
 
 /* The functions below wrap askAjaxChunk for getting specific content through
    an Ajax request. */
-function askQueryResult(hookId, objectUrl, className, searchName,
+function askQueryResult(hookId, objectUrl, className, searchName, popup,
                         startNumber, sortKey, sortOrder, filterKey) {
   // Sends an Ajax request for getting the result of a query.
   var params = {'className': className, 'search': searchName,
-                'startNumber': startNumber};
+                'startNumber': startNumber, 'popup': popup};
   if (sortKey) params['sortKey'] = sortKey;
   if (sortOrder) params['sortOrder'] = sortOrder;
   if (filterKey) {
@@ -725,15 +725,24 @@ function openPopup(popupId, msg, width, height) {
   }
   // Open the popup
   var popup = document.getElementById(popupId);
-  // Put it at the right place on the screen
+  // Put it at the right place on the screen and give it the right dimensions
   var scrollTop = document.documentElement.scrollTop || window.pageYOffset || 0;
   popup.style.top = (scrollTop + 150) + 'px';
   if (width) popup.style.width = width + 'px';
+  if (height) popup.style.height = height + 'px';
   if (popupId == 'iframePopup') {
     // Initialize iframe's width.
     var iframe = document.getElementById('appyIFrame');
+    if (!width) width = window.innerWidth - 200;
+    if (!height) {
+      height = window.innerHeight - 200;
+      popup.style.top = ((window.innerHeight - height) / 2).toFixed() + 'px';
+    }
+    popup.style.left = ((window.innerWidth - width) / 2).toFixed() + 'px';
+    popup.style.width = width + 'px';
     iframe.style.width = (width-20) + 'px';
-    if (height) iframe.style.height = height + 'px';
+    popup.style.height = height + 'px';
+    iframe.style.height = (height-20) + 'px';
   }
   popup.style.display = 'block';
 }
