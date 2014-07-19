@@ -224,7 +224,8 @@ function askQueryResult(hookId, objectUrl, className, searchName, popup,
       params['filterValue'] = filterWidget.value;
     }
   }
-  askAjaxChunk(hookId, 'GET', objectUrl, 'pxQueryResult', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, 'pxQueryResult', params, null,
+               evalInnerScripts);
 }
 
 function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
@@ -316,7 +317,7 @@ function _rsplit(s, delimiter, limit) {
 }
 
 // (Un)checks a checkbox corresponding to a linked object.
-function toggleRefCb(checkbox) {
+function toggleCb(checkbox) {
   var name = checkbox.getAttribute('name');
   var elems = _rsplit(name, '_', 3);
   // Get the DOM node corresponding to the Ref field.
@@ -336,8 +337,8 @@ function toggleRefCb(checkbox) {
   }
 }
 
-// Initialise checkboxes of a Ref field.
-function initRefCbs(id) {
+// Initialise checkboxes of a Ref field or Search.
+function initCbs(id) {
   var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
@@ -354,8 +355,8 @@ function initRefCbs(id) {
   }
 }
 
-// Toggle all checkboxes of a Ref field.
-function toggleAllRefCbs(id) {
+// Toggle all checkboxes of a Ref field or Search.
+function toggleAllCbs(id) {
   var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
@@ -367,7 +368,7 @@ function toggleAllRefCbs(id) {
   if (node[semAttr] == 'unchecked') node[semAttr] = 'checked';
   else node[semAttr] = 'unchecked';
   // Update the visible checkboxes
-  initRefCbs(id);
+  initCbs(id);
 }
 
 // Shows/hides a dropdown menu

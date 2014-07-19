@@ -26,7 +26,8 @@ class Search:
     '''Used for specifying a search for a given class.'''
     def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
                  default=False, colspan=1, translated=None, show=True,
-                 translatedDescr=None, **fields):
+                 translatedDescr=None, checkboxes=False, checkboxesDefault=True,
+                 **fields):
         self.name = name
         # Searches may be visually grouped in the portlet.
         self.group = Group.get(group)
@@ -46,6 +47,10 @@ class Search:
         # In the dict below, keys are indexed field names or names of standard
         # indexes, and values are search values.
         self.fields = fields
+        # Do we need to display checkboxes for every object of the query result?
+        self.checkboxes = checkboxes
+        # Default value for checkboxes
+        self.checkboxesDefault = checkboxesDefault
 
     @staticmethod
     def getIndexName(fieldName, usage='search'):
@@ -139,6 +144,14 @@ class Search:
         if self.show.__class__.__name__ == 'staticmethod':
             return gutils.callMethod(tool, self.show, klass=klass)
         return self.show
+
+    def getCbJsInit(self, hookId):
+        '''Returns the code that creates JS data structures for storing the
+           status of checkboxes for every result of this search.'''
+        default = self.checkboxesDefault and 'unchecked' or 'checked'
+        return '''var node=document.getElementById('%s');
+                  node['_appy_objs_cbs'] = {};
+                  node['_appy_objs_sem'] = '%s';''' % (hookId, default)
 
 class UiSearch:
     '''Instances of this class are generated on-the-fly for manipulating a

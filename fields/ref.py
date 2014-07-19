@@ -241,7 +241,7 @@ class Ref(Field):
        <th if="checkboxes" class="cbCell">
         <img src=":url('checkall')" class="clickable"
              title=":_('check_uncheck')"
-             onclick=":'toggleAllRefCbs(%s)' % q(ajaxHookId)"/>
+             onclick=":'toggleAllCbs(%s)' % q(ajaxHookId)"/>
        </th>
       </tr>
       <!-- Loop on every (tied or selectable) object. -->
@@ -272,7 +272,7 @@ class Ref(Field):
        </td>
        <td if="checkboxes" class="cbCell">
         <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
-               value=":tiedUid" onclick="toggleRefCb(this)"/>
+               value=":tiedUid" onclick="toggleCb(this)"/>
        </td>
       </tr>
      </table>
@@ -286,7 +286,7 @@ class Ref(Field):
 
      <!-- Init checkboxes if present. -->
      <script if="checkboxes"
-             type="text/javascript">:'initRefCbs(%s)' % q(ajaxHookId)
+             type="text/javascript">:'initCbs(%s)' % q(ajaxHookId)
      </script>''')
 
     # PX that displays the list of objects the user may select to insert into a
@@ -608,7 +608,10 @@ class Ref(Field):
         # NOTE that when a method is defined in field "masterValue" (see parent
         # class "Field"), it will be used instead of select (or sselect below).
         self.select = select
-        if isinstance(select, Search): self.select.name = '_field_'
+        if isinstance(select, Search):
+            select.name = '_field_'
+            select.checkboxes = True
+            select.checkboxesDefault = False
         # If you want to specify, for the search screen, a list of objects that
         # is different from the one produced by self.select, define an
         # alternative method in field "sselect" below.
@@ -1145,7 +1148,7 @@ class Ref(Field):
            and may hold "unchecked" (initial semantics) or "checked" (inverted
            semantics). Inverting semantics allows to keep the array small even
            when checking/unchecking all checkboxes.
-           
+
            The mentioned JS arrays and variables are stored as attributes of the
            DOM node representing this field.'''
         # The initial semantics depends on the checkboxes default value.

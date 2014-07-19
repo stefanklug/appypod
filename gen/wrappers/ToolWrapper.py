@@ -361,30 +361,47 @@ class ToolWrapper(AbstractWrapper):
 
     # Show query results as a list.
     pxQueryResultList = Px('''
-     <table class="list" width="100%" var="showHeaders=showHeaders|True">
-      <!-- Headers, with filters and sort arrows -->
-      <tr if="showHeaders">
-       <th for="column in columns"
-           var2="field=column.field;
-                 sortable=ztool.isSortable(field.name, className, 'search');
-                 filterable=field.filterable"
-           width=":column.width" align=":column.align">
-        <x>::ztool.truncateText(_(field.labelId))</x>
-        <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
-       </th>
-      </tr>
+     <x var="showHeaders=showHeaders|True;
+             checkboxes=uiSearch.search.checkboxes;
+             checkboxesId=rootHookId + '_objs'">
+      <table class="list" width="100%">
+       <!-- Headers, with filters and sort arrows -->
+       <tr if="showHeaders">
+        <th for="column in columns"
+            var2="field=column.field;
+                  sortable=ztool.isSortable(field.name, className, 'search');
+                  filterable=field.filterable"
+            width=":column.width" align=":column.align">
+         <x>::ztool.truncateText(_(field.labelId))</x>
+         <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
+        </th>
+        <th if="checkboxes" class="cbCell">
+         <img src=":url('checkall')" class="clickable"
+              title=":_('check_uncheck')"
+              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
+        </th>
+       </tr>
 
-      <!-- Results -->
-      <tr for="zobj in zobjects" id="query_row" valign="top"
-          var2="@currentNumber=currentNumber + 1;
-                obj=zobj.appy(); mayView=zobj.mayView()"
-          class=":loop.zobj.odd and 'even' or 'odd'">
+       <!-- Results -->
+       <tr for="zobj in zobjects" id="query_row" valign="top"
+           var2="@currentNumber=currentNumber + 1;
+                 obj=zobj.appy(); mayView=zobj.mayView()"
+           class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
             var2="field=column.field" id=":'field_%s' % field.name"
             width=":column.width"
             align=":column.align">:tool.pxQueryField</td>
-      </tr>
-     </table>''')
+        <!-- A checkbox if required -->
+        <td if="checkboxes" class="cbCell">
+         <input type="checkbox" name=":checkboxesId" checked="checked"
+                value=":zobj.id" onclick="toggleCb(this)"/>
+        </td>
+       </tr>
+      </table>
+      <!-- Init checkboxes if present. -->
+      <script if="checkboxes"
+              type="text/javascript">:'initCbs(%s)' % q(checkboxesId)
+      </script></x>''')
 
     # Show query results as a grid.
     pxQueryResultGrid = Px('''
@@ -405,9 +422,12 @@ class ToolWrapper(AbstractWrapper):
 
     # Show paginated query results as a list or grid.
     pxQueryResult = Px('''
-     <div id="queryResult"
-          var="_=ztool.translate;
+     <div var="ajaxHookId='queryResult';
+               _=ztool.translate;
                className=req['className'];
+               searchName=req.get('search', '');
+               rootHookId=rootHookId|'%s_search' % className;
+               uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
                refField=refInfo[1];
@@ -415,8 +435,6 @@ class ToolWrapper(AbstractWrapper):
                                                              refField)) or '';
                startNumber=req.get('startNumber', '0');
                startNumber=int(startNumber);
-               searchName=req.get('search', '');
-               uiSearch=ztool.getSearch(className, searchName, ui=True);
                sortKey=req.get('sortKey', '');
                sortOrder=req.get('sortOrder', 'asc');
                filterKey=req.get('filterKey', '');
@@ -430,7 +448,6 @@ class ToolWrapper(AbstractWrapper):
                totalNumber=queryResult.totalNumber;
                batchSize=queryResult.batchSize;
                batchNumber=len(zobjects);
-               ajaxHookId='queryResult';
                navBaseCall='askQueryResult(%s,%s,%s,%s,%s,**v**)' % \
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
                   q(searchName),int(inPopup));
@@ -440,7 +457,8 @@ class ToolWrapper(AbstractWrapper):
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
                resultMode=ztool.getResultMode(className);
-               target=ztool.getLinksTargetInfo(ztool.getAppyClass(className))">
+               target=ztool.getLinksTargetInfo(ztool.getAppyClass(className))"
+          id=":ajaxHookId">
 
       <x if="zobjects">
        <!-- Display here POD templates if required. -->
@@ -492,10 +510,16 @@ class ToolWrapper(AbstractWrapper):
     </div>''')
 
     pxQuery = Px('''
-     <x var="className=req['className']; searchName=req.get('search', '');
-             cssJs=None">
-      <x>:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
-     </x>''', template=AbstractWrapper.pxTemplate, hook='content')
+     <div var="className=req['className'];
+               searchName=req.get('search', '');
+               uiSearch=ztool.getSearch(className, searchName, ui=True);
+               rootHookId='%s_search' % className;
+               cssJs=None"
+          id=":rootHookId">
+      <script type="text/javascript">:uiSearch.search.getCbJsInit(rootHookId)
+      </script>
+      <x if="not inPopup">:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
+     </div>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxSearch = Px('''
      <x var="className=req['className'];
