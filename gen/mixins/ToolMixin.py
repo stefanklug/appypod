@@ -356,7 +356,7 @@ class ToolMixin(BaseMixin):
         brains = self.getPath("/catalog")(**params)
         if brainsOnly:
             # Return brains only.
-            if not maxResults: return brains
+            if not maxResults or (maxResults == 'NO_LIMIT'): return brains
             else: return brains[:maxResults]
         if not maxResults:
             if refField: maxResults = refField.maxPerPage
@@ -731,8 +731,8 @@ class ToolMixin(BaseMixin):
             res = Search('customSearch', **fields)
         elif ':' in name:
             # The search is defined in a Ref field with link=popup
-            refClass, ref = name.split(':')
-            res = getattr(self.getAppyClass(refClass), ref).select
+            refObject, ref = name.split(':')
+            res = getattr(self.getObject(refObject,appy=True).klass,ref).select
         elif name:
             appyClass = self.getAppyClass(className)
             # Search among static searches

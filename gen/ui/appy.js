@@ -105,6 +105,20 @@ function injectChunk(elem, content){
   }
 }
 
+function getAjaxHook(hookId) {
+  /* Gets the XHTML element whose ID is p_hookId: it will be the placeholder
+     for the result of an ajax request. If p_hookId starts with ':', we search
+     the element in the top browser window, not in the current one that can be
+     an iframe.*/
+  var container = window.document;
+  var startIndex = 0;
+  if (hookId[0] == ':') {
+    container = window.top.document;
+    startIndex = 1;
+  }
+  return container.getElementById(hookId.slice(startIndex));
+}
+
 function getAjaxChunk(pos) {
   // This function is the callback called by the AJAX machinery (see function
   // askAjaxChunk below) when an Ajax response is available.
@@ -114,13 +128,13 @@ function getAjaxChunk(pos) {
     var hook = xhrObjects[pos].hook;
     if (xhrObjects[pos].xhr.readyState == 1) {
       // The request has been initialized: display the waiting radar
-      var hookElem = document.getElementById(hook);
+      var hookElem = getAjaxHook(hook);
       if (hookElem)
         injectChunk(hookElem, "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>");
     }
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
-      var hookElem = document.getElementById(hook);
+      var hookElem = getAjaxHook(hook);
       if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
         injectChunk(hookElem, xhrObjects[pos].xhr.responseText);
         // Call a custom Javascript function if required
@@ -148,7 +162,8 @@ function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
      directly on the object at p_url.
 
      p_hook is the ID of the XHTML element that will be filled with the XHTML
-     result from the server.
+     result from the server. If it starts with ':', we will find the element in
+     the top browser window and not in the current one (that can be an iframe).
 
      p_beforeSend is a Javascript function to call before sending the request.
      This function will get 2 args: the XMLHttpRequest object and the p_params.
@@ -264,10 +279,11 @@ function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
 }
 
 function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
-                  requestValue, error, className){
+                  requestValue, error, className, customParams){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
+  if (customParams){for (var key in customParams) params[key]=customParams[key]}
   if (masterValues) params['masterValues'] = masterValues.join('*');
   if (requestValue) params[fieldName] = requestValue;
   if (error) params[fieldName + '_error'] = error;
@@ -575,17 +591,23 @@ function onLink(action, sourceUid, fieldName, targetUid) {
   f.submit();
 }
 
+function stringFromDictKeys(d){
+  // Gets a string containing comma-separated keys from dict p_d.
+  var res = [];
+  for (var key in d) res.push(key);
+  return res.join();
+}
+
 function onLinkMany(action, id) {
   var elems = _rsplit(id, '_', 3);
   // Get the DOM node corresponding to the Ref field.
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the uids of (un-)checked objects.
   var statuses = node['_appy_' + elems[2] + '_cbs'];
-  var uids = '';
-  for (var uid in statuses) uids += uid + ',';
+  var uids = stringFromDictKeys(statuses);
   // Get the array semantics
   var semantics = node['_appy_' + elems[2] + '_sem'];
-  // Show an error messagge if non element is selected.
+  // Show an error message if no element is selected.
   if ((semantics == 'checked') && (len(statuses) == 0)) {
     openPopup('alertPopup', no_elem_selected);
     return;
@@ -674,9 +696,7 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
     // We must collect selected objects from a Ref field.
     var node = document.getElementById(uid + '_' + getChecked);
     if (node && node.hasOwnProperty('_appy_objs_cbs')) {
-      var uids = [];
-      for (var uid in node['_appy_objs_cbs']) uids.push(uid);
-      f.checkedUids.value = uids.join();
+      f.checkedUids.value = stringFromDictKeys(node['_appy_objs_cbs']);
       f.checkedSem.value = node['_appy_objs_sem'];
     }
   }
@@ -749,9 +769,12 @@ function openPopup(popupId, msg, width, height) {
 }
 
 function closePopup(popupId) {
-  // Close the popup
-  var container = window.parent.document;
+  // Get the popup
+  var container = null;
+  if (popupId == 'iframePopup') container = window.parent.document;
+  else container = window.document;
   var popup = container.getElementById(popupId);
+  // Close the popup
   popup.style.display = 'none';
   popup.style.width = null;
   if (popupId == 'iframePopup') {
@@ -1003,4 +1026,34 @@ function onSelectDate(cal) {
   if (update && p.singleClick && cal.dateClicked) {
     cal.callCloseHandler();
   }
+}
+
+function onSelectObjects(nodeId, objectUrl, sortKey, sortOrder,
+                         filterKey, filterValue){
+  /* Objects have been selected in a popup, to be linked via a Ref with
+     link='popup'. Get them. */
+  var node = document.getElementById(nodeId);
+  var uids = stringFromDictKeys(node['_appy_objs_cbs']);
+  var semantics = node['_appy_objs_sem'];
+  // Show an error message if no element is selected.
+  if ((semantics == 'checked') && (!uids)) {
+    openPopup('alertPopup', no_elem_selected);
+    return;
+  }
+  // Close the popup.
+  var parent = window.parent;
+  closePopup('iframePopup');
+  /* Refresh the Ref edit widget to include the linked objects. All those
+     parameters are needed to replay the query in the popup. */
+  askField(':'+nodeId, objectUrl, 'edit', null, null, null, null, null,
+           {'selected': uids, 'semantics': semantics, 'sortKey': sortKey,
+            'sortOrder': sortOrder, 'filterKey': filterKey,
+            'filterValue': filterValue});
+}
+
+// Sets the focus on the correct element in some page.
+function initFocus(pageId){
+  var id = pageId + '_title';
+  var elem = document.getElementById(id);
+  if (elem) elem.focus();
 }

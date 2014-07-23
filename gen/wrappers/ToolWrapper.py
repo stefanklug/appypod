@@ -31,12 +31,17 @@ class ToolWrapper(AbstractWrapper):
                      (q(field.name), q('desc'), q(filterKey)))"
            src=":url('sortUp.gif')" class="clickable"/>
      </x>
-     <x if="filterable">
-      <input type="text" size="7" id=":'%s_%s' % (ajaxHookId, field.name)"
-             value=":filterKey == field.name and filterValue or ''"/>
-      <img onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
-                     (q(sortKey), q(sortOrder), q(field.name)))"
-           src=":url('funnel')" class="clickable"/>
+     <x if="filterable"
+        var2="filterId='%s_%s' % (ajaxHookId, field.name);
+              filterIdIcon='%s_icon' % filterId">
+      <!-- Pressing the "enter" key in the field clicks the icon (onkeydown)--> 
+      <input type="text" size="7" id=":filterId"
+             value=":filterKey == field.name and filterValue or ''"
+             onkeydown=":'if (event.keyCode==13) document.getElementById ' \
+                         '(%s).click()' % q(filterIdIcon)"/>
+      <img id=":filterIdIcon" class="clickable" src=":url('funnel')"
+           onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
+                     (q(sortKey), q(sortOrder), q(field.name)))"/>
      </x>''')
 
     # Buttons for navigating among a list of objects (from a Ref field or a
@@ -323,7 +328,7 @@ class ToolWrapper(AbstractWrapper):
           name="subTitle">::zobj.getSubTitle()</span>
 
        <!-- Actions -->
-       <table class="noStyle" if="zobj.mayAct()">
+       <table class="noStyle" if="not inPopup and zobj.mayAct()">
         <tr>
          <!-- Edit -->
          <td if="zobj.mayEdit()">
@@ -383,6 +388,9 @@ class ToolWrapper(AbstractWrapper):
        </tr>
 
        <!-- Results -->
+       <tr if="not zobjects">
+        <td colspan=":len(columns)+1">:_('query_no_result')</td>
+       </tr>
        <tr for="zobj in zobjects" id="query_row" valign="top"
            var2="@currentNumber=currentNumber + 1;
                  obj=zobj.appy(); mayView=zobj.mayView()"
@@ -398,10 +406,22 @@ class ToolWrapper(AbstractWrapper):
         </td>
        </tr>
       </table>
+      <!-- The button for selecting objects and closing the popup. -->
+      <div if="inPopup" align=":dright">
+       <input type="button" class="button"
+              var="label=_('object_link_many');
+                   initiator=ztool.getObject(searchName.split(':')[0], \
+                                             appy=True)"
+              value=":label"
+              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s)' % (q(rootHookId), \
+                            q(initiator.url), q(sortKey), q(sortOrder), \
+                            q(filterKey), q(filterValue))"
+              style=":'%s; %s' % (url('linkMany', bg=True), \
+                                  ztool.getButtonWidth(label))"/>
+      </div>
       <!-- Init checkboxes if present. -->
-      <script if="checkboxes"
-              type="text/javascript">:'initCbs(%s)' % q(checkboxesId)
-      </script></x>''')
+      <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
+      <script>:'initFocus(%s)' % q(ajaxHookId)</script></x>''')
 
     # Show query results as a grid.
     pxQueryResultGrid = Px('''
@@ -426,7 +446,7 @@ class ToolWrapper(AbstractWrapper):
                _=ztool.translate;
                className=req['className'];
                searchName=req.get('search', '');
-               rootHookId=rootHookId|'%s_search' % className;
+               rootHookId=rootHookId|searchName.replace(':', '_');
                uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
@@ -452,7 +472,7 @@ class ToolWrapper(AbstractWrapper):
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
                   q(searchName),int(inPopup));
                showNewSearch=showNewSearch|True;
-               enableLinks=enableLinks|True;
+               enableLinks=enableLinks|not inPopup;
                newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
@@ -460,7 +480,7 @@ class ToolWrapper(AbstractWrapper):
                target=ztool.getLinksTargetInfo(ztool.getAppyClass(className))"
           id=":ajaxHookId">
 
-      <x if="zobjects">
+      <x if="zobjects or filterValue">
        <!-- Display here POD templates if required. -->
        <table var="fields=ztool.getResultPodFields(className);
                    layoutType='view'"
@@ -502,7 +522,7 @@ class ToolWrapper(AbstractWrapper):
        <x>:tool.pxNavigate</x>
       </x>
 
-      <x if="not zobjects">
+      <x if="not zobjects and not filterValue">
        <x>:_('query_no_result')</x>
        <x if="showNewSearch and (searchName == 'customSearch')"><br/>
         <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>
@@ -513,12 +533,12 @@ class ToolWrapper(AbstractWrapper):
      <div var="className=req['className'];
                searchName=req.get('search', '');
                uiSearch=ztool.getSearch(className, searchName, ui=True);
-               rootHookId='%s_search' % className;
+               rootHookId=searchName.replace(':', '_');
                cssJs=None"
           id=":rootHookId">
       <script type="text/javascript">:uiSearch.search.getCbJsInit(rootHookId)
       </script>
-      <x if="not inPopup">:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
+      <x>:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
      </div>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxSearch = Px('''

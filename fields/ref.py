@@ -15,7 +15,7 @@
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------------------------
-import sys, re
+import sys, re, os.path
 from appy import Object
 from appy.fields import Field
 from appy.fields.search import Search
@@ -433,33 +433,48 @@ class Ref(Field):
      </x>''')
 
     pxCell = pxView
-    pxEdit = Px('''<x if="(field.link) and (field.link != 'list')">
-     <select if="field.link != 'popup'"
-             var2="objects=field.getPossibleValues(zobj);
-                   uids=[o.id for o in field.getValue(zobj, appy=False)]"
-             name=":name" id=":name" size=":isMultiple and field.height or ''"
-             onchange=":field.getOnChange(zobj, layoutType)"
-             multiple=":isMultiple">
-      <option value="" if="not isMultiple">:_('choose_a_value')</option>
-      <option for="tied in objects"
-              var2="uid=tied.uid;
-                    title=field.getReferenceLabel(tied, unlimited=True)"
-              selected=":inRequest and (uid in requestValue) or \
-                                       (uid in uids)" value=":uid"
-              title=":title">:ztool.truncateValue(title, field.width)</option>
-     </select>
-     <!-- A button for opening the popup if field.link is "popup". -->
-     <a if="field.link == 'popup'" target="appyIFrame"
-        var2="tiedClassName=ztool.getPortalType(field.klass);
+
+    # Edit widget, for Refs with link='popup'.
+    pxEditPopup = Px('''
+     <x var="objects=field.getPopupObjects(obj, req, requestValue)">
+      <!-- The select field allowing to store the selected objects -->
+      <select if="objects" name=":name" id=":name" multiple=":isMultiple"
+              size=":isMultiple and field.height or ''">
+       <option for="tied in objects" value=":tied.uid" selected="selected"
+               var2="title=field.getReferenceLabel(tied, unlimited=True)"
+               title=":title">:ztool.truncateValue(title, field.width)</option>
+      </select>
+      <div if="not objects">-</div>
+      <!-- The button for opening the popup -->
+      <a target="appyIFrame"
+         var="tiedClassName=ztool.getPortalType(field.klass);
               className=ztool.getPortalType(obj.klass)"
-        href=":'%s/query?className=%s&amp;search=%s:%s&amp;popup=1' % \
-               (ztool.absolute_url(), tiedClassName, className, field.name)">
-      <input type="button" class="buttonSmall button"
-             var="label=_('search_button')" value=":label"
-             style=":'%s; %s' % (url('search', bg=True), \
-                                 ztool.getButtonWidth(label))"
-             onclick="openPopup('iframePopup')"/>
-     </a></x>''')
+         href=":'%s/query?className=%s&amp;search=%s:%s&amp;popup=1' % \
+                (ztool.absolute_url(), tiedClassName, obj.uid, field.name)">
+       <input type="button" class="buttonSmall button"
+              var="label=_('search_button')" value=":label"
+              style=":'%s; %s' % (url('search', bg=True), \
+                                  ztool.getButtonWidth(label))"
+              onclick="openPopup('iframePopup')"/></a>
+     </x>''')
+
+    pxEdit = Px('''
+     <x if="(field.link) and (field.link != 'list')">
+      <select if="field.link != 'popup'"
+              var2="objects=field.getPossibleValues(zobj);
+                    uids=[o.id for o in field.getValue(zobj, appy=False)]"
+              name=":name" id=":name" size=":isMultiple and field.height or ''"
+              onchange=":field.getOnChange(zobj, layoutType)"
+              multiple=":isMultiple">
+       <option value="" if="not isMultiple">:_('choose_a_value')</option>
+       <option for="tied in objects"
+               var2="uid=tied.uid;
+                     title=field.getReferenceLabel(tied, unlimited=True)"
+               selected=":inRequest and (uid in requestValue) or \
+                                        (uid in uids)" value=":uid"
+               title=":title">:ztool.truncateValue(title, field.width)</option>
+      </select>
+      <x if="field.link == 'popup'">:field.pxEditPopup</x></x>''')
 
     pxSearch = Px('''
      <!-- The "and" / "or" radio buttons -->
@@ -1243,6 +1258,42 @@ class Ref(Field):
         if (layoutType == 'view') and (self.render == 'menus'): return 'list'
         return self.render
 
+    def getPopupObjects(self, obj, rq, requestValue):
+        '''Gets the list of objects that were selected in the popup (for Ref
+           fields with link="popup").'''
+        if requestValue:
+            # We are validating the form. Return the request value instead of
+            # the popup value.
+            tool = obj.tool
+            if isinstance(requestValue, basestring):
+                return [tool.getObject(requestValue)]
+            else:
+                return [tool.getObject(rv) for rv in requestValue]
+        res = []
+        # No object can be selected if the popup has not been opened yet.
+        if 'semantics' not in rq:
+            # In this case, display already linked objects if any.
+            if not obj.isEmpty(self.name): return getattr(obj, self.name)
+            return res
+        uids = rq['selected'].split(',')
+        tool = obj.tool
+        if rq['semantics'] == 'checked':
+            # Simply get the selected objects from their uid.
+            return [tool.getObject(uid) for uid in uids]
+        else:
+            # Replay the search in self.select to get the list of uids that were
+            # shown in the popup.
+            className = tool.o.getPortalType(self.klass)
+            brains = obj.o.executeQuery(className, search=self.select,
+                maxResults='NO_LIMIT', brainsOnly=True,
+                sortBy=rq.get('sortKey'), sortOrder=rq.get('sortOrder'),
+                filterKey=rq.get('filterKey'),filterValue=rq.get('filterValue'))
+            queryUids = [os.path.basename(b.getPath()) for b in brains]
+            for uid in queryUids:
+                if uid not in uids:
+                    res.append(tool.getObject(uid))
+        return res
+
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this Ref field is
            triggered from the user interface (link, unlink, link_many,
@@ -1261,8 +1312,7 @@ class Ref(Field):
             # operation.
             obj.mayEdit(self.writePermission, raiseError=True)
             # Get the (un-)checked objects from the request.
-            uids = rq['targetUid'].strip(',') or ()
-            if uids: uids = uids.split(',')
+            uids = rq['targetUid'].split(',')
             unchecked = rq['semantics'] == 'unchecked'
             if action == 'link_many':
                 # Get possible values (objects)
