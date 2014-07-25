@@ -1041,7 +1041,6 @@ function onSelectObjects(nodeId, objectUrl, sortKey, sortOrder,
     return;
   }
   // Close the popup.
-  var parent = window.parent;
   closePopup('iframePopup');
   /* Refresh the Ref edit widget to include the linked objects. All those
      parameters are needed to replay the query in the popup. */
@@ -1049,6 +1048,25 @@ function onSelectObjects(nodeId, objectUrl, sortKey, sortOrder,
            {'selected': uids, 'semantics': semantics, 'sortKey': sortKey,
             'sortOrder': sortOrder, 'filterKey': filterKey,
             'filterValue': filterValue});
+}
+
+function onSelectObject(tdId, nodeId, objectUrl) {
+  /* In a Ref field with link="popup", a single object has been clicked. If
+     multiple objects can be selected, simply update the corresponding checkbox
+     status. Else, close the popup and return the selected object. p_tdId is
+     the ID of the td that contains the checkbox. */
+  var td = document.getElementById(tdId);
+  // If the td is visible, simply click the checkbox.
+  var checkbox = td.getElementsByTagName('input')[0];
+  if (td.style.display == 'table-cell') { checkbox.click(); }
+  else {
+    /* Close the popup and directly refresh the initiator field with the
+       selected object. */
+    var uids=checkbox.value;
+    closePopup('iframePopup');
+    askField(':'+nodeId, objectUrl, 'edit', null, null, null, null, null,
+             {'selected': uids, 'semantics': 'checked'});
+  }
 }
 
 // Sets the focus on the correct element in some page.

@@ -949,7 +949,7 @@ class AbstractWrapper(object):
         contentType = tool.getPortalType(klass)
         search = Search('customSearch', **fields)
         res = tool.executeQuery(contentType, search=search, brainsOnly=True,
-                                noSecurity=noSecurity)
+                                noSecurity=noSecurity, maxResults='NO_LIMIT')
         if res: return res._len # It is a LazyMap instance
         else: return 0
 

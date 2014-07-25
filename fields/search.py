@@ -24,16 +24,16 @@ from group import Group
 # ------------------------------------------------------------------------------
 class Search:
     '''Used for specifying a search for a given class.'''
-    def __init__(self, name, group=None, sortBy='', sortOrder='asc', limit=None,
-                 default=False, colspan=1, translated=None, show=True,
-                 translatedDescr=None, checkboxes=False, checkboxesDefault=True,
-                 **fields):
+    def __init__(self, name, group=None, sortBy='', sortOrder='asc',
+                 maxPerPage=30, default=False, colspan=1, translated=None,
+                 show=True, translatedDescr=None, checkboxes=False,
+                 checkboxesDefault=True, **fields):
         self.name = name
         # Searches may be visually grouped in the portlet.
         self.group = Group.get(group)
         self.sortBy = sortBy
         self.sortOrder = sortOrder
-        self.limit = limit
+        self.maxPerPage = maxPerPage
         # If this search is the default one, it will be triggered by clicking
         # on main link.
         self.default = default
@@ -188,4 +188,19 @@ class UiSearch:
             _ = tool.translate
             self.translated = label and _(label) or ''
             self.translatedDescr = labelDescr and _(labelDescr) or ''
+
+    def setInitiator(self, initiator, field):
+        '''If the search is defined in an attribute Ref.select, we receive here
+           the p_initiator object and its Ref p_field.'''
+        self.initiator = initiator
+        self.initiatorField = field
+
+    def showCheckboxes(self):
+        '''If checkboxes are enabled for this search (and if an initiator field
+           is there), they must be visible only if the initiator field is
+           multivalued. Indeed, if it is not the case, it has no sense to select
+           multiple objects. But in this case, we still want checkboxes to be in
+           the DOM because they store object UIDs.'''
+        if not self.search.checkboxes: return
+        return not self.initiator or self.initiatorField.isMultiValued()
 # ------------------------------------------------------------------------------

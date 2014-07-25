@@ -1273,7 +1273,7 @@ class Ref(Field):
         # No object can be selected if the popup has not been opened yet.
         if 'semantics' not in rq:
             # In this case, display already linked objects if any.
-            if not obj.isEmpty(self.name): return getattr(obj, self.name)
+            if not obj.isEmpty(self.name): return self.getValue(obj.o)
             return res
         uids = rq['selected'].split(',')
         tool = obj.tool

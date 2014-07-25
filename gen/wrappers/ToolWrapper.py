@@ -317,15 +317,18 @@ class ToolWrapper(AbstractWrapper):
          var2="navInfo='search.%s.%s.%d.%d' % \
                 (className, searchName, startNumber+currentNumber, totalNumber);
                cssClass=zobj.getCssFor('title')">
-       <x>::zobj.getSupTitle(navInfo)</x>
+       <x var="sup=zobj.getSupTitle(navInfo)" if="sup">::sup</x>
        <a if="enableLinks" class=":cssClass"
           var2="linkInPopup=inPopup or (target.target != '_self')"
           target=":target.target" onclick=":target.openPopup"
           href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage(), \
-                 inPopup=linkInPopup)">:zobj.Title()</a><span
-          if="not enableLinks" class=":cssClass">:zobj.Title()</span><span
-          style=":showSubTitles and 'display:inline' or 'display:none'"
-          name="subTitle">::zobj.getSubTitle()</span>
+                 inPopup=linkInPopup)">:zobj.Title()</a>
+       <span if="not enableLinks"
+             class=":not checkboxes and cssClass or ('%s clickable' % cssClass)"
+             onclick=":checkboxes and ('onSelectObject(%s,%s,%s)' % (q(cbId), \
+             q(rootHookId), q(uiSearch.initiator.url))) or ''">:obj.title</span>
+       <span style=":showSubTitles and 'display:inline' or 'display:none'"
+             name="subTitle" var="sub=zobj.getSubTitle()" if="sub">::sub</span>
 
        <!-- Actions -->
        <table class="noStyle" if="not inPopup and zobj.mayAct()">
@@ -368,7 +371,9 @@ class ToolWrapper(AbstractWrapper):
     pxQueryResultList = Px('''
      <x var="showHeaders=showHeaders|True;
              checkboxes=uiSearch.search.checkboxes;
-             checkboxesId=rootHookId + '_objs'">
+             checkboxesId=rootHookId + '_objs';
+             cbShown=uiSearch.showCheckboxes();
+             cbDisplay=cbShown and 'display:table-cell' or 'display:none'">
       <table class="list" width="100%">
        <!-- Headers, with filters and sort arrows -->
        <tr if="showHeaders">
@@ -380,7 +385,7 @@ class ToolWrapper(AbstractWrapper):
          <x>::ztool.truncateText(_(field.labelId))</x>
          <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
         </th>
-        <th if="checkboxes" class="cbCell">
+        <th if="checkboxes" class="cbCell" style=":cbDisplay">
          <img src=":url('checkall')" class="clickable"
               title=":_('check_uncheck')"
               onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
@@ -391,30 +396,29 @@ class ToolWrapper(AbstractWrapper):
        <tr if="not zobjects">
         <td colspan=":len(columns)+1">:_('query_no_result')</td>
        </tr>
-       <tr for="zobj in zobjects" id="query_row" valign="top"
+       <tr for="zobj in zobjects" valign="top"
            var2="@currentNumber=currentNumber + 1;
-                 obj=zobj.appy(); mayView=zobj.mayView()"
+                 obj=zobj.appy(); mayView=zobj.mayView();
+                 cbId='%s_%s' % (checkboxesId, currentNumber)"
            class=":loop.zobj.odd and 'even' or 'odd'">
         <td for="column in columns"
             var2="field=column.field" id=":'field_%s' % field.name"
             width=":column.width"
             align=":column.align">:tool.pxQueryField</td>
         <!-- A checkbox if required -->
-        <td if="checkboxes" class="cbCell">
+        <td if="checkboxes" class="cbCell" id=":cbId" style=":cbDisplay">
          <input type="checkbox" name=":checkboxesId" checked="checked"
                 value=":zobj.id" onclick="toggleCb(this)"/>
         </td>
        </tr>
       </table>
       <!-- The button for selecting objects and closing the popup. -->
-      <div if="inPopup" align=":dright">
+      <div if="inPopup and cbShown" align=":dright">
        <input type="button" class="button"
-              var="label=_('object_link_many');
-                   initiator=ztool.getObject(searchName.split(':')[0], \
-                                             appy=True)"
+              var="label=_('object_link_many')"
               value=":label"
               onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s)' % (q(rootHookId), \
-                            q(initiator.url), q(sortKey), q(sortOrder), \
+                            q(uiSearch.initiator.url),q(sortKey),q(sortOrder), \
                             q(filterKey), q(filterValue))"
               style=":'%s; %s' % (url('linkMany', bg=True), \
                                   ztool.getButtonWidth(label))"/>

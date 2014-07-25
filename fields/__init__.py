@@ -286,11 +286,8 @@ class Field:
 
     def isMultiValued(self):
         '''Does this type definition allow to define multiple values?'''
-        res = False
         maxOccurs = self.multiplicity[1]
-        if (maxOccurs == None) or (maxOccurs > 1):
-            res = True
-        return res
+        return (maxOccurs == None) or (maxOccurs > 1)
 
     def isSortable(self, usage):
         '''Can fields of this type be used for sorting purposes (when sorting

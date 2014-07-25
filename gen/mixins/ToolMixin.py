@@ -354,14 +354,17 @@ class ToolMixin(BaseMixin):
         # Use index "Allowed" if noSecurity is False
         if not noSecurity: params['Allowed'] = self.getAllowedValue()
         brains = self.getPath("/catalog")(**params)
-        if brainsOnly:
-            # Return brains only.
-            if not maxResults or (maxResults == 'NO_LIMIT'): return brains
-            else: return brains[:maxResults]
+        # Compute maxResults
         if not maxResults:
             if refField: maxResults = refField.maxPerPage
-            else:        maxResults = self.appy().numberOfResultsPerPage
-        elif maxResults == 'NO_LIMIT': maxResults = None
+            else: maxResults = search.maxPerPage or \
+                               self.appy().numberOfResultsPerPage
+        elif maxResults == 'NO_LIMIT':
+            maxResults = None
+        # Return brains only if required.
+        if brainsOnly:
+            if not maxResults: return brains
+            else: return brains[:maxResults]
         res = gutils.SomeObjects(brains, maxResults, startNumber,
                                  noSecurity=noSecurity)
         res.brainsToObjects()
@@ -725,14 +728,18 @@ class ToolMixin(BaseMixin):
     def getSearch(self, className, name, ui=False):
         '''Gets the Search instance (or a UiSearch instance if p_ui is True)
            corresponding to the search named p_name, on class p_className.'''
+        initiator = None
         if name == 'customSearch':
             # It is a custom search whose parameters are in the session.
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
         elif ':' in name:
-            # The search is defined in a Ref field with link=popup
-            refObject, ref = name.split(':')
-            res = getattr(self.getObject(refObject,appy=True).klass,ref).select
+            # The search is defined in a Ref field with link=popup. Get the
+            # search, the initiator object and the Ref field.
+            uid, ref = name.split(':')
+            initiator = self.getObject(uid, appy=True)
+            initiatorField = initiator.getField(ref)
+            res = getattr(initiator.klass, ref).select
         elif name:
             appyClass = self.getAppyClass(className)
             # Search among static searches
@@ -747,7 +754,9 @@ class ToolMixin(BaseMixin):
             # It is the search for every instance of p_className
             res = Search('allSearch')
         # Return a UiSearch if required.
-        if ui: res = UiSearch(res, className, self)
+        if ui:
+            res = UiSearch(res, className, self)
+            if initiator: res.setInitiator(initiator, initiatorField)
         return res
 
     def advancedSearchEnabledFor(self, klass):
