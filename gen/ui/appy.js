@@ -249,11 +249,13 @@ function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
   askAjaxChunk(hookId, 'GET', objectUrl, 'pxHistory', params);
 }
 
-function askRefField(hookId, objectUrl, fieldName, innerRef, startNumber,
-                     action, actionParams){
+function askRefField(hookId, objectUrl, innerRef, startNumber, action,
+                     actionParams){
+  var hookElems = hookId.split('_');
+  var fieldName = hookElems[1];
   // Sends an Ajax request for getting the content of a reference field.
   var startKey = hookId + '_startNumber';
-  var scope = hookId.split('_').pop();
+  var scope = hookElems.pop();
   var params = {'innerRef': innerRef, 'scope': scope};
   params[startKey] = startNumber;
   if (action) params['action'] = action;
@@ -1028,7 +1030,7 @@ function onSelectDate(cal) {
   }
 }
 
-function onSelectObjects(nodeId, objectUrl, sortKey, sortOrder,
+function onSelectObjects(nodeId, objectUrl, mode, sortKey, sortOrder,
                          filterKey, filterValue){
   /* Objects have been selected in a popup, to be linked via a Ref with
      link='popup'. Get them. */
@@ -1042,12 +1044,21 @@ function onSelectObjects(nodeId, objectUrl, sortKey, sortOrder,
   }
   // Close the popup.
   closePopup('iframePopup');
-  /* Refresh the Ref edit widget to include the linked objects. All those
-     parameters are needed to replay the query in the popup. */
-  askField(':'+nodeId, objectUrl, 'edit', null, null, null, null, null,
-           {'selected': uids, 'semantics': semantics, 'sortKey': sortKey,
-            'sortOrder': sortOrder, 'filterKey': filterKey,
-            'filterValue': filterValue});
+  /* When refreshing the Ref field we will need to pass all those parameters,
+     for replaying the popup query. */
+  var params = {'selected': uids, 'semantics': semantics, 'sortKey': sortKey,
+                'sortOrder': sortOrder, 'filterKey': filterKey,
+                'filterValue': filterValue};
+  if (mode == 'repl') {
+    /* Link the selected objects (and unlink the potentially already linked
+       ones) and refresh the Ref edit widget. */
+    askField(':'+nodeId,objectUrl,'edit',null,null,null,null,null,params);
+  }
+  else {
+    // Link the selected objects and refresh the Ref view widget.
+    params['action'] = 'onSelectFromPopup';
+    askField(':'+nodeId,objectUrl,'view',null,null,null,null,null,params);
+  }
 }
 
 function onSelectObject(tdId, nodeId, objectUrl) {

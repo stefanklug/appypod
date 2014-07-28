@@ -168,6 +168,23 @@ class Ref(Field):
                                       navBaseCall, startNumber)"/>
       </form>''')
 
+    # Displays the button allowing to select from a popup objects to be linked
+    # via the Ref field.
+    pxLink = Px('''
+     <a target="appyIFrame"
+        var="tiedClassName=ztool.getPortalType(field.klass);
+             className=ztool.getPortalType(obj.klass)"
+        href=":'%s/query?className=%s&amp;search=%s:%s:%s&amp;popup=1' % \
+               (ztool.absolute_url(), tiedClassName, obj.uid, field.name, \
+                popupMode)">
+      <input type="button" class="buttonSmall button"
+             var="labelId= (popupMode=='repl') and 'search_button' or 'add_ref';
+                  icon= (popupMode=='repl') and 'search' or 'add';
+                  label=_(labelId)" value=":label"
+             style=":'%s;%s' % (url(icon,bg=True), ztool.getButtonWidth(label))"
+             onclick="openPopup('iframePopup')"/>
+     </a>''')
+
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
@@ -202,10 +219,13 @@ class Ref(Field):
 
     # PX that displays referred objects as a list.
     pxViewList = Px('''
-     <div if="not innerRef or mayAdd" style="margin-bottom: 4px">
+     <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
       <span if="subLabel" class="discreet">:_(subLabel)</span>
       (<span class="discreet">:totalNumber</span>) 
       <x>:field.pxAdd</x>
+      <!-- This button opens a popup for linking additional objects -->
+      <x if="mayLink and not inPickList"
+         var2="popupMode='add'">:field.pxLink</x>
       <!-- The search button if field is queryable -->
       <input if="objects and field.queryable" type="button"
              class="buttonSmall button"
@@ -308,9 +328,9 @@ class Ref(Field):
                      not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=False;
              mayAdd=False;
-             navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
-                          (q(ajaxHookId), q(zobj.absolute_url()), \
-                           q(field.name), q(innerRef));
+             mayLink=False;
+             navBaseCall='askRefField(%s,%s,%s,**v**)' % \
+                          (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=False;
              changeNumber=False;
              checkboxes=field.getAttribute(zobj, 'checkboxes') and \
@@ -404,11 +424,12 @@ class Ref(Field):
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
              mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
+             mayLink=mayEdit and field.mayAdd(zobj, mode='link', \
+                                              checkMayEdit=False);
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
-             navBaseCall='askRefField(%s,%s,%s,%s,**v**)' % \
-                          (q(ajaxHookId), q(zobj.absolute_url()), \
-                           q(field.name), q(innerRef));
+             navBaseCall='askRefField(%s,%s,%s,**v**)' % \
+                          (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
              numbered=field.isNumbered(zobj);
              changeNumber=not inPickList and numbered and changeOrder and \
@@ -446,17 +467,7 @@ class Ref(Field):
       </select>
       <div if="not objects">-</div>
       <!-- The button for opening the popup -->
-      <a target="appyIFrame"
-         var="tiedClassName=ztool.getPortalType(field.klass);
-              className=ztool.getPortalType(obj.klass)"
-         href=":'%s/query?className=%s&amp;search=%s:%s&amp;popup=1' % \
-                (ztool.absolute_url(), tiedClassName, obj.uid, field.name)">
-       <input type="button" class="buttonSmall button"
-              var="label=_('search_button')" value=":label"
-              style=":'%s; %s' % (url('search', bg=True), \
-                                  ztool.getButtonWidth(label))"
-              onclick="openPopup('iframePopup')"/></a>
-     </x>''')
+      <x var="popupMode='repl'">:field.pxLink</x></x>''')
 
     pxEdit = Px('''
      <x if="(field.link) and (field.link != 'list')">
@@ -1079,17 +1090,21 @@ class Ref(Field):
         # Link new objects
         if objects: self.linkObject(appyObj, objects)
 
-    def mayAdd(self, obj, checkMayEdit=True):
-        '''May the user create a new referred object from p_obj via this Ref?
-           If p_checkMayEdit is False, it means that the condition of being
+    def mayAdd(self, obj, mode='create', checkMayEdit=True):
+        '''May the user create (if p_mode == "create") or link
+           (if mode == "link") (a) new referred object(s) from p_obj via this
+           Ref? If p_checkMayEdit is False, it means that the condition of being
            allowed to edit this Ref field has already been checked somewhere
            else (it is always required, we just want to avoid checking it
            twice).'''
         # We can't (yet) do that on back references.
         if self.isBack: return gutils.No('is_back')
-        # Check if this Ref is addable
-        add = self.getAttribute(obj, 'add')
-        if not add: return gutils.No('no_add')
+        # Check if this Ref is addable/linkable.
+        if mode == 'create':
+            add = self.getAttribute(obj, 'add')
+            if not add: return gutils.No('no_add')
+        elif mode == 'link':
+            if (self.link != 'popup') or not self.isMultiValued(): return
         # Have we reached the maximum number of referred elements?
         if self.multiplicity[1] != None:
             refCount = len(getattr(obj, self.name, ()))
@@ -1099,8 +1114,9 @@ class Ref(Field):
             if not obj.mayEdit(self.writePermission):
                 return gutils.No('no_write_perm')
         # May the user create instances of the referred class?
-        if not obj.getTool().userMayCreate(self.klass):
-            return gutils.No('no_create_perm')
+        if mode == 'create':
+            if not obj.getTool().userMayCreate(self.klass):
+                return gutils.No('no_create_perm')
         return True
 
     def checkAdd(self, obj):
@@ -1293,6 +1309,14 @@ class Ref(Field):
                 if uid not in uids:
                     res.append(tool.getObject(uid))
         return res
+
+    def onSelectFromPopup(self, obj):
+        '''This method is called on Ref fields with link="popup", when a user
+           has selected objects from the popup, to be added to existing tied
+           objects, from the view widget.'''
+        obj = obj.appy()
+        for tied in self.getPopupObjects(obj, obj.request, None):
+            self.linkObject(obj, tied, noSecurity=False)
 
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this Ref field is

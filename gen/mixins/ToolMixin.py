@@ -736,7 +736,7 @@ class ToolMixin(BaseMixin):
         elif ':' in name:
             # The search is defined in a Ref field with link=popup. Get the
             # search, the initiator object and the Ref field.
-            uid, ref = name.split(':')
+            uid, ref, mode = name.split(':')
             initiator = self.getObject(uid, appy=True)
             initiatorField = initiator.getField(ref)
             res = getattr(initiator.klass, ref).select
@@ -756,7 +756,7 @@ class ToolMixin(BaseMixin):
         # Return a UiSearch if required.
         if ui:
             res = UiSearch(res, className, self)
-            if initiator: res.setInitiator(initiator, initiatorField)
+            if initiator: res.setInitiator(initiator, initiatorField, mode)
         return res
 
     def advancedSearchEnabledFor(self, klass):

@@ -189,11 +189,23 @@ class UiSearch:
             self.translated = label and _(label) or ''
             self.translatedDescr = labelDescr and _(labelDescr) or ''
 
-    def setInitiator(self, initiator, field):
+    def setInitiator(self, initiator, field, mode):
         '''If the search is defined in an attribute Ref.select, we receive here
-           the p_initiator object and its Ref p_field.'''
+           the p_initiator object, its Ref p_field and the p_mode, that can be:
+           - "repl" if the objects selected in the popup will replace already
+                    tied objects;
+           - "add"  if those objects will be added to the already tied ones.
+           .'''
         self.initiator = initiator
         self.initiatorField = field
+        self.initiatorMode = mode
+        # "initiatorHook" is the ID of the initiator field's XHTML tag.
+        self.initiatorHook = '%s_%s' % (initiator.uid, field.name)
+
+    def getRootHookId(self):
+        '''If an initiator field is there, return the initiator hook.
+           Else, simply return the name of the search.'''
+        return getattr(self, 'initiatorHook', self.name)
 
     def showCheckboxes(self):
         '''If checkboxes are enabled for this search (and if an initiator field

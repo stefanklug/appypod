@@ -417,9 +417,10 @@ class ToolWrapper(AbstractWrapper):
        <input type="button" class="button"
               var="label=_('object_link_many')"
               value=":label"
-              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s)' % (q(rootHookId), \
-                            q(uiSearch.initiator.url),q(sortKey),q(sortOrder), \
-                            q(filterKey), q(filterValue))"
+              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
+               (q(rootHookId), q(uiSearch.initiator.url), \
+                q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
+                q(filterKey), q(filterValue))"
               style=":'%s; %s' % (url('linkMany', bg=True), \
                                   ztool.getButtonWidth(label))"/>
       </div>
@@ -450,8 +451,8 @@ class ToolWrapper(AbstractWrapper):
                _=ztool.translate;
                className=req['className'];
                searchName=req.get('search', '');
-               rootHookId=rootHookId|searchName.replace(':', '_');
                uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
+               rootHookId=uiSearch.getRootHookId();
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
                refField=refInfo[1];
@@ -537,7 +538,7 @@ class ToolWrapper(AbstractWrapper):
      <div var="className=req['className'];
                searchName=req.get('search', '');
                uiSearch=ztool.getSearch(className, searchName, ui=True);
-               rootHookId=searchName.replace(':', '_');
+               rootHookId=uiSearch.getRootHookId();
                cssJs=None"
           id=":rootHookId">
       <script type="text/javascript">:uiSearch.search.getCbJsInit(rootHookId)
