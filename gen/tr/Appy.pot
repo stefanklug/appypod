@@ -715,6 +715,6 @@ msgstr ""
 msgid "unauthorized"
 msgstr ""
 
-#. Default: "Close"
-msgid "window_close"
+#. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
+msgid "wrong_browser"
 msgstr ""

@@ -47,6 +47,7 @@ img { border: 0; vertical-align: middle }
 
 .main { width: 900px; height: 95%; box-shadow: 3px 3px 3px #A9A9A9 }
 .mainWide { width: 100%; height: 100% }
+.wrongBrowser { height: 15px; color: red; text-align: center }
 .top { height: 89px; margin-left: 3em; vertical-align: top;
        background-color: white }
 .lang { margin-right: 6px }

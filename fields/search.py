@@ -24,10 +24,12 @@ from group import Group
 # ------------------------------------------------------------------------------
 class Search:
     '''Used for specifying a search for a given class.'''
-    def __init__(self, name, group=None, sortBy='', sortOrder='asc',
+    def __init__(self, name=None, group=None, sortBy='', sortOrder='asc',
                  maxPerPage=30, default=False, colspan=1, translated=None,
                  show=True, translatedDescr=None, checkboxes=False,
                  checkboxesDefault=True, **fields):
+        # "name" is mandatory, excepted in some special cases (ie, when used as
+        # "select" param for a Ref field).
         self.name = name
         # Searches may be visually grouped in the portlet.
         self.group = Group.get(group)

@@ -181,6 +181,10 @@ class AbstractWrapper(object):
 
       <table class=":(cfg.skin == 'wide') and 'mainWide main' or 'main'"
              align="center" cellpadding="0">
+       <!-- The browser incompatibility message when relevant -->
+       <tr var="bi=ztool.getBrowserIncompatibility()" if="bi"
+           class="wrongBrowser"><td>:bi</td></tr>
+
        <tr class="top" if="not inPopup">
         <!-- Top banner -->
         <td var="bannerName=(dir == 'ltr') and 'banner' or 'bannerrtl'"

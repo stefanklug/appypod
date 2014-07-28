@@ -714,3 +714,7 @@ msgstr ""
 #. Default: "You are not allowed to consult this."
 msgid "unauthorized"
 msgstr ""
+
+#. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
+msgid "wrong_browser"
+msgstr ""

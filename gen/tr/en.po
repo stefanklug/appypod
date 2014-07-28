@@ -715,3 +715,7 @@ msgstr "In some situations, by leaving this page this way, you may lose encoded 
 #. Default: "You are not allowed to consult this."
 msgid "unauthorized"
 msgstr "You are not allowed to consult this."
+
+#. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
+msgid "wrong_browser"
+msgstr "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."

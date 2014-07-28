@@ -236,7 +236,7 @@ function askQueryResult(hookId, objectUrl, className, searchName, popup,
     var filterWidget = document.getElementById(hookId + '_' + filterKey);
     if (filterWidget && filterWidget.value) {
       params['filterKey'] = filterKey;
-      params['filterValue'] = filterWidget.value;
+      params['filterValue'] = encodeURIComponent(filterWidget.value);
     }
   }
   askAjaxChunk(hookId, 'GET', objectUrl, 'pxQueryResult', params, null,

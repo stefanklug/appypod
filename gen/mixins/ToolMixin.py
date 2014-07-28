@@ -1410,4 +1410,16 @@ class ToolMixin(BaseMixin):
         '''Returns the PX allowing to close the iframe popup and refresh the
            base page.'''
         return self.appy().pxBack({'ztool': self})
+
+    ieRex = re.compile('MSIE\s+(\d\.\d)')
+    ieMin = '9' # We do not support IE below this version.
+    def getBrowserIncompatibility(self):
+        '''Produces an error message if the browser in use is not compatible
+           with Appy.'''
+        res = self.ieRex.search(self.REQUEST.get('HTTP_USER_AGENT'))
+        if not res: return
+        version = res.group(1)
+        if version < self.ieMin:
+            mapping = {'version': version, 'min': self.ieMin}
+            return self.translate('wrong_browser', mapping=mapping)
 # ------------------------------------------------------------------------------

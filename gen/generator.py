@@ -730,6 +730,9 @@ class ZopeGenerator(Generator):
     def generateSearches(self, classDescr):
         '''Generates i18n labels for searches defined on p_classDescr.'''
         for search in classDescr.getSearches(classDescr.klass):
+            if not search.name:
+                className = classDescr.klass.__name__
+                raise Exception('Search defined on %s has no name.' % className)
             label = '%s_search_%s' % (classDescr.name, search.name)
             self.i18n(label, search.name)
             self.i18n('%s_descr' % label, ' ', nice=False)
