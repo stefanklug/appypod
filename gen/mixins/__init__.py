@@ -33,10 +33,10 @@ class BaseMixin:
         return self
     o = property(get_o)
 
-    def getInitiatorInfo(self):
+    def getInitiatorInfo(self, appy=False):
         '''Gets information about a potential initiator object from the request.
            Returns a 3-tuple (initiator, pageName, field):
-           * initiator is the initiator (Zope) object;
+           * initiator is the initiator (Zope or Appy) object;
            * pageName is the page on the initiator where the origin of the Ref
              field lies;
            * field is the Ref instance.
@@ -46,7 +46,9 @@ class BaseMixin:
         splitted = rq['nav'].split('.')
         initiator = self.getTool().getObject(splitted[1])
         fieldName, page = splitted[2].split(':')
-        return initiator, page, initiator.getAppyType(fieldName)
+        field = initiator.getAppyType(fieldName)
+        if appy: initiator = initiator.appy()
+        return initiator, page, field
 
     def createOrUpdate(self, created, values,
                        initiator=None, initiatorField=None):
@@ -96,7 +98,8 @@ class BaseMixin:
             obj.historizeData(previousData)
 
         # Manage potential link with an initiator object
-        if created and initiator: initiator.appy().link(initiatorField.name,obj)
+        if created and initiator:
+            initiator.appy().link(initiatorField.name, obj.appy())
 
         # Call the custom "onEdit" if available
         msg = None # The message to display to the user. It can be set by onEdit

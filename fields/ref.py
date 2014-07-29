@@ -251,17 +251,17 @@ class Ref(Field):
                    field.shownInfo, dir)">
       <tr if="field.showHeaders">
        <th if="not inPickList and numbered" width=":numbered"></th>
+       <th if="checkboxes" class="cbCell">
+        <img src=":url('checkall')" class="clickable"
+             title=":_('check_uncheck')"
+             onclick=":'toggleAllCbs(%s)' % q(ajaxHookId)"/>
+       </th>
        <th for="column in columns" width=":column.width"
            align=":column.align" var2="refField=column.field">
         <span>:_(refField.labelId)</span>
         <x>:field.pxSortIcons</x>
         <x var="className=tiedClassName;
                 field=refField">:tool.pxShowDetails</x>
-       </th>
-       <th if="checkboxes" class="cbCell">
-        <img src=":url('checkall')" class="clickable"
-             title=":_('check_uncheck')"
-             onclick=":'toggleAllCbs(%s)' % q(ajaxHookId)"/>
        </th>
       </tr>
       <!-- Loop on every (tied or selectable) object. -->
@@ -271,6 +271,10 @@ class Ref(Field):
                 objectIndex=field.getIndexOf(zobj, tiedUid)|None;
                 mayView=tied.o.mayView()">
        <td if="not inPickList and numbered">:field.pxNumber</td>
+       <td if="checkboxes" class="cbCell">
+        <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
+               value=":tiedUid" onclick="toggleCb(this)"/>
+       </td>
        <td for="column in columns" width=":column.width" align=":column.align"
            var2="refField=column.field">
         <!-- The "title" field -->
@@ -290,16 +294,11 @@ class Ref(Field):
             if="field.isShowable(zobj, 'result')">:field.pxRender</x>
         </x>
        </td>
-       <td if="checkboxes" class="cbCell">
-        <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
-               value=":tiedUid" onclick="toggleCb(this)"/>
-       </td>
       </tr>
      </table>
 
      <!-- Global actions -->
-     <div if="mayEdit and (totalNumber &gt; 1)"
-          align=":dright">:field.pxGlobalActions</div>
+     <div if="mayEdit and checkboxes">:field.pxGlobalActions</div>
 
      <!-- (Bottom) navigation -->
      <x>:tool.pxNavigate</x>

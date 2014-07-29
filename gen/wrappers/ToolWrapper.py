@@ -377,6 +377,11 @@ class ToolWrapper(AbstractWrapper):
       <table class="list" width="100%">
        <!-- Headers, with filters and sort arrows -->
        <tr if="showHeaders">
+        <th if="checkboxes" class="cbCell" style=":cbDisplay">
+         <img src=":url('checkall')" class="clickable"
+              title=":_('check_uncheck')"
+              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
+        </th>
         <th for="column in columns"
             var2="field=column.field;
                   sortable=ztool.isSortable(field.name, className, 'search');
@@ -384,11 +389,6 @@ class ToolWrapper(AbstractWrapper):
             width=":column.width" align=":column.align">
          <x>::ztool.truncateText(_(field.labelId))</x>
          <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
-        </th>
-        <th if="checkboxes" class="cbCell" style=":cbDisplay">
-         <img src=":url('checkall')" class="clickable"
-              title=":_('check_uncheck')"
-              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
         </th>
        </tr>
 
@@ -401,19 +401,19 @@ class ToolWrapper(AbstractWrapper):
                  obj=zobj.appy(); mayView=zobj.mayView();
                  cbId='%s_%s' % (checkboxesId, currentNumber)"
            class=":loop.zobj.odd and 'even' or 'odd'">
-        <td for="column in columns"
-            var2="field=column.field" id=":'field_%s' % field.name"
-            width=":column.width"
-            align=":column.align">:tool.pxQueryField</td>
         <!-- A checkbox if required -->
         <td if="checkboxes" class="cbCell" id=":cbId" style=":cbDisplay">
          <input type="checkbox" name=":checkboxesId" checked="checked"
                 value=":zobj.id" onclick="toggleCb(this)"/>
         </td>
+        <td for="column in columns"
+            var2="field=column.field" id=":'field_%s' % field.name"
+            width=":column.width"
+            align=":column.align">:tool.pxQueryField</td>
        </tr>
       </table>
       <!-- The button for selecting objects and closing the popup. -->
-      <div if="inPopup and cbShown" align=":dright">
+      <div if="inPopup and cbShown" align=":dleft">
        <input type="button" class="button"
               var="label=_('object_link_many')"
               value=":label"

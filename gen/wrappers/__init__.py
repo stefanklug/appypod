@@ -705,8 +705,7 @@ class AbstractWrapper(object):
 
     def __setattr__(self, name, value):
         appyType = self.o.getAppyType(name)
-        if not appyType:
-            raise 'Attribute "%s" does not exist.' % name
+        if not appyType: raise Exception('Attribute "%s" does not exist.' %name)
         appyType.store(self.o, value)
 
     def __getattribute__(self, name):
@@ -737,6 +736,7 @@ class AbstractWrapper(object):
         elif name == 'user': return self.o.getTool().getUser()
         elif name == 'fields': return self.o.getAllAppyTypes()
         elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
+        elif name == 'initiator': return self.o.getInitiatorInfo(True)
         # Now, let's try to return a real attribute.
         res = object.__getattribute__(self, name)
         # If we got an Appy field, return its value for this object
@@ -956,6 +956,13 @@ class AbstractWrapper(object):
                                 noSecurity=noSecurity, maxResults='NO_LIMIT')
         if res: return res._len # It is a LazyMap instance
         else: return 0
+
+    def ids(self, fieldName):
+        '''Returns the identifiers of the objects linked to this one via field
+           name p_fieldName. WARNING: do not modify this list, it is the true
+           list that is stored in the database (excepted if empty). Modifying it
+           will probably corrupt the database.'''
+        return getattr(self.o.aq_base, fieldName, ())
 
     def countRefs(self, fieldName):
         '''Counts the number of objects linked to this one via Ref field
