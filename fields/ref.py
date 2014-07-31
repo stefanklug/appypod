@@ -203,13 +203,17 @@ class Ref(Field):
      <x if="not changeNumber">:objectIndex+1</x>
      <div if="changeNumber" class="dropdownMenu"
           var2="id='%s_%d' % (ajaxHookId, objectIndex);
-                dropdownId='%s_dd' % id"
+                dropdownId='%s_dd' % id;
+                imgId='%s_img' % id"
           onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
           onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
-      <input type="text" size=":numberWidth" id=":id" value=":objectIndex+1"/>
+      <input type="text" size=":numberWidth" id=":id" value=":objectIndex+1"
+             onclick="this.select()"
+             onkeydown=":'if (event.keyCode==13) \
+                              document.getElementById(%s).click()' % q(imgId)"/>
       <!-- The menu -->
       <div id=":dropdownId" class="dropdown">
-       <img class="clickable" src=":url('move')" id=":id + '_img'"
+       <img class="clickable" src=":url('move')" id=":imgId"
             title=":_('move_number')"
             onclick=":navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:this}' % \
                       (q(startNumber), q('doChangeOrder'), q('refObjectUid'),

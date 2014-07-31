@@ -404,7 +404,7 @@ class File(Field):
                 info.copyFile(self.name, value, dbFolder)
             else:
                 # Cases e, f. Extract file name, content and MIME type.
-                fileName = None
+                fileName = mimeType = None
                 if len(value) == 2:
                     fileName, fileContent = value
                 elif len(value) == 3:
