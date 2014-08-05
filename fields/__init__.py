@@ -39,6 +39,7 @@ class Field:
     # field, keyed by layoutType.
     cssFiles = {}
     jsFiles = {}
+    bLayouts = Table('lrv-f', width=None)
     dLayouts = 'lrv-d-f'
     hLayouts = 'lhrv-f'
     wLayouts = Table('lrv-f')
@@ -98,10 +99,10 @@ class Field:
     # Button for showing changes to the field.
     pxChanges = Px('''<x if=":zobj.hasHistory(name)"><img class="clickable"
      if="not showChanges" src=":url('changes')" title="_('changes_show')"
-     onclick=":'askField(%s,%s,%s,%s)' % \
+     onclick=":'askField(%s,%s,%s,null,%s)' % \
                (q(tagId), q(zobj.absolute_url()), q('view'), q('True'))"/><img
      class="clickable" if="showChanges" src=":url('changesNo')"
-     onclick=":'askField(%s,%s,%s,%s)' % \
+     onclick=":'askField(%s,%s,%s,null,%s)' % \
                (q(tagId), q(zobj.absolute_url(), q('view'), q('True'))"
      title=":_('changes_hide')"/></x>''')
 

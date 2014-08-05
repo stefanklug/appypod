@@ -280,8 +280,8 @@ function askRefField(hookId, objectUrl, innerRef, startNumber, action,
                evalInnerScripts);
 }
 
-function askField(hookId, objectUrl, layoutType, showChanges, masterValues,
-                  requestValue, error, className, customParams){
+function askField(hookId, objectUrl, layoutType, customParams, showChanges,
+                  masterValues, requestValue, error, className){
   // Sends an Ajax request for getting the content of any field.
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
@@ -530,8 +530,8 @@ function updateSlaves(master, slave, objectUrl, layoutType, requestValues,
       var err = null;
       if (errors && (slaveName in errors))
         err = errors[slaveName];
-      askField(slaveId, objectUrl, layoutType, false, masterValues, reqValue,
-               err, className);
+      askField(slaveId, objectUrl, layoutType, null, false, masterValues,
+               reqValue, err, className);
     }
   }
 }
@@ -1052,12 +1052,12 @@ function onSelectObjects(nodeId, objectUrl, mode, sortKey, sortOrder,
   if (mode == 'repl') {
     /* Link the selected objects (and unlink the potentially already linked
        ones) and refresh the Ref edit widget. */
-    askField(':'+nodeId,objectUrl,'edit',null,null,null,null,null,params);
+    askField(':'+nodeId, objectUrl, 'edit', params, false);
   }
   else {
     // Link the selected objects and refresh the Ref view widget.
     params['action'] = 'onSelectFromPopup';
-    askField(':'+nodeId,objectUrl,'view',null,null,null,null,null,params);
+    askField(':'+nodeId, objectUrl, 'view', params, false);
   }
 }
 
@@ -1073,10 +1073,10 @@ function onSelectObject(tdId, nodeId, objectUrl) {
   else {
     /* Close the popup and directly refresh the initiator field with the
        selected object. */
-    var uids=checkbox.value;
+    var uids = checkbox.value;
     closePopup('iframePopup');
-    askField(':'+nodeId, objectUrl, 'edit', null, null, null, null, null,
-             {'selected': uids, 'semantics': 'checked'});
+    var params = {'selected': uids, 'semantics': 'checked'};
+    askField(':'+nodeId, objectUrl, 'edit', params, false);
   }
 }
 
