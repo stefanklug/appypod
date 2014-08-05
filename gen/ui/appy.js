@@ -803,6 +803,7 @@ function askConfirm(actionType, action, msg, showComment) {
   var confirmForm = document.getElementById('confirmActionForm');
   confirmForm.actionType.value = actionType;
   confirmForm.action.value = action;
+  if (!msg) msg = action_confirm;
   var commentArea = document.getElementById('commentArea');
   if (showComment) commentArea.style.display = 'block';
   else commentArea.style.display = 'none';

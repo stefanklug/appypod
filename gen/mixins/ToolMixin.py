@@ -1422,4 +1422,16 @@ class ToolMixin(BaseMixin):
         if version < self.ieMin:
             mapping = {'version': version, 'min': self.ieMin}
             return self.translate('wrong_browser', mapping=mapping)
+
+    def executeAjaxAction(self, action, obj, field):
+        '''When PX "pxAjax" is called to get some chunk of XHTML via an Ajax
+           request, a server action can be executed before rendering the XHTML
+           chunk. This method executes this action.'''
+        if action.startswith(':'):
+            # The action corresponds to a method on Appy p_obj.
+            getattr(obj, action[1:])()
+        else:
+            # The action must be executed on p_field if present, on obj.o else.
+            if field: getattr(field, action)(obj.o)
+            else: getattr(obj.o, action)()
 # ------------------------------------------------------------------------------

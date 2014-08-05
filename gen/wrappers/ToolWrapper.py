@@ -505,13 +505,13 @@ class ToolWrapper(AbstractWrapper):
         </x>
        </p>
        <table width="100%">
-        <tr>
+        <tr valign="top">
          <!-- Search description -->
          <td if="uiSearch.translatedDescr">
           <span class="discreet">:uiSearch.translatedDescr</span><br/>
          </td>
          <!-- (Top) navigation -->
-         <td align=":dright" width="25%"><x>:tool.pxNavigate</x></td>
+         <td align=":dright" width="150px"><x>:tool.pxNavigate</x></td>
         </tr>
        </table>
 

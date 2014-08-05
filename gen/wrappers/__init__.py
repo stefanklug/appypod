@@ -49,7 +49,7 @@ class AbstractWrapper(object):
 
     pxNavigationStrip = Px('''
      <table width="100%">
-      <tr>
+      <tr valign="top">
        <!-- Breadcrumb -->
        <td var="sup=zobj.getSupBreadCrumb();
                 breadcrumb=zobj.getBreadCrumb(inPopup=inPopup);
@@ -65,7 +65,7 @@ class AbstractWrapper(object):
         <x if="sub">::sub</x>
        </td>
        <!-- Object navigation -->
-       <td align=":dright">:obj.pxNavigateSiblings</td>
+       <td align=":dright" width="150px">:obj.pxNavigateSiblings</td>
       </tr>
      </table>
      <!-- Object phases and pages -->
@@ -631,8 +631,7 @@ class AbstractWrapper(object):
              req=ztool.REQUEST;              resp=req.RESPONSE;
              dummy=setattr(req, 'pxContext', _ctx_);
              lang=ztool.getUserLanguage();   q=ztool.quote;
-             action=req.get('action', None);
-             actionObj=(action and action.startswith(':')) and obj or zobj;
+             action=req.get('action', '');
              px=req['px'].split(':');
              inPopup=req.get('popup') == '1';
              className=(len(px) == 3) and px[0] or None;
@@ -647,8 +646,7 @@ class AbstractWrapper(object):
              x=resp.setHeader('CacheControl', 'no-cache')">
 
       <!-- If an action is defined, execute it on p_zobj or on p_field. -->
-      <x if="action and not field" var2="x=getattr(actionObj, action)()"></x>
-      <x if="action and field" var2="x=getattr(field, action)(actionObj)"></x>
+      <x if="action" var2="x=ztool.executeAjaxAction(action, obj, field)"></x>
 
       <!-- Then, call the PX on p_obj or on p_field. -->
       <x if="not field">:getattr(obj, px[0])</x>
@@ -1134,4 +1132,6 @@ class AbstractWrapper(object):
         localRoles = PersistentMapping({ self.o.creator: ['Owner'] })
         self.o.__ac_local_roles__ = localRoles
         return localRoles
+
+    def raiseUnauthorized(self, msg=None): return self.o.raiseUnauthorized(msg)
 # ------------------------------------------------------------------------------
