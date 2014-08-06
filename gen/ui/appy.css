@@ -69,6 +69,7 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
+.help { cursor: help }
 .refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
 .buttons { margin-left: 4px }
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;

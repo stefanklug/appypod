@@ -563,7 +563,7 @@ class BaseMixin:
         if type == 'warning': logMethod = logger.warn
         elif type == 'error': logMethod = logger.error
         else: logMethod = logger.info
-        logMethod(msg)
+        logMethod('%s: %s' % (self.getTool().getUser().login, msg))
 
     def do(self):
         '''Performs some action from the user interface.'''
