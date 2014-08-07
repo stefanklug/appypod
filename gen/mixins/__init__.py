@@ -13,7 +13,7 @@ from appy.gen.layout import Table, defaultPageLayouts
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared import utils as sutils
 from appy.shared.data import rtlLanguages
-from appy.shared.xml_parser import XmlMarshaller
+from appy.shared.xml_parser import XmlMarshaller, XmlUnmarshaller
 from appy.shared.diff import HtmlDiff
 
 # ------------------------------------------------------------------------------
