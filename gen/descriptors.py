@@ -273,7 +273,7 @@ class FieldDescriptor:
         return msgId, default, niceDefault
 
     def walkString(self):
-        '''How to generate an Appy String?'''
+        '''Generates String-specific i18n labels.'''
         if self.appyType.isSelect and \
            (type(self.appyType.validator) in (list, tuple)):
             # Generate i18n messages for every possible value if the list
@@ -283,8 +283,15 @@ class FieldDescriptor:
                                            self.fieldName, value)
                 self.i18n(label, value)
 
+    def walkBoolean(self):
+        '''Generates Boolean-specific i18n labels.'''
+        if self.appyType.render == 'radios':
+            for v in ('true', 'false'):
+                label = '%s_%s_%s' % (self.classDescr.name, self.fieldName, v)
+                self.i18n(label, self.appyType.yesNo[v])
+
     def walkAction(self):
-        '''Generates the i18n-related label.'''
+        '''Generates Action-specific i18n labels.'''
         if self.appyType.confirm:
             label = '%s_%s_confirm' % (self.classDescr.name, self.fieldName)
             self.i18n(label, po.CONFIRM, nice=False)
@@ -351,6 +358,8 @@ class FieldDescriptor:
             group.generateLabels(self.generator.labels, self.classDescr, set())
         # Manage things which are specific to String types
         if self.appyType.type == 'String': self.walkString()
+        # Manage things which are specific to Boolean types
+        if self.appyType.type == 'Boolean': self.walkBoolean()
         # Manage things which are specific to Actions
         elif self.appyType.type == 'Action': self.walkAction()
         # Manage things which are specific to Ref types

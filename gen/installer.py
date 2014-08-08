@@ -207,6 +207,7 @@ class ZopeInstaller:
         translations = [t.o.id for t in appyTool.translations]
         # We browse the languages supported by this application and check
         # whether we need to create the corresponding Translation objects.
+        done = []
         for language in self.languages:
             if language in translations: continue
             # We will create, in the tool, the translation object for this
@@ -218,7 +219,8 @@ class ZopeInstaller:
                 title = langEn
             appyTool.create('translations', noSecurity=True,
                             id=language, title=title)
-            appyTool.log('Translation object created for "%s".' % language)
+            done.append(language)
+        if done: appyTool.log('Translations created for %s.' % ', '.join(done))
 
         # Synchronizes, if required, every Translation object with the
         # corresponding "po" file on disk.
@@ -226,14 +228,16 @@ class ZopeInstaller:
             appFolder = self.config.diskFolder
             appName = self.config.PROJECTNAME
             i18nFolder = os.path.join(appFolder, 'tr')
+            done = []
             for translation in appyTool.translations:
                 # Get the "po" file
                 poName = '%s-%s.po' % (appName, translation.id)
                 poFile = PoParser(os.path.join(i18nFolder, poName)).parse()
                 for message in poFile.messages:
                     setattr(translation, message.id, message.getMessage())
-                appyTool.log('Translation "%s" updated from "%s".' % \
-                             (translation.id, poName))
+                done.append(translation.id)
+            appyTool.log('Translation(s) %s updated (%s messages).' % \
+                         (', '.join(done), len(poFile.messages)))
 
         # Execute custom installation code if any.
         if hasattr(appyTool, 'onInstall'): appyTool.onInstall()
@@ -316,7 +320,6 @@ class ZopeInstaller:
         install_product(self.app, Products.__path__[1], 'ZCTextIndex', [], {})
 
     def install(self):
-        self.logger.info('is being installed...')
         self.installDependencies()
         self.patchZope()
         self.installRoles()

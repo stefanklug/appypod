@@ -160,13 +160,9 @@ class Table:
 
     def addCssClasses(self, css_class):
         '''Adds a single or a group of p_css_class.'''
-        classes = self.css_class
-        if classes == None:
-            classes = ''
-        if not classes:
-            self.css_class = css_class
+        if not self.css_class: self.css_class = css_class
         else:
-            self.css_class += ' ' + css_classes
+            self.css_class += ' ' + css_class
             # Ensures that every class appears once
             self.css_class = ' '.join(set(self.css_class.split()))
 
