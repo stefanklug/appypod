@@ -77,6 +77,13 @@ class String(Field):
     URL = c('(http|https):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?' \
             '(([0-9]{1,5})?\/.*)?')
 
+    # Possible values for "format"
+    LINE = 0
+    TEXT = 1
+    XHTML = 2
+    PASSWORD = 3
+    CAPTCHA = 4
+
     pxView = Px('''
      <x var="fmt=field.format; isUrl=field.isUrl;
              mayAjaxEdit=not showChanges and field.inlineEdit and \
@@ -101,16 +108,45 @@ class String(Field):
        <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
        <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
             id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
-       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj)</script>
+       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj,None)</script>
       </x>
       <span if="not value and (fmt != 2)" class="smaller">-</span>
       <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
              name=":name" id=":name"/>
      </x>''')
 
+    # pxEdit part for formats String.LINE (but that are not selections),
+    # String.PASSWORD and String.CAPTCHA.
+    pxEditText = Px('''
+     <input var="inputId=not lg and name or '%s_%s' % (name, lg);
+                 placeholder=field.getAttribute(obj, 'placeholder') or ''"
+            id=":inputId" name=":inputId" size=":field.width"
+            maxlength=":field.maxChars" placeholder=":placeholder"
+            value=":inRequest and requestValue or value"
+            style=":'text-transform:%s' % field.transform"
+            type=":(fmt == 3) and 'password' or 'text'"/>
+     <!-- Display a captcha if required -->
+     <span if="fmt == 4">:_('captcha_text', \
+                            mapping=field.getCaptchaChallenge(req.SESSION))
+     </span>''')
+
+    # pxEdit part for formats String.TEXT and String.XHTML.
+    pxEditTextArea = Px('''
+     <textarea var="inputId=not lg and name or '%s_%s' % (name, lg)"
+               id=":inputId" name=":inputId" cols=":field.width"
+               class=":(fmt == 2) and ('rich_%s' % name) or ''"
+               style=":'text-transform:%s' % field.transform"
+               rows=":field.height">:inRequest and requestValue or value
+     </textarea>
+     <script if="fmt == 2"
+             type="text/javascript">::field.getJsInit(zobj, lg)</script>''')
+
+    # Mapping formats -> PXs defining the edit widgets.
+    editPx = {LINE:pxEditText, TEXT:pxEditTextArea, XHTML:pxEditTextArea,
+              PASSWORD:pxEditText, CAPTCHA:pxEditText}
     pxEdit = Px('''
      <x var="fmt=field.format;
-             isOneLine=fmt in (0,3,4)">
+             multilingual=field.isMultilingual()">
       <select if="field.isSelect"
               var2="possibleValues=field.getPossibleValues(zobj, \
                       withTranslations=True, withBlankValue=True)"
@@ -122,28 +158,22 @@ class String(Field):
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
-      <x if="isOneLine and not field.isSelect"
-         var2="placeholder=field.getAttribute(obj, 'placeholder') or ''">
-       <input id=":name" name=":name" size=":field.width"
-              maxlength=":field.maxChars" placeholder=":placeholder"
-              value=":inRequest and requestValue or value"
-              style=":'text-transform:%s' % field.transform"
-              type=":(fmt == 3) and 'password' or 'text'"/>
-       <!-- Display a captcha if required -->
-       <span if="fmt == 4">:_('captcha_text', \
-                              mapping=field.getCaptchaChallenge(req.SESSION))
-       </span>
-      </x>
-      <x if="fmt in (1,2)">
-       <textarea id=":name" name=":name" cols=":field.width"
-                 class=":(fmt == 2) and ('rich_%s' % name) or ''"
-                 style=":'text-transform:%s' % field.transform"
-                 rows=":field.height">:inRequest and requestValue or value
-       </textarea>
-       <script if="fmt == 2"
-               type="text/javascript">::field.getJsInit(zobj)</script>
-      </x>
-     </x>''')
+      <!-- Any other unilingual field. -->
+      <x if="not field.isSelect and not multilingual"
+         var2="lg=None">:field.editPx[fmt]</x>
+      <!-- Any other multilingual field. -->
+      <table if="not field.isSelect and multilingual" width="100%">
+       <tr valign="top">
+        <x for="lg in field.languages">
+         <td style=":(fmt==2) and 'padding-top:1px' or 'padding-top:3px'"
+             width="25px">
+          <span class="language help"
+                title=":ztool.getLanguageName(lg)">:lg.upper()</span></td>
+         <td var="requestValue=requestValue[lg];
+                  value=value[lg]|''">:field.editPx[fmt]</td>
+        </x>
+       </tr>
+      </table></x>''')
 
     pxCell = Px('''
      <x var="multipleValues=value and isMultiple">
@@ -285,12 +315,6 @@ class String(Field):
             if not alpha.match(c): return False
         return True
 
-    # Possible values for "format"
-    LINE = 0
-    TEXT = 1
-    XHTML = 2
-    PASSWORD = 3
-    CAPTCHA = 4
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  format=LINE, show=True, page='main', group=None, layouts=None,
                  move=0, indexed=False, searchable=False,
@@ -300,7 +324,7 @@ class String(Field):
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  persist=True, transform='none', placeholder=None,
                  styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
-                 spellcheck=False, contentLanguage=None, inlineEdit=False):
+                 spellcheck=False, languages=('en',), inlineEdit=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -314,8 +338,11 @@ class String(Field):
         self.allowImageUpload = allowImageUpload
         # When format is XHTML, do we run the CK spellchecker ?
         self.spellcheck = spellcheck
-        # What is the language of field content?
-        self.contentLanguage = contentLanguage
+        # If "languages" holds more than one language, the field will be
+        # multi-lingual and several widgets will allow to edit/visualize the
+        # field content in all the supported languages. The field is also used
+        # by the CK spell checker.
+        self.languages = languages
         # When format in XHTML, can the field be inline-edited (ckeditor)?
         self.inlineEdit = inlineEdit
         # The following field has a direct impact on the text entered by the
@@ -361,6 +388,12 @@ class String(Field):
                           not self.isSelect
         self.swidth = self.swidth or self.width
         self.sheight = self.sheight or self.height
+        self.checkParameters()
+
+    def checkParameters(self):
+        '''Ensures this String is correctly defined.'''
+        if self.isSelect and self.isMultilingual():
+            raise Exception("A selection field can't be multilingual.")
 
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
@@ -375,6 +408,8 @@ class String(Field):
             if not isinstance(self.validator, Selection):
                 res = False
         return res
+
+    def isMultilingual(self): return len(self.languages) > 1
 
     def getDefaultLayouts(self):
         '''Returns the default layouts for this type. Default layouts can vary
@@ -394,7 +429,7 @@ class String(Field):
             return {'view': 'l-f', 'edit': 'lrv-f'}
 
     def getValue(self, obj):
-        # Cheat if this field represents p_obj's state
+        # Cheat if this field represents p_obj's state.
         if self.name == 'state': return obj.State()
         value = Field.getValue(self, obj)
         if not value:
@@ -406,27 +441,46 @@ class String(Field):
             value = list(value)
         return value
 
-    def store(self, obj, value):
-        '''When the value is XHTML, we perform some cleanup.'''
-        if not self.persist: return
-        if (self.format == String.XHTML) and value:
-            # When image upload is allowed, ckeditor inserts some "style" attrs
-            # (ie for image size when images are resized). So in this case we
-            # can't remove style-related information.
-            try:
-                value = XhtmlCleaner(keepStyles=False).clean(value)
-            except XhtmlCleaner.Error, e:
-                # Errors while parsing p_value can't prevent the user from
-                # storing it.
-                obj.log('Unparsable XHTML content in field "%s".' % self.name,
-                        type='warning')
-        Field.store(self, obj, value)
+    def valueIsInRequest(self, request, name):
+        if not self.isMultilingual():
+            return Field.valueIsInRequest(self, request, name)
+        return request.has_key('%s_%s' % (name, self.languages[0]))
 
-    def storeFromAjax(self, obj):
-        '''Stores the new field value from an Ajax request, or do nothing if
-           the action was canceled.'''
-        rq = obj.REQUEST
-        if rq.get('cancel') != 'True': self.store(obj, rq['fieldContent'])
+    def getRequestValue(self, request, requestName=None):
+        '''The request value may be multilingual.'''
+        name = requestName or self.name
+        # A unilingual field.
+        if not self.isMultilingual(): return request.get(name, None)
+        # A multilingual field.
+        res = {}
+        for language in self.languages:
+            res[language] = request.get('%s_%s' % (name, language), None)
+        return res
+
+    def isEmptyValue(self, value, obj=None):
+        '''Returns True if the p_value must be considered as an empty value.'''
+        if not self.isMultilingual():
+            return Field.isEmptyValue(self, value, obj)
+        # For a multilingual value, as soon as a value is not empty for a given
+        # language, the whole value is considered as not being empty.
+        if not value: return True
+        for v in value.itervalues():
+            if not Field.isEmptyValue(self, v, obj): return
+        return True
+
+    def isCompleteValue(self, value, obj=None):
+        '''Returns True if the p_value must be considered as complete. For a
+           unilingual field, being complete simply means not being empty. For a
+           multilingual field, being complete means that a value is present for
+           every language'''
+        if not self.isMultilingual():
+            return Field.isCompleteValue(self, value, obj)
+        # As soon as a given language value is empty, the global value is not
+        # complete.
+        if not value: return True
+        for v in value.itervalues():
+            if Field.isEmptyValue(self, v, obj): return
+        return True
 
     def getDiffValue(self, obj, value):
         '''Returns a version of p_value that includes the cumulative diffs
@@ -452,8 +506,8 @@ class String(Field):
         comparator = HtmlDiff(res, value or '', iMsg, dMsg)
         return comparator.get()
 
-    def getFormattedValue(self, obj, value, showChanges=False):
-        if self.isEmptyValue(value): return ''
+    def getUnilingualFormattedValue(self, obj, value, showChanges=False):
+        if Field.isEmptyValue(self, value): return ''
         res = value
         if self.isSelect:
             if isinstance(self.validator, Selection):
@@ -478,6 +532,17 @@ class String(Field):
         # be ignored.
         if isinstance(res, basestring) and \
            (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
+        return res
+
+    def getFormattedValue(self, obj, value, showChanges=False):
+        if not self.isMultilingual():
+            return self.getUnilingualFormattedValue(obj, value, showChanges)
+        # Return the dict of values whose individual, language-specific values
+        # have been formatted via m_getUnilingualFormattedValue.
+        if not value: return value
+        res = {}
+        for lg in self.languages:
+            res[lg]=self.getUnilingualFormattedValue(obj,value[lg],showChanges)
         return res
 
     emptyStringTuple = ('',)
@@ -623,12 +688,23 @@ class String(Field):
         elif self.transform == 'capitalize': return value.capitalize()
         return value
 
-    def getStorableValue(self, value):
+    def getUnilingualStorableValue(self, value):
         isString = isinstance(value, basestring)
+        isEmpty = Field.isEmptyValue(self, value)
         # Apply transform if required
-        if isString and not self.isEmptyValue(value) and \
-           (self.transform != 'none'):
+        if isString and not isEmpty and (self.transform != 'none'):
            value = self.applyTransform(value)
+        # Clean XHTML if format is XHTML
+        if (self.format == String.XHTML) and not isEmpty:
+            # When image upload is allowed, ckeditor inserts some "style" attrs
+            # (ie for image size when images are resized). So in this case we
+            # can't remove style-related information.
+            try:
+                value = XhtmlCleaner(keepStyles=False).clean(value)
+            except XhtmlCleaner.Error, e:
+                # Errors while parsing p_value can't prevent the user from
+                # storing it.
+                pass
         # Truncate the result if longer than self.maxChars
         if isString and self.maxChars and (len(value) > self.maxChars):
             value = value[:self.maxChars]
@@ -637,6 +713,33 @@ class String(Field):
            (type(value) not in sutils.sequenceTypes):
             value = [value]
         return value
+
+    def getStorableValue(self, value):
+        if not self.isMultilingual():
+            return self.getUnilingualStorableValue(value)
+        # A multilingual value is stored as a dict whose keys are ISO 2-letters
+        # language codes and whose values are strings storing content in the
+        # language ~{s_language: s_content}~.
+        if not value: return
+        for lg in self.languages:
+            value[lg] = self.getUnilingualStorableValue(value[lg])
+        return value
+
+    def store(self, obj, value):
+        '''Stores p_value on p_obj for this field.'''
+        if self.isMultilingual() and value and \
+           (not isinstance(value, dict) or (len(value) != len(self.languages))):
+            raise Exception('Multilingual field "%s" accepts a dict whose '\
+                            'keys are in field.languages and whose ' \
+                            'values are strings.' % self.name)
+        Field.store(self, obj, value)
+
+    def storeFromAjax(self, obj):
+        '''Stores the new field value from an Ajax request, or do nothing if
+           the action was canceled.'''
+        rq = obj.REQUEST
+        if rq.get('cancel') != 'True':
+            self.store(obj, self.getStorableValue(rq['fieldContent']))
 
     def getIndexType(self):
         '''Index type varies depending on String parameters.'''
@@ -679,19 +782,19 @@ class String(Field):
                    'fi': 'fi_FI', 'fr': 'fr_FR', 'de': 'de_DE', 'el': 'el_GR',
                    'it': 'it_IT', 'nb': 'nb_NO', 'pt': 'pt_PT', 'es': 'es_ES',
                    'sv': 'sv_SE'}
-    def getCkLanguage(self):
-        '''Gets the language for CK editor SCAYT. We will use
-           self.contentLanguage. If it is not supported by CK, we use
-           english.'''
-        lang = self.contentLanguage
-        if lang and (lang in self.ckLanguages): return self.ckLanguages[lang]
+    def getCkLanguage(self, language):
+        '''Gets the language for CK editor SCAYT. p_language is one of
+           self.languages if the field is multilingual, None else. If p_language
+           is not supported by CK, we use english.'''
+        if not language: language = self.languages[0]
+        if language in self.ckLanguages: return self.ckLanguages[language]
         return 'en_US'
 
-    def getCkParams(self, obj):
+    def getCkParams(self, obj, language):
         '''Gets the base params to set on a rich text field.'''
         ckAttrs = {'toolbar': 'Appy',
                    'format_tags': ';'.join(self.styles),
-                   'scayt_sLang': self.getCkLanguage()}
+                   'scayt_sLang': self.getCkLanguage(language)}
         if self.width: ckAttrs['width'] = self.width
         if self.spellcheck: ckAttrs['scayt_autoStartup'] = True
         if self.allowImageUpload:
@@ -704,30 +807,27 @@ class String(Field):
             ck.append('%s: %s' % (k, sv))
         return ', '.join(ck)
 
-    def getJsInit(self, obj):
+    def getJsInit(self, obj, language):
         '''Gets the Javascript init code for displaying a rich editor for this
-           field (rich field only).'''
+           field (rich field only). If the field is multilingual, we must init
+           the rich text editor for a given p_language (among self.languages).
+           Else, p_languages is None.'''
+        name = not language and self.name or ('%s_%s' % (self.name, language))
         return 'CKEDITOR.replace("%s", {%s})' % \
-               (self.name, self.getCkParams(obj))
+               (name, self.getCkParams(obj, language))
 
-    def getJsInlineInit(self, obj):
+    def getJsInlineInit(self, obj, language):
         '''Gets the Javascript init code for enabling inline edition of this
-           field (rich text only).'''
+           field (rich text only). If the field is multilingual, the current
+           p_language is given. Else, p_language is None.'''
         uid = obj.id
+        name = not language and self.name or ('%s_%s' % (self.name, language))
         return "CKEDITOR.disableAutoInline = true;\n" \
                "CKEDITOR.inline('%s_%s_ck', {%s, on: {blur: " \
                "function( event ) { var content = event.editor.getData(); " \
                "doInlineSave('%s', '%s', '%s', content)}}})" % \
-               (uid, self.name, self.getCkParams(obj), uid, self.name,
+               (uid, name, self.getCkParams(obj, language), uid, name,
                 obj.absolute_url())
-
-        return "CKEDITOR.disableAutoInline = true;\n" \
-               "CKEDITOR.inline('%s_%s_ck', {on: {blur: " \
-               "function( event ) { var data = event.editor.getData(); " \
-               "askAjaxChunk('%s_%s','POST','%s','%s:pxSave', " \
-               "{'fieldContent': encodeURIComponent(data)}, " \
-               "null, evalInnerScripts);}}});"% \
-               (uid, self.name, uid, self.name, obj.absolute_url(), self.name)
 
     def isSelected(self, obj, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (only for fields with a validator

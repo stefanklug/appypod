@@ -35,6 +35,7 @@ class Boolean(Field):
     cLayouts = {'view': 'lf|', 'edit': 'flrv|'}
     # Layout for radio buttons (render = "radios")
     rLayouts = {'edit': 'f', 'view': 'f', 'search': 'l-f'}
+    rlLayouts = {'edit': 'l-f', 'view': 'lf', 'search': 'l-f'}
 
     pxView = pxCell = Px('''<x>:value</x>
      <input type="hidden" if="masterCss"

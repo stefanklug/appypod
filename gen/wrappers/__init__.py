@@ -211,7 +211,7 @@ class AbstractWrapper(object):
           <!-- Language selector -->
           <select if="ztool.showLanguageSelector()" class="pageLink"
                   var2="languages=ztool.getLanguages();
-                       defaultLanguage=languages[0]"
+                        defaultLanguage=languages[0]"
                   onchange=":'switchLanguage(this,%s)' % q(ztool.getSiteUrl())">
            <option for="lg in languages" value=":lg"
                    selected=":lang == lg">:ztool.getLanguageName(lg)</option>

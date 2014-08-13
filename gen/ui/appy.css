@@ -29,13 +29,13 @@ input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }
 input[type=password] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                        font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
-input[type=text] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
+input[type=text] { border: 1px solid #d0d0d0;
                    font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
                    margin-bottom: 1px }
 select { border: 1px solid #d0d0d0; background-color: #f8f8f8 }
 
 textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
-           border: 1px solid #d0d0d0; background-color: #f8f8f8 }
+           border: 1px solid #d0d0d0; background-color: white }
 label { color: #888888; font-size: 11px; margin: 3px 0;
         text-transform: uppercase }
 legend { padding-bottom: 2px; padding-right: 3px; color: black }
@@ -167,3 +167,5 @@ td.search { padding-top: 8px }
 .tabs { position:relative; bottom:-2px }
 .tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;
        font-weight: bold}
+.language {color: grey; font-size: 7pt; border: grey 1px solid; padding: 2px;
+           margin: 0 2px 0 4px}

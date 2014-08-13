@@ -63,7 +63,7 @@ class Field:
              value=not isSearch and \
                    field.getFormattedValue(zobj, rawValue, showChanges);
              requestValue=not isSearch and zobj.getRequestFieldValue(name);
-             inRequest=req.has_key(name);
+             inRequest=field.valueIsInRequest(req, name);
              error=req.get('%s_error' % name);
              isMultiple=(field.multiplicity[1] == None) or \
                         (field.multiplicity[1] &gt; 1);
@@ -544,6 +544,14 @@ class Field:
             return res
         return value
 
+    def valueIsInRequest(self, request, name):
+        '''Is there a value corresponding to this field in the request? p_name
+           can be different from self.name (ie, if it is a field within another
+           (List) field). In most cases, checking that this p_name is in the
+           request is sufficient. But in some cases it may be more complex, ie
+           for string multilingual fields.'''
+        return request.has_key(name)
+
     def getRequestValue(self, request, requestName=None):
         '''Gets a value for this field as carried in the request object. In the
            simplest cases, the request value is a single value whose name in the
@@ -601,6 +609,18 @@ class Field:
         '''Returns True if the p_value must be considered as an empty value.'''
         return value in self.nullValues
 
+    def isCompleteValue(self, value, obj=None):
+        '''Returns True if the p_value must be considered as "complete". While,
+           in most cases, a "complete" value simply means a "non empty" value
+           (see m_isEmptyValue above), in some special cases it is more subtle.
+           For example, a multilingual string value is not empty as soon as a
+           value is given for some language but will not be considered as
+           complete while a value is missing for some language. Another example:
+           a Date with the "hour" part required will not be considered as empty
+           if the "day, month, year" part is present but will not be considered
+           as complete without the "hour, minute" part.'''
+        return not self.isEmptyValue(value, obj)
+
     def validateValue(self, obj, value):
         '''This method may be overridden by child classes and will be called at
            the right moment by m_validate defined below for triggering
@@ -623,8 +643,8 @@ class Field:
            m_getRequestValue defined above, is valid according to this type
            definition. If it is the case, None is returned. Else, a translated
            error message is returned.'''
-        # Check that a value is given if required.
-        if self.isEmptyValue(value, obj):
+        # If the value is required, check that a (complete) value is present.
+        if not self.isCompleteValue(value, obj):
             if self.required and self.isClientVisible(obj):
                 # If the field is required, but not visible according to
                 # master/slave relationships, we consider it not to be required.
