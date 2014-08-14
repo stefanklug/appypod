@@ -529,20 +529,19 @@ class Field:
 
            If p_forSearch is True, it will return a "string" version of the
            index value suitable for a global search.'''
-        value = self.getValue(obj)
-        if forSearch and (value != None):
-            if isinstance(value, unicode):
-                res = value.encode('utf-8')
-            elif type(value) in sutils.sequenceTypes:
-                res = []
-                for v in value:
-                    if isinstance(v, unicode): res.append(v.encode('utf-8'))
-                    else: res.append(str(v))
-                res = ' '.join(res)
+        res = self.getValue(obj)
+        # Zope catalog does not like unicode strings.
+        if isinstance(res, unicode): res = res.encode('utf-8')
+        if forSearch and (res != None):
+            if type(res) in sutils.sequenceTypes:
+                vals = []
+                for v in res:
+                    if isinstance(v, unicode): vals.append(v.encode('utf-8'))
+                    else: vals.append(str(v))
+                res = ' '.join(vals)
             else:
-                res = str(value)
-            return res
-        return value
+                res = str(res)
+        return res
 
     def valueIsInRequest(self, request, name):
         '''Is there a value corresponding to this field in the request? p_name

@@ -65,7 +65,7 @@ input.button { color: #666666; height: 20px; margin-bottom: 5px;
 input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
                     margin-bottom: 3px }
 .fake { background-color: #e6e6e6 !important ; cursor:help !important }
-.xhtml { background-color: white; padding: 6px; font-size: 95% }
+.xhtml { background-color: white; padding: 4px; font-size: 95% }
 .xhtml img { margin-right: 5px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
@@ -168,4 +168,4 @@ td.search { padding-top: 8px }
 .tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;
        font-weight: bold}
 .language {color: grey; font-size: 7pt; border: grey 1px solid; padding: 2px;
-           margin: 0 2px 0 4px}
+           margin: 0 2px 0 4px; font-family: monospace }

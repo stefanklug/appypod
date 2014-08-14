@@ -84,40 +84,87 @@ class String(Field):
     PASSWORD = 3
     CAPTCHA = 4
 
+    # Default ways to render multingual fields
+    defaultLanguagesLayouts = {
+      LINE:  {'edit': 'vertical',   'view': 'vertical'},
+      TEXT:  {'edit': 'horizontal', 'view': 'vertical'},
+      XHTML: {'edit': 'horizontal', 'view': 'horizontal'},
+    }
+
+    # pxView part for formats String.LINE (but that are not selections) and
+    # String.PASSWORD (a fake view for String.PASSWORD and no view at all for
+    # String.CAPTCHA).
+    pxViewLine = Px('''
+     <span if="not value" class="smaller">-</span>
+     <x if="value">
+      <!-- A password -->
+      <x if="fmt == 3">********</x>
+      <!-- A URL -->
+      <a if="(fmt != 3) and isUrl" target="_blank" href=":value">:value</a>
+      <!-- Any other value -->
+      <x if="(fmt != 3) and not isUrl">::value</x>
+     </x>''')
+
+    # pxView part for format String.TEXT.
+    pxViewText = Px('''
+     <span if="not value" class="smaller">-</span>
+     <x if="value">::zobj.formatText(value, format='html')</x>''')
+
+    # pxView part for format String.XHTML.
+    pxViewRich = Px('''
+     <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
+     <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
+          id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
+     <script if="mayAjaxEdit">::field.getJsInlineInit(zobj,None)</script>''')
+
+    # PX displaying the language code and name besides the part of the
+    # multilingual field storing content in this language.
+    pxLanguage = Px('''
+     <td style=":'padding-top:%dpx' % lgTop" width="25px">
+      <span class="language help"
+            title=":ztool.getLanguageName(lg)">:lg.upper()</span>
+     </td>''')
+
+    pxMultilingual = Px('''
+     <!-- Horizontally-layouted multilingual field -->
+     <table if="mLayout == 'horizontal'" width="100%">
+      <tr valign="top"><x for="lg in field.languages"><x>:field.pxLanguage</x>
+       <td var="requestValue=requestValue[lg]|None;
+                value=value[lg]|emptyDefault">:field.subPx[layoutType][fmt]</td>
+      </x></tr></table>
+
+     <!-- Vertically-layouted multilingual field -->
+     <table if="mLayout == 'vertical'">
+      <tr valign="top" height="20px" for="lg in field.languages">
+       <x>:field.pxLanguage</x>
+       <td var="requestValue=requestValue[lg]|None;
+                value=value[lg]|emptyDefault">:field.subPx[layoutType][fmt]</td>
+     </tr></table>''')
+
     pxView = Px('''
      <x var="fmt=field.format; isUrl=field.isUrl;
+             multilingual=field.isMultilingual();
+             mLayout=multilingual and field.getLanguagesLayout('view');
              mayAjaxEdit=not showChanges and field.inlineEdit and \
                          zobj.mayEdit(field.writePermission)">
-      <x if="fmt in (0, 3)">
-       <ul if="value and isMultiple">
-        <li for="sv in value"><i>::sv</i></li>
-       </ul>
-       <x if="value and not isMultiple">
-        <!-- A password -->
-        <x if="fmt == 3">********</x>
-        <!-- A URL -->
-        <a if="(fmt != 3) and isUrl" target="_blank" href=":value">:value</a>
-        <!-- Any other value -->
-        <x if="(fmt != 3) and not isUrl">::value</x>
-       </x>
+      <x if="field.isSelect">
+       <span if="not value" class="smaller">-</span>
+       <x if="value and not isMultiple">::value</x>
+       <ul if="value and isMultiple"><li for="sv in value"><i>::sv</i></li></ul>
       </x>
-      <!-- Unformatted text -->
-      <x if="value and (fmt == 1)">::zobj.formatText(value, format='html')</x>
-      <!-- XHTML text -->
-      <x if="fmt == 2">
-       <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
-       <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
-            id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
-       <script if="mayAjaxEdit">::field.getJsInlineInit(zobj,None)</script>
-      </x>
-      <span if="not value and (fmt != 2)" class="smaller">-</span>
+      <!-- Any other unilingual field -->
+      <x if="not field.isSelect and not multilingual"
+         var2="lg=None">:field.subPx['view'][fmt]</x>
+      <!-- Any other multilingual field -->
+      <x if="not field.isSelect and multilingual"
+         var2="lgTop=1; emptyDefault='-'">:field.pxMultilingual</x>
+      <!-- If this field is a master field -->
       <input type="hidden" if="masterCss" class=":masterCss" value=":rawValue"
-             name=":name" id=":name"/>
-     </x>''')
+             name=":name" id=":name"/></x>''')
 
     # pxEdit part for formats String.LINE (but that are not selections),
     # String.PASSWORD and String.CAPTCHA.
-    pxEditText = Px('''
+    pxEditLine = Px('''
      <input var="inputId=not lg and name or '%s_%s' % (name, lg);
                  placeholder=field.getAttribute(obj, 'placeholder') or ''"
             id=":inputId" name=":inputId" size=":field.width"
@@ -141,12 +188,10 @@ class String(Field):
      <script if="fmt == 2"
              type="text/javascript">::field.getJsInit(zobj, lg)</script>''')
 
-    # Mapping formats -> PXs defining the edit widgets.
-    editPx = {LINE:pxEditText, TEXT:pxEditTextArea, XHTML:pxEditTextArea,
-              PASSWORD:pxEditText, CAPTCHA:pxEditText}
     pxEdit = Px('''
      <x var="fmt=field.format;
-             multilingual=field.isMultilingual()">
+             multilingual=field.isMultilingual();
+             mLayout=multilingual and field.getLanguagesLayout('edit')">
       <select if="field.isSelect"
               var2="possibleValues=field.getPossibleValues(zobj, \
                       withTranslations=True, withBlankValue=True)"
@@ -158,22 +203,14 @@ class String(Field):
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
       </select>
-      <!-- Any other unilingual field. -->
+      <!-- Any other unilingual field -->
       <x if="not field.isSelect and not multilingual"
-         var2="lg=None">:field.editPx[fmt]</x>
-      <!-- Any other multilingual field. -->
-      <table if="not field.isSelect and multilingual" width="100%">
-       <tr valign="top">
-        <x for="lg in field.languages">
-         <td style=":(fmt==2) and 'padding-top:1px' or 'padding-top:3px'"
-             width="25px">
-          <span class="language help"
-                title=":ztool.getLanguageName(lg)">:lg.upper()</span></td>
-         <td var="requestValue=requestValue[lg];
-                  value=value[lg]|''">:field.editPx[fmt]</td>
-        </x>
-       </tr>
-      </table></x>''')
+         var2="lg=None">:field.subPx['edit'][fmt]</x>
+      <!-- Any other multilingual field -->
+      <x if="not field.isSelect and multilingual"
+         var2="lgTop=(fmt!=2) and 3 or 1;
+               emptyDefault=''">:field.pxMultilingual</x>
+      </x>''')
 
     pxCell = Px('''
      <x var="multipleValues=value and isMultiple">
@@ -211,6 +248,14 @@ class String(Field):
                title=":v[1]">:ztool.truncateValue(v[1], field.swidth)</option>
       </select>
      </x><br/>''')
+
+    # Sub-PX to use according to String format.
+    subPx = {
+     'edit': {LINE:pxEditLine, TEXT:pxEditTextArea, XHTML:pxEditTextArea,
+              PASSWORD:pxEditLine, CAPTCHA:pxEditLine},
+     'view': {LINE:pxViewLine, TEXT:pxViewText, XHTML:pxViewRich,
+              PASSWORD:pxViewLine, CAPTCHA:pxViewLine}
+    }
 
     # Some predefined functions that may also be used as validators
     @staticmethod
@@ -324,7 +369,8 @@ class String(Field):
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  persist=True, transform='none', placeholder=None,
                  styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
-                 spellcheck=False, languages=('en',), inlineEdit=False):
+                 spellcheck=False, languages=('en',), languagesLayouts=None,
+                 inlineEdit=False):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -343,6 +389,11 @@ class String(Field):
         # field content in all the supported languages. The field is also used
         # by the CK spell checker.
         self.languages = languages
+        # When content exists in several languages, how to render them? Either
+        # horizontally (one below the other), or vertically (one besides the
+        # other). Specify here a dict whose keys are layouts ("edit", "view")
+        # and whose values are either "horizontal" or "vertical".
+        self.languagesLayouts = languagesLayouts
         # When format in XHTML, can the field be inline-edited (ckeditor)?
         self.inlineEdit = inlineEdit
         # The following field has a direct impact on the text entered by the
@@ -392,8 +443,13 @@ class String(Field):
 
     def checkParameters(self):
         '''Ensures this String is correctly defined.'''
-        if self.isSelect and self.isMultilingual():
-            raise Exception("A selection field can't be multilingual.")
+        error = None
+        if self.isMultilingual():
+            if self.isSelect:
+                error = "A selection field can't be multilingual."
+            elif self.format in (String.PASSWORD, String.CAPTCHA):
+                error = "A password or captcha field can't be multilingual."
+        if error: raise Exception(error)
 
     def isSelection(self):
         '''Does the validator of this type definition define a list of values
@@ -427,6 +483,13 @@ class String(Field):
             return {'view': Table(view, width='100%'), 'edit': 'lrv-d-f'}
         elif self.isMultiValued():
             return {'view': 'l-f', 'edit': 'lrv-f'}
+
+    def getLanguagesLayout(self, layoutType):
+        '''Gets the way to render a multilingual field on p_layoutType.'''
+        if self.languagesLayouts and (layoutType in self.languagesLayouts):
+            return self.languagesLayouts[layoutType]
+        # Else, return a default value that depends of the format.
+        return String.defaultLanguagesLayouts[self.format][layoutType]
 
     def getValue(self, obj):
         # Cheat if this field represents p_obj's state.
@@ -545,17 +608,30 @@ class String(Field):
             res[lg]=self.getUnilingualFormattedValue(obj,value[lg],showChanges)
         return res
 
+    def extractText(self, value):
+        '''Extracts pure text from XHTML p_value.'''
+        return XhtmlTextExtractor(raiseOnError=False).parse('<p>%s</p>' % value)
+
     emptyStringTuple = ('',)
     emptyValuesCatalogIgnored = (None, '')
+
     def getIndexValue(self, obj, forSearch=False):
-        '''For indexing purposes, we return only strings, not unicodes.'''
-        res = Field.getIndexValue(self, obj, forSearch)
-        if isinstance(res, unicode):
-            res = res.encode('utf-8')
-        if res and forSearch and (self.format == String.XHTML):
-            # Convert the value to simple text.
-            extractor = XhtmlTextExtractor(raiseOnError=False)
-            res = extractor.parse('<p>%s</p>' % res)
+        '''Pure text must be extracted from rich content; multilingual content
+           must be concatenated.'''
+        print 'INDEX value computing...', self.name, obj.title
+        isXhtml = self.format == String.XHTML
+        if self.isMultilingual():
+            res = self.getValue(obj)
+            if res:
+                vals = []
+                for v in res.itervalues():
+                    if isinstance(v, unicode): v = v.encode('utf-8')
+                    if isXhtml: vals.append(self.extractText(v))
+                    else: vals.append(v)
+                res = ' '.join(vals)
+        else:
+            res = Field.getIndexValue(self, obj, forSearch)
+            if res and isXhtml: res = self.extractText(res)
         # Ugly catalog: if I give an empty tuple as index value, it keeps the
         # previous value. If I give him a tuple containing an empty string, it
         # is ok.
@@ -563,6 +639,7 @@ class String(Field):
         # Ugly catalog: if value is an empty string or None, it keeps the
         # previous index value.
         if res in self.emptyValuesCatalogIgnored: res = ' '
+        print 'INDEX value for', self.name, 'is', res
         return res
 
     def getPossibleValues(self, obj, withTranslations=False,
