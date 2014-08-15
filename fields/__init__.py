@@ -76,6 +76,26 @@ class Field:
              tagName=field.master and 'slave' or '';
              layoutTarget=field">:tool.pxLayoutedObject</x>''')
 
+    def doRender(self, layoutType, request, context=None, name=None):
+        '''Allows to call pxRender from code, to display the content of this
+           field in some specific context, for example in a Computed field.'''
+        if context == None: context = {}
+        context['layoutType'] = layoutType
+        context['field'] = self
+        context['name'] = name or self.name
+        # We may be executing a PX on a given object or on a given object tied
+        # through a Ref.
+        ctx = request.pxContext
+        if 'obj' not in context:
+            context['obj'] = ('tied' in ctx) and ctx['tied'] or ctx['obj']
+            context['zobj'] = context['obj'].o
+        # Copy some keys from the context of the currently executed PX.
+        for k in ('tool', 'ztool', 'req', '_', 'q', 'url', 'dright', 'dleft', \
+                  'inPopup'):
+            if k in context: continue
+            context[k] = ctx[k]
+        return self.pxRender(context).encode('utf-8')
+
     # Displays a field label.
     pxLabel = Px('''<label if="field.hasLabel and field.renderLabel"
      lfor=":field.name">::_('label', field=field)</label>''')

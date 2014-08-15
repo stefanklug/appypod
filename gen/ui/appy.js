@@ -110,6 +110,7 @@ function getAjaxHook(hookId) {
      for the result of an ajax request. If p_hookId starts with ':', we search
      the element in the top browser window, not in the current one that can be
      an iframe.*/
+  if (!hookId) return;
   var container = window.document;
   var startIndex = 0;
   if (hookId[0] == ':') {
@@ -126,7 +127,7 @@ function getAjaxChunk(pos) {
   if ( (typeof(xhrObjects[pos]) != 'undefined') &&
        (xhrObjects[pos].freed == 0)) {
     var hook = xhrObjects[pos].hook;
-    if (xhrObjects[pos].xhr.readyState == 1) {
+    if (hook && (xhrObjects[pos].xhr.readyState == 1)) {
       // The request has been initialized: display the waiting radar
       var hookElem = getAjaxHook(hook);
       if (hookElem)
@@ -135,7 +136,8 @@ function getAjaxChunk(pos) {
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
       var hookElem = getAjaxHook(hook);
-      if (hookElem && (xhrObjects[pos].xhr.status == 200)) {
+      var responseOk = (xhrObjects[pos].xhr.status == 200);
+      if (hookElem && responseOk) {
         injectChunk(hookElem, xhrObjects[pos].xhr.responseText);
         // Call a custom Javascript function if required
         if (xhrObjects[pos].onGet) {
@@ -146,8 +148,8 @@ function getAjaxChunk(pos) {
         for (var i=0; i<innerScripts.length; i++) {
           eval(innerScripts[i].innerHTML);
         }
-        xhrObjects[pos].freed = 1;
       }
+      if (responseOk) xhrObjects[pos].freed = 1;
     }
   }
 }
@@ -210,8 +212,8 @@ function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
       // Set the correct HTTP headers
       rq.xhr.setRequestHeader(
         "Content-Type", "application/x-www-form-urlencoded");
-      rq.xhr.setRequestHeader("Content-length", paramsFull.length);
-      rq.xhr.setRequestHeader("Connection", "close");
+      // rq.xhr.setRequestHeader("Content-length", paramsFull.length);
+      // rq.xhr.setRequestHeader("Connection", "close");
       rq.xhr.onreadystatechange = function(){ getAjaxChunk(pos); }
       rq.xhr.send(paramsFull);
     }
@@ -294,12 +296,14 @@ function askField(hookId, objectUrl, layoutType, customParams, showChanges,
   askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
 }
 
-function doInlineSave(objectUid, name, objectUrl, content){
-  /* Ajax-saves p_content of field named p_name on object whose id is
+function doInlineSave(objectUid, name, objectUrl, content, language){
+  /* Ajax-saves p_content of field named p_name (or only on part corresponding
+     to p_language if the field is multilingual) on object whose id is
      p_objectUid and whose URL is p_objectUrl. Asks a confirmation before
      doing it. */
   var doIt = confirm(save_confirm);
   var params = {'action': 'storeFromAjax', 'layoutType': 'view'};
+  if (language) params['languageOnly'] = language;
   var hook = null;
   if (!doIt) {
     params['cancel'] = 'True';

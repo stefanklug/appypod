@@ -113,9 +113,11 @@ class String(Field):
     # pxView part for format String.XHTML.
     pxViewRich = Px('''
      <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
-     <div if="mayAjaxEdit" class="xhtml" contenteditable="true"
-          id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
-     <script if="mayAjaxEdit">::field.getJsInlineInit(zobj,None)</script>''')
+     <x if="mayAjaxEdit" var2="name=lg and ('%s_%s' % (name, lg)) or name">
+      <div class="xhtml" contenteditable="true"
+           id=":'%s_%s_ck' % (zobj.id, name)">::value or '-'</div>
+      <script if="mayAjaxEdit">::field.getJsInlineInit(zobj, name, lg)</script>
+     </x>''')
 
     # PX displaying the language code and name besides the part of the
     # multilingual field storing content in this language.
@@ -618,7 +620,6 @@ class String(Field):
     def getIndexValue(self, obj, forSearch=False):
         '''Pure text must be extracted from rich content; multilingual content
            must be concatenated.'''
-        print 'INDEX value computing...', self.name, obj.title
         isXhtml = self.format == String.XHTML
         if self.isMultilingual():
             res = self.getValue(obj)
@@ -639,7 +640,6 @@ class String(Field):
         # Ugly catalog: if value is an empty string or None, it keeps the
         # previous index value.
         if res in self.emptyValuesCatalogIgnored: res = ' '
-        print 'INDEX value for', self.name, 'is', res
         return res
 
     def getPossibleValues(self, obj, withTranslations=False,
@@ -815,8 +815,18 @@ class String(Field):
         '''Stores the new field value from an Ajax request, or do nothing if
            the action was canceled.'''
         rq = obj.REQUEST
-        if rq.get('cancel') != 'True':
-            self.store(obj, self.getStorableValue(rq['fieldContent']))
+        if rq.get('cancel') == 'True': return
+        requestValue = rq['fieldContent']
+        if self.isMultilingual():
+            # We get a partial value, for one language only.
+            language = rq['languageOnly']
+            v = self.getUnilingualStorableValue(requestValue)
+            getattr(obj.aq_base, self.name)[language] = v
+            part = ' (%s)' % language
+        else:
+            self.store(obj, self.getStorableValue(requestValue))
+            part = ''
+        obj.log('Ajax-edited %s%s on %s.' % (self.name, part, obj.id))
 
     def getIndexType(self):
         '''Index type varies depending on String parameters.'''
@@ -893,18 +903,20 @@ class String(Field):
         return 'CKEDITOR.replace("%s", {%s})' % \
                (name, self.getCkParams(obj, language))
 
-    def getJsInlineInit(self, obj, language):
+    def getJsInlineInit(self, obj, name, language):
         '''Gets the Javascript init code for enabling inline edition of this
            field (rich text only). If the field is multilingual, the current
-           p_language is given. Else, p_language is None.'''
+           p_language is given and p_name includes it. Else, p_language is
+           None.'''
         uid = obj.id
-        name = not language and self.name or ('%s_%s' % (self.name, language))
+        fieldName = language and name.rsplit('_',1)[0] or name
+        lg = language or ''
         return "CKEDITOR.disableAutoInline = true;\n" \
                "CKEDITOR.inline('%s_%s_ck', {%s, on: {blur: " \
                "function( event ) { var content = event.editor.getData(); " \
-               "doInlineSave('%s', '%s', '%s', content)}}})" % \
-               (uid, name, self.getCkParams(obj, language), uid, name,
-                obj.absolute_url())
+               "doInlineSave('%s','%s','%s',content,'%s')}}})" % \
+               (uid, name, self.getCkParams(obj, language), uid, fieldName,
+                obj.absolute_url(), lg)
 
     def isSelected(self, obj, fieldName, vocabValue, dbValue):
         '''When displaying a selection box (only for fields with a validator
