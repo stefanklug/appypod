@@ -129,9 +129,11 @@ class String(Field):
 
     pxMultilingual = Px('''
      <!-- Horizontally-layouted multilingual field -->
-     <table if="mLayout == 'horizontal'" width="100%">
+     <table if="mLayout == 'horizontal'" width="100%"
+            var="count=len(field.languages)">
       <tr valign="top"><x for="lg in field.languages"><x>:field.pxLanguage</x>
-       <td var="requestValue=requestValue[lg]|None;
+       <td width=":'%d%%' % int(100.0/count)"
+           var="requestValue=requestValue[lg]|None;
                 value=value[lg]|emptyDefault">:field.subPx[layoutType][fmt]</td>
       </x></tr></table>
 

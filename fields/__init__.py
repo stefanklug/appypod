@@ -90,8 +90,8 @@ class Field:
             context['obj'] = ('tied' in ctx) and ctx['tied'] or ctx['obj']
             context['zobj'] = context['obj'].o
         # Copy some keys from the context of the currently executed PX.
-        for k in ('tool', 'ztool', 'req', '_', 'q', 'url', 'dright', 'dleft', \
-                  'inPopup'):
+        for k in ('tool', 'ztool', 'req', '_', 'q', 'url', 'dir', 'dright',
+                  'dleft', 'inPopup'):
             if k in context: continue
             context[k] = ctx[k]
         return self.pxRender(context).encode('utf-8')
