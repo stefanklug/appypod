@@ -218,7 +218,12 @@ def normalizeString(s, usage='fileName'):
     '''
     strNeeded = isinstance(s, str)
     # We work in unicode. Convert p_s to unicode if not unicode.
-    if isinstance(s, str):           s = s.decode('utf-8')
+    if isinstance(s, str):
+        try:
+            s = s.decode('utf-8')
+        except UnicodeDecodeError:
+            # Another encoding may be in use.
+            s = s.decode('latin-1')
     elif not isinstance(s, unicode): s = unicode(s)
     if usage == 'extractedText':
         # Replace single quotes with blanks.
