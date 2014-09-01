@@ -675,7 +675,7 @@ class ToolMixin(BaseMixin):
             align = self.flipLanguageDirection(align, dir)
             field = self.getAppyType(fieldName, className)
             if not field:
-                self.log('Field "%s", used in a column specifier, was not ' \
+                self.log('field "%s", used in a column specifier, was not ' \
                          'found.' % fieldName, type='warning')
             else:
                 res.append(Object(field=field, width=width, align=align))
@@ -1093,14 +1093,14 @@ class ToolMixin(BaseMixin):
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
         # Authenticate the user.
-        login = rq.get('__ac_name', None)
         if self.getUser(authentify=True) or \
            self.getUser(authentify=True, source='ldap'):
             msg = self.translate('login_ok')
-            logMsg = 'User "%s" logged in.' % login
+            logMsg = 'logged in.'
         else:
             msg = self.translate('login_ko')
-            logMsg = 'Authentication failed with login "%s".' % login
+            login = rq.get('__ac_name') or '<empty>'
+            logMsg = 'authentication failed with login %s.' % login
         self.log(logMsg)
         return self.goto(self.getApp().absolute_url(), msg)
 
@@ -1120,7 +1120,7 @@ class ToolMixin(BaseMixin):
             session = sdm.getSessionData(create=0)
             if session is not None:
                 session.invalidate()
-        self.log('User "%s" has been logged out.' % userId)
+        self.log('logged out.')
         # Remove user from variable "loggedUsers"
         if self.loggedUsers.has_key(userId): del self.loggedUsers[userId]
         return self.goto(self.getApp().absolute_url())
@@ -1268,7 +1268,7 @@ class ToolMixin(BaseMixin):
             htmlMessage = '<a href="/">Back</a> You are not allowed to ' \
                           'access this page.'
             userId = self.appy().user.login
-            textMessage = 'Unauthorized for %s @%s.' % \
+            textMessage = 'unauthorized for %s @%s.' % \
                           (userId, self.REQUEST.get('PATH_INFO'))
         else:
             from zExceptions.ExceptionFormatter import format_exception

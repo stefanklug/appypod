@@ -178,8 +178,8 @@ class BaseMixin:
                 history.append(event)
         self.workflow_history[key] = tuple(history)
         appy = self.appy()
-        self.log('Data change event deleted by %s for %s (UID=%s).' % \
-                 (appy.user.login, appy.klass.__name__, appy.uid))
+        self.log('data change event deleted for %s (UID=%s).' % \
+                 (appy.klass.__name__, appy.uid))
         self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def onLink(self):
@@ -563,7 +563,11 @@ class BaseMixin:
         if type == 'warning': logMethod = logger.warn
         elif type == 'error': logMethod = logger.error
         else: logMethod = logger.info
-        logMethod('%s: %s' % (self.getTool().getUser().login, msg))
+        user = self.getTool().getUser()
+        # There could be not user at all (even not "anon") if we are trying to
+        # authenticate an inexistent user for example.
+        login = user and user.login or 'anon'
+        logMethod('%s: %s' % (login, msg))
 
     def do(self):
         '''Performs some action from the user interface.'''

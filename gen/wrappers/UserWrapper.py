@@ -89,8 +89,7 @@ class UserWrapper(AbstractWrapper):
             # user. So update the authentication cookie, too.
             gutils.writeCookie(login, newPassword, self.request)
         if log:
-            self.log('Password %s by "%s" for "%s".' % \
-                     (msgPart, self.user.login, login))
+            self.log('password %s for %s.' % (msgPart, login))
         return newPassword
 
     def setEncryptedPassword(self, encryptedPassword):
@@ -128,9 +127,8 @@ class UserWrapper(AbstractWrapper):
             self.compute(className, context=context, noSecurity=True,
                          expression="ctx['nb'] += obj.o.applyUserIdChange(" \
                                     "ctx['old'], ctx['new'])")
-        self.log("Login '%s' renamed to '%s' by '%s'." % \
-                 (oldLogin, newLogin, self.user.login))
-        self.log('Login change: local roles updated in %d object(s).' % \
+        self.log("login %s renamed to %s." % (oldLogin, newLogin))
+        self.log('login change: local roles updated in %d object(s).' % \
                  context['nb'])
 
     def getGrantableRoles(self):
@@ -244,7 +242,7 @@ class UserWrapper(AbstractWrapper):
         '''Before deleting myself, I must delete the corresponding Zope user
            (for local users only).'''
         if self.source == 'zodb': del self.o.acl_users.data[self.login]
-        self.log('User "%s" deleted.' % self.login)
+        self.log('user %s deleted.' % self.login)
         # Call a custom "onDelete" if any.
         return self._callCustom('onDelete')
 

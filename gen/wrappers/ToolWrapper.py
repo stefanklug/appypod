@@ -659,7 +659,7 @@ class ToolWrapper(AbstractWrapper):
         convScript = '%s/pod/converter.py' % os.path.dirname(appy.__file__)
         cmd = '%s %s "%s" %s -p%d' % (self.unoEnabledPython, convScript,
                                       fileName, format, self.openOfficePort)
-        self.log('Executing %s...' % cmd)
+        self.log('executing %s...' % cmd)
         return executeCommand(cmd) # The result can contain an error message
 
     def sendMail(self, to, subject, body, attachments=None):
@@ -682,7 +682,7 @@ class ToolWrapper(AbstractWrapper):
             # reindex all Appy-managed objects, ie those in folders "config"
             # and "data".
             # First, clear the catalog.
-            self.log('Recomputing the whole catalog...')
+            self.log('recomputing the whole catalog...')
             app = self.o.getParentNode()
             app.catalog._catalog.clear()
             nb = 1
@@ -706,7 +706,7 @@ class ToolWrapper(AbstractWrapper):
                 failMsg = ' (%d retried)' % len(failed)
             else:
                 failMsg = ''
-            self.log('%d object(s) were reindexed%s.' % (nb, failMsg))
+            self.log('%d object(s) reindexed%s.' % (nb, failMsg))
         else:
             nb = 1
             failed = []
