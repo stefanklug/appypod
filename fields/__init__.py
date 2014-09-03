@@ -51,7 +51,7 @@ class Field:
     # * showChanges If True, a variant of the field showing successive changes
     #               made to it is shown.
     pxRender = Px('''
-     <x var="showChanges=showChanges|req.get('showChanges',False);
+     <x var="showChanges=showChanges|req.get('showChanges') == 'True';
              layoutType=layoutType|req.get('layoutType');
              isSearch = layoutType == 'search';
              layout=field.layouts[layoutType];
@@ -117,14 +117,24 @@ class Field:
     pxRequired = Px('''<img src=":url('required.gif')"/>''')
 
     # Button for showing changes to the field.
-    pxChanges = Px('''<x if=":zobj.hasHistory(name)"><img class="clickable"
-     if="not showChanges" src=":url('changes')" title="_('changes_show')"
-     onclick=":'askField(%s,%s,%s,null,%s)' % \
-               (q(tagId), q(zobj.absolute_url()), q('view'), q('True'))"/><img
-     class="clickable" if="showChanges" src=":url('changesNo')"
-     onclick=":'askField(%s,%s,%s,null,%s)' % \
-               (q(tagId), q(zobj.absolute_url(), q('view'), q('True'))"
-     title=":_('changes_hide')"/></x>''')
+    pxChanges = Px('''
+     <x if="zobj.hasHistory(name)">
+      <!-- Button for showing the field version containing changes -->
+      <input type="button" class="button" if="not showChanges"
+             var="label=_('changes_show')" value=":label"
+             style=":'%s; %s' % (url('changes', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             onclick=":'askField(%s,%s,%s,null,%s)' % \
+                       (q(tagId), q(obj.url), q('view'), q('True'))"/>
+
+      <!-- Button for showing the field version without changes -->
+      <input type="button" class="button" if="showChanges"
+             var="label=_('changes_hide')" value=":label"
+             style=":'%s; %s' % (url('changesNo', bg=True), \
+                                 ztool.getButtonWidth(label))"
+             onclick=":'askField(%s,%s,%s,null,%s)' % \
+                       (q(tagId), q(obj.url), q('view'), q('False'))"/>
+     </x>''')
 
     def __init__(self, validator, multiplicity, default, show, page, group,
                  layouts, move, indexed, searchable, specificReadPermission,

@@ -152,10 +152,12 @@ class ToolMixin(BaseMixin):
         '''Returns the supported languages. First one is the default.'''
         return self.getProductConfig(True).languages
 
-    def getLanguageName(self, code):
+    def getLanguageName(self, code, lowerize=False):
         '''Gets the language name (in this language) from a 2-chars language
            p_code.'''
-        return languages.get(code)[2]
+        res = languages.get(code)[2]
+        if not lowerize: return res
+        return res.lower()
 
     def changeLanguage(self):
         '''Sets the language cookie with the new desired language code that is

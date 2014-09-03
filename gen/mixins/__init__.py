@@ -336,7 +336,7 @@ class BaseMixin:
            value.'''
         rq = self.REQUEST
         for field in self.getAppyTypes('edit', rq.form.get('page')):
-            if not field.validable: continue
+            if not field.validable or not field.isClientVisible(self): continue
             value = field.getRequestValue(rq)
             message = field.validate(self, value)
             if message:
@@ -592,14 +592,8 @@ class BaseMixin:
            ~{s_fieldName: previousFieldValue}~'''
         res = {}
         for field in fields:
-            if not field.historized: continue
-            # appyType.historized can be a method or a boolean.
-            if callable(field.historized):
-                historized = field.callMethod(self, field.historized)
-            else:
-                historized = field.historized
-            if historized:
-                res[field.name] = field.getValue(self)
+            if not field.getAttribute(self, 'historized'): continue
+            res[field.name] = field.getValue(self)
         return res
 
     def addHistoryEvent(self, action, **kw):
@@ -622,15 +616,29 @@ class BaseMixin:
            a field. The method is also called by m_historizeData below, that
            performs "automatic" recording when a HTTP form is uploaded. Field
            changes for which the previous value was empty are not recorded into
-           the history if p_notForPreviouslyEmptyValues is True.'''
+           the history if p_notForPreviouslyEmptyValues is True.
+
+           For a multilingual string field, p_changes can contain a key for
+           every language, of the form <field name>-<language>.'''
         # Add to the p_changes dict the field labels
-        for fieldName in changes.keys():
-            appyType = self.getAppyType(fieldName)
-            if notForPreviouslyEmptyValues and \
-               appyType.isEmptyValue(changes[fieldName], self):
-                del changes[fieldName]
+        for name in changes.keys():
+            # "name" can contain the language for multilingual fields.
+            if '-' in name:
+                fieldName, lg = name.split('-')
             else:
-                changes[fieldName] = (changes[fieldName], appyType.labelId)
+                fieldName = name
+                lg = None
+            field = self.getAppyType(fieldName)
+            if notForPreviouslyEmptyValues:
+                # Check if the previous field value was empty
+                if lg:
+                    isEmpty = not changes[name] or not changes[name].get(lg)
+                else:
+                    isEmpty = field.isEmptyValue(changes[name], self)
+                if isEmpty:
+                    del changes[name]
+            else:
+                changes[name] = (changes[name], field.labelId)
         # Add an event in the history
         self.addHistoryEvent('_datachange_', changes=changes)
 
@@ -640,20 +648,30 @@ class BaseMixin:
            historized fields, while p_self already contains the (potentially)
            modified values.'''
         # Remove from previousData all values that were not changed
-        for field in previousData.keys():
-            prev = previousData[field]
-            appyType = self.getAppyType(field)
-            curr = appyType.getValue(self)
+        for name in previousData.keys():
+            field = self.getAppyType(name)
+            prev = previousData[name]
+            curr = field.getValue(self)
             try:
                 if (prev == curr) or ((prev == None) and (curr == '')) or \
                    ((prev == '') and (curr == None)):
-                    del previousData[field]
+                    del previousData[name]
+                    continue
             except UnicodeDecodeError, ude:
                 # The string comparisons above may imply silent encoding-related
                 # conversions that may produce this exception.
-                pass
-            if (appyType.type == 'Ref') and (field in previousData):
-                previousData[field] = [r.title for r in previousData[field]]
+                continue
+            # In some cases the old value must be formatted.
+            if field.type == 'Ref':
+                previousData[name] = [r.title for r in previousData[name]]
+            elif (field.type == 'String') and field.isMultilingual():
+                # Consider every language-specific value as a first-class value
+                del previousData[name]
+                for lg in field.languages:
+                    lgPrev = prev and prev.get(lg) or None
+                    lgCurr = curr and curr.get(lg) or None
+                    if lgPrev == lgCurr: continue
+                    previousData['%s-%s' % (name, lg)] = lgPrev
         if previousData:
             self.addDataChange(previousData)
 
@@ -1020,56 +1038,73 @@ class BaseMixin:
             return 1
         return 0
 
-    def findNewValue(self, field, history, stopIndex):
+    def findNewValue(self, field, language, history, stopIndex):
         '''This function tries to find a more recent version of value of p_field
-           on p_self. It first tries to find it in history[:stopIndex+1]. If
-           it does not find it there, it returns the current value on p_obj.'''
+           on p_self. In the case of a multilingual field, p_language is
+           specified. The method first tries to find it in
+           history[:stopIndex+1]. If it does not find it there, it returns the
+           current value on p_obj.'''
         i = stopIndex + 1
+        name = language and ('%s-%s' % (field.name, language)) or field.name
         while (i-1) >= 0:
             i -= 1
             if history[i]['action'] != '_datachange_': continue
-            if field.name not in history[i]['changes']: continue
+            if name not in history[i]['changes']: continue
             # We have found it!
-            return history[i]['changes'][field.name][0] or ''
-        return field.getValue(self) or ''
+            return history[i]['changes'][name][0] or ''
+        # A most recent version was not found in the history: return the current
+        # field value.
+        val = field.getValue(self)
+        if not language: return val or ''
+        return val and val.get(language) or ''
 
     def getHistoryTexts(self, event):
         '''Returns a tuple (insertText, deleteText) containing texts to show on,
            respectively, inserted and deleted chunks of text in a XHTML diff.'''
         tool = self.getTool()
-        userName = tool.getUserName(event['actor'])
-        mapping = {'userName': userName.decode('utf-8')}
+        mapping = {'userName': tool.getUserName(event['actor'])}
         res = []
         for type in ('insert', 'delete'):
             msg = self.translate('history_%s' % type, mapping=mapping)
             date = tool.formatDate(event['time'], withHour=True)
             msg = '%s: %s' % (date, msg)
-            res.append(msg.encode('utf-8'))
+            res.append(msg)
         return res
 
-    def hasHistory(self, fieldName=None):
-        '''Has this object an history? If p_fieldName is specified, the question
-           becomes: has this object an history for field p_fieldName?'''
-        if hasattr(self.aq_base, 'workflow_history') and self.workflow_history:
-            history = self.workflow_history.values()[0]
-            if not fieldName:
-                for event in history:
-                    if event['action'] and (event['comments'] != '_invisible_'):
+    def hasHistory(self, name=None):
+        '''Has this object an history? If p_name is specified, the question
+           becomes: has this object an history for field p_name?'''
+        if not hasattr(self.aq_base, 'workflow_history') or \
+           not self.workflow_history: return
+        history = self.workflow_history['appy']
+        if not name:
+            for event in history:
+                if event['action'] and (event['comments'] != '_invisible_'):
+                    return True
+        else:
+            field = self.getAppyType(name)
+            multilingual = (field.type == 'String') and field.isMultilingual()
+            for event in history:
+                if event['action'] != '_datachange_': continue
+                # Is there a value present for this field in this data change?
+                if not multilingual:
+                    if (name in event['changes']) and \
+                       (event['changes'][name][0]):
                         return True
-            else:
-                for event in history:
-                    if (event['action'] == '_datachange_') and \
-                       (fieldName in event['changes']) and \
-                       event['changes'][fieldName][0]: return True
+                else:
+                    # At least one language-specific value must be present
+                    for lg in field.languages:
+                        lgName = '%s-%s' % (field.name, lg)
+                        if (lgName in event['changes']) and \
+                           event['changes'][lgName][0]:
+                            return True
 
     def getHistory(self, startNumber=0, reverse=True, includeInvisible=False,
                    batchSize=5):
-        '''Returns the history for this object, sorted in reverse order (most
-           recent change first) if p_reverse is True.'''
-        # Get a copy of the history, reversed if needed, whose invisible events
-        # have been removed if needed.
-        key = self.workflow_history.keys()[0]
-        history = list(self.workflow_history[key][1:])
+        '''Returns a copy of the history for this object, sorted in p_reverse
+           order if specified (most recent change first), whose invisible events
+           have been removed if p_includeInvisible is True.'''
+        history = list(self.workflow_history['appy'][1:])
         if not includeInvisible:
             history = [e for e in history if e['comments'] != '_invisible_']
         if reverse: history.reverse()
@@ -1088,8 +1123,15 @@ class BaseMixin:
                 event = history[i].copy()
                 event['changes'] = {}
                 for name, oldValue in history[i]['changes'].iteritems():
-                    # oldValue is a tuple (value, fieldName).
-                    field = self.getAppyType(name)
+                    # "name" can specify a language-specific part in a
+                    # multilingual field. "oldValue" is a tuple
+                    # (value, fieldName).
+                    if '-' in name:
+                        fieldName, lg = name.split('-')
+                    else:
+                        fieldName = name
+                        lg = None
+                    field = self.getAppyType(fieldName)
                     # Field 'name' may not exist, if the history has been
                     # transferred from another site. In this case we can't show
                     # this data change.
@@ -1099,21 +1141,24 @@ class BaseMixin:
                         # For rich text fields, instead of simply showing the
                         # previous value, we propose a diff with the next
                         # version, excepted if the previous value is empty.
-                        if field.isEmptyValue(oldValue[0]):
+                        if lg: isEmpty = not oldValue[0]
+                        else: isEmpty = field.isEmptyValue(oldValue[0])
+                        if isEmpty:
                             val = '-'
                         else:
-                            newValue = self.findNewValue(field, history, i-1)
+                            newValue= self.findNewValue(field, lg, history, i-1)
                             # Compute the diff between oldValue and newValue
                             iMsg, dMsg = self.getHistoryTexts(event)
                             comparator= HtmlDiff(oldValue[0],newValue,iMsg,dMsg)
                             val = comparator.get()
-                        event['changes'][name] = (val, oldValue[1])
                     else:
-                        val = field.getFormattedValue(self, oldValue[0]) or '-'
+                        fmt = lg and 'getUnilingualFormattedValue' or \
+                                     'getFormattedValue'
+                        val = getattr(field, fmt)(self, oldValue[0]) or '-'
                         if isinstance(val, list) or isinstance(val, tuple):
                             val = '<ul>%s</ul>' % \
                                   ''.join(['<li>%s</li>' % v for v in val])
-                        event['changes'][name] = (val, oldValue[1])
+                    event['changes'][name] = (val, oldValue[1])
             else:
                 event = history[i]
             res.append(event)

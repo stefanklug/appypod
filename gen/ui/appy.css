@@ -58,7 +58,7 @@ img { border: 0; vertical-align: middle }
 .userStrip a:visited { color: #e7e7e7 }
 .breadcrumb { font-size: 11pt; padding-bottom: 6px }
 .login { margin: 3px; color: black }
-input.button { color: #666666; height: 20px; margin-bottom: 5px;
+input.button { color: #666666; height: 20px; margin-bottom: 5px; margin-top:2px;
                cursor:pointer; font-size: 90%; padding-left: 10px;
                background-color: white; background-repeat: no-repeat;
                background-position: 8px 25%; box-shadow: 2px 2px 2px #888888}
@@ -75,7 +75,8 @@ input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;
            width: 600px; border: 1px #F0C36D solid; padding: 6px;
            background-color: #F9EDBE; text-align: center; margin-left: -300px;
-           border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9 }
+           border-radius: 2px 2px 2px 2px; box-shadow: 0 2px 4px #A9A9A9;
+           z-index: 10 }
 .messagePopup { width: 80%; top: 0; left: 0; margin-left: 10px }
 .focus { font-size: 90%; margin: 7px 0 7px 0; padding: 7px;
          background-color: #d7dee4; border-radius: 2px 2px 2px 2px;

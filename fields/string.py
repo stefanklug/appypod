@@ -549,22 +549,25 @@ class String(Field):
             if Field.isEmptyValue(self, v, obj): return
         return True
 
-    def getDiffValue(self, obj, value):
+    def getDiffValue(self, obj, value, language):
         '''Returns a version of p_value that includes the cumulative diffs
-           between  successive versions.'''
+           between successive versions. If the field is non-multilingual, it
+           must be called with p_language being None. Else, p_language
+           identifies the language-specific part we will work on.'''
         res = None
         lastEvent = None
-        for event in obj.workflow_history.values()[0]:
+        name = language and ('%s-%s' % (self.name, language)) or self.name
+        for event in obj.workflow_history['appy']:
             if event['action'] != '_datachange_': continue
-            if self.name not in event['changes']: continue
+            if name not in event['changes']: continue
             if res == None:
                 # We have found the first version of the field
-                res = event['changes'][self.name][0] or ''
+                res = event['changes'][name][0] or ''
             else:
                 # We need to produce the difference between current result and
                 # this version.
                 iMsg, dMsg = obj.getHistoryTexts(lastEvent)
-                thisVersion = event['changes'][self.name][0] or ''
+                thisVersion = event['changes'][name][0] or ''
                 comparator = HtmlDiff(res, thisVersion, iMsg, dMsg)
                 res = comparator.get()
             lastEvent = event
@@ -573,7 +576,12 @@ class String(Field):
         comparator = HtmlDiff(res, value or '', iMsg, dMsg)
         return comparator.get()
 
-    def getUnilingualFormattedValue(self, obj, value, showChanges=False):
+    def getUnilingualFormattedValue(self, obj, value, showChanges=False,
+                                    language=None):
+        '''If no p_language is specified, this method is called by
+           m_getFormattedValue for getting a non-multilingual value (ie, in
+           most cases). Else, this method returns a formatted value for the
+           p_language-specific part of a multilingual value.'''
         if Field.isEmptyValue(self, value): return ''
         res = value
         if self.isSelect:
@@ -594,7 +602,7 @@ class String(Field):
                     res = t('%s_list_%s' % (self.labelId, value))
         elif (self.format == String.XHTML) and showChanges:
             # Compute the successive changes that occurred on p_value.
-            res = self.getDiffValue(obj, res)
+            res = self.getDiffValue(obj, res, language)
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
         if isinstance(res, basestring) and \
@@ -609,7 +617,8 @@ class String(Field):
         if not value: return value
         res = {}
         for lg in self.languages:
-            res[lg]=self.getUnilingualFormattedValue(obj,value[lg],showChanges)
+            res[lg] = self.getUnilingualFormattedValue(obj, value[lg],
+                                                       showChanges, lg)
         return res
 
     def extractText(self, value):
@@ -773,8 +782,8 @@ class String(Field):
         # Apply transform if required
         if isString and not isEmpty and (self.transform != 'none'):
            value = self.applyTransform(value)
-        # Clean XHTML if format is XHTML
-        if (self.format == String.XHTML) and not isEmpty:
+        # Clean XHTML strings
+        if not isEmpty and (self.format == String.XHTML):
             # When image upload is allowed, ckeditor inserts some "style" attrs
             # (ie for image size when images are resized). So in this case we
             # can't remove style-related information.
@@ -784,6 +793,9 @@ class String(Field):
                 # Errors while parsing p_value can't prevent the user from
                 # storing it.
                 pass
+        # Clean TEXT strings
+        if not isEmpty and (self.format == String.TEXT):
+            value = value.replace('\r', '')
         # Truncate the result if longer than self.maxChars
         if isString and self.maxChars and (len(value) > self.maxChars):
             value = value[:self.maxChars]
@@ -819,6 +831,11 @@ class String(Field):
         rq = obj.REQUEST
         if rq.get('cancel') == 'True': return
         requestValue = rq['fieldContent']
+        # Remember previous value if the field is historized.
+        previousData = obj.rememberPreviousData([self])
+        # We take a copy because the data is mutable (ie, a dict).
+        if previousData:
+            previousData[self.name] = previousData[self.name].copy()
         if self.isMultilingual():
             # We get a partial value, for one language only.
             language = rq['languageOnly']
@@ -828,6 +845,12 @@ class String(Field):
         else:
             self.store(obj, self.getStorableValue(requestValue))
             part = ''
+        # Update the object history when relevant
+        if previousData: obj.historizeData(previousData)
+        # Update obj's last modification date
+        from DateTime import DateTime
+        obj.modified = DateTime()
+        obj.reindex()
         obj.log('Ajax-edited %s%s on %s.' % (self.name, part, obj.id))
 
     def getIndexType(self):

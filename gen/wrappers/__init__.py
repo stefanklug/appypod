@@ -375,8 +375,11 @@ class AbstractWrapper(object):
            <th align=":dleft" width="70%">:_('previous_value')</th>
           </tr>
           <tr for="change in event['changes'].items()" valign="top"
-              var2="field=zobj.getAppyType(change[0])">
-           <td>::_(field.labelId)</td>
+              var2="elems=change[0].split('-');
+                    field=zobj.getAppyType(elems[0]);
+                    lg=(len(elems) == 2) and elems[1] or ''">
+           <td><x>::_(field.labelId)</x>
+               <x if="lg">:' (%s)' % ztool.getLanguageName(lg, True)</x></td>
            <td>::change[1][0]</td>
           </tr>
          </table>
