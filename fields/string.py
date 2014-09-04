@@ -185,7 +185,6 @@ class String(Field):
     pxEditTextArea = Px('''
      <textarea var="inputId=not lg and name or '%s_%s' % (name, lg)"
                id=":inputId" name=":inputId" cols=":field.width"
-               class=":(fmt == 2) and ('rich_%s' % name) or ''"
                style=":'text-transform:%s' % field.transform"
                rows=":field.height">:inRequest and requestValue or value
      </textarea>
@@ -833,10 +832,9 @@ class String(Field):
         requestValue = rq['fieldContent']
         # Remember previous value if the field is historized.
         previousData = obj.rememberPreviousData([self])
-        # We take a copy because the data is mutable (ie, a dict).
-        if previousData:
-            previousData[self.name] = previousData[self.name].copy()
         if self.isMultilingual():
+            # We take a copy of previousData because it is mutable (dict).
+            previousData[self.name] = previousData[self.name].copy()
             # We get a partial value, for one language only.
             language = rq['languageOnly']
             v = self.getUnilingualStorableValue(requestValue)
