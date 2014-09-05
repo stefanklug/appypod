@@ -130,8 +130,8 @@ class String(Field):
     pxMultilingual = Px('''
      <!-- Horizontally-layouted multilingual field -->
      <table if="mLayout == 'horizontal'" width="100%"
-            var="count=len(field.languages)">
-      <tr valign="top"><x for="lg in field.languages"><x>:field.pxLanguage</x>
+            var="count=len(languages)">
+      <tr valign="top"><x for="lg in languages"><x>:field.pxLanguage</x>
        <td width=":'%d%%' % int(100.0/count)"
            var="requestValue=requestValue[lg]|None;
                 value=value[lg]|emptyDefault">:field.subPx[layoutType][fmt]</td>
@@ -139,7 +139,7 @@ class String(Field):
 
      <!-- Vertically-layouted multilingual field -->
      <table if="mLayout == 'vertical'">
-      <tr valign="top" height="20px" for="lg in field.languages">
+      <tr valign="top" height="20px" for="lg in languages">
        <x>:field.pxLanguage</x>
        <td var="requestValue=requestValue[lg]|None;
                 value=value[lg]|emptyDefault">:field.subPx[layoutType][fmt]</td>
@@ -147,7 +147,8 @@ class String(Field):
 
     pxView = Px('''
      <x var="fmt=field.format; isUrl=field.isUrl;
-             multilingual=field.isMultilingual();
+             languages=field.getAttribute(zobj, 'languages');
+             multilingual=len(languages) &gt; 1;
              mLayout=multilingual and field.getLanguagesLayout('view');
              mayAjaxEdit=not showChanges and field.inlineEdit and \
                          zobj.mayEdit(field.writePermission)">
@@ -193,7 +194,8 @@ class String(Field):
 
     pxEdit = Px('''
      <x var="fmt=field.format;
-             multilingual=field.isMultilingual();
+             languages=field.getAttribute(zobj, 'languages');
+             multilingual=len(languages) &gt; 1;
              mLayout=multilingual and field.getLanguagesLayout('edit')">
       <select if="field.isSelect"
               var2="possibleValues=field.getPossibleValues(zobj, \
@@ -447,7 +449,7 @@ class String(Field):
     def checkParameters(self):
         '''Ensures this String is correctly defined.'''
         error = None
-        if self.isMultilingual():
+        if self.isMultilingual(None):
             if self.isSelect:
                 error = "A selection field can't be multilingual."
             elif self.format in (String.PASSWORD, String.CAPTCHA):
@@ -468,7 +470,11 @@ class String(Field):
                 res = False
         return res
 
-    def isMultilingual(self): return len(self.languages) > 1
+    def isMultilingual(self, obj):
+        '''Is this field multilingual ?.'''
+        # In the following case, impossible to know: we say no.
+        if not obj and callable(self.languages): return
+        return len(self.getAttribute(obj, 'languages')) > 1
 
     def getDefaultLayouts(self):
         '''Returns the default layouts for this type. Default layouts can vary
@@ -507,45 +513,50 @@ class String(Field):
             value = list(value)
         return value
 
-    def valueIsInRequest(self, request, name):
-        if not self.isMultilingual():
-            return Field.valueIsInRequest(self, request, name)
-        return request.has_key('%s_%s' % (name, self.languages[0]))
+    def valueIsInRequest(self, obj, request, name):
+        languages = self.getAttribute(obj, 'languages')
+        if len(languages) == 1:
+            return Field.valueIsInRequest(self, obj, request, name)
+        # Is is sufficient to check that at least one of the language-specific
+        # values is in the request.
+        return request.has_key('%s_%s' % (name, languages[0]))
 
-    def getRequestValue(self, request, requestName=None):
+    def getRequestValue(self, obj, requestName=None):
         '''The request value may be multilingual.'''
+        request = obj.REQUEST
         name = requestName or self.name
+        languages = self.getAttribute(obj, 'languages')
         # A unilingual field.
-        if not self.isMultilingual(): return request.get(name, None)
+        if len(languages) == 1: return request.get(name, None)
         # A multilingual field.
         res = {}
-        for language in self.languages:
+        for language in languages:
             res[language] = request.get('%s_%s' % (name, language), None)
         return res
 
-    def isEmptyValue(self, value, obj=None):
+    def isEmptyValue(self, obj, value):
         '''Returns True if the p_value must be considered as an empty value.'''
-        if not self.isMultilingual():
-            return Field.isEmptyValue(self, value, obj)
+        if not self.isMultilingual(obj):
+            return Field.isEmptyValue(self, obj, value)
         # For a multilingual value, as soon as a value is not empty for a given
         # language, the whole value is considered as not being empty.
         if not value: return True
         for v in value.itervalues():
-            if not Field.isEmptyValue(self, v, obj): return
+            if not Field.isEmptyValue(self, obj, v): return
         return True
 
-    def isCompleteValue(self, value, obj=None):
+    def isCompleteValue(self, obj, value):
         '''Returns True if the p_value must be considered as complete. For a
            unilingual field, being complete simply means not being empty. For a
            multilingual field, being complete means that a value is present for
-           every language'''
-        if not self.isMultilingual():
-            return Field.isCompleteValue(self, value, obj)
+           every language.'''
+        if not self.isMultilingual(obj):
+            return Field.isCompleteValue(self, obj, value)
         # As soon as a given language value is empty, the global value is not
         # complete.
         if not value: return True
         for v in value.itervalues():
-            if Field.isEmptyValue(self, v, obj): return
+            if Field.isEmptyValue(self, obj, v): return
         return True
 
     def getDiffValue(self, obj, value, language):
@@ -581,7 +592,7 @@ class String(Field):
            m_getFormattedValue for getting a non-multilingual value (ie, in
            most cases). Else, this method returns a formatted value for the
            p_language-specific part of a multilingual value.'''
-        if Field.isEmptyValue(self, value): return ''
+        if Field.isEmptyValue(self, obj, value): return ''
         res = value
         if self.isSelect:
             if isinstance(self.validator, Selection):
@@ -609,13 +620,14 @@ class String(Field):
         return res
 
     def getFormattedValue(self, obj, value, showChanges=False):
-        if not self.isMultilingual():
+        languages = self.getAttribute(obj, 'languages')
+        if len(languages) == 1:
             return self.getUnilingualFormattedValue(obj, value, showChanges)
         # Return the dict of values whose individual, language-specific values
         # have been formatted via m_getUnilingualFormattedValue.
         if not value: return value
         res = {}
-        for lg in self.languages:
+        for lg in languages:
             res[lg] = self.getUnilingualFormattedValue(obj, value[lg],
                                                        showChanges, lg)
         return res
@@ -631,7 +643,7 @@ class String(Field):
         '''Pure text must be extracted from rich content; multilingual content
            must be concatenated.'''
         isXhtml = self.format == String.XHTML
-        if self.isMultilingual():
+        if self.isMultilingual(obj):
             res = self.getValue(obj)
             if res:
                 vals = []
@@ -775,9 +787,9 @@ class String(Field):
         elif self.transform == 'capitalize': return value.capitalize()
         return value
 
-    def getUnilingualStorableValue(self, value):
+    def getUnilingualStorableValue(self, obj, value):
         isString = isinstance(value, basestring)
-        isEmpty = Field.isEmptyValue(self, value)
+        isEmpty = Field.isEmptyValue(self, obj, value)
         # Apply transform if required
         if isString and not isEmpty and (self.transform != 'none'):
            value = self.applyTransform(value)
@@ -804,21 +816,23 @@ class String(Field):
             value = [value]
         return value
 
-    def getStorableValue(self, value):
-        if not self.isMultilingual():
-            return self.getUnilingualStorableValue(value)
+    def getStorableValue(self, obj, value):
+        languages = self.getAttribute(obj, 'languages')
+        if len(languages) == 1:
+            return self.getUnilingualStorableValue(obj, value)
         # A multilingual value is stored as a dict whose keys are ISO 2-letters
         # language codes and whose values are strings storing content in the
         # language ~{s_language: s_content}~.
         if not value: return
-        for lg in self.languages:
-            value[lg] = self.getUnilingualStorableValue(value[lg])
+        for lg in languages:
+            value[lg] = self.getUnilingualStorableValue(obj, value[lg])
         return value
 
     def store(self, obj, value):
         '''Stores p_value on p_obj for this field.'''
-        if self.isMultilingual() and value and \
-           (not isinstance(value, dict) or (len(value) != len(self.languages))):
+        languages = self.getAttribute(obj, 'languages')
+        if (len(languages) > 1) and value and \
+           (not isinstance(value, dict) or (len(value) != len(languages))):
             raise Exception('Multilingual field "%s" accepts a dict whose '\
                             'keys are in field.languages and whose ' \
                             'values are strings.' % self.name)
@@ -832,16 +846,16 @@ class String(Field):
         requestValue = rq['fieldContent']
         # Remember previous value if the field is historized.
         previousData = obj.rememberPreviousData([self])
-        if self.isMultilingual():
+        if self.isMultilingual(obj):
             # We take a copy of previousData because it is mutable (dict).
             previousData[self.name] = previousData[self.name].copy()
             # We get a partial value, for one language only.
             language = rq['languageOnly']
-            v = self.getUnilingualStorableValue(requestValue)
+            v = self.getUnilingualStorableValue(obj, requestValue)
             getattr(obj.aq_base, self.name)[language] = v
             part = ' (%s)' % language
         else:
-            self.store(obj, self.getStorableValue(requestValue))
+            self.store(obj, self.getStorableValue(obj, requestValue))
             part = ''
         # Update the object history when relevant
         if previousData: obj.historizeData(previousData)
@@ -892,11 +906,12 @@ class String(Field):
                    'fi': 'fi_FI', 'fr': 'fr_FR', 'de': 'de_DE', 'el': 'el_GR',
                    'it': 'it_IT', 'nb': 'nb_NO', 'pt': 'pt_PT', 'es': 'es_ES',
                    'sv': 'sv_SE'}
-    def getCkLanguage(self, language):
+    def getCkLanguage(self, obj, language):
         '''Gets the language for CK editor SCAYT. p_language is one of
            self.languages if the field is multilingual, None else. If p_language
            is not supported by CK, we use english.'''
-        if not language: language = self.languages[0]
+        if not language:
+            language = self.getAttribute(obj, 'languages')[0]
         if language in self.ckLanguages: return self.ckLanguages[language]
         return 'en_US'
 
@@ -904,7 +919,7 @@ class String(Field):
         '''Gets the base params to set on a rich text field.'''
         ckAttrs = {'toolbar': 'Appy',
                    'format_tags': ';'.join(self.styles),
-                   'scayt_sLang': self.getCkLanguage(language)}
+                   'scayt_sLang': self.getCkLanguage(obj, language)}
         if self.width: ckAttrs['width'] = self.width
         if self.spellcheck: ckAttrs['scayt_autoStartup'] = True
         if self.allowImageUpload:

@@ -627,15 +627,6 @@ class ToolWrapper(AbstractWrapper):
                         (user.o.absolute_url(), user.title,access))
         return res + '\n'.join(rows) + '</table>'
 
-    def getInitiator(self, field=False):
-        '''Retrieves the object that triggered the creation of the object
-           being currently created (if any), or the name of the field in this
-           object if p_field is given.'''
-        nav = self.o.REQUEST.get('nav', '')
-        if not nav or not nav.startswith('ref.'): return
-        if not field: return self.getObject(nav.split('.')[1])
-        return nav.split('.')[2].split(':')[0]
-
     def getObject(self, uid):
         '''Allow to retrieve an object from its unique identifier p_uid.'''
         return self.o.getObject(uid, appy=True)
@@ -666,10 +657,10 @@ class ToolWrapper(AbstractWrapper):
         '''Sends a mail. See doc for appy.gen.mail.sendMail.'''
         sendMail(self, to, subject, body, attachments=attachments)
 
-    def formatDate(self, date, withHour=True):
+    def formatDate(self, date, format=None, withHour=True, language=None):
         '''Check doc @ToolMixin::formatDate.'''
         if not date: return
-        return self.o.formatDate(date, withHour=withHour)
+        return self.o.formatDate(date, format, withHour, language)
 
     def getUserName(self, login=None, normalized=False):
         return self.o.getUserName(login=login, normalized=normalized)

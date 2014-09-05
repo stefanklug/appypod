@@ -327,16 +327,15 @@ class File(Field):
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, True)
 
-    def getRequestValue(self, request, requestName=None):
+    def getRequestValue(self, obj, requestName=None):
         name = requestName or self.name
-        return request.get('%s_file' % name)
+        return obj.REQUEST.get('%s_file' % name)
 
     def getDefaultLayouts(self): return {'view':'l-f','edit':'lrv-f'}
 
-    def isEmptyValue(self, value, obj=None):
+    def isEmptyValue(self, obj, value):
         '''Must p_value be considered as empty?'''
-        if not obj: return Field.isEmptyValue(self, value)
-        if value: return False
+        if value: return
         # If "nochange", the value must not be considered as empty
         return obj.REQUEST.get('%s_delete' % self.name) != 'nochange'
 

@@ -295,7 +295,7 @@ class Pod(Field):
         tool = obj.tool
         diskFolder = tool.getDiskFolder()
         # Get the path to the pod template.
-        templatePath = os.path.join(diskFolder, template)
+        templatePath = sutils.resolvePath(os.path.join(diskFolder, template))
         if not os.path.isfile(templatePath):
             raise Exception(self.TEMPLATE_NOT_FOUND % templatePath)
         # Get or compute the specific POD context

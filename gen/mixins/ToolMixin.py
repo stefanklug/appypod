@@ -1246,12 +1246,27 @@ class ToolMixin(BaseMixin):
         return [f for f in self.getAllAppyTypes(contentType) \
                 if (f.type == 'Pod') and (f.show == 'result')]
 
-    def formatDate(self, date, withHour=True):
-        '''Returns p_date formatted as specified by tool.dateFormat.
-           If p_withHour is True, hour is appended, with a format specified
-           in tool.hourFormat.'''
+    def formatDate(self, date, format=None, withHour=True, language=None):
+        '''Returns p_date formatted as specified by p_format, or tool.dateFormat
+           if not specified. If p_withHour is True, hour is appended, with a
+           format specified in tool.hourFormat.'''
         tool = self.appy()
-        res = date.strftime(tool.dateFormat)
+        fmt = format or tool.dateFormat
+        # Resolve appy-specific formatting symbols used for getting translated
+        # names of days or months:
+        # - %dt: translated name of day
+        # - %DT: translated name of day, capitalized
+        # - %mt: translated name of month
+        # - %MT: translated name of month, capitalized
+        if ('%dt' in fmt) or ('%DT' in fmt):
+            day = self.translate('day_%s' % date._aday, language=language)
+            fmt = fmt.replace('%dt', day.lower()).replace('%DT', day)
+        if ('%mt' in fmt) or ('%MT' in fmt):
+            month = self.translate('month_%s' % date._amon, language=language)
+            fmt = fmt.replace('%mt', month.lower()).replace('%MT', month)
+        # Resolve all other, standard, symbols
+        res = date.strftime(fmt)
+        # Append hour from tool.hourFormat
         if withHour: res += ' (%s)' % date.strftime(tool.hourFormat)
         return res
 

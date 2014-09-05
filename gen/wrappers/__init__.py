@@ -788,7 +788,7 @@ class AbstractWrapper(object):
         obj = self.o
         if hasattr(obj.aq_base, name):
             field = obj.getAppyType(name)
-            return field.isEmptyValue(getattr(obj, name))
+            return field.isEmptyValue(obj, getattr(obj, name))
         return True
 
     def isTemp(self):

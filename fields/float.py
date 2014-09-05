@@ -94,8 +94,8 @@ class Float(Field):
         except ValueError:
             return obj.translate('bad_%s' % self.pythonType.__name__)
 
-    def getStorableValue(self, value):
-        if not self.isEmptyValue(value):
+    def getStorableValue(self, obj, value):
+        if not self.isEmptyValue(obj, value):
             for sep in self.sep: value = value.replace(sep, '.')
             value = value.replace(self.tsep, '')
             return self.pythonType(value)

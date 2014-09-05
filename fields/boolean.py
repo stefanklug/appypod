@@ -117,8 +117,8 @@ class Boolean(Field):
     def getFormattedValue(self, obj, value, showChanges=False):
         return obj.translate(self.getValueLabel(value))
 
-    def getStorableValue(self, value):
-        if not self.isEmptyValue(value):
+    def getStorableValue(self, obj, value):
+        if not self.isEmptyValue(obj, value):
             exec 'res = %s' % value
             return res
 

@@ -337,12 +337,12 @@ class BaseMixin:
         rq = self.REQUEST
         for field in self.getAppyTypes('edit', rq.form.get('page')):
             if not field.validable or not field.isClientVisible(self): continue
-            value = field.getRequestValue(rq)
+            value = field.getRequestValue(self)
             message = field.validate(self, value)
             if message:
                 setattr(errors, field.name, message)
             else:
-                setattr(values, field.name, field.getStorableValue(value))
+                setattr(values, field.name, field.getStorableValue(self, value))
             # Validate sub-fields within Lists
             if field.type != 'List': continue
             i = -1
@@ -634,7 +634,7 @@ class BaseMixin:
                 if lg:
                     isEmpty = not changes[name] or not changes[name].get(lg)
                 else:
-                    isEmpty = field.isEmptyValue(changes[name], self)
+                    isEmpty = field.isEmptyValue(self, changes[name])
                 if isEmpty:
                     del changes[name]
             else:
@@ -664,14 +664,17 @@ class BaseMixin:
             # In some cases the old value must be formatted.
             if field.type == 'Ref':
                 previousData[name] = [r.title for r in previousData[name]]
-            elif (field.type == 'String') and field.isMultilingual():
-                # Consider every language-specific value as a first-class value
-                del previousData[name]
-                for lg in field.languages:
-                    lgPrev = prev and prev.get(lg) or None
-                    lgCurr = curr and curr.get(lg) or None
-                    if lgPrev == lgCurr: continue
-                    previousData['%s-%s' % (name, lg)] = lgPrev
+            elif field.type == 'String':
+                languages = field.getAttribute(self, 'languages')
+                if len(languages) > 1:
+                    # Consider every language-specific value as a first-class
+                    # value.
+                    del previousData[name]
+                    for lg in languages:
+                        lgPrev = prev and prev.get(lg) or None
+                        lgCurr = curr and curr.get(lg) or None
+                        if lgPrev == lgCurr: continue
+                        previousData['%s-%s' % (name, lg)] = lgPrev
         if previousData:
             self.addDataChange(previousData)
 
@@ -714,7 +717,7 @@ class BaseMixin:
         '''Gets the value of field p_name as may be present in the request.'''
         # Return the request value for standard fields.
         if '*' not in name:
-            return self.getAppyType(name).getRequestValue(self.REQUEST)
+            return self.getAppyType(name).getRequestValue(self)
         # For sub-fields within Lists, the corresponding request values have
         # already been computed in the request key corresponding to the whole
         # List.
@@ -1083,7 +1086,11 @@ class BaseMixin:
                     return True
         else:
             field = self.getAppyType(name)
-            multilingual = (field.type == 'String') and field.isMultilingual()
+            # Is this field a multilingual field ?
+            languages = None
+            if field.type == 'String':
+                languages = field.getAttribute(self, 'languages')
+            multilingual = len(languages) > 1
             for event in history:
                 if event['action'] != '_datachange_': continue
                 # Is there a value present for this field in this data change?
@@ -1093,7 +1100,7 @@ class BaseMixin:
                         return True
                 else:
                     # At least one language-specific value must be present
-                    for lg in field.languages:
+                    for lg in languages:
                         lgName = '%s-%s' % (field.name, lg)
                         if (lgName in event['changes']) and \
                            event['changes'][lgName][0]:
@@ -1142,7 +1149,7 @@ class BaseMixin:
                         # previous value, we propose a diff with the next
                         # version, excepted if the previous value is empty.
                         if lg: isEmpty = not oldValue[0]
-                        else: isEmpty = field.isEmptyValue(oldValue[0])
+                        else: isEmpty = field.isEmptyValue(self, oldValue[0])
                         if isEmpty:
                             val = '-'
                         else:

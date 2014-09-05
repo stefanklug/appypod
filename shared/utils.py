@@ -73,6 +73,17 @@ def cleanFolder(folder, exts=extsToClean, folders=(), verbose=False):
                     FolderDeleter.delete(toDelete)
 
 # ------------------------------------------------------------------------------
+def resolvePath(path):
+    '''p_path is a file path that can contain occurences of "." and "..". This
+       function resolves them and procuces a minimal path.'''
+    res = []
+    for elem in path.split(os.sep):
+        if elem == '.': pass
+        elif elem == '..': res.pop()
+        else: res.append(elem)
+    return os.sep.join(res)
+
+# ------------------------------------------------------------------------------
 def copyFolder(source, dest, cleanDest=False):
     '''Copies the content of folder p_source to folder p_dest. p_dest is
        created, with intermediary subfolders if required. If p_cleanDest is

@@ -43,10 +43,11 @@ class TranslationWrapper(AbstractWrapper):
         if field.type == 'Computed': name = field.name[:-6]
         else: name = field.name
         # Get the source message
-        sourceLanguage = self.o.getProductConfig(True).sourceLanguage
+        obj = self.o
+        sourceLanguage = obj.getProductConfig(True).sourceLanguage
         sourceTranslation = getattr(tool.o, sourceLanguage).appy()
         sourceMsg = getattr(sourceTranslation, name)
-        if field.isEmptyValue(sourceMsg): return False
+        if field.isEmptyValue(obj, sourceMsg): return
         return True
 
     poReplacements = ( ('\r\n', '<br/>'), ('\n', '<br/>'), ('"', '\\"') )

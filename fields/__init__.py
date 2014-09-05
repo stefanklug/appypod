@@ -63,7 +63,7 @@ class Field:
              value=not isSearch and \
                    field.getFormattedValue(zobj, rawValue, showChanges);
              requestValue=not isSearch and zobj.getRequestFieldValue(name);
-             inRequest=field.valueIsInRequest(req, name);
+             inRequest=field.valueIsInRequest(zobj, req, name);
              error=req.get('%s_error' % name);
              isMultiple=(field.multiplicity[1] == None) or \
                         (field.multiplicity[1] &gt; 1);
@@ -360,7 +360,7 @@ class Field:
         else:
             master, masterValue = masterData
             if masterValue and callable(masterValue): return True
-            reqValue = master.getRequestValue(obj.REQUEST)
+            reqValue = master.getRequestValue(obj)
             # reqValue can be a list or not
             if type(reqValue) not in sutils.sequenceTypes:
                 return reqValue in masterValue
@@ -517,7 +517,7 @@ class Field:
     def getValue(self, obj):
         '''Gets, on_obj, the value conforming to self's type definition.'''
         value = getattr(obj.aq_base, self.name, None)
-        if self.isEmptyValue(value):
+        if self.isEmptyValue(obj, value):
             # If there is no value, get the default value if any: return
             # self.default, of self.default() if it is a method.
             if callable(self.default):
@@ -539,7 +539,7 @@ class Field:
            purposes. Needs to be overridden by some child classes. If
            p_showChanges is True, the result must also include the changes that
            occurred on p_value across the ages.'''
-        if self.isEmptyValue(value): return ''
+        if self.isEmptyValue(obj, value): return ''
         return value
 
     def getIndexType(self):
@@ -573,7 +573,7 @@ class Field:
                 res = str(res)
         return res
 
-    def valueIsInRequest(self, request, name):
+    def valueIsInRequest(self, obj, request, name):
         '''Is there a value corresponding to this field in the request? p_name
            can be different from self.name (ie, if it is a field within another
            (List) field). In most cases, checking that this p_name is in the
@@ -581,7 +581,7 @@ class Field:
            for string multilingual fields.'''
         return request.has_key(name)
 
-    def getRequestValue(self, request, requestName=None):
+    def getRequestValue(self, obj, requestName=None):
         '''Gets a value for this field as carried in the request object. In the
            simplest cases, the request value is a single value whose name in the
            request is the name of the field.
@@ -595,15 +595,15 @@ class Field:
            the container field). In this case, p_requestName must be used for
            searching into the request, instead of the field name (self.name).'''
         name = requestName or self.name
-        return request.get(name, None)
+        return obj.REQUEST.get(name, None)
 
-    def getStorableValue(self, value):
+    def getStorableValue(self, obj, value):
         '''p_value is a valid value initially computed through calling
            m_getRequestValue. So, it is a valid string (or list of strings)
            representation of the field value coming from the request.
            This method computes the real (potentially converted or manipulated
            in some other way) value as can be stored in the database.'''
-        if self.isEmptyValue(value): return
+        if self.isEmptyValue(obj, value): return
         return value
 
     def getMasterData(self):
@@ -634,11 +634,11 @@ class Field:
         return 'updateSlaves(this,null,%s,%s,null,null%s)' % \
                (q(zobj.absolute_url()), q(layoutType), cName)
 
-    def isEmptyValue(self, value, obj=None):
+    def isEmptyValue(self, obj, value):
         '''Returns True if the p_value must be considered as an empty value.'''
         return value in self.nullValues
 
-    def isCompleteValue(self, value, obj=None):
+    def isCompleteValue(self, obj, value):
         '''Returns True if the p_value must be considered as "complete". While,
            in most cases, a "complete" value simply means a "non empty" value
            (see m_isEmptyValue above), in some special cases it is more subtle.
@@ -648,7 +648,7 @@ class Field:
            a Date with the "hour" part required will not be considered as empty
            if the "day, month, year" part is present but will not be considered
            as complete without the "hour, minute" part.'''
-        return not self.isEmptyValue(value, obj)
+        return not self.isEmptyValue(obj, value)
 
     def validateValue(self, obj, value):
         '''This method may be overridden by child classes and will be called at
@@ -673,7 +673,7 @@ class Field:
            definition. If it is the case, None is returned. Else, a translated
            error message is returned.'''
         # If the value is required, check that a (complete) value is present.
-        if not self.isCompleteValue(value, obj):
+        if not self.isCompleteValue(obj, value):
             if self.required and self.isClientVisible(obj):
                 # If the field is required, but not visible according to
                 # master/slave relationships, we consider it not to be required.
@@ -686,7 +686,7 @@ class Field:
         message = self.validateValue(obj, value)
         if message: return message
         # Evaluate the custom validator if one has been specified
-        value = self.getStorableValue(value)
+        value = self.getStorableValue(obj, value)
         if self.validator and (type(self.validator) in self.validatorTypes):
             obj = obj.appy()
             if type(self.validator) != self.validatorTypes[-1]:
