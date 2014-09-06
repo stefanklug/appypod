@@ -71,7 +71,8 @@ class Migrator:
         '''Executes a migration when relevant, or do it for sure if p_force is
            True.'''
         appyVersion = self.tool.appyVersion
-        if force or not appyVersion or (appyVersion < '0.9.0'):
+        # appyVersion being None simply means that we are creating a new DB.
+        if force or (appyVersion and (appyVersion < '0.9.0')):
             # Migration is required.
             self.logger.info('Appy version (DB) is %s' % appyVersion)
             startTime = time.time()

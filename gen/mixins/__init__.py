@@ -1298,7 +1298,7 @@ class BaseMixin:
     def Title(self):
         '''Returns the title for this object.'''
         title = self.getAppyType('title')
-        if title: return title.getValue(self)
+        if title: return title.getIndexValue(self)
         return self.id
 
     def SortableTitle(self):
@@ -1468,6 +1468,11 @@ class BaseMixin:
             return False
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
+    def getShownValue(self, name):
+        '''Call field.getShownValue on field named p_name.'''
+        field = self.getAppyType('title')
+        return field.getShownValue(self, field.getValue(self))
+
     def getBreadCrumb(self, inPopup=False):
         '''Gets breadcrumb info about this object and its parents (if it must
            be shown).'''
@@ -1475,8 +1480,9 @@ class BaseMixin:
         klass = self.getClass()
         if hasattr(klass, 'breadcrumb') and not klass.breadcrumb: return ()
         # Compute the breadcrumb
+        title = self.getAppyType('title')
         res = [Object(url=self.getUrl(inPopup=inPopup),
-                      title=self.getFieldValue('title', layoutType='view'))]
+                      title=title.getShownValue(self, title.getValue(self)))]
         # In a popup: limit the breadcrumb to the current object.
         if inPopup: return res
         parent = self.getParent()

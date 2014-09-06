@@ -542,6 +542,13 @@ class Field:
         if self.isEmptyValue(obj, value): return ''
         return value
 
+    def getShownValue(self, obj, value, showChanges=False):
+        '''Similar to m_getFormattedValue, but in some contexts, only a part of
+           p_value must be shown. For example, sometimes we need to display only
+           a language-specific part of a multilingual field (see overridden
+           method in string.py).'''
+        return self.getFormattedValue(obj, value, showChanges)
+
     def getIndexType(self):
         '''Returns the name of the technical, Zope-level index type for this
            field.'''

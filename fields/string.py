@@ -632,6 +632,20 @@ class String(Field):
                                                        showChanges, lg)
         return res
 
+    def getShownValue(self, obj, value, showChanges=False):
+        '''For a multilingual field, this method only shows one specific
+           language part.'''
+        languages = self.getAttribute(obj, 'languages')
+        if len(languages) == 1:
+            return self.getUnilingualFormattedValue(obj, value, showChanges)
+        if not value: return value
+        # Try to propose the part that is in the user language, or the part of
+        # the first content language else.
+        language = obj.getUserLanguage()
+        if language not in value: language = languages[0]
+        return self.getUnilingualFormattedValue(obj, value[language],
+                                                showChanges, language)
+
     def extractText(self, value):
         '''Extracts pure text from XHTML p_value.'''
         return XhtmlTextExtractor(raiseOnError=False).parse('<p>%s</p>' % value)

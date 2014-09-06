@@ -322,7 +322,7 @@ class ToolWrapper(AbstractWrapper):
           var2="linkInPopup=inPopup or (target.target != '_self')"
           target=":target.target" onclick=":target.openPopup"
           href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage(), \
-                 inPopup=linkInPopup)">:zobj.Title()</a>
+                 inPopup=linkInPopup)">:zobj.getShownValue('title')</a>
        <span if="not enableLinks"
              class=":not checkboxes and cssClass or ('%s clickable' % cssClass)"
              onclick=":checkboxes and ('onSelectObject(%s,%s,%s)' % (q(cbId), \

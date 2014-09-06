@@ -50,7 +50,7 @@ class Ref(Field):
                                     inPopup=linkInPopup)"
          href=":fullUrl" class=":cssClass" target=":target.target"
          onclick=":target.openPopup">:(not includeShownInfo) and \
-         tied.title or field.getReferenceLabel(tied)
+         tied.o.getShownValue('title') or field.getReferenceLabel(tied)
       </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
             'display:none'">::tied.o.getSubTitle()</span></x>''')
 
@@ -1237,7 +1237,7 @@ class Ref(Field):
         for fieldName in self.shownInfo:
             refType = refObject.o.getAppyType(fieldName)
             value = getattr(refObject, fieldName)
-            value = refType.getFormattedValue(refObject.o, value)
+            value = refType.getShownValue(refObject.o, value)
             if refType.type == 'String':
                 if refType.format == 2:
                     value = self.xhtmlToText.sub(' ', value)
