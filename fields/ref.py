@@ -933,7 +933,7 @@ class Ref(Field):
         # object to show is in the request.
         return int(req.get('%s_startNumber' % ajaxHookId, 0))
 
-    def getFormattedValue(self, obj, value, showChanges=False):
+    def getFormattedValue(self, obj, value, showChanges=False, language=None):
         return value
 
     def getIndexType(self): return 'ListIndex'

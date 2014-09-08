@@ -79,7 +79,7 @@ class Computed(Field):
             # self.method is a method that will return the field value
             return self.callMethod(obj, self.method, cache=False)
 
-    def getFormattedValue(self, obj, value, showChanges=False):
+    def getFormattedValue(self, obj, value, showChanges=False, language=None):
         if not isinstance(value, basestring): return str(value)
         return value
 # ------------------------------------------------------------------------------

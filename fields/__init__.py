@@ -533,12 +533,14 @@ class Field:
                 return self.default
         return value
 
-    def getFormattedValue(self, obj, value, showChanges=False):
+    def getFormattedValue(self, obj, value, showChanges=False, language=None):
         '''p_value is a real p_obj(ect) value from a field from this type. This
            method returns a pretty, string-formatted version, for displaying
            purposes. Needs to be overridden by some child classes. If
            p_showChanges is True, the result must also include the changes that
-           occurred on p_value across the ages.'''
+           occurred on p_value across the ages. If the formatting implies
+           translating some elements, p_language will be used if given, the
+           user language else.'''
         if self.isEmptyValue(obj, value): return ''
         return value
 

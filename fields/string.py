@@ -55,12 +55,16 @@ class Selection:
         # internationalized version of "text" if needed.
         self.methodName = methodName
 
-    def getText(self, obj, value, appyType):
+    def getText(self, obj, value, field, language=None):
         '''Gets the text that corresponds to p_value.'''
-        for v, text in appyType.getPossibleValues(obj, ignoreMasterValues=True,\
-                                                  withTranslations=True):
-            if v == value:
-                return text
+        if language:
+            withTranslations = language
+        else:
+            withTranslations = True
+        vals = field.getPossibleValues(obj, ignoreMasterValues=True,\
+                                       withTranslations=withTranslations)
+        for v, text in vals:
+            if v == value: return text
         return value
 
 # ------------------------------------------------------------------------------
@@ -587,7 +591,7 @@ class String(Field):
         return comparator.get()
 
     def getUnilingualFormattedValue(self, obj, value, showChanges=False,
-                                    language=None):
+                                    userLanguage=None, language=None):
         '''If no p_language is specified, this method is called by
            m_getFormattedValue for getting a non-multilingual value (ie, in
            most cases). Else, this method returns a formatted value for the
@@ -599,17 +603,20 @@ class String(Field):
                 # Value(s) come from a dynamic vocabulary
                 val = self.validator
                 if self.isMultiValued():
-                    return [val.getText(obj, v, self) for v in value]
+                    return [val.getText(obj, v, self, language=userLanguage) \
+                            for v in value]
                 else:
-                    return val.getText(obj, value, self)
+                    return val.getText(obj, value, self, language=userLanguage)
             else:
                 # Value(s) come from a fixed vocabulary whose texts are in
                 # i18n files.
-                t = obj.translate
+                _ = obj.translate
                 if self.isMultiValued():
-                    res = [t('%s_list_%s' % (self.labelId, v)) for v in value]
+                    res = [_('%s_list_%s' % (self.labelId, v), \
+                             language=userLanguage) for v in value]
                 else:
-                    res = t('%s_list_%s' % (self.labelId, value))
+                    res = _('%s_list_%s' % (self.labelId, value), \
+                            language=userLanguage)
         elif (self.format == String.XHTML) and showChanges:
             # Compute the successive changes that occurred on p_value.
             res = self.getDiffValue(obj, res, language)
@@ -619,32 +626,39 @@ class String(Field):
            (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
         return res
 
-    def getFormattedValue(self, obj, value, showChanges=False):
+    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+        '''Be careful: p_language represents the UI language, while "languages"
+           below represents the content language(s) of this field. p_language
+           can be used, ie, to translate a Selection value.'''
         languages = self.getAttribute(obj, 'languages')
         if len(languages) == 1:
-            return self.getUnilingualFormattedValue(obj, value, showChanges)
+            return self.getUnilingualFormattedValue(obj, value, showChanges,
+                                                    userLanguage=language)
         # Return the dict of values whose individual, language-specific values
         # have been formatted via m_getUnilingualFormattedValue.
         if not value: return value
         res = {}
         for lg in languages:
             res[lg] = self.getUnilingualFormattedValue(obj, value[lg],
-                                                       showChanges, lg)
+                                                       showChanges, language=lg)
         return res
 
-    def getShownValue(self, obj, value, showChanges=False):
-        '''For a multilingual field, this method only shows one specific
-           language part.'''
+    def getShownValue(self, obj, value, showChanges=False, language=None):
+        '''Be careful: p_language represents the UI language, while "languages"
+           below represents the content language(s) of this field. For a
+           multilingual field, this method only shows one specific language
+           part.'''
         languages = self.getAttribute(obj, 'languages')
         if len(languages) == 1:
-            return self.getUnilingualFormattedValue(obj, value, showChanges)
+            return self.getUnilingualFormattedValue(obj, value, showChanges,
+                                                    userLanguage=language)
         if not value: return value
         # Try to propose the part that is in the user language, or the part of
         # the first content language else.
-        language = obj.getUserLanguage()
-        if language not in value: language = languages[0]
-        return self.getUnilingualFormattedValue(obj, value[language],
-                                                showChanges, language)
+        lg = obj.getUserLanguage()
+        if lg not in value: lg = languages[0]
+        return self.getUnilingualFormattedValue(obj, value[lg], showChanges,
+                                                language=lg)
 
     def extractText(self, value):
         '''Extracts pure text from XHTML p_value.'''
@@ -684,11 +698,15 @@ class String(Field):
         '''Returns the list of possible values for this field (only for fields
            with self.isSelect=True). If p_withTranslations is True, instead of
            returning a list of string values, the result is a list of tuples
-           (s_value, s_translation). If p_withBlankValue is True, a blank value
-           is prepended to the list, excepted if the type is multivalued. If
+           (s_value, s_translation). Moreover, p_withTranslations can hold a
+           given language: in this case, this language is used instead of the
+           user language. If p_withBlankValue is True, a blank value is
+           prepended to the list, excepted if the type is multivalued. If
            p_className is given, p_obj is the tool and, if we need an instance
            of p_className, we will need to use obj.executeQuery to find one.'''
         if not self.isSelect: raise Exception('This field is not a selection.')
+        # Get the user language for translations, from "withTranslations".
+        lg = isinstance(withTranslations, str) and withTranslations or None
         req = obj.REQUEST
         if ('masterValues' in req) and not ignoreMasterValues:
             # Get possible values from self.masterValue
@@ -699,7 +717,7 @@ class String(Field):
             else:
                 res = []
                 for v in values:
-                    res.append( (v, self.getFormattedValue(obj, v)) )
+                    res.append( (v, self.getFormattedValue(obj,v,language=lg)) )
         else:
             # If this field is an ajax-updatable slave, no need to compute
             # possible values: it will be overridden by method self.masterValue
@@ -750,13 +768,13 @@ class String(Field):
                 for value in self.validator:
                     label = '%s_list_%s' % (self.labelId, value)
                     if withTranslations:
-                        res.append( (value, obj.translate(label)) )
+                        res.append( (value, obj.translate(label, language=lg)) )
                     else:
                         res.append(value)
         if withBlankValue and not self.isMultiValued():
             # Create the blank value to insert at the beginning of the list
             if withTranslations:
-                blankValue = ('', obj.translate('choose_a_value'))
+                blankValue = ('', obj.translate('choose_a_value', language=lg))
             else:
                 blankValue = ''
             # Insert the blank value in the result

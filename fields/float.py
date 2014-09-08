@@ -81,7 +81,7 @@ class Float(Field):
                        sheight, persist)
         self.pythonType = float
 
-    def getFormattedValue(self, obj, value, showChanges=False):
+    def getFormattedValue(self, obj, value, showChanges=False, language=None):
         return sutils.formatNumber(value, sep=self.sep[0],
                                    precision=self.precision, tsep=self.tsep)
 

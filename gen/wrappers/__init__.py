@@ -774,6 +774,17 @@ class AbstractWrapper(object):
         if custom: return custom(self, *args, **kwargs)
 
     def getField(self, name): return self.o.getAppyType(name)
+
+    def getValue(self, name, formatted=False, language=None):
+        '''Gets the formatted value of field p_name. If this formatting implies
+           translating some element, translate them in p_langue, or in the user
+           language if not specified.'''
+        field = self.o.getAppyType(name)
+        obj = self.o
+        val = field.getValue(obj)
+        if not formatted: return val
+        return field.getFormattedValue(obj, val, language=language)
+
     def getLabel(self, name, type='field'):
         '''Gets the translated label of field named p_name. If p_type is
            "workflow", p_name denotes a workflow state or transition, not a
