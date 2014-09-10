@@ -265,6 +265,7 @@ class String(Field):
      'view': {LINE:pxViewLine, TEXT:pxViewText, XHTML:pxViewRich,
               PASSWORD:pxViewLine, CAPTCHA:pxViewLine}
     }
+    subPx['cell'] = subPx['view']
 
     # Some predefined functions that may also be used as validators
     @staticmethod

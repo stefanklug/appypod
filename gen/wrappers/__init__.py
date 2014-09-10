@@ -776,14 +776,19 @@ class AbstractWrapper(object):
     def getField(self, name): return self.o.getAppyType(name)
 
     def getValue(self, name, formatted=False, language=None):
-        '''Gets the formatted value of field p_name. If this formatting implies
-           translating some element, translate them in p_langue, or in the user
-           language if not specified.'''
+        '''Gets the possibly p_formatted value of field p_name. If this
+           formatting implies translating something, it will be done in
+           p_language, or in the user language if not specified. If the "shown"
+           value is required instead of the "formatted" value (see methods
+           getFormattedValue and getShownValue from class appy.fields.Field),
+           use p_formatted="shown" instead of p_formatted=True.'''
         field = self.o.getAppyType(name)
         obj = self.o
         val = field.getValue(obj)
         if not formatted: return val
-        return field.getFormattedValue(obj, val, language=language)
+        method = (formatted == 'shown') and 'getShownValue' or \
+                                            'getFormattedValue'
+        return getattr(field, method)(obj, val, language=language)
 
     def getLabel(self, name, type='field'):
         '''Gets the translated label of field named p_name. If p_type is

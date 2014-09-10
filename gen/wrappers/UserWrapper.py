@@ -156,7 +156,7 @@ class UserWrapper(AbstractWrapper):
         if self.firstName and self.name:
             self.title = '%s %s' % (self.name, self.firstName)
         else:
-            self.title = self.login
+            self.title = self.title or self.login
 
     def ensureAdminIsManager(self):
         '''User 'admin' must always have role 'Manager'.'''

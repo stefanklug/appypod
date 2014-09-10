@@ -34,6 +34,7 @@ class Pod(Field):
     # Layout for rendering a POD field for exporting query results.
     rLayouts = {'view': 'fl!'}
     allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
+
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
     NO_TEMPLATE = 'Please specify a pod template in field "template".'
@@ -119,10 +120,17 @@ class Pod(Field):
                  template=None, templateName=None, showTemplate=None,
                  freezeTemplate=None, context=None, stylesMapping={},
                  formats=None, getChecked=None):
-        # Param "template" stores the path to the pod template(s).
+        # Param "template" stores the path to the pod template(s). If there is
+        # a single template, a string is expected. Else, a list or tuple of
+        # strings is expected. Every such path must be relative to your
+        # application. A pod template name Test.odt that is stored at the root
+        # of your app will be referred as "Test.odt" in self.template. If it is
+        # stored within sub-folder "pod", it will be referred as "pod/Test.odt".
         if not template: raise Exception(Pod.NO_TEMPLATE)
         if isinstance(template, basestring):
             self.template = [template]
+        elif isinstance(template, tuple):
+            self.template = list(template)
         else:
             self.template = template
         # Param "templateName", if specified, is a method that will be called
@@ -194,7 +202,8 @@ class Pod(Field):
         self.getChecked = getChecked
         if not formats:
             # Compute default ones
-            if self.template[0].endswith('.ods'):
+            ext = self.getExtension(self.template[0])
+            if ext == '.ods':
                 self.formats = ('xls', 'ods')
             else:
                 self.formats = ('pdf', 'doc', 'odt')
@@ -207,11 +216,46 @@ class Pod(Field):
         # field is determined by freezing.
         self.validable = False
 
+    def getExtension(self, template):
+        '''Gets a p_template's extension (".odt" or ".ods"). Because a template
+           can simply be a pointer to another template (ie, "Item.odt.variant"),
+           the logic for getting the extension is a bit more tricky.'''
+        elems = os.path.splitext(template)
+        if elems[1] in Pod.allFormats: return elems[1]
+        # p_template must be a pointer to another template and has one more
+        # extension.
+        return os.path.splitext(elems[0])[1]
+
     def getAllFormats(self, template):
-        '''Gets all the outputy formats that are available for a given
+        '''Gets all the output formats that are available for a given
            p_template.'''
-        ext = os.path.splitext(template)[1]
-        return self.allFormats[ext]
+        return self.allFormats[self.getExtension(template)]
+
+    def setTemplateFolder(self, folder):
+        '''This methods adds a prefix to every template name in
+           self.template. This can be useful if a plug-in module needs to
+           replace an application template by its own templates. Here is an
+           example: imagine a base application has a pod field with:
+           
+           self.templates = ["Item.odt", "Decision.odt"]
+           
+           The plug-in module, named "PlugInApp", wants to replace it with its
+           own templates Item.odt, Decision.odt and Other.odt, stored in its
+           sub-folder "pod". Suppose the base pod field is in <podField>. The
+           plug-in will write:
+           
+           <podField>.templates = ["Item.odt", "Decision.odt", "Other.odt"]
+           <podField>.setTemplateFolder('../PlugInApp/pod')
+           
+           The following code is equivalent, will work, but is precisely the
+           kind of things we want to avoid.
+
+           <podField>.templates = ["../PlugInApp/pod/Item.odt",
+                                   "../PlugInApp/pod/Decision.odt",
+                                   "../PlugInApp/pod/Other.odt"]
+        '''
+        for i in range(len(self.template)):
+            self.template[i] = os.path.join(folder, self.template[i])
 
     def getTemplateName(self, obj, fileName):
         '''Gets the name of a template given its p_fileName.'''
@@ -223,6 +267,19 @@ class Pod(Field):
         if not res:
             name = os.path.splitext(os.path.basename(fileName))[0]
             res = gutils.produceNiceMessage(name)
+        return res
+
+    def getTemplatePath(self, diskFolder, template):
+        '''Return the absolute path to some pod p_template, by prefixing it with
+           the application path. p_template can be a pointer to another
+           template.'''
+        res = sutils.resolvePath(os.path.join(diskFolder, template))
+        if not os.path.isfile(res):
+            raise Exception(self.TEMPLATE_NOT_FOUND % templatePath)
+        # Unwrap the path if the file is simply a pointer to another one.
+        elems = os.path.splitext(res)
+        if elems[1] not in Pod.allFormats:
+            res = self.getTemplatePath(diskFolder, elems[0])
         return res
 
     def getDownloadName(self, obj, template, format, queryRelated):
@@ -295,9 +352,7 @@ class Pod(Field):
         tool = obj.tool
         diskFolder = tool.getDiskFolder()
         # Get the path to the pod template.
-        templatePath = sutils.resolvePath(os.path.join(diskFolder, template))
-        if not os.path.isfile(templatePath):
-            raise Exception(self.TEMPLATE_NOT_FOUND % templatePath)
+        templatePath = self.getTemplatePath(diskFolder, template)
         # Get or compute the specific POD context
         specificContext = None
         if callable(self.context):
@@ -311,7 +366,8 @@ class Pod(Field):
         # Define parameters to give to the appy.pod renderer
         podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
-                      '_': obj.translate, 'projectFolder': diskFolder}
+                      '_': obj.translate, 'projectFolder': diskFolder,
+                      'template': template}
         # If the pod document is related to a query, re-trigger it and put the
         # result in the pod context.
         if queryData:
