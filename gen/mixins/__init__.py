@@ -1519,22 +1519,30 @@ class BaseMixin:
         '''Gets the language (code) of the current user.'''
         if not hasattr(self, 'REQUEST'):
             return self.getProductConfig().appConfig.languages[0]
+        # Return the cached value on the request object if present
+        rq = self.REQUEST
+        if hasattr(rq, 'userLanguage'): return rq.userLanguage
         # Try the value which comes from the cookie. Indeed, if such a cookie is
         # present, it means that the user has explicitly chosen this language
         # via the language selector.
-        rq = self.REQUEST
-        if '_ZopeLg' in rq.cookies: return rq.cookies['_ZopeLg']
-        # Try the LANGUAGE key from the request: it corresponds to the language
-        # as configured in the user's browser.
-        res = self.REQUEST.get('LANGUAGE', None)
-        if res: return res
-        # Try the HTTP_ACCEPT_LANGUAGE key from the request, which stores
-        # language preferences as defined in the user's browser. Several
-        # languages can be listed, from most to less wanted.
-        res = self.REQUEST.get('HTTP_ACCEPT_LANGUAGE', None)
-        if not res: return self.getProductConfig().appConfig.languages[0]
-        if ',' in res: res = res[:res.find(',')]
-        if '-' in res: res = res[:res.find('-')]
+        if '_ZopeLg' in rq.cookies:
+            res = rq.cookies['_ZopeLg']
+        else:
+            # Try the LANGUAGE key from the request: it corresponds to the
+            # language as configured in the user's browser.
+            res = rq.get('LANGUAGE', None)
+            if not res:
+                # Try the HTTP_ACCEPT_LANGUAGE key from the request, which
+                # stores language preferences as defined in the user's browser.
+                # Several languages can be listed, from most to less wanted.
+                res = rq.get('HTTP_ACCEPT_LANGUAGE', None)
+                if res:
+                    if ',' in res: res = res[:res.find(',')]
+                    if '-' in res: res = res[:res.find('-')]
+                else:
+                    res = self.getProductConfig().appConfig.languages[0]
+        # Cache this result
+        rq.userLanguage = res
         return res
 
     def getLanguageDirection(self, lang):
