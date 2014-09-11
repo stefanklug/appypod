@@ -6,7 +6,8 @@ CKEDITOR.editorConfig = function(config) {
   config.toolbar = 'Appy';
   config.toolbar_Appy = [
     { name: 'basicstyles',
-      items: ["Format", "Bold", "Italic", "Underline"]},
+      items: ["Format", "Bold", "Italic", "Underline", "Subscript",
+              "Superscript", "RemoveFormat"]},
     { name: 'paragraph',
       items: ["NumberedList", "BulletedList", "Outdent", "Indent"]},
     { name: 'clipboard',
@@ -24,4 +25,3 @@ CKEDITOR.editorConfig = function(config) {
   config.scayt_uiTabs = '0,1,0';
   config.removeDialogTabs = 'image:advanced;link:advanced';
 };
-

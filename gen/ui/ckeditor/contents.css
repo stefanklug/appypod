@@ -2,8 +2,8 @@
    For licensing, see LICENSE.html or http://ckeditor.com/license */
 
 /* From ckeditor default contents.css */
-body { font-family: sans-serif, Arial, Verdana, "Trebuchet MS"; font-size: 12px;
-       color: #333; background-color: #fff; margin: 20px }
+body { font-family: sans-serif, Arial, Verdana, "Trebuchet MS"; font-size: 11px;
+       color: #333; background-color: #fff; margin: 10px }
 .cke_editable { font-size: 13px; line-height: 1.6 }
 blockquote {
   font-style: italic; font-family: Georgia, Times, "Times New Roman", serif;
