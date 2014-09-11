@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 from appy.gen import WorkflowOwner
+from appy.gen.layout import summaryPageLayouts
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen import utils as gutils
 
@@ -7,6 +8,7 @@ from appy.gen import utils as gutils
 class UserWrapper(AbstractWrapper):
     workflow = WorkflowOwner
     specialUsers = ('system', 'anon', 'admin')
+    layouts = summaryPageLayouts
 
     def showLogin(self):
         '''When must we show the login field?'''

@@ -6,6 +6,7 @@ import os, os.path, mimetypes
 import appy.pod
 from appy.gen import Field, Search, Ref, String, WorkflowAnonymous
 from appy.gen.indexer import defaultIndexes
+from appy.gen.layout import defaultPageLayouts
 from appy.gen.utils import createObject
 from appy.px import Px
 from appy.shared.utils import getOsTempFolder, executeCommand, \
@@ -679,6 +680,14 @@ class AbstractWrapper(object):
         res = klass._getParentAttr('workflow')
         # Return a default workflow if no workflow was found.
         if not res: res = WorkflowAnonymous
+        return res
+
+    @classmethod
+    def getPageLayouts(klass):
+        '''Returns the page layouts for p_klass.'''
+        res = klass._getParentAttr('layouts')
+        # Return the default page layout if no layout was found.
+        if not res: res = defaultPageLayouts
         return res
 
     @classmethod

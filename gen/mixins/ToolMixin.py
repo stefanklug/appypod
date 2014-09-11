@@ -1072,7 +1072,7 @@ class ToolMixin(BaseMixin):
         if not user: return
         # Authentify the user if required.
         if authentify:
-            if not user.checkPassword(password):
+            if (user.state == 'inactive') or (not user.checkPassword(password)):
                 # Disable the authentication cookie.
                 req.RESPONSE.expireCookie('_appy_', path='/')
                 return

@@ -9,7 +9,7 @@ from appy.px import Px
 from appy.fields.workflow import UiTransition
 import appy.gen as gen
 from appy.gen.utils import *
-from appy.gen.layout import Table, defaultPageLayouts
+from appy.gen.layout import Table
 from appy.gen.descriptors import WorkflowDescriptor, ClassDescriptor
 from appy.shared import utils as sutils
 from appy.shared.data import rtlLanguages
@@ -1596,8 +1596,9 @@ class BaseMixin:
             # Fallback to 'en'.
             translation = getattr(tool, 'en').appy()
             res = getattr(translation, label, '')
-        # If still no result, put the label instead of a translated message
-        if not res: res = label
+        # If still no result, put a nice name derived from the label instead of
+        # a translated message.
+        if not res: res = produceNiceMessage(label.rsplit('_', 1)[-1])
         else:
             # Perform replacements, according to p_format.
             res = self.formatText(res, format)
@@ -1609,14 +1610,9 @@ class BaseMixin:
 
     def getPageLayout(self, layoutType):
         '''Returns the layout corresponding to p_layoutType for p_self.'''
-        appyClass = self.wrapperClass.__bases__[-1]
-        if hasattr(appyClass, 'layouts'):
-            layout = appyClass.layouts[layoutType]
-            if isinstance(layout, basestring):
-                layout = Table(layout)
-        else:
-            layout = defaultPageLayouts[layoutType]
-        return layout
+        res = self.wrapperClass.getPageLayouts()[layoutType]
+        if isinstance(res, basestring): res = Table(res)
+        return res
 
     def download(self, name=None):
         '''Downloads the content of the file that is in the File field whose

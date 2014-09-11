@@ -546,23 +546,28 @@ class WritePermission(Permission): pass
 # Standard workflows -----------------------------------------------------------
 class WorkflowAnonymous:
     '''One-state workflow allowing anyone to consult and Manager to edit.'''
-    mgr = 'Manager'
+    ma = 'Manager'
     o = 'Owner'
-    active = State({r:(mgr, 'Anonymous', 'Authenticated'), w:(mgr,o),d:(mgr,o)},
-                   initial=True)
+    everyone = (ma, 'Anonymous', 'Authenticated')
+    active = State({r:everyone, w:(ma, o), d:(ma, o)}, initial=True)
 
 class WorkflowAuthenticated:
     '''One-state workflow allowing authenticated users to consult and Manager
        to edit.'''
-    mgr = 'Manager'
+    ma = 'Manager'
     o = 'Owner'
-    active = State({r:(mgr, 'Authenticated'), w:(mgr,o), d:(mgr,o)},
-                   initial=True)
+    authenticated = (ma, 'Authenticated')
+    active = State({r:authenticated, w:(ma, o), d:(ma, o)}, initial=True)
 
 class WorkflowOwner:
     '''One-state workflow allowing only manager and owner to consult and
        edit.'''
-    mgr = 'Manager'
+    ma = 'Manager'
     o = 'Owner'
-    active = State({r:(mgr, o), w:(mgr, o), d:mgr}, initial=True)
+    # States
+    active = State({r:(ma, o), w:(ma, o), d:ma}, initial=True)
+    inactive = State({r:(ma, o), w:ma, d:ma})
+    # Transitions
+    deactivate = Transition( (active, inactive), condition=ma)
+    reactivate = Transition( (inactive, active), condition=ma)
 # ------------------------------------------------------------------------------
