@@ -715,9 +715,10 @@ class AbstractWrapper(object):
     def appy(self): return self
 
     def __setattr__(self, name, value):
-        appyType = self.o.getAppyType(name)
-        if not appyType: raise Exception('Attribute "%s" does not exist.' %name)
-        appyType.store(self.o, value)
+        field = self.o.getAppyType(name)
+        if not field:
+            raise AttributeError('Attribute "%s" does not exist.' % name)
+        field.store(self.o, value)
 
     def __getattribute__(self, name):
         '''Gets the attribute named p_name. Lot of cheating here.'''
@@ -844,13 +845,23 @@ class AbstractWrapper(object):
                        reverse=reverse)
         refs._p_changed = 1
 
-    def create(self, fieldNameOrClass, noSecurity=False, **kwargs):
-        '''If p_fieldNameOrClass is the name of a field, this method allows to
-           create an object and link it to the current one (self) through
-           reference field named p_fieldName.
-           If p_fieldNameOrClass is a class from the gen-application, it must
-           correspond to a root class and this method allows to create a
-           root object in the application folder.'''
+    def create(self, fieldNameOrClass, noSecurity=False,
+               raiseOnWrongAttribute=True, **kwargs):
+        '''This method creates a new instance of a gen-class.
+        
+           If p_fieldNameOrClass is the name of a field, the created object will
+           be linked to p_self via this field. If p_fieldNameOrClass is a class
+           from the gen-application, it must correspond to a root class: the
+           created object will be stored in the main application folder (and no
+           link will exist between it and p_self).
+
+           p_kwargs allow to specify values for object fields.
+           If p_noSecurity is True, security checks will not be performed.
+
+           If p_raiseOnWrongAttribute is True, if a value from p_kwargs does not
+           correspond to a field on the created object, an AttributeError will
+           be raised. Else, the value will be silently ignored.
+        '''
         isField = isinstance(fieldNameOrClass, basestring)
         tool = self.tool.o
         # Determine the class of the object to create
@@ -867,11 +878,6 @@ class AbstractWrapper(object):
             del kwargs['id']
         else:
             objId = tool.generateUid(portalType)
-        # Determine if object must be created from external data
-        externalData = None
-        if kwargs.has_key('_data'):
-            externalData = kwargs['_data']
-            del kwargs['_data']
         # Where must I create the object?
         if not isField:
             folder = tool.getPath('/data')
@@ -886,16 +892,32 @@ class AbstractWrapper(object):
         appyObj = zopeObj.appy()
         # Set object attributes
         for attrName, attrValue in kwargs.iteritems():
-            setattr(appyObj, attrName, attrValue)
+            try:
+                setattr(appyObj, attrName, attrValue)
+            except AttributeError, ae:
+                if raiseOnWrongAttribute: raise ae
         if isField:
             # Link the object to this one
             appyType.linkObject(self, appyObj)
         # Call custom initialization
-        if externalData: param = externalData
-        else: param = True
-        if hasattr(appyObj, 'onEdit'): appyObj.onEdit(param)
+        if hasattr(appyObj, 'onEdit'): appyObj.onEdit(True)
         zopeObj.reindex()
         return appyObj
+
+    def createFrom(self, fieldNameOrClass, other, noSecurity=False):
+        '''Similar to m_create above, excepted that we will use another object
+           (p_other) as base for filling in data for the object to create.'''
+        # Get the field values to set from p_other and store it in a dict.
+        # p_other may not be of the same class as p_self.
+        params = {}
+        for field in other.fields:
+            # Skip the added attribute "state"
+            if field.name == 'state': continue
+            # Skip back references.
+            if (field.type == 'Ref') and field.isBack: continue
+            params[field.name] = field.getCopyValue(other.o)
+        return self.create(fieldNameOrClass, noSecurity=noSecurity,
+                           raiseOnWrongAttribute=False, **params)
 
     def freeze(self, fieldName, template=None, format='pdf', noSecurity=True,
                freezeOdtOnError=True):

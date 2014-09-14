@@ -144,9 +144,9 @@ class ZopeInstaller:
         # Re-index index "SearchableText", wrongly defined for Appy < 0.8.3.
         stIndex = catalog.Indexes['SearchableText']
         if stIndex.indexSize() == 0:
-            self.logger.info('Reindexing SearchableText...')
+            self.logger.info('reindexing SearchableText...')
             catalog.reindexIndex('SearchableText', self.app.REQUEST)
-            self.logger.info('Done.')
+            self.logger.info('done.')
 
     def installBaseObjects(self):
         '''Creates the tool and the base data folder if they do not exist.'''
@@ -236,7 +236,7 @@ class ZopeInstaller:
                 for message in poFile.messages:
                     setattr(translation, message.id, message.getMessage())
                 done.append(translation.id)
-            appyTool.log('Translation(s) %s updated (%s messages).' % \
+            appyTool.log('translation(s) %s updated (%s messages).' % \
                          (', '.join(done), len(poFile.messages)))
 
         # Execute custom installation code if any.

@@ -533,6 +533,11 @@ class Field:
                 return self.default
         return value
 
+    def getCopyValue(self, obj):
+        '''Gets the value of this field on p_obj as with m_getValue above. But
+           if this value is mutable, get a copy of it.'''
+        return self.getValue(obj)
+
     def getFormattedValue(self, obj, value, showChanges=False, language=None):
         '''p_value is a real p_obj(ect) value from a field from this type. This
            method returns a pretty, string-formatted version, for displaying

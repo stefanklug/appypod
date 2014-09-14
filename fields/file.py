@@ -331,6 +331,7 @@ class File(Field):
         name = requestName or self.name
         return obj.REQUEST.get('%s_file' % name)
 
+    def getCopyValue(self, obj): raise Exception('Not implemented yet.')
     def getDefaultLayouts(self): return {'view':'l-f','edit':'lrv-f'}
 
     def isEmptyValue(self, obj, value):

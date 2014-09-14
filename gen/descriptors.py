@@ -356,18 +356,10 @@ class FieldDescriptor:
         group = self.appyType.group
         if group and not group.label:
             group.generateLabels(self.generator.labels, self.classDescr, set())
-        # Manage things which are specific to String types
-        if self.appyType.type == 'String': self.walkString()
-        # Manage things which are specific to Boolean types
-        if self.appyType.type == 'Boolean': self.walkBoolean()
-        # Manage things which are specific to Actions
-        elif self.appyType.type == 'Action': self.walkAction()
-        # Manage things which are specific to Ref types
-        elif self.appyType.type == 'Ref': self.walkRef()
-        # Manage things which are specific to List types
-        elif self.appyType.type == 'List': self.walkList()
-        # Manage things which are specific to Calendar types
-        elif self.appyType.type == 'Calendar': self.walkCalendar()
+        # Generate type-specific i18n labels
+        if not self.appyType.label:
+            method = 'walk%s' % self.appyType.type
+            if hasattr(self, method): getattr(self, method)()
 
     def generate(self):
         '''Generates the i18n labels for this type.'''

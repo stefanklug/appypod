@@ -155,6 +155,7 @@ class String(Field):
              multilingual=len(languages) &gt; 1;
              mLayout=multilingual and field.getLanguagesLayout('view');
              mayAjaxEdit=not showChanges and field.inlineEdit and \
+                         (layoutType != 'cell') and \
                          zobj.mayEdit(field.writePermission)">
       <x if="field.isSelect">
        <span if="not value" class="smaller">-</span>
@@ -517,6 +518,13 @@ class String(Field):
         elif isinstance(value, tuple):
             value = list(value)
         return value
+
+    def getCopyValue(self, obj):
+        '''If the value is mutable (ie, a dict for a multilingual field), return
+           a copy of it instead of the value stored in the database.'''
+        res = self.getValue(obj)
+        if isinstance(res, dict): res = res.copy()
+        return res
 
     def valueIsInRequest(self, obj, request, name):
         languages = self.getAttribute(obj, 'languages')

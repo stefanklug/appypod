@@ -786,6 +786,14 @@ class Ref(Field):
         if someObjects: return res
         return res.objects
 
+    def getCopyValue(self, obj):
+        '''Here, as "value ready-to-copy", we return the list of tied object
+           UIDs, because m_store on the destination object can store tied
+           objects based on such a list.''' 
+        res = getattr(obj.aq_base, self.name, ())
+        # Return a copy: it can be dangerous to give the real database value.
+        if res: return list(res)
+
     def getPossibleValues(self, obj, startNumber=None, someObjects=False,
                           removeLinked=False):
         '''This method returns the list of all objects that can be selected
