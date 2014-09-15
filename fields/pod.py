@@ -193,6 +193,9 @@ class Pod(Field):
         self.stylesMapping = stylesMapping
         # What are the output formats when generating documents from this pod ?
         self.formats = formats
+        if not formats: # Compute default ones
+            ext = self.getExtension(self.template[0])
+            self.formats = Pod.allFormats[ext]
         # Parameter "getChecked" can specify the name of a Ref field belonging
         # to the same gen class. If it is the case, the context of the pod
         # template will contain an additional object, name "_checked", and
@@ -200,13 +203,6 @@ class Pod(Field):
         # objects linked via the Ref field that are currently selected in the
         # user interface.
         self.getChecked = getChecked
-        if not formats:
-            # Compute default ones
-            ext = self.getExtension(self.template[0])
-            if ext == '.ods':
-                self.formats = ('xls', 'ods')
-            else:
-                self.formats = ('pdf', 'doc', 'odt')
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, indexed, searchable, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -308,8 +304,9 @@ class Pod(Field):
             for template in self.template:
                 formats = self.showTemplate(obj, template)
                 if not formats: continue
-                formats = isManager and self.getAllFormats(template) or formats
-                if isinstance(formats, basestring): formats = (formats,)
+                if isManager: formats = self.getAllFormats(template)
+                elif isinstance(formats, bool): formats = self.formats
+                elif isinstance(formats, basestring): formats = (formats,)
                 res.append(Object(template=template, formats=formats,
                            freezeFormats=self.getFreezeFormats(obj, template)))
         return res

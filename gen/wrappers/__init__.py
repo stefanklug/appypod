@@ -741,10 +741,7 @@ class AbstractWrapper(object):
         elif name == 'state': return self.o.State()
         elif name == 'stateLabel':
             return self.o.translate(self.o.getWorkflowLabel())
-        elif name == 'history':
-            o = self.o
-            key = o.workflow_history.keys()[0]
-            return o.workflow_history[key]
+        elif name == 'history': return self.o.workflow_history['appy']
         elif name == 'user': return self.o.getTool().getUser()
         elif name == 'fields': return self.o.getAllAppyTypes()
         elif name == 'siteUrl': return self.o.getTool().getSiteUrl()
