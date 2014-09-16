@@ -381,6 +381,9 @@ class Pod(Field):
         # Add the field-specific and custom contexts if present.
         if specificContext: podContext.update(specificContext)
         if customContext: podContext.update(customContext)
+        # Variable "_checked" can be expected by a template but absent (ie,
+        # when generating frozen documents).
+        if '_checked' not in podContext: podContext['_checked'] = Object()
         # Define a potential global styles mapping
         if callable(self.stylesMapping):
             stylesMapping = self.callMethod(obj, self.stylesMapping)
@@ -413,6 +416,7 @@ class Pod(Field):
         '''Gets the name on disk on the frozen document corresponding to this
            pod field, p_template and p_format.'''
         template = template or self.template[0]
+        template = os.path.basename(template)
         templateName = os.path.splitext(template)[0].replace(os.sep, '_')
         return '%s_%s%s%s' % (self.name, templateName, sep, format)
 
@@ -460,19 +464,20 @@ class Pod(Field):
                         type='error')
                 if not freezeOdtOnError or (format == 'odt'):
                     raise Exception(self.FREEZE_FATAL_ERROR)
-                obj.log('Trying to freeze the ODT version...')
-                # Try to freeze the ODT version of the document, which does not
-                # require to call LibreOffice: the risk of error is smaller.
+                obj.log('freezing the ODT version...')
+                # Freeze the ODT version of the document, which does not require
+                # to call LibreOffice: the risk of error is smaller.
                 fileName = self.getFreezeName(template, 'odt')
                 result = os.path.join(dbFolder, folder, fileName)
                 if os.path.exists(result):
-                    obj.log('Freeze: overwriting %s...' % result)
+                    obj.log('freeze: overwriting %s...' % result)
                 doc = self.getValue(obj, template=template, format='odt',
                                     result=result)
                 if isinstance(doc, basestring):
                     self.log(self.FREEZE_ERROR % ('odt', self.name, doc),
                              type='error')
                     raise Exception(self.FREEZE_FATAL_ERROR)
+                obj.log('freezed at %s.' % result)
         else:
             # Store the uploaded file in the database.
             f = file(result, 'wb')
@@ -492,7 +497,9 @@ class Pod(Field):
         dbFolder, folder = obj.o.getFsFolder()
         fileName = self.getFreezeName(template, format)
         frozenName = os.path.join(dbFolder, folder, fileName)
-        if os.path.exists(frozenName): os.remove(frozenName)
+        if os.path.exists(frozenName):
+            os.remove(frozenName)
+            obj.log('removed (unfrozen) %s.' % frozenName)
 
     def getFreezeFormats(self, obj, template=None):
         '''What are the formats into which the current user may freeze
@@ -517,7 +524,9 @@ class Pod(Field):
 
     def getCustomContext(self, obj, rq):
         '''Before calling pod to compute a result, if specific elements must be
-           added to the context, compute it here.'''
+           added to the context, compute it here. This request-dependent method
+           is not called when computing a pod field for freezing it into the
+           database.'''
         res = {}
         # Get potential custom params from the request. Custom params must be
         # coded as a string containing a valid Python dict.
