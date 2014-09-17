@@ -100,9 +100,10 @@ td.search { padding-top: 8px }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
-.dropdown { display:none; position: absolute; border: 1px solid #cccccc;
-            background-color: white; padding: 3px 4px 0; font-size: 8pt;
-            font-weight: normal; text-align: left; z-index: 2 }
+.dropdown { display:none; position: absolute; top: 15px; left: 1px;
+            border: 1px solid #cccccc; background-color: white;
+            padding: 3px 4px 0; font-size: 8pt; font-weight: normal;
+            text-align: left; z-index: 2; line-height: normal }
 .dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
 .addForm { display: inline }
@@ -164,6 +165,7 @@ td.search { padding-top: 8px }
 .error { margin: 5px }
 .smaller { font-size: 95% }
 .pod { padding-right: 15px }
+.podTable { line-height: 20px }
 .cbCell { width: 10px; text-align: center}
 .tabs { position:relative; bottom:-2px }
 .tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;

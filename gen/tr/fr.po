@@ -719,3 +719,7 @@ msgstr "Vous n'êtes pas autorisé à consulter ceci."
 #. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
 msgid "wrong_browser"
 msgstr "Microsoft Internet Explorer ${version} n'est pas supporté. Veuillez mettre à jour votre navigateur à la version ${min} ou supérieure."
+
+#. Default: "Send by email"
+msgid "email_send"
+msgstr "Envoyer par email"

@@ -719,3 +719,7 @@ msgstr "You are not allowed to consult this."
 #. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
 msgid "wrong_browser"
 msgstr "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
+
+#. Default: "Send by email"
+msgid "email_send"
+msgstr "Send by email"

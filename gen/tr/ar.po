@@ -718,3 +718,7 @@ msgstr ""
 #. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
 msgid "wrong_browser"
 msgstr ""
+
+#. Default: "Send by email"
+msgid "email_send"
+msgstr ""

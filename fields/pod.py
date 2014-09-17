@@ -27,12 +27,29 @@ from appy.pod.renderer import Renderer
 from appy.shared import utils as sutils
 
 # ------------------------------------------------------------------------------
+class Mailing:
+    '''Represents a mailing list as can be used by a pod field (see below).'''
+    def __init__(self, name=None, logins=None, subject=None, body=None):
+        # The mailing list name, as shown in the user interface
+        self.name = name
+        # The list of logins that will be used as recipients for sending
+        # emails.
+        self.logins = logins
+        # The mail subject
+        self.subject = subject
+        # The mail body
+        self.body = body
+
+# ------------------------------------------------------------------------------
 class Pod(Field):
     '''A pod is a field allowing to produce a (PDF, ODT, Word, RTF...) document
        from data contained in Appy class and linked objects or anything you
        want to put in it. It is the way gen uses pod.'''
-    # Layout for rendering a POD field for exporting query results.
-    rLayouts = {'view': 'fl!'}
+    # Some right-aligned layouts, convenient for pod fields exporting query
+    # results or multi-template pod fields.
+    rLayouts = {'view': Table('fl!', css_class='podTable')} # "r"ight
+    # "r"ight "m"ulti-template (where the global field label is not used
+    rmLayouts = {'view': Table('f!', css_class='podTable')}
     allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
 
     POD_ERROR = 'An error occurred while generating the document. Please ' \
@@ -55,58 +72,72 @@ class Pod(Field):
 
     pxView = pxCell = Px('''
      <x var="uid=obj.uid"
-        for="info in field.getVisibleTemplates(obj)">
+        for="info in field.getVisibleTemplates(obj)"
+        var2="mailings=field.getVisibleMailings(obj, info.template);
+              lineBreak=((loop.info.nb + 1) % field.maxPerRow) == 0">
       <x for="fmt in info.formats"
          var2="freezeAllowed=(fmt in info.freezeFormats) and \
                              (field.show != 'result');
+               hasMailings=mailings and (fmt in mailings);
+               dropdownEnabled=freezeAllowed or hasMailings;
                frozen=field.isFrozen(obj, info.template, fmt)">
-       <!-- A clickable icon if no freeze action is allowed -->
-       <x if="not freezeAllowed">:field.pxIcon</x>
+       <!-- A clickable icon if no freeze action is allowed and no mailing is
+            available for this format -->
+       <x if="not dropdownEnabled">:field.pxIcon</x>
        <!-- A clickable icon and a dropdown menu else. -->
-       <span if="freezeAllowed" class="dropdownMenu"
+       <span if="dropdownEnabled" class="dropdownMenu"
              var2="dropdownId='%s_%s' % (uid, \
                               field.getFreezeName(info.template, fmt, sep='_'))"
              onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
              onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
         <x>:field.pxIcon</x>
         <!-- The dropdown menu containing freeze actions -->
-        <table id=":dropdownId" class="dropdown" width="75px">
+        <table id=":dropdownId" class="dropdown" width="100px">
          <!-- Unfreeze -->
-         <tr if="frozen" valign="top">
-          <td>
+         <tr if="freezeAllowed and frozen" valign="top">
+          <td width="85px">
            <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
                         q(info.template), q(fmt), q('unfreeze'))"
               class="smaller">:_('unfreezeField')</a>
           </td>
-          <td align="center"><img src=":url('unfreeze')"/></td>
+          <td width="15px"><img src=":url('unfreeze')"/></td>
          </tr>
          <!-- (Re-)freeze -->
-         <tr valign="top">
-          <td>
+         <tr if="freezeAllowed" valign="top">
+          <td width="85px">
            <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
                         q(info.template), q(fmt), q('freeze'))"
               class="smaller">:_('freezeField')</a>
           </td>
-          <td align="center"><img src=":url('freeze')"/></td>
+          <td width="15px"><img src=":url('freeze')"/></td>
          </tr>
          <!-- (Re-)upload -->
-         <tr valign="top">
-          <td>
+         <tr if="freezeAllowed" valign="top">
+          <td width="85px">
            <a onclick=":'uploadPod(%s,%s,%s,%s)' % (q(uid), q(name), \
                         q(info.template), q(fmt))"
               class="smaller">:_('uploadField')</a>
           </td>
-          <td align="center"><img src=":url('upload')"/></td>
+          <td width="15px"><img src=":url('upload')"/></td>
          </tr>
+         <!-- Mailing lists -->
+         <x if="hasMailings" var2="sendLabel=_('email_send')">
+          <tr for="mailing in mailings[fmt]" valign="top"
+              var2="mailingName=field.getMailingName(obj, mailing)">
+           <td width="85px"><span title=":sendLabel">:mailingName</span></td>
+           <td width="15px"><img src=":url('email')"/></td>
+          </tr>
+         </x>
         </table>
        </span>
-      </x> 
+      </x>
       <!-- Show the specific template name only if there is more than one
            template. For a single template, the field label already does the
            job. -->
       <span if="len(field.template) &gt; 1"
-            class=":not loop.info.last and 'pod smaller' or \
-                    'smaller'">:field.getTemplateName(obj, info.template)</span>
+            class=":(not loop.info.last and not lineBreak) and 'pod smaller' \
+                 or 'smaller'">:field.getTemplateName(obj, info.template)</span>
+      <br if="lineBreak"/>
      </x>''')
 
     pxEdit = pxSearch = ''
@@ -118,8 +149,9 @@ class Pod(Field):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  template=None, templateName=None, showTemplate=None,
-                 freezeTemplate=None, context=None, stylesMapping={},
-                 formats=None, getChecked=None):
+                 freezeTemplate=None, maxPerRow=5, context=None,
+                 stylesMapping={}, formats=None, getChecked=None, mailing=None,
+                 mailingName=None, showMailing=None, mailingInfo=None):
         # Param "template" stores the path to the pod template(s). If there is
         # a single template, a string is expected. Else, a list or tuple of
         # strings is expected. Every such path must be relative to your
@@ -186,6 +218,9 @@ class Pod(Field):
         # - upload a document: the frozen or uploaded document will be replaced
         #   by a new document uploaded by the current user.
         self.freezeTemplate = freezeTemplate
+        # If p_template contains more than 1 template, "maxPerRow" tells how
+        # much templates must appear side by side.
+        self.maxPerRow = maxPerRow
         # The context is a dict containing a specific pod context, or a method
         # that returns such a dict.
         self.context = context
@@ -203,6 +238,33 @@ class Pod(Field):
         # objects linked via the Ref field that are currently selected in the
         # user interface.
         self.getChecked = getChecked
+        # Mailing lists can be defined for this pod field. For every visible
+        # mailing list, a menu item will be available in the user interface and
+        # will allow to send the pod result as attachment to the mailing list
+        # recipients. Attribute p_mailing stores a mailing list's id
+        # (as a string) or a list of ids.
+        self.mailing = mailing
+        if isinstance(mailing, basestring):
+            self.mailing = [mailing]
+        elif isinstance(mailing, tuple):
+            self.mailing = list(mailing)
+        # "mailingName" returns the name of the mailing as will be shown in the
+        # user interface. It must be a method accepting the mailing list id
+        # (from self.mailing) as single arg and returning the mailing list's
+        # name.
+        self.mailingName = mailingName
+        # "showMailing" below determines when the mailing list(s) must be shown.
+        # It may store a method accepting a mailing list's id (among
+        # self.mailing) and a template (among self.template) and returning the
+        # list or tuple of formats for which the pod result can be sent to the
+        # mailing list. If no such method is defined, the mailing list will be
+        # available for all visible templates and formats.
+        self.showMailing = showMailing
+        # When it it time to send an email, "mailingInfo" gives all the
+        # necessary information for this email: recipients, subject, body. It
+        # must be a method whose single arg is the mailing id (from
+        # self.mailing) and that returns an instance of class Mailing (above).
+        self.mailingInfo = mailingInfo
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, indexed, searchable, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -257,9 +319,9 @@ class Pod(Field):
         '''Gets the name of a template given its p_fileName.'''
         res = None
         if self.templateName:
-            # Use the method specified in self.templateName.
+            # Use the method specified in self.templateName
             res = self.templateName(obj, fileName)
-        # Else, deduce a nice name from p_fileName.
+        # Else, deduce a nice name from p_fileName
         if not res:
             name = os.path.splitext(os.path.basename(fileName))[0]
             res = gutils.produceNiceMessage(name)
@@ -311,6 +373,38 @@ class Pod(Field):
                            freezeFormats=self.getFreezeFormats(obj, template)))
         return res
 
+    def getVisibleMailings(self, obj, template):
+        '''Gets, among self.mailing, the mailing(s) that can be shown for
+           p_template, as a dict ~{s_format:[s_id]}~.'''
+        if not self.mailing: return
+        res = {}
+        for mailing in self.mailing:
+            # Is this mailing visible ? In which format(s) ?
+            if not self.showMailing:
+                # By default, the mailing is available in any format
+                formats = True
+            else:
+                formats = self.showMailing(obj, mailing, template)
+            if not formats: continue
+            if isinstance(formats, bool): formats = self.formats
+            elif isinstance(formats, basestring): formats = (formats,)
+            # Add this mailing to the result
+            for fmt in formats:
+                if fmt in res: res[fmt].append(mailing)
+                else: res[fmt] = [mailing]
+        return res
+
+    def getMailingName(self, obj, mailing):
+        '''Gets the name of a particular p_mailing.'''
+        res = None
+        if self.mailingName:
+            # Use the method specified in self.mailingName
+            res = self.mailingName(obj, mailing)
+        if not res:
+            # Deduce a nice name from p_mailing
+            res = gutils.produceNiceMessage(mailing)
+        return res
+            
     def getValue(self, obj, template=None, format=None, result=None,
                  queryData=None, customContext=None, noSecurity=False):
         '''For a pod field, getting its value means computing a pod document or
