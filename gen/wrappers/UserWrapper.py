@@ -1,4 +1,5 @@
 # ------------------------------------------------------------------------------
+from appy.fields.string import String
 from appy.gen import WorkflowOwner
 from appy.gen.layout import summaryPageLayouts
 from appy.gen.wrappers import AbstractWrapper
@@ -106,6 +107,14 @@ class UserWrapper(AbstractWrapper):
         encryptedPassword = self.getZopeUser()._getPassword()
         from AccessControl.AuthEncoding import pw_validate
         return pw_validate(encryptedPassword, clearPassword)
+
+    def getMailRecipient(self):
+        '''Returns, for this user, the "recipient string" (first name, name,
+           email) as can be used for sending an email.'''
+        res = self.email or self.login
+        # Ensure this is really an email
+        if not String.EMAIL.match(res): return
+        return '%s <%s>' % (self.title, res)
 
     def setLogin(self, oldLogin, newLogin):
         '''Changes the login of this user from p_oldLogin to p_newLogin.'''

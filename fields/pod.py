@@ -124,8 +124,15 @@ class Pod(Field):
          <x if="hasMailings" var2="sendLabel=_('email_send')">
           <tr for="mailing in mailings[fmt]" valign="top"
               var2="mailingName=field.getMailingName(obj, mailing)">
-           <td width="85px"><span title=":sendLabel">:mailingName</span></td>
-           <td width="15px"><img src=":url('email')"/></td>
+           <td colspan="2">
+            <a var="js='generatePod(%s,%s,%s,%s,%s,null,null,%s)' % \
+                       (q(uid), q(name), q(info.template), q(fmt), \
+                        q(ztool.getQueryInfo()), q(mailing))"
+               onclick=":'askConfirm(%s,%s)' % (q('script'), q(js, False))"
+               title=":sendLabel">
+             <img src=":url('email')" align="left" style="margin-right: 2px"/>
+             <x>:mailingName</x></a>
+            </td>
           </tr>
          </x>
         </table>
@@ -404,7 +411,58 @@ class Pod(Field):
             # Deduce a nice name from p_mailing
             res = gutils.produceNiceMessage(mailing)
         return res
-            
+
+    def getMailingInfo(self, obj, template, mailing):
+        '''Gets the necessary information for sending an email to
+           p_mailing list.'''
+        res = self.mailingInfo(obj, mailing)
+        subject = res.subject
+        if not subject:
+            # Give a predefined subject
+            mapping = {'site': obj.tool.o.getSiteUrl(),
+                       'title':  obj.o.getShownValue('title'),
+                       'template': self.getTemplateName(obj, template)}
+            subject = obj.translate('podmail_subject', mapping=mapping)
+        body = res.body
+        if not body:
+            # Give a predefined body
+            mapping = {'site': obj.tool.o.getSiteUrl()}
+            body = obj.translate('podmail_body', mapping=mapping)
+        return res.logins, subject, body
+
+    def sendMailing(self, obj, template, mailing, attachment):
+        '''Sends the emails for m_mailing.'''
+        logins, subject, body = self.getMailingInfo(obj, template, mailing)
+        if not logins:
+            obj.log('mailing %s contains no recipient.' % mailing)
+            return 'action_ko'
+        tool = obj.tool
+        # Collect logins corresponding to inexistent users and recipients
+        missing = []
+        recipients = []
+        for login in logins:
+            user = tool.search1('User', noSecurity=True, login=login)
+            if not user:
+                missing.append(login)
+                continue
+            else:
+                recipient = user.getMailRecipient()
+                if not recipient:
+                    missing.append(login)
+                else:
+                    recipients.append(recipient)
+        if missing:
+            obj.log('mailing %s: inexistent user or no email for %s.' % \
+                    (mailing, str(missing)))
+        if not recipients:
+            obj.log('mailing %s contains no recipient (after removing wrong ' \
+                    'entries, see above).' % mailing)
+            msg = 'action_ko'
+        else:
+            tool.sendMail(recipients, subject, body, [attachment])
+            msg = 'action_done'
+        return msg
+
     def getValue(self, obj, template=None, format=None, result=None,
                  queryData=None, customContext=None, noSecurity=False):
         '''For a pod field, getting its value means computing a pod document or
@@ -669,8 +727,17 @@ class Pod(Field):
                 obj.say(res)
                 return tool.goto(rq.get('HTTP_REFERER'))
             # res contains a FileInfo instance.
-            res.writeResponse(rq.RESPONSE)
-            return
+            # Must we return the res to the ui or send a mail with the res as
+            # attachment?
+            mailing = rq.get('mailing')
+            if not mailing:
+                res.writeResponse(rq.RESPONSE)
+                return
+            else:
+                # Send the email(s).
+                msg = self.sendMailing(obj, template, mailing, res)
+                obj.say(obj.translate(msg))
+                return tool.goto(rq.get('HTTP_REFERER'))
         # Performing any other action requires write access to p_obj.
         obj.o.mayEdit(self.writePermission, raiseError=True)
         msg = 'action_done'

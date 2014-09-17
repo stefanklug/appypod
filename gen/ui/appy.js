@@ -686,7 +686,7 @@ function toggleCookie(cookieId) {
 
 // Function that allows to generate a document from a pod template.
 function generatePod(uid, fieldName, template, podFormat, queryData,
-                     customParams, getChecked) {
+                     customParams, getChecked, mailing) {
   var f = document.getElementById('podForm');
   f.objectUid.value = uid;
   f.fieldName.value = fieldName;
@@ -695,6 +695,7 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
   f.queryData.value = queryData;
   if (customParams) { f.customParams.value = customParams; }
   else { f.customParams.value = ''; }
+  if (mailing) f.mailing.value = mailing;
   f.action.value = 'generate';
   f.checkedUids.value = '';
   f.checkedSem.value = '';

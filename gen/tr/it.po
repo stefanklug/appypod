@@ -722,3 +722,11 @@ msgstr ""
 #. Default: "Send by email"
 msgid "email_send"
 msgstr ""
+
+#. Default: "${site} - ${title} - ${template}"
+msgid "podmail_subject"
+msgstr ""
+
+#. Default: "Hello, this email that was sent to you via ${site}. Please consult the attached file(s)."
+msgid "podmail_body"
+msgstr ""

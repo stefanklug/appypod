@@ -146,6 +146,7 @@ class ToolWrapper(AbstractWrapper):
       <input type="hidden" name="customParams"/>
       <input type="hidden" name="checkedUids"/>
       <input type="hidden" name="checkedSem"/>
+      <input type="hidden" name="mailing"/>
       <input type="hidden" name="action" value="generate"/>
      </form>''')
 

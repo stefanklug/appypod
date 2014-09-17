@@ -9,8 +9,15 @@ from appy.shared.utils import sequenceTypes
 
 # ------------------------------------------------------------------------------
 def sendMail(tool, to, subject, body, attachments=None):
-    '''Sends a mail, via p_tool.mailHost, to p_to (a single email address or a
-       list of email addresses).'''
+    '''Sends a mail, via p_tool.mailHost, to p_to (a single email recipient or
+       a list of recipients). Every (string) recipient can be an email address
+       or a string of the form "[name] <[email]>".
+
+       p_attachment must be a list or tuple whose elements can have 2 forms:
+         1. a tuple (fileName, fileContent): "fileName" is the name of the file
+            as a string; "fileContent" is the file content, also as a string;
+         2. a appy.fields.file.FileInfo instance.
+    '''
     # Just log things if mail is disabled
     fromAddress = tool.mailFrom
     if not tool.mailEnabled or not tool.mailHost:
@@ -18,20 +25,20 @@ def sendMail(tool, to, subject, body, attachments=None):
             msg = ' (no mailhost defined)'
         else:
             msg = ''
-        tool.log('Mail disabled%s: should send mail from %s to %s.' % \
+        tool.log('mail disabled%s: should send mail from %s to %s.' % \
                  (msg, fromAddress, str(to)))
-        tool.log('Subject: %s' % subject)
-        tool.log('Body: %s' % body)
+        tool.log('subject: %s' % subject)
+        tool.log('body: %s' % body)
         if attachments:
             tool.log('%d attachment(s).' % len(attachments))
         return
-    tool.log('Sending mail from %s to %s (subject: %s).' % \
+    tool.log('sending mail from %s to %s (subject: %s).' % \
              (fromAddress, str(to), subject))
     # Create the base MIME message
     body = MIMEText(body, 'plain', 'utf-8')
     if attachments:
         msg = MIMEMultipart()
-        msg.attach( body )
+        msg.attach(body)
     else:
         msg = body
     # Add the header values
@@ -48,23 +55,18 @@ def sendMail(tool, to, subject, body, attachments=None):
             to = fromAddress
     # Add attachments
     if attachments:
-        for fileName, fileContent in attachments:
-            part = MIMEBase('application', 'octet-stream')
-            if fileContent.__class__.__name__ == 'FileWrapper':
-                fileContent = fileContent._zopeFile
-            if hasattr(fileContent, 'data'):
-                # It is a File instance coming from the database
-                data = fileContent.data
-                if isinstance(data, basestring):
-                   payLoad = data
-                else:
-                   payLoad = ''
-                   while data is not None:
-                       payLoad += data.data
-                       data = data.next
+        for attachment in attachments:
+            # 2 possible forms for an attachment
+            if isinstance(attachment, tuple) or isinstance(attachment, list):
+                fileName, fileContent = attachment
             else:
-                payLoad = fileContent
-            part.set_payload(payLoad)
+                # a FileInfo instance
+                fileName = attachment.uploadName
+                f = file(attachment.fsPath, 'rb')
+                fileContent = f.read()
+                f.close()
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(fileContent)
             Encoders.encode_base64(part)
             part.add_header('Content-Disposition',
                             'attachment; filename="%s"' % fileName)
@@ -85,12 +87,12 @@ def sendMail(tool, to, subject, body, attachments=None):
         res = smtpServer.sendmail(fromAddress, [to], msg.as_string())
         smtpServer.quit()
         if res:
-            tool.log('Could not send mail to some recipients. %s' % str(res),
+            tool.log('could not send mail to some recipients. %s' % str(res),
                      type='warning')
     except smtplib.SMTPException, e:
-        tool.log('Mail sending failed: %s' % str(e), type='error')
+        tool.log('mail sending failed: %s' % str(e), type='error')
     except socket.error, se:
-        tool.log('Mail sending failed: %s' % str(se), type='error')
+        tool.log('mail sending failed: %s' % str(se), type='error')
 
 # ------------------------------------------------------------------------------
 def sendNotification(obj, transition, transitionName, workflow):

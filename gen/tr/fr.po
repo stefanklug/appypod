@@ -723,3 +723,11 @@ msgstr "Microsoft Internet Explorer ${version} n'est pas supporté. Veuillez met
 #. Default: "Send by email"
 msgid "email_send"
 msgstr "Envoyer par email"
+
+#. Default: "${site} - ${title} - ${template}"
+msgid "podmail_subject"
+msgstr "${site} - ${title} - ${template}"
+
+#. Default: "Hello, this email that was sent to you via ${site}. Please consult the attached file(s)."
+msgid "podmail_body"
+msgstr "Bonjour, cet email vous est envoyé depuis ${site}. Veuillez consulter le(s) fichier(s) joint(s)."
