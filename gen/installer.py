@@ -319,6 +319,20 @@ class ZopeInstaller:
         import Products
         install_product(self.app, Products.__path__[1], 'ZCTextIndex', [], {})
 
+    def logConnectedServers(self):
+        '''Simply log the names of servers (LDAP, mail...) this app wants to
+           connnect to.'''
+        cfg = self.config.appConfig
+        servers = []
+        # Are we connected to a LDAP server for authenticating our users?
+        for sv in ('ldap', 'mail'):
+            if not getattr(cfg, sv): continue
+            svConfig = getattr(cfg, sv)
+            enabled = svConfig.enabled and 'enabled' or 'disabled'
+            servers.append('%s (%s, %s)' % (svConfig.server, sv, enabled))
+        if servers:
+            self.logger.info('server(s) %s configured.' % ', '.join(servers))
+
     def install(self):
         self.installDependencies()
         self.patchZope()
@@ -332,6 +346,8 @@ class ZopeInstaller:
         self.installCatalog()
         self.installTool()
         self.installUi()
+        # Log connections to external servers (ldap, mail...)
+        self.logConnectedServers()
         # Perform migrations if required
         Migrator(self).run()
         # Update Appy version in the database

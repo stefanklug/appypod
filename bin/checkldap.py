@@ -1,6 +1,6 @@
 '''This script allows to check a LDAP connection.'''
 import sys
-from appy.shared.ldap_connector import LdapConnector
+from appy.shared.ldap import LdapConnector
 
 # ------------------------------------------------------------------------------
 class LdapTester:

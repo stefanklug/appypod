@@ -656,7 +656,9 @@ class ToolWrapper(AbstractWrapper):
 
     def sendMail(self, to, subject, body, attachments=None):
         '''Sends a mail. See doc for appy.gen.mail.sendMail.'''
-        sendMail(self, to, subject, body, attachments=attachments)
+        mailConfig = self.o.getProductConfig(True).mail
+        sendMail(mailConfig, to, subject, body, attachments=attachments,
+                 log=self.log)
 
     def formatDate(self, date, format=None, withHour=True, language=None):
         '''Check doc @ToolMixin::formatDate.'''

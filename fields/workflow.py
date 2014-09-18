@@ -418,7 +418,8 @@ class Transition:
         # (Allowed, State) need to be updated here.
         if reindex and not obj.isTemporary(): obj.reindex()
         # Send notifications if needed
-        if doNotify and self.notify and obj.getTool(True).mailEnabled:
+        mail = obj.getTool().getProductConfig(True).mail
+        if doNotify and self.notify and mail and mail.enabled:
             sendNotification(obj.appy(), self, name, wf)
         # Return a message to the user if needed
         if not doSay or (name == '_init_'): return

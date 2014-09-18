@@ -8,32 +8,63 @@ from email.Header import Header
 from appy.shared.utils import sequenceTypes
 
 # ------------------------------------------------------------------------------
-def sendMail(tool, to, subject, body, attachments=None):
-    '''Sends a mail, via p_tool.mailHost, to p_to (a single email recipient or
-       a list of recipients). Every (string) recipient can be an email address
-       or a string of the form "[name] <[email]>".
+class MailConfig:
+    '''Parameters for conneting to a SMTP server.'''
+    def __init__(self, fromName=None, fromEmail='info@appyframework.org',
+                 server='localhost', port=25, login=None, password=None,
+                 enabled=True):
+        # The name that will appear in the "from" part of the messages
+        self.fromName = fromName
+        # The email that will appear in the "from" part of the messages
+        self.fromEmail = fromEmail
+        # The SMTP server address
+        self.server = server
+        # The SMTP server port
+        self.port = port
+        # Optional credentials to the SMTP server.
+        self.login = login
+        self.password = password
+        # Is this server connection enabled ?
+        self.enabled = enabled
+
+    def getFrom(self):
+        '''Gets the "from" part of the messages to send.'''
+        if self.fromName: return '%s <%s>' % (self.fromName, self.fromEmail)
+        return self.fromEmail
+
+# ------------------------------------------------------------------------------
+def sendMail(config, to, subject, body, attachments=None, log=None):
+    '''Sends a mail, via the smtp server defined in the p_config (an instance of
+       appy.gen.mail.MailConfig above), to p_to (a single email recipient or a
+       list of recipients). Every (string) recipient can be an email address or
+       a string of the form "[name] <[email]>".
 
        p_attachment must be a list or tuple whose elements can have 2 forms:
          1. a tuple (fileName, fileContent): "fileName" is the name of the file
             as a string; "fileContent" is the file content, also as a string;
          2. a appy.fields.file.FileInfo instance.
+
+      p_log can be a function/method accepting a single string arg. 
     '''
+    if not config:
+        if log: log('Must send mail but no smtp server configured.')
+        return
     # Just log things if mail is disabled
-    fromAddress = tool.mailFrom
-    if not tool.mailEnabled or not tool.mailHost:
-        if not tool.mailHost:
+    fromAddress = config.getFrom()
+    if not config.enabled or not config.server:
+        if not config.server:
             msg = ' (no mailhost defined)'
         else:
             msg = ''
-        tool.log('mail disabled%s: should send mail from %s to %s.' % \
-                 (msg, fromAddress, str(to)))
-        tool.log('subject: %s' % subject)
-        tool.log('body: %s' % body)
-        if attachments:
-            tool.log('%d attachment(s).' % len(attachments))
+        if log:
+            log('mail disabled%s: should send mail from %s to %s.' % \
+                (msg, fromAddress, str(to)))
+            log('subject: %s' % subject)
+            log('body: %s' % body)
+        if attachments and log: log('%d attachment(s).' % len(attachments))
         return
-    tool.log('sending mail from %s to %s (subject: %s).' % \
-             (fromAddress, str(to), subject))
+    if log: log('sending mail from %s to %s (subject: %s).' % \
+                (fromAddress, str(to), subject))
     # Create the base MIME message
     body = MIMEText(body, 'plain', 'utf-8')
     if attachments:
@@ -73,26 +104,18 @@ def sendMail(tool, to, subject, body, attachments=None):
             msg.attach(part)
     # Send the email
     try:
-        smtpInfo = tool.mailHost.split(':', 3)
-        login = password = None
-        if len(smtpInfo) == 2:
-            # We simply have server and port
-            server, port = smtpInfo
-        else:
-            # We also have login and password
-            server, port, login, password = smtpInfo
-        smtpServer = smtplib.SMTP(server, port=int(port))
-        if login:
-            smtpServer.login(login, password)
+        smtpServer = smtplib.SMTP(config.server, port=config.port)
+        if config.login:
+            smtpServer.login(config.login, config.password)
         res = smtpServer.sendmail(fromAddress, [to], msg.as_string())
         smtpServer.quit()
-        if res:
-            tool.log('could not send mail to some recipients. %s' % str(res),
-                     type='warning')
+        if res and log:
+            log('could not send mail to some recipients. %s' % str(res),
+                type='warning')
     except smtplib.SMTPException, e:
-        tool.log('mail sending failed: %s' % str(e), type='error')
+        if log: log('mail sending failed: %s' % str(e), type='error')
     except socket.error, se:
-        tool.log('mail sending failed: %s' % str(se), type='error')
+        if log: log('mail sending failed: %s' % str(se), type='error')
 
 # ------------------------------------------------------------------------------
 def sendNotification(obj, transition, transitionName, workflow):

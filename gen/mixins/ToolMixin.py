@@ -8,11 +8,10 @@ from appy.gen import utils as gutils
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
-from appy.gen.mail import sendMail
 from appy.shared import mimeTypes
 from appy.shared import utils as sutils
 from appy.shared.data import languages
-from appy.shared.ldap_connector import LdapConnector
+from appy.shared.ldap import LdapConnector
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -1334,7 +1333,7 @@ class ToolMixin(BaseMixin):
         subject = self.translate('reinit_password')
         map = {'url':initUrl, 'siteUrl':self.getSiteUrl()}
         body= self.translate('reinit_password_body', mapping=map, format='text')
-        sendMail(appyTool, email, subject, body)
+        appyTool.sendMail(email, subject, body)
         return self.goto(backUrl, msg)
 
     def doPasswordReinit(self):
@@ -1363,7 +1362,7 @@ class ToolMixin(BaseMixin):
                 map = {'password': newPassword, 'siteUrl': siteUrl}
                 body = self.translate('new_password_body', mapping=map,
                                       format='text')
-                sendMail(appyTool, email, subject, body)
+                appyTool.sendMail(email, subject, body)
                 os.remove(tokenFile)
                 res = self.goto(siteUrl, self.translate('new_password_sent'))
         if not res:
