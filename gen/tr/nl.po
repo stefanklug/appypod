@@ -45,7 +45,7 @@ msgstr "Titel"
 
 #. Default: "Ok"
 msgid "appy_ok"
-msgstr ""
+msgstr "OK"
 
 #. Default: "Data change"
 msgid "data_change"
@@ -89,11 +89,11 @@ msgstr "Toevoegen"
 
 #. Default: "Available elements"
 msgid "selectable_objects"
-msgstr ""
+msgstr "Keuze elementen"
 
 #. Default: "Inserted elements"
 msgid "selected_objects"
-msgstr ""
+msgstr "Geselecteerde elementen"
 
 #. Default: "Move up"
 msgid "move_up"
@@ -105,15 +105,15 @@ msgstr "Verplaats naar beneden"
 
 #. Default: "Move to top"
 msgid "move_top"
-msgstr ""
+msgstr "Verplaatsen naar eerste positie"
 
 #. Default: "Move to bottom"
 msgid "move_bottom"
-msgstr ""
+msgstr "Verplaatsen naar laatste positie"
 
 #. Default: "Update the hereabove number and click here to move this element to a new position."
 msgid "move_number"
-msgstr ""
+msgstr "Wijzig onderstaand nummer en klik hier om het element naar een nieuwe positie te verplaatsen."
 
 #. Default: "create"
 msgid "query_create"
@@ -177,7 +177,7 @@ msgstr "Vul een reële waarde in."
 
 #. Default: "Please specify a valid date."
 msgid "bad_date"
-msgstr ""
+msgstr "Specifieer een correcte datum."
 
 #. Default: "The value is not among possible values for this field."
 msgid "bad_select_value"
@@ -201,35 +201,35 @@ msgstr "Verwijderen"
 
 #. Default: "Delete selection"
 msgid "object_delete_many"
-msgstr ""
+msgstr "Verwijder de selectie"
 
 #. Default: "Remove"
 msgid "object_unlink"
-msgstr ""
+msgstr "Intrekken"
 
 #. Default: "Remove selection"
 msgid "object_unlink_many"
-msgstr ""
+msgstr "Selectie losmaken"
 
 #. Default: "Insert"
 msgid "object_link"
-msgstr ""
+msgstr "Invoegen"
 
 #. Default: "Insert selection"
 msgid "object_link_many"
-msgstr ""
+msgstr "Selectie invoegen"
 
 #. Default: "(Un)check everything"
 msgid "check_uncheck"
-msgstr ""
+msgstr "Alles (de)selecteren"
 
 #. Default: "Unlock"
 msgid "page_unlock"
-msgstr ""
+msgstr "Ontgrendelen"
 
 #. Default: "Are you sure?"
 msgid "action_confirm"
-msgstr ""
+msgstr "Bent u zeker?"
 
 #. Default: "The action has been performed."
 msgid "action_done"
@@ -241,15 +241,15 @@ msgstr "Er heeft zich een probleem voorgedaan."
 
 #. Default: "Action could not be performed on ${nb} element(s)."
 msgid "action_partial"
-msgstr ""
+msgstr "De actie kon niet uitgevoerd worden op ${nb} element(en)."
 
 #. Default: "Action had no effect."
 msgid "action_null"
-msgstr ""
+msgstr "De actie heeft geen effect gehad."
 
 #. Default: "Are you sure you want to apply this change?"
 msgid "save_confirm"
-msgstr ""
+msgstr "Bent u zeker om deze wijziging door te voeren?"
 
 #. Default: "Go to top"
 msgid "goto_first"
@@ -301,7 +301,7 @@ msgstr "Het up te loaden bestand moet een foto zijn."
 
 #. Default: "ODT"
 msgid "odt"
-msgstr "ODT (OpenOffice/LibreOffice)"
+msgstr "ODT LibreOffice Writer"
 
 #. Default: "PDF"
 msgid "pdf"
@@ -313,43 +313,43 @@ msgstr "DOC (Microsoft Word)"
 
 #. Default: "ODS"
 msgid "ods"
-msgstr ""
+msgstr "ODS (LibreOffice Calc)"
 
 #. Default: "XLS"
 msgid "xls"
-msgstr ""
+msgstr "XLS (Microsoft Excel)"
 
 #. Default: "frozen"
 msgid "frozen"
-msgstr ""
+msgstr "Bevroren"
 
 #. Default: "(Re-)freeze"
 msgid "freezeField"
-msgstr ""
+msgstr "(Her-)bevriezen"
 
 #. Default: "Unfreeze"
 msgid "unfreezeField"
-msgstr ""
+msgstr "Ontdooien"
 
 #. Default: "Upload a new file"
 msgid "uploadField"
-msgstr ""
+msgstr "Overschreven door ..."
 
 #. Default: "Please upload a file of the same type."
 msgid "upload_invalid"
-msgstr ""
+msgstr "Gelieve een bestand van hetzelfde type up te loaden."
 
 #. Default: "Welcome to this Appy-powered site."
 msgid "front_page_text"
-msgstr ""
+msgstr "Welkom op deze website die gebouwd is met <a href=\"http://appyframework.org\" target=\"_blank\">Appy</a>."
 
 #. Default: "Please type \"${text}\" (without the double quotes) in the field besides, but without the character at position ${number}."
 msgid "captcha_text"
-msgstr ""
+msgstr "Typ \"${text}\" (zonder de haakjes) hierna, zonder het karakter die op positie nummer ${number} staat."
 
 #. Default: "The code was not correct. Please try again."
 msgid "bad_captcha"
-msgstr ""
+msgstr "De code was niet correct. Herbegin met een nieuwe code."
 
 #. Default: "Login"
 msgid "app_login"
@@ -429,291 +429,291 @@ msgstr "Volgende pagina"
 
 #. Default: "Forgot password?"
 msgid "forgot_password"
-msgstr ""
+msgstr "Paswoord vergeten?"
 
 #. Default: "Ask new password"
 msgid "ask_password_reinit"
-msgstr ""
+msgstr "Vraag een nieuw paswoord"
 
 #. Default: "Something went wrong. First possibility: you have already clicked on the link (maybe have you double-clicked?) and your password has already been re-initialized. Please check that you haven't received your new password in another email. Second possibility: the link that you received in your mailer was splitted on several lines. In this case, please re-type the link in one single line and retry. Third possibility: you have waited too long and your request has expired, or a technical error occurred. In this case, please try again to ask a new password from the start."
 msgid "wrong_password_reinit"
-msgstr ""
+msgstr "Er heeft zich een probleem voorgedaan: u hebt reeds op de link geklikt (misschien hebt u een dubbel klik uitgevoerd?) en uw paswoord werd reeds geïnitialiseerd. Controleer even of u geen tweede mail ontvangen hebt met uw nieuw paswoord. Tweede mogelijkheid: de link die u via e-mail ontvangen hebt, was gesplitst over meerdere regels. In dit geval, probeer de link op één lijn te vormen. Derde mogelijkheid: u hebt iets te lang gewacht of een technische fout is opgetreden. In dat geval dient u de procedure van voor af aan te herbeginnen."
 
 #. Default: "A mail has been sent to you. Please follow the instructions from this email."
 msgid "reinit_mail_sent"
-msgstr ""
+msgstr "Wij hebben u een e-mail gestuurd. Gelieve de instructies in de mail op te volgen."
 
 #. Default: "Password re-initialisation"
 msgid "reinit_password"
-msgstr ""
+msgstr "Re-initialisatie van uw paswoord."
 
 #. Default: "Hello,<br/><br/>A password re-initialisation has been requested, tied to this email address, for the website ${siteUrl}. If you are not at the origin of this request, please ignore this email. Else, click on the link below to receive a new password.<br/><br/>${url}"
 msgid "reinit_password_body"
-msgstr ""
+msgstr "Een re-initialisatie van het paswoord, gekoppeld aan uw e-mail adres, voor de site ${siteUrl} werd aangevraagd. Indien u niet aan de oorsprong ligt van deze aanvraag, gelieve dit bericht te negeren. Zoniet, klik op onderstaande link om een nieuw paswoord aan te vragen.<br/><br/>${url}"
 
 #. Default: "Your new password"
 msgid "new_password"
-msgstr ""
+msgstr "Uw nieuw paswoord"
 
 #. Default: "Hello,<br/><br/>The new password you have requested for website ${siteUrl} is ${password}<br/><br/>Best regards."
 msgid "new_password_body"
-msgstr ""
+msgstr "Hallo,<br/><br/>Uw nieuw paswoord voor de site${siteUrl} is ${password}<br/><br/>Beste groeten."
 
 #. Default: "Your new password has been sent to you by email."
 msgid "new_password_sent"
-msgstr ""
+msgstr "Uw nieuw paswoord is verstuurd via e-mail."
 
 #. Default: "Last access"
 msgid "last_user_access"
-msgstr ""
+msgstr "Laatste toegang"
 
 #. Default: "History"
 msgid "object_history"
-msgstr ""
+msgstr "Historiek"
 
 #. Default: "By"
 msgid "object_created_by"
-msgstr ""
+msgstr "Aangemaakt door"
 
 #. Default: "On"
 msgid "object_created_on"
-msgstr ""
+msgstr "op"
 
 #. Default: "Last updated on"
 msgid "object_modified_on"
-msgstr ""
+msgstr "Laatste wijziging op"
 
 #. Default: "Action"
 msgid "object_action"
-msgstr ""
+msgstr "Actie"
 
 #. Default: "Author"
 msgid "object_author"
-msgstr ""
+msgstr "Auteur"
 
 #. Default: "Date"
 msgid "action_date"
-msgstr ""
+msgstr "Datum"
 
 #. Default: "Comment"
 msgid "action_comment"
-msgstr ""
+msgstr "Commentaar"
 
 #. Default: "Mon"
 msgid "day_Mon_short"
-msgstr ""
+msgstr "Maa"
 
 #. Default: "Tue"
 msgid "day_Tue_short"
-msgstr ""
+msgstr "Din"
 
 #. Default: "Wed"
 msgid "day_Wed_short"
-msgstr ""
+msgstr "Woe"
 
 #. Default: "Thu"
 msgid "day_Thu_short"
-msgstr ""
+msgstr "Don"
 
 #. Default: "Fri"
 msgid "day_Fri_short"
-msgstr ""
+msgstr "Vrij"
 
 #. Default: "Sat"
 msgid "day_Sat_short"
-msgstr ""
+msgstr "Zat"
 
 #. Default: "Sun"
 msgid "day_Sun_short"
-msgstr ""
+msgstr "Zon"
 
 #. Default: "Off"
 msgid "day_Off_short"
-msgstr ""
+msgstr "Feestdag"
 
 #. Default: "Monday"
 msgid "day_Mon"
-msgstr ""
+msgstr "Maandag"
 
 #. Default: "Tuesday"
 msgid "day_Tue"
-msgstr ""
+msgstr "Dinsdag"
 
 #. Default: "Wednesday"
 msgid "day_Wed"
-msgstr ""
+msgstr "Woensdag"
 
 #. Default: "Thursday"
 msgid "day_Thu"
-msgstr ""
+msgstr "Donderdag"
 
 #. Default: "Friday"
 msgid "day_Fri"
-msgstr ""
+msgstr "Vrijdag"
 
 #. Default: "Saturday"
 msgid "day_Sat"
-msgstr ""
+msgstr "Zaterdag"
 
 #. Default: "Sunday"
 msgid "day_Sun"
-msgstr ""
+msgstr "Zondag"
 
 #. Default: "Day off"
 msgid "day_Off"
-msgstr ""
+msgstr "Feestdag"
 
 #. Default: "AM"
 msgid "ampm_am"
-msgstr ""
+msgstr "AM"
 
 #. Default: "PM"
 msgid "ampm_pm"
-msgstr ""
+msgstr "PM"
 
 #. Default: "Jan"
 msgid "month_Jan_short"
-msgstr ""
+msgstr "Jan"
 
 #. Default: "Feb"
 msgid "month_Feb_short"
-msgstr ""
+msgstr "Feb"
 
 #. Default: "Mar"
 msgid "month_Mar_short"
-msgstr ""
+msgstr "Mar"
 
 #. Default: "Apr"
 msgid "month_Apr_short"
-msgstr ""
+msgstr "Apr"
 
 #. Default: "May"
 msgid "month_May_short"
-msgstr ""
+msgstr "Mei"
 
 #. Default: "Jun"
 msgid "month_Jun_short"
-msgstr ""
+msgstr "Jun"
 
 #. Default: "Jul"
 msgid "month_Jul_short"
-msgstr ""
+msgstr "Jul"
 
 #. Default: "Aug"
 msgid "month_Aug_short"
-msgstr ""
+msgstr "Aug"
 
 #. Default: "Sep"
 msgid "month_Sep_short"
-msgstr ""
+msgstr "Sep"
 
 #. Default: "Oct"
 msgid "month_Oct_short"
-msgstr ""
+msgstr "Okt"
 
 #. Default: "Nov"
 msgid "month_Nov_short"
-msgstr ""
+msgstr "Nov"
 
 #. Default: "Dec"
 msgid "month_Dec_short"
-msgstr ""
+msgstr "Dec"
 
 #. Default: "January"
 msgid "month_Jan"
-msgstr ""
+msgstr "Januari"
 
 #. Default: "February"
 msgid "month_Feb"
-msgstr ""
+msgstr "Februari"
 
 #. Default: "March"
 msgid "month_Mar"
-msgstr ""
+msgstr "Maart"
 
 #. Default: "April"
 msgid "month_Apr"
-msgstr ""
+msgstr "April"
 
 #. Default: "May"
 msgid "month_May"
-msgstr ""
+msgstr "Mei"
 
 #. Default: "June"
 msgid "month_Jun"
-msgstr ""
+msgstr "Juni"
 
 #. Default: "July"
 msgid "month_Jul"
-msgstr ""
+msgstr "Julie"
 
 #. Default: "Augustus"
 msgid "month_Aug"
-msgstr ""
+msgstr "Augustus"
 
 #. Default: "September"
 msgid "month_Sep"
-msgstr ""
+msgstr "September"
 
 #. Default: "October"
 msgid "month_Oct"
-msgstr ""
+msgstr "Oktober"
 
 #. Default: "November"
 msgid "month_Nov"
-msgstr ""
+msgstr "November"
 
 #. Default: "December"
 msgid "month_Dec"
-msgstr ""
+msgstr "December"
 
 #. Default: "Today"
 msgid "today"
-msgstr ""
+msgstr "Vandaag"
 
 #. Default: "Which event type would you like to create?"
 msgid "which_event"
-msgstr ""
+msgstr "Welk type event wil u aanmaken?"
 
 #. Default: "Extend the event on the following number of days (leave blank to create an event on the current day only):"
 msgid "event_span"
-msgstr ""
+msgstr "Het event uitbreiden naar de volgende dagen (leeg laten om een event aan te maken op deze enige dag):"
 
 #. Default: "Also delete successive events of the same type."
 msgid "del_next_events"
-msgstr ""
+msgstr "Verwijder ook alle opeenvolgende events van hetzelfde type"
 
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
-msgstr ""
+msgstr "Ingevuld door ${userName}"
 
 #. Default: "Deleted by ${userName}"
 msgid "history_delete"
-msgstr ""
+msgstr "Verwijderd door ${userName}"
 
 #. Default: "Show changes"
 msgid "changes_show"
-msgstr ""
+msgstr "Toon de wijzigingen"
 
 #. Default: "Hide changes"
 msgid "changes_hide"
-msgstr ""
+msgstr "Verberg de wijzigingen"
 
 #. Default: "an anonymous user"
 msgid "anonymous"
-msgstr ""
+msgstr "een anonieme gebruiker"
 
 #. Default: "${date} - This page is locked by ${user}."
 msgid "page_locked"
-msgstr ""
+msgstr "${date} - Deze pagina is vergrendeld door ${user}."
 
 #. Default: "In some situations, by leaving this page this way, you may lose encoded data or prevent other users from editing it afterwards. Please use buttons instead."
 msgid "warn_leave_form"
-msgstr ""
+msgstr "In bepaalde situaties, wanneer u deze pagina op deze wijze verlaat, is het mogelijk dat ingevoerde gegevens verloren gaan of dat u andere gebruikers verhindert om ze aan te passen. Gelieve de juiste knoppen te gebruiken."
 
 #. Default: "You are not allowed to consult this."
 msgid "unauthorized"
-msgstr ""
+msgstr "U hebt geen toelating om dit te consulteren."
 
 #. Default: "Microsoft Internet Explorer ${version} is not supported. Please upgrade your browser to version ${min} or above."
 msgid "wrong_browser"
