@@ -951,6 +951,44 @@ class BaseMixin:
         if hasattr(obj, 'getSubBreadCrumb'): return obj.getSubBreadCrumb()
         return ''
 
+    def getListTitle(self, mode='link', nav='', target=None, page='main',
+                     inPopup=False, selectJs=None):
+        '''Gets the title as it must appear in lists of objects (ie in lists of
+           tied objects in a Ref, in query results...).
+
+           In most cases, a title must appear as a link that leads to the object
+           view layout. In this case (p_mode == "link"):
+           * p_nav     is the navigation parameter allowing navigation between
+                       this object and others;
+           * p_target  specifies if the link must be opened in the popup or not;
+           * p_page    specifies which page to show on the target object view;
+           * p_inPopup indicates if we are already in the popup or not.
+
+           Another p_mode is "select". In this case, we are in a popup for
+           selecting objects: every title must not be a link, but clicking on it
+           must trigger Javascript code (in p_selectJs) that will select this
+           object.
+
+           The last p_mode is "text". In this case, we simply show the object
+           title but with no tied action (link, select).
+        '''
+        # Compute common parts
+        cssClass = self.getCssFor('title')
+        title = self.getShownValue('title')
+        if mode == 'link':
+            inPopup = inPopup or (target.target != '_self')
+            url = self.getUrl(page=page, nav=nav, inPopup=inPopup)
+            onClick = target.openPopup and \
+                      (' onclick="%s"' % target.openPopup) or ''
+            res = '<a href="%s" class="%s" target="%s"%s>%s</a>' % \
+                  (url, cssClass, target.target, onClick, title)
+        elif mode == 'select':
+            res = '<span class="%s clickable" onclick="%s">%s</span>' % \
+                  (cssClass, selectJs, title)
+        elif mode == 'text':
+            res = '<span class="%s">%s</span>' % (cssClass, title)
+        return res
+
     # Workflow methods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def initializeWorkflow(self):
         '''Called when an object is created, be it temp or not, for initializing

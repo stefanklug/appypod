@@ -38,21 +38,16 @@ class Ref(Field):
     # defined. If we are on a forward reference, the "nav" parameter is added to
     # the URL for allowing to navigate from one object to the next/previous one.
     pxObjectTitle = Px('''
-     <x var="includeShownInfo=includeShownInfo|False;
-             navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
+     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
                field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
              navInfo=(not field.isBack and not inPickList) and navInfo or '';
-             cssClass=tied.o.getCssFor('title')">
+             pageName=field.isBack and field.back.pageName or 'main'">
       <x>::tied.o.getSupTitle(navInfo)</x>
-      <a var="pageName=field.isBack and field.back.pageName or 'main';
-              linkInPopup=inPopup or (target.target != '_self');
-              fullUrl=tied.o.getUrl(page=pageName, nav=navInfo, \
-                                    inPopup=linkInPopup)"
-         href=":fullUrl" class=":cssClass" target=":target.target"
-         onclick=":target.openPopup">:(not includeShownInfo) and \
-         tied.o.getShownValue('title') or field.getReferenceLabel(tied)
-      </a><span name="subTitle" style=":showSubTitles and 'display:inline' or \
-            'display:none'">::tied.o.getSubTitle()</span></x>''')
+      <x>::tied.o.getListTitle(nav=navInfo, target=target, page=pageName, \
+                               inPopup=inPopup)</x>
+      <span style=":showSubTitles and 'display:inline' or 'display:none'"
+            name="subTitle" var="sub=tied.o.getSubTitle()" if="sub">::sub</span>
+     </x>''')
 
     # This PX displays buttons for triggering global actions on several linked
     # objects (delete many, unlink many,...)

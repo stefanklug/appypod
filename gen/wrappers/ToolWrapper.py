@@ -317,17 +317,13 @@ class ToolWrapper(AbstractWrapper):
       <x if="mayView"
          var2="navInfo='search.%s.%s.%d.%d' % \
                 (className, searchName, startNumber+currentNumber, totalNumber);
-               cssClass=zobj.getCssFor('title')">
+               titleMode=inPopup and 'select' or 'link';
+               pageName=zobj.getDefaultViewPage();
+               selectJs=inPopup and 'onSelectObject(%s,%s,%s)' % (q(cbId), \
+                          q(rootHookId), q(uiSearch.initiator.url))">
        <x var="sup=zobj.getSupTitle(navInfo)" if="sup">::sup</x>
-       <a if="enableLinks" class=":cssClass"
-          var2="linkInPopup=inPopup or (target.target != '_self')"
-          target=":target.target" onclick=":target.openPopup"
-          href=":zobj.getUrl(nav=navInfo, page=zobj.getDefaultViewPage(), \
-                 inPopup=linkInPopup)">:zobj.getShownValue('title')</a>
-       <span if="not enableLinks"
-             class=":not checkboxes and cssClass or ('%s clickable' % cssClass)"
-             onclick=":checkboxes and ('onSelectObject(%s,%s,%s)' % (q(cbId), \
-             q(rootHookId), q(uiSearch.initiator.url))) or ''">:obj.title</span>
+       <x>::zobj.getListTitle(mode=titleMode, nav=navInfo, target=target, \
+                          page=pageName, inPopup=inPopup, selectJs=selectJs)</x>
        <span style=":showSubTitles and 'display:inline' or 'display:none'"
              name="subTitle" var="sub=zobj.getSubTitle()" if="sub">::sub</span>
 
@@ -478,7 +474,6 @@ class ToolWrapper(AbstractWrapper):
                  (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
                   q(searchName),int(inPopup));
                showNewSearch=showNewSearch|True;
-               enableLinks=enableLinks|not inPopup;
                newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
