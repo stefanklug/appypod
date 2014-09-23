@@ -37,7 +37,7 @@ msgstr ""
 
 #. Default: "Owner"
 msgid "role_Owner"
-msgstr ""
+msgstr "Proprietario"
 
 #. Default: "Title"
 msgid "appy_title"

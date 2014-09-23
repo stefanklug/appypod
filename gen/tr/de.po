@@ -25,7 +25,7 @@ msgstr "Kommentar"
 
 #. Default: "Manager"
 msgid "role_Manager"
-msgstr ""
+msgstr "Systemmanager"
 
 #. Default: "Anonymous"
 msgid "role_Anonymous"
@@ -37,7 +37,7 @@ msgstr ""
 
 #. Default: "Owner"
 msgid "role_Owner"
-msgstr ""
+msgstr "Eigentümer"
 
 #. Default: "Title"
 msgid "appy_title"
@@ -45,7 +45,7 @@ msgstr "Titel"
 
 #. Default: "Ok"
 msgid "appy_ok"
-msgstr ""
+msgstr "OK"
 
 #. Default: "Data change"
 msgid "data_change"

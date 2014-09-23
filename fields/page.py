@@ -61,32 +61,28 @@ class Page:
                 res = Page(pageData[0], phase=pageData[1])
         return res
 
-    def isShowable(self, obj, layoutType, elem='page'):
-        '''Must this page be shown for p_obj? "Show value" can be True, False
+    def isShowable(self, obj, elem='page'):
+        '''Must this page be shown for p_obj? The method can return True, False
            or 'view' (page is available only in "view" mode).
 
            If p_elem is not "page", this method returns the fact that a
            sub-element is viewable or not (buttons "save", "cancel", etc).'''
         # Define what attribute to test for "showability".
-        showAttr = 'show'
-        if elem != 'page':
-            showAttr = 'show%s' % elem.capitalize()
+        attr = (elem == 'page') and 'show' or ('show%s' % elem.capitalize())
         # Get the value of the show attribute as identified above.
-        show = getattr(self, showAttr)
-        if callable(show):
-            show = show(obj.appy())
-        # Show value can be 'view', for example. Thanks to p_layoutType,
-        # convert show value to a real final boolean value.
-        res = show
-        if res == 'view': res = layoutType == 'view'
+        res = getattr(self, attr)
+        if callable(res): res = res(obj.appy())
         return res
 
     def getInfo(self, obj, layoutType):
         '''Gets information about this page, for p_obj, as an object.'''
         res = Object()
         for elem in Page.subElements:
-            setattr(res, 'show%s' % elem.capitalize(), \
-                    self.isShowable(obj, layoutType, elem=elem))
+            showable = self.isShowable(obj, elem)
+            # "showable" can be True, False or "view"
+            if layoutType == 'edit': showable = showable==True
+            else: showable = bool(showable)
+            setattr(res, 'show%s' % elem.capitalize(), showable)
         return res
 
     def getLabel(self, zobj):

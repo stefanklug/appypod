@@ -70,8 +70,8 @@ class AbstractWrapper(object):
       </tr>
      </table>
      <!-- Object phases and pages -->
-     <x var="phases=zobj.getAppyPhases()"
-        if="phases and zobj.mayNavigate()">:phases[0].pxAllPhases</x>''')
+     <x if="zobj.mayNavigate()" var2="phases=zobj.getAppyPhases()">
+      <x if="phases">:phases[0].pxAllPhases</x></x>''')
 
     # The template PX for all pages.
     pxTemplate = Px('''

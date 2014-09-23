@@ -136,14 +136,13 @@ class Phase:
         if (field.page.name in self.pages) or \
            (field.page.name in self.hiddenPages): return
         # Add the page only if it must be shown.
-        isShowableOnView = field.page.isShowable(obj, 'view')
-        isShowableOnEdit = field.page.isShowable(obj, 'edit')
-        if isShowableOnView or isShowableOnEdit:
-            # The page must be added.
+        showable = field.page.isShowable(obj)
+        if showable:
+            # The page must be added
             self.pages.append(field.page.name)
             # Create the dict about page information and add it in self.pageInfo
-            pageInfo = Object(page=field.page, showOnView=isShowableOnView,
-                              showOnEdit=isShowableOnEdit, links=None)
+            pageInfo = Object(page=field.page, showOnView=bool(showable),
+                              showOnEdit=showable==True, links=None)
             pageInfo.update(field.page.getInfo(obj, layoutType))
             self.pagesInfo[field.page.name] = pageInfo
         else:
