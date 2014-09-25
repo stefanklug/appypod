@@ -843,7 +843,7 @@ class AbstractWrapper(object):
         refs._p_changed = 1
 
     def create(self, fieldNameOrClass, noSecurity=False,
-               raiseOnWrongAttribute=True, **kwargs):
+               raiseOnWrongAttribute=True, executeOnEdit=True, **kwargs):
         '''This method creates a new instance of a gen-class.
         
            If p_fieldNameOrClass is the name of a field, the created object will
@@ -858,6 +858,9 @@ class AbstractWrapper(object):
            If p_raiseOnWrongAttribute is True, if a value from p_kwargs does not
            correspond to a field on the created object, an AttributeError will
            be raised. Else, the value will be silently ignored.
+
+           If p_executeOnEdit is False, the gen-class's onEdit method, if
+           present, will not be called.
         '''
         isField = isinstance(fieldNameOrClass, basestring)
         tool = self.tool.o
@@ -897,11 +900,12 @@ class AbstractWrapper(object):
             # Link the object to this one
             appyType.linkObject(self, appyObj)
         # Call custom initialization
-        if hasattr(appyObj, 'onEdit'): appyObj.onEdit(True)
+        if executeOnEdit and hasattr(appyObj, 'onEdit'): appyObj.onEdit(True)
         zopeObj.reindex()
         return appyObj
 
-    def createFrom(self, fieldNameOrClass, other, noSecurity=False):
+    def createFrom(self, fieldNameOrClass, other, noSecurity=False,
+                   executeOnEdit=True):
         '''Similar to m_create above, excepted that we will use another object
            (p_other) as base for filling in data for the object to create.'''
         # Get the field values to set from p_other and store it in a dict.
@@ -914,7 +918,8 @@ class AbstractWrapper(object):
             if (field.type == 'Ref') and field.isBack: continue
             params[field.name] = field.getCopyValue(other.o)
         return self.create(fieldNameOrClass, noSecurity=noSecurity,
-                           raiseOnWrongAttribute=False, **params)
+                           raiseOnWrongAttribute=False,
+                           executeOnEdit=executeOnEdit, **params)
 
     def freeze(self, fieldName, template=None, format='pdf', noSecurity=True,
                freezeOdtOnError=True):
