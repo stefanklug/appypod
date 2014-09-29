@@ -4,12 +4,26 @@ from appy.gen import WorkflowOwner
 from appy.gen.layout import summaryPageLayouts
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen import utils as gutils
+from appy.shared import utils as sutils
 
 # ------------------------------------------------------------------------------
 class UserWrapper(AbstractWrapper):
     workflow = WorkflowOwner
     specialUsers = ('system', 'anon', 'admin')
     layouts = summaryPageLayouts
+
+    def getTitle(self, normalized=False):
+        '''Returns a nice name for this user, based on available information:
+           name/first name or title or login. If p_normalized is True, special
+           chars (like accents) are converted to ascii chars.'''
+        # Manage the special case of an anonymous user.
+        login = self.login
+        if login == 'anon':
+            res = self.translate('anonymous')
+        else:
+            res = self.title or login
+        if not normalized: return res
+        return sutils.normalizeString(name)
 
     def showLogin(self):
         '''When must we show the login field?'''

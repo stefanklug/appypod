@@ -818,15 +818,21 @@ class AbstractWrapper(object):
         '''Is this object a temporary object being created?'''
         return self.o.isTemporary()
 
-    def link(self, fieldName, obj):
+    def link(self, fieldName, obj, noSecurity=True, executeMethods=True):
         '''This method links p_obj (which can be a list of objects) to this one
-           through reference field p_fieldName.'''
-        return self.getField(fieldName).linkObject(self, obj)
+           through reference field p_fieldName. For understanding the 2 last
+           params, check Ref's m_linkObject's doc.'''
+        field = self.getField(fieldName) 
+        return field.linkObject(self, obj, noSecurity=noSecurity,
+                                executeMethods=executeMethods)
 
-    def unlink(self, fieldName, obj):
+    def unlink(self, fieldName, obj, noSecurity=True, executeMethods=True):
         '''This method unlinks p_obj (which can be a list of objects) from this
-           one through reference field p_fieldName.'''
-        return self.getField(fieldName).unlinkObject(self, obj)
+           one through reference field p_fieldName. For understanding the 2 last
+           params, check Ref's m_unlinkObject's doc.'''
+        field = self.getField(fieldName) 
+        return field.unlinkObject(self, obj, noSecurity=noSecurity,
+                                  executeMethods=executeMethods)
 
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
@@ -843,7 +849,7 @@ class AbstractWrapper(object):
         refs._p_changed = 1
 
     def create(self, fieldNameOrClass, noSecurity=False,
-               raiseOnWrongAttribute=True, executeOnEdit=True, **kwargs):
+               raiseOnWrongAttribute=True, executeMethods=True, **kwargs):
         '''This method creates a new instance of a gen-class.
         
            If p_fieldNameOrClass is the name of a field, the created object will
@@ -859,16 +865,17 @@ class AbstractWrapper(object):
            correspond to a field on the created object, an AttributeError will
            be raised. Else, the value will be silently ignored.
 
-           If p_executeOnEdit is False, the gen-class's onEdit method, if
-           present, will not be called.
+           If p_executeMethods is False, the gen-class's onEdit method, if
+           present, will not be called; any other defined method will not be
+           called neither (ie, Ref.insert, Ref.beforeLink, Ref.afterLink...).
         '''
         isField = isinstance(fieldNameOrClass, basestring)
         tool = self.tool.o
         # Determine the class of the object to create
         if isField:
             fieldName = fieldNameOrClass
-            appyType = self.o.getAppyType(fieldName)
-            portalType = tool.getPortalType(appyType.klass)
+            field = self.o.getAppyType(fieldName)
+            portalType = tool.getPortalType(field.klass)
         else:
             klass = fieldNameOrClass
             portalType = tool.getPortalType(klass)
@@ -885,7 +892,7 @@ class AbstractWrapper(object):
             folder = self.o.getCreateFolder()
             if not noSecurity:
                 # Check that the user can edit this field.
-                appyType.checkAdd(self.o)
+                field.checkAdd(self.o)
         # Create the object
         zopeObj = createObject(folder, objId, portalType, tool.getAppName(),
                                noSecurity=noSecurity)
@@ -898,14 +905,14 @@ class AbstractWrapper(object):
                 if raiseOnWrongAttribute: raise ae
         if isField:
             # Link the object to this one
-            appyType.linkObject(self, appyObj)
+            field.linkObject(self, appyObj, executeMethods=executeMethods)
         # Call custom initialization
-        if executeOnEdit and hasattr(appyObj, 'onEdit'): appyObj.onEdit(True)
+        if executeMethods and hasattr(appyObj, 'onEdit'): appyObj.onEdit(True)
         zopeObj.reindex()
         return appyObj
 
     def createFrom(self, fieldNameOrClass, other, noSecurity=False,
-                   executeOnEdit=True):
+                   executeMethods=True):
         '''Similar to m_create above, excepted that we will use another object
            (p_other) as base for filling in data for the object to create.'''
         # Get the field values to set from p_other and store it in a dict.
@@ -919,7 +926,7 @@ class AbstractWrapper(object):
             params[field.name] = field.getCopyValue(other.o)
         return self.create(fieldNameOrClass, noSecurity=noSecurity,
                            raiseOnWrongAttribute=False,
-                           executeOnEdit=executeOnEdit, **params)
+                           executeMethods=executeMethods, **params)
 
     def freeze(self, fieldName, template=None, format='pdf', noSecurity=True,
                freezeOdtOnError=True):

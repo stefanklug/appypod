@@ -1199,27 +1199,11 @@ class ToolMixin(BaseMixin):
            anymore. If p_normalized is True, special chars in the first and last
            names are normalized.'''
         tool = self.appy()
-        if not login: login = tool.user.login
-        # Manage the special case of an anonymous user.
-        if login == 'anon':
-            name = self.translate('anonymous')
-            if normalized: name = sutils.normalizeString(name)
-            return name
-        # Manage the case of any other user.
-        user = tool.search1('User', noSecurity=True, login=login)
-        if not user: return login
-        firstName = user.firstName
-        name = user.name
-        res = ''
-        if firstName:
-            if normalized: firstName = sutils.normalizeString(firstName)
-            res += firstName
-        if name:
-            if normalized: name = sutils.normalizeString(name)
-            if res: res += ' ' + name
-            else: res = name
-        if not res: res = login
-        return res
+        if not login:
+            user = tool.user
+        else:
+            user = tool.search1('User', noSecurity=True, login=login)
+        return user.getTitle(normalized=normalized)
 
     def tempFile(self):
         '''A temp file has been created in a temp folder. This method returns

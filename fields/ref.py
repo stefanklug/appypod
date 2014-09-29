@@ -982,15 +982,25 @@ class Ref(Field):
         elif nbOfRefs > maxRef:
             return obj.translate('max_ref_violated')
 
-    def linkObject(self, obj, value, back=False, noSecurity=True):
+    def linkObject(self, obj, value, back=False, noSecurity=True,
+                   executeMethods=True):
         '''This method links p_value (which can be a list of objects) to p_obj
-           through this Ref field.'''
+           through this Ref field. When linking 2 objects via a Ref,
+           p_linkObject must be called twice: once on the forward Ref and once
+           on the backward ref. p_back indicates if we are calling it on the
+           forward or backward Ref. If p_noSecurity is True, we bypass security
+           checks (has the logged user the right to modify this Ref field?).
+           If p_executeMethods is False, we do not execute methods that
+           customize the object insertion (parameters insert, beforeLink,
+           afterLink...). This can be useful while migrating data or duplicating
+           an object.'''
         zobj = obj.o
         # Security check
         if not noSecurity: zobj.mayEdit(self.writePermission, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
-            for v in value: self.linkObject(obj, v, back=back)
+            for v in value:
+                self.linkObject(obj, v, back, noSecurity, executeMethods)
             return
         # Gets the list of referred objects (=list of uids), or create it.
         refs = getattr(zobj.aq_base, self.name, None)
@@ -1001,9 +1011,9 @@ class Ref(Field):
         uid = value.o.id
         if uid in refs: return
         # Execute self.beforeLink if present
-        if self.beforeLink: self.beforeLink(obj, value)
+        if executeMethods and self.beforeLink: self.beforeLink(obj, value)
         # Where must we insert the object?
-        if not self.insert:
+        if not self.insert or not executeMethods:
             refs.append(uid)
         elif self.insert == 'start':
             refs.insert(0, uid)
@@ -1032,21 +1042,27 @@ class Ref(Field):
                                                 tool.getObject(uid, appy=True)))
             refs._p_changed = 1
         # Execute self.afterLink if present
-        if self.afterLink: self.afterLink(obj, value)
+        if executeMethods and self.afterLink: self.afterLink(obj, value)
         # Update the back reference
-        if not back: self.back.linkObject(value, obj, back=True)
+        if not back:
+            self.back.linkObject(value, obj, True, noSecurity, executeMethods)
 
-    def unlinkObject(self, obj, value, back=False, noSecurity=True):
+    def unlinkObject(self, obj, value, back=False, noSecurity=True,
+                     executeMethods=True):
         '''This method unlinks p_value (which can be a list of objects) from
-           p_obj through this Ref field.'''
+           p_obj through this Ref field. For an explanation about parameters
+           p_back, p_noSecurity and p_executeMethods, check m_linkObject's doc
+           above.'''
         zobj = obj.o
         # Security check
         if not noSecurity:
             zobj.mayEdit(self.writePermission, raiseError=True)
-            self.mayUnlinkElement(obj, value, raiseError=True)
+            if executeMethods:
+                self.mayUnlinkElement(obj, value, raiseError=True)
         # p_value can be a list of objects
         if type(value) in sutils.sequenceTypes:
-            for v in value: self.unlinkObject(obj, v, back=back)
+            for v in value:
+                self.unlinkObject(obj, v, back, noSecurity, executeMethods)
             return
         refs = getattr(zobj.aq_base, self.name, None)
         if not refs: return
@@ -1055,9 +1071,10 @@ class Ref(Field):
         if uid in refs:
             refs.remove(uid)
             # Execute self.afterUnlink if present
-            if self.afterUnlink: self.afterUnlink(obj, value)
+            if executeMethods and self.afterUnlink: self.afterUnlink(obj, value)
             # Update the back reference
-            if not back: self.back.unlinkObject(value, obj, back=True)
+            if not back:
+                self.back.unlinkObject(value,obj,True,noSecurity,executeMethods)
 
     def store(self, obj, value):
         '''Stores on p_obj, the p_value, which can be:
