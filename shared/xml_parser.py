@@ -1177,4 +1177,28 @@ class XhtmlCleaner(XmlParser):
             toAdd = content
         # Re-transform XML special chars to entities.
         self.env.currentContent += cgi.escape(toAdd)
+
+# ------------------------------------------------------------------------------
+class XhtmlToText(XmlParser):
+    '''Produces a text version of XHTML content.'''
+    paraTags = ('p', 'li', 'center', 'div')
+
+    def startDocument(self):
+        XmlParser.startDocument(self)
+        self.res = []
+
+    def endDocument(self):
+        self.res = ''.join(self.res)
+        return XmlParser.endDocument(self)
+
+    def characters(self, content):
+        self.res.append(content.replace('\n', ''))
+
+    def startElement(self, elem, attrs):
+        '''Dumps a carriage return every time a "br" tag is encountered.'''
+        if elem == 'br': self.res.append('\n')
+
+    def endElement(self, elem):
+        '''Dumps a carriage return every time a paragraph is encountered.'''
+        if elem in self.paraTags: self.res.append('\n')
 # ------------------------------------------------------------------------------
