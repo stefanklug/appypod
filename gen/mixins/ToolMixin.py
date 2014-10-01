@@ -1203,6 +1203,7 @@ class ToolMixin(BaseMixin):
             user = tool.user
         else:
             user = tool.search1('User', noSecurity=True, login=login)
+            if not user: return login
         return user.getTitle(normalized=normalized)
 
     def tempFile(self):

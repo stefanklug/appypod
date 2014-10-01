@@ -249,6 +249,7 @@ class XmlParser(ContentHandler, ErrorHandler):
             from cStringIO import StringIO
         except ImportError:
             from StringIO import StringIO
+        self._xml = xml
         self.parser.setContentHandler(self)
         self.parser.setErrorHandler(self)
         self.parser.setFeature(feature_external_ges, False)

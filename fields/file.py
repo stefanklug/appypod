@@ -16,6 +16,7 @@
 
 # ------------------------------------------------------------------------------
 import time, os.path, mimetypes, shutil
+from cStringIO import StringIO
 from appy import Object
 from appy.fields import Field
 from appy.px import Px
@@ -123,8 +124,10 @@ class FileInfo:
 
     def replicateFile(self, src, dest):
         '''p_src and p_dest are open file handlers. This method copies content
-           of p_src to p_dest and returns the file size.'''
+           of p_src to p_dest and returns the file size. Note that p_src can
+           also be binary data in a string.'''
         size = 0
+        if isinstance(src, str): src = StringIO(src)
         while True:
             chunk = src.read(self.BYTES)
             if not chunk: break
