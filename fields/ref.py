@@ -183,7 +183,8 @@ class Ref(Field):
     # This PX displays, in a cell header from a ref table, icons for sorting the
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
-     <x if="changeOrder and ztool.isSortable(refField.name,tiedClassName,'ref')"
+     <x if="changeOrder and (len(objects) &gt; 1) and \
+            ztool.isSortable(refField.name, tiedClassName, 'ref')"
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
                 q('reverse'), q('**v**')))">
