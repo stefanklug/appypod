@@ -663,7 +663,8 @@ class BaseMixin:
                 continue
             # In some cases the old value must be formatted.
             if field.type == 'Ref':
-                previousData[name] = [r.title for r in previousData[name]]
+                previousData[name] = [r.o.getShownValue('title') \
+                                      for r in previousData[name]]
             elif field.type == 'String':
                 languages = field.getAttribute(self, 'languages')
                 if len(languages) > 1:
