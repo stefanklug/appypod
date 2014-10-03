@@ -212,11 +212,12 @@ class FileInfo:
         self.modified = DateTime()
         self.size = os.stat(fsName).st_size
 
-    def writeResponse(self, response, dbFolder=''):
+    def writeResponse(self, response, dbFolder='', disposition='inline'):
         '''Writes this file in the HTTP p_response object.'''
         # As a preamble, initialise response headers.
         header = response.setHeader
-        header('Content-Disposition', 'inline;filename="%s"' % self.uploadName)
+        header('Content-Disposition',
+               '%s;filename="%s"' % (disposition, self.uploadName))
         header('Content-Type', self.mimeType)
         header('Content-Length', self.size)
         header('Accept-Ranges', 'bytes')

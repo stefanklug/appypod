@@ -731,7 +731,10 @@ class Pod(Field):
             # attachment?
             mailing = rq.get('mailing')
             if not mailing:
-                res.writeResponse(rq.RESPONSE)
+                # With disposition=inline, Google Chrome and IE may launch a PDF
+                # viewer that triggers one or many additional crashing HTTP GET
+                # requests.
+                res.writeResponse(rq.RESPONSE, disposition='attachment')
                 return
             else:
                 # Send the email(s).
