@@ -620,6 +620,19 @@ class Field:
         if self.isEmptyValue(obj, value): return
         return value
 
+    def setSlave(self, slaveField, masterValue):
+        '''Sets p_slaveField as slave of this field. Normally, master/slave
+           relationships are defined when a slave field is defined. At this time
+           you specify parameters "master" and "masterValue" for this field and
+           that's all. This method is used to add a master/slave relationship
+           that was not initially foreseen.'''
+        slaveField.master = self
+        slaveField.masterValue = gutils.initMasterValue(masterValue)
+        if slaveField not in self.slaves:
+            self.slaves.append(slaveField)
+        # Master's init method may not have been called yet.
+        slaveField.masterName = getattr(self, 'name', None)
+
     def getMasterData(self):
         '''Gets the master of this field (and masterValue) or, recursively, of
            containing groups when relevant.'''

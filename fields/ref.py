@@ -947,14 +947,16 @@ class Ref(Field):
            p_forSearch is True, it will return a list of the linked objects'
            titles instead.'''
         if not forSearch:
-            res = getattr(obj.aq_base, self.name, [])
+            res = getattr(obj.aq_base, self.name, None)
             if res:
-                # The index does not like persistent lists.
+                # The index does not like persistent lists. Moreover, I don't
+                # want to give to anyone access to the persistent list in the
+                # DB.
                 res = list(res)
             else:
                 # Ugly catalog: if I return an empty list, the previous value
                 # is kept.
-                res.append('')
+                res = ['']
             return res
         else:
             # For the global search: return linked objects' titles.
