@@ -84,9 +84,9 @@ msgstr "Too much elements are selected here."
 msgid "no_ref"
 msgstr "No object."
 
-#. Default: "Add a new one"
+#. Default: "Add"
 msgid "add_ref"
-msgstr "Add a new one"
+msgstr "Add"
 
 #. Default: "Available elements"
 msgid "selectable_objects"
@@ -251,6 +251,10 @@ msgstr "Action had no effect."
 #. Default: "Are you sure you want to apply this change?"
 msgid "save_confirm"
 msgstr "Are you sure you want to apply this change?"
+
+#. Default: "Are you sure? You are going to permanently change the order of these elements, for all users."
+msgid "sort_confirm"
+msgstr "Are you sure? You are going to permanently change the order of these elements, for all users."
 
 #. Default: "Go to top"
 msgid "goto_first"

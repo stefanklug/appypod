@@ -83,7 +83,7 @@ msgstr "Demasiados elementos son seleccionados aquí."
 msgid "no_ref"
 msgstr "Ningún elemento."
 
-#. Default: "Add a new one"
+#. Default: "Add"
 msgid "add_ref"
 msgstr "Añadir"
 
@@ -249,6 +249,10 @@ msgstr ""
 
 #. Default: "Are you sure you want to apply this change?"
 msgid "save_confirm"
+msgstr ""
+
+#. Default: "Are you sure? You are going to permanently change the order of these elements, for all users."
+msgid "sort_confirm"
 msgstr ""
 
 #. Default: "Go to top"

@@ -328,8 +328,9 @@ class Field:
             return self.indexed and not self.isMultiValued() and not \
                    ((self.type == 'String') and self.isSelection())
         elif usage == 'ref':
-            return self.type in ('Integer', 'Float', 'Boolean', 'Date') or \
-                   ((self.type == 'String') and (self.format == 0))
+            if self.type in ('Integer', 'Float', 'Boolean', 'Date'): return True
+            elif self.type == 'String':
+                return (self.format == 0) and not self.isMultilingual(None,True)
 
     def isShowable(self, obj, layoutType):
         '''When displaying p_obj on a given p_layoutType, must we show this

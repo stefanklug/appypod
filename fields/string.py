@@ -476,10 +476,12 @@ class String(Field):
                 res = False
         return res
 
-    def isMultilingual(self, obj):
-        '''Is this field multilingual ?.'''
+    def isMultilingual(self, obj, dontKnow=False):
+        '''Is this field multilingual ? If we don't know, say p_dontKnow.'''
         # In the following case, impossible to know: we say no.
-        if not obj and callable(self.languages): return
+        if not obj:
+            if callable(self.languages): return dontKnow
+            else: return len(self.languages) > 1
         return len(self.getAttribute(obj, 'languages')) > 1
 
     def getDefaultLayouts(self):

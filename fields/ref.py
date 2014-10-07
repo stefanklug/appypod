@@ -189,9 +189,13 @@ class Ref(Field):
                (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
                 q('reverse'), q('**v**')))">
       <img class="clickable" src=":url('sortAsc')"
-           onclick=":ajaxBaseCall.replace('**v**', 'False')"/>
+           var="js=ajaxBaseCall.replace('**v**', 'False')"
+           onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js,False), \
+                                               q(sortConfirm))"/>
       <img class="clickable" src=":url('sortDesc')"
-           onclick=":ajaxBaseCall.replace('**v**', 'True')"/>
+           var="js=ajaxBaseCall.replace('**v**', 'True')"
+           onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js,False), \
+                                               q(sortConfirm))"/>
      </x>''')
 
     # Shows the object number in a numbered list of tied objects.
@@ -430,6 +434,7 @@ class Ref(Field):
              navBaseCall='askRefField(%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
+             sortConfirm=changeOrder and _('sort_confirm');
              numbered=field.isNumbered(zobj);
              changeNumber=not inPickList and numbered and changeOrder and \
                           (totalNumber &gt; 3);

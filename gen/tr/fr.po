@@ -84,7 +84,7 @@ msgstr "Trop d'éléments sont sélectionnés ici."
 msgid "no_ref"
 msgstr "-"
 
-#. Default: "Add a new one"
+#. Default: "Add"
 msgid "add_ref"
 msgstr "Ajouter"
 
@@ -251,6 +251,10 @@ msgstr "L'action n'a eu aucun effet."
 #. Default: "Are you sure you want to apply this change?"
 msgid "save_confirm"
 msgstr "Êtes-vous sûr de vouloir appliquer ce changement?"
+
+#. Default: "Are you sure? You are going to permanently change the order of these elements, for all users."
+msgid "sort_confirm"
+msgstr "Êtes-vous sûr? Vous allez changer l'ordre de ces éléments de manière permanente, pour tous les utilisateurs."
 
 #. Default: "Go to top"
 msgid "goto_first"
