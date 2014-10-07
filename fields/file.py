@@ -38,6 +38,15 @@ def osPathJoin(*pathElems):
        strings.'''
     return os.path.join(*pathElems).rstrip(os.sep)
 
+def getShownSize(size):
+    '''Express p_size (a file size in bytes) in a human-readable way.'''
+    # Display the size in bytes if smaller than 1024 bytes
+    if size < 1024: return '%d byte(s)' % size
+    size = size / 1024.0 # This is the size, in Kb
+    if size < 1024: return '%s Kb' % sutils.formatNumber(size, precision=1)
+    size = size / 1024.0 # This is the size, in Mb
+    return '%s Mb' % sutils.formatNumber(size, precision=1)
+
 # ------------------------------------------------------------------------------
 class FileInfo:
     '''A FileInfo instance holds metadata about a file on the filesystem.
@@ -113,14 +122,7 @@ class FileInfo:
         '''Normalizes file p_name.'''
         return name[max(name.rfind('/'), name.rfind('\\'), name.rfind(':'))+1:]
 
-    def getShownSize(self):
-        '''Displays this file's size in the user interface.'''
-        if self.size < 1024:
-            # Display the size in bytes
-            return '%d byte(s)' % self.size
-        else:
-            # Display the size in Kb
-            return '%d Kb' % (self.size / 1024)
+    def getShownSize(self): return getShownSize(self.size)
 
     def replicateFile(self, src, dest):
         '''p_src and p_dest are open file handlers. This method copies content

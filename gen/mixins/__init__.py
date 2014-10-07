@@ -171,12 +171,11 @@ class BaseMixin:
         history = []
         from DateTime import DateTime
         eventToDelete = DateTime(rq['eventTime'])
-        key = self.workflow_history.keys()[0]
-        for event in self.workflow_history[key]:
+        for event in self.workflow_history['appy']:
             if (event['action'] != '_datachange_') or \
                (event['time'] != eventToDelete):
                 history.append(event)
-        self.workflow_history[key] = tuple(history)
+        self.workflow_history['appy'] = tuple(history)
         appy = self.appy()
         self.log('data change event deleted for %s (UID=%s).' % \
                  (appy.klass.__name__, appy.uid))
@@ -606,8 +605,7 @@ class BaseMixin:
         event.update(kw)
         if 'review_state' not in event: event['review_state'] = self.State()
         # Add the event to the history
-        histKey = self.workflow_history.keys()[0]
-        self.workflow_history[histKey] += (event,)
+        self.workflow_history['appy'] += (event,)
 
     def addDataChange(self, changes, notForPreviouslyEmptyValues=False):
         '''This method allows to add "manually" a data change into the objet's
@@ -1384,8 +1382,7 @@ class BaseMixin:
                     break
         else:
             # Return info about the current object state
-            key = self.workflow_history.keys()[0]
-            res = self.workflow_history[key][-1]['review_state']
+            res = self.workflow_history['appy'][-1]['review_state']
         # Return state name or state definition?
         if name: return res
         else: return getattr(wf, res)

@@ -417,7 +417,9 @@ class XmlUnmarshaller(XmlParser):
                 # will act in m_endElement, when the object will be finalized.
                 pass
             elif isinstance(currentContainer, UnmarshalledFile):
-                currentContainer.content += value or ''
+                val = value or ''
+                currentContainer.content += val
+                currentContainer.size += len(val)
             else:
                 # Current container is an object
                 if hasattr(currentContainer, name) and \

@@ -11,7 +11,7 @@ from appy.gen.descriptors import ClassDescriptor
 from appy.shared import mimeTypes
 from appy.shared import utils as sutils
 from appy.shared.data import languages
-from appy.shared.ldap import LdapConnector
+from appy.shared.ldap_connector import LdapConnector
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -1257,7 +1257,7 @@ class ToolMixin(BaseMixin):
     def generateUid(self, className):
         '''Generates a UID for an instance of p_className.'''
         name = className.split('_')[-1]
-        randomNumber = str(random.random()).split('.')[1]
+        randomNumber = str(random.random()).split('.')[1].replace('e-', '')
         timestamp = ('%f' % time.time()).replace('.', '')
         return '%s%s%s' % (name, timestamp, randomNumber)
 

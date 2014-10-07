@@ -236,8 +236,7 @@ class Pod(Field):
         # What are the output formats when generating documents from this pod ?
         self.formats = formats
         if not formats: # Compute default ones
-            ext = self.getExtension(self.template[0])
-            self.formats = Pod.allFormats[ext]
+            self.formats = self.getAllFormats(self.template[0])
         # Parameter "getChecked" can specify the name of a Ref field belonging
         # to the same gen class. If it is the case, the context of the pod
         # template will contain an additional object, name "_checked", and
@@ -294,7 +293,7 @@ class Pod(Field):
     def getAllFormats(self, template):
         '''Gets all the output formats that are available for a given
            p_template.'''
-        return self.allFormats[self.getExtension(template)]
+        return Pod.allFormats[self.getExtension(template)]
 
     def setTemplateFolder(self, folder):
         '''This methods adds a prefix to every template name in
@@ -363,11 +362,10 @@ class Pod(Field):
         '''Returns, among self.template, the template(s) that can be shown.'''
         res = []
         if not self.showTemplate:
-            # Show them all in any format.
+            # Show them all in the formats spoecified in self.formats.
             for template in self.template:
-                res.append(Object(template=template,
-                        formats=self.getAllFormats(template),
-                        freezeFormats=self.getFreezeFormats(obj, template)))
+                res.append(Object(template=template, formats=self.formats,
+                            freezeFormats=self.getFreezeFormats(obj, template)))
         else:
             isManager = obj.user.has_role('Manager')
             for template in self.template:
