@@ -88,14 +88,14 @@ class State:
     def standardizeRoles(self):
         '''This method converts, within self.permissions, every role to a
            Role instance. Every used role is stored in self.usedRoles.'''
-        for permission, roles in self.permissions.items():
+        for permission, roles in self.permissions.iteritems():
+            if not roles: continue # Nobody may have this permission
             if isinstance(roles, basestring) or isinstance(roles, Role):
                 self.permissions[permission] = [self.getRole(roles)]
-            elif roles:
-                rolesList = []
-                for role in roles:
-                    rolesList.append(self.getRole(role))
-                self.permissions[permission] = rolesList
+            elif isinstance(roles, list):
+                for i in range(len(roles)): roles[i] = self.getRole(roles[i])
+            else: # A tuple
+                self.permissions[permission] = [self.getRole(r) for r in roles]
 
     def getUsedRoles(self): return self.usedRoles.values()
 
@@ -215,8 +215,8 @@ class Transition:
 
     def standardiseStates(self, states):
         '''Get p_states as a list or a list of lists. Indeed, the user may also
-           specify p_states a tuple or tuple of tuples. Having lists allows us
-           to easily perform changes in states if required.'''
+           specify p_states as a tuple or tuple of tuples. Having lists allows
+           us to easily perform changes in states if required.'''
         if isinstance(states[0], State):
             if isinstance(states, tuple): return list(states)
             return states
