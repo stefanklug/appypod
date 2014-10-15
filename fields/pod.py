@@ -514,7 +514,7 @@ class Pod(Field):
         podContext = {'tool': tool, 'user': obj.user, 'self': obj, 'field':self,
                       'now': obj.o.getProductConfig().DateTime(),
                       '_': obj.translate, 'projectFolder': diskFolder,
-                      'template': template}
+                      'template': template, 'request': tool.request}
         # If the pod document is related to a query, re-trigger it and put the
         # result in the pod context.
         if queryData:
@@ -528,6 +528,7 @@ class Pod(Field):
                      sortBy=sortKey, sortOrder=sortOrder, filterKey=filterKey,
                      filterValue=filterValue, maxResults='NO_LIMIT')
             podContext['objects'] = [o.appy() for o in objs.objects]
+            podContext['queryData'] = queryData.split(';')
         # Add the field-specific and custom contexts if present.
         if specificContext: podContext.update(specificContext)
         if customContext: podContext.update(customContext)

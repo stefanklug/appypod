@@ -22,6 +22,7 @@ from appy.gen import utils as gutils
 from appy.px import Px
 from appy.shared import utils as sutils
 from group import Group
+from search import Search
 from page import Page
 
 # ------------------------------------------------------------------------------
@@ -587,6 +588,18 @@ class Field:
             else:
                 res = str(res)
         return res
+
+    def getCatalogValue(self, obj, usage='search'):
+        '''This method returns the index value that is currently stored in the
+           catalog for this field on p_obj.'''
+        if not self.indexed:
+            raise Exception('Field %s: cannot retrieve catalog version of ' \
+                            'unindexed field.' % self.name)
+        tool = obj.getTool()
+        indexName = Search.getIndexName(self.name, usage=usage)
+        catalogBrain = tool.getObject(obj.id, brain=True)
+        index = tool.getApp().catalog.Indexes[indexName]
+        return index.getEntryForObject(catalogBrain.getRID())
 
     def valueIsInRequest(self, obj, request, name):
         '''Is there a value corresponding to this field in the request? p_name
