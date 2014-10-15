@@ -177,8 +177,7 @@ class BaseMixin:
                 history.append(event)
         self.workflow_history['appy'] = tuple(history)
         appy = self.appy()
-        self.log('data change event deleted for %s (UID=%s).' % \
-                 (appy.klass.__name__, appy.uid))
+        self.log('data change event deleted for %s.' % appy.uid)
         self.goto(self.getUrl(rq['HTTP_REFERER']))
 
     def onLink(self):

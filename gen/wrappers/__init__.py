@@ -370,7 +370,7 @@ class AbstractWrapper(object):
         <td if="isDataChange">
          <!-- Display the previous values of the fields whose value were
               modified in this change. -->
-         <table class="appyChanges" width="100%">
+         <table class="appyChanges" width="100%" if="event['changes']">
           <tr>
            <th align=":dleft" width="30%">:_('modified_field')</th>
            <th align=":dleft" width="70%">:_('previous_value')</th>
@@ -384,6 +384,8 @@ class AbstractWrapper(object):
            <td>::change[1][0]</td>
           </tr>
          </table>
+         <!-- There may also be a comment, too -->
+         <x if="rhComments">::zobj.formatText(rhComments)</x>
         </td>
        </tr>
       </table>
