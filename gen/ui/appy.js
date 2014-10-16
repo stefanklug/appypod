@@ -696,6 +696,8 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
   if (customParams) { f.customParams.value = customParams; }
   else { f.customParams.value = ''; }
   if (mailing) f.mailing.value = mailing;
+  // Transmit value of cookie "showSubTitles"
+  f.showSubTitles.value = readCookie('showSubTitles') || 'true';
   f.action.value = 'generate';
   f.checkedUids.value = '';
   f.checkedSem.value = '';

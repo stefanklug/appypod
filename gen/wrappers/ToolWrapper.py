@@ -144,6 +144,7 @@ class ToolWrapper(AbstractWrapper):
       <input type="hidden" name="podFormat"/>
       <input type="hidden" name="queryData"/>
       <input type="hidden" name="customParams"/>
+      <input type="hidden" name="showSubTitles" value="true"/>
       <input type="hidden" name="checkedUids"/>
       <input type="hidden" name="checkedSem"/>
       <input type="hidden" name="mailing"/>

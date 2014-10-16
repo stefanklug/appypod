@@ -69,11 +69,15 @@ class BufferAction:
                 else: col = ', column %d' % col
                 errorMessage += ' (line %s%s)' % (locator.getLineNumber(), col)
             raise Exception(errorMessage)
-        # Empty the buffer (pod-only)
-        self.buffer.__init__(self.buffer.env, self.buffer.parent)
-        PodError.dump(self.buffer, errorMessage, withinElement=self.elem,
+        # Create a temporary buffer to dump the error. If I reuse this buffer to
+        # dump the error (what I did before), and we are, at some depth, in a
+        # for loop, this buffer will contain the error message and not the
+        # content to repeat anymore. It means that this error will also show up
+        # for every subsequent iteration.
+        tempBuffer = self.buffer.clone()
+        PodError.dump(tempBuffer, errorMessage, withinElement=self.elem,
                       dumpTb=dumpTb)
-        self.buffer.evaluate(result, context)
+        tempBuffer.evaluate(result, context)
 
     def _evalExpr(self, expr, context):
         '''Evaluates p_expr with p_context. p_expr can contain an error expr,
