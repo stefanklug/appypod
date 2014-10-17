@@ -97,16 +97,20 @@ class BaseMixin:
             # Keep in history potential changes on historized fields
             obj.historizeData(previousData)
 
+        # Call the custom "onEditEarly" if available. This method is called
+        # *before* potentially linking the object to its initiator.
+        appyObject = obj.appy()
+        if created and hasattr(appyObject, 'onEditEarly'):
+            appyObject.onEditEarly()
+
         # Manage potential link with an initiator object
         if created and initiator:
-            initiator.appy().link(initiatorField.name, obj.appy())
+            initiator.appy().link(initiatorField.name, appyObject)
 
         # Call the custom "onEdit" if available
         msg = None # The message to display to the user. It can be set by onEdit
-        if obj.wrapperClass:
-            appyObject = obj.appy()
-            if hasattr(appyObject, 'onEdit'):
-                msg = appyObject.onEdit(created)
+        if hasattr(appyObject, 'onEdit'): msg = appyObject.onEdit(created)
+
         # Update last modification date
         if not created:
             from DateTime import DateTime
