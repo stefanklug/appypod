@@ -1142,6 +1142,23 @@ class AbstractWrapper(object):
             if condition: return event
             i -= 1
 
+    def removeEvent(self, event):
+        '''Removes p_event from this object's history.'''
+        res = []
+        # Because data change events carry the workflow state, we must ensure
+        # that, after having removed p_event, this workflow state is still
+        # correct.
+        lastState = None
+        for e in self.history:
+            # Ignore this event if it is p_event
+            if (e['action'] == event['action']) and \
+               (e['time'] == event['time']): continue
+            if e['action'] == '_datachange_':
+                e['review_state'] = lastState
+            res.append(e)
+            lastState = e['review_state']
+        self.o.workflow_history['appy'] = tuple(res)
+
     def formatText(self, text, format='html'):
         '''Produces a representation of p_text into the desired p_format, which
            is 'html' by default.'''
