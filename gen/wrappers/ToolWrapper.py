@@ -47,51 +47,47 @@ class ToolWrapper(AbstractWrapper):
     # Buttons for navigating among a list of objects (from a Ref field or a
     # query): next,back,first,last...
     pxNavigate = Px('''
-     <div if="totalNumber &gt; batchSize" align=":dright">
-      <table class="listNavigate"
-             var="mustSortAndFilter=ajaxHookId == 'queryResult';
-                  sortAndFilter=mustSortAndFilter and \
+     <div if="totalNumber &gt; batchSize" align=":dright"
+          var2="mustSortAndFilter=ajaxHookId == 'queryResult';
+                sortAndFilter=mustSortAndFilter and \
                     ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
-       <tr valign="bottom">
-        <!-- Go to the first page -->
-        <td if="(startNumber != 0) and (startNumber != batchSize)"><img
-            class="clickable" src=":url('arrowsLeft')"
-            title=":_('goto_first')"
-            onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/></td>
+       
+      <!-- Go to the first page -->
+      <img if="(startNumber != 0) and (startNumber != batchSize)"
+           class="clickable" src=":url('arrowsLeft')" title=":_('goto_first')"
+           onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/>
 
-        <!-- Go to the previous page -->
-        <td var="sNumber=startNumber - batchSize" if="startNumber != 0"><img
-            class="clickable" src=":url('arrowLeft')"
-            title=":_('goto_previous')"
-            onClick=":navBaseCall.replace('**v**', \
-                                          str(sNumber)+sortAndFilter)"/></td>
+      <!-- Go to the previous page -->
+      <img var="sNumber=startNumber - batchSize" if="startNumber != 0"
+           class="clickable" src=":url('arrowLeft')" title=":_('goto_previous')"
+           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
 
-        <!-- Explain which elements are currently shown -->
-        <td class="discreet"> 
-         <x>:startNumber + 1</x> <img src=":url('to')"/> 
-         <x>:startNumber + batchNumber</x> <b>//</b> 
-         <x>:totalNumber</x> </td>
+      <!-- Explain which elements are currently shown -->
+      <span class="discreet"> 
+       <x>:startNumber + 1</x> <img src=":url('to')"/> 
+       <x>:startNumber + batchNumber</x> <b>//</b> 
+       <x>:totalNumber</x>
+      </span>
 
-        <!-- Go to the next page -->
-        <td var="sNumber=startNumber + batchSize"
-            if="sNumber &lt; totalNumber"><img class="clickable"
-            src=":url('arrowRight')" title=":_('goto_next')"
-            onClick=":navBaseCall.replace('**v**', \
-                                          str(sNumber)+sortAndFilter)"/></td>
+      <!-- Go to the next page -->
+      <img var="sNumber=startNumber + batchSize" if="sNumber &lt; totalNumber"
+           class="clickable" src=":url('arrowRight')" title=":_('goto_next')"
+           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
 
-        <!-- Go to the last page -->
-        <td var="lastPageIsIncomplete=totalNumber % batchSize;
-                 nbOfCompletePages=totalNumber/batchSize;
-                 nbOfCountedPages=lastPageIsIncomplete and \
-                                  nbOfCompletePages or nbOfCompletePages-1;
-                 sNumber= nbOfCountedPages * batchSize"
-            if="(startNumber != sNumber) and \
-                (startNumber != sNumber-batchSize)"><img class="clickable"
-            src=":url('arrowsRight')" title=":_('goto_last')"
-            onClick=":navBaseCall.replace('**v**', \
-                                          str(sNumber)+sortAndFilter)"/></td>
-       </tr>
-      </table>
+      <!-- Go to the last page -->
+      <img var="lastPageIsIncomplete=totalNumber % batchSize;
+                nbOfCompletePages=totalNumber/batchSize;
+                nbOfCountedPages=lastPageIsIncomplete and \
+                                 nbOfCompletePages or nbOfCompletePages-1;
+                sNumber= nbOfCountedPages * batchSize"
+           if="(startNumber != sNumber) and \
+               (startNumber != sNumber-batchSize)" class="clickable"
+           src=":url('arrowsRight')" title=":_('goto_last')"
+           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
+
+      <!-- Go to the element number... -->
+      <x var="gotoNumber=gotoNumber|False" if="gotoNumber"
+         var2="sourceUrl=obj.url">:obj.pxGotoNumber</x>
      </div>''')
 
     # --------------------------------------------------------------------------
@@ -508,7 +504,7 @@ class ToolWrapper(AbstractWrapper):
           <span class="discreet">:uiSearch.translatedDescr</span><br/>
          </td>
          <!-- (Top) navigation -->
-         <td align=":dright" width="150px"><x>:tool.pxNavigate</x></td>
+         <td align=":dright" width="150px">:tool.pxNavigate</td>
         </tr>
        </table>
 

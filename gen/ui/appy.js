@@ -282,6 +282,19 @@ function askRefField(hookId, objectUrl, innerRef, startNumber, action,
                evalInnerScripts);
 }
 
+function gotoTied(objectUrl, field, numberWidget, total) {
+  // Check that the number is correct
+  try {
+    var number = parseInt(numberWidget.value);
+    if (!isNaN(number)) {
+      if ((number >= 1) && (number <= total)) {
+        goto(objectUrl + '/gotoTied?field=' + field + '&number=' + number);
+      }
+      else numberWidget.style.background = wrongTextInput; }
+    else numberWidget.style.background = wrongTextInput; }
+  catch (err) { numberWidget.style.background = wrongTextInput; }
+}
+
 function askField(hookId, objectUrl, layoutType, customParams, showChanges,
                   masterValues, requestValue, error, className){
   // Sends an Ajax request for getting the content of any field.

@@ -19,34 +19,19 @@ class AbstractWrapper(object):
     '''Any real Appy-managed Zope object has a companion object that is an
        instance of this class.'''
 
-    # Buttons for going to next/previous objects if this one is among bunch of
-    # referenced or searched objects. currentNumber starts with 1.
-    pxNavigateSiblings = Px('''
-     <div if="req.get('nav', None)" var2="ni=ztool.getNavigationInfo(inPopup)">
-      <!-- Go to the source URL (search or referred object) -->
-      <a if="not inPopup and ni.sourceUrl" href=":ni.sourceUrl"><img
-         var="gotoSource=_('goto_source');
-              goBack=ni.backText and ('%s - %s' % (ni.backText, gotoSource)) \
-                     or gotoSource"
-         src=":url('gotoSource')" title=":goBack"/></a>
-
-      <!-- Go to the first or previous page -->
-      <a if="ni.firstUrl" href=":ni.firstUrl"><img title=":_('goto_first')"
-         src=":url('arrowsLeft')"/></a><a
-         if="ni.previousUrl" href=":ni.previousUrl"><img
-         title=":_('goto_previous')" src=":url('arrowLeft')"/></a>
-
-      <!-- Explain which element is currently shown -->
-      <span class="discreet"> 
-       <x>:ni.currentNumber</x> <b>//</b> 
-       <x>:ni.totalNumber</x> </span>
-
-      <!-- Go to the next or last page -->
-      <a if="ni.nextUrl" href=":ni.nextUrl"><img title=":_('goto_next')"
-         src=":url('arrowRight')"/></a><a
-         if="ni.lastUrl" href=":ni.lastUrl"><img title=":_('goto_last')"
-         src=":url('arrowsRight')"/></a>
-     </div>''')
+    # Input field for going to element number ...
+    pxGotoNumber = Px('''
+     <x var2="label=_('goto_number');
+              gotoName='%s_%s_goto' % (obj.id, field.name)">
+      <span class="discreet" style="padding-left: 5px">:label</span>
+      <input type="text" size=":(len(str(totalNumber))-1) or 1"
+             onclick="this.select()"
+             onkeydown=":'if (event.keyCode==13) document.getElementById' \
+                         '(%s).click()' % q(gotoName)"/><img
+             id=":gotoName" name=":gotoName"
+             class="clickable" src=":url('gotoNumber')" title=":label"
+             onClick=":'gotoTied(%s,%s,this.previousSibling,%s)' % \
+                       (q(sourceUrl), q(field.name), totalNumber)"/></x>''')
 
     pxNavigationStrip = Px('''
      <table width="100%">
@@ -66,7 +51,9 @@ class AbstractWrapper(object):
         <x if="sub">::sub</x>
        </td>
        <!-- Object navigation -->
-       <td align=":dright" width="150px">:obj.pxNavigateSiblings</td>
+       <td var="nav=req.get('nav', None)" if="nav"
+           var2="self=ztool.getNavigationInfo(nav, inPopup)" align=":dright"
+           width="150px">:self.pxNavigate</td>
       </tr>
      </table>
      <!-- Object phases and pages -->

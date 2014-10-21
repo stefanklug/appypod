@@ -275,6 +275,10 @@ msgstr "Ir al final"
 msgid "goto_source"
 msgstr "Volver"
 
+#. Default: "Go to number"
+msgid "goto_number"
+msgstr ""
+
 #. Default: "Whatever"
 msgid "whatever"
 msgstr "No importa"

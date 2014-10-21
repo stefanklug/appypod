@@ -8,6 +8,7 @@ from appy.gen import utils as gutils
 from appy.gen.mixins import BaseMixin
 from appy.gen.wrappers import AbstractWrapper
 from appy.gen.descriptors import ClassDescriptor
+from appy.gen.navigate import Siblings
 from appy.shared import mimeTypes
 from appy.shared import utils as sutils
 from appy.shared.data import languages
@@ -375,15 +376,15 @@ class ToolMixin(BaseMixin):
         # time a page for an element is consulted.
         if remember:
             if not searchName:
-                if not search or (search.name == 'allSearch'):
+                if not search:
                     searchName = className
                 else:
-                    searchName = search.name
+                    searchName = search.getSessionKey(className, full=False)
             uids = {}
             i = -1
             for obj in res.objects:
                 i += 1
-                uids[startNumber+i] = obj.UID()
+                uids[startNumber+i] = obj.id
             self.REQUEST.SESSION['search_%s' % searchName] = uids
         return res
 
@@ -776,144 +777,9 @@ class ToolMixin(BaseMixin):
         if not res: return ''
         return res
 
-    def getQueryUrl(self, contentType, searchName, startNumber=None):
-        '''This method creates the URL that allows to perform a (non-Ajax)
-           request for getting queried objects from a search named p_searchName
-           on p_contentType.'''
-        baseUrl = self.absolute_url()
-        baseParams = 'className=%s' % contentType
-        rq = self.REQUEST
-        if rq.get('ref'): baseParams += '&ref=%s' % rq.get('ref')
-        # Manage start number
-        if startNumber != None:
-            baseParams += '&startNumber=%s' % startNumber
-        elif rq.has_key('startNumber'):
-            baseParams += '&startNumber=%s' % rq['startNumber']
-        # Manage search name
-        if searchName: baseParams += '&search=%s' % searchName
-        return '%s/query?%s' % (baseUrl, baseParams)
-
-    def computeStartNumberFrom(self, currentNumber, totalNumber, batchSize):
-        '''Returns the number (start at 0) of the first element in a list
-           containing p_currentNumber (starts at 0) whose total number is
-           p_totalNumber and whose batch size is p_batchSize.'''
-        startNumber = 0
-        res = startNumber
-        while (startNumber < totalNumber):
-            if (currentNumber < startNumber + batchSize):
-                return startNumber
-            else:
-                startNumber += batchSize
-        return startNumber
-
-    def getNavigationInfo(self, inPopup=False):
-        '''Extracts navigation information from request/nav and returns an
-           object with the info that a page can use for displaying object
-           navigation.'''
-        res = Object()
-        rq = self.REQUEST
-        t, d1, d2, currentNumber, totalNumber = rq.get('nav').split('.')
-        res.currentNumber = int(currentNumber)
-        res.totalNumber = int(totalNumber)
-        # Compute the label of the search, or ref field
-        if t == 'search':
-            searchName = d2
-            if not searchName:
-                # We search all objects of a given type.
-                label = '%s_plural' % d1.split(':')[0]
-            elif searchName == 'customSearch':
-                # This is an advanced, custom search.
-                label = 'search_results'
-            else:
-                # This is a named, predefined search.
-                label = '%s_search_%s' % (d1.split(':')[0], searchName)
-            res.backText = self.translate(label)
-            # If it is a dynamic search this label does not exist.
-            if ('_' in res.backText): res.backText = ''
-        else:
-            fieldName, pageName = d2.split(':')
-            sourceObj = self.getObject(d1)
-            label = '%s_%s' % (sourceObj.meta_type, fieldName)
-            res.backText = '%s - %s' % (sourceObj.Title(),self.translate(label))
-        newNav = '%s.%s.%s.%%d.%s' % (t, d1, d2, totalNumber)
-        # Among, first, previous, next and last, which one do I need?
-        previousNeeded = False # Previous ?
-        previousIndex = res.currentNumber - 2
-        if (previousIndex > -1) and (res.totalNumber > previousIndex):
-            previousNeeded = True
-        nextNeeded = False     # Next ?
-        nextIndex = res.currentNumber
-        if nextIndex < res.totalNumber: nextNeeded = True
-        firstNeeded = False    # First ?
-        firstIndex = 0
-        if previousIndex > 0: firstNeeded = True
-        lastNeeded = False     # Last ?
-        lastIndex = res.totalNumber - 1
-        if (nextIndex < lastIndex): lastNeeded = True
-        # Get the list of available UIDs surrounding the current object
-        if t == 'ref': # Manage navigation from a reference
-            # In the case of a reference, we retrieve ALL surrounding objects.
-            masterObj = self.getObject(d1)
-            batchSize = masterObj.getAppyType(fieldName).maxPerPage
-            uids = getattr(masterObj, fieldName)
-            # Display the reference widget at the page where the current object
-            # lies.
-            startNumberKey = '%s%s_startNumber' % (masterObj.id, fieldName)
-            startNumber = self.computeStartNumberFrom(res.currentNumber-1,
-                res.totalNumber, batchSize)
-            res.sourceUrl = masterObj.getUrl(**{startNumberKey:startNumber,
-                                             'page':pageName, 'nav':''})
-        else: # Manage navigation from a search
-            contentType = d1
-            searchName = keySuffix = d2
-            batchSize = self.appy().numberOfResultsPerPage
-            if not searchName: keySuffix = contentType
-            s = rq.SESSION
-            searchKey = 'search_%s' % keySuffix
-            if s.has_key(searchKey): uids = s[searchKey]
-            else:                    uids = {}
-            # In the case of a search, we retrieve only a part of all
-            # surrounding objects, those that are stored in the session.
-            if (previousNeeded and not uids.has_key(previousIndex)) or \
-               (nextNeeded and not uids.has_key(nextIndex)):
-                # I do not have this UID in session. I will need to
-                # retrigger the query by querying all objects surrounding
-                # this one.
-                newStartNumber = (res.currentNumber-1) - (batchSize / 2)
-                if newStartNumber < 0: newStartNumber = 0
-                self.executeQuery(contentType, searchName=searchName,
-                                  startNumber=newStartNumber, remember=True)
-                uids = s[searchKey]
-            # For the moment, for first and last, we get them only if we have
-            # them in session.
-            if not uids.has_key(0): firstNeeded = False
-            if not uids.has_key(lastIndex): lastNeeded = False
-            # Compute URL of source object
-            startNumber = self.computeStartNumberFrom(res.currentNumber-1,
-                                                     res.totalNumber, batchSize)
-            res.sourceUrl = self.getQueryUrl(contentType, searchName,
-                                             startNumber=startNumber)
-        # Compute URLs
-        for urlType in ('previous', 'next', 'first', 'last'):
-            exec 'needIt = %sNeeded' % urlType
-            urlKey = '%sUrl' % urlType
-            setattr(res, urlKey, None)
-            if needIt:
-                exec 'index = %sIndex' % urlType
-                uid = None
-                try:
-                    uid = uids[index]
-                    # uids can be a list (ref) or a dict (search)
-                except KeyError: pass
-                except IndexError: pass
-                if uid:
-                    brain = self.getObject(uid, brain=True)
-                    if brain:
-                        sibling = brain.getObject()
-                        setattr(res, urlKey, sibling.getUrl(\
-                            nav=newNav % (index + 1),
-                            page=rq.get('page', 'main'), inPopup=inPopup))
-        return res
+    def getNavigationInfo(self, nav, inPopup):
+        '''Produces a Siblings instance from navigation info p_nav.'''
+        return Siblings.get(nav, self, inPopup)
 
     def getGroupedSearchFields(self, searchInfo):
         '''This method transforms p_searchInfo.fields, which is a "flat"

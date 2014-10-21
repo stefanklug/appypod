@@ -275,6 +275,10 @@ msgstr ""
 msgid "goto_source"
 msgstr ""
 
+#. Default: "Go to number"
+msgid "goto_number"
+msgstr ""
+
 #. Default: "Whatever"
 msgid "whatever"
 msgstr ""

@@ -35,20 +35,17 @@ class BaseMixin:
 
     def getInitiatorInfo(self, appy=False):
         '''Gets information about a potential initiator object from the request.
-           Returns a 3-tuple (initiator, pageName, field):
+           Returns a 2-tuple (initiator, field):
            * initiator is the initiator (Zope or Appy) object;
-           * pageName is the page on the initiator where the origin of the Ref
-             field lies;
            * field is the Ref instance.
         '''
         rq = self.REQUEST
-        if not rq.get('nav', '').startswith('ref.'): return None, None, None
+        if not rq.get('nav', '').startswith('ref.'): return None, None
         splitted = rq['nav'].split('.')
         initiator = self.getTool().getObject(splitted[1])
-        fieldName, page = splitted[2].split(':')
-        field = initiator.getAppyType(fieldName)
+        field = initiator.getAppyType(splitted[2])
         if appy: initiator = initiator.appy()
-        return initiator, page, field
+        return initiator, field
 
     def createOrUpdate(self, created, values,
                        initiator=None, initiatorField=None):
@@ -203,7 +200,7 @@ class BaseMixin:
         # create the object.
         urlParams = {'mode':'edit', 'page':'main', 'nav':'',
                      'inPopup':rq.get('popup') == '1'}
-        initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
+        initiator, initiatorField = self.getInitiatorInfo()
         if initiator:
             # The object to create will be linked to an initiator object through
             # a Ref field. We create here a new navigation string with one more
@@ -387,7 +384,8 @@ class BaseMixin:
         isNew = self.isTemporary()
         inPopup = rq.get('popup') == '1'
         # If this object is created from an initiator, get info about him.
-        initiator, initiatorPage, initiatorField = self.getInitiatorInfo()
+        initiator, initiatorField = self.getInitiatorInfo()
+        initiatorPage = initiatorField and initiatorField.pageName or None
         # If the user clicked on 'Cancel', go back to the previous page.
         buttonClicked = rq.get('button')
         if buttonClicked == 'cancel':
@@ -695,6 +693,10 @@ class BaseMixin:
             if (field.type == 'String') and (field.format in (3,4)):
                 self.REQUEST.set(field.name, '')
         return self.edit()
+
+    def gotoTied(self):
+        '''Redirects the user to an object tied to this one.'''
+        return self.getAppyType(self.REQUEST['field']).onGotoTied(self)
 
     def getCreateFolder(self):
         '''When an object must be created from this one through a Ref field, we

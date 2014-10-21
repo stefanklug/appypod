@@ -45,7 +45,7 @@ cellDelms = ''.join(cellDelimiters.keys())
 
 pxDict = {
   # Page-related elements
-  's': 'pxHeader', 'w': 'pxFields', 'n': 'pxNavigateSiblings', 'b': 'pxButtons',
+  's': 'pxHeader', 'w': 'pxFields', 'n': 'pxNavigationStrip', 'b': 'pxButtons',
   # Field-related elements
   'l': 'pxLabel', 'd': 'pxDescription', 'h': 'pxHelp', 'v': 'pxValidation',
   'r': 'pxRequired', 'c': 'pxChanges'}

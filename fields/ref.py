@@ -38,9 +38,8 @@ class Ref(Field):
     # defined. If we are on a forward reference, the "nav" parameter is added to
     # the URL for allowing to navigate from one object to the next/previous one.
     pxObjectTitle = Px('''
-     <x var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
-               field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
-             navInfo=(not field.isBack and not inPickList) and navInfo or '';
+     <x var="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
+                                      totalNumber, inPickList);
              pageName=field.isBack and field.back.pageName or 'main'">
       <x>::tied.o.getSupTitle(navInfo)</x>
       <x>::tied.o.getListTitle(nav=navInfo, target=target, page=pageName, \
@@ -105,8 +104,8 @@ class Ref(Field):
        </td>
        <!-- Edit -->
        <td if="not field.noForm and tied.o.mayEdit()">
-        <a var="navInfo='ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
-                   field.pageName, loop.tied.nb + 1 + startNumber, totalNumber);
+        <a var="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
+                                         totalNumber);
                 linkInPopup=inPopup or (target.target != '_self')"
            href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo, \
                                 inPopup=linkInPopup)"
@@ -149,8 +148,7 @@ class Ref(Field):
        <input type="hidden" name="action" value="Create"/>
        <input type="hidden" name="className" value=":tiedClassName"/>
        <input type="hidden" name="nav"
-              value=":'ref.%s.%s:%s.%d.%d' % (zobj.id, field.name, \
-                                              field.pageName, 0, totalNumber)"/>
+              value=":field.getNavInfo(zobj, 0, totalNumber)"/>
        <input type="hidden" name="popup"
               value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
        <input
@@ -436,6 +434,7 @@ class Ref(Field):
              changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
              sortConfirm=changeOrder and _('sort_confirm');
              numbered=field.isNumbered(zobj);
+             gotoNumber=numbered;
              changeNumber=not inPickList and numbered and changeOrder and \
                           (totalNumber &gt; 3);
              checkboxesEnabled=field.getAttribute(zobj, 'checkboxes') and \
@@ -1418,6 +1417,25 @@ class Ref(Field):
         if not msg: msg = obj.translate('action_done')
         appyObj.say(msg)
         tool.goto(urlBack)
+
+    def getNavInfo(self, obj, nb, total, inPickList=False):
+        '''Gets the navigation info allowing to navigate from tied object number
+           p_nb to its siblings.'''
+        if self.isBack or inPickList: return ''
+        # If p_nb is None, we want to produce a generic nav info into which we
+        # will insert a specific number afterwards.
+        if nb == None: return 'ref.%s.%s.%%d.%d' % (obj.id, self.name, total)
+        return 'ref.%s.%s.%d.%d' % (obj.id, self.name, nb, total)
+
+    def onGotoTied(self, obj):
+        '''Called when the user wants to go to a tied object whose number is in
+           the request.'''
+        number = int(obj.REQUEST['number']) - 1
+        uids = getattr(obj.aq_base, self.name)
+        tiedUid = uids[number]
+        tied = obj.getTool().getObject(tiedUid)
+        tiedUrl = tied.getUrl(nav=self.getNavInfo(obj, number+1, len(uids)))
+        return obj.goto(tiedUrl)
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be

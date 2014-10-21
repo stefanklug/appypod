@@ -155,6 +155,15 @@ class Search:
                   node['_appy_objs_cbs'] = {};
                   node['_appy_objs_sem'] = '%s';''' % (hookId, default)
 
+    def getSessionKey(self, className, full=True):
+        '''Returns the name of the key, in the session, where results for this
+           search are stored when relevant. If p_full is False, only the suffix
+           of the session key is returned (ie, without the leading
+           "search_").'''
+        res = (self.name == 'allSearch') and className or self.name
+        if not full: return res
+        return 'search_%s' % res
+
 class UiSearch:
     '''Instances of this class are generated on-the-fly for manipulating a
        Search from the User Interface.'''

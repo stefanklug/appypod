@@ -275,6 +275,10 @@ msgstr "Ga naar het einde"
 msgid "goto_source"
 msgstr "Terug"
 
+#. Default: "Go to number"
+msgid "goto_number"
+msgstr ""
+
 #. Default: "Whatever"
 msgid "whatever"
 msgstr "Maakt niets uit"
