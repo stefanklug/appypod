@@ -350,7 +350,7 @@ class Field:
             for r in res:
                 if r == layoutType: return True
             return
-        elif res in ('view', 'edit', 'result'):
+        elif res in ('view', 'edit', 'result', 'buttons'):
             return res == layoutType
         return bool(res)
 

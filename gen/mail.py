@@ -57,8 +57,8 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
         else:
             msg = ''
         if log:
-            log('mail disabled%s: should send mail from %s to %s.' % \
-                (msg, fromAddress, str(to)))
+            log('mail disabled%s: should send mail from %s to %d ' \
+                'recipient(s):  %s.' % (msg, fromAddress, len(to), str(to)))
             log('subject: %s' % subject)
             log('body: %s' % body)
         if attachments and log: log('%d attachment(s).' % len(attachments))

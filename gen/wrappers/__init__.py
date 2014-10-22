@@ -381,22 +381,19 @@ class AbstractWrapper(object):
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
            var2="formId='trigger_%s' % targetObj.id" method="post"
-           id=":formId" action=":targetObj.absolute_url() + '/do'">
+           id=":formId" action=":targetObj.absolute_url() + '/do'"
+           style="display: inline">
       <input type="hidden" name="action" value="Trigger"/>
       <input type="hidden" name="transition"/>
       <!-- Input field for storing the comment coming from the popup -->
       <textarea id="comment" name="comment" cols="30" rows="3"
                 style="display:none"></textarea>
-      <table cellpadding="0" cellspacing="0">
-       <tr valign="middle">
-        <td align=":dright" for="transition in transitions">
-         <!-- Render a transition or a group of transitions. -->
-         <x if="transition.type == 'transition'">:transition.pxView</x>
-         <x if="transition.type == 'group'"
-            var2="uiGroup=transition">:uiGroup.px</x>
-        </td>
-       </tr>
-      </table>
+      <x for="transition in transitions">
+       <!-- Render a transition or a group of transitions. -->
+       <x if="transition.type == 'transition'">:transition.pxView</x>
+       <x if="transition.type == 'group'"
+          var2="uiGroup=transition">:uiGroup.px</x>
+      </x>
      </form>''')
 
     # Displays header information about an object: title, workflow-related info,
@@ -458,103 +455,107 @@ class AbstractWrapper(object):
     # Shows the range of buttons (next, previous, save,...) and the workflow
     # transitions for a given object.
     pxButtons = Px('''
-     <table cellpadding="2" cellspacing="0" style="margin-top: 7px"
-            var="previousPage=phaseObj.getPreviousPage(page)[0];
-                 nextPage=phaseObj.getNextPage(page)[0];
-                 isEdit=layoutType == 'edit';
-                 mayAct=not isEdit and zobj.mayAct();
-                 pageInfo=phaseObj.pagesInfo[page]">
-      <tr valign="top">
-       <!-- Refresh -->
-       <td if="zobj.isDebug()">
-        <a href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes', \
-                              inPopup=inPopup)">
-         <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
-        </a>
-       </td>
-       <!-- Previous -->
-       <td if="previousPage and pageInfo.showPrevious"
-           var2="label=_('page_previous');
-                 buttonWidth=ztool.getButtonWidth(label)">
-        <!-- Button on the edit page -->
-        <x if="isEdit">
-         <input type="button" class="button" value=":label"
-                onClick="submitAppyForm('previous')"
-                style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"/>
-         <input type="hidden" name="previousPage" value=":previousPage"/>
-        </x>
-        <!-- Button on the view page -->
-        <input if="not isEdit" type="button" class="button" value=":label"
-               style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"
-               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage, \
-                                                    inPopup=inPopup))"/>
-       </td>
+     <div class="objectButtons" style=":'float: %s' % dleft"
+          var="previousPage=phaseObj.getPreviousPage(page)[0];
+               nextPage=phaseObj.getNextPage(page)[0];
+               isEdit=layoutType == 'edit';
+               mayAct=not isEdit and zobj.mayAct();
+               pageInfo=phaseObj.pagesInfo[page]">
+      <!-- Refresh -->
+      <a if="zobj.isDebug()"
+         href=":zobj.getUrl(mode=layoutType, page=page, refresh='yes', \
+                            inPopup=inPopup)">
+       <img title="Refresh" style="vertical-align:top" src=":url('refresh')"/>
+      </a>
+      <!-- Previous -->
+      <x if="previousPage and pageInfo.showPrevious"
+         var2="label=_('page_previous');
+               buttonWidth=ztool.getButtonWidth(label)">
+       <!-- Button on the edit page -->
+       <x if="isEdit">
+        <input type="button" class="button" value=":label"
+               onClick="submitAppyForm('previous')"
+               style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"/>
+        <input type="hidden" name="previousPage" value=":previousPage"/>
+       </x>
+       <!-- Button on the view page -->
+       <input if="not isEdit" type="button" class="button" value=":label"
+              style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"
+              onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage, \
+                                                   inPopup=inPopup))"/>
+      </x>
 
-       <!-- Save -->
-       <td if="isEdit and pageInfo.showSave">
-        <input type="button" class="button" onClick="submitAppyForm('save')"
-               var="label=_('object_save')" value=":label"
-               style=":'%s; %s' % (url('save', bg=True), \
-                                   ztool.getButtonWidth(label))" />
-       </td>
-       <!-- Cancel -->
-       <td if="isEdit and pageInfo.showCancel">
-        <input type="button" class="button" onClick="submitAppyForm('cancel')"
-               var="label=_('object_cancel')" value=":label"
-               style=":'%s; %s' % (url('cancel', bg=True), \
-                                   ztool.getButtonWidth(label))"/>
-       </td>
-       <td if="not isEdit"
-           var2="locked=zobj.isLocked(user, page);
-                 editable=pageInfo.showOnEdit and pageInfo.showEdit and \
-                          mayAct and zobj.mayEdit()">
+      <!-- Save -->
+      <input if="isEdit and pageInfo.showSave"
+             type="button" class="button" onClick="submitAppyForm('save')"
+             var2="label=_('object_save')" value=":label"
+             style=":'%s; %s' % (url('save', bg=True), \
+                                 ztool.getButtonWidth(label))" />
 
-        <!-- Edit -->
-        <input type="button" class="button" if="editable and not locked"
-               var="label=_('object_edit')" value=":label"
-               style=":'%s; %s' % (url('edit', bg=True), \
-                                   ztool.getButtonWidth(label))"
-               onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page, \
-                                                    inPopup=inPopup))"/>
+      <!-- Cancel -->
+      <input if="isEdit and pageInfo.showCancel"
+             type="button" class="button" onClick="submitAppyForm('cancel')"
+             var2="label=_('object_cancel')" value=":label"
+             style=":'%s; %s' % (url('cancel', bg=True), \
+                                 ztool.getButtonWidth(label))"/>
 
-        <!-- Locked -->
-        <a if="editable and locked">
-         <img style="cursor: help"
-              var="lockDate=ztool.formatDate(locked[1]);
-                   lockMap={'user':ztool.getUserName(locked[0]), \
-                            'date':lockDate};
-                   lockMsg=_('page_locked', mapping=lockMap)"
-              src=":url('lockedBig')" title=":lockMsg"/></a>
-        <a if="editable and locked and user.has_role('Manager')">
-         <img class="clickable" title=":_('page_unlock')"
-              src=":url('unlockBig')"
-              onclick=":'onUnlockPage(%s,%s)' % (q(zobj.id), q(page))"/></a>
-       </td>
+      <x if="not isEdit"
+         var2="locked=zobj.isLocked(user, page);
+               editable=pageInfo.showOnEdit and pageInfo.showEdit and \
+                        mayAct and zobj.mayEdit()">
 
-       <!-- Next -->
-       <td if="nextPage and pageInfo.showNext"
-           var2="label=_('page_next');
-                 buttonWidth=ztool.getButtonWidth(label)">
-        <!-- Button on the edit page -->
-        <x if="isEdit">
-         <input type="button" class="button" onClick="submitAppyForm('next')"
-                style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
-                value=":label"/>
-         <input type="hidden" name="nextPage" value=":nextPage"/>
-        </x>
-        <!-- Button on the view page -->
-        <input if="not isEdit" type="button" class="button" value=":label"
+       <!-- Edit -->
+       <input type="button" class="button" if="editable and not locked"
+              var="label=_('object_edit')" value=":label"
+              style=":'%s; %s' % (url('edit', bg=True), \
+                                  ztool.getButtonWidth(label))"
+              onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page, \
+                                                   inPopup=inPopup))"/>
+
+       <!-- Locked -->
+       <a if="editable and locked">
+        <img style="cursor: help"
+             var="lockDate=ztool.formatDate(locked[1]);
+                  lockMap={'user':ztool.getUserName(locked[0]), \
+                           'date':lockDate};
+                  lockMsg=_('page_locked', mapping=lockMap)"
+             src=":url('lockedBig')" title=":lockMsg"/></a>
+       <a if="editable and locked and user.has_role('Manager')">
+        <img class="clickable" title=":_('page_unlock')"
+             src=":url('unlockBig')"
+             onclick=":'onUnlockPage(%s,%s)' % (q(zobj.id), q(page))"/></a>
+      </x>
+
+      <!-- Next -->
+      <x if="nextPage and pageInfo.showNext"
+         var2="label=_('page_next');
+               buttonWidth=ztool.getButtonWidth(label)">
+       <!-- Button on the edit page -->
+       <x if="isEdit">
+        <input type="button" class="button" onClick="submitAppyForm('next')"
                style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
-               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage, \
-                                                    inPopup=inPopup))"/>
-       </td>
+               value=":label"/>
+        <input type="hidden" name="nextPage" value=":nextPage"/>
+       </x>
+       <!-- Button on the view page -->
+       <input if="not isEdit" type="button" class="button" value=":label"
+              style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
+              onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage, \
+                                                   inPopup=inPopup))"/>
+      </x>
 
-       <!-- Workflow transitions -->
-       <td var="targetObj=zobj; buttonsMode='normal'"
-           if="mayAct and \
-               targetObj.showTransitions(layoutType)">:obj.pxTransitions</td>
-      </tr>
-     </table>''')
+      <!-- Workflow transitions -->
+      <x var="targetObj=zobj; buttonsMode='normal'"
+         if="mayAct and \
+             targetObj.showTransitions(layoutType)">:obj.pxTransitions</x>
+     </div>
+     <!-- Fields (actions) defined with layout "buttons" -->
+     <x if="layoutType != 'edit'">
+      <div class="objectButtons" style=":'float: %s' % dleft"
+           var="fields=zobj.getAppyTypes('buttons', page, type='Action');
+                layoutType='view'" if="fields">
+       <x for="field in fields">:field.pxRender</x></div>
+     </x>''')
 
     # Displays the fields of a given page for a given object.
     pxFields = Px('''
@@ -1199,4 +1200,28 @@ class AbstractWrapper(object):
         return localRoles
 
     def raiseUnauthorized(self, msg=None): return self.o.raiseUnauthorized(msg)
+
+    def sendMailIf(self, privilege, subject, body, attachments=None,
+                   isRole=False):
+        '''Sends a mail related to this object to any active user having
+           p_privilege on it. If p_isRole is False, p_privilege is a permission.
+           Else, it is a role.'''
+        # Determine the list of recipients based on active users having
+        # p_privilege on p_self.
+        recipients = []
+        for user in self.tool.users:
+            if (user.state == 'inactive'): continue
+            # Check if the user has p_privilege on this object
+            hasPrivilege = isRole and user.has_role or user.has_permission
+            if not hasPrivilege(privilege, self): continue
+            # Get the mail recipient for this user
+            recipient = user.getMailRecipient()
+            if not recipient: continue
+            recipients.append(recipient)
+        if recipients:
+            self.tool.sendMail(recipients, subject, body, attachments)
+        else:
+            name = isRole and 'role' or 'permission'
+            self.log('no recipient for sending mail about %s with %s %s.' % \
+                     (self.id, name, privilege))
 # ------------------------------------------------------------------------------

@@ -816,13 +816,15 @@ class BaseMixin:
             cssJs['js'] = js or ()
         return res
 
-    def getAppyTypes(self, layoutType, pageName):
+    def getAppyTypes(self, layoutType, pageName, type=None):
         '''Returns the list of fields that belong to a given page (p_pageName)
            for a given p_layoutType. If p_pageName is None, fields of all pages
-           are returned.'''
+           are returned. If p_type is defined, only fields of this p_type are
+           returned. '''
         res = []
         for field in self.getAllAppyTypes():
             if pageName and (field.page.name != pageName): continue
+            if type and (field.type != type): continue
             if not field.isShowable(self, layoutType): continue
             res.append(field)
         return res
