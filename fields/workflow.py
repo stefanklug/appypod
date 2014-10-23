@@ -561,8 +561,7 @@ class WorkflowAuthenticated:
     active = State({r:authenticated, w:(ma, o), d:(ma, o)}, initial=True)
 
 class WorkflowOwner:
-    '''One-state workflow allowing only manager and owner to consult and
-       edit.'''
+    '''Workflow allowing only manager and owner to consult and edit.'''
     ma = 'Manager'
     o = 'Owner'
     # States

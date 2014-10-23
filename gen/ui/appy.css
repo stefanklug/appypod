@@ -21,18 +21,17 @@ input { font: 92% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,
 input[type=image] { border: 0; background: none; cursor: pointer }
 input[type=checkbox] { border: 0; background: none; cursor: pointer }
 input[type=radio] { border: 0; background: none; cursor: pointer }
-input[type=file] { border: 0px solid #d0d0d0;
-                   background-color: #f8f8f8; cursor: pointer }
+input[type=file] { border: 0px solid #d0d0d0; cursor: pointer }
 input[type=button] { border: 1px solid #d0d0d0; margin: 0 3px;
                      background-color: #f8f8f8; cursor: pointer }
 input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }
-input[type=password] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
+input[type=password] { border: 1px solid #d0d0d0;
                        font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 input[type=text] { border: 1px solid #d0d0d0;
                    font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
                    margin-bottom: 1px }
-select { border: 1px solid #d0d0d0; background-color: #f8f8f8 }
+select { border: 1px solid #d0d0d0; background-color: white }
 
 textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
            border: 1px solid #d0d0d0; background-color: white }
