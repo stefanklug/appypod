@@ -21,6 +21,7 @@ from appy import Object
 class Page:
     '''Used for describing a page, its related phase, show condition, etc.'''
     subElements = ('save', 'cancel', 'previous', 'next', 'edit')
+
     def __init__(self, name, phase='main', show=True, showSave=True,
                  showCancel=True, showPrevious=True, showNext=True,
                  showEdit=True, label=None):
@@ -61,9 +62,8 @@ class Page:
                 res = Page(pageData[0], phase=pageData[1])
         return res
 
-    def isShowable(self, obj, elem='page'):
-        '''Must this page be shown for p_obj? The method can return True, False
-           or 'view' (page is available only in "view" mode).
+    def isShowable(self, obj, layoutType, elem='page'):
+        '''Is this page showable for p_obj on p_layoutType ("view" or "edit")?
 
            If p_elem is not "page", this method returns the fact that a
            sub-element is viewable or not (buttons "save", "cancel", etc).'''
@@ -72,16 +72,14 @@ class Page:
         # Get the value of the show attribute as identified above.
         res = getattr(self, attr)
         if callable(res): res = res(obj.appy())
+        if isinstance(res, str): return res == layoutType
         return res
 
     def getInfo(self, obj, layoutType):
         '''Gets information about this page, for p_obj, as an object.'''
         res = Object()
         for elem in Page.subElements:
-            showable = self.isShowable(obj, elem)
-            # "showable" can be True, False or "view"
-            if layoutType == 'edit': showable = showable==True
-            else: showable = bool(showable)
+            showable = self.isShowable(obj, layoutType, elem)
             setattr(res, 'show%s' % elem.capitalize(), showable)
         return res
 

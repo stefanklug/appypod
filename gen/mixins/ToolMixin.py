@@ -21,6 +21,8 @@ except ImportError:
 # Global JS internationalized messages that will be computed in every page -----
 jsMessages = ('no_elem_selected', 'action_confirm', 'save_confirm',
               'warn_leave_form')
+USER_NOT_FOUND = 'User %s not found. Probably a problem implying several ' \
+                 'Appy apps put behind the same domain name or dev machine.'
 
 # ------------------------------------------------------------------------------
 class ToolMixin(BaseMixin):
@@ -67,6 +69,8 @@ class ToolMixin(BaseMixin):
         if not url:
             # Bring Managers to the config, lead others to pxHome.
             user = self.getUser()
+            if not user:
+                raise Exception(USER_NOT_FOUND % self.identifyUser()[0])
             if user.has_role('Manager'):
                 url = self.goto(self.absolute_url())
             else:
@@ -1042,22 +1046,6 @@ class ToolMixin(BaseMixin):
     # Patch BasicUserFolder with our version of m_validate above.
     from AccessControl.User import BasicUserFolder
     BasicUserFolder.validate = validate
-
-    def getUserLine(self):
-        '''Returns info about the currently logged user as a 2-tuple: first
-           elem is the one-line user info as shown on every page; second line is
-           the URL to edit user info.'''
-        user = self.getUser()
-        info = [user.title]
-        showable = [r for r in user.getRoles() if r != 'Authenticated']
-        if showable:
-            info.append(', '.join([self.translate('role_%s' % r) \
-                                   for r in showable]))
-        # Edit URL for the user.
-        url = None
-        if user.o.mayEdit():
-            url = user.o.getUrl(mode='edit', page='main', nav='')
-        return (' | '.join(info), url)
 
     def getUserName(self, login=None, normalized=False):
         '''Gets the user name corresponding to p_login (or the currently logged

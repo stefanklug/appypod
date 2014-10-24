@@ -123,14 +123,16 @@ class ModelClass:
                 pages[appyType.page.name] = appyType.page
         res += '    pges = {'
         for page in pages.itervalues():
-            # Determine page show
-            pageShow = page.show
-            if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
-            elif callable(pageShow):
-                pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
+            # Determine page "show" attributes
             pShow = ''
-            if pageShow != True:
-                pShow = ', show=%s' % pageShow
+            for attr in ('',) + page.subElements:
+                attrName = 'show%s' % attr.capitalize()
+                pageShow = getattr(page, attrName)
+                if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
+                elif callable(pageShow):
+                    pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
+                if pageShow != True:
+                    pShow += ', %s=%s' % (attrName, pageShow)
             # For translation pages, fixed labels are used.
             label = ''
             if className == 'Translation':
@@ -148,34 +150,38 @@ class ModelClass:
 
 # The User class ---------------------------------------------------------------
 class User(ModelClass):
-    _appy_attributes = ['title', 'name', 'firstName', 'login', 'password1',
-                        'password2', 'email', 'roles', 'source', 'groups',
-                        'toTool']
+    _appy_attributes = ['password1', 'password2', 'title', 'name', 'firstName',
+                        'login', 'email', 'roles', 'source', 'groups', 'toTool']
+    # Passwords are on a specific page.
+    def showPassword(self): pass
+    def validatePassword(self): pass
+    pp = {'page': gen.Page('passwords', showNext=False, show=showPassword),
+          'width': 34, 'multiplicity': (1,1), 'format': gen.String.PASSWORD,
+          'show': showPassword}
+    password1 = gen.String(validator=validatePassword, **pp)
+    password2 = gen.String(**pp)
+
     # All methods defined below are fake. Real versions are in the wrapper.
-    title = gen.String(show=False, indexed=True)
-    gm = {'group': 'main', 'width': 34}
+    pm = {'page': gen.Page('main', showPrevious=False), 'group': 'main',
+          'width': 34}
+    title = gen.String(show=False, indexed=True, **pm)
     def showName(self): pass
-    name = gen.String(show=showName, **gm)
-    firstName = gen.String(show=showName, **gm)
+    name = gen.String(show=showName, **pm)
+    firstName = gen.String(show=showName, **pm)
     def showEmail(self): pass
-    email = gen.String(show=showEmail, **gm)
+    email = gen.String(show=showEmail, **pm)
     # Where is this user stored? By default, in the ZODB. But the user can be
     # stored in an external LDAP (source='ldap').
-    source = gen.String(show=False, default='zodb', layouts='f', **gm)
-    gm['multiplicity'] = (1,1)
+    source = gen.String(show=False, default='zodb', layouts='f', **pm)
+    pm['multiplicity'] = (1,1)
     def showLogin(self): pass
     def validateLogin(self): pass
     login = gen.String(show=showLogin, validator=validateLogin,
-                       indexed=True, **gm)
-    def showPassword(self): pass
-    def validatePassword(self): pass
-    password1 = gen.String(format=gen.String.PASSWORD, show=showPassword,
-                           validator=validatePassword, **gm)
-    password2 = gen.String(format=gen.String.PASSWORD, show=showPassword, **gm)
-    gm['multiplicity'] = (0, None)
+                       indexed=True, **pm)
+    pm['multiplicity'] = (0, None)
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,
-                       validator=gen.Selection('getGrantableRoles'), **gm)
+                       validator=gen.Selection('getGrantableRoles'), **pm)
 
 # The Group class --------------------------------------------------------------
 class Group(ModelClass):

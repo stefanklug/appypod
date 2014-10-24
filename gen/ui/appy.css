@@ -55,6 +55,7 @@ img { border: 0; vertical-align: middle }
 .userStripText { padding: 0 0.3em 0 0.3em; color: whitesmoke }
 .userStrip a { color: #e7e7e7 }
 .userStrip a:visited { color: #e7e7e7 }
+.changePassword { color: #494949 !important; font-style:italic; font-size: 90% }
 .breadcrumb { font-size: 11pt; padding-bottom: 6px }
 .login { margin: 3px; color: black }
 input.button { color: #666666; height: 20px; margin-bottom: 5px; margin-top:2px;

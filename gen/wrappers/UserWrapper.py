@@ -1,4 +1,5 @@
 # ------------------------------------------------------------------------------
+from appy.px import Px
 from appy.fields.string import String
 from appy.gen import WorkflowOwner
 from appy.gen.layout import summaryPageLayouts
@@ -11,6 +12,16 @@ class UserWrapper(AbstractWrapper):
     workflow = WorkflowOwner
     specialUsers = ('system', 'anon', 'admin')
     layouts = summaryPageLayouts
+
+    # Display, in the user strip, links to the User instance of the logged user.
+    pxUserLinks = Px('''
+     <td class="userStripText" align=":dright">
+      <a href=":user.url"><img src=":url('user')"/>
+       <span style="padding: 0 3px">:user.getTitle()</span></a>
+      <!-- Page for modifying the password -->
+      <a if="user.showPassword()" class="changePassword"
+         href=":'%s/edit?page=passwords' % user.url">:_('change_password')</a>
+     </td>''')
 
     def getTitle(self, normalized=False):
         '''Returns a nice name for this user, based on available information:

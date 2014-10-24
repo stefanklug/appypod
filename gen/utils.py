@@ -228,4 +228,12 @@ class No:
     def __init__(self, msg): self.msg = msg
     def __nonzero__(self): return False
     def __repr__(self): return '<No: %s>' % self.msg
+
 # ------------------------------------------------------------------------------
+class Model: pass
+class Tool(Model):
+    '''Subclass me to extend or modify the Tool class.'''
+class User(Model):
+    '''Subclass me to extend or modify the User class.'''
+# ------------------------------------------------------------------------------
+

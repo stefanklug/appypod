@@ -17,6 +17,7 @@
 import types, string
 from group import Group
 from appy.px import Px
+from appy.gen.utils import User
 from appy.gen.mail import sendNotification
 
 # Default Appy permissions -----------------------------------------------------
@@ -568,6 +569,11 @@ class WorkflowOwner:
     active = State({r:(ma, o), w:(ma, o), d:ma}, initial=True)
     inactive = State({r:(ma, o), w:ma, d:ma})
     # Transitions
-    deactivate = Transition( (active, inactive), condition=ma)
+    def doDeactivate(self, obj):
+        '''Prevent user "admin" from being deactivated.'''
+        if isinstance(obj, User) and (obj.login == 'admin'):
+            raise Exception('Cannot deactivate admin.')
+    deactivate = Transition( (active, inactive), condition=ma,
+                             action=doDeactivate)
     reactivate = Transition( (inactive, active), condition=ma)
 # ------------------------------------------------------------------------------

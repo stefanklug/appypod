@@ -264,12 +264,7 @@ class AbstractWrapper(object):
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
                 <img src=":url('logout.gif')"/></a>
               </td>
-              <td class="userStripText" var="userInfo=ztool.getUserLine()"
-                  align=":dright">
-               <span>:userInfo[0]</span>
-               <a if="userInfo[1]"
-                  href=":userInfo[1]"><img src=":url('edit')"/></a>
-              </td>
+              <x>:user.pxUserLinks</x>
              </tr>
             </table>
            </td>

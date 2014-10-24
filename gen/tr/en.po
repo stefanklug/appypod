@@ -380,6 +380,10 @@ msgstr "Password"
 msgid "app_home"
 msgstr "Home"
 
+#. Default: "Change password"
+msgid "change_password"
+msgstr "Change password"
+
 #. Default: "This login is reserved."
 msgid "login_reserved"
 msgstr "This login is reserved."

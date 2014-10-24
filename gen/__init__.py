@@ -38,19 +38,12 @@ from appy.fields.page import Page
 from appy.fields.phase import Phase
 from appy.fields.workflow import *
 from appy.gen.layout import Table
-from appy.gen.utils import No
+from appy.gen.utils import No, Tool, User
 
 # Make the following classes available here: people may need to override some
 # of their PXs (defined as static attributes).
 from appy.gen.wrappers import AbstractWrapper as BaseObject
 from appy.gen.wrappers.ToolWrapper import ToolWrapper as BaseTool
-
-# ------------------------------------------------------------------------------
-class Model: pass
-class Tool(Model):
-    '''Subclass me to extend or modify the Tool class.'''
-class User(Model):
-    '''Subclass me to extend or modify the User class.'''
 
 # ------------------------------------------------------------------------------
 class Config:

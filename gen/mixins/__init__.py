@@ -383,23 +383,23 @@ class BaseMixin:
         errorMessage = self.translate('validation_error')
         isNew = self.isTemporary()
         inPopup = rq.get('popup') == '1'
-        # If this object is created from an initiator, get info about him.
+        # If this object is created from an initiator, get info about him
         initiator, initiatorField = self.getInitiatorInfo()
         initiatorPage = initiatorField and initiatorField.pageName or None
-        # If the user clicked on 'Cancel', go back to the previous page.
+        # If the user clicked on 'Cancel', go back to the previous page
         buttonClicked = rq.get('button')
         if buttonClicked == 'cancel':
-            if inPopup:
-                back = tool.backFromPopup()
-            elif initiator:
-                # Go back to the initiator page.
+            if inPopup: back = tool.backFromPopup()
+            elif initiator: # Go back to the initiator page
                 urlBack = initiator.getUrl(page=initiatorPage, nav='')
             else:
-                if isNew:
-                   # Go back to the root of the site.
-                   urlBack = tool.getSiteUrl()
+                if isNew: urlBack = tool.getHomePage() # Go back to home page
                 else:
-                   urlBack = self.getUrl()
+                    # Return to the same page, excepted if unshowable on view.
+                    phaseObj = self.getAppyPhases(True, 'view')
+                    pageInfo = phaseObj.getPageInfo(rq['page'], 'view')
+                    if not pageInfo: urlBack = tool.getHomePage()
+                    else: urlBack = self.getUrl(page=pageInfo.page.name)
             self.say(self.translate('object_canceled'))
             self.removeLock(rq['page'])
             if inPopup: return back
@@ -452,42 +452,30 @@ class BaseMixin:
             if inPopup: return tool.backFromPopup()
             if isNew and initiator:
                 return self.goto(initiator.getUrl(page=initiatorPage, nav=''))
-            return self.goto(obj.getUrl())
+            # Return to the same page, if showable on view
+            phaseObj = self.getAppyPhases(True, 'view')
+            pageInfo = phaseObj.getPageInfo(rq['page'], 'view')
+            if not pageInfo: return self.goto(tool.getHomePage(), msg)
+            return self.goto(obj.getUrl(page=pageInfo.page.name))
         # Get the current page name. We keep it in "pageName" because rq['page']
         # can be changed by m_getAppyPhases called below.
         pageName = rq['page']
-        if buttonClicked == 'previous':
-            # Go to the previous page for this object.
-            # We recompute the list of phases and pages because things
-            # may have changed since the object has been updated (ie,
-            # additional pages may be shown or hidden now, so the next and
-            # previous pages may have changed). Moreover, previous and next
-            # pages may not be available in "edit" mode, so we return the edit
-            # or view pages depending on page.show.
-            phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = phaseObj.getPreviousPage(pageName)
+        if buttonClicked in ('previous', 'next'):
+            # Go to the previous or next page for this object. We recompute the
+            # list of phases and pages because things may have changed since the
+            # object has been updated (ie, additional pages may be shown or
+            # hidden now, so the next and previous pages may have changed).
+            # Moreover, previous and next pages may not be available in "edit"
+            # mode, so we return the edit or view pages depending on page.show.
+            phaseObj = self.getAppyPhases(True, 'edit')
+            methodName = 'get%sPage' % buttonClicked.capitalize()
+            pageName, pageInfo = getattr(phaseObj, methodName)(pageName)
             if pageName:
                 # Return to the edit or view page?
                 if pageInfo.showOnEdit:
-                    rq.set('page', pageName)
                     # I do not use gotoEdit here because I really need to
                     # redirect the user to the edit page. Indeed, the object
                     # edit URL may have moved from temp_folder to another place.
-                    return self.goto(obj.getUrl(mode='edit', page=pageName,
-                                                inPopup=inPopup))
-                else:
-                    return self.goto(obj.getUrl(page=pageName, inPopup=inPopup))
-            else:
-                obj.say(msg)
-                return self.goto(obj.getUrl(inPopup=inPopup))
-        if buttonClicked == 'next':
-            # Go to the next page for this object.
-            phaseObj = self.getAppyPhases(currentOnly=True, layoutType='edit')
-            pageName, pageInfo = phaseObj.getNextPage(pageName)
-            if pageName:
-                # Return to the edit or view page?
-                if pageInfo.showOnEdit:
-                    # Same remark as above (click on "previous").
                     return self.goto(obj.getUrl(mode='edit', page=pageName,
                                                 inPopup=inPopup))
                 else:
