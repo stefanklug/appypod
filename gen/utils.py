@@ -133,7 +133,7 @@ def getClassName(klass, appName=None):
     if (moduleName == 'appy.gen.model') or moduleName.endswith('.wrappers'):
         # This is a model (generation time or run time)
         res = appName + klass.__name__
-    elif klass.__bases__ and (klass.__bases__[-1].__module__ == 'appy.gen'):
+    elif klass.__bases__ and (klass.__bases__[-1].__module__=='appy.gen.utils'):
         # This is a customized class (inherits from appy.gen.Tool, User,...)
         res = appName + klass.__bases__[-1].__name__
     else: # This is a standard class
