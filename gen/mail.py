@@ -116,48 +116,4 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
         if log: log('mail sending failed: %s' % str(e), type='error')
     except socket.error, se:
         if log: log('mail sending failed: %s' % str(se), type='error')
-
-# ------------------------------------------------------------------------------
-def sendNotification(obj, transition, transitionName, workflow):
-    '''Sends mail about p_transition named p_transitionName, that has been
-       triggered on p_obj that is controlled by p_workflow.'''
-    from appy.gen.descriptors import WorkflowDescriptor
-    wfName = WorkflowDescriptor.getWorkflowName(workflow.__class__)
-    zopeObj = obj.o
-    tool = zopeObj.getTool()
-    mailInfo = transition.notify(workflow, obj)
-    if not mailInfo[0]: return # Send a mail to nobody.
-    # mailInfo may be one of the following:
-    #   (to,)
-    #   (to, cc)
-    #   (to, mailSubject, mailBody)
-    #   (to, cc, mailSubject, mailBody)
-    # "to" and "cc" maybe simple strings (one simple string = one email
-    # address or one role) or sequences of strings.
-    # Determine mail subject and body.
-    if len(mailInfo) <= 2:
-        # The user didn't mention mail body and subject. We will use those
-        # defined from i18n labels.
-        wfHistory = zopeObj.getHistory()
-        labelPrefix = '%s_%s' % (wfName, transitionName)
-        tName = obj.translate(labelPrefix)
-        keys = {'siteUrl': tool.getPath('/').absolute_url(),
-                'siteTitle': tool.getAppName(),
-                'objectUrl': zopeObj.absolute_url(),
-                'objectTitle': zopeObj.Title(),
-                'transitionName': tName,
-                'transitionComment': wfHistory[0]['comments']}
-        mailSubject = obj.translate(labelPrefix + '_mail_subject', keys)
-        mailBody = obj.translate(labelPrefix + '_mail_body', keys)
-    else:
-        mailSubject = mailInfo[-1]
-        mailBody = mailInfo[-2]
-    # Determine "to" and "cc".
-    to = mailInfo[0]
-    cc = []
-    if (len(mailInfo) in (2,4)) and mailInfo[1]: cc = mailInfo[1]
-    if type(to) not in sequenceTypes: to = [to]
-    if type(cc) not in sequenceTypes: cc = [cc]
-    # Send the mail
-    sendMail(tool.appy(), to, mailSubject, mailBody)
 # ------------------------------------------------------------------------------

@@ -788,12 +788,4 @@ class ZopeGenerator(Generator):
                 # We need to generate a label for the message that will be shown
                 # in the confirm popup.
                 self.i18n('%s_%s_confirm'%(wfName, name),po.CONFIRM, nice=False)
-            if transition.notify:
-                # Appy will send a mail when this transition is triggered.
-                # So we need 2 i18n labels: one for the mail subject and one for
-                # the mail body.
-                self.i18n('%s_%s_mail_subject' % (wfName, name),
-                          po.EMAIL_SUBJECT, nice=False)
-                self.i18n('%s_%s_mail_body' % (wfName, name),
-                          po.EMAIL_BODY, nice=False)
 # ------------------------------------------------------------------------------

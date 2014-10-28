@@ -18,7 +18,6 @@ import types, string
 from group import Group
 from appy.px import Px
 from appy.gen.utils import User
-from appy.gen.mail import sendNotification
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -192,8 +191,8 @@ class State:
 # ------------------------------------------------------------------------------
 class Transition:
     '''Represents a workflow transition.'''
-    def __init__(self, states, condition=True, action=None, notify=None,
-                 show=True, confirm=False, group=None, icon=None):
+    def __init__(self, states, condition=True, action=None, show=True,
+                 confirm=False, group=None, icon=None):
         # In its simpler form, "states" is a list of 2 states:
         # (fromState, toState). But it can also be a list of several
         # (fromState, toState) sub-lists. This way, you may define only 1
@@ -205,8 +204,6 @@ class Transition:
             # The condition specifies the name of a role.
             self.condition = Role(condition)
         self.action = action
-        self.notify = notify # If not None, it is a method telling who must be
-        # notified by email after the transition has been executed.
         self.show = show # If False, the end user will not be able to trigger
         # the transition. It will only be possible by code.
         self.confirm = confirm # If True, a confirm popup will show up.
@@ -367,13 +364,11 @@ class Transition:
         wf = wf.__instance__ # We need the prototypical instance here.
         wf.onTrigger(obj, name)
 
-    def trigger(self, name, obj, wf, comment, doAction=True, doNotify=True,
-                doHistory=True, doSay=True, reindex=True, noSecurity=False):
+    def trigger(self, name, obj, wf, comment, doAction=True, doHistory=True,
+                doSay=True, reindex=True, noSecurity=False):
         '''This method triggers this transition (named p_name) on p_obj. If
            p_doAction is False, the action that must normally be executed after
-           the transition has been triggered will not be executed. If p_doNotify
-           is False, the email notifications that must normally be launched
-           after the transition has been triggered will not be launched. If
+           the transition has been triggered will not be executed. If
            p_doHistory is False, there will be no trace from this transition
            triggering in the workflow history. If p_doSay is False, we consider
            the transition is triggered programmatically, and no message is
@@ -418,10 +413,6 @@ class Transition:
         # Reindex the object if required. Not only security-related indexes
         # (Allowed, State) need to be updated here.
         if reindex and not obj.isTemporary(): obj.reindex()
-        # Send notifications if needed
-        mail = obj.getTool().getProductConfig(True).mail
-        if doNotify and self.notify and mail and mail.enabled:
-            sendNotification(obj.appy(), self, name, wf)
         # Return a message to the user if needed
         if not doSay or (name == '_init_'): return
         if not msg: msg = obj.translate('object_saved')

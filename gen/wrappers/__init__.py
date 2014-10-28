@@ -939,7 +939,7 @@ class AbstractWrapper(object):
         return self.o.translate(label, mapping, domain, language=language,
                                 format=format)
 
-    def do(self, name, comment='', doAction=True, doNotify=True, doHistory=True,
+    def do(self, name, comment='', doAction=True, doHistory=True,
            noSecurity=False):
         '''Triggers on p_self a transition named p_name programmatically.'''
         o = self.o
@@ -948,7 +948,7 @@ class AbstractWrapper(object):
         if not tr or (tr.__class__.__name__ != 'Transition'):
             raise Exception('Transition "%s" not found.' % name)
         return tr.trigger(name, o, wf, comment, doAction=doAction,
-                          doNotify=doNotify, doHistory=doHistory, doSay=False,
+                          doHistory=doHistory, doSay=False,
                           noSecurity=noSecurity)
 
     def log(self, message, type='info'): return self.o.log(message, type)
