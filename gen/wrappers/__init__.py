@@ -1197,18 +1197,34 @@ class AbstractWrapper(object):
     def raiseUnauthorized(self, msg=None): return self.o.raiseUnauthorized(msg)
 
     def sendMailIf(self, privilege, subject, body, attachments=None,
-                   isRole=False):
+                   privilegeType='permission'):
         '''Sends a mail related to this object to any active user having
-           p_privilege on it. If p_isRole is False, p_privilege is a permission.
-           Else, it is a role.'''
+           p_privilege on it. If p_privilegeType is:
+           - "permission", p_privilege is a permission;
+           - "role",       p_privilege is a role;
+           - "group",      p_privilege is a group login.'''
+        # Determine the set of users to work with
+        isGroup = privilegeType == 'group'
+        if isGroup:
+            # Get the users belonging to this group
+            group = self.search1('Group', noSecurity=True, login=privilege)
+            if not group:
+                raise Exception('group "%s" does not exist.' % privilege)
+            users = group.users
+        else:
+            # Get all users
+            users = self.tool.users
         # Determine the list of recipients based on active users having
         # p_privilege on p_self.
         recipients = []
-        for user in self.tool.users:
+        for user in users:
             if (user.state == 'inactive'): continue
-            # Check if the user has p_privilege on this object
-            hasPrivilege = isRole and user.has_role or user.has_permission
-            if not hasPrivilege(privilege, self): continue
+            # Check if the user has p_privilege on this object (only applicable
+            # if the privilege does not represent a group).
+            if not isGroup:
+                hasPrivilege = (privilegeType == 'permission') and \
+                               user.has_permission or user.has_role
+                if not hasPrivilege(privilege, self): continue
             # Get the mail recipient for this user
             recipient = user.getMailRecipient()
             if not recipient: continue
@@ -1216,7 +1232,6 @@ class AbstractWrapper(object):
         if recipients:
             self.tool.sendMail(recipients, subject, body, attachments)
         else:
-            name = isRole and 'role' or 'permission'
             self.log('no recipient for sending mail about %s with %s %s.' % \
-                     (self.id, name, privilege))
+                     (self.id, privilegeType, privilege))
 # ------------------------------------------------------------------------------
