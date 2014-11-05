@@ -356,13 +356,13 @@ class Transition:
             if msgPart: msg += msgPart
         return msg
 
-    def executeCommonAction(self, obj, name, wf):
+    def executeCommonAction(self, obj, name, wf, fromState):
         '''Executes the action that is common to any transition, named
            "onTrigger" on the workflow class by convention. The common action is
            executed before the transition-specific action (if any).'''
         obj = obj.appy()
         wf = wf.__instance__ # We need the prototypical instance here.
-        wf.onTrigger(obj, name)
+        wf.onTrigger(obj, name, fromState)
 
     def trigger(self, name, obj, wf, comment, doAction=True, doHistory=True,
                 doSay=True, reindex=True, noSecurity=False):
@@ -382,11 +382,10 @@ class Transition:
         if not hasattr(obj.aq_base, 'workflow_history'):
             from persistent.mapping import PersistentMapping
             obj.workflow_history = PersistentMapping()
-        # Create the event list if it does not exist in the dict
+        # Create the event list if it does not exist in the dict. The
+        # overstructure (a dict with a key 'appy') is only there for historical
+        # reasons and will change in Appy 1.0
         if not obj.workflow_history: obj.workflow_history['appy'] = ()
-        # Get the key where object history is stored (this overstructure is
-        # only there for backward compatibility reasons)
-        key = obj.workflow_history.keys()[0]
         # Identify the target state for this transition
         if self.isSingle():
             targetState = self.states[1]
@@ -400,13 +399,17 @@ class Transition:
                     break
         # Create the event and add it in the object history
         action = name
-        if name == '_init_': action = None
+        if name == '_init_':
+            action = None
+            fromState = None
+        else:
+            fromState = obj.State() # Remember the "from" (=start) state.
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
         # Execute the action that is common to all transitions, if defined.
         if doAction and hasattr(wf, 'onTrigger'):
-            self.executeCommonAction(obj, name, wf)
+            self.executeCommonAction(obj, name, wf, fromState)
         # Execute the related action if needed
         msg = ''
         if doAction and self.action: msg = self.executeAction(obj, wf)
