@@ -1202,10 +1202,16 @@ class AbstractWrapper(object):
            p_privilege on it. If p_privilegeType is:
            - "permission", p_privilege is a permission;
            - "role",       p_privilege is a role;
-           - "group",      p_privilege is a group login.'''
+           - "group",      p_privilege is a group login;
+           - "user",       p_privilege is a user login.'''
         # Determine the set of users to work with
-        isGroup = privilegeType == 'group'
-        if isGroup:
+        checkPermissionOrRole = False
+        if privilegeType == 'user':
+            user = self.search1('User', noSecurity=True, login=privilege)
+            if not user:
+                raise Exception('user "%s" does not exist.' % privilege)
+            users = [user]
+        elif privilegeType == 'group':
             # Get the users belonging to this group
             group = self.search1('Group', noSecurity=True, login=privilege)
             if not group:
@@ -1214,6 +1220,7 @@ class AbstractWrapper(object):
         else:
             # Get all users
             users = self.tool.users
+            checkPermissionOrRole = True
         # Determine the list of recipients based on active users having
         # p_privilege on p_self.
         recipients = []
@@ -1221,7 +1228,7 @@ class AbstractWrapper(object):
             if (user.state == 'inactive'): continue
             # Check if the user has p_privilege on this object (only applicable
             # if the privilege does not represent a group).
-            if not isGroup:
+            if checkPermissionOrRole:
                 hasPrivilege = (privilegeType == 'permission') and \
                                user.has_permission or user.has_role
                 if not hasPrivilege(privilege, self): continue
