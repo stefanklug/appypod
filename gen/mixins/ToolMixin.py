@@ -1284,9 +1284,10 @@ class ToolMixin(BaseMixin):
            chunk. This method executes this action.'''
         if action.startswith(':'):
             # The action corresponds to a method on Appy p_obj.
-            getattr(obj, action[1:])()
+            msg = getattr(obj, action[1:])()
         else:
             # The action must be executed on p_field if present, on obj.o else.
-            if field: getattr(field, action)(obj.o)
-            else: getattr(obj.o, action)()
+            if field: msg = getattr(field, action)(obj.o)
+            else: msg = getattr(obj.o, action)()
+        return msg
 # ------------------------------------------------------------------------------

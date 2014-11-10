@@ -148,6 +148,9 @@ function getAjaxChunk(pos) {
         for (var i=0; i<innerScripts.length; i++) {
           eval(innerScripts[i].innerHTML);
         }
+        // Display the Appy message if present
+        var msg = xhrObjects[pos].xhr.getResponseHeader('Appy-Message');
+        if (msg) showAppyMessage(decodeURIComponent(escape(msg)));
       }
       if (responseOk) xhrObjects[pos].freed = 1;
     }
@@ -812,6 +815,15 @@ function closePopup(popupId) {
 function backFromPopup() {
   closePopup('iframePopup');
   window.parent.location = window.parent.location;
+}
+
+function showAppyMessage(message) {
+  // Fill the message zone with the message to display
+  var messageZone = document.getElementById('appyMessageContent');
+  messageZone.innerHTML = message;
+  // Display the message zone
+  var messageDiv = document.getElementById('appyMessage');
+  messageDiv.style.display = 'block';
 }
 
 // Function triggered when an action needs to be confirmed by the user

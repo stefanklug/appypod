@@ -239,14 +239,16 @@ class ToolWrapper(AbstractWrapper):
 
     # The message that is shown when a user triggers an action.
     pxMessage = Px('''
-     <div var="messages=ztool.consumeMessages()" if="messages"
-          class=":inPopup and 'messagePopup message' or 'message'">
+     <div class=":inPopup and 'messagePopup message' or 'message'"
+          style="display:none" id="appyMessage">
       <!-- The icon for closing the message -->
       <img src=":url('close')" align=":dright" class="clickable"
            onclick="this.parentNode.style.display='none'"/>
       <!-- The message content -->
-      <x>::messages</x>
-     </div>''')
+      <div id="appyMessageContent"></div>
+     </div>
+     <script type="text/javascript" var="messages=ztool.consumeMessages()"
+             if="messages">::'showAppyMessage(%s)' % q(messages)</script>''')
 
     # The page footer.
     pxFooter = Px('''

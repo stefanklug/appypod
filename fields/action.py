@@ -52,12 +52,13 @@ class Action(Field):
     pxEdit = pxSearch = ''
 
     def __init__(self, validator=None, multiplicity=(1,1), default=None,
-                 show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, action=None, result='computation',
-                 confirm=False, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, label=None):
+                 show=('view', 'result'), page='main', group=None, layouts=None,
+                 move=0, indexed=False, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, action=None,
+                 result='computation', confirm=False, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
