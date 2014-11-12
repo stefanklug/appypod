@@ -23,6 +23,8 @@ class UserWrapper(AbstractWrapper):
          href=":'%s/edit?page=passwords' % user.url">:_('change_password')</a>
      </td>''')
 
+    def isSpecial(self): return self.login in self.specialUsers
+
     def getTitle(self, normalized=False):
         '''Returns a nice name for this user, based on available information:
            name/first name or title or login. If p_normalized is True, special
