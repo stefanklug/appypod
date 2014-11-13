@@ -31,7 +31,8 @@ class Action(Field):
                 label=_(field.labelId);
                 descr=field.descrId and _(field.descrId) or None;
                 buttonWidth=ztool.getButtonWidth(label)"
-           id=":formId" action=":ztool.absolute_url() + '/do'">
+           id=":formId" action=":ztool.absolute_url() + '/do'"
+           style="display:inline">
       <input type="hidden" name="action" value="ExecuteAction"/>
       <input type="hidden" name="objectUid" value=":zobj.id"/>
       <input type="hidden" name="fieldName" value=":name"/>

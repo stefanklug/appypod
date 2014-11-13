@@ -67,6 +67,8 @@ class Config:
     # the browser-defined language will be used for choosing the language
     # of returned pages.
     languageSelector = False
+    # Show the link to the user profile in the user strip
+    userLink = True
     # People having one of these roles will be able to create instances
     # of classes defined in your application.
     defaultCreators = ['Manager']

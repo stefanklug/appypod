@@ -379,10 +379,6 @@ msgstr "Contraseña"
 msgid "app_home"
 msgstr "volver a mi página principal"
 
-#. Default: "Change password"
-msgid "change_password"
-msgstr ""
-
 #. Default: "This login is reserved."
 msgid "login_reserved"
 msgstr "Este login está reservado."

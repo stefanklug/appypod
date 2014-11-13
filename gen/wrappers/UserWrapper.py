@@ -14,13 +14,10 @@ class UserWrapper(AbstractWrapper):
     layouts = summaryPageLayouts
 
     # Display, in the user strip, links to the User instance of the logged user.
-    pxUserLinks = Px('''
+    pxUserLink = Px('''
      <td class="userStripText" align=":dright">
       <a href=":user.url"><img src=":url('user')"/>
        <span style="padding: 0 3px">:user.getTitle()</span></a>
-      <!-- Page for modifying the password -->
-      <a if="user.showPassword()" class="changePassword"
-         href=":'%s/edit?page=passwords' % user.url">:_('change_password')</a>
      </td>''')
 
     def isSpecial(self): return self.login in self.specialUsers

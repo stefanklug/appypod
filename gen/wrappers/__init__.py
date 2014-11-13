@@ -264,7 +264,7 @@ class AbstractWrapper(object):
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
                 <img src=":url('logout.gif')"/></a>
               </td>
-              <x>:user.pxUserLinks</x>
+              <x if="cfg.userLink">:user.pxUserLink</x>
              </tr>
             </table>
            </td>
@@ -450,7 +450,7 @@ class AbstractWrapper(object):
     # Shows the range of buttons (next, previous, save,...) and the workflow
     # transitions for a given object.
     pxButtons = Px('''
-     <div class="objectButtons" style=":'float: %s' % dleft"
+     <div class="objectButtons"
           var="previousPage=phaseObj.getPreviousPage(page)[0];
                nextPage=phaseObj.getNextPage(page)[0];
                isEdit=layoutType == 'edit';
@@ -543,14 +543,15 @@ class AbstractWrapper(object):
       <x var="targetObj=zobj; buttonsMode='normal'"
          if="mayAct and \
              targetObj.showTransitions(layoutType)">:obj.pxTransitions</x>
-     </div>
-     <!-- Fields (actions) defined with layout "buttons" -->
-     <x if="layoutType != 'edit'">
-      <div class="objectButtons" style=":'float: %s' % dleft"
-           var="fields=zobj.getAppyTypes('buttons', page, type='Action');
-                layoutType='view'" if="fields">
-       <x for="field in fields">:field.pxRender</x></div>
-     </x>''')
+
+      <!-- Fields (actions) defined with layout "buttons" -->
+      <x if="layoutType != 'edit'"
+         var2="fields=zobj.getAppyTypes('buttons', page, type='Action');
+               layoutType='view'">
+       <!-- Call pxView and not pxRender to avoid having a table -->
+       <x for="field in fields" var2="name=field.name">:field.pxView</x>
+      </x>
+     </div>''')
 
     # Displays the fields of a given page for a given object.
     pxFields = Px('''
