@@ -46,6 +46,7 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
 
       p_log can be a function/method accepting a single string arg. 
     '''
+    if isinstance(to, str): to = [to]
     if not config:
         if log: log('Must send mail but no smtp server configured.')
         return
@@ -58,7 +59,7 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
             msg = ''
         if log:
             log('mail disabled%s: should send mail from %s to %d ' \
-                'recipient(s):  %s.' % (msg, fromAddress, len(to), str(to)))
+                'recipient(s): %s.' % (msg, fromAddress, len(to), str(to)))
             log('subject: %s' % subject)
             log('body: %s' % body)
         if attachments and log: log('%d attachment(s).' % len(attachments))
@@ -75,15 +76,12 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
     # Add the header values
     msg['Subject'] = Header(subject, 'utf-8')
     msg['From'] = fromAddress
-    if isinstance(to, basestring):
-        msg['To'] = to
+    if len(to) == 1:
+        msg['To'] = to[0]
     else:
-        if len(to) == 1:
-            msg['To'] = to[0]
-        else:
-            msg['To'] = fromAddress
-            msg['Bcc'] = ', '.join(to)
-            to = fromAddress
+        msg['To'] = fromAddress
+        msg['Bcc'] = ', '.join(to)
+        to = fromAddress
     # Add attachments
     if attachments:
         for attachment in attachments:
@@ -107,7 +105,7 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
         smtpServer = smtplib.SMTP(config.server, port=config.port)
         if config.login:
             smtpServer.login(config.login, config.password)
-        res = smtpServer.sendmail(fromAddress, [to], msg.as_string())
+        res = smtpServer.sendmail(fromAddress, to, msg.as_string())
         smtpServer.quit()
         if res and log:
             log('could not send mail to some recipients. %s' % str(res),

@@ -264,7 +264,7 @@ class AbstractWrapper(object):
                <a href=":tool.url + '/performLogout'" title=":_('app_logout')">
                 <img src=":url('logout.gif')"/></a>
               </td>
-              <x if="cfg.userLink">:user.pxUserLink</x>
+              <x>:user.pxUserLink</x>
              </tr>
             </table>
            </td>

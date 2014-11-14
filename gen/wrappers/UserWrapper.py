@@ -16,8 +16,9 @@ class UserWrapper(AbstractWrapper):
     # Display, in the user strip, links to the User instance of the logged user.
     pxUserLink = Px('''
      <td class="userStripText" align=":dright">
-      <a href=":user.url"><img src=":url('user')"/>
+      <a if="cfg.userLink" href=":user.url"><img src=":url('user')"/>
        <span style="padding: 0 3px">:user.getTitle()</span></a>
+      <x if="not cfg.userLink">:user.getTitle()</x>
      </td>''')
 
     def isSpecial(self): return self.login in self.specialUsers
