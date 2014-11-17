@@ -596,6 +596,9 @@ class String(Field):
                 comparator = HtmlDiff(res, thisVersion, iMsg, dMsg)
                 res = comparator.get()
             lastEvent = event
+        if not lastEvent:
+            # There is no diff to show for this p_language.
+            return value
         # Now we need to compare the result with the current version.
         iMsg, dMsg = obj.getHistoryTexts(lastEvent)
         comparator = HtmlDiff(res, value or '', iMsg, dMsg)
@@ -607,7 +610,7 @@ class String(Field):
            m_getFormattedValue for getting a non-multilingual value (ie, in
            most cases). Else, this method returns a formatted value for the
            p_language-specific part of a multilingual value.'''
-        if Field.isEmptyValue(self, obj, value): return ''
+        if Field.isEmptyValue(self, obj, value) and not showChanges: return ''
         res = value
         if self.isSelect:
             if isinstance(self.validator, Selection):
@@ -647,11 +650,13 @@ class String(Field):
                                                     userLanguage=language)
         # Return the dict of values whose individual, language-specific values
         # have been formatted via m_getUnilingualFormattedValue.
-        if not value: return value
+        if not value and not showChanges: return value
         res = {}
         for lg in languages:
-            res[lg] = self.getUnilingualFormattedValue(obj, value[lg],
-                                                       showChanges, language=lg)
+            if not value: val = ''
+            else: val = value[lg]
+            res[lg] = self.getUnilingualFormattedValue(obj, val, showChanges,
+                                                       language=lg)
         return res
 
     def getShownValue(self, obj, value, showChanges=False, language=None):
