@@ -355,23 +355,22 @@ class Pod(Field):
         if not queryRelated:
             # This is a POD for a single object: personalize the file name with
             # the object title.
-            fileName = '%s-%s' % (norm(obj.title)[:140], fileName)
+            title = obj.o.getShownValue('title')
+            fileName = '%s-%s' % (norm(title)[:140], fileName)
         return fileName + '.' + format
 
     def getVisibleTemplates(self, obj):
         '''Returns, among self.template, the template(s) that can be shown.'''
         res = []
         if not self.showTemplate:
-            # Show them all in the formats spoecified in self.formats.
+            # Show them all in the formats specified in self.formats.
             for template in self.template:
                 res.append(Object(template=template, formats=self.formats,
                             freezeFormats=self.getFreezeFormats(obj, template)))
         else:
-            isManager = obj.user.has_role('Manager')
             for template in self.template:
                 formats = self.showTemplate(obj, template)
                 if not formats: continue
-                if isManager: formats = self.getAllFormats(template)
                 elif isinstance(formats, bool): formats = self.formats
                 elif isinstance(formats, basestring): formats = (formats,)
                 res.append(Object(template=template, formats=formats,
@@ -563,13 +562,24 @@ class Pod(Field):
         # Get a FileInfo instance to manipulate the file on the filesystem.
         return FileInfo(result, inDb=False, uploadName=fileName)
 
+    def getBaseName(self, template=None):
+        '''Gets the "base name" of p_template (or self.template[0] if not
+           given). The base name is the name of the template, without path
+           and extension. Moreover, if the template is a pointer to another one
+           (ie Item.odt.something), the base name integrates the specific
+           extension. In the example, the base name will be "ItemSomething".'''
+        template = template or self.template[0]
+        elems = os.path.splitext(os.path.basename(template))
+        if elems[1] in ('.odt', '.ods'):
+            res = elems[0]
+        else:
+            res = os.path.splitext(elems[0])[0] + elems[1][1:].capitalize()
+        return res
+
     def getFreezeName(self, template=None, format='pdf', sep='.'):
         '''Gets the name on disk on the frozen document corresponding to this
            pod field, p_template and p_format.'''
-        template = template or self.template[0]
-        template = os.path.basename(template)
-        templateName = os.path.splitext(template)[0].replace(os.sep, '_')
-        return '%s_%s%s%s' % (self.name, templateName, sep, format)
+        return '%s_%s%s%s' % (self.name,self.getBaseName(template),sep,format)
 
     def isFrozen(self, obj, template=None, format='pdf'):
         '''Is there a frozen document for thid pod field, on p_obj, for

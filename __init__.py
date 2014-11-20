@@ -36,9 +36,9 @@ class Object:
                 res += u'%s=<encoding problem> ' % attrName
         res  = res.strip() + '>'
         return res.encode('utf-8')
-    def __nonzero__(self):
-        return bool(self.__dict__)
+    def __nonzero__(self): return bool(self.__dict__)
     def get(self, name, default=None): return getattr(self, name, default)
+    def __getitem__(self, k): return getattr(self, k)
     def update(self, other):
         '''Includes information from p_other into p_self.'''
         for k, v in other.__dict__.iteritems():
