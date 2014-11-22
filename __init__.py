@@ -78,4 +78,35 @@ class Hack:
         res = getattr(klass, '_base_%s_' % name)
         if isStatic: res = res.im_func
         return res
+
+    @staticmethod
+    def inject(patchClass, klass, verbose=False):
+        '''Injects any method or attribute from p_patchClass into klass.'''
+        patched = []
+        added = []
+        for name, attr in patchClass.__dict__.iteritems():
+            if name.startswith('__'): continue # Ignore special methods
+            # Is this name already defined on p_klass ?
+            if hasattr(klass, name):
+                hasAttr = True
+                klassAttr = getattr(klass, name)
+            else:
+                hasAttr = False
+                klassAttr = None
+            if hasAttr and callable(attr) and callable(klassAttr):
+                # Patch this method via Hack.patch
+                Hack.patch(klassAttr, attr)
+                patched.append(name)
+            else:
+                # Simply replace the static attr or add the new static
+                # attribute or method.
+                setattr(klass, name, attr)
+                added.append(name)
+        if verbose:
+            pName = patchClass.__name__
+            cName = klass.__name__
+            print '%d method(s) patched from %s to %s (%s)' % \
+                  (len(patched), pName, cName, str(patched))
+            print '%d method(s) and/or attribute(s) added from %s to %s (%s)'%\
+                  (len(added), pName, cName, str(added))
 # ------------------------------------------------------------------------------
