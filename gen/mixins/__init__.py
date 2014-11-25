@@ -1111,6 +1111,13 @@ class BaseMixin:
            becomes: has this object an history for field p_name?'''
         if not hasattr(self.aq_base, 'workflow_history') or \
            not self.workflow_history: return
+        # Return False if the user can't consult the object history
+        klass = self.getClass()
+        if hasattr(klass, 'showHistory'):
+            show = klass.showHistory
+            if callable(show): show = klass.showHistory(self.appy())
+            if not show: return
+        # Get the object history
         history = self.workflow_history['appy']
         if not name:
             for event in history:

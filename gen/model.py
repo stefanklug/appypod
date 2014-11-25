@@ -151,25 +151,29 @@ class ModelClass:
 # The User class ---------------------------------------------------------------
 class User(ModelClass):
     _appy_attributes = ['password1', 'password2', 'title', 'name', 'firstName',
-                        'login', 'email', 'roles', 'source', 'groups', 'toTool']
+                        'source', 'login', 'password3', 'password4', 'email',
+                        'roles', 'groups', 'toTool']
+    # All methods defined below are fake. Real versions are in the wrapper.
     # Passwords are on a specific page.
-    def showPassword(self): pass
+    def showPassword12(self): pass
+    def showPassword34(self): pass
     def validatePassword(self): pass
-    pp = {'page': gen.Page('passwords', showNext=False, show=showPassword),
+    pp = {'page': gen.Page('passwords', showNext=False, show=showPassword12),
           'width': 34, 'multiplicity': (1,1), 'format': gen.String.PASSWORD,
-          'show': showPassword}
+          'show': showPassword12}
     password1 = gen.String(validator=validatePassword, **pp)
     password2 = gen.String(**pp)
 
-    # All methods defined below are fake. Real versions are in the wrapper.
+    # Fields "password3" and "password4" are only shown when creating a user.
+    # After user creation, those fields are not used anymore; fields "password1"
+    # and "password2" above are then used to modify the password on a separate
+    # page.
     pm = {'page': gen.Page('main', showPrevious=False), 'group': 'main',
           'width': 34}
     title = gen.String(show=False, indexed=True, **pm)
     def showName(self): pass
     name = gen.String(show=showName, **pm)
     firstName = gen.String(show=showName, **pm)
-    def showEmail(self): pass
-    email = gen.String(show=showEmail, **pm)
     # Where is this user stored? By default, in the ZODB. But the user can be
     # stored in an external LDAP (source='ldap').
     source = gen.String(show=False, default='zodb', layouts='f', **pm)
@@ -178,7 +182,14 @@ class User(ModelClass):
     def validateLogin(self): pass
     login = gen.String(show=showLogin, validator=validateLogin,
                        indexed=True, **pm)
+    password3 = gen.String(validator=validatePassword, show=showPassword34,
+                           format=gen.String.PASSWORD,
+                           label=(None, 'password1'), **pm)
+    password4 = gen.String(show=showPassword34, format=gen.String.PASSWORD,
+                           label=(None, 'password2'), **pm)
     pm['multiplicity'] = (0, None)
+    def showEmail(self): pass
+    email = gen.String(show=showEmail, **pm)
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,
                        validator=gen.Selection('getGrantableRoles'), **pm)

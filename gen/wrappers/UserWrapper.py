@@ -86,14 +86,22 @@ class UserWrapper(AbstractWrapper):
             return self.translate('password_too_short', mapping={'nb':5})
         return True
 
-    def showPassword(self):
-        '''When must we show the 2 fields for entering a password ?'''
-        # When someone creates the user.
-        if self.o.isTemporary(): return 'edit'
+    def showPassword12(self):
+        '''Fields "passwords1" and "password2", used only for modifying a
+           password on an existing user (on specific page "passwords"), must be
+           shown only for the user that can modify his password.'''
+        # On creation, fields "password3" and "password4" are used
+        if self.o.isTemporary(): return
         # When the user itself (we don't check role Owner because a Manager can
         # also own a User instance) wants to edit information about himself.
         if (self.user.login == self.login) and (self.source == 'zodb'):
             return 'edit'
+
+    def showPassword34(self):
+        '''Fields "password3" and "password4", used only on the main page for
+           entering a password when creating a new user, must be shown only when
+           the object is temporary.'''
+        if self.o.isTemporary(): return 'edit'
 
     def encryptPassword(self, clearPassword):
         '''Returns p_clearPassword, encrypted.'''
@@ -106,7 +114,8 @@ class UserWrapper(AbstractWrapper):
         if newPassword != None:
             msgPart = 'changed'
         else:
-            newPassword = self.getField('password1').generatePassword()
+            # Take any password field for generating a new password
+            newPassword = self.getField('password2').generatePassword()
             msgPart = 'generated'
         login = self.login
         zopeUser = self.getZopeUser()
@@ -176,13 +185,17 @@ class UserWrapper(AbstractWrapper):
 
     def validate(self, new, errors):
         '''Inter-field validation.'''
-        page = self.request.get('page', 'main')
         self.o._oldLogin = None
-        if page == 'main':
-            if hasattr(new, 'password1') and (new.password1 != new.password2):
+        # Check that passwords match, either on page "passwords" (passwords 1
+        # and 2) or on page "main" (passwords 3 and 4).
+        for i in (1, 3):
+            passwordA = 'password%d' % i
+            passwordB = 'password%d' % (i + 1)
+            if hasattr(new, passwordA) and \
+               (getattr(new, passwordA) != getattr(new, passwordB)):
                 msg = self.translate('passwords_mismatch')
-                errors.password1 = msg
-                errors.password2 = msg
+                setattr(errors, passwordA, msg)
+                setattr(errors, passwordB, msg)
             # Remember the previous login
             if self.login: self.o._oldLogin = self.login
         return self._callCustom('validate', new, errors)
@@ -219,28 +232,28 @@ class UserWrapper(AbstractWrapper):
             self.updateTitle()
             self.ensureAdminIsManager()
         if created:
-            # Create the corresponding Zope user.
+            # Create the corresponding Zope user
             from AccessControl.User import User as ZopeUser
-            password = self.encryptPassword(self.password1)
+            password = self.encryptPassword(self.password3)
             zopeUser = ZopeUser(login, password, self.roles, ())
             # Add it in acl_users if it is a local user.
             if isLocal: self.o.acl_users.data[login] = zopeUser
             # Add it in self.o._zopeUser if it is a LDAP user
             else: self.o._zopeUser = zopeUser
             # Remove our own password copies
-            self.password1 = self.password2 = ''
+            self.password3 = self.password4 = ''
         else:
-            # Update the login itself if the user has changed it.
+            # Update the login itself if the user has changed it
             oldLogin = self.o._oldLogin
             if oldLogin and (oldLogin != login):
                 self.setLogin(oldLogin, login)
             del self.o._oldLogin
-            # Update roles at the Zope level.
+            # Update roles at the Zope level
             zopeUser = self.getZopeUser()
             zopeUser.roles = self.roles
-            # Update the password if the user has entered new ones.
+            # Update the password if the user has entered new ones
             rq = self.request
-            if rq.has_key('password1'):
+            if rq.get('page', 'main') == 'passwords':
                 self.setPassword(rq['password1'])
                 self.password1 = self.password2 = ''
         # "self" must be owned by its Zope user.
