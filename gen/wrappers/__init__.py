@@ -1128,13 +1128,19 @@ class AbstractWrapper(object):
            a list of names: in this case, it returns the most recent occurrence
            of those transitions. If p_notBefore is given, it corresponds to a
            kind of start transition for the search: we will not search in the
-           history preceding the last occurrence of this transition.'''
+           history preceding the last occurrence of this transition. Note that
+           p_notBefore can hold a list of transitions.'''
         history = history or self.history
         i = len(history) - 1
         while i >= 0:
             event = history[i]
-            if notBefore and (event['action'] == notBefore): return
-            if isinstance(transition, basestring):
+            if notBefore:
+                if isinstance(notBefore, str):
+                    condition = event['action'] == notBefore
+                else:
+                    condition = event['action'] in notBefore
+                if condition: return
+            if isinstance(transition, str):
                 condition = event['action'] == transition
             else:
                 condition = event['action'] in transition
