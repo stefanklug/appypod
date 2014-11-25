@@ -28,9 +28,8 @@ input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }
 input[type=password] { border: 1px solid #d0d0d0;
                        font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
-input[type=text] { border: 1px solid #d0d0d0;
-                   font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
-                   margin-bottom: 1px }
+input[type=text] { border: 1px solid #d0d0d0; padding: 0 2px; margin-bottom:1px;
+                   font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 select { border: 1px solid #d0d0d0; background-color: white }
 
 textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;

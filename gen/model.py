@@ -187,9 +187,9 @@ class User(ModelClass):
                            label=(None, 'password1'), **pm)
     password4 = gen.String(show=showPassword34, format=gen.String.PASSWORD,
                            label=(None, 'password2'), **pm)
-    pm['multiplicity'] = (0, None)
     def showEmail(self): pass
     email = gen.String(show=showEmail, **pm)
+    pm['multiplicity'] = (0, None)
     def showRoles(self): pass
     roles = gen.String(show=showRoles, indexed=True,
                        validator=gen.Selection('getGrantableRoles'), **pm)
