@@ -870,10 +870,10 @@ class ToolMixin(BaseMixin):
     def getLdapUser(self, login, password):
         '''Returns a local User instance corresponding to a LDAP user if p_login
            and p_password correspong to a valid LDAP user.'''
-        # Check if LDAP is configured.
+        # Check if LDAP is configured
         cfg = self.getProductConfig(True).ldap
-        if not cfg: return
-        # Get a connector to the LDAP server and connect to the LDAP server.
+        if not cfg or not cfg.enabled: return
+        # Get a connector to the LDAP server and connect to the LDAP server
         serverUri = cfg.getServerUri()
         connector = LdapConnector(serverUri, tool=self)
         success, msg = connector.connect(cfg.adminLogin, cfg.adminPassword)

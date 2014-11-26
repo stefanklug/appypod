@@ -181,7 +181,7 @@ class ZopeInstaller:
         for login, roles in self.defaultUsers.iteritems():
             if not appyTool.count('User', noSecurity=True, login=login):
                 appyTool.create('users', noSecurity=True, id=login, login=login,
-                                password1=login, password2=login,
+                                password3=login, password4=login,
                                 email='%s@appyframework.org'%login, roles=roles)
                 appyTool.log('User "%s" created.' % login)
 
