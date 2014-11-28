@@ -55,23 +55,19 @@ class Search:
         self.checkboxesDefault = checkboxesDefault
 
     @staticmethod
-    def getIndexName(fieldName, usage='search'):
-        '''Gets the name of the technical index that corresponds to field named
-           p_fieldName. Indexes can be used for searching (p_usage="search") or
-           for sorting (usage="sort"). The method returns None if the field
-           named p_fieldName can't be used for p_usage.'''
-        if fieldName == 'title':
-            if usage == 'search':  return 'Title'
-            else:                  return 'SortableTitle'
-            # Indeed, for field 'title', Appy has a specific index
-            # 'SortableTitle', because index 'Title' is a TextIndex
-            # (for searchability) and can't be used for sorting.
-        elif fieldName == 'state': return 'State'
-        elif fieldName == 'created': return 'Created'
-        elif fieldName == 'modified': return 'Modified'
-        elif fieldName in defaultIndexes: return fieldName
+    def getIndexName(name, klass, usage='search'):
+        '''Gets the name of the Zope index that corresponds to p_name. Indexes
+           can be used for searching (p_usage="search") or for sorting
+           (usage="sort"). The method returns None if the field named
+           p_name can't be used for p_usage.'''
+        # Manage indexes that do not have a corresponding field
+        if name == 'created': return 'Created'
+        elif name == 'modified': return 'Modified'
+        elif name in defaultIndexes: return name
         else:
-            return 'get%s%s'% (fieldName[0].upper(),fieldName[1:])
+            # Manage indexes corresponding to fields
+            field = getattr(klass, name, None) 
+            if field: return field.getIndexName(usage)
 
     @staticmethod
     def getSearchValue(fieldName, fieldValue, klass):
@@ -116,30 +112,28 @@ class Search:
            sortBy and sortOrder (and not "resolve" them to Zope's sort_on and
            sort_order).'''
         # Put search criteria in p_criteria
-        for fieldName, fieldValue in self.fields.iteritems():
+        for name, value in self.fields.iteritems():
             # Management of searches restricted to objects linked through a
             # Ref field: not implemented yet.
-            if fieldName == '_ref': continue
+            if name == '_ref': continue
             # Make the correspondence between the name of the field and the
             # name of the corresponding index, excepted if advanced is True: in
             # that case, the correspondence will be done later.
             if not advanced:
-                attrName = Search.getIndexName(fieldName)
+                indexName = Search.getIndexName(name, klass)
                 # Express the field value in the way needed by the index
-                criteria[attrName] = Search.getSearchValue(fieldName,
-                                                           fieldValue, klass)
+                criteria[indexName] = Search.getSearchValue(name, value, klass)
             else:
-                criteria[fieldName]= fieldValue
+                criteria[name] = value
         # Add a sort order if specified
         if self.sortBy:
+            c = criteria
             if not advanced:
-                criteria['sort_on'] = Search.getIndexName(self.sortBy,
-                                                          usage='sort')
-                if self.sortOrder == 'desc': criteria['sort_order'] = 'reverse'
-                else:                        criteria['sort_order'] = None
+                c['sort_on']=Search.getIndexName(self.sortBy,klass,usage='sort')
+                c['sort_order']= (self.sortOrder=='desc') and 'reverse' or None
             else:
-                criteria['sortBy'] = self.sortBy
-                criteria['sortOrder'] = self.sortOrder
+                c['sortBy'] = self.sortBy
+                c['sortOrder'] = self.sortOrder
 
     def isShowable(self, klass, tool):
         '''Is this Search instance (defined in p_klass) showable?'''

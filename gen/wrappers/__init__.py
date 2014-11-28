@@ -694,6 +694,8 @@ class AbstractWrapper(object):
             n = field.name
             indexName = 'get%s%s' % (n[0].upper(), n[1:])
             res[indexName] = field.getIndexType()
+            # Add the secondary index if present
+            if field.hasSortIndex(): res['%s_sort' % indexName] = 'FieldIndex'
         return res
 
     # --------------------------------------------------------------------------
@@ -1065,8 +1067,16 @@ class AbstractWrapper(object):
            method in those cases.
         '''
         if fields:
-            # Get names of indexes from field names.
-            indexes = [Search.getIndexName(name) for name in fields]
+            # Get names of indexes from field names
+            indexes = []
+            for name in fields:
+                field = self.getField(name)
+                if not field.indexed: continue
+                # A field may have 2 different indexes
+                iName = field.getIndexName(usage='search')
+                indexes.append(iName)
+                sName = field.getIndexName(usage='sort')
+                if sName != iName: indexes.append(sName)
         else:
             indexes = None
         self.o.reindex(indexes=indexes, unindex=unindex)

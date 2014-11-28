@@ -380,11 +380,12 @@ class ToolWrapper(AbstractWrapper):
         </th>
         <th for="column in columns"
             var2="field=column.field;
-                  sortable=ztool.isSortable(field.name, className, 'search');
+                  sortable=field.isSortable(usage='search');
                   filterable=field.filterable"
             width=":column.width" align=":column.align">
          <x>::ztool.truncateText(_(field.labelId))</x>
-         <x>:tool.pxSortAndFilter</x><x>:tool.pxShowDetails</x>
+         <x if="totalNumber &gt; 1">:tool.pxSortAndFilter</x>
+         <x>:tool.pxShowDetails</x>
         </th>
        </tr>
 

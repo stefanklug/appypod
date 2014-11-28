@@ -325,6 +325,7 @@ class Field:
         '''Can fields of this type be used for sorting purposes (when sorting
            search results (p_usage="search") or when sorting reference fields
            (p_usage="ref")?'''
+        if self.name == 'state': return
         if usage == 'search':
             return self.indexed and not self.isMultiValued() and not \
                    ((self.type == 'String') and self.isSelection())
@@ -576,7 +577,7 @@ class Field:
            If p_forSearch is True, it will return a "string" version of the
            index value suitable for a global search.'''
         res = self.getValue(obj)
-        # Zope catalog does not like unicode strings.
+        # Zope catalog does not like unicode strings
         if isinstance(res, unicode): res = res.encode('utf-8')
         if forSearch and (res != None):
             if type(res) in sutils.sequenceTypes:
@@ -589,6 +590,29 @@ class Field:
                 res = str(res)
         return res
 
+    def getIndexName(self, usage='search'):
+        '''Gets the name of the Zope index that corresponds to this field.
+           Indexes can be used for searching (p_usage="search") or for sorting
+           (usage="sort"). The method returns None if the field
+           named p_fieldName can't be used for p_usage.'''
+        # Manage special cases
+        if self.name == 'title':
+            # For field 'title', Appy has a specific index 'SortableTitle',
+            # because index 'Title' is a TextIndex (for searchability) and can't
+            # be used for sorting.
+            return (usage == 'sort') and 'SortableTitle' or 'Title'
+        elif self.name == 'state': return 'State'
+        else:
+            res = 'get%s%s'% (self.name[0].upper(), self.name[1:])
+            if (usage == 'sort') and self.hasSortIndex(): res += '_sort'
+        return res
+
+    def hasSortIndex(self):
+        '''Some fields have indexes that prevents sorting (ie, list indexes).
+           Those fields may define a secondary index, specifically for sorting.
+           This is the case of Ref fields for example.'''
+        return
+
     def getCatalogValue(self, obj, usage='search'):
         '''This method returns the index value that is currently stored in the
            catalog for this field on p_obj.'''
@@ -596,7 +620,7 @@ class Field:
             raise Exception('Field %s: cannot retrieve catalog version of ' \
                             'unindexed field.' % self.name)
         tool = obj.getTool()
-        indexName = Search.getIndexName(self.name, usage=usage)
+        indexName = self.getIndexName(usage)
         catalogBrain = tool.getObject(obj.id, brain=True)
         index = tool.getApp().catalog.Indexes[indexName]
         return index.getEntryForObject(catalogBrain.getRID())

@@ -334,22 +334,21 @@ class ToolMixin(BaseMixin):
            If p_refObject and p_refField are given, the query is limited to the
            objects that are referenced from p_refObject through p_refField.'''
         params = {'ClassName': className}
-        appyClass = self.getAppyClass(className, wrapper=True)
+        klass = self.getAppyClass(className, wrapper=True)
         if not brainsOnly: params['batch'] = True
         # Manage additional criteria from a search when relevant
         if searchName: search = self.getSearch(className, searchName)
         if search:
-            # Add in params search and sort criteria.
-            search.updateSearchCriteria(params, appyClass)
-        # Determine or override sort if specified.
+            # Add in params search and sort criteria
+            search.updateSearchCriteria(params, klass)
+        # Determine or override sort if specified
         if sortBy:
-            params['sort_on'] = Search.getIndexName(sortBy, usage='sort')
-            if sortOrder == 'desc': params['sort_order'] = 'reverse'
-            else:                   params['sort_order'] = None
-        # If defined, add the filter among search parameters.
+            params['sort_on'] = Search.getIndexName(sortBy, klass, usage='sort')
+            params['sort_order'] = (sortOrder == 'desc') and 'reverse' or None
+        # If defined, add the filter among search parameters
         if filterKey:
-            filterKey = Search.getIndexName(filterKey)
-            filterValue = Search.getSearchValue(filterKey,filterValue,appyClass)
+            filterKey = Search.getIndexName(filterKey, klass)
+            filterValue = Search.getSearchValue(filterKey, filterValue, klass)
             params[filterKey] = filterValue
             # TODO This value needs to be merged with an existing one if already
             # in params, or, in a first step, we should avoid to display the
@@ -367,7 +366,7 @@ class ToolMixin(BaseMixin):
                                self.appy().numberOfResultsPerPage
         elif maxResults == 'NO_LIMIT':
             maxResults = None
-        # Return brains only if required.
+        # Return brains only if required
         if brainsOnly:
             if not maxResults: return brains
             else: return brains[:maxResults]
@@ -399,7 +398,9 @@ class ToolMixin(BaseMixin):
             return refInfo[0].getAppyType(refInfo[1]).shownInfo
         else:
             k = self.getAppyClass(className)
-            return hasattr(k, 'listColumns') and k.listColumns or ('title',)
+            if not hasattr(k, 'listColumns'): return ('title',)
+            if callable(k.listColumns): return k.listColumns(self.appy())
+            return k.listColumns
 
     def truncateValue(self, value, width=20):
         '''Truncates the p_value according to p_width. p_value has to be
@@ -509,13 +510,6 @@ class ToolMixin(BaseMixin):
         for role in self.getUser().getRoles():
             if role in creators:
                 return True
-
-    def isSortable(self, name, className, usage):
-        '''Is field p_name defined on p_className sortable for p_usage purposes
-           (p_usage can be "ref" or "search")?'''
-        if (',' in className) or (name == 'state'): return False
-        appyType = self.getAppyType(name, className=className)
-        if appyType: return appyType.isSortable(usage=usage)
 
     def subTitleIsUsed(self, className):
         '''Does class named p_className define a method "getSubTitle"?'''

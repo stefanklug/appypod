@@ -102,7 +102,7 @@ td.search { padding-top: 8px }
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
 .dropdown { display:none; position: absolute; top: 15px; left: 1px;
             border: 1px solid #cccccc; background-color: white;
-            padding: 3px 4px 0; font-size: 8pt; font-weight: normal;
+            padding: 3px 4px 3px; font-size: 8pt; font-weight: normal;
             text-align: left; z-index: 2; line-height: normal }
 .dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
@@ -133,7 +133,7 @@ td.search { padding-top: 8px }
 .even { background-color: #fbfbfb }
 .odd { background-color: #f6f6f6 }
 .odd2 { background-color: #f2f2f2 }
-.refMenuItem { border-top: grey 1px dashed; margin: 3px 0; padding-top: 3px }
+.refMenuItem { border-top: grey 1px dashed; margin-top: 3px; padding-top: 3px }
 .summary { margin-bottom: 5px; background-color: whitesmoke;
            border: 3px solid white }
 .by { padding: 5px; color: grey; font-size: 97% }

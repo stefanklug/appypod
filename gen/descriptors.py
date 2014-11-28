@@ -32,7 +32,7 @@ class ClassDescriptor(Descriptor):
         self.name = getClassName(self.klass, generator.applicationName)
         self.predefined = False
         self.customized = False
-        # Phase and page names will be calculated later, when first required.
+        # Phase and page names will be calculated later, when first required
         self.phases = None
         self.pages = None
 
@@ -206,19 +206,26 @@ class ClassDescriptor(Descriptor):
             if search.name == searchName:
                 return search
 
-    def addIndexMethod(self, field):
+    def addIndexMethod(self, field, secondary=False):
         '''For indexed p_field, this method generates a method that allows to
            get the value of the field as must be copied into the corresponding
-           index.'''
+           index. Some fields have a secondary index for sorting purposes. If
+           p_secondary is True, this method generates the method for this
+           secondary index.'''
         m = self.methods
         spaces = TABS
         n = field.fieldName
-        m += '\n' + ' '*spaces + 'def get%s%s(self):\n' % (n[0].upper(), n[1:])
+        suffix = secondary and '_sort' or ''
+        m += '\n' + ' '*spaces + 'def get%s%s%s(self):\n' % \
+                                 (n[0].upper(), n[1:], suffix)
         spaces += TABS
         m += ' '*spaces + "'''Gets indexable value of field \"%s\".'''\n" % n
+        suffix = secondary and ', True' or ''
         m += ' '*spaces + 'return self.getAppyType("%s").getIndexValue(' \
-             'self)\n' % n
+             'self%s)\n' % (n, suffix)
         self.methods = m
+        if not secondary and field.appyType.hasSortIndex():
+            self.addIndexMethod(field, secondary=True)
 
     def addField(self, fieldName, fieldType):
         '''Adds a new field to the Tool.'''
@@ -493,7 +500,7 @@ class TranslationClassDescriptor(ClassDescriptor):
             mHeight = int(len(msgContent)/maxLine) + msgContent.count('<br/>')
             height = max(height, mHeight)
         if height < 1:
-            # This is a one-line field.
+            # This is a one-line field
             params['width'] = width
         else:
             # This is a multi-line field, or a very-long-single-lined field

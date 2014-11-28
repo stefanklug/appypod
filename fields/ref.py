@@ -182,7 +182,7 @@ class Ref(Field):
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
      <x if="changeOrder and (len(objects) &gt; 1) and \
-            ztool.isSortable(refField.name, tiedClassName, 'ref')"
+            refField.isSortable(usage='ref')"
         var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
                (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
                 q('reverse'), q('**v**')))">
@@ -963,10 +963,14 @@ class Ref(Field):
                 res = ['']
             return res
         else:
-            # For the global search: return linked objects' titles.
-            res = [o.title for o in self.getValue()]
-            if not res: res.append('')
-            return res
+            # For the global search: return linked objects' titles
+            return ' '.join([o.getShownValue('title') \
+                             for o in self.getValue(obj, appy=False)])
+
+    def hasSortIndex(self):
+        '''An indexed Ref field is of type "ListIndex", which is not sortable.
+           So an additional FieldIndex is required.'''
+        return True
 
     def validateValue(self, obj, value):
         if not self.link: return
