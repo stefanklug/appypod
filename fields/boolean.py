@@ -27,7 +27,7 @@ class Boolean(Field):
     trueFalse = {True: 'true', False: 'false'}
 
     # Default layout (render = "checkbox") ("b" stands for "base").
-    bLayouts = {'view': 'lf', 'edit': Table('f;lrv;=', width=None),
+    bLayouts = {'view': 'lf', 'edit': Table('f;lrv;-', width=None),
                 'search': 'l-f'}
     # Layout including a description.
     dLayouts = {'view': 'lf', 'edit': Table('flrv;=d', width=None)}
@@ -97,7 +97,9 @@ class Boolean(Field):
         self.pythonType = bool
 
     def getDefaultLayouts(self):
-        return (self.render == 'radios') and self.rLayouts or self.bLayouts
+        cp = Field.copyLayouts
+        if self.render == 'radios': return cp(Boolean.rLayouts)
+        return cp(Boolean.bLayouts)
 
     def getValue(self, obj):
         '''Never returns "None". Returns always "True" or "False", even if

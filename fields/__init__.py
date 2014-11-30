@@ -467,6 +467,15 @@ class Field:
         self.hasHelp  = self.hasLayoutElement('h', layouts)
         return layouts
 
+    @staticmethod
+    def copyLayouts(layouts):
+        '''Create a deep copy of p_layouts.'''
+        res = {}
+        for k, v in layouts.iteritems():
+            if isinstance(v, Table): res[k] = Table(other=v)
+            else: res[k] = v
+        return res
+
     def hasLayoutElement(self, element, layouts):
         '''This method returns True if the given layout p_element can be found
            at least once among the various p_layouts defined for this field.'''
