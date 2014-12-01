@@ -6,6 +6,7 @@ import os.path
 appyPath = os.path.realpath(os.path.dirname(appy.__file__))
 od = 'application/vnd.oasis.opendocument'
 ms = 'application/vnd.openxmlformats-officedocument'
+ms2 = 'application/vnd.ms'
 
 mimeTypes = {'odt': '%s.text' % od,
              'ods': '%s.spreadsheet' % od,
@@ -23,11 +24,14 @@ mimeTypesExts = {
     'image/jpeg':          'jpg',
     'image/pjpeg':         'jpg',
     'image/gif':           'gif',
-    'application/vnd.ms-excel': 'xls',
-    'application/vnd.ms-powerpoint': 'ppt',
     '%s.wordprocessingml.document' % ms: 'docx',
     '%s.spreadsheetml.sheet' % ms: 'xlsx',
     '%s.presentationml.presentation' % ms: 'pptx',
+    '%s-excel' % ms2:      'xls',
+    '%s-powerpoint' % ms2: 'ppt',
+    '%s-word.document.macroEnabled.12' % ms2: 'docm',
+    '%s-excel.sheet.macroEnabled.12' % ms2: 'xlsm',
+    '%s-powerpoint.presentation.macroEnabled.12' % ms2: 'pptm'
 }
 
 # ------------------------------------------------------------------------------
