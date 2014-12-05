@@ -353,7 +353,9 @@ class Field:
             return
         elif res in ('view', 'edit', 'result', 'buttons'):
             return res == layoutType
-        return bool(res)
+        # For showing a field on layout "buttons", the "buttons" layout must
+        # explicitly be returned by the show method.
+        if layoutType != 'buttons': return bool(res)
 
     def isClientVisible(self, obj):
         '''This method returns True if this field is visible according to

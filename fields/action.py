@@ -25,7 +25,7 @@ class Action(Field):
     '''An action is a Python method that can be triggered by the user on a
        given gen-class. An action is rendered as a button.'''
 
-    # PX for viewing the Action button.
+    # PX for viewing the Action button
     pxView = pxCell = Px('''
      <form var="formId='%s_%s_form' % (zobj.id, name);
                 label=_(field.labelId);
@@ -41,15 +41,15 @@ class Action(Field):
          var="labelConfirm=_(field.labelId + '_confirm');
               commentParam=(field.confirm == 'text') and 'true' or 'false'"
          value=":label"
-         style=":'%s; %s' % (url('action', bg=True), buttonWidth)"
+         style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"
          onclick=":'askConfirm(%s,%s,%s,%s)' % (q('form'), q(formId), \
                                                q(labelConfirm), commentParam)"/>
       <input if="not field.confirm" type="submit" class="button" name="do"
              value=":label" title=":descr"
-             style=":'%s; %s' % (url('action', bg=True), buttonWidth)"/>
+             style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"/>
      </form>''')
 
-    # It is not possible to edit an action, not to search it.
+    # It is not possible to edit an action, not to search it
     pxEdit = pxSearch = ''
 
     def __init__(self, validator=None, multiplicity=(1,1), default=None,
@@ -59,7 +59,7 @@ class Action(Field):
                  width=None, height=None, maxChars=None, colspan=1, action=None,
                  result='computation', confirm=False, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None):
+                 label=None, icon=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -74,13 +74,15 @@ class Action(Field):
         # If following field "confirm" is True, a popup will ask the user if
         # she is really sure about triggering this action.
         self.confirm = confirm
+        # If no p_icon is specified, "action.png" will be used
+        self.icon = icon or 'action'
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, indexed, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
                        None, None, None, None, False)
         self.validable = False
-        self.renderLabel = False # Label is rendered directly within the button.
+        self.renderLabel = False # Label is rendered directly within the button
 
     def getDefaultLayouts(self): return {'view': 'l-f', 'edit': 'lrv-f'}
 
