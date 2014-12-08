@@ -324,14 +324,14 @@ class File(Field):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  isImage=False, sdefault='', scolspan=1, swidth=None,
-                 sheight=None):
+                 sheight=None, xml=None):
         self.isImage = isImage
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, True)
+                       sheight, True, xml)
 
     def getRequestValue(self, obj, requestName=None):
         name = requestName or self.name

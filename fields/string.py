@@ -381,7 +381,7 @@ class String(Field):
                  persist=True, transform='none', placeholder=None,
                  styles=('p','h1','h2','h3','h4'), allowImageUpload=True,
                  spellcheck=False, languages=('en',), languagesLayouts=None,
-                 inlineEdit=False):
+                 inlineEdit=False, xml=None):
         # According to format, the widget will be different: input field,
         # textarea, inline editor... Note that there can be only one String
         # field of format CAPTCHA by page, because the captcha challenge is
@@ -425,7 +425,7 @@ class String(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, persist)
+                       sheight, persist, xml)
         self.isSelect = self.isSelection()
         # If self.isSelect, self.sdefault must be a list of value(s).
         if self.isSelect and not sdefault:

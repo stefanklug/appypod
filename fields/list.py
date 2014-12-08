@@ -78,12 +78,13 @@ class List(Field):
                  specificWritePermission=False, width='', height=None,
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
-                 subLayouts=Table('frv', width=None), widths=None):
+                 subLayouts=Table('frv', width=None), widths=None, xml=None):
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
-                       historized, mapping, label, None, None, None, None, True)
+                       historized, mapping, label, None, None, None, None,
+                       True, xml)
         self.validable = True
         # Tuples of (names, Field instances) determining the format of every
         # element in the list.

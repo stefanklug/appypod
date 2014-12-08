@@ -49,12 +49,12 @@ class Ogone(Field):
                  group=None, layouts=None, move=0, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=None,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 mapping=None, label=None):
+                 mapping=None, label=None, xml=None):
         Field.__init__(self, None, (0,1), None, show, page, group, layouts,
                        move, False, False,specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, False, mapping, label, None,
-                       None, None, None, False)
+                       None, None, None, False, xml)
         # orderMethod must contain a method returning a dict containing info
         # about the order. Following keys are mandatory:
         #   * orderID   An identifier for the order. Don't use the object UID

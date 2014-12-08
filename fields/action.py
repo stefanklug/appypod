@@ -59,7 +59,7 @@ class Action(Field):
                  width=None, height=None, maxChars=None, colspan=1, action=None,
                  result='computation', confirm=False, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, icon=None):
+                 label=None, icon=None, xml=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -80,7 +80,7 @@ class Action(Field):
                        move, indexed, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
-                       None, None, None, None, False)
+                       None, None, None, None, False, xml)
         self.validable = False
         self.renderLabel = False # Label is rendered directly within the button
 

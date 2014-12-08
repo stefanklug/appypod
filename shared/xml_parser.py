@@ -322,6 +322,8 @@ class XmlUnmarshaller(XmlParser):
         # knowing that the value is a 'string' is not sufficient).        
         self.conversionFunctions = conversionFunctions
         self.utf8 = utf8
+        # Remember the name of the root tag
+        self.rootTag = None
 
     def encode(self, value):
         '''Depending on self.utf8 we may need to encode p_value.'''
@@ -354,6 +356,9 @@ class XmlUnmarshaller(XmlParser):
         previousElem = None
         if self.env.currentElem:
             previousElem = self.env.currentElem.name
+        else:
+            # We are walking the root tag
+            self.rootTag = elem
         e = XmlParser.startElement(self, elem, attrs)
         # Determine the type of the element.
         elemType = 'unicode' # Default value
@@ -668,15 +673,11 @@ class XmlMarshaller:
         elif fieldType == 'dict': self.dumpDict(res, value)
         elif isRef:
             if value:
-                if self.objectType == 'appy':
-                    suffix = '/xml'
-                else:
-                    suffix = ''
                 if type(value) in sequenceTypes:
                     for elem in value:
-                        self.dumpField(res, 'url', elem.absolute_url()+suffix)
+                        self.dumpField(res, 'url', elem.absolute_url())
                 else:
-                    self.dumpField(res, 'url', value.absolute_url()+suffix)
+                    self.dumpField(res, 'url', value.absolute_url())
         elif fieldType in ('list', 'tuple'):
             # The previous condition must be checked before this one because
             # referred objects may be stored in lists or tuples, too.
@@ -814,27 +815,19 @@ class XmlMarshaller:
                         self.dumpField(res, field.getName(),field.get(instance),
                                        fieldType=fieldType)
             elif objectType == 'appy':
-                for field in instance.getAppyTypes('view', None):
+                # Dump base attributes
+                for name in ('created', 'creator', 'modified'):
+                    self.dumpField(res, name, getattr(instance, name))
+                for field in instance.getAppyTypes('xml', None):
                     # Dump only needed fields
-                    if (field.type == 'Computed') and not field.plainText:
-                        # Ignore fields used for producing custom chunks of HTML
-                        # within the web UI.
-                        continue
                     if field.name in self.fieldsToExclude: continue
                     if (type(self.fieldsToMarshall) in sequenceTypes) \
                         and (field.name not in self.fieldsToMarshall): continue
                     # Determine field type and value
-                    fieldType = 'basic'
-                    if field.type == 'File':
-                        fieldType = 'file'
-                        v = field.getValue(instance)
-                    elif field.type == 'Ref':
-                        fieldType = 'ref'
-                        v = field.getValue(instance, appy=False)
-                    else:
-                        v = field.getValue(instance)
+                    fieldType = (field.type == 'File') and 'file' or 'basic'
+                    v = field.getXmlValue(instance, field.getValue(instance))
                     self.dumpField(res, field.name, v, fieldType=fieldType)
-                # Dump the object history.
+                # Dump the object history
                 if hasattr(instance.aq_base, 'workflow_history'):
                     histTag = self.getTagName('history')
                     eventTag = self.getTagName('event')

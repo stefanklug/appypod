@@ -920,9 +920,9 @@ class ToolMixin(BaseMixin):
         # to authentify the user, we ask to identify a user or, if impossible,
         # a special user.
         login, password = self.identifyUser(alsoSpecial=not authentify)
-        # Stop here if no user was found and authentication was required.
+        # Stop here if no user was found and authentication was required
         if authentify and not login: return
-        # Now, get the User instance.
+        # Now, get the User instance
         if source == 'zodb':
             # Get the User object, but only if it is a true local user.
             user = tool.search1('User', noSecurity=True, login=login)
@@ -933,11 +933,14 @@ class ToolMixin(BaseMixin):
             # Get the user object, be it really local or a copy of a LDAP user.
             user = tool.search1('User', noSecurity=True, login=login)
         if not user: return
-        # Authentify the user if required.
+        # Authentify the user if required
         if authentify:
             if (user.state == 'inactive') or (not user.checkPassword(password)):
-                # Disable the authentication cookie.
+                # Disable the authentication cookie and remove credentials
+                # stored on the request.
                 req.RESPONSE.expireCookie('_appy_', path='/')
+                k = 'HTTP_AUTHORIZATION'
+                req._auth = req[k] = req._orig_env[k] = None
                 return
             # Create an authentication cookie for this user.
             gutils.writeCookie(login, password, req)
@@ -957,7 +960,7 @@ class ToolMixin(BaseMixin):
         if jsEnabled and not cookiesEnabled:
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
-        # Authenticate the user.
+        # Authenticate the user
         if self.getUser(authentify=True) or \
            self.getUser(authentify=True, source='ldap'):
             msg = self.translate('login_ok')

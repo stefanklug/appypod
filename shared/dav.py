@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, re, httplib, sys, stat, urlparse, time, socket, xml.sax
-from urllib import quote
+import urllib
 from StringIO import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
@@ -19,7 +19,7 @@ class FormDataEncoder:
 
     def marshalValue(self, name, value):
         if isinstance(value, basestring):
-            return '%s=%s' % (name, quote(str(value)))
+            return '%s=%s' % (name, urllib.quote(str(value)))
         elif isinstance(value, float):
             return '%s:float=%s' % (name, value)
         elif isinstance(value, int):
@@ -109,7 +109,13 @@ class HttpResponse:
                     # Return an unmarshalled version of the XML content, for
                     # easy use in Python.
                     try:
-                        return XmlUnmarshaller(utf8=self.utf8).parse(self.body)
+                        parser = XmlUnmarshaller(utf8=self.utf8)
+                        res = parser.parse(self.body)
+                        if parser.rootTag == 'exception':
+                            # This is an exception: "res" contains the traceback
+                            raise ResourceError('Distant server exception: ' \
+                                                '%s' % res)
+                        return res
                     except xml.sax.SAXParseException, se:
                         raise ResourceError('Invalid XML response (%s)'%str(se))
 
@@ -153,10 +159,10 @@ class Resource:
         # Add credentials if present
         if not (self.username and self.password): return
         if headers.has_key('Authorization'): return
-        credentials = '%s:%s' % (self.username,self.password)
-        credentials = credentials.replace('\012','')
+        credentials = '%s:%s' % (self.username, self.password)
+        credentials = credentials.replace('\012', '')
         headers['Authorization'] = "Basic %s" % encodestring(credentials)
-        headers['User-Agent'] = 'WebDAV.client'
+        headers['User-Agent'] = 'Appy'
         headers['Host'] = self.host
         headers['Connection'] = 'close'
         headers['Accept'] = '*/*'
@@ -241,9 +247,14 @@ class Resource:
         if type =='fileName': body.close()
         return res
 
-    def get(self, uri=None, headers={}):
-        '''Perform a HTTP GET on the server.'''
+    def get(self, uri=None, headers={}, params=None):
+        '''Perform a HTTP GET on the server. Parameters can be given as a dict
+           in p_params.'''
         if not uri: uri = self.uri
+        # Encode and append params if given
+        if params:
+            sep = ('?' in uri) and '&' or '?'
+            uri = '%s%s%s' % (uri, sep, urllib.urlencode(params))
         return self.send('GET', uri, headers=headers)
     rss = get
 

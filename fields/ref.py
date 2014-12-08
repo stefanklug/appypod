@@ -528,7 +528,7 @@ class Ref(Field):
                  checkboxes=True, checkboxesDefault=None, sdefault='',
                  scolspan=1, swidth=None, sheight=None, sselect=None,
                  persist=True, render='list', menuIdMethod=None,
-                 menuInfoMethod=None, menuUrlMethod=None):
+                 menuInfoMethod=None, menuUrlMethod=None, xml=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ? "add" may also contain
@@ -708,7 +708,7 @@ class Ref(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, persist)
+                       sheight, persist, xml)
         self.validable = bool(self.link)
         self.checkParameters()
 
@@ -793,6 +793,12 @@ class Ref(Field):
         res = getattr(obj.aq_base, self.name, ())
         # Return a copy: it can be dangerous to give the real database value.
         if res: return list(res)
+
+    def getXmlValue(self, obj, value):
+        '''The default XML value for a Ref is the list of tied object URLs.'''
+        # Bypass the default behaviour if a custom method is given
+        if self.xml: return self.xml(obj, value)
+        return ['%s/xml' % tied.o.absolute_url() for tied in value]
 
     def getPossibleValues(self, obj, startNumber=None, someObjects=False,
                           removeLinked=False):

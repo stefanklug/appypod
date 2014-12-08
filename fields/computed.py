@@ -31,14 +31,13 @@ class Computed(Field):
             value=":field.sdefault"/>''')
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
-                 show=('view', 'result'), page='main', group=None,
-                 layouts=None, move=0, indexed=False, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, maxChars=None, colspan=1, method=None,
-                 formatMethod=None, plainText=False, master=None,
-                 masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
-                 context=None):
+                 show=None, page='main', group=None, layouts=None, move=0,
+                 indexed=False, searchable=False, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 maxChars=None, colspan=1, method=None, formatMethod=None,
+                 plainText=False, master=None, masterValue=None, focus=False,
+                 historized=False, mapping=None, label=None, sdefault='',
+                 scolspan=1, swidth=None, sheight=None, context=None, xml=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         # A specific method for producing the formatted value of this field.
@@ -55,6 +54,13 @@ class Computed(Field):
         if isinstance(method, Px):
             # When field computation is done with a PX, the result is XHTML.
             self.plainText = False
+        # Determine default value for "show"
+        if show == None:
+            # XHTML content in a Computed field generally corresponds to some
+            # custom XHTML widget. This is why, by default, we do not render it
+            # in the xml layout.
+            show = self.plainText and ('view', 'result', 'xml') or \
+                                      ('view', 'result')
         # If method is a PX, its context can be given in p_context.
         self.context = context
         Field.__init__(self, None, multiplicity, default, show, page, group,
@@ -62,7 +68,7 @@ class Computed(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, False)
+                       sheight, False, xml)
         self.validable = False
 
     def getValue(self, obj):

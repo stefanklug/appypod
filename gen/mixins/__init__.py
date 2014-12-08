@@ -530,7 +530,7 @@ class BaseMixin:
                     res = XmlMarshaller().marshall(methodRes, objectType='appy')
             except Exception, e:
                 tb = sutils.Traceback.get()
-                res = XmlMarshaller().marshall(tb, objectType='appy')
+                res = XmlMarshaller(rootTag='exception').marshall(tb)
         return res
 
     def say(self, msg, type='info'):
@@ -1430,10 +1430,12 @@ class BaseMixin:
         return layoutType in showValue
 
     getUrlDefaults = {'page':True, 'nav':True}
-    def getUrl(self, base=None, mode='view', inPopup=False, **kwargs):
+    def getUrl(self, base=None, mode='view', inPopup=False, relative=False,
+               **kwargs):
         '''Returns an URL for this object.
            * If p_base is None, it will be the base URL for this object
-             (ie, Zope self.absolute_url()).
+             (ie, Zope self.absolute_url() or an URL this is relative to the
+             root site if p_relative is True).
            * p_mode can be "edit", "view" or "raw" (a non-param, base URL)
            * If p_inPopup is True, the link will be opened in the Appy iframe.
              An additional param "popup=1" will be added to URL params, in order
@@ -1447,19 +1449,20 @@ class BaseMixin:
         # Define the URL suffix
         suffix = ''
         if mode != 'raw': suffix = '/%s' % mode
-        # Define base URL if omitted
+        # Define the base URL if omitted
         if not base:
-            base = self.absolute_url() + suffix
+            base = relative and self.absolute_url_path() or self.absolute_url()
+            base += suffix
             existingParams = ''
         else:
             existingParams = urllib.splitquery(base)[1]
-        # If a raw URL is asked, remove any param and suffix.
+        # If a raw URL is asked, remove any param and suffix
         if mode == 'raw':
             if '?' in base: base = base[:base.index('?')]
-            base = base.strip('/')
+            base = base.rstrip('/')
             for mode in ('view', 'edit'):
                 if base.endswith(mode):
-                    base = base[:-len(mode)].strip('/')
+                    base = base[:-len(mode)].rstrip('/')
                     break
             return base
         # Manage default args

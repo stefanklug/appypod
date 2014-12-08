@@ -141,7 +141,7 @@ class Field:
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
                  master, masterValue, focus, historized, mapping, label,
-                 sdefault, scolspan, swidth, sheight, persist):
+                 sdefault, scolspan, swidth, sheight, persist, xml):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -250,6 +250,13 @@ class Field:
         # For some fields it is not wanted (ie, fields used only as masters to
         # update slave's selectable values).
         self.persist = persist
+        # Standard marshallers are provided for converting values of this field
+        # into XML. If you want to customize the marshalling process, you can
+        # define a method in "xml" that will accept a field value and will
+        # return a possibly different value. Be careful: do not return a chunk
+        # of XML here! Simply return an alternate value, that will be
+        # XML-marshalled.
+        self.xml = xml
 
     def init(self, name, klass, appName):
         '''When the application server starts, this secondary constructor is
@@ -351,7 +358,7 @@ class Field:
             for r in res:
                 if r == layoutType: return True
             return
-        elif res in ('view', 'edit', 'result', 'buttons'):
+        elif res in ('view', 'edit', 'result', 'buttons', 'xml'):
             return res == layoutType
         # For showing a field on layout "buttons", the "buttons" layout must
         # explicitly be returned by the show method.
@@ -569,6 +576,12 @@ class Field:
            a language-specific part of a multilingual field (see overridden
            method in string.py).'''
         return self.getFormattedValue(obj, value, showChanges)
+
+    def getXmlValue(self, obj, value):
+        '''This method allows a developer to customize the value that will be
+           marshalled into XML. It makes use of attribute "xml".'''
+        if not self.xml: return value
+        return self.xml(obj, value)
 
     def getIndexType(self):
         '''Returns the name of the technical, Zope-level index type for this
