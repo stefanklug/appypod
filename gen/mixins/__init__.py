@@ -527,7 +527,9 @@ class BaseMixin:
                      methodRes.startswith('<?xml'): # Already XML
                     return methodRes
                 else:
-                    res = XmlMarshaller().marshall(methodRes, objectType='appy')
+                    marshaller = XmlMarshaller()
+                    oType = isinstance(methodRes, Object) and 'popo' or 'appy'
+                    res = marshaller.marshall(methodRes, objectType=oType)
             except Exception, e:
                 tb = sutils.Traceback.get()
                 res = XmlMarshaller(rootTag='exception').marshall(tb)

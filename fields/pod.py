@@ -484,7 +484,7 @@ class Pod(Field):
         obj = obj.appy()
         template = template or self.template[0]
         format = format or 'odt'
-        # Security check.
+        # Security check
         if not noSecurity and not queryData:
             if self.showTemplate and not self.showTemplate(obj, template):
                 raise Exception(self.UNAUTHORIZED)
@@ -495,7 +495,7 @@ class Pod(Field):
             if frozen:
                 fileName = self.getDownloadName(obj, template, format, False)
                 return FileInfo(frozen, inDb=False, uploadName=fileName)
-        # We must call pod to compute a pod document from "template".
+        # We must call pod to compute a pod document from "template"
         tool = obj.tool
         diskFolder = tool.getDiskFolder()
         # Get the path to the pod template.

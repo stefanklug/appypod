@@ -508,7 +508,12 @@ class XmlMarshaller:
     trueFalse = {True: 'True', False: 'False'}
     fieldsToMarshall = 'all'
     fieldsToExclude = []
-    atFiles = ('image', 'file') # Types of archetypes fields that contain files.
+    atFiles = ('image', 'file') # Types of archetypes fields that contain files
+    typesMap = {'list': 'list', 'PersistentList': 'list', 'LazyMap': 'list',
+                'UserList': 'list', 'dict': 'dict', 'PersistentMapping': 'dict',
+                'UserDict': 'dict', 'FileInfo': 'file', 'bool': 'bool',
+                'int': 'int', 'float': 'float', 'long': 'long',
+                'tuple': 'tuple', 'DateTime': 'DateTime'}
 
     def __init__(self, cdata=False, dumpUnicode=False, conversionFunctions={},
                  dumpXmlPrologue=True, rootTag='xmlPythonData', namespaces={},
@@ -557,7 +562,7 @@ class XmlMarshaller:
     def isAnObject(self, instance):
         '''Returns True if p_instance is a class instance, False if it is a
            basic type, or tuple, sequence, etc.'''
-        if instance.__class__.__name__ == 'LazyMap': return False
+        if instance.__class__.__name__ == 'LazyMap': return
         iType = type(instance)
         if iType == types.InstanceType:
             return True
@@ -566,15 +571,6 @@ class XmlMarshaller:
             return True
         elif iType.__class__.__name__ == 'ExtensionClass':
             return True
-        return False
-
-    def isAList(self, value):
-        '''Is p_value a list?'''
-        return value.__class__.__name__ in ('list', 'PersistentList', 'LazyMap')
-
-    def isADict(self, value):
-        '''Is p_value a dict?'''
-        return value.__class__.__name__ in ('dict', 'PersistentMapping')
 
     def dumpRootTag(self, res, instance):
         '''Dumps the root tag.'''
@@ -634,7 +630,10 @@ class XmlMarshaller:
             w('</%s>' % partTag)
         elif hasattr(v, 'uploadName'):
             # The file is a Appy FileInfo instance. Read the file from disk.
-            filePath = v.getFilePath(self.instance)
+            if hasattr(self, 'instance'):
+                filePath = v.getFilePath(self.instance)
+            else:
+                filePath = v.fsPath
             f = file(filePath, 'rb')
             partNb = 1
             while True:
@@ -707,29 +706,22 @@ class XmlMarshaller:
         if fieldName == '_any':
             res.write(value)
             return
-        # Now, dump "normal" fields.
+        # Now, dump "normal" fields
         fieldTag = self.getTagName(fieldName)
         res.write('<'); res.write(fieldTag)
         # Dump the type of the field as an XML attribute
-        fType = None # No type will mean "unicode".
-        if   fieldType == 'file':                         fType = 'file'
-        elif fieldType == 'ref':                          fType = 'list'
-        elif isinstance(fieldValue, bool):                fType = 'bool'
-        elif isinstance(fieldValue, int):                 fType = 'int'
-        elif isinstance(fieldValue, float):               fType = 'float'
-        elif isinstance(fieldValue, long):                fType = 'long'
-        elif isinstance(fieldValue, tuple):               fType = 'tuple'
-        elif self.isAList(fieldValue):                    fType = 'list'
-        elif self.isADict(fieldValue):                    fType = 'dict'
-        elif fieldValue.__class__.__name__ == 'DateTime': fType = 'DateTime'
-        elif self.isAnObject(fieldValue):                 fType = 'object'
-        if self.objectType != 'popo':
-            if fType: res.write(' type="%s"' % fType)
-            # Dump other attributes if needed
-            if fType in ('list', 'tuple'):
-                length = 0
-                if fieldValue: length = len(fieldValue)
-                res.write(' count="%d"' % length)
+        fType = None # No type will mean "unicode"
+        className = fieldValue.__class__.__name__
+        if fieldType == 'file': fType = 'file'
+        elif fieldType == 'ref': fType = 'list'
+        elif className in self.typesMap: fType = self.typesMap[className]
+        elif self.isAnObject(fieldValue): fType = 'object'
+        if fType: res.write(' type="%s"' % fType)
+        # Dump other attributes if needed
+        if fType in ('list', 'tuple'):
+            length = 0
+            if fieldValue: length = len(fieldValue)
+            res.write(' count="%d"' % length)
         if fType == 'file':
             # Get the MIME type
             mimeType = None
@@ -823,11 +815,9 @@ class XmlMarshaller:
                     if field.name in self.fieldsToExclude: continue
                     if (type(self.fieldsToMarshall) in sequenceTypes) \
                         and (field.name not in self.fieldsToMarshall): continue
-                    # Determine field type and value
-                    fieldType = (field.type == 'File') and 'file' or 'basic'
                     v = field.getXmlValue(instance.appy(),
                                           field.getValue(instance))
-                    self.dumpField(res, field.name, v, fieldType=fieldType)
+                    self.dumpField(res, field.name, v)
                 # Dump the object history
                 if hasattr(instance.aq_base, 'workflow_history'):
                     histTag = self.getTagName('history')
