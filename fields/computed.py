@@ -37,7 +37,8 @@ class Computed(Field):
                  maxChars=None, colspan=1, method=None, formatMethod=None,
                  plainText=False, master=None, masterValue=None, focus=False,
                  historized=False, mapping=None, label=None, sdefault='',
-                 scolspan=1, swidth=None, sheight=None, context=None, xml=None):
+                 scolspan=1, swidth=None, sheight=None, context=None, view=None,
+                 xml=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         # A specific method for producing the formatted value of this field.
@@ -68,7 +69,7 @@ class Computed(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, False, xml)
+                       sheight, False, view, xml)
         self.validable = False
 
     def getValue(self, obj):

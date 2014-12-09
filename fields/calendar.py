@@ -217,12 +217,12 @@ class Calendar(Field):
                  mapping=None, label=None, maxEventLength=50,
                  otherCalendars=None, additionalInfo=None, startDate=None,
                  endDate=None, defaultDate=None, preCompute=None,
-                 applicableEvents=None, xml=None):
+                 applicableEvents=None, view=None, xml=None):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, False, mapping, label, None,
-                       None, None, None, True, xml)
+                       None, None, None, True, view, xml)
         # eventTypes can be a "static" list or tuple of strings that identify
         # the types of events that are supported by this calendar. It can also
         # be a method that computes such a "dynamic" list or tuple. When

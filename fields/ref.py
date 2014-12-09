@@ -528,7 +528,7 @@ class Ref(Field):
                  checkboxes=True, checkboxesDefault=None, sdefault='',
                  scolspan=1, swidth=None, sheight=None, sselect=None,
                  persist=True, render='list', menuIdMethod=None,
-                 menuInfoMethod=None, menuUrlMethod=None, xml=None):
+                 menuInfoMethod=None, menuUrlMethod=None, view=None, xml=None):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ? "add" may also contain
@@ -714,7 +714,7 @@ class Ref(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, persist, xml)
+                       sheight, persist, view, xml)
         self.validable = bool(self.link)
         self.checkParameters()
 

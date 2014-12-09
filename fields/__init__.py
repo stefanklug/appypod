@@ -97,27 +97,27 @@ class Field:
             context[k] = ctx[k]
         return self.pxRender(context).encode('utf-8')
 
-    # Displays a field label.
+    # Displays a field label
     pxLabel = Px('''<label if="field.hasLabel and field.renderLabel"
      lfor=":field.name">::_('label', field=field)</label>''')
 
-    # Displays a field description.
+    # Displays a field description
     pxDescription = Px('''<span if="field.hasDescr"
      class="discreet">::_('descr', field=field)</span>''')
 
-    # Displays a field help.
+    # Displays a field help
     pxHelp = Px('''<acronym title=":_('help', field=field)"><img
      src=":url('help')"/></acronym>''')
 
-    # Displays validation-error-related info about a field.
+    # Displays validation-error-related info about a field
     pxValidation = Px('''<x><acronym if="error" title=":error"><img
      src=":url('warning')"/></acronym><img if="not error"
      src=":url('warning_no.gif')"/></x>''')
 
-    # Displays the fact that a field is required.
+    # Displays the fact that a field is required
     pxRequired = Px('''<img src=":url('required.gif')"/>''')
 
-    # Button for showing changes to the field.
+    # Button for showing changes to the field
     pxChanges = Px('''
      <x if="zobj.hasHistory(name)">
       <!-- Button for showing the field version containing changes -->
@@ -141,7 +141,7 @@ class Field:
                  layouts, move, indexed, searchable, specificReadPermission,
                  specificWritePermission, width, height, maxChars, colspan,
                  master, masterValue, focus, historized, mapping, label,
-                 sdefault, scolspan, swidth, sheight, persist, xml):
+                 sdefault, scolspan, swidth, sheight, persist, view, xml):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -250,6 +250,11 @@ class Field:
         # For some fields it is not wanted (ie, fields used only as masters to
         # update slave's selectable values).
         self.persist = persist
+        # If you want to use an alternate PX than Field.pxView, you can specify
+        # it in "view".
+        if view != None:
+            # This instance attribute will override the class attribute
+            self.pxView = view
         # Standard marshallers are provided for converting values of this field
         # into XML. If you want to customize the marshalling process, you can
         # define a method in "xml" that will accept a field value and will

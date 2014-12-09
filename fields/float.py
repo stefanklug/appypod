@@ -57,7 +57,7 @@ class Float(Field):
                  focus=False, historized=False, mapping=None, label=None,
                  sdefault=('',''), scolspan=1, swidth=None, sheight=None,
                  persist=True, precision=None, sep=(',', '.'), tsep=' ',
-                 xml=None):
+                 view=None, xml=None):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -79,7 +79,7 @@ class Float(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, persist, xml)
+                       sheight, persist, view, xml)
         self.pythonType = float
 
     def getFormattedValue(self, obj, value, showChanges=False, language=None):

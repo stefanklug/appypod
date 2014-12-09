@@ -159,7 +159,7 @@ class Pod(Field):
                  freezeTemplate=None, maxPerRow=5, context=None,
                  stylesMapping={}, formats=None, getChecked=None, mailing=None,
                  mailingName=None, showMailing=None, mailingInfo=None,
-                 xml=None):
+                 view=None, xml=None):
         # Param "template" stores the path to the pod template(s). If there is
         # a single template, a string is expected. Else, a list or tuple of
         # strings is expected. Every such path must be relative to your
@@ -276,7 +276,7 @@ class Pod(Field):
                        move, indexed, searchable, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
-                       None, None, None, None, True, xml)
+                       None, None, None, None, True, view, xml)
         # Param "persist" is set to True but actually, persistence for a pod
         # field is determined by freezing.
         self.validable = False

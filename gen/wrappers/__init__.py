@@ -553,7 +553,7 @@ class AbstractWrapper(object):
       </x>
      </div>''')
 
-    # Displays the fields of a given page for a given object.
+    # Display the fields of a given page for a given object
     pxFields = Px('''
      <table width=":layout.width">
       <tr for="field in groupedFields">

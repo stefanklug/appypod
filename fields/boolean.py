@@ -84,7 +84,7 @@ class Boolean(Field):
                  maxChars=None, colspan=1, master=None, masterValue=None,
                  focus=False, historized=False, mapping=None, label=None,
                  sdefault=False, scolspan=1, swidth=None, sheight=None,
-                 persist=True, render='checkbox', xml=None):
+                 persist=True, render='checkbox', view=None, xml=None):
         # By default, a boolean is edited via a checkbox. It can also be edited
         # via 2 radio buttons (p_render="radios").
         self.render = render
@@ -93,7 +93,7 @@ class Boolean(Field):
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
-                       sheight, persist, xml)
+                       sheight, persist, view, xml)
         self.pythonType = bool
 
     def getDefaultLayouts(self):
