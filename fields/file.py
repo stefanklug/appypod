@@ -60,7 +60,7 @@ class FileInfo:
        getting the content of a Pod field, a temporary file may be generated and
        you will get a FileInfo that represents it.
     '''
-    BYTES = 5000
+    BYTES = 50000
 
     def __init__(self, fsPath, inDb=True, uploadName=None):
         '''p_fsPath is the path of the file on disk.

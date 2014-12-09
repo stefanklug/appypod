@@ -911,7 +911,7 @@ class String(Field):
         from DateTime import DateTime
         obj.modified = DateTime()
         obj.reindex()
-        obj.log('Ajax-edited %s%s on %s.' % (self.name, part, obj.id))
+        obj.log('ajax-edited %s%s on %s.' % (self.name, part, obj.id))
 
     def getIndexType(self):
         '''Index type varies depending on String parameters.'''

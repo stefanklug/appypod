@@ -825,7 +825,8 @@ class XmlMarshaller:
                         and (field.name not in self.fieldsToMarshall): continue
                     # Determine field type and value
                     fieldType = (field.type == 'File') and 'file' or 'basic'
-                    v = field.getXmlValue(instance, field.getValue(instance))
+                    v = field.getXmlValue(instance.appy(),
+                                          field.getValue(instance))
                     self.dumpField(res, field.name, v, fieldType=fieldType)
                 # Dump the object history
                 if hasattr(instance.aq_base, 'workflow_history'):

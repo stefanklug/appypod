@@ -250,7 +250,7 @@ class Ref(Field):
      <table if="objects" class=":not innerRef and 'list' or ''"
             width=":innerRef and '100%' or field.layouts['view'].width"
             var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                   field.shownInfo, dir)">
+                   field.getAttribute(obj, 'shownInfo'), dir)">
       <tr if="field.showHeaders">
        <th if="not inPickList and numbered" width=":numbered"></th>
        <th if="checkboxes" class="cbCell">
@@ -397,7 +397,7 @@ class Ref(Field):
 
     # Simplified widget showing minimal info about tied objects.
     pxViewMinimal = Px('''
-     <x var2="infos=[field.getReferenceLabel(o, True) \
+     <x var2="infos=[field.getReferenceLabel(obj, o, True) \
                      for o in objects]">:', '.join(infos) or _('no_ref')</x>''')
 
     # PX that displays referred objects through this field. In mode link="list",
@@ -465,7 +465,7 @@ class Ref(Field):
       <select if="objects" name=":name" id=":name" multiple=":isMultiple"
               size=":isMultiple and field.height or ''">
        <option for="tied in objects" value=":tied.uid" selected="selected"
-               var2="title=field.getReferenceLabel(tied, unlimited=True)"
+               var2="title=field.getReferenceLabel(obj, tied, unlimited=True)"
                title=":title">:ztool.truncateValue(title, field.width)</option>
       </select>
       <div if="not objects">-</div>
@@ -483,7 +483,7 @@ class Ref(Field):
        <option value="" if="not isMultiple">:_('choose_a_value')</option>
        <option for="tied in objects"
                var2="uid=tied.uid;
-                     title=field.getReferenceLabel(tied, unlimited=True)"
+                     title=field.getReferenceLabel(obj, tied, unlimited=True)"
                selected=":inRequest and (uid in requestValue) or \
                                         (uid in uids)" value=":uid"
                title=":title">:ztool.truncateValue(title, field.width)</option>
@@ -508,7 +508,7 @@ class Ref(Field):
              name=":widgetName" size=":field.sheight" multiple="multiple"
              onchange=":field.getOnChange(ztool, 'search', className)">
       <option for="tied in objects" value=":tied.uid" selected=":selectAll"
-              var2="title=field.getReferenceLabel(tied, unlimited=True)"
+              var2="title=field.getReferenceLabel(obj, tied, unlimited=True)"
               title=":title">:ztool.truncateValue(title, field.swidth)</option>
      </select>''')
 
@@ -518,7 +518,7 @@ class Ref(Field):
                  unlinkElement=None, insert=None, beforeLink=None,
                  afterLink=None, afterUnlink=None, back=None, show=True,
                  page='main', group=None, layouts=None, showHeaders=False,
-                 shownInfo=(), select=None, maxPerPage=30, move=0,
+                 shownInfo=None, select=None, maxPerPage=30, move=0,
                  indexed=False, searchable=False, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=5,
                  maxChars=None, colspan=1, master=None, masterValue=None,
@@ -616,10 +616,16 @@ class Ref(Field):
         # When displaying a tabular list of referenced objects, must we show
         # the table headers?
         self.showHeaders = showHeaders
-        # When displaying referenced object(s), we will display its title + all
-        # other fields whose names are listed in the following attribute.
-        self.shownInfo = list(shownInfo)
-        if not self.shownInfo: self.shownInfo.append('title')
+        # "shownInfo" is a tuple or list (or a method producing) containing
+        # the names of the fields that will be shown when displaying tables of
+        # tied objects. Field "title" should be present: by default it is a
+        # clickable link to the "view" page of every tied object.
+        if shownInfo == None:
+            self.shownInfo = ['title']
+        elif isinstance(shownInfo, tuple):
+            self.shownInfo = list(shownInfo)
+        else:
+            self.shownInfo = shownInfo
         # If a method is defined in this field "select", it will be used to
         # return the list of possible tied objects. Be careful: this method can
         # receive, in its first argument ("self"), the tool instead of an
@@ -1265,15 +1271,15 @@ class Ref(Field):
         obj.appy().create(self.name)
 
     xhtmlToText = re.compile('<.*?>', re.S)
-    def getReferenceLabel(self, refObject, unlimited=False):
+    def getReferenceLabel(self, obj, refObject, unlimited=False):
         '''p_self must have link=True. I need to display, on an edit view, the
            p_refObject in the listbox that will allow the user to choose which
            object(s) to link through the Ref. The information to display may
-           only be the object title or more if self.shownInfo is used.'''
+           only be the object title or more if "shownInfo" is used.'''
         res = ''
-        for fieldName in self.shownInfo:
-            refType = refObject.o.getAppyType(fieldName)
-            value = getattr(refObject, fieldName)
+        for name in self.getAttribute(obj, 'shownInfo'):
+            refType = refObject.o.getAppyType(name)
+            value = getattr(refObject, name)
             value = refType.getShownValue(refObject.o, value)
             if refType.type == 'String':
                 if refType.format == 2:
