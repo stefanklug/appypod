@@ -137,17 +137,42 @@ class FileInfo:
             dest.write(chunk)
         return size
 
+    def getMimeTypeFromFileUpload(self, fileObj):
+        '''Under some unknown circumstances, the MIME type received from Zope
+           FileUpload instances is wrong:
+           * MIME type of docx and xlsx documents may be wrongly initialised to
+             "application/zip";
+           * MIME type of some Excel (.xls) files have MIME type
+             "application/msword".
+           This method corrects it.'''
+        mimeType = fileObj.headers.get('content-type')
+        ext = os.path.splitext(fileObj.filename)[1]
+        # If no extension is there, I cannot correct the MIME type
+        if not ext: return mimeType
+        # Correct xls files having MIME type "application/msword"
+        if (ext == '.xls') and (mimeType == 'application/msword'):
+            return 'application/vnd.ms-excel'
+        # No error: return the MIME type as computed by Zope
+        if not ext or (mimeType != 'application/zip') or (ext == '.zip'):
+            return mimeType
+        # Correct the wrong MIME type
+        ext = ext[1:].lower()
+        for mime, extension in mimeTypesExts.iteritems():
+            if extension == ext: return mime
+        # If we are here, we haven't found the correct MIME type
+        return mimeType
+
     def writeFile(self, fieldName, fileObj, dbFolder):
         '''Writes to the filesystem the p_fileObj file, that can be:
            - a Zope FileUpload (coming from a HTTP post);
            - a OFS.Image.File object (legacy within-ZODB file object);
            - a tuple (fileName, fileContent, mimeType)
              (see doc in method File.store below).'''
-        # Determine p_fileObj's type.
+        # Determine p_fileObj's type
         fileType = fileObj.__class__.__name__
-        # Set MIME type.
+        # Set MIME type
         if fileType == 'FileUpload':
-            mimeType = fileObj.headers.get('content-type')
+            mimeType = self.getMimeTypeFromFileUpload(fileObj)
         elif fileType == 'File':
             mimeType = fileObj.content_type
         else:
