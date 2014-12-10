@@ -359,6 +359,7 @@ def upper(s):
 # ------------------------------------------------------------------------------
 typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
                'l': list, 'd': dict}
+caExts = {'py': ('.py', '.vpy', '.cpy'), 'xml': ('.pt', '.cpt', '.xml')}
 
 # ------------------------------------------------------------------------------
 class CodeAnalysis:
@@ -376,6 +377,27 @@ class CodeAnalysis:
     def numberOfLines(self):
         '''Computes the total number of lines within analysed files.'''
         return self.emptyLines + self.commentLines + self.codeLines
+
+    def analyseXmlFile(self, theFile):
+        '''Analyses the XML file named p_fileName.'''
+        inDoc = False
+        for line in theFile:
+            stripped = line.strip()
+            # Manage a comment
+            if not inDoc and ((line.find('<!--') != -1) or \
+                              (line.find('<tal:comment ') != -1)):
+                inDoc = True
+            if inDoc:
+                self.commentLines += 1
+                if (line.find('-->') != -1) or \
+                   (line.find('</tal:comment>') != -1):
+                    inDoc = False
+                continue
+            # Manage an empty line
+            if not stripped:
+                self.emptyLines += 1
+            else:
+                self.codeLines += 1
 
     docSeps = ('"""', "'''")
     def isPythonDoc(self, line, start, isStart=False):
@@ -429,7 +451,8 @@ class CodeAnalysis:
         self.numberOfFiles += 1
         theFile = file(fileName)
         ext = os.path.splitext(fileName)[1]
-        if ext == '.py': self.analysePythonFile(theFile)
+        if ext in caExts['py']: self.analysePythonFile(theFile)
+        elif ext in caExts['xml']: self.analyseXmlFile(theFile)
         theFile.close()
 
     def printReport(self):
@@ -456,8 +479,10 @@ class LinesCounter:
             # It is a Python module
             self.folder = os.path.dirname(folderOrModule.__file__)
         # These dict will hold information about analysed files.
-        self.python = {False: CodeAnalysis('Python'),
-                       True:  CodeAnalysis('Python (test)')}
+        self.python = { False: CodeAnalysis('Python'),
+                        True:  CodeAnalysis('Python (test)')}
+        self.xml = { False: CodeAnalysis('XML'),
+                     True:  CodeAnalysis('XML (test)')}
         # Are we currently analysing real or test code?
         self.inTest = False
         # Which paths to exclude from the analysis?
@@ -466,7 +491,14 @@ class LinesCounter:
 
     def printReport(self):
         '''Displays on stdout a small analysis report about self.folder.'''
-        for zone in (False, True): self.python[zone].printReport()
+        total = 0
+        for type in ('python', 'xml'):
+            for zone in (False, True):
+                analyser = getattr(self, type)[zone]
+                if analyser.numberOfFiles:
+                    analyser.printReport()
+                    total += analyser.numberOfLines()
+        print 'Total (including commented and blank): ***', total, '***'
 
     def isExcluded(self, path):
         '''Must p_path be excluded from the analysis?'''
@@ -492,8 +524,10 @@ class LinesCounter:
             # Scan the files in this folder
             for fileName in files:
                 ext = os.path.splitext(fileName)[1]
-                if ext == '.py':
+                if ext in caExts['py']:
                     self.python[self.inTest].analyseFile(j(root, fileName))
+                elif ext in caExts['xml']:
+                    self.xml[self.inTest].analyseFile(j(root, fileName))
         self.printReport()
 
 # ------------------------------------------------------------------------------
