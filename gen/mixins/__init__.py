@@ -533,6 +533,7 @@ class BaseMixin:
             except Exception, e:
                 tb = sutils.Traceback.get()
                 res = XmlMarshaller(rootTag='exception').marshall(tb)
+                self.log(tb, type='error')
                 import transaction
                 transaction.abort()
         return res
