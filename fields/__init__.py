@@ -64,7 +64,7 @@ class Field:
              value=not isSearch and \
                    field.getFormattedValue(zobj, rawValue, showChanges);
              requestValue=not isSearch and zobj.getRequestFieldValue(name);
-             inRequest=field.valueIsInRequest(zobj, req, name);
+             inRequest=field.valueIsInRequest(zobj, req, name, layoutType);
              error=req.get('%s_error' % name);
              isMultiple=(field.multiplicity[1] == None) or \
                         (field.multiplicity[1] &gt; 1);
@@ -654,7 +654,7 @@ class Field:
         index = tool.getApp().catalog.Indexes[indexName]
         return index.getEntryForObject(catalogBrain.getRID())
 
-    def valueIsInRequest(self, obj, request, name):
+    def valueIsInRequest(self, obj, request, name, layoutType):
         '''Is there a value corresponding to this field in the request? p_name
            can be different from self.name (ie, if it is a field within another
            (List) field). In most cases, checking that this p_name is in the

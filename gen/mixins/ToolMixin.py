@@ -218,17 +218,17 @@ class ToolMixin(BaseMixin):
            - the number of columns for layouting those fields.'''
         fields = []
         if refInfo:
-            # The search is triggered from a Ref field.
+            # The search is triggered from a Ref field
             refObject, fieldName = self.getRefInfo(refInfo)
             refField = refObject.getAppyType(fieldName)
             fieldNames = refField.queryFields or ()
             nbOfColumns = refField.queryNbCols
         else:
-            # The search is triggered from an app-wide search.
+            # The search is triggered from an app-wide search
             klass = self.getAppyClass(className)
             fieldNames = getattr(klass, 'searchFields', None)
             if not fieldNames:
-                # Gather all the indexed fields on this class.
+                # Gather all the indexed fields on this class
                 fieldNames = [f.name for f in self.getAllAppyTypes(className) \
                               if f.indexed]
             nbOfColumns = getattr(klass, 'numberOfSearchColumns', 3)

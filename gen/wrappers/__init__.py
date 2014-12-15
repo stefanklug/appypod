@@ -1071,6 +1071,11 @@ class AbstractWrapper(object):
             indexes = []
             for name in fields:
                 field = self.getField(name)
+                if not field:
+                    # The index may be a standard Appy index that does not
+                    # correspond to a field.
+                    indexes.append(name)
+                    continue
                 if not field.indexed: continue
                 # A field may have 2 different indexes
                 iName = field.getIndexName(usage='search')

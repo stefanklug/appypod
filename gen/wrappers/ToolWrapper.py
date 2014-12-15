@@ -550,7 +550,7 @@ class ToolWrapper(AbstractWrapper):
              layoutType='search';
              x=ztool.getCssJs(searchInfo.fields, 'edit', cssJs)">
 
-      <!-- Include type-specific CSS and JS. -->
+      <!-- Include type-specific CSS and JS -->
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
             href=":url(cssFile)"/>
       <script for="jsFile in cssJs['js']" type="text/javascript"

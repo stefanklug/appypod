@@ -528,10 +528,14 @@ class String(Field):
         if isinstance(res, dict): res = res.copy()
         return res
 
-    def valueIsInRequest(self, obj, request, name):
+    def valueIsInRequest(self, obj, request, name, layoutType):
+        # If we are on the search layout, p_obj, if not None, is certainly not
+        # the p_obj we want here (can be a home object).
+        if layoutType == 'search':
+            return Field.valueIsInRequest(self, obj, request, name, layoutType)
         languages = self.getAttribute(obj, 'languages')
         if len(languages) == 1:
-            return Field.valueIsInRequest(self, obj, request, name)
+            return Field.valueIsInRequest(self, obj, request, name, layoutType)
         # Is is sufficient to check that at least one of the language-specific
         # values is in the request.
         return request.has_key('%s_%s' % (name, languages[0]))
