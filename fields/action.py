@@ -29,7 +29,7 @@ class Action(Field):
     pxView = pxCell = Px('''
      <form var="formId='%s_%s_form' % (zobj.id, name);
                 label=_(field.labelId);
-                descr=field.descrId and _(field.descrId) or None;
+                descr=field.hasDescr and _(field.descrId) or None;
                 buttonWidth=ztool.getButtonWidth(label)"
            id=":formId" action=":ztool.absolute_url() + '/do'"
            style="display:inline">

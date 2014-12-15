@@ -1514,10 +1514,11 @@ class BaseMixin:
             return False
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
-    def getShownValue(self, name):
+    def getShownValue(self, name='title', language=None):
         '''Call field.getShownValue on field named p_name.'''
-        field = self.getAppyType('title')
-        return field.getShownValue(self, field.getValue(self))
+        field = self.getAppyType(name)
+        return field.getShownValue(self, field.getValue(self),
+                                   language=language)
 
     def getBreadCrumb(self, inPopup=False):
         '''Gets breadcrumb info about this object and its parents (if it must

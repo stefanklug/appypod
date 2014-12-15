@@ -893,6 +893,9 @@ class AbstractWrapper(object):
                 setattr(appyObj, attrName, attrValue)
             except AttributeError, ae:
                 if raiseOnWrongAttribute: raise ae
+        # Call custom early initialization
+        if executeMethods and hasattr(appyObj, 'onEditEarly'):
+            appyObj.onEditEarly()
         if isField:
             # Link the object to this one
             field.linkObject(self, appyObj, executeMethods=executeMethods)
