@@ -5,6 +5,7 @@ from appy.px import Px
 from appy.gen.mail import sendMail
 from appy.gen.wrappers import AbstractWrapper
 from appy.shared.utils import executeCommand
+from appy.shared.ldap_connector import LdapConnector
 # ------------------------------------------------------------------------------
 class ToolWrapper(AbstractWrapper):
 
@@ -712,4 +713,17 @@ class ToolWrapper(AbstractWrapper):
     def _login(self, login):
         '''Performs a login programmatically. Used by the test system.'''
         self.request.user = self.search1('User', noSecurity=True, login=login)
+
+    def doSynchronizeExternalUsers(self):
+        '''Synchronizes the local User copies with a distant LDAP user base.'''
+        cfg = self.o.getProductConfig(True).ldap
+        if not cfg: raise Exception('LDAP config not found.')
+        counts = cfg.synchronizeUsers(self)
+        msg = 'LDAP users: %d created, %d updated, %d untouched.' % counts
+        return True, msg
+
+    def showSynchronizeUsers(self):
+        '''Show this button only if a LDAP connection exists and is enabled.'''
+        cfg = self.o.getProductConfig(True).ldap
+        if cfg and cfg.enabled: return 'view'
 # ------------------------------------------------------------------------------

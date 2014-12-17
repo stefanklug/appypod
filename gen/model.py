@@ -244,12 +244,12 @@ setattr(Page, Page.pages.back.attribute, Page.pages.back)
 defaultToolFields = ('title', 'mailHost', 'mailEnabled', 'mailFrom',
                      'appyVersion', 'dateFormat', 'hourFormat',
                      'unoEnabledPython', 'openOfficePort',
-                     'numberOfResultsPerPage', 'users', 'connectedUsers',
-                     'groups', 'translations', 'loadTranslationsAtStartup',
-                     'pages')
+                     'numberOfResultsPerPage', 'users',
+                     'connectedUsers', 'synchronizeExternalUsers', 'groups',
+                     'translations', 'loadTranslationsAtStartup', 'pages')
 
 class Tool(ModelClass):
-    # In a ModelClass we need to declare attributes in the following list.
+    # In a ModelClass we need to declare attributes in the following list
     _appy_attributes = list(defaultToolFields)
     folder = True
 
@@ -269,16 +269,22 @@ class Tool(ModelClass):
     openOfficePort = gen.Integer(default=2002, **lf)
     numberOfResultsPerPage = gen.Integer(default=30, **lf)
 
-    # Ref(User) will maybe be transformed into Ref(CustomUserClass).
+    # Ref(User) will maybe be transformed into Ref(CustomUserClass)
     userPage = gen.Page('users', show=isManager)
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
                     back=gen.Ref(attribute='toTool', show=False), page=userPage,
                     queryable=True, queryFields=('title', 'login'),
                     show=isManager, showHeaders=True,
                     shownInfo=('title', 'login*120px', 'roles*120px'))
+
     def computeConnectedUsers(self): pass
     connectedUsers = gen.Computed(method=computeConnectedUsers, page=userPage,
                                   plainText=False, show=isManager)
+    def doSynchronizeExternalUsers(self): pass
+    def showSynchronizeUsers(self): pass
+    synchronizeExternalUsers = gen.Action(action=doSynchronizeExternalUsers,
+        show=showSynchronizeUsers, confirm=True, page=userPage)
+
     groups = gen.Ref(Group, multiplicity=(0,None), add=True, link=False,
                      back=gen.Ref(attribute='toTool2', show=False),
                      page=gen.Page('groups', show=isManager), show=isManager,

@@ -1,8 +1,9 @@
 # ------------------------------------------------------------------------------
+import string
 try:
     import ldap
 except ImportError:
-    # For people that do not care about ldap.
+    # For people that do not care about ldap
     ldap = None
 
 # ------------------------------------------------------------------------------
@@ -44,10 +45,11 @@ class LdapConfig:
         port = self.port or 389
         return 'ldap://%s:%d' % (self.server, port)
 
-    def getUserFilterValues(self, login):
+    def getUserFilterValues(self, login=None):
         '''Gets the filter values required to perform a query for finding user
-           corresponding to p_login in the LDAP.'''
-        res = [(self.loginAttribute, login)]
+           corresponding to p_login in the LDAP, or all users if p_login is
+           None.'''
+        res = login and [(self.loginAttribute, login)] or []
         for userClass in self.userClasses:
             res.append( ('objectClass', userClass) )
         return res
@@ -68,7 +70,7 @@ class LdapConfig:
         res = {}
         for name, appyName in self.ldapAttributes.iteritems():
             if not appyName: continue
-            # Get the name of the attribute as known in the LDAP.
+            # Get the name of the attribute as known in the LDAP
             ldapName = getattr(self, name)
             if not ldapName: continue
             if ldapData.has_key(ldapName) and ldapData[ldapName]:
@@ -76,6 +78,100 @@ class LdapConfig:
                 if isinstance(value, list): value = value[0]
                 res[appyName] = value
         return res
+
+    def setLocalUser(self, tool, attrs, login, password=None):
+        '''Creates or updates the local User instance corresponding to a LDAP
+           user from the LDAP, having p_login. Its other attributes are in
+           p_attrs and, when relevant, its password is in p_password. This
+           method returns a 2-tuple containing:
+           * the local User instance;
+           * the status of the operation:
+             - "created" if the instance has been created,
+             - "updated" if at least one data from p_attrs is different from the
+               one stored on the existing User instance;
+             - None else.
+        '''
+        # Do we already have a local User instance for this user ?
+        status = None
+        user = tool.search1('User', noSecurity=True, login=login)
+        if user:
+            # Yes. Update it with info about him from the LDAP
+            for name, value in attrs.iteritems():
+                currentValue = getattr(user, name)
+                if value != currentValue:
+                    setattr(user, name, value)
+                    status = 'updated'
+            # Update user password, if given
+            if password: user.setPassword(password, log=False)
+            user.reindex()
+        else:
+            # Create the user
+            user = tool.create('users', noSecurity=True, login=login,
+                               source='ldap', **attrs)
+            if password: user.setPassword(password, log=False)
+            status = 'created'
+        return user, status
+
+    def getUser(self, tool, login, password):
+        '''Returns a local User instance corresponding to a LDAP user if p_login
+           and p_password correspond to a valid LDAP user.'''
+        # Check if LDAP is enabled
+        if not self.enabled: return
+        # Get a connector to the LDAP server and connect to the LDAP server
+        serverUri = self.getServerUri()
+        connector = LdapConnector(serverUri, tool=tool)
+        success, msg = connector.connect(self.adminLogin, self.adminPassword)
+        if not success: return
+        # Check if the user corresponding to p_login exists in the LDAP
+        filter = connector.getFilter(self.getUserFilterValues(login))
+        params = self.getUserAttributes()
+        ldapData = connector.search(self.baseDn, self.scope, filter, params)
+        if not ldapData: return
+        # The user exists. Try to connect to the LDAP with this user in order
+        # to validate its password.
+        userConnector = LdapConnector(serverUri, tool=tool)
+        success, msg = userConnector.connect(ldapData[0][0], password)
+        if not success: return
+        # The password is correct. We can create/update our local user
+        # corresponding to this LDAP user.
+        userParams = self.getUserParams(ldapData[0][1])
+        user, status = self.setLocalUser(tool, userParams, login, password)
+        return user
+
+    def synchronizeUsers(self, tool):
+        '''Synchronizes the local User copies with this LDAP user base. Returns
+           a 2-tuple containing the number of created, updated and untouched
+           local copies.'''
+        if not self.enabled: raise Exception('LDAP config not enabled.')
+        # Get a connector to the LDAP server and connect to the LDAP server
+        serverUri = self.getServerUri()
+        tool.log('reading users from %s...' % serverUri)
+        connector = LdapConnector(serverUri, tool=tool)
+        success, msg = connector.connect(self.adminLogin, self.adminPassword)
+        if not success: raise Exception('Could not connect to %s' % serverUri)
+        # Query the LDAP for users. Perform several queries to avoid having
+        # error ldap.SIZELIMIT_EXCEEDED.
+        params = self.getUserAttributes()
+        # Count the number of created, updated and untouched users
+        created = updated = untouched = 0
+        for letter in string.ascii_lowercase:
+            # Get all the users whose login starts with "letter"
+            filter = connector.getFilter(self.getUserFilterValues('%s*'%letter))
+            ldapData = connector.search(self.baseDn, self.scope, filter, params)
+            if not ldapData: continue
+            for userData in ldapData:
+                # Get the user login
+                login = userData[1][self.loginAttribute][0]
+                # Get the other user parameters, as Appy wants it
+                userParams = self.getUserParams(userData[1])
+                # Create or update the user
+                user, status = self.setLocalUser(tool, userParams, login)
+                if status == 'created': created += 1
+                elif status == 'updated': updated += 1
+                else: untouched += 1
+        tool.log('users synchronization: %d local user(s) created, ' \
+                 '%d updated and %d untouched.'% (created, updated, untouched))
+        return created, updated, untouched
 
 # ------------------------------------------------------------------------------
 class LdapConnector:

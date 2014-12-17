@@ -861,45 +861,6 @@ class ToolMixin(BaseMixin):
                 login = 'anon'
         return login, password
 
-    def getLdapUser(self, login, password):
-        '''Returns a local User instance corresponding to a LDAP user if p_login
-           and p_password correspong to a valid LDAP user.'''
-        # Check if LDAP is configured
-        cfg = self.getProductConfig(True).ldap
-        if not cfg or not cfg.enabled: return
-        # Get a connector to the LDAP server and connect to the LDAP server
-        serverUri = cfg.getServerUri()
-        connector = LdapConnector(serverUri, tool=self)
-        success, msg = connector.connect(cfg.adminLogin, cfg.adminPassword)
-        if not success: return
-        # Check if the user corresponding to p_login exists in the LDAP.
-        filter = connector.getFilter(cfg.getUserFilterValues(login))
-        params = cfg.getUserAttributes()
-        ldapData = connector.search(cfg.baseDn, cfg.scope, filter, params)
-        if not ldapData: return
-        # The user exists. Try to connect to the LDAP with this user in order
-        # to validate its password.
-        userConnector = LdapConnector(serverUri, tool=self)
-        success, msg = userConnector.connect(ldapData[0][0], password)
-        if not success: return
-        # The password is correct. We can create/update our local user
-        # corresponding to this LDAP user.
-        userParams = cfg.getUserParams(ldapData[0][1])
-        tool = self.appy()
-        user = tool.search1('User', noSecurity=True, login=login)
-        if user:
-            # Update the user with fresh info about him from the LDAP
-            for name, value in userParams.iteritems():
-                setattr(user, name, value)
-            # Update user password
-            user.setPassword(password, log=False)
-            user.reindex()
-        else:
-            # Create the user
-            user = tool.create('users', noSecurity=True, login=login,
-                               password1=password, source='ldap', **userParams)
-        return user
-
     def getUser(self, authentify=False, source='zodb'):
         '''Gets the current user. If p_authentify is True, in addition to
            finding the logged user and returning it (=identification), we check
@@ -928,7 +889,9 @@ class ToolMixin(BaseMixin):
             user = tool.search1('User', noSecurity=True, login=login)
             if user and (user.source != 'zodb'): user = None # Not a local one.
         elif source == 'ldap':
-            user = self.getLdapUser(login, password)
+            user = None
+            cfg = self.getProductConfig(True).ldap
+            if cfg: user = cfg.getUser(self.appy(), login, password)
         elif source == 'any':
             # Get the user object, be it really local or a copy of a LDAP user.
             user = tool.search1('User', noSecurity=True, login=login)
