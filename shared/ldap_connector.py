@@ -38,6 +38,16 @@ class LdapConfig:
         self.scope = 'SUBTREE' # Scope of the search within self.baseDn
         # Is this server connection enabled ?
         self.enabled = True
+        # The "user map" allows to put LDAP users into groups or assign them
+        # roles. This dict will be used every time a local User will be created.
+        # It can be while synchronizing all users (see m_synchronizeUsers
+        # below) or when the user logs in for the first time (see m_getUser
+        # below). This dict will NOT be used subsequently, when updating the
+        # User instance. Every key must be a user login. Every value is an
+        # appy.Object instance having the optional attributes:
+        # "groups": a list of group IDs (logins);
+        # "roles":  a list of global role names.
+        self.userMap = {}
 
     def getServerUri(self):
         '''Returns the complete URI for accessing the LDAP, ie
@@ -110,6 +120,22 @@ class LdapConfig:
                                source='ldap', **attrs)
             if password: user.setPassword(password, log=False)
             status = 'created'
+            # Put him into groups and/or grant him some roles according to
+            # self.userMap.
+            if login in self.userMap:
+                privileges = self.userMap[login]
+                # Put the user in some groups
+                groups = getattr(privileges, 'groups', None)
+                if groups:
+                    for groupLogin in groups:
+                        group = tool.search1('Group', noSecurity=True,
+                                             login=groupLogin)
+                        group.link('users', user)
+                # Grant him some roles
+                roles = getattr(privileges, 'roles', None)
+                if roles:
+                    for role in roles: user.addRole(role)
+                tool.log('%s: automatic privileges set.' % login)
         return user, status
 
     def getUser(self, tool, login, password):

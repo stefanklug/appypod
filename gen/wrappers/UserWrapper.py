@@ -349,6 +349,15 @@ class UserWrapper(AbstractWrapper):
                 if role not in res: res.append(role)
         return res
 
+    def addRole(self, role):
+        '''Adds p_role to the user's global roles.'''
+        roles = self.roles
+        if role in roles: return
+        roles = list(roles)
+        roles.append(role)
+        self.roles = roles
+        self.getZopeUser().roles = roles
+
     def has_role(self, role, obj=None):
         '''Has the logged user some p_role? If p_obj is None, check if the user
            has p_role globally; else, check if he has this p_role in the context
