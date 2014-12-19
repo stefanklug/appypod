@@ -1119,3 +1119,9 @@ function initFocus(pageId){
   var elem = document.getElementById(id);
   if (elem) elem.focus();
 }
+
+function reindexObject(indexName){
+  var f = document.forms['reindexForm'];
+  f.indexName.value = indexName;
+  f.submit();
+}

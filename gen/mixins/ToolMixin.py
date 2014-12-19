@@ -98,6 +98,23 @@ class ToolMixin(BaseMixin):
         '''Returns the catalog object.'''
         return self.getParentNode().catalog
 
+    def getCatalogValue(self, obj, indexName):
+        '''Get, for p_obj, the value stored in the catalog for the index
+           named p_indexName.'''
+        catalogBrain = self.getObject(obj.id, brain=True)
+        catalog = self.getApp().catalog
+        index = catalog.Indexes[indexName]
+        indexType = index.getTagName()
+        if indexType == 'ZCTextIndex':
+            # Zope bug: the lexicon can't be retrieved correctly
+            index._v_lexicon = getattr(catalog, index.lexicon_id)
+        res = index.getEntryForObject(catalogBrain.getRID())
+        if indexType == 'DateIndex':
+            # The index value is a number. Add a DateTime representation too.
+            from DateTime import DateTime
+            res = '%d (%s)' % (res, DateTime(res))
+        return res
+
     def getApp(self):
         '''Returns the root Zope object.'''
         return self.getPhysicalRoot()

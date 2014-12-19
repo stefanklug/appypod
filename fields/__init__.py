@@ -648,11 +648,7 @@ class Field:
         if not self.indexed:
             raise Exception('Field %s: cannot retrieve catalog version of ' \
                             'unindexed field.' % self.name)
-        tool = obj.getTool()
-        indexName = self.getIndexName(usage)
-        catalogBrain = tool.getObject(obj.id, brain=True)
-        index = tool.getApp().catalog.Indexes[indexName]
-        return index.getEntryForObject(catalogBrain.getRID())
+        return obj.getTool().getCatalogValue(obj, self.getIndexName(usage))
 
     def valueIsInRequest(self, obj, request, name, layoutType):
         '''Is there a value corresponding to this field in the request? p_name

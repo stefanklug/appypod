@@ -1730,4 +1730,18 @@ class BaseMixin:
         method = self.REQUEST['method']
         obj = self.appy()
         return getattr(obj, method)()
+
+    def onReindex(self):
+        '''Called for reindexing an index or all indexes on the currently shown
+           object.'''
+        if not self.getTool().getUser().has_role('Manager'):
+            self.raiseUnauthorized()
+        rq = self.REQUEST
+        indexName = rq['indexName']
+        if indexName == '_all_':
+            self.reindex()
+        else:
+            self.reindex(indexes=(indexName,))
+        self.say(self.translate('action_done'))
+        self.goto(self.getUrl(rq['HTTP_REFERER']))
 # ------------------------------------------------------------------------------

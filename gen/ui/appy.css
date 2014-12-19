@@ -112,6 +112,8 @@ td.search { padding-top: 8px }
 .list td, .list th { border: 3px solid #ededed; color: grey;
                      padding: 3px 5px 3px 5px }
 .list th { background-color: #e5e5e5; font-style: italic; font-weight: normal }
+.compact { font-size: 90%; width: 100% }
+.compact th, .compact td { padding: 0px 3px 0px 3px }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
 .grid td { padding: 3px 3px 0 3px }

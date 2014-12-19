@@ -131,6 +131,6 @@ try:
     ef.registerFactory('Text indexer', 'Text indexer', TextIndexer)
     ef.registerFactory('List indexer', 'List indexer', ListIndexer)
 except ImportError:
-    # May occur at generation time.
+    # May occur at generation time
     pass
 # ------------------------------------------------------------------------------

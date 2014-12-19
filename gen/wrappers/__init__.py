@@ -562,6 +562,24 @@ class AbstractWrapper(object):
       </tr>
      </table>''')
 
+    pxIndexedContent = Px('''
+     <form name="reindexForm" method="post" action=":'%s/onReindex' % obj.url">
+      <input type="hidden" name="indexName"/>
+      <table var="indexes=obj.getIndexes(asList=True)" class="list compact">
+       <tr><th>Index name</th><th>Type</th><th>Content
+        <img src=":url('reindex')" class="clickable" title="Reindex all indexes"
+             onclick="reindexObject(\'_all_\')"/></th></tr>
+       <tr for="info in indexes"
+           class=":loop.info.odd and 'odd' or 'even'">
+         <td>:info[0]</td><td>:info[1]</td>
+         <td><img src=":url('reindex')" class="clickable"
+                  title="Reindex this index only"
+                  onclick=":'reindexObject(%s)' % q(info[0])"/>
+             <x>:ztool.getCatalogValue(zobj, info[0])</x></td>
+       </tr>
+      </table>
+     </form>''')
+
     pxView = Px('''
      <x var="x=zobj.mayView(raiseError=True);
              errors=req.get('errors', {});
@@ -573,6 +591,7 @@ class AbstractWrapper(object):
              x=zobj.removeMyLock(user, page);
              groupedFields=zobj.getGroupedFields(layoutType, page,cssJs=cssJs)">
       <x>:tool.pxPagePrologue</x>
+      <x if="'indexed' in req">:obj.pxIndexedContent</x>
       <x var="tagId='pageLayout'; tagName=''; tagCss='';
               layoutTarget=obj">:tool.pxLayoutedObject</x>
       <x>:tool.pxPageBottom</x>
@@ -679,10 +698,11 @@ class AbstractWrapper(object):
         return res
 
     @classmethod
-    def getIndexes(klass, includeDefaults=True):
+    def getIndexes(klass, includeDefaults=True, asList=False):
         '''Returns a dict whose keys are the names of the indexes that are
            applicable to instances of this class, and whose values are the
-           (Zope) types of those indexes.'''
+           (Zope) types of those indexes. If p_asList is True, it returns a
+           list of tuples insteadof a dict.'''
         # Start with the standard indexes applicable for any Appy class.
         if includeDefaults:
             res = defaultIndexes.copy()
@@ -696,6 +716,9 @@ class AbstractWrapper(object):
             res[indexName] = field.getIndexType()
             # Add the secondary index if present
             if field.hasSortIndex(): res['%s_sort' % indexName] = 'FieldIndex'
+        if asList:
+            res = res.items()
+            res.sort(key=lambda e: e[0])
         return res
 
     # --------------------------------------------------------------------------
