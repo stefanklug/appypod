@@ -32,13 +32,13 @@ class Computed(Field):
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=None, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, method=None, formatMethod=None,
-                 plainText=False, master=None, masterValue=None, focus=False,
-                 historized=False, mapping=None, label=None, sdefault='',
-                 scolspan=1, swidth=None, sheight=None, context=None, view=None,
-                 xml=None):
+                 indexed=False, mustIndex=True, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, method=None,
+                 formatMethod=None, plainText=False, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
+                 context=None, view=None, xml=None):
         # The Python method used for computing the field value, or a PX.
         self.method = method
         # A specific method for producing the formatted value of this field.
@@ -65,7 +65,7 @@ class Computed(Field):
         # If method is a PX, its context can be given in p_context.
         self.context = context
         Field.__init__(self, None, multiplicity, default, show, page, group,
-                       layouts, move, indexed, searchable,
+                       layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,

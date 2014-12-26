@@ -165,12 +165,12 @@ class Date(Field):
                  startYear=time.localtime()[0]-10,
                  endYear=time.localtime()[0]+10, reverseYears=False,
                  show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 sdefault=None, scolspan=1, swidth=None, sheight=None,
-                 persist=True, view=None, xml=None):
+                 indexed=False, mustIndex=True, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, sdefault=None, scolspan=1, swidth=None,
+                 sheight=None, persist=True, view=None, xml=None):
         self.format = format
         self.calendar = calendar
         self.startYear = startYear
@@ -179,7 +179,7 @@ class Date(Field):
         # self.startYear to self.endYear will be listed in reverse order.
         self.reverseYears = reverseYears
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, searchable,
+                       group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,

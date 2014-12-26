@@ -54,12 +54,12 @@ class Action(Field):
 
     def __init__(self, validator=None, multiplicity=(1,1), default=None,
                  show=('view', 'result'), page='main', group=None, layouts=None,
-                 move=0, indexed=False, searchable=False,
-                 specificReadPermission=False, specificWritePermission=False,
-                 width=None, height=None, maxChars=None, colspan=1, action=None,
-                 result='computation', confirm=False, master=None,
-                 masterValue=None, focus=False, historized=False, mapping=None,
-                 label=None, icon=None, view=None, xml=None):
+                 move=0, specificReadPermission=False,
+                 specificWritePermission=False, width=None, height=None,
+                 maxChars=None, colspan=1, action=None, result='computation',
+                 confirm=False, master=None, masterValue=None, focus=False,
+                 historized=False, mapping=None, label=None, icon=None,
+                 view=None, xml=None):
         # Can be a single method or a list/tuple of methods
         self.action = action
         # For the 'result' param:
@@ -77,7 +77,7 @@ class Action(Field):
         # If no p_icon is specified, "action.png" will be used
         self.icon = icon or 'action'
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
-                       move, indexed, False, specificReadPermission,
+                       move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
                        None, None, None, None, False, view, xml)

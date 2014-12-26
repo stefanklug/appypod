@@ -48,14 +48,14 @@ class Integer(Field):
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=5, height=None,
-                 maxChars=13, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 sdefault=('',''), scolspan=1, swidth=None, sheight=None,
-                 persist=True, view=None, xml=None):
+                 indexed=False, mustIndex=True, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=5, height=None, maxChars=13, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, sdefault=('',''), scolspan=1, swidth=None,
+                 sheight=None, persist=True, view=None, xml=None):
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, searchable,
+                       group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,

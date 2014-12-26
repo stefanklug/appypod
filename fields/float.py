@@ -51,13 +51,13 @@ class Float(Field):
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=5, height=None,
-                 maxChars=13, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 sdefault=('',''), scolspan=1, swidth=None, sheight=None,
-                 persist=True, precision=None, sep=(',', '.'), tsep=' ',
-                 view=None, xml=None):
+                 indexed=False, mustIndex=True, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=5, height=None, maxChars=13, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, sdefault=('',''), scolspan=1, swidth=None,
+                 sheight=None, persist=True, precision=None, sep=(',', '.'),
+                 tsep=' ', view=None, xml=None):
         # The precision is the number of decimal digits. This number is used
         # for rendering the float, but the internal float representation is not
         # rounded.
@@ -75,7 +75,7 @@ class Float(Field):
                                 'separator.' % sep)
         self.tsep = tsep
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, False,
+                       group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,

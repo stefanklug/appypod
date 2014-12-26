@@ -344,15 +344,14 @@ class File(Field):
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  show=True, page='main', group=None, layouts=None, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 isImage=False, sdefault='', scolspan=1, swidth=None,
-                 sheight=None, view=None, xml=None):
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, isImage=False, sdefault='', scolspan=1,
+                 swidth=None, sheight=None, view=None, xml=None):
         self.isImage = isImage
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, False,
+                       group, layouts, move, False, True, False,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,

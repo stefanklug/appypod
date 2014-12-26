@@ -51,7 +51,7 @@ class Ogone(Field):
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, view=None, xml=None):
         Field.__init__(self, None, (0,1), None, show, page, group, layouts,
-                       move, False, False,specificReadPermission,
+                       move, False, True, False,specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, False, mapping, label, None,
                        None, None, None, False, view, xml)

@@ -219,7 +219,7 @@ class Calendar(Field):
                  endDate=None, defaultDate=None, preCompute=None,
                  applicableEvents=None, view=None, xml=None):
         Field.__init__(self, validator, (0,1), default, show, page, group,
-                       layouts, move, False, False, specificReadPermission,
+                       layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, False, mapping, label, None,
                        None, None, None, True, view, xml)

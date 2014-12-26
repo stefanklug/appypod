@@ -150,16 +150,15 @@ class Pod(Field):
     pxEdit = pxSearch = ''
 
     def __init__(self, validator=None, default=None, show=('view', 'result'),
-                 page='main', group=None, layouts=None, move=0, indexed=False,
-                 searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=None,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 template=None, templateName=None, showTemplate=None,
-                 freezeTemplate=None, maxPerRow=5, context=None,
-                 stylesMapping={}, formats=None, getChecked=None, mailing=None,
-                 mailingName=None, showMailing=None, mailingInfo=None,
-                 view=None, xml=None):
+                 page='main', group=None, layouts=None, move=0,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=None, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, template=None, templateName=None,
+                 showTemplate=None, freezeTemplate=None, maxPerRow=5,
+                 context=None, stylesMapping={}, formats=None, getChecked=None,
+                 mailing=None, mailingName=None, showMailing=None,
+                 mailingInfo=None, view=None, xml=None):
         # Param "template" stores the path to the pod template(s). If there is
         # a single template, a string is expected. Else, a list or tuple of
         # strings is expected. Every such path must be relative to your
@@ -273,7 +272,7 @@ class Pod(Field):
         # self.mailing) and that returns an instance of class Mailing (above).
         self.mailingInfo = mailingInfo
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
-                       move, indexed, searchable, specificReadPermission,
+                       move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
                        None, None, None, None, True, view, xml)

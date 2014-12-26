@@ -373,7 +373,7 @@ class String(Field):
 
     def __init__(self, validator=None, multiplicity=(0,1), default=None,
                  format=LINE, show=True, page='main', group=None, layouts=None,
-                 move=0, indexed=False, searchable=False,
+                 move=0, indexed=False, mustIndex=True, searchable=False,
                  specificReadPermission=False, specificWritePermission=False,
                  width=None, height=None, maxChars=None, colspan=1, master=None,
                  masterValue=None, focus=False, historized=False, mapping=None,
@@ -421,7 +421,7 @@ class String(Field):
         # that can, for example, return an internationalized value.
         self.placeholder = placeholder
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, searchable,
+                       group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
@@ -684,12 +684,29 @@ class String(Field):
         '''Extracts pure text from XHTML p_value.'''
         return XhtmlTextExtractor(raiseOnError=False).parse('<p>%s</p>' % value)
 
-    emptyStringTuple = ('',)
-    emptyValuesCatalogIgnored = (None, '')
+    def getValidCatalogValue(self, value, forSearch):
+        '''p_value is the new value we want to index in the catalog, for this
+           field, for some object. p_value as is may not be an acceptable value
+           for the catalog: if it represents some empty value, like an empty
+           string, None or an empty tuple, instead of using it, the catalog will
+           keep the previously catalogued value! For those cases, this method
+           produces "empty" values that will really overwrite previous ones.'''
+        # Ugly catalog: if I give an empty tuple as index value, it keeps the
+        # previous value. If I give him a tuple containing an empty string, it
+        # is ok.
+        if isinstance(value, tuple) and not value:
+            value = forSearch and ' ' or ('',)
+        # Ugly catalog: if value is an empty string or None, it keeps the
+        # previous index value.
+        elif value in (None, ''): return ' '
+        return value
 
     def getIndexValue(self, obj, forSearch=False):
         '''Pure text must be extracted from rich content; multilingual content
            must be concatenated.'''
+        # Must we produce an index value?
+        if not self.getAttribute(obj, 'mustIndex'):
+            return self.getValidCatalogValue(None, forSearch)
         isXhtml = self.format == String.XHTML
         if self.isMultilingual(obj):
             res = self.getValue(obj)
@@ -703,14 +720,7 @@ class String(Field):
         else:
             res = Field.getIndexValue(self, obj, forSearch)
             if res and isXhtml: res = self.extractText(res)
-        # Ugly catalog: if I give an empty tuple as index value, it keeps the
-        # previous value. If I give him a tuple containing an empty string, it
-        # is ok.
-        if isinstance(res, tuple) and not res: res = self.emptyStringTuple
-        # Ugly catalog: if value is an empty string or None, it keeps the
-        # previous index value.
-        if res in self.emptyValuesCatalogIgnored: res = ' '
-        return res
+        return self.getValidCatalogValue(res, forSearch)
 
     def getPossibleValues(self, obj, withTranslations=False,
                           withBlankValue=False, className=None,

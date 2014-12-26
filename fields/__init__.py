@@ -138,10 +138,11 @@ class Field:
      </x>''')
 
     def __init__(self, validator, multiplicity, default, show, page, group,
-                 layouts, move, indexed, searchable, specificReadPermission,
-                 specificWritePermission, width, height, maxChars, colspan,
-                 master, masterValue, focus, historized, mapping, label,
-                 sdefault, scolspan, swidth, sheight, persist, view, xml):
+                 layouts, move, indexed, mustIndex, searchable,
+                 specificReadPermission, specificWritePermission, width, height,
+                 maxChars, colspan, master, masterValue, focus, historized,
+                 mapping, label, sdefault, scolspan, swidth, sheight, persist,
+                 view, xml):
         # The validator restricts which values may be defined. It can be an
         # interval (1,None), a list of string values ['choice1', 'choice2'],
         # a regular expression, a custom function, a Selection instance, etc.
@@ -167,6 +168,12 @@ class Field:
         # If indexed is True, a database index will be set on the field for
         # fast access.
         self.indexed = indexed
+        # If "mustIndex", True by default, is specified, it must be a method
+        # returning a boolean value. Indexation will only occur when this value
+        # is True.
+        self.mustIndex = mustIndex
+        if not mustIndex and not callable(mustIndex):
+            raise Exception('Value for param "mustIndex" must be a method.')
         # If specified "searchable", the field will be added to some global
         # index allowing to perform application-wide, keyword searches.
         self.searchable = searchable
@@ -605,6 +612,9 @@ class Field:
 
            If p_forSearch is True, it will return a "string" version of the
            index value suitable for a global search.'''
+        # Must we produce an index value?
+        if not self.getAttribute(obj, 'mustIndex'): return
+        # Start by getting the field value on p_obj
         res = self.getValue(obj)
         # Zope catalog does not like unicode strings
         if isinstance(res, unicode): res = res.encode('utf-8')

@@ -519,11 +519,11 @@ class Ref(Field):
                  afterLink=None, afterUnlink=None, back=None, show=True,
                  page='main', group=None, layouts=None, showHeaders=False,
                  shownInfo=None, select=None, maxPerPage=30, move=0,
-                 indexed=False, searchable=False, specificReadPermission=False,
-                 specificWritePermission=False, width=None, height=5,
-                 maxChars=None, colspan=1, master=None, masterValue=None,
-                 focus=False, historized=False, mapping=None, label=None,
-                 queryable=False, queryFields=None, queryNbCols=1,
+                 indexed=False, mustIndex=True, searchable=False,
+                 specificReadPermission=False, specificWritePermission=False,
+                 width=None, height=5, maxChars=None, colspan=1, master=None,
+                 masterValue=None, focus=False, historized=False, mapping=None,
+                 label=None, queryable=False, queryFields=None, queryNbCols=1,
                  navigable=False, changeOrder=True, numbered=False,
                  checkboxes=True, checkboxesDefault=None, sdefault='',
                  scolspan=1, swidth=None, sheight=None, sselect=None,
@@ -710,7 +710,7 @@ class Ref(Field):
         # alternative URL for the tied object that is shown within the menu.
         self.menuUrlMethod = menuUrlMethod
         Field.__init__(self, validator, multiplicity, default, show, page,
-                       group, layouts, move, indexed, False,
+                       group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,
                        height, None, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
@@ -958,22 +958,29 @@ class Ref(Field):
 
     def getIndexType(self): return 'ListIndex'
 
+    def getValidCatalogValue(self, value):
+        '''p_value is the new value we want to index in the catalog, for this
+           field, for some object. p_value as is may not be an acceptable value
+           for the catalog: if it it an empty list, instead of using it, the
+           catalog will keep the previously catalogued value! For this case,
+           this method produces an "empty" value that will really overwrite the
+           previous one. Moreover, the catalog does not like persistent
+           lists.'''
+        # The index does not like persistent lists. Moreover, I don't want to
+        # give to anyone access to the persistent list in the DB.
+        if value: return list(value)
+        # Ugly catalog: if I return an empty list, the previous value is kept
+        return ['']
+
     def getIndexValue(self, obj, forSearch=False):
         '''Value for indexing is the list of UIDs of linked objects. If
            p_forSearch is True, it will return a list of the linked objects'
            titles instead.'''
+        # Must we produce an index value?
+        if not self.getAttribute(obj, 'mustIndex'): return
         if not forSearch:
             res = getattr(obj.aq_base, self.name, None)
-            if res:
-                # The index does not like persistent lists. Moreover, I don't
-                # want to give to anyone access to the persistent list in the
-                # DB.
-                res = list(res)
-            else:
-                # Ugly catalog: if I return an empty list, the previous value
-                # is kept.
-                res = ['']
-            return res
+            return self.getValidCatalogValue(res)
         else:
             # For the global search: return linked objects' titles
             return ' '.join([o.getShownValue('title') \
