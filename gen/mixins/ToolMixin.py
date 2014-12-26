@@ -244,6 +244,7 @@ class ToolMixin(BaseMixin):
             # The search is triggered from an app-wide search
             klass = self.getAppyClass(className)
             fieldNames = getattr(klass, 'searchFields', None)
+            if callable(fieldNames): fieldNames = fieldNames(self.appy())
             if not fieldNames:
                 # Gather all the indexed fields on this class
                 fieldNames = [f.name for f in self.getAllAppyTypes(className) \

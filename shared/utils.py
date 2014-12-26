@@ -217,9 +217,12 @@ def executeCommand(cmd):
     return res
 
 # ------------------------------------------------------------------------------
-unwantedChars = ('\\', '/', ':', '*', '?', '"', '<', '>', '|', ' ', '\t', "'")
+charsIgnore = u'.,:;*+=~?%^\'’"<>{}[]|\t\\'
+fileNameIgnore = charsIgnore + u' $£€/'
+extractIgnore = charsIgnore + '()'
 alphaRex = re.compile('[a-zA-Z]')
 alphanumRex = re.compile('[a-zA-Z0-9]')
+
 def normalizeString(s, usage='fileName'):
     '''Returns a version of string p_s whose special chars (like accents) have
        been replaced with normal chars. Moreover, if p_usage is:
@@ -233,21 +236,25 @@ def normalizeString(s, usage='fileName'):
         try:
             s = s.decode('utf-8')
         except UnicodeDecodeError:
-            # Another encoding may be in use.
+            # Another encoding may be in use
             s = s.decode('latin-1')
     elif not isinstance(s, unicode): s = unicode(s)
+    # For extracted text, replace any unwanted char with a blank
     if usage == 'extractedText':
-        # Replace single quotes with blanks.
-        s = s.replace("'", " ").replace(u'’', ' ')
-    # Remove any special char like accents.
+        res = u''
+        for char in s:
+            if char not in extractIgnore: res += char
+            else: res += ' '
+        s = res
+    # Standardize special chars like accents
     s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
-    # Remove any other char, depending on p_usage.
+    # Remove any other char, depending on p_usage
     if usage == 'fileName':
-        # Remove any char that can't be found within a file name under
-        # Windows or that could lead to problems with OpenOffice.
+        # Remove any char that can't be found within a file name under Windows
+        # or that could lead to problems with LibreOffice.
         res = ''
         for char in s:
-            if char not in unwantedChars: res += char
+            if char not in fileNameIgnore: res += char
     elif usage.startswith('alpha'):
         exec 'rex = %sRex' % usage
         res = ''
@@ -257,7 +264,7 @@ def normalizeString(s, usage='fileName'):
         res = s
     else:
         res = s
-    # Re-code the result as a str if a str was given.
+    # Re-code the result as a str if a str was given
     if strNeeded: res = res.encode('utf-8')
     return res
 

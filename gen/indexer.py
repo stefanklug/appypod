@@ -69,16 +69,17 @@ def updateIndexes(installer, indexInfo):
             logger.info('Done.')
 
 # ------------------------------------------------------------------------------
-def splitIntoWords(text):
+def splitIntoWords(text, ignore=2):
     '''Split the cleaned index value p_text into words (returns a list of
-       words). Words of a single char are ignored, excepted digits which are
-       always kept. Duplicate words are removed (result is a set and not a
-       list).'''
+       words). Words whose length is below p_ignore are ignored, excepted digits
+       which are always kept. Duplicate words are removed (result is a set and
+       not a list).'''
+    # Split p_text into words
     res = text.split()
-    # Remove tokens of a single char (excepted if this char is a digit).
-    i = len(res)-1
-    while i > -1 :
-        if (len(res[i]) < 2) and not res[i].isdigit():
+    # Remove shorter words not being figures
+    i = len(res) - 1
+    while i > -1:
+        if (len(res[i]) <= ignore) and not res[i].isdigit():
             del res[i]
         i -= 1
     # Remove duplicates
