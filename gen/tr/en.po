@@ -48,6 +48,10 @@ msgstr "Title"
 msgid "appy_ok"
 msgstr "Ok"
 
+#. Default: "Keywords"
+msgid "appy_SearchableText"
+msgstr ""
+
 #. Default: "Data change"
 msgid "data_change"
 msgstr "Data change"

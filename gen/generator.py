@@ -574,10 +574,10 @@ class ZopeGenerator(Generator):
             for name, appyType, klass in classDescr.getOrderedAppyAttributes():
                 names.append(name)
                 if name == 'title': titleFound = True
-            # Add the "title" mandatory field if not found
+            # Add the 'title' mandatory field if not found
             if not titleFound: names.insert(0, 'title')
-            # Add the 'state' attribute
-            names.append('state')
+            # Add the 'state' and 'SearchableText' attributes
+            names += ['state', 'SearchableText']
             qNames = ['"%s"' % name for name in names]
             attributes.append('"%s":[%s]' % (classDescr.name, ','.join(qNames)))
         repls['attributes'] = ',\n    '.join(attributes)

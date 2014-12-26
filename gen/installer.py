@@ -286,6 +286,13 @@ class ZopeInstaller:
                                show='result')
             state.init('state', None, 'workflow')
             setattr(wrapperClass, 'state', state)
+            # Special field "SearchableText" must be added fot every class and
+            # will allow to display a search widget for entering keywords for
+            # searhing in index "SearchableText".
+            searchable = gen.String(show=False)
+            searchable.init('SearchableText', None, 'appy')
+            setattr(wrapperClass, 'SearchableText', searchable)
+            # Set field "__fields__" on the wrapper class
             names = self.config.attributes[wrapperClass.__name__[:-8]]
             wrapperClass.__fields__ = [getattr(wrapperClass, n) for n in names]
             # Post-initialise every Appy type

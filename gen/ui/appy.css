@@ -62,7 +62,7 @@ input.button { color: #666666; height: 20px; margin-bottom: 5px; margin-top:2px;
                background-color: white; background-repeat: no-repeat;
                background-position: 8px 25%; box-shadow: 2px 2px 2px #888888}
 input.buttonSmall { width: 100px !important; font-size: 85%; height: 18px;
-                    margin-bottom: 3px }
+                    margin-bottom: 5px }
 .fake { background-color: #e6e6e6 !important ; cursor:help !important }
 .xhtml { background-color: white; padding: 4px; font-size: 95% }
 .xhtml img { margin-right: 5px }

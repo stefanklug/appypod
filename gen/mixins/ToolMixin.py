@@ -249,6 +249,8 @@ class ToolMixin(BaseMixin):
                 # Gather all the indexed fields on this class
                 fieldNames = [f.name for f in self.getAllAppyTypes(className) \
                               if f.indexed]
+                fieldNames.insert(0, 'SearchableText')
+                if 'title' in fieldNames: fieldNames.remove('title')
             nbOfColumns = getattr(klass, 'numberOfSearchColumns', 3)
         for name in fieldNames:
             field = self.getAppyType(name, className=className)
@@ -720,7 +722,7 @@ class ToolMixin(BaseMixin):
            search or about a group of searches.
         '''
         res = []
-        default = None # Also retrieve the default one here.
+        default = None # Also retrieve the default one here
         groups = {} # The already encountered groups
         page = Page('searches') # A dummy page required by class UiGroup
         # Get the searches statically defined on the class
@@ -733,7 +735,7 @@ class ToolMixin(BaseMixin):
             # Create the search descriptor
             uiSearch = UiSearch(search, className, self)
             if not search.group:
-                # Insert the search at the highest level, not in any group.
+                # Insert the search at the highest level, not in any group
                 res.append(uiSearch)
             else:
                 uiGroup = search.group.insertInto(res, groups, page, className,
@@ -779,7 +781,7 @@ class ToolMixin(BaseMixin):
 
     def advancedSearchEnabledFor(self, klass):
         '''Is advanced search visible for p_klass ?'''
-        # By default, advanced search is enabled.
+        # By default, advanced search is enabled
         if not hasattr(klass, 'searchAdvanced'): return True
         # Evaluate attribute "show" on this Search instance representing the
         # advanced search.
@@ -911,7 +913,7 @@ class ToolMixin(BaseMixin):
             cfg = self.getProductConfig(True).ldap
             if cfg: user = cfg.getUser(self.appy(), login, password)
         elif source == 'any':
-            # Get the user object, be it really local or a copy of a LDAP user.
+            # Get the user object, be it really local or a copy of a LDAP user
             user = tool.search1('User', noSecurity=True, login=login)
         if not user: return
         # Authentify the user if required
@@ -976,13 +978,11 @@ class ToolMixin(BaseMixin):
 
     # This dict stores, for every logged user, the date/time of its last access
     loggedUsers = {}
-    forgetAccessExtensions = ('.jpg', '.gif', '.png', '.js', '.css')
-    def rememberAccess(self, id, user):
+    staticExtensions = ('.jpg', '.jpeg', '.gif', '.png', '.js', '.css', '.htm',
+                        '.html')
+    def rememberAccess(self, user):
         '''Every time there is a hit on the server, this method is called in
            order to update global dict loggedUsers (see above).'''
-        if not id: return
-        if os.path.splitext(id)[-1].lower() in self.forgetAccessExtensions:
-            return
         self.loggedUsers[user.login] = time.time()
         # "Touch" the SESSION object. Else, expiration won't occur.
         session = self.REQUEST.SESSION
@@ -998,6 +998,10 @@ class ToolMixin(BaseMixin):
         # a is the object the object was accessed through
         # c is the physical container of the object
         a, c, n, v = self._getobcontext(v, request)
+        # Authorize anyone to static content (image, js, css...)
+        id = a.getId()
+        if id and (os.path.splitext(id)[-1].lower() in tool.staticExtensions):
+            return self._nobody.__of__(self)
         # Identify and authentify the user
         user = tool.getUser(authentify=True, source='any')
         if not user:
@@ -1011,7 +1015,7 @@ class ToolMixin(BaseMixin):
             # We found a user and his password was correct. Try to authorize him
             # against the published object. By the way, remember its last access
             # to this system.
-            tool.rememberAccess(a.getId(), user)
+            tool.rememberAccess(user)
             user = user.getZopeUser()
             if self.authorize(user, a, c, n, v, roles):
                 return user.__of__(self)
