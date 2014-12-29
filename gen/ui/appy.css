@@ -104,6 +104,9 @@ td.search { padding-top: 8px }
             border: 1px solid #cccccc; background-color: white;
             padding: 3px 4px 3px; font-size: 8pt; font-weight: normal;
             text-align: left; z-index: 2; line-height: normal }
+.liveSearch { top: 19px; padding: 0; width: 250px }
+.lsSelected { background-color: #d9d7d9 }
+.lsNoResult { text-align: center; padding: 3px 3px; font-style: italic }
 .dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
 .addForm { display: inline }

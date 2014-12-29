@@ -750,7 +750,7 @@ class ToolMixin(BaseMixin):
            corresponding to the search named p_name, on class p_className.'''
         initiator = None
         if name == 'customSearch':
-            # It is a custom search whose parameters are in the session.
+            # It is a custom search whose parameters are in the session
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
         elif ':' in name:
@@ -773,10 +773,22 @@ class ToolMixin(BaseMixin):
         else:
             # It is the search for every instance of p_className
             res = Search('allSearch')
-        # Return a UiSearch if required.
+        # Return a UiSearch if required
         if ui:
             res = UiSearch(res, className, self)
             if initiator: res.setInitiator(initiator, initiatorField, mode)
+        return res
+
+    def getLiveSearch(self, klass, keywords):
+        '''Gets the Search instance for performing a live search on p_klass.'''
+        if not keywords.endswith('*'): keywords += '*'
+        res = Search('liveSearch', SearchableText=keywords)
+        if hasattr(klass, 'searchAdvanced'):
+            # Take into account default params for the advanced search
+            advanced = klass.searchAdvanced
+            res.fields.update(advanced.fields)
+            res.sortBy = advanced.sortBy
+            res.sortOrder = advanced.sortOrder
         return res
 
     def advancedSearchEnabledFor(self, klass):

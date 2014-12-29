@@ -1125,3 +1125,96 @@ function reindexObject(indexName){
   f.indexName.value = indexName;
   f.submit();
 }
+
+// Live-search-related functions (LS)
+var lsTimeout;
+function detectEventType(event) {
+  /* After p_event occurred on a live search input field, must we trigger a
+     search (a new char has been added), move up/down within the search
+     results (key up/down has been pressed) or hide the dropdown (escape)? */
+  if (event.type == 'focus') return 'search'
+  switch (event.keyCode) {
+    case 38: return 'up';
+    case 40: return 'down';
+    case 27: return 'hide'; // escape
+    case 13: return 'go'; // cr
+    case 37: break; // left
+    case 39: break; // right
+    default: return 'search';
+  }
+}
+/* Function that selects the search result within the dropdown, after the user
+   has pressed the 'up' od 'down' key (p_direction). */
+function selectLSResult(dropdown, direction){
+  var results = dropdown.children[0].getElementsByTagName('div');
+  if (results.length == 0) return;
+  var j; // The index of the new element to select
+  for (var i=0, len=results.length; i<len; i++) {
+    if (results[i].className == 'lsSelected') {
+      if (direction == 'up') {
+        if (i > 0) j = i-1;
+        else j = len-1;
+      }
+      else {
+        if (i < (len-1)) j = i+1;
+        else j = 0;
+      }
+      results[i].className = '';
+      results[j].className = 'lsSelected';
+      break;
+    }
+  }
+  if (isNaN(j)) results[0].className = 'lsSelected';
+}
+
+// Function that allows to go to a selected search result
+function gotoLSLink(dropdown) {
+  var results = dropdown.children[0].getElementsByTagName('div');
+  for (var i=0, len=results.length; i<len; i++) {
+    if (results[i].className == 'lsSelected') {
+      var a = results[i].children[0];
+      if (a.href) window.location = a.href;
+      else eval(a.onclick);
+    }
+  }
+}
+
+function hideLSDropdown(dropdown, timeout) {
+  if (dropdown.style.display == 'none') return;
+  if (!timeout) { dropdown.style.display = 'none'; return; }
+  lsTimeout = setTimeout(function(){
+    dropdown.style.display = 'none';}, 400);
+}
+
+// Function that manages an p_event that occurred on a live search input field
+function onLiveSearchEvent(event, klass, action, toolUrl) {
+  var dropdown = document.getElementById(klass + '_LSDropdown');
+  if (lsTimeout) clearTimeout(lsTimeout);
+  // Hide the dropdown if action is forced to 'hide'
+  if (action == 'hide') { hideLSDropdown(dropdown, true); return; }
+  // Detect if the dropdown must be shown or hidden
+  var input = document.getElementById(klass + '_LSinput');
+  if (input.value.length > 2) {
+    var eventType = detectEventType(event);
+    if (!eventType) return;
+    if (eventType == 'hide') { hideLSDropdown(dropdown, false); return;}
+    if (eventType == 'go') { gotoLSLink(dropdown); return; }
+    if (eventType == 'search') {
+      // Trigger an Ajax search and refresh the dropdown content
+      var formElems = document.getElementById(klass + '_LSForm').elements;
+      var params = {};
+      for (var i=0, len=formElems.length; i<len; i++) {
+        var param = formElems.item(i);
+        var paramName = formElems.item(i).name;
+        if (param.name == 'action') continue;
+        params[param.name] = param.value;
+      }
+      lsTimeout = setTimeout(function() {
+        askAjaxChunk(klass+ '_LSResults', 'GET', toolUrl, 'pxLiveSearchResults',
+                     params);
+        dropdown.style.display = 'block';}, 400);
+      }
+    else { selectLSResult(dropdown, eventType);} // Move up/down in results
+  }
+  else { hideLSDropdown(dropdown, true); }
+}

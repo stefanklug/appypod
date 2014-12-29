@@ -148,6 +148,10 @@ msgstr "Search results"
 msgid "search_results_descr"
 msgstr " "
 
+#. Default: "All results"
+msgid "search_results_all"
+msgstr "All results"
+
 #. Default: "New search"
 msgid "search_new"
 msgstr "New search"

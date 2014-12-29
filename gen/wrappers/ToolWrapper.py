@@ -96,7 +96,7 @@ class ToolWrapper(AbstractWrapper):
     # --------------------------------------------------------------------------
     # Global elements included in every page.
     pxPagePrologue = Px('''
-     <!-- Include type-specific CSS and JS. -->
+     <!-- Include type-specific CSS and JS -->
      <x if="cssJs">
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
             href=":url(cssFile)"/>
@@ -154,6 +154,54 @@ class ToolWrapper(AbstractWrapper):
                     (q(zobj.absolute_url()), q(layoutType), info[0], info[1])
      </script>''')
 
+    pxLiveSearchResults = Px('''
+     <x var="className=req['className'];
+             klass=ztool.getAppyClass(className);
+             search=ztool.getLiveSearch(klass, req['w_SearchableText']);
+             zobjects=ztool.executeQuery(className, search=search, \
+                                         maxResults=10).objects">
+      <p if="not zobjects" class="lsNoResult">:_('query_no_result')</p>
+      <div for="ztied in zobjects" style="padding: 3px 5px">
+       <a href=":ztied.absolute_url()"
+          var="content=ztool.truncateValue(ztied.Title(), width=80)"
+          title=":ztied.Title()">:content</a>
+      </div>
+      <!-- Go to the page showing all results -->
+      <div if="zobjects" align=":dright" style="padding: 3px">
+       <a class="clickable" style="font-size: 95%; font-style: italic"
+          onclick=":'document.forms[%s].submit()' % \
+            q('%s_LSForm' % className)">:_('search_results_all') + '...'</a>
+      </div>
+     </x>''')
+
+    pxLiveSearch = Px('''
+     <form var="formId='%s_LSForm' % className"
+           id=":formId" name=":formId" action=":'%s/do' % toolUrl">
+      <input type="hidden" name="action" value="SearchObjects"/>
+      <input type="hidden" name="className" value=":className"/>
+      <table cellpadding="0" cellspacing="0"
+             var="searchLabel=_('search_button')">
+       <tr valign="bottom">
+        <td style="position: relative">
+         <input type="text" size="14" name="w_SearchableText" autocomplete="off"
+                id=":'%s_LSinput' % className" class="inputSearch"
+                title=":searchLabel"
+                var="jsCall='onLiveSearchEvent(event, %s, %s, %s)' % \
+                             (q(className), q('auto'), q(toolUrl))"
+                onkeyup=":jsCall" onfocus=":jsCall"
+                onblur=":'onLiveSearchEvent(event, %s, %s)' % \
+                         (q(className), q('hide'))"/>
+         <!-- Dropdown containing live search results -->
+         <div id=":'%s_LSDropdown' % className" class="dropdown liveSearch">
+          <div id=":'%s_LSResults' % className"></div>
+         </div>
+        </td>
+        <td><input type="image" class="clickable" src=":url('search')"
+                   title=":searchLabel"/></td>
+       </tr>
+      </table>
+     </form>''')
+
     pxPortlet = Px('''
      <x var="toolUrl=tool.url;
              queryUrl='%s/query' % toolUrl;
@@ -201,19 +249,7 @@ class ToolWrapper(AbstractWrapper):
         <!-- Searches -->
         <x if="ztool.advancedSearchEnabledFor(rootClass)">
          <!-- Live search -->
-         <form action=":'%s/do' % toolUrl">
-          <input type="hidden" name="action" value="SearchObjects"/>
-          <input type="hidden" name="className" value=":className"/>
-          <table cellpadding="0" cellspacing="0">
-           <tr valign="bottom">
-            <td><input type="text" size="14" name="w_SearchableText"
-                       class="inputSearch"/></td>
-            <td>
-             <input type="image" class="clickable" src=":url('search')"
-                    title=":_('search_button')"/></td>
-           </tr>
-          </table>
-         </form>
+         <x>:tool.pxLiveSearch</x>
 
          <!-- Advanced search -->
          <div var="highlighted=(currentClass == className) and \
