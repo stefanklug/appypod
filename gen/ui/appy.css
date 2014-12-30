@@ -177,3 +177,4 @@ td.search { padding-top: 8px }
        font-weight: bold}
 .language {color: grey; font-size: 7pt; border: grey 1px solid; padding: 2px;
            margin: 0 2px 0 4px; font-family: monospace }
+.highlight { background-color: yellow }

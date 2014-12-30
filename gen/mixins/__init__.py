@@ -923,6 +923,24 @@ class BaseMixin:
                 return
             return res
 
+    def highlight(self, text):
+        '''This method highlights parts of p_value if we are in the context of
+           a query whose keywords must be highlighted.'''
+        # Must we highlight something?
+        criteria = self.REQUEST.SESSION.get('searchCriteria')
+        if not criteria or ('SearchableText' not in criteria): return text
+        # Highlight every variant of every keyword
+        for word in criteria['SearchableText'].strip().split():
+            sWord = word.strip(' *').lower()
+            for variant in (sWord, sWord.capitalize(), sWord.upper()):
+                text = text.replace(variant, '***+%s-***' % variant)
+                # If I replace immediately with the opening and ending "span"
+                # tag (see below), I will have problems if the next keyword is
+                # included in the tag, ie "la" (in 'class', or "spa" (in
+                # 'span').
+        text = text.replace('***+', '<span class="highlight">')
+        return text.replace('-***', '</span>')
+
     def getSupTitle(self, navInfo=''):
         '''Gets the html code (icons,...) that can be shown besides the title
            of an object.'''
@@ -951,7 +969,7 @@ class BaseMixin:
         return ''
 
     def getListTitle(self, mode='link', nav='', target=None, page='main',
-                     inPopup=False, selectJs=None):
+                     inPopup=False, selectJs=None, highlight=False):
         '''Gets the title as it must appear in lists of objects (ie in lists of
            tied objects in a Ref, in query results...).
 
@@ -970,10 +988,15 @@ class BaseMixin:
 
            The last p_mode is "text". In this case, we simply show the object
            title but with no tied action (link, select).
+
+           If p_highlight is True, keywords will be highlighted if we are in the
+           context of a query with keywords.
         '''
         # Compute common parts
         cssClass = self.getCssFor('title')
+        # Get the title, with highlighted parts when relevant
         title = self.getShownValue('title')
+        if highlight: title = self.highlight(title)
         if mode == 'link':
             inPopup = inPopup or (target.target != '_self')
             url = self.getUrl(page=page, nav=nav, inPopup=inPopup)

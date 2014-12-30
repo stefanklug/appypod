@@ -446,8 +446,8 @@ class String(Field):
             elif format == String.TEXT: self.maxChars = 9999
             elif format == String.XHTML: self.maxChars = 99999
             elif format == String.PASSWORD: self.maxChars = 20
-        self.filterable = self.indexed and (self.format == String.LINE) and \
-                          not self.isSelect
+        self.filterable = self.indexed and not self.isSelect and \
+                          (self.format in (String.LINE, String.TEXT))
         self.swidth = self.swidth or self.width
         self.sheight = self.sheight or self.height
         self.checkParameters()

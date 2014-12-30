@@ -161,10 +161,10 @@ class ToolWrapper(AbstractWrapper):
              zobjects=ztool.executeQuery(className, search=search, \
                                          maxResults=10).objects">
       <p if="not zobjects" class="lsNoResult">:_('query_no_result')</p>
-      <div for="ztied in zobjects" style="padding: 3px 5px">
-       <a href=":ztied.absolute_url()"
-          var="content=ztool.truncateValue(ztied.Title(), width=80)"
-          title=":ztied.Title()">:content</a>
+      <div for="zobj in zobjects" style="padding: 3px 5px">
+       <a href=":zobj.absolute_url()"
+          var="content=ztool.truncateValue(zobj.Title(), width=80)"
+          title=":zobj.Title()">:content</a>
       </div>
       <!-- Go to the page showing all results -->
       <div if="zobjects" align=":dright" style="padding: 3px">
@@ -359,9 +359,10 @@ class ToolWrapper(AbstractWrapper):
                           q(rootHookId), q(uiSearch.initiator.url))">
        <x var="sup=zobj.getSupTitle(navInfo)" if="sup">::sup</x>
        <x>::zobj.getListTitle(mode=titleMode, nav=navInfo, target=target, \
-                          page=pageName, inPopup=inPopup, selectJs=selectJs)</x>
+          page=pageName, inPopup=inPopup, selectJs=selectJs, highlight=True)</x>
        <span style=":showSubTitles and 'display:inline' or 'display:none'"
-             name="subTitle" var="sub=zobj.getSubTitle()" if="sub">::sub</span>
+             name="subTitle" var="sub=zobj.getSubTitle()"
+             if="sub">::zobj.highlight(sub)</span>
 
        <!-- Actions -->
        <table class="noStyle" if="not inPopup and zobj.mayAct()">
@@ -421,7 +422,7 @@ class ToolWrapper(AbstractWrapper):
                   filterable=field.filterable"
             width=":column.width" align=":column.align">
          <x>::ztool.truncateText(_(field.labelId))</x>
-         <x if="totalNumber &gt; 1">:tool.pxSortAndFilter</x>
+         <x if="(totalNumber &gt; 1) or filterValue">:tool.pxSortAndFilter</x>
          <x>:tool.pxShowDetails</x>
         </th>
        </tr>
