@@ -275,9 +275,9 @@ class Pod(Field):
                        move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
                        master, masterValue, focus, historized, mapping, label,
-                       None, None, None, None, True, view, xml)
-        # Param "persist" is set to True but actually, persistence for a pod
-        # field is determined by freezing.
+                       None, None, None, None, False, view, xml)
+        # Param "persist" is False, but actual persistence for this field is
+        # determined by freezing.
         self.validable = False
 
     def getExtension(self, template):
@@ -603,7 +603,7 @@ class Pod(Field):
            when no p_upload file is specified), if the freezing fails we try to
            freeze the odt version, which is more robust because it does not
            require calling LibreOffice.'''
-        # Security check.
+        # Security check
         if not noSecurity and \
            (format not in self.getFreezeFormats(obj, template)):
             raise Exception(self.UNAUTHORIZED)
@@ -613,10 +613,10 @@ class Pod(Field):
         fileName = self.getFreezeName(template, format)
         result = os.path.join(dbFolder, folder, fileName)
         if os.path.exists(result):
-            prefix = upload and 'Freeze (upload)' or 'Freeze'
+            prefix = upload and 'freeze (upload)' or 'freeze'
             obj.log('%s: overwriting %s...' % (prefix, result))
         if not upload:
-            # Generate the document.
+            # Generate the document
             doc = self.getValue(obj, template=template, format=format,
                                 result=result)
             if isinstance(doc, basestring):
@@ -640,7 +640,7 @@ class Pod(Field):
                     raise Exception(self.FREEZE_FATAL_ERROR)
                 obj.log('freezed at %s.' % result)
         else:
-            # Store the uploaded file in the database.
+            # Store the uploaded file in the database
             f = file(result, 'wb')
             doc = FileInfo(result, inDb=False)
             doc.replicateFile(upload, f)

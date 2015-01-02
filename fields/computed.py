@@ -39,7 +39,7 @@ class Computed(Field):
                  masterValue=None, focus=False, historized=False, mapping=None,
                  label=None, sdefault='', scolspan=1, swidth=None, sheight=None,
                  context=None, view=None, xml=None):
-        # The Python method used for computing the field value, or a PX.
+        # The Python method used for computing the field value, or a PX
         self.method = method
         # A specific method for producing the formatted value of this field.
         # This way, if, for example, the value is a DateTime instance which is
@@ -53,7 +53,7 @@ class Computed(Field):
         # Does field computation produce plain text or XHTML?
         self.plainText = plainText
         if isinstance(method, Px):
-            # When field computation is done with a PX, the result is XHTML.
+            # When field computation is done with a PX, the result is XHTML
             self.plainText = False
         # Determine default value for "show"
         if show == None:
@@ -62,7 +62,7 @@ class Computed(Field):
             # in the xml layout.
             show = self.plainText and ('view', 'result', 'xml') or \
                                       ('view', 'result')
-        # If method is a PX, its context can be given in p_context.
+        # If method is a PX, its context can be given in p_context
         self.context = context
         Field.__init__(self, None, multiplicity, default, show, page, group,
                        layouts, move, indexed, mustIndex, searchable,

@@ -516,6 +516,10 @@ msgstr "Date"
 msgid "action_comment"
 msgstr "Comment"
 
+#. Default: "Create from a delayed item"
+msgid "create_from_predecessor"
+msgstr "Create from a delayed item"
+
 #. Default: "Mon"
 msgid "day_Mon_short"
 msgstr "Mon"

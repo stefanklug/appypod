@@ -217,7 +217,7 @@ def executeCommand(cmd):
     return res
 
 # ------------------------------------------------------------------------------
-charsIgnore = u'.,:;*+=~?%^\'’"<>{}[]|\t\\°'
+charsIgnore = u'.,:;*+=~?%^\'’"<>{}[]|\t\\°-'
 fileNameIgnore = charsIgnore + u' $£€/'
 extractIgnore = charsIgnore + '()'
 alphaRex = re.compile('[a-zA-Z]')

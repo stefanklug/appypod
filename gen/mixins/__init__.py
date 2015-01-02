@@ -1037,6 +1037,7 @@ class BaseMixin:
         '''Gets the i18n label for p_name (which can denote a state or a
            transition), or for the current object state if p_name is None.'''
         name = name or self.State()
+        if name == 'create_from_predecessor': return name
         return '%s_%s' % (self.getWorkflow(name=True), name)
 
     def getTransitions(self, includeFake=True, includeNotShowable=False,

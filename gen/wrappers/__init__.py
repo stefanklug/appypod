@@ -302,7 +302,7 @@ class AbstractWrapper(object):
     # PXs for rendering graphical elements tied to a given object
     # --------------------------------------------------------------------------
 
-    # This PX displays an object's history.
+    # This PX displays an object's history
     pxHistory = Px('''
      <x var="startNumber=req.get('startNumber', 0);
              startNumber=int(startNumber);
@@ -703,14 +703,15 @@ class AbstractWrapper(object):
            applicable to instances of this class, and whose values are the
            (Zope) types of those indexes. If p_asList is True, it returns a
            list of tuples insteadof a dict.'''
-        # Start with the standard indexes applicable for any Appy class.
+        # Start with the standard indexes applicable for any Appy class
         if includeDefaults:
             res = defaultIndexes.copy()
         else:
             res = {}
         # Add the indexed fields found on this class
         for field in klass.__fields__:
-            if not field.indexed or (field.name == 'title'): continue
+            if not field.indexed or \
+               (field.name in ('title', 'state', 'SearchableText')): continue
             n = field.name
             indexName = 'get%s%s' % (n[0].upper(), n[1:])
             res[indexName] = field.getIndexType()
@@ -928,17 +929,20 @@ class AbstractWrapper(object):
         return appyObj
 
     def createFrom(self, fieldNameOrClass, other, noSecurity=False,
-                   executeMethods=True):
+                   executeMethods=True, exclude=()):
         '''Similar to m_create above, excepted that we will use another object
-           (p_other) as base for filling in data for the object to create.'''
+           (p_other) as base for filling in data for the object to create.
+           p_exclude can list fields (by their names) that will not be
+           copied on p_other. Note that this method does not perform a deep
+           copy: objects linked via Ref fields from p_self will be
+           referenced by the clone, but not themselves copied.'''
         # Get the field values to set from p_other and store it in a dict.
         # p_other may not be of the same class as p_self.
         params = {}
         for field in other.fields:
-            # Skip the added attribute "state"
-            if field.name == 'state': continue
-            # Skip back references.
-            if (field.type == 'Ref') and field.isBack: continue
+            # Skip non persistent fields, back references and p_excluded fields
+            if not field.persist or (field.name in exclude) or \
+               ((field.type == 'Ref') and field.isBack): continue
             params[field.name] = field.getCopyValue(other.o)
         return self.create(fieldNameOrClass, noSecurity=noSecurity,
                            raiseOnWrongAttribute=False,

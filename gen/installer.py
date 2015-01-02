@@ -141,7 +141,7 @@ class ZopeInstaller:
             wrapperClass = tool.getAppyClass(className, wrapper=True)
             indexInfo.update(wrapperClass.getIndexes(includeDefaults=False))
         updateIndexes(self, indexInfo)
-        # Re-index index "SearchableText", wrongly defined for Appy < 0.8.3.
+        # Re-index index "SearchableText", wrongly defined for Appy < 0.8.3
         stIndex = catalog.Indexes['SearchableText']
         if stIndex.indexSize() == 0:
             self.logger.info('reindexing SearchableText...')
@@ -283,13 +283,13 @@ class ZopeInstaller:
             # "select" field, because it will be necessary for displaying the
             # translated state name.
             state = gen.String(validator=gen.Selection('listStates'),
-                               show='result')
+                               show='result', persist=False, indexed=True)
             state.init('state', None, 'workflow')
             setattr(wrapperClass, 'state', state)
             # Special field "SearchableText" must be added fot every class and
             # will allow to display a search widget for entering keywords for
             # searhing in index "SearchableText".
-            searchable = gen.String(show=False)
+            searchable = gen.String(show=False, persist=False, indexed=True)
             searchable.init('SearchableText', None, 'appy')
             setattr(wrapperClass, 'SearchableText', searchable)
             # Set field "__fields__" on the wrapper class
