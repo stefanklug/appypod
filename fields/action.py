@@ -30,21 +30,23 @@ class Action(Field):
      <form var="formId='%s_%s_form' % (zobj.id, name);
                 label=_(field.labelId);
                 descr=field.hasDescr and _(field.descrId) or None;
-                buttonWidth=ztool.getButtonWidth(label)"
+                buttonWidth=ztool.getButtonWidth(label);
+                smallButtons=smallButtons|False;
+                css=smallButtons and 'buttonSmall button' or 'button'"
            id=":formId" action=":ztool.absolute_url() + '/do'"
            style="display:inline">
       <input type="hidden" name="action" value="ExecuteAction"/>
       <input type="hidden" name="objectUid" value=":zobj.id"/>
       <input type="hidden" name="fieldName" value=":name"/>
       <input type="hidden" name="comment" value=""/>
-      <input if="field.confirm" type="button" class="button" title=":descr"
+      <input if="field.confirm" type="button" class=":css" title=":descr"
          var="labelConfirm=_(field.labelId + '_confirm');
               commentParam=(field.confirm == 'text') and 'true' or 'false'"
          value=":label"
          style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"
          onclick=":'askConfirm(%s,%s,%s,%s)' % (q('form'), q(formId), \
                                                q(labelConfirm), commentParam)"/>
-      <input if="not field.confirm" type="submit" class="button" name="do"
+      <input if="not field.confirm" type="submit" class=":css" name="do"
              value=":label" title=":descr"
              style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"/>
      </form>''')

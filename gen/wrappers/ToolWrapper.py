@@ -365,30 +365,34 @@ class ToolWrapper(AbstractWrapper):
              if="sub">::zobj.highlight(sub)</span>
 
        <!-- Actions -->
-       <table class="noStyle" if="not inPopup and zobj.mayAct()">
-        <tr>
-         <!-- Edit -->
-         <td if="zobj.mayEdit()">
-          <a var="navInfo='search.%s.%s.%d.%d' % \
+       <div if="not inPopup and zobj.mayAct()">
+        <!-- Edit -->
+        <a if="zobj.mayEdit()"
+           var2="navInfo='search.%s.%s.%d.%d' % \
                (className, searchName, loop.zobj.nb+1+startNumber, totalNumber);
-                  linkInPopup=inPopup or (target.target != '_self')"
-             target=":target.target" onclick=":target.openPopup"
-             href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
-                                nav=navInfo, inPopup=linkInPopup)">
-          <img src=":url('edit')" title=":_('object_edit')"/></a>
-         </td>
-         <td>
-          <!-- Delete -->
-          <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
-               title=":_('object_delete')"
-               onClick=":'onDeleteObject(%s)' % q(zobj.id)"/>
-         </td>
-         <!-- Workflow transitions -->
-         <td if="zobj.showTransitions('result')"
-             var2="targetObj=zobj;
-                   buttonsMode='small'">:targetObj.appy().pxTransitions</td>
-        </tr>
-       </table>
+                 linkInPopup=inPopup or (target.target != '_self')"
+           target=":target.target" onclick=":target.openPopup"
+           href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
+                              nav=navInfo, inPopup=linkInPopup)">
+         <img src=":url('edit')" title=":_('object_edit')"/>
+        </a>
+        <!-- Delete -->
+        <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
+             title=":_('object_delete')"
+             onClick=":'onDeleteObject(%s)' % q(zobj.id)"/>
+        <!-- Workflow transitions -->
+        <x if="zobj.showTransitions('result')"
+           var2="targetObj=zobj;
+                 buttonsMode='small'">:targetObj.appy().pxTransitions</x>
+        <!-- Fields (actions) defined with layout "buttons" -->
+        <x if="not inPopup"
+           var2="fields=zobj.getAppyTypes('buttons', 'main', type='Action');
+                 layoutType='view'">
+         <!-- Call pxView and not pxRender to avoid having a table -->
+         <x for="field in fields"
+            var2="name=field.name; smallButtons=True">:field.pxView</x>
+        </x>
+       </div>
       </x>
       <x if="not mayView">
        <img src=":url('fake')" style="margin-right: 5px"/>

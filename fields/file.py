@@ -86,10 +86,10 @@ class FileInfo:
         self.uploadName = uploadName # The name of the uploaded file
         self.size = 0 # Its size, in bytes
         self.mimeType = None # Its MIME type
-        self.modified = None # The last modification date for this file.
+        self.modified = None # The last modification date for this file
         # Complete metadata if p_inDb is False
         if not inDb:
-            self.fsName = '' # Already included in self.fsPath.
+            self.fsName = '' # Already included in self.fsPath
             # We will not store p_inDb. Checking if self.fsName is the empty
             # string is equivalent.
             fileInfo = os.stat(self.fsPath)
@@ -166,20 +166,25 @@ class FileInfo:
         '''Writes to the filesystem the p_fileObj file, that can be:
            - a Zope FileUpload (coming from a HTTP post);
            - a OFS.Image.File object (legacy within-ZODB file object);
+           - another ("not-in-DB") FileInfo instance;
            - a tuple (fileName, fileContent, mimeType)
              (see doc in method File.store below).'''
         # Determine p_fileObj's type
         fileType = fileObj.__class__.__name__
-        # Set MIME type
+        # Determine the MIME type and the base name of the file to store
         if fileType == 'FileUpload':
             mimeType = self.getMimeTypeFromFileUpload(fileObj)
+            fileName = fileObj.filename
         elif fileType == 'File':
             mimeType = fileObj.content_type
+            fileName = fileObj.filename
+        elif fileType == 'FileInfo':
+            mimeType = fileObj.mimeType
+            fileName = fileObj.uploadName
         else:
             mimeType = fileObj[2]
+            fileName = fileObj[0]
         self.mimeType = mimeType or File.defaultMimeType
-        # Determine the original name of the file to store.
-        fileName= fileType.startswith('File') and fileObj.filename or fileObj[0]
         if not fileName:
             # Name it according to field name. Deduce file extension from the
             # MIME type.
@@ -195,12 +200,12 @@ class FileInfo:
         fsName = osPathJoin(dbFolder, self.fsPath, self.fsName)
         f = file(fsName, 'wb')
         if fileType == 'FileUpload':
-            # Write the FileUpload instance on disk.
+            # Write the FileUpload instance on disk
             self.size = self.replicateFile(fileObj, f)
         elif fileType == 'File':
-            # Write the File instance on disk.
+            # Write the File instance on disk
             if fileObj.data.__class__.__name__ == 'Pdata':
-                # The file content is splitted in several chunks.
+                # The file content is splitted in several chunks
                 f.write(fileObj.data.data)
                 nextPart = fileObj.data.next
                 while nextPart:
@@ -210,10 +215,14 @@ class FileInfo:
                 # Only one chunk
                 f.write(fileObj.data)
             self.size = fileObj.size
+        elif fileType == 'FileInfo':
+            src = file(fileObj.fsPath, 'rb')
+            self.size = self.replicateFile(src, f)
+            src.close()
         else:
-            # Write fileObj[1] on disk.
+            # Write fileObj[1] on disk
             if fileObj[1].__class__.__name__ == 'file':
-                # It is an open file handler.
+                # It is an open file handler
                 self.size = self.replicateFile(fileObj[1], f)
             else:
                 # We have file content directly in fileObj[1]
@@ -361,7 +370,17 @@ class File(Field):
         name = requestName or self.name
         return obj.REQUEST.get('%s_file' % name)
 
-    def getCopyValue(self, obj): raise Exception('Not implemented yet.')
+    def getCopyValue(self, obj):
+        '''Create a copy of the FileInfo instance stored for p_obj for this
+           field. This copy will contain the absolute path to the file on the
+           filesystem. This way, the file may be read independently from p_obj
+           (and copied somewhere else).'''
+        info = self.getValue(obj)
+        if not info: return
+        # Create a "not-in-DB", temporary FileInfo
+        return FileInfo(info.getFilePath(obj), inDb=False,
+                        uploadName=info.uploadName)
+
     def getDefaultLayouts(self): return {'view':'l-f','edit':'lrv-f'}
 
     def isEmptyValue(self, obj, value):
@@ -405,13 +424,15 @@ class File(Field):
            f. a 3-tuple (fileName, fileContent, mimeType) where
               - fileName and fileContent have the same meaning than above;
               - mimeType is the MIME type of the file.
+           g. a FileInfo instance, that must be "not-in-DB", ie, with an
+              absolute path in attribute fsPath.
         '''
         zobj = obj.o
         if value:
             # There is a new value to store. Get the folder on disk where to
             # store the new file.
             dbFolder, folder = zobj.getFsFolder(create=True)
-            # Remove the previous file if it existed.
+            # Remove the previous file if it existed
             info = getattr(obj.aq_base, self.name, None)
             if info:
                 # The previous file can be a legacy File object in an old
@@ -432,6 +453,9 @@ class File(Field):
             elif isinstance(value, basestring):
                 # Case d
                 info.copyFile(self.name, value, dbFolder)
+            elif isinstance(value, FileInfo):
+                # Case g
+                info.writeFile(self.name, value, dbFolder)
             else:
                 # Cases e, f. Extract file name, content and MIME type.
                 fileName = mimeType = None
@@ -444,7 +468,7 @@ class File(Field):
                 mimeType = mimeType or guessMimeType(fileName)
                 info.writeFile(self.name, (fileName, fileContent, mimeType),
                                dbFolder)
-            # Store the FileInfo instance in the database.
+            # Store the FileInfo instance in the database
             setattr(obj, self.name, info)
         else:
             # I store value "None", excepted if I find in the request the desire

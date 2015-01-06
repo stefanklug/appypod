@@ -77,65 +77,67 @@ class Ref(Field):
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <table class="noStyle">
-      <tr>
-       <!-- Arrows for moving objects up or down -->
-       <td if="(totalNumber &gt;1) and changeOrder and not inPickList \
-               and not inMenu"
-          var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
-                  (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
-                   q(tiedUid), q('move'), q('**v**')))">
-        <!-- Move to top -->
-        <img if="objectIndex &gt; 1" class="clickable"
-             src=":url('arrowsUp')" title=":_('move_top')"
-             onclick=":ajaxBaseCall.replace('**v**', 'top')"/>
-        <!-- Move to bottom -->
-        <img if="objectIndex &lt; (totalNumber-2)" class="clickable"
-             src=":url('arrowsDown')" title=":_('move_bottom')"
-             onclick=":ajaxBaseCall.replace('**v**', 'bottom')"/>
-        <!-- Move up -->
-        <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
-             title=":_('move_up')"
-             onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
-        <!-- Move down -->
-        <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
-             src=":url('arrowDown')" title=":_('move_down')"
-             onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
-       </td>
-       <!-- Edit -->
-       <td if="not field.noForm and tied.o.mayEdit()">
-        <a var="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
-                                         totalNumber);
-                linkInPopup=inPopup or (target.target != '_self')"
-           href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo, \
-                                inPopup=linkInPopup)"
-           target=":target.target" onclick=":target.openPopup">
-         <img src=":url('edit')" title=":_('object_edit')"/></a>
-       </td>
-       <!-- Delete -->
-       <td if="mayEdit and field.delete and tied.o.mayDelete()">
-        <img class="clickable" title=":_('object_delete')" src=":url('delete')"
-             onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
-       </td>
-       <!-- Unlink -->
-       <td if="mayUnlink and field.mayUnlinkElement(obj, tied)">
-        <img var="imgName=linkList and 'unlinkUp' or 'unlink'; action='unlink'"
-             class="clickable" title=":_('object_unlink')" src=":url(imgName)"
-             onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
-                        q(field.name), q(tiedUid))"/>
-       </td>
-       <!-- Insert (if in pick list) -->
-       <td if="inPickList">
-        <img var="action='link'" class="clickable" title=":_('object_link')"
-             src=":url(action)"
-             onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
-                        q(field.name), q(tiedUid))"/>
-       </td>
-       <!-- Workflow transitions -->
-       <td if="tied.o.showTransitions('result')"
-           var2="targetObj=tied.o; buttonsMode='small'">:tied.pxTransitions</td>
-      </tr>
-     </table>''')
+     <div>
+      <!-- Arrows for moving objects up or down -->
+      <x if="(totalNumber &gt;1) and changeOrder and not inPickList \
+            and not inMenu"
+         var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
+                (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
+                 q(tiedUid), q('move'), q('**v**')))">
+       <!-- Move to top -->
+       <img if="objectIndex &gt; 1" class="clickable"
+            src=":url('arrowsUp')" title=":_('move_top')"
+            onclick=":ajaxBaseCall.replace('**v**', 'top')"/>
+       <!-- Move to bottom -->
+       <img if="objectIndex &lt; (totalNumber-2)" class="clickable"
+            src=":url('arrowsDown')" title=":_('move_bottom')"
+            onclick=":ajaxBaseCall.replace('**v**', 'bottom')"/>
+       <!-- Move up -->
+       <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
+            title=":_('move_up')"
+            onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
+       <!-- Move down -->
+       <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
+            src=":url('arrowDown')" title=":_('move_down')"
+            onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
+      </x>
+      <!-- Edit -->
+      <a if="not field.noForm and tied.o.mayEdit()"
+         var2="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
+                                        totalNumber);
+               linkInPopup=inPopup or (target.target != '_self')"
+         href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo, \
+                              inPopup=linkInPopup)"
+         target=":target.target" onclick=":target.openPopup">
+       <img src=":url('edit')" title=":_('object_edit')"/>
+      </a>
+      <!-- Delete -->
+      <img if="mayEdit and field.delete and tied.o.mayDelete()"
+           class="clickable" title=":_('object_delete')" src=":url('delete')"
+           onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
+      <!-- Unlink -->
+      <img if="mayUnlink and field.mayUnlinkElement(obj, tied)"
+           var2="imgName=linkList and 'unlinkUp' or 'unlink'; action='unlink'"
+           class="clickable" title=":_('object_unlink')" src=":url(imgName)"
+           onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
+                      q(field.name), q(tiedUid))"/>
+      <!-- Insert (if in pick list) -->
+      <img if="inPickList" var2="action='link'" class="clickable"
+           title=":_('object_link')" src=":url(action)"
+           onclick=":'onLink(%s,%s,%s,%s)' % (q(action), q(zobj.id), \
+                      q(field.name), q(tiedUid))"/>
+      <!-- Workflow transitions -->
+      <x if="tied.o.showTransitions('result')"
+         var2="targetObj=tied.o; buttonsMode='small'">:tied.pxTransitions</x>
+      <!-- Fields (actions) defined with layout "buttons" -->
+      <x if="not inPopup"
+         var2="fields=tied.o.getAppyTypes('buttons', 'main', type='Action');
+               layoutType='view'">
+       <!-- Call pxView and not pxRender to avoid having a table -->
+       <x for="field in fields"
+          var2="name=field.name; smallButtons=True">:field.pxView</x>
+      </x>
+     </div>''')
 
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
@@ -797,7 +799,7 @@ class Ref(Field):
            UIDs, because m_store on the destination object can store tied
            objects based on such a list.''' 
         res = getattr(obj.aq_base, self.name, ())
-        # Return a copy: it can be dangerous to give the real database value.
+        # Return a copy: it can be dangerous to give the real database value
         if res: return list(res)
 
     def getXmlValue(self, obj, value):
@@ -830,7 +832,7 @@ class Ref(Field):
         paginated = startNumber != None
         isSearch = False
         if 'masterValues' in req:
-            # Convert masterValue(s) from id(s) to real object(s).
+            # Convert masterValue(s) from id(s) to real object(s)
             masterValues = req['masterValues'].strip()
             if not masterValues: masterValues = None
             else:
@@ -865,11 +867,11 @@ class Ref(Field):
                         objects.objects = [o.appy() for o in objects.objects]
                     else:
                         objects = self.select(obj)
-        # Remove already linked objects if required.
+        # Remove already linked objects if required
         if removeLinked:
             uids = getattr(obj.o.aq_base, self.name, None)
             if uids:
-                # Browse objects in reverse order and remove linked objects.
+                # Browse objects in reverse order and remove linked objects
                 if isSearch: objs = objects.objects
                 else: objs = objects
                 i = len(objs) - 1
@@ -884,7 +886,7 @@ class Ref(Field):
         if paginated and not isSearch:
             total = len(objects)
             objects = objects[startNumber:startNumber + self.maxPerPage]
-        # Return the result, wrapped in a SomeObjects instance if required.
+        # Return the result, wrapped in a SomeObjects instance if required
         if not someObjects:
             if isSearch: return objects.objects
             return objects
@@ -909,7 +911,7 @@ class Ref(Field):
         for tied in objects:
             menuId = self.menuIdMethod(obj, tied)
             if menuId in menuIds:
-                # We have already encountered this menu.
+                # We have already encountered this menu
                 menuIndex = menuIds[menuId]
                 res[menuIndex].objects.append(tied)
             else:
@@ -947,7 +949,7 @@ class Ref(Field):
         '''This method returns the index of the first linked object that must be
            shown, or None if all linked objects must be shown at once (it
            happens when p_render is "menus").'''
-        # When using 'menus' render mode, all linked objects must be shown.
+        # When using 'menus' render mode, all linked objects must be shown
         if render == 'menus': return
         # When using 'list' (=default) render mode, the index of the first
         # object to show is in the request.

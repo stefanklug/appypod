@@ -328,7 +328,7 @@ class Transition:
             # functions return True.
             hasRole = None
             for condition in self.condition:
-                # "Unwrap" role names from Role instances.
+                # "Unwrap" role names from Role instances
                 if isinstance(condition, Role): condition = condition.name
                 if isinstance(condition, basestring): # It is a role
                     if hasRole == None:
@@ -337,7 +337,7 @@ class Transition:
                         hasRole = True
                 else: # It is a method
                     res = condition(wf, obj.appy())
-                    if not res: return res # False or a No instance.
+                    if not res: return res # False or a No instance
             if hasRole != False:
                 return True
 
@@ -345,13 +345,13 @@ class Transition:
         '''Executes the action related to this transition.'''
         msg = ''
         obj = obj.appy()
-        wf = wf.__instance__ # We need the prototypical instance here.
+        wf = wf.__instance__ # We need the prototypical instance here
         if type(self.action) in (tuple, list):
             # We need to execute a list of actions
             for act in self.action:
                 msgPart = act(wf, obj)
                 if msgPart: msg += msgPart
-        else: # We execute a single action only.
+        else: # We execute a single action only
             msgPart = self.action(wf, obj)
             if msgPart: msg += msgPart
         return msg

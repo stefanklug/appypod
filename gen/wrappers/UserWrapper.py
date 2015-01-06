@@ -304,7 +304,7 @@ class UserWrapper(AbstractWrapper):
         rq = self.request
         if (self.user == self) and hasattr(rq, 'userLogins'):
             return rq.userLogins
-        # Compute it.
+        # Compute it
         res = [group.login for group in self.groups]
         if not groupsOnly: res.append(self.login)
         return res

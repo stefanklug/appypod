@@ -30,7 +30,7 @@ class AbstractWrapper(object):
                          '(%s).click()' % q(gotoName)"/><img
              id=":gotoName" name=":gotoName"
              class="clickable" src=":url('gotoNumber')" title=":label"
-             onClick=":'gotoTied(%s,%s,this.previousSibling,%s)' % \
+             onclick=":'gotoTied(%s,%s,this.previousSibling,%s)' % \
                        (q(sourceUrl), q(field.name), totalNumber)"/></x>''')
 
     pxNavigationStrip = Px('''
@@ -469,7 +469,7 @@ class AbstractWrapper(object):
        <!-- Button on the edit page -->
        <x if="isEdit">
         <input type="button" class="button" value=":label"
-               onClick="submitAppyForm('previous')"
+               onclick="submitAppyForm('previous')"
                style=":'%s; %s' % (url('previous', bg=True), buttonWidth)"/>
         <input type="hidden" name="previousPage" value=":previousPage"/>
        </x>
@@ -479,26 +479,22 @@ class AbstractWrapper(object):
               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage, \
                                                    inPopup=inPopup))"/>
       </x>
-
       <!-- Save -->
       <input if="isEdit and pageInfo.showSave"
-             type="button" class="button" onClick="submitAppyForm('save')"
+             type="button" class="button" onclick="submitAppyForm('save')"
              var2="label=_('object_save')" value=":label"
              style=":'%s; %s' % (url('save', bg=True), \
                                  ztool.getButtonWidth(label))" />
-
       <!-- Cancel -->
       <input if="isEdit and pageInfo.showCancel"
-             type="button" class="button" onClick="submitAppyForm('cancel')"
+             type="button" class="button" onclick="submitAppyForm('cancel')"
              var2="label=_('object_cancel')" value=":label"
              style=":'%s; %s' % (url('cancel', bg=True), \
                                  ztool.getButtonWidth(label))"/>
-
       <x if="not isEdit"
          var2="locked=zobj.isLocked(user, page);
                editable=pageInfo.showOnEdit and pageInfo.showEdit and \
                         mayAct and zobj.mayEdit()">
-
        <!-- Edit -->
        <input type="button" class="button" if="editable and not locked"
               var="label=_('object_edit')" value=":label"
@@ -506,7 +502,6 @@ class AbstractWrapper(object):
                                   ztool.getButtonWidth(label))"
               onclick=":'goto(%s)' % q(zobj.getUrl(mode='edit', page=page, \
                                                    inPopup=inPopup))"/>
-
        <!-- Locked -->
        <a if="editable and locked">
         <img style="cursor: help"
@@ -520,14 +515,20 @@ class AbstractWrapper(object):
              src=":url('unlockBig')"
              onclick=":'onUnlockPage(%s,%s)' % (q(zobj.id), q(page))"/></a>
       </x>
-
+      <!-- Delete -->
+      <input if="not isEdit and not inPopup and zobj.mayDelete()"
+             type="button" class="button"
+             onclick=":'onDeleteObject(%s)' % q(zobj.id)"
+             var2="label=_('object_delete')" value=":label"
+             style=":'%s; %s' % (url('delete', bg=True), \
+                                 ztool.getButtonWidth(label))"/>
       <!-- Next -->
       <x if="nextPage and pageInfo.showNext"
          var2="label=_('page_next');
                buttonWidth=ztool.getButtonWidth(label)">
        <!-- Button on the edit page -->
        <x if="isEdit">
-        <input type="button" class="button" onClick="submitAppyForm('next')"
+        <input type="button" class="button" onclick="submitAppyForm('next')"
                style=":'%s; %s' % (url('next', bg=True), buttonWidth)"
                value=":label"/>
         <input type="hidden" name="nextPage" value=":nextPage"/>
@@ -538,12 +539,10 @@ class AbstractWrapper(object):
               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage, \
                                                    inPopup=inPopup))"/>
       </x>
-
       <!-- Workflow transitions -->
       <x var="targetObj=zobj; buttonsMode='normal'"
          if="mayAct and \
              targetObj.showTransitions(layoutType)">:obj.pxTransitions</x>
-
       <!-- Fields (actions) defined with layout "buttons" -->
       <x if="layoutType != 'edit'"
          var2="fields=zobj.getAppyTypes('buttons', page, type='Action');
@@ -929,13 +928,17 @@ class AbstractWrapper(object):
         return appyObj
 
     def createFrom(self, fieldNameOrClass, other, noSecurity=False,
-                   executeMethods=True, exclude=()):
+                   executeMethods=True, exclude=(), keepBase=False):
         '''Similar to m_create above, excepted that we will use another object
            (p_other) as base for filling in data for the object to create.
-           p_exclude can list fields (by their names) that will not be
-           copied on p_other. Note that this method does not perform a deep
-           copy: objects linked via Ref fields from p_self will be
-           referenced by the clone, but not themselves copied.'''
+           p_exclude can list fields (by their names) that will not be copied on
+           p_other. If p_keepBase is True, basic attributes will be kept on the
+           new object: creator and dates "created" and "modified". Else, the
+           new object's creator will be the logged user.
+
+           Note that this method does not perform a deep copy: objects linked
+           via Ref fields from p_self will be referenced by the clone, but not
+           themselves copied.'''
         # Get the field values to set from p_other and store it in a dict.
         # p_other may not be of the same class as p_self.
         params = {}
@@ -944,9 +947,14 @@ class AbstractWrapper(object):
             if not field.persist or (field.name in exclude) or \
                ((field.type == 'Ref') and field.isBack): continue
             params[field.name] = field.getCopyValue(other.o)
-        return self.create(fieldNameOrClass, noSecurity=noSecurity,
-                           raiseOnWrongAttribute=False,
-                           executeMethods=executeMethods, **params)
+        res = self.create(fieldNameOrClass, noSecurity=noSecurity,
+                          raiseOnWrongAttribute=False,
+                          executeMethods=executeMethods, **params)
+        # Propagate base attributes if required
+        if keepBase:
+            for name in ('creator', 'created', 'modified'):
+                setattr(res.o, name, getattr(other.o, name))
+        return res
 
     def freeze(self, fieldName, template=None, format='pdf', noSecurity=True,
                freezeOdtOnError=True):
