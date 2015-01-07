@@ -132,7 +132,8 @@ class Ref(Field):
       <!-- Fields (actions) defined with layout "buttons" -->
       <x if="not inPopup"
          var2="fields=tied.o.getAppyTypes('buttons', 'main', type='Action');
-               layoutType='view'">
+               layoutType='view';
+               zobj=tied.o">
        <!-- Call pxView and not pxRender to avoid having a table -->
        <x for="field in fields"
           var2="name=field.name; smallButtons=True">:field.pxView</x>

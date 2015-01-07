@@ -33,10 +33,8 @@ class Action(Field):
                 buttonWidth=ztool.getButtonWidth(label);
                 smallButtons=smallButtons|False;
                 css=smallButtons and 'buttonSmall button' or 'button'"
-           id=":formId" action=":ztool.absolute_url() + '/do'"
+           id=":formId" action=":zobj.absolute_url() + '/onExecuteAction'"
            style="display:inline">
-      <input type="hidden" name="action" value="ExecuteAction"/>
-      <input type="hidden" name="objectUid" value=":zobj.id"/>
       <input type="hidden" name="fieldName" value=":name"/>
       <input type="hidden" name="comment" value=""/>
       <input if="field.confirm" type="button" class=":css" title=":descr"
@@ -133,24 +131,24 @@ class Action(Field):
     def onUiRequest(self, obj, rq):
         '''This method is called when a user triggers the execution of this
            action from the user interface.'''
-        # Execute the action (method __call__).
+        # Execute the action (method __call__)
         actionRes = self(obj.appy())
         parent = obj.getParentNode()
         parentAq = getattr(parent, 'aq_base', parent)
         if not hasattr(parentAq, obj.id):
-            # The action has led to obj's deletion.
+            # The action has led to obj's deletion
             obj.reindex()
-        # Unwrap action results.
+        # Unwrap action results
         successfull, msg = actionRes
         if not msg:
-            # Use the default i18n messages.
+            # Use the default i18n messages
             suffix = successfull and 'done' or 'ko'
             msg = obj.translate('action_%s' % suffix)
         if (self.result == 'computation') or not successfull:
             obj.say(msg)
             return obj.goto(obj.getUrl(rq['HTTP_REFERER']))
         elif self.result == 'file':
-            # msg does not contain a message, but a file instance.
+            # msg does not contain a message, but a file instance
             response = rq.RESPONSE
             response.setHeader('Content-Type', sutils.getMimeType(msg.name))
             response.setHeader('Content-Disposition', 'inline;filename="%s"' %\
