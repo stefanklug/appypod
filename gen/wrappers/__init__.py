@@ -850,15 +850,27 @@ class AbstractWrapper(object):
     def sort(self, fieldName, sortKey='title', reverse=False):
         '''Sorts referred elements linked to p_self via p_fieldName according
            to a given p_sortKey which must be an attribute set on referred
-           objects ("title", by default).'''
+           objects ("title", by default) or None. If None, default sorting will
+           occur, using the method stored in field.insert.'''
         refs = getattr(self.o, fieldName, None)
         if not refs: return
         tool = self.tool
-        # refs is a PersistentList: param "key" is not available. So perform the
-        # sort on the real list and then indicate that the persistent list has
-        # changed (the ZODB way).
-        refs.data.sort(key=lambda x: getattr(tool.getObject(x), sortKey),
-                       reverse=reverse)
+        # refs is a PersistentList: param "key" is not available for method
+        # "sort". So perform the sort on the real list and then indicate that
+        # the persistent list has changed (the ZODB way).
+        if not sortKey:
+            # Sort according to field.insert
+            field = self.getField(fieldName)
+            insertMethod = field.insert
+            if not insertMethod:
+                raise Exception('Param "insert" for Ref field %s is None.' % \
+                                fieldName)
+            if not callable(insertMethod): insertMethod = insertMethod[1]
+            keyMethod = lambda uid: insertMethod(self, tool.getObject(uid))
+        else:
+            # Sort according to p_sortKey
+            keyMethod = lambda uid: getattr(tool.getObject(uid), sortKey)
+        refs.data.sort(key=keyMethod, reverse=reverse)
         refs._p_changed = 1
 
     def create(self, fieldNameOrClass, noSecurity=False,

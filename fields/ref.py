@@ -1020,7 +1020,7 @@ class Ref(Field):
         '''This method links p_value (which can be a list of objects) to p_obj
            through this Ref field. When linking 2 objects via a Ref,
            p_linkObject must be called twice: once on the forward Ref and once
-           on the backward ref. p_back indicates if we are calling it on the
+           on the backward Ref. p_back indicates if we are calling it on the
            forward or backward Ref. If p_noSecurity is True, we bypass security
            checks (has the logged user the right to modify this Ref field?).
            If p_executeMethods is False, we do not execute methods that
@@ -1040,7 +1040,7 @@ class Ref(Field):
         if refs == None:
             refs = zobj.getProductConfig().PersistentList()
             setattr(zobj, self.name, refs)
-        # Insert p_value into it.
+        # Insert p_value into it
         uid = value.o.id
         if uid in refs: return
         # Execute self.beforeLink if present

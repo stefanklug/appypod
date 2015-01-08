@@ -767,4 +767,8 @@ class ToolWrapper(AbstractWrapper):
         '''Show this button only if a LDAP connection exists and is enabled.'''
         cfg = self.o.getProductConfig(True).ldap
         if cfg and cfg.enabled: return 'view'
+
+    def mayDelete(self):
+        '''No one can delete the tool.'''
+        return
 # ------------------------------------------------------------------------------

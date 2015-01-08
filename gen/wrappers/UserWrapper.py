@@ -276,7 +276,7 @@ class UserWrapper(AbstractWrapper):
     def mayDelete(self):
         '''No one can delete users "system", "anon" and "admin".'''
         if self.o.id in self.specialUsers: return
-        # Call custom "mayDelete" when present.
+        # Call custom "mayDelete" when present
         custom = self._getCustomMethod('mayDelete')
         if custom: return self._callCustom('mayDelete')
         return True
@@ -292,7 +292,7 @@ class UserWrapper(AbstractWrapper):
            (for local users only).'''
         if self.source == 'zodb': del self.o.acl_users.data[self.login]
         self.log('user %s deleted.' % self.login)
-        # Call a custom "onDelete" if any.
+        # Call a custom "onDelete" if any
         return self._callCustom('onDelete')
 
     def getLogins(self, groupsOnly=False):
