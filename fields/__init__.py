@@ -641,6 +641,7 @@ class Field:
             # be used for sorting.
             return (usage == 'sort') and 'SortableTitle' or 'Title'
         elif self.name == 'state': return 'State'
+        elif self.name == 'SearchableText': return 'SearchableText'
         else:
             res = 'get%s%s'% (self.name[0].upper(), self.name[1:])
             if (usage == 'sort') and self.hasSortIndex(): res += '_sort'
