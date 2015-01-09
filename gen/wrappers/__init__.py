@@ -565,6 +565,11 @@ class AbstractWrapper(object):
      <form name="reindexForm" method="post" action=":'%s/onReindex' % obj.url">
       <input type="hidden" name="indexName"/>
       <table var="indexes=obj.getIndexes(asList=True)" class="list compact">
+       <!-- 1st line: dump local roles, by the way -->
+       <tr>
+        <td>Local roles</td>
+        <td colspan="2"><x>:zobj.__ac_local_roles__</x></td>
+       </tr>
        <tr><th>Index name</th><th>Type</th><th>Content
         <img src=":url('reindex')" class="clickable" title="Reindex all indexes"
              onclick="reindexObject(\'_all_\')"/></th></tr>
@@ -590,7 +595,8 @@ class AbstractWrapper(object):
              x=zobj.removeMyLock(user, page);
              groupedFields=zobj.getGroupedFields(layoutType, page,cssJs=cssJs)">
       <x>:tool.pxPagePrologue</x>
-      <x if="'indexed' in req">:obj.pxIndexedContent</x>
+      <x if="('indexed' in req) and \
+             user.has_role('Manager')">:obj.pxIndexedContent</x>
       <x var="tagId='pageLayout'; tagName=''; tagCss='';
               layoutTarget=obj">:tool.pxLayoutedObject</x>
       <x>:tool.pxPageBottom</x>
