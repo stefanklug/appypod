@@ -370,12 +370,12 @@ class Ref(Field):
         <x if="singleObject" var2="tied=menu.objects[0]">
          <a if="field.menuUrlMethod" class="dropdownMenu"
             href=":field.getMenuUrl(zobj, tied)"
-            title=":tied.title">:field.pxMenu</a>
+            title=":tied.o.getShownValue('title')">:field.pxMenu</a>
          <a if="not field.menuUrlMethod" class="dropdownMenu"
             var2="linkInPopup=inPopup or (target.target != '_self')"
             target=":target.target" onclick=":target.openPopup"
             href=":tied.o.getUrl(nav='',inPopup=linkInPopup)"
-            title=":tied.title">:field.pxMenu</a>
+            title=":tied.o.getShownValue('title')">:field.pxMenu</a>
         </x>
         <x if="not singleObject">:field.pxMenu</x>
 

@@ -139,6 +139,17 @@ class Buffer:
 
     def getLength(self): pass # To be overridden
 
+    def patchColumnsRepeated(self, attrs):
+        '''Every table column must have an attribute
+           "number-columns-repeated".'''
+        key = self.env.tags['number-columns-repeated']
+        attrs = attrs._attrs
+        columnNumber = self.env.getTable().nbOfColumns -1
+        if key in attrs:
+            attrs[key] = ':columnsRepeated[%d]|%s' % (columnNumber, attrs[key])
+        else:
+            attrs[key] = ':columnsRepeated[%d]|1' % (columnNumber)
+
     def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(), hook=False,
                          noEndTag=False, renamedAttrs=None):
         '''Inserts into this buffer the start tag p_elem, with its p_attrs,
@@ -155,6 +166,8 @@ class Buffer:
                    p_hook must be a tuple (s_attrName, s_expr).
         '''
         self.write('<%s' % elem)
+        if self.pod and (elem == self.env.tags['table-column']):
+            self.patchColumnsRepeated(attrs)
         for name, value in attrs.items():
             if ignoreAttrs and (name in ignoreAttrs): continue
             if renamedAttrs and (name in renamedAttrs): name=renamedAttrs[name]
@@ -189,7 +202,7 @@ class Buffer:
     def dumpContent(self, content):
         '''Dumps string p_content into the buffer.'''
         if self.pod:
-            # Take care of converting line breaks and tabs.
+            # Take care of converting line breaks and tabs
             content = escapeXml(content, format='odf',
                                 nsText=self.env.namespaces[self.env.NS_TEXT])
         else:
@@ -615,27 +628,24 @@ class MemoryBuffer(Buffer):
         '''When I must dump the buffer, sometimes (if p_removeMainElems is
         True), I must dump only a subset of it. This method returns the start
         index of the buffer part I must dump.'''
-        if removeMainElems:
-            # Find the start position of the deepest element to remove
-            deepestElem = self.action.elem.DEEPEST_TO_REMOVE
-            pos = self.content.find('<%s' % deepestElem.elem)
-            pos = pos + len(deepestElem.elem)
-            # Now we must find the position of the end of this start tag,
-            # skipping potential attributes.
-            inAttrValue = False # Are we parsing an attribute value ?
-            endTagFound = False # Have we found the end of this tag ?
-            while not endTagFound:
-                pos += 1
-                nextChar = self.content[pos]
-                if (nextChar == '>') and not inAttrValue:
-                    # Yes we have it
-                    endTagFound = True
-                elif nextChar == '"':
-                    inAttrValue = not inAttrValue
-            res = pos + 1
-        else:
-            res = 0
-        return res
+        if not removeMainElems: return 0
+        # Find the start position of the deepest element to remove
+        deepestElem = self.action.elem.DEEPEST_TO_REMOVE
+        pos = self.content.find('<%s' % deepestElem.elem)
+        pos = pos + len(deepestElem.elem)
+        # Now we must find the position of the end of this start tag,
+        # skipping potential attributes.
+        inAttrValue = False # Are we parsing an attribute value ?
+        endTagFound = False # Have we found the end of this tag ?
+        while not endTagFound:
+            pos += 1
+            nextChar = self.content[pos]
+            if (nextChar == '>') and not inAttrValue:
+                # Yes we have it
+                endTagFound = True
+            elif nextChar == '"':
+                inAttrValue = not inAttrValue
+        return pos + 1
 
     def getStopIndex(self, removeMainElems):
         '''This method returns the stop index of the buffer part I must dump.'''
@@ -648,6 +658,17 @@ class MemoryBuffer(Buffer):
             res = self.getLength()
         return res
 
+    def removeAutomaticExpressions(self):
+        '''When a buffer has an action with minus=True, we must remove the
+           "columnsRepeat" expressions automatically inserted by pod. Else, we
+           will have problems when computing the index of the part to keep
+           (m_getStartIndex).'''
+        # Find the start position of the deepest element to remove
+        deepestElem = self.action.elem.DEEPEST_TO_REMOVE
+        pos = self.content.find('<%s' % deepestElem.elem)
+        for index in self.elements.keys():
+            if index < pos: del self.elements[index]
+
     reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
                               '(?P=f)>', re.S)
     def evaluate(self, result, context, subElements=True,
@@ -656,13 +677,14 @@ class MemoryBuffer(Buffer):
            into p_result. With pod, p_result is the root file buffer; with px
            it is a memory buffer.'''
         if not subElements:
-            # Dump the root tag in this buffer, but not its content.
+            # Dump the root tag in this buffer, but not its content
             res = self.reTagContent.match(self.content.strip())
             if not res: result.write(self.content)
             else:
                 g = res.group
                 result.write('<%s:%s%s></%s:%s>' % (g(1),g(2),g(3),g(1),g(2)))
         else:
+            if removeMainElems: self.removeAutomaticExpressions()
             iter = BufferIterator(self)
             currentIndex = self.getStartIndex(removeMainElems)
             while iter.hasNext():

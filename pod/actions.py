@@ -41,7 +41,7 @@ class BufferAction:
         # case of a NullAction or ElseAction, for example)
         self.elem = elem # The element within the buffer that is the object
         # of the action.
-        self.minus = minus # If True, the main elem(s) must not be dumped.
+        self.minus = minus # If True, the main elem(s) must not be dumped
         self.source = source # If 'buffer', we must dump the (evaluated) buffer
         # content. If 'from', we must dump what comes from the 'from' part of
         # the action (='fromExpr')
@@ -115,19 +115,19 @@ class BufferAction:
             self.manageError(result, context, TABLE_NOT_ONE_CELL % self.expr)
         else:
             error = False
-            # Evaluate self.expr in eRes.
+            # Evaluate self.expr in eRes
             eRes = None
             if self.expr:
                 eRes,error = self.evaluateExpression(result, context, self.expr)
             if not error:
-                # Trigger action-specific behaviour.
+                # Trigger action-specific behaviour
                 self.do(result, context, eRes)
 
     def evaluateBuffer(self, result, context):
         if self.source == 'buffer':
             self.buffer.evaluate(result, context, removeMainElems=self.minus)
         else:
-            # Evaluate self.fromExpr in feRes.
+            # Evaluate self.fromExpr in feRes
             feRes = None
             error = False
             try:
@@ -229,9 +229,9 @@ class ForAction(BufferAction):
     def do(self, result, context, elems):
         '''Performs the "for" action. p_elems is the list of elements to
            walk, evaluated from self.expr.'''
-        # Check p_exprRes type.
+        # Check p_exprRes type
         try:
-            # All "iterable" objects are OK.
+            # All "iterable" objects are OK
             iter(elems)
         except TypeError:
             self.manageError(result, context, WRONG_SEQ_TYPE % self.expr)
@@ -245,7 +245,12 @@ class ForAction(BufferAction):
         isCell = False
         if isinstance(self.elem, Cell):
             isCell = True
-            nbOfColumns = self.elem.tableInfo.nbOfColumns
+            if 'columnsRepeated' in context:
+                nbOfColumns = sum(context['columnsRepeated'])
+                customColumnsRepeated = True
+            else:
+                nbOfColumns = self.elem.tableInfo.nbOfColumns
+                customColumnsRepeated = False
             initialColIndex = self.elem.colIndex
             currentColIndex = initialColIndex
             rowAttributes = self.elem.tableInfo.curRowAttrs
@@ -253,7 +258,7 @@ class ForAction(BufferAction):
             # number of cells for the current row.
             if not elems:
                 result.dumpElement(Cell.OD.elem)
-        # Enter the "for" loop.
+        # Enter the "for" loop
         loop, outerLoop = self.initialiseLoop(context, elems)
         i = -1
         for item in elems:
@@ -269,17 +274,19 @@ class ForAction(BufferAction):
                 result.dumpEndElement(Row.OD.elem)
                 result.dumpStartElement(Row.OD.elem, rowAttributes)
                 currentColIndex = 0
-            # If a sub-action is defined, execute it.
+            # If a sub-action is defined, execute it
             if self.subAction:
                 self.subAction.execute(result, context)
             else:
-                # Evaluate the buffer directly.
+                # Evaluate the buffer directly
                 self.evaluateBuffer(result, context)
             # Cell: increment the current column index
             if isCell:
                 currentColIndex += 1
-        # Cell: leave the last row with the correct number of cells
-        if isCell and elems:
+        # Cell: leave the last row with the correct number of cells, excepted
+        # if the user has specified himself "columnsRepeated": it is his
+        # responsibility to produce the correct number of cells.
+        if isCell and elems and not customColumnsRepeated:
             wrongNbOfCells = (currentColIndex-1) - initialColIndex
             if wrongNbOfCells < 0: # Too few cells for last row
                 for i in range(abs(wrongNbOfCells)):
@@ -302,7 +309,7 @@ class ForAction(BufferAction):
                 context[self.iter] = ''
                 for i in range(nbOfMissingCellsLastLine):
                     self.buffer.evaluate(result, context, subElements=False)
-        # Delete the current loop object and restore the overridden one if any.
+        # Delete the current loop object and restore the overridden one if any
         try:
             delattr(context['loop'], self.iter)
         except AttributeError:
@@ -314,7 +321,7 @@ class ForAction(BufferAction):
             context[self.iter] = hiddenVariable
         else:
             if elems:
-                if self.iter in context: # May not be the case on error.
+                if self.iter in context: # May not be the case on error
                     del context[self.iter]
 
 class NullAction(BufferAction):
@@ -345,7 +352,7 @@ class VariablesAction(BufferAction):
         '''
         hidden = None
         for name, expr in self.variables:
-            # Evaluate variable expression in vRes.
+            # Evaluate variable expression in vRes
             vRes, error = self.evaluateExpression(result, context, expr)
             if error: return
             # Replace the value of global variables
@@ -360,11 +367,11 @@ class VariablesAction(BufferAction):
                     hidden[name] = context[name]
             # Store the result into the context
             context[name] = vRes
-        # If a sub-action is defined, execute it.
+        # If a sub-action is defined, execute it
         if self.subAction:
             self.subAction.execute(result, context)
         else:
-            # Evaluate the buffer directly.
+            # Evaluate the buffer directly
             self.evaluateBuffer(result, context)
         # Restore hidden variables if any
         if hidden: context.update(hidden)
