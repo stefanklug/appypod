@@ -192,6 +192,7 @@ class PodEnvironment(OdfEnvironment):
             xmlElemDef.__init__(elemFullName)
         # Create a table of names of used tags and attributes (precomputed,
         # including namespace, for performance).
+        table = ns[self.NS_TABLE]
         self.tags = {
           'tracked-changes': '%s:tracked-changes' % ns[self.NS_TEXT],
           'change': '%s:change' % ns[self.NS_TEXT],
@@ -199,17 +200,17 @@ class PodEnvironment(OdfEnvironment):
           'change-start': '%s:change-start' % ns[self.NS_TEXT],
           'change-end': '%s:change-end' % ns[self.NS_TEXT],
           'conditional-text': '%s:conditional-text' % ns[self.NS_TEXT],
-          'table-cell': '%s:table-cell' % ns[self.NS_TABLE],
-          'formula': '%s:formula' % ns[self.NS_TABLE],
+          'table': '%s:table' % table,
+          'table-name': '%s:name' % table,
+          'table-cell': '%s:table-cell' % table,
+          'table-column': '%s:table-column' % table,
+          'formula': '%s:formula' % table,
           'value-type': '%s:value-type' % ns[self.NS_OFFICE],
           'value': '%s:value' % ns[self.NS_OFFICE],
           'string-value': '%s:string-value' % ns[self.NS_OFFICE],
           'span': '%s:span' % ns[self.NS_TEXT],
-          'number-columns-spanned': '%s:number-columns-spanned' % \
-                                    ns[self.NS_TABLE],
-          'number-columns-repeated': '%s:number-columns-repeated' % \
-                                    ns[self.NS_TABLE],
-          'table-column': '%s:table-column' % ns[self.NS_TABLE],
+          'number-columns-spanned': '%s:number-columns-spanned' % table,
+          'number-columns-repeated': '%s:number-columns-repeated' % table,
         }
         self.ignorableElements = (self.tags['tracked-changes'],
                                   self.tags['change'])

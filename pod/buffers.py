@@ -139,16 +139,23 @@ class Buffer:
 
     def getLength(self): pass # To be overridden
 
-    def patchColumnsRepeated(self, attrs):
-        '''Every table column must have an attribute
-           "number-columns-repeated".'''
-        key = self.env.tags['number-columns-repeated']
-        attrs = attrs._attrs
-        columnNumber = self.env.getTable().nbOfColumns -1
-        if key in attrs:
-            attrs[key] = ':columnsRepeated[%d]|%s' % (columnNumber, attrs[key])
-        else:
-            attrs[key] = ':columnsRepeated[%d]|1' % (columnNumber)
+    def patchTableElement(self, elem, attrs):
+        '''Convert the name of a table to an expression allowing the user to
+           define himself this name via variable "tableName".
+
+           Convert attribute "number-columns-repeated" of every table column
+           (or add it if it does not exist) to let the user define how he will
+           repeat table columns via variable "columnsRepeated".'''
+        if elem == self.env.tags['table']:
+            attrs = attrs._attrs
+            name = self.env.tags['table-name']
+            attrs[name] = ':tableName|"%s"' % attrs[name]
+        elif elem == self.env.tags['table-column']:
+            attrs = attrs._attrs
+            key = self.env.tags['number-columns-repeated']
+            columnNumber = self.env.getTable().nbOfColumns -1
+            nb = (key in attrs) and attrs[key] or '1'
+            attrs[key] = ':columnsRepeated[%d]|%s' % (columnNumber, nb)
 
     def dumpStartElement(self, elem, attrs={}, ignoreAttrs=(), hook=False,
                          noEndTag=False, renamedAttrs=None):
@@ -166,8 +173,8 @@ class Buffer:
                    p_hook must be a tuple (s_attrName, s_expr).
         '''
         self.write('<%s' % elem)
-        if self.pod and (elem == self.env.tags['table-column']):
-            self.patchColumnsRepeated(attrs)
+        # Some table elements must be patched (pod only)
+        if self.pod: self.patchTableElement(elem, attrs)
         for name, value in attrs.items():
             if ignoreAttrs and (name in ignoreAttrs): continue
             if renamedAttrs and (name in renamedAttrs): name=renamedAttrs[name]
