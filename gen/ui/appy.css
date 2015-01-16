@@ -120,6 +120,12 @@ td.search { padding-top: 8px }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
 .grid td { padding: 3px 3px 0 3px }
+.msgTable { margin: 6px 0; width: 100%; font-size: 93% }
+.msgTable tr { vertical-align: top }
+.msgTable td, .msgTable th { border: 1px solid grey; color: grey;
+                             padding: 0px 5px; text-align: left }
+.msgTable th { background-color: #f0e3b8; font-style: italic;
+               font-weight: normal }
 .cellGap { padding-right: 0.4em }
 .cellDashed { border: 1px dashed grey !important }
 .noStyle { border: 0 !important; padding: 0 !important; margin: 0 !important }

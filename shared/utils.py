@@ -170,6 +170,14 @@ def splitList(l, sub):
     return res
 
 # ------------------------------------------------------------------------------
+def flipDict(d):
+    '''Flips dict p_d: keys become values, values become keys. p_d is left
+       untouched: a new, flipped, dict is returned.'''
+    res = {}
+    for k, v in d.iteritems(): res[v] = k
+    return res
+
+# ------------------------------------------------------------------------------
 class Traceback:
     '''Dumps the last traceback into a string.'''
     def get():

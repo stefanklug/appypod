@@ -381,7 +381,7 @@ class ImageImporter(DocImporter):
             self.importPath = newImportPath
             imagePath = os.path.splitext(imagePath)[0] + '.png'
             self.format = 'png'
-        # Retrieve image size from self.size.
+        # Retrieve image size from self.size
         width = height = None
         if self.size and (self.sizeUnit != 'pc'):
             width, height = self.size

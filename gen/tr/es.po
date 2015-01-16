@@ -235,6 +235,18 @@ msgstr ""
 msgid "page_unlock"
 msgstr ""
 
+#. Default: "Keep the file unchanged"
+msgid "keep_file"
+msgstr ""
+
+#. Default: "Delete the file"
+msgid "delete_file"
+msgstr ""
+
+#. Default: "Replace it with a new file"
+msgid "replace_file"
+msgstr ""
+
 #. Default: "Are you sure?"
 msgid "action_confirm"
 msgstr "¿Está seguro?"

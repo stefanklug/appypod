@@ -327,20 +327,20 @@ class File(Field):
               checked=":value and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_nochange' % name"
               onclick=":'document.getElementById(%s).disabled=true' % fName"/>
-       <label lfor=":'%s_nochange' % name">Keep the file unchanged</label><br/>
+       <label lfor=":'%s_nochange' % name">:_('keep_file')</label><br/>
        <!-- Delete the file. -->
        <x if="not field.required">
         <input type="radio" value="delete"
                name=":'%s_delete' % name" id=":'%s_delete' % name"
                onclick=":'document.getElementById(%s).disabled=true' % fName"/>
-        <label lfor=":'%s_delete' % name">Delete the file</label><br/>
+        <label lfor=":'%s_delete' % name">:_('delete_file')</label><br/>
        </x>
        <!-- Replace with a new file. -->
        <input type="radio" value=""
               checked=":not value and 'checked' or None"
               name=":'%s_delete' % name" id=":'%s_upload' % name"
               onclick=":'document.getElementById(%s).disabled=false' % fName"/>
-       <label lfor=":'%s_upload' % name">Replace it with a new file</label><br/>
+       <label lfor=":'%s_upload' % name">:_('replace_file')</label><br/>
       </x>
       <!-- The upload field. -->
       <input type="file" name=":'%s_file' % name" id=":'%s_file' % name"
