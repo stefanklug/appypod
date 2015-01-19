@@ -121,21 +121,19 @@ class Field:
     pxChanges = Px('''
      <x if="zobj.hasHistory(name)">
       <!-- Button for showing the field version containing changes -->
-      <input type="button" class="button" if="not showChanges"
-             var="label=_('changes_show')" value=":label"
-             style=":'%s; %s' % (url('changes', bg=True), \
-                                 ztool.getButtonWidth(label))"
+      <input if="not showChanges"
+             var2="label=_('changes_show');
+                   css=ztool.getButtonCss(label)" type="button" class=":css"
+             value=":label" style=":url('changes', bg=True)"
              onclick=":'askField(%s,%s,%s,null,%s)' % \
                        (q(tagId), q(obj.url), q('view'), q('True'))"/>
-
       <!-- Button for showing the field version without changes -->
-      <input type="button" class="button" if="showChanges"
-             var="label=_('changes_hide')" value=":label"
-             style=":'%s; %s' % (url('changesNo', bg=True), \
-                                 ztool.getButtonWidth(label))"
+      <input if="showChanges"
+             var2="label=_('changes_hide');
+                  css=ztool.getButtonCss(label)" type="button" class=":css"
+             value=":label" style=":url('changesNo', bg=True)"
              onclick=":'askField(%s,%s,%s,null,%s)' % \
-                       (q(tagId), q(obj.url), q('view'), q('False'))"/>
-     </x>''')
+                       (q(tagId), q(obj.url), q('view'), q('False'))"/></x>''')
 
     def __init__(self, validator, multiplicity, default, show, page, group,
                  layouts, move, indexed, mustIndex, searchable,

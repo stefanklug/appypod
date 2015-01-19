@@ -30,9 +30,8 @@ class Action(Field):
      <form var="formId='%s_%s_form' % (zobj.id, name);
                 label=_(field.labelId);
                 descr=field.hasDescr and _(field.descrId) or None;
-                buttonWidth=ztool.getButtonWidth(label);
                 smallButtons=smallButtons|False;
-                css=smallButtons and 'buttonSmall button' or 'button'"
+                css=ztool.getButtonCss(label, smallButtons)"
            id=":formId" action=":zobj.absolute_url() + '/onExecuteAction'"
            style="display:inline">
       <input type="hidden" name="fieldName" value=":name"/>
@@ -40,13 +39,11 @@ class Action(Field):
       <input if="field.confirm" type="button" class=":css" title=":descr"
          var="labelConfirm=_(field.labelId + '_confirm');
               commentParam=(field.confirm == 'text') and 'true' or 'false'"
-         value=":label"
-         style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"
+         value=":label" style=":url(field.icon, bg=True)"
          onclick=":'askConfirm(%s,%s,%s,%s)' % (q('form'), q(formId), \
                                                q(labelConfirm), commentParam)"/>
       <input if="not field.confirm" type="submit" class=":css" name="do"
-             value=":label" title=":descr"
-             style=":'%s; %s' % (url(field.icon, bg=True), buttonWidth)"/>
+             value=":label" title=":descr" style=":url(field.icon, bg=True)"/>
      </form>''')
 
     # It is not possible to edit an action, not to search it

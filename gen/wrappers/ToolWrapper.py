@@ -228,24 +228,21 @@ class ToolWrapper(AbstractWrapper):
             class=":(not currentSearch and (currentClass==className) and \
                     (currentPage=='query')) and \
                     'current' or ''">::_(className + '_plural')</a>
-        </div>
-
         <!-- Create instances of this class -->
-        <form if="ztool.userMayCreate(rootClass) and \
-                  ('form' in ztool.getCreateMeans(rootClass))" class="addForm"
-              var2="target=ztool.getLinksTargetInfo(rootClass)"
-              action=":'%s/do' % toolUrl" target=":target.target">
-         <input type="hidden" name="action" value="Create"/>
-         <input type="hidden" name="className" value=":className"/>
-         <input type="hidden" name="popup"
-               value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
-         <input type="submit" class="buttonSmall button"
-                var="label=_('query_create')" value=":label"
-                onclick=":target.openPopup"
-                style=":'%s; %s' % (url('add', bg=True), \
-                                    ztool.getButtonWidth(label))"/>
-        </form>
-
+         <form if="ztool.userMayCreate(rootClass) and \
+                   ('form' in ztool.getCreateMeans(rootClass))" class="addForm"
+               var2="target=ztool.getLinksTargetInfo(rootClass)"
+               action=":'%s/do' % toolUrl" target=":target.target">
+          <input type="hidden" name="action" value="Create"/>
+          <input type="hidden" name="className" value=":className"/>
+          <input type="hidden" name="popup"
+                value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
+          <input var="label=_('query_create');
+                      css=ztool.getButtonCss(label)" type="submit" class=":css"
+                 value=":label" onclick=":target.openPopup"
+                 style=":url('add', bg=True)"/>
+         </form>
+        </div>
         <!-- Searches -->
         <x if="ztool.advancedSearchEnabledFor(rootClass)">
          <!-- Live search -->
@@ -365,7 +362,8 @@ class ToolWrapper(AbstractWrapper):
              if="sub">::zobj.highlight(sub)</span>
 
        <!-- Actions -->
-       <div if="not inPopup and zobj.mayAct()">
+       <div if="not inPopup and uiSearch.showActions and zobj.mayAct()"
+            style=":'display:%s; margin-bottom:2px' % uiSearch.showActions">
         <!-- Edit -->
         <a if="zobj.mayEdit()"
            var2="navInfo='search.%s.%s.%d.%d' % \
@@ -453,15 +451,13 @@ class ToolWrapper(AbstractWrapper):
       </table>
       <!-- The button for selecting objects and closing the popup. -->
       <div if="inPopup and cbShown" align=":dleft">
-       <input type="button" class="button"
-              var="label=_('object_link_many')"
-              value=":label"
+       <input type="button"
+              var="label=_('object_link_many'); css=ztool.getButtonCss(label)"
+              value=":label" class=":css" style=":url('linkMany', bg=True)"
               onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
                (q(rootHookId), q(uiSearch.initiator.url), \
                 q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
-                q(filterKey), q(filterValue))"
-              style=":'%s; %s' % (url('linkMany', bg=True), \
-                                  ztool.getButtonWidth(label))"/>
+                q(filterKey), q(filterValue))"/>
       </div>
       <!-- Init checkboxes if present. -->
       <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
@@ -622,10 +618,9 @@ class ToolWrapper(AbstractWrapper):
 
        <!-- Submit button -->
        <p align=":dright"><br/>
-        <input type="submit" class="button" var="label=_('search_button')"
-               value=":label"
-               style=":'%s; %s' % (url('search', bg=True), \
-                                   ztool.getButtonWidth(label))"/>
+        <input var="label=_('search_button');
+                    css=ztool.getButtonCss(label, small=False)" type="submit"
+               class=":css" value=":label" style=":url('search', bg=True)"/>
        </p>
       </form>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')

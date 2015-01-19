@@ -1227,12 +1227,17 @@ class ToolMixin(BaseMixin):
                "})();\n" % gaId
         return code
 
-    def getButtonWidth(self, label):
-        '''Determine button width, in pixels, corresponding to the button
-           p_label.'''
-        # Set a minimum width for small labels.
-        if len(label) < 15: return 'width:130px'
-        return 'padding-left: 26px; padding-right: 8px'
+    def getButtonCss(self, label, small=True):
+        '''Gets the CSS class(es) to set on a button, given it l_label and its
+           size (p_small or not).'''
+        # CSS for a small button. No minimum width applies: small button are
+        # meant to be small.
+        if small: return 'buttonSmall button'
+        # CSS for a normal button. A minimum width (via buttonFixed) is defined
+        # when the label is small: it produces ranges of buttons of the same
+        # width (excepted when labels are too large), which is more beautiful.
+        if len(label) < 15: return 'buttonFixed button'
+        return 'button'
 
     def getLinksTargetInfo(self, klass):
         '''Appy allows to open links to view or edit instances of p_klass

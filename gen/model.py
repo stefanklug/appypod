@@ -211,7 +211,8 @@ class Group(ModelClass):
                     back=gen.Ref(attribute='groups', show=User.showRoles,
                                  multiplicity=(0,None)),
                     select=getSelectableUsers, height=15,
-                    showHeaders=True, shownInfo=('title', 'login'))
+                    showHeaders=True, shownInfo=('title', 'login'),
+                    showActions='inline')
 
 # The Translation class --------------------------------------------------------
 class Translation(ModelClass):
@@ -274,7 +275,7 @@ class Tool(ModelClass):
     users = gen.Ref(User, multiplicity=(0,None), add=True, link=False,
                     back=gen.Ref(attribute='toTool', show=False), page=userPage,
                     queryable=True, queryFields=('title', 'login'),
-                    show=isManager, showHeaders=True,
+                    show=isManager, showHeaders=True, showActions='inline',
                     shownInfo=('title', 'login*120px', 'roles*120px'))
 
     def computeConnectedUsers(self): pass
@@ -289,7 +290,7 @@ class Tool(ModelClass):
                      back=gen.Ref(attribute='toTool2', show=False),
                      page=gen.Page('groups', show=isManager), show=isManager,
                      queryable=True, queryFields=('title', 'login'),
-                     showHeaders=True,
+                     showHeaders=True, showActions='inline',
                      shownInfo=('title', 'login*120px', 'roles*120px'))
     pt = gen.Page('translations', show=isManager)
     translations = gen.Ref(Translation, multiplicity=(0,None), add=False,
@@ -299,7 +300,7 @@ class Tool(ModelClass):
                                             layouts='f')
     pages = gen.Ref(Page, multiplicity=(0,None), add=True, link=False,
                     show='view', back=gen.Ref(attribute='toTool3', show=False),
-                    page=gen.Page('pages', show=isManager))
+                    showActions='inline', page=gen.Page('pages',show=isManager))
 
     @classmethod
     def _appy_clean(klass):

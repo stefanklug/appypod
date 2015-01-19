@@ -51,33 +51,36 @@ class Ref(Field):
     # This PX displays buttons for triggering global actions on several linked
     # objects (delete many, unlink many,...)
     pxGlobalActions = Px('''
-     <!-- Insert several objects (if in pick list) -->
-     <input if="inPickList" type="button" class="button"
-            var2="action='link'; label=_('object_link_many')" value=":label"
-            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":'%s; %s' % (url('linkMany', bg=True), \
-                                ztool.getButtonWidth(label))"/>
-     <!-- Unlink several objects -->
-     <input if="mayUnlink"
-            var2="imgName=linkList and 'unlinkManyUp' or 'unlinkMany';
-                  action='unlink'; label=_('object_unlink_many')"
-            type="button" class="button" value=":label"
-            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":'%s; %s' % (url(imgName, bg=True), \
-                                ztool.getButtonWidth(label))"/>
-     <!-- Delete several objects -->
-     <input if="mayEdit and field.delete"
-            var2="action='delete'; label=_('object_delete_many')"
-            type="button" class="button" value=":label"
-            onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
-            style=":'%s; %s' % (url('deleteMany', bg=True), \
-                                ztool.getButtonWidth(label))"/>
-     ''')
+     <div class="globalActions">
+      <!-- Insert several objects (if in pick list) -->
+      <input if="inPickList"
+             var2="action='link'; label=_('object_link_many');
+                   css=ztool.getButtonCss(label)"
+             type="button" class=":css" value=":label"
+             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
+             style=":url('linkMany', bg=True)"/>
+      <!-- Unlink several objects -->
+      <input if="mayUnlink"
+             var2="imgName=linkList and 'unlinkManyUp' or 'unlinkMany';
+                   action='unlink'; label=_('object_unlink_many');
+                   css=ztool.getButtonCss(label)"
+             type="button" class=":css" value=":label"
+             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
+             style=":url(imgName, bg=True)"/>
+      <!-- Delete several objects -->
+      <input if="mayEdit and field.delete"
+             var2="action='delete'; label=_('object_delete_many');
+                   css=ztool.getButtonCss(label)"
+             type="button" class=":css" value=":label"
+             onclick=":'onLinkMany(%s,%s)' % (q(action), q(ajaxHookId))"
+             style=":url('deleteMany', bg=True)"/>
+     </div>''')
 
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <div>
+     <div if="field.showActions"
+          style=":'display:%s; margin-bottom:2px' % field.showActions">
       <!-- Arrows for moving objects up or down -->
       <x if="(totalNumber &gt;1) and changeOrder and not inPickList \
             and not inMenu"
@@ -143,26 +146,24 @@ class Ref(Field):
     # Displays the button allowing to add a new object through a Ref field, if
     # it has been declared as addable and if multiplicities allow it.
     pxAdd = Px('''
-      <form if="mayAdd and not inPickList"
-            class=":inMenu and 'addFormMenu' or 'addForm'"
-            var2="formName='%s_%s_add' % (zobj.id, field.name)"
-            name=":formName" id=":formName" target=":target.target"
-            action=":'%s/do' % folder.absolute_url()">
-       <input type="hidden" name="action" value="Create"/>
-       <input type="hidden" name="className" value=":tiedClassName"/>
-       <input type="hidden" name="nav"
-              value=":field.getNavInfo(zobj, 0, totalNumber)"/>
-       <input type="hidden" name="popup"
-              value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
-       <input
-        type=":(field.addConfirm or field.noForm) and 'button' or 'submit'"
-        class="buttonSmall button"
-        var="label=_('add_ref')" value=":label"
-             style=":'%s; %s' % (url('add', bg=True), \
-                                 ztool.getButtonWidth(label))"
-             onclick=":field.getOnAdd(q, formName, addConfirmMsg, target, \
-                                      navBaseCall, startNumber)"/>
-      </form>''')
+     <form if="mayAdd and not inPickList"
+           class=":inMenu and 'addFormMenu' or 'addForm'"
+           var2="formName='%s_%s_add' % (zobj.id, field.name)"
+           name=":formName" id=":formName" target=":target.target"
+           action=":'%s/do' % folder.absolute_url()">
+      <input type="hidden" name="action" value="Create"/>
+      <input type="hidden" name="className" value=":tiedClassName"/>
+      <input type="hidden" name="nav"
+             value=":field.getNavInfo(zobj, 0, totalNumber)"/>
+      <input type="hidden" name="popup"
+             value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
+      <input
+       type=":(field.addConfirm or field.noForm) and 'button' or 'submit'"
+       var="label=_('add_ref'); css=ztool.getButtonCss(label)" class=":css"
+       value=":label" style=":url('add', bg=True)"
+       onclick=":field.getOnAdd(q, formName, addConfirmMsg, target, \
+                                navBaseCall, startNumber)"/>
+     </form>''')
 
     # Displays the button allowing to select from a popup objects to be linked
     # via the Ref field.
@@ -173,12 +174,13 @@ class Ref(Field):
         href=":'%s/query?className=%s&amp;search=%s:%s:%s&amp;popup=1' % \
                (ztool.absolute_url(), tiedClassName, obj.uid, field.name, \
                 popupMode)">
-      <input type="button" class="buttonSmall button"
+      <input type="button"
              var="labelId= (popupMode=='repl') and 'search_button' or 'add_ref';
                   icon= (popupMode=='repl') and 'search' or 'add';
-                  label=_(labelId)" value=":label"
-             style=":'%s;%s' % (url(icon,bg=True), ztool.getButtonWidth(label))"
-             onclick="openPopup('iframePopup')"/>
+                  label=_(labelId);
+                  css=ztool.getButtonCss(label)"
+             value=":label" class=":css"
+             style=":url(icon, bg=True)" onclick="openPopup('iframePopup')"/>
      </a>''')
 
     # This PX displays, in a cell header from a ref table, icons for sorting the
@@ -233,10 +235,8 @@ class Ref(Field):
          var2="popupMode='add'">:field.pxLink</x>
       <!-- The search button if field is queryable -->
       <input if="objects and field.queryable" type="button"
-             class="buttonSmall button"
-             var2="label=_('search_button')" value=":label"
-             style=":'%s; %s' % (url('search', bg=True), \
-                                 ztool.getButtonWidth(label))"
+             var2="label=_('search_button'); css=ztool.getButtonCss(label)"
+             value=":label" class=":css" style=":url('search', bg=True)"
              onclick=":'goto(%s)' % \
               q('%s/search?className=%s&amp;ref=%s:%s' % \
               (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
@@ -286,7 +286,7 @@ class Ref(Field):
         <x if="refField.name == 'title'">
          <x if="mayView">
           <x>:field.pxObjectTitle</x>
-          <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+          <x if="tied.o.mayAct()">:field.pxObjectActions</x>
          </x>
          <div if="not mayView">
           <img src=":url('fake')" style="margin-right: 5px"/>
@@ -303,7 +303,7 @@ class Ref(Field):
      </table>
 
      <!-- Global actions -->
-     <div if="mayEdit and checkboxes">:field.pxGlobalActions</div>
+     <x if="mayEdit and checkboxes">:field.pxGlobalActions</x>
 
      <!-- (Bottom) navigation -->
      <x>:tool.pxNavigate</x>
@@ -392,7 +392,7 @@ class Ref(Field):
              href=":field.getMenuUrl(zobj, tied)">:tied.title</a>
           <!-- Show standard pxObjectTitle else -->
           <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
-          <div if="tied.o.mayAct()">:field.pxObjectActions</div>
+          <x if="tied.o.mayAct()">:field.pxObjectActions</x>
          </div>
         </div>
        </div>
@@ -531,7 +531,8 @@ class Ref(Field):
                  checkboxes=True, checkboxesDefault=None, sdefault='',
                  scolspan=1, swidth=None, sheight=None, sselect=None,
                  persist=True, render='list', menuIdMethod=None,
-                 menuInfoMethod=None, menuUrlMethod=None, view=None, xml=None):
+                 menuInfoMethod=None, menuUrlMethod=None, view=None, xml=None,
+                 showActions=True):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ? "add" may also contain
@@ -712,6 +713,13 @@ class Ref(Field):
         # "menuUrlMethod" is an optional method that allows to compute an
         # alternative URL for the tied object that is shown within the menu.
         self.menuUrlMethod = menuUrlMethod
+        # "showActions" determines if we must show or not actions on every tied
+        # object. Values can be: True, False or "inline". If True, actions will
+        # appear in a "div" tag, below the object title; if "inline", they will
+        # appear besides it, producing a more compact list of results.
+        self.showActions = showActions
+        if showActions == True: self.showActions = 'block'
+        # Call the base constructor
         Field.__init__(self, validator, multiplicity, default, show, page,
                        group, layouts, move, indexed, mustIndex, searchable,
                        specificReadPermission, specificWritePermission, width,

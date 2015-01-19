@@ -26,8 +26,8 @@ class Search:
     '''Used for specifying a search for a given class.'''
     def __init__(self, name=None, group=None, sortBy='', sortOrder='asc',
                  maxPerPage=30, default=False, colspan=1, translated=None,
-                 show=True, translatedDescr=None, checkboxes=False,
-                 checkboxesDefault=True, **fields):
+                 show=True, showActions=True, translatedDescr=None,
+                 checkboxes=False, checkboxesDefault=True, **fields):
         # "name" is mandatory, excepted in some special cases (ie, when used as
         # "select" param for a Ref field).
         self.name = name
@@ -46,6 +46,11 @@ class Search:
         self.translatedDescr = translatedDescr
         # Condition for showing or not this search
         self.show = show
+        # Condition for showing or not actions on every result of this search.
+        # Can be: True, False or "inline". If True, actions will appear in a
+        # "div" tag, below the object title; if "inline", they will appear
+        # besides it, producing a more compact list of results.
+        self.showActions = showActions
         # In the dict below, keys are indexed field names or names of standard
         # indexes, and values are search values.
         self.fields = fields
@@ -175,6 +180,10 @@ class UiSearch:
         self.name = search.name
         self.type = 'search'
         self.colspan = search.colspan
+        # Property "display" of the div tag containing actions for every search
+        # result.
+        self.showActions = search.showActions
+        if search.showActions == True: self.showActions = 'block'
         if search.translated:
             self.translated = search.translated
             self.translatedDescr = search.translatedDescr

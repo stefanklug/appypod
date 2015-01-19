@@ -463,22 +463,18 @@ class Transition:
 
 class UiTransition:
     '''Represents a widget that displays a transition.'''
-    pxView = Px('''<x var="buttonCss = (buttonsMode == 'small') and \
-                                       'buttonSmall button' or 'button'">
+    pxView = Px('''
+     <x var="label=transition.title;
+             css=ztool.getButtonCss(label, buttonsMode == 'small')">
       <!-- Real button -->
-      <input if="transition.mayTrigger" type="button" class=":buttonCss"
-             var2="label=transition.title"
-             style=":'%s; %s' % (url(transition.icon, bg=True), \
-                                 ztool.getButtonWidth(label))"
-             value=":label"
+      <input if="transition.mayTrigger" type="button" class=":css"
+             style=":url(transition.icon, bg=True)" value=":label"
              onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
                         q(transition.name), q(transition.confirm))"/>
 
       <!-- Fake button, explaining why the transition can't be triggered -->
       <input if="not transition.mayTrigger" type="button"
-             class=":'fake ' + buttonCss" var2="label=transition.title"
-             style=":'%s; %s' % (url('fake', bg=True),
-                                 ztool.getButtonWidth(label))"
+             class=":'fake %s' % css" style=":url('fake', bg=True)"
              value=":label" title=":transition.reason"/></x>''')
 
     def __init__(self, name, transition, obj, mayTrigger, ):
