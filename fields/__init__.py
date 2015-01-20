@@ -570,7 +570,14 @@ class Field:
             # self.default, of self.default() if it is a method.
             if callable(self.default):
                 try:
-                    return self.callMethod(obj, self.default)
+                    # Caching a default value can lead to problems. For example,
+                    # the process of creating an object from another one, or
+                    # from some data, sometimes consists in (a) creating an
+                    # "empty" object, (b) initializing its values and
+                    # (c) reindexing it. Default values are computed in (a),
+                    # but it they depend on values set at (b), and are cached
+                    # and indexed, (c) will get the wrong, cached value.
+                    return self.callMethod(obj, self.default, cache=False)
                 except Exception, e:
                     # Already logged. Here I do not raise the exception,
                     # because it can be raised as the result of reindexing
