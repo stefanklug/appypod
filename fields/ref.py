@@ -79,8 +79,8 @@ class Ref(Field):
     # This PX displays icons for triggering actions on a given referenced object
     # (edit, delete, etc).
     pxObjectActions = Px('''
-     <div if="field.showActions"
-          style=":'display:%s; margin-bottom:2px' % field.showActions">
+     <div if="field.showActions" class="objectActions"
+          style=":'display:%s' % field.showActions">
       <!-- Arrows for moving objects up or down -->
       <x if="(totalNumber &gt;1) and changeOrder and not inPickList \
             and not inMenu"
@@ -134,12 +134,12 @@ class Ref(Field):
          var2="targetObj=tied.o; buttonsMode='small'">:tied.pxTransitions</x>
       <!-- Fields (actions) defined with layout "buttons" -->
       <x if="not inPopup"
-         var2="fields=tied.o.getAppyTypes('buttons', 'main', type='Action');
-               layoutType='view';
+         var2="fields=tied.o.getAppyTypes('buttons', 'main');
+               layoutType='cell';
                zobj=tied.o">
-       <!-- Call pxView and not pxRender to avoid having a table -->
+       <!-- Call pxCell and not pxRender to avoid having a table -->
        <x for="field in fields"
-          var2="name=field.name; smallButtons=True">:field.pxView</x>
+          var2="name=field.name; smallButtons=True">:field.pxCell</x>
       </x>
      </div>''')
 
@@ -159,8 +159,10 @@ class Ref(Field):
              value=":(inPopup or (target.target != '_self')) and '1' or '0'"/>
       <input
        type=":(field.addConfirm or field.noForm) and 'button' or 'submit'"
-       var="label=_('add_ref'); css=ztool.getButtonCss(label)" class=":css"
-       value=":label" style=":url('add', bg=True)"
+       var="addLabel=_('add_ref');
+            label=inMenu and tiedClassLabel or addLabel;
+            css=ztool.getButtonCss(label)" class=":css"
+       value=":label" style=":url('add', bg=True)" title=":addLabel"
        onclick=":field.getOnAdd(q, formName, addConfirmMsg, target, \
                                 navBaseCall, startNumber)"/>
      </form>''')
@@ -169,7 +171,7 @@ class Ref(Field):
     # via the Ref field.
     pxLink = Px('''
      <a target="appyIFrame"
-        var="tiedClassName=ztool.getPortalType(field.klass);
+        var="tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
              className=ztool.getPortalType(obj.klass)"
         href=":'%s/query?className=%s&amp;search=%s:%s:%s&amp;popup=1' % \
                (ztool.absolute_url(), tiedClassName, obj.uid, field.name, \
@@ -327,6 +329,7 @@ class Ref(Field):
              batchSize=info.batchSize;
              batchNumber=len(objects);
              tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
+             tiedClassLabel=tiedClassLabel|_(tiedClassName);
              target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=mayEdit|\
                      not field.isBack and zobj.mayEdit(field.writePermission);
@@ -351,15 +354,12 @@ class Ref(Field):
      <x>:len(menu.objects)</x>''')
 
     pxViewMenus = Px('''
-     <x var2="dtc='display: table-cell'; inMenu=True">
-      <!-- No object is present -->
-      <div if="not objects" style=":'padding-left: 3px; %s' % dtc"
-           class="discreet">-</div>
-
+     <x var2="inMenu=True">
       <!-- One menu for every object type -->
       <div for="menu in field.getLinkedObjectsByMenu(obj, objects)"
-          style=":not loop.menu.last and ('%s;padding-right:4px') % dtc or dtc">
-       <div class="dropdownMenu"
+           class="inline"
+           style=":not loop.menu.last and 'padding-right:4px' or ''">
+       <div class="dropdownMenu inline"
             var2="dropdownId='%s_%s_%d' % (zobj.id, name, loop.menu.nb);
                   singleObject=len(menu.objects) == 1"
             onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
@@ -424,6 +424,7 @@ class Ref(Field):
              batchNumber=len(objects);
              folder=zobj.getCreateFolder();
              tiedClassName=ztool.getPortalType(field.klass);
+             tiedClassLabel=_(tiedClassName);
              target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
              mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
@@ -691,10 +692,11 @@ class Ref(Field):
         # There are different ways to render a bunch of linked objects:
         # - "list" (the default) renders them as a list (=a XHTML table);
         # - "menus" renders them as a series of popup menus, grouped by type.
-        # Note that render mode "menus" will only be applied in "cell" layouts.
-        # Indeed, we need to keep the "list" rendering in the "view" layout
-        # because the "menus" rendering is minimalist and does not allow to
-        # perform all operations on linked objects (add, move, delete, edit...);
+        # Note that render mode "menus" will only be applied in "cell" and
+        # "buttons" layouts. Indeed, we need to keep the "list" rendering in
+        # the "view" layout because the "menus" rendering is minimalist and does
+        # not allow to perform all operations on linked objects (add, move,
+        # delete, edit...);
         # - "minimal" renders a list of comma-separated, not-even-clickable,
         # data about the tied objects (according to shownInfo).
         self.render = render
@@ -754,6 +756,12 @@ class Ref(Field):
             if layoutType == 'edit': return
             else: return getattr(obj.aq_base, self.name, None)
         return res
+
+    def isRenderable(self, layoutType):
+        '''Only Ref fields with render = "menus" can be rendered on "button"
+           layouts.'''
+        if layoutType == 'buttons': return self.render == 'menus'
+        return True
 
     def getValue(self, obj, appy=True, noListIfSingleObj=False,
                  startNumber=None, someObjects=False):
@@ -924,7 +932,7 @@ class Ref(Field):
                 menuIndex = menuIds[menuId]
                 res[menuIndex].objects.append(tied)
             else:
-                # A new menu.
+                # A new menu
                 menu = Object(id=menuId, objects=[tied])
                 res.append(menu)
                 menuIds[menuId] = len(res) - 1
@@ -1213,6 +1221,13 @@ class Ref(Field):
                       (q(formName + '+' + target.openPopup, False), \
                        q(addConfirmMsg))
         return res
+
+    def getAddLabel(self, obj, addLabel, tiedClassLabel, inMenu):
+        '''Gets the label of the button allowing to add a new tied object. If
+           p_inMenu, the label must contain the name of the class whose instance
+           will be created by clincking on the button.'''
+        if not inMenu: return obj.translate('add_ref')
+        return tiedClassLabel
 
     def mayUnlinkElement(self, obj, tied, raiseError=False):
         '''May we unlink from this Ref field this specific p_tied object?'''

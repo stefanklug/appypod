@@ -110,7 +110,8 @@ td.search { padding-top: 8px }
 .dropdownMenu { cursor: pointer; font-size: 93%; position: relative }
 .dropdown a:hover { text-decoration: underline }
 .addForm { display: inline }
-.addFormMenu { display: table-cell; padding-left: 7px }
+.addFormMenu { display: inline; padding: 0 5px 0 3px }
+.inline { display: inline }
 .list { margin-bottom: 3px }
 .list td, .list th { border: 3px solid #ededed; color: grey;
                      padding: 3px 5px 3px 5px }
@@ -185,3 +186,4 @@ td.search { padding-top: 8px }
            margin: 0 2px 0 4px; font-family: monospace }
 .highlight { background-color: yellow }
 .globalActions { margin-bottom: 4px }
+.objectActions { margin: 2px 0 }

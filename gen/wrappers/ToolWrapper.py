@@ -363,7 +363,7 @@ class ToolWrapper(AbstractWrapper):
 
        <!-- Actions -->
        <div if="not inPopup and uiSearch.showActions and zobj.mayAct()"
-            style=":'display:%s; margin-bottom:2px' % uiSearch.showActions">
+            class="objectActions" style=":'display:%s' % uiSearch.showActions">
         <!-- Edit -->
         <a if="zobj.mayEdit()"
            var2="navInfo='search.%s.%s.%d.%d' % \
@@ -384,11 +384,11 @@ class ToolWrapper(AbstractWrapper):
                  buttonsMode='small'">:targetObj.appy().pxTransitions</x>
         <!-- Fields (actions) defined with layout "buttons" -->
         <x if="not inPopup"
-           var2="fields=zobj.getAppyTypes('buttons', 'main', type='Action');
-                 layoutType='view'">
-         <!-- Call pxView and not pxRender to avoid having a table -->
+           var2="fields=zobj.getAppyTypes('buttons', 'main');
+                 layoutType='cell'">
+         <!-- Call pxCell and not pxRender to avoid having a table -->
          <x for="field in fields"
-            var2="name=field.name; smallButtons=True">:field.pxView</x>
+            var2="name=field.name; smallButtons=True">:field.pxCell</x>
         </x>
        </div>
       </x>

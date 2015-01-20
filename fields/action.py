@@ -125,6 +125,9 @@ class Action(Field):
         if layoutType == 'edit': return
         return Field.isShowable(self, obj, layoutType)
 
+    # Action fields can a priori be shown on every layout, "buttons" included
+    def isRenderable(self, layoutType): return True
+
     def onUiRequest(self, obj, rq):
         '''This method is called when a user triggers the execution of this
            action from the user interface.'''

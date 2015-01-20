@@ -119,7 +119,7 @@ class Field:
 
     # Button for showing changes to the field
     pxChanges = Px('''
-     <x if="zobj.hasHistory(name)">
+     <div if="zobj.hasHistory(name)" style="margin-bottom: 5px">
       <!-- Button for showing the field version containing changes -->
       <input if="not showChanges"
              var2="label=_('changes_show');
@@ -133,7 +133,8 @@ class Field:
                   css=ztool.getButtonCss(label)" type="button" class=":css"
              value=":label" style=":url('changesNo', bg=True)"
              onclick=":'askField(%s,%s,%s,null,%s)' % \
-                       (q(tagId), q(obj.url), q('view'), q('False'))"/></x>''')
+                       (q(tagId), q(obj.url), q('view'), q('False'))"/>
+     </div>''')
 
     def __init__(self, validator, multiplicity, default, show, page, group,
                  layouts, move, indexed, mustIndex, searchable,
@@ -373,6 +374,22 @@ class Field:
         # For showing a field on layout "buttons", the "buttons" layout must
         # explicitly be returned by the show method.
         if layoutType != 'buttons': return bool(res)
+
+    def isRenderable(self, layoutType):
+        '''In some contexts, computing m_isShowable can be a performance
+           problem. For example, when showing fields of some object on layout
+           "buttons", there are plenty of fields that simply can't be shown on
+           this kind of layout: it is no worth computing m_isShowable for those
+           fields. m_isRenderable is meant to define light conditions to
+           determine, before calling m_isShowable, if some field has a chance to
+           be shown or not.
+
+           In other words, m_isRenderable defines a "structural" condition,
+           independent of any object, while m_isShowable defines a contextual
+           condition, depending on some object.'''
+        # Most fields are not renderable on layout "buttons"
+        if layoutType == 'buttons': return
+        return True
 
     def isClientVisible(self, obj):
         '''This method returns True if this field is visible according to

@@ -178,7 +178,7 @@ def callMethod(obj, method, klass=None, cache=True):
         method = method.__get__(klass)
     elif methodType == 'instancemethod':
         method = method.im_func
-    # Call the method if cache is not needed.
+    # Call the method if cache is not needed
     if not cache: return method(obj)
     # If first arg of method is named "tool" instead of the traditional "self",
     # we cheat and will call the method with the tool as first arg. This will
@@ -207,7 +207,6 @@ def callMethod(obj, method, klass=None, cache=True):
     res = method(obj)
     rq.methodCache[key] = res
     return res
-
 
 # Functions for manipulating the authentication cookie -------------------------
 def readCookie(request):

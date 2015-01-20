@@ -818,6 +818,7 @@ class BaseMixin:
         for field in self.getAllAppyTypes():
             if pageName and (field.page.name != pageName): continue
             if type and (field.type != type): continue
+            if not field.isRenderable(layoutType): continue
             if not field.isShowable(self, layoutType): continue
             res.append(field)
         return res
