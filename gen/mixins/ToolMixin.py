@@ -21,6 +21,8 @@ except ImportError:
 # Global JS internationalized messages that will be computed in every page -----
 jsMessages = ('no_elem_selected', 'action_confirm', 'save_confirm',
               'warn_leave_form')
+
+# Error messages ---------------------------------------------------------------
 USER_NOT_FOUND = 'User %s not found. Probably a problem implying several ' \
                  'Appy apps put behind the same domain name or dev machine.'
 
@@ -917,16 +919,16 @@ class ToolMixin(BaseMixin):
         if authentify and not login: return
         # Now, get the User instance
         if source == 'zodb':
-            # Get the User object, but only if it is a true local user.
+            # Get the User object, but only if it is a true local user
             user = tool.search1('User', noSecurity=True, login=login)
-            if user and (user.source != 'zodb'): user = None # Not a local one.
+            if user and (user.source != 'zodb'): user = None # Not a local one
         elif source == 'ldap':
             user = None
             cfg = self.getProductConfig(True).ldap
             if cfg: user = cfg.getUser(self.appy(), login, password)
         elif source == 'any':
             # Get the user object, be it really local or a copy of a LDAP user
-            user = tool.search1('User', noSecurity=True, login=login)
+            user = self.getUser(source='zodb') or self.getUser(source='ldap')
         if not user: return
         # Authentify the user if required
         if authentify:
@@ -937,9 +939,9 @@ class ToolMixin(BaseMixin):
                 k = 'HTTP_AUTHORIZATION'
                 req._auth = req[k] = req._orig_env[k] = None
                 return
-            # Create an authentication cookie for this user.
+            # Create an authentication cookie for this user
             gutils.writeCookie(login, password, req)
-        # Cache the user and some precomputed values, for performance.
+        # Cache the user and some precomputed values, for performance
         req.user = user
         req.userRoles = user.getRoles()
         req.userLogins = user.getLogins()
@@ -956,8 +958,7 @@ class ToolMixin(BaseMixin):
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
         # Authenticate the user
-        if self.getUser(authentify=True) or \
-           self.getUser(authentify=True, source='ldap'):
+        if self.getUser(authentify=True, source='any'):
             msg = self.translate('login_ok')
             logMsg = 'logged in.'
         else:

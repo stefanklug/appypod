@@ -283,7 +283,7 @@ class ZopeInstaller:
             # "select" field, because it will be necessary for displaying the
             # translated state name.
             state = gen.String(validator=gen.Selection('listStates'),
-                               show='result', persist=False, indexed=True)
+                           show='result', persist=False, indexed=True, height=5)
             state.init('state', None, 'workflow')
             setattr(wrapperClass, 'state', state)
             # Special field "SearchableText" must be added fot every class and

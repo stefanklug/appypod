@@ -1244,7 +1244,9 @@ class AbstractWrapper(object):
         o = self.o
         workflow = o.getWorkflow()
         for name in dir(workflow):
-            if getattr(workflow, name).__class__.__name__ != 'State': continue
+            state = getattr(workflow, name)
+            if state.__class__.__name__ != 'State': continue
+            if state.isIsolated(workflow) : continue
             res.append((name, o.translate(o.getWorkflowLabel(name))))
         return res
 

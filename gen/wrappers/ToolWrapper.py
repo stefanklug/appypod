@@ -603,7 +603,7 @@ class ToolWrapper(AbstractWrapper):
        <input type="hidden" name="className" value=":className"/>
        <input if="refInfo" type="hidden" name="ref" value=":refInfo"/>
 
-       <table width="100%">
+       <table class="searchFields">
         <tr for="searchRow in ztool.getGroupedSearchFields(searchInfo)"
             valign="top">
          <td for="field in searchRow" class="search"
@@ -617,11 +617,9 @@ class ToolWrapper(AbstractWrapper):
        </table>
 
        <!-- Submit button -->
-       <p align=":dright"><br/>
-        <input var="label=_('search_button');
-                    css=ztool.getButtonCss(label, small=False)" type="submit"
-               class=":css" value=":label" style=":url('search', bg=True)"/>
-       </p>
+       <input var="label=_('search_button');
+                   css=ztool.getButtonCss(label, small=False)" type="submit"
+              class=":css" value=":label" style=":url('search', bg=True)"/>
       </form>
      </x>''', template=AbstractWrapper.pxTemplate, hook='content')
 
