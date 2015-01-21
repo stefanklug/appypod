@@ -69,14 +69,14 @@ class ToolMixin(BaseMixin):
         except AttributeError:
             pass
         if not url:
-            # Bring Managers to the config, lead others to pxHome.
+            # Bring Managers to the config, lead others to pxHome
             user = self.getUser()
             if not user:
                 raise Exception(USER_NOT_FOUND % self.identifyUser()[0])
             if user.has_role('Manager'):
-                url = self.goto(self.absolute_url())
+                url = self.absolute_url()
             else:
-                url = self.goto('%s/home' % self.absolute_url())
+                url = '%s/home' % self.absolute_url()
         return url
 
     def getHomeObject(self, inPopup=False):
