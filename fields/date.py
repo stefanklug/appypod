@@ -20,6 +20,28 @@ from appy.fields import Field
 from appy.px import Px
 
 # ------------------------------------------------------------------------------
+def getDateFromIndexValue(indexValue):
+    '''p_indexValue is the internal representation of a date as stored in the
+       zope Date index (see "_convert" method in DateIndex.py in
+       Products.pluginIndexes/DateIndex). This function produces a DateTime
+       based on it.'''
+    # p_indexValue represents a number of minutes
+    minutes = indexValue % 60
+    indexValue = (indexValue-minutes) / 60 # The remaining part, in hours
+    # Get hours
+    hours = indexValue % 24
+    indexValue = (indexValue-hours) / 24 # The remaining part, in days
+    # Get days
+    day = indexValue % 31
+    indexValue = (indexValue-day) / 31 # The remaining part, in months
+    # Get months
+    month = indexValue % 12
+    year = (indexValue - month) / 12
+    from DateTime import DateTime
+    utcDate = DateTime('%d/%d/%d %d:%d UTC' % (year,month,day,hours,minutes))
+    return utcDate.toZone(utcDate.localZone())
+
+# ------------------------------------------------------------------------------
 class Date(Field):
 
     pxView = pxCell = Px('''<x>:value</x>''')

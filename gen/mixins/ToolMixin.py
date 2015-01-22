@@ -113,8 +113,8 @@ class ToolMixin(BaseMixin):
         res = index.getEntryForObject(catalogBrain.getRID())
         if indexType == 'DateIndex':
             # The index value is a number. Add a DateTime representation too.
-            from DateTime import DateTime
-            res = '%d (%s)' % (res, DateTime(res))
+            from appy.fields.date import getDateFromIndexValue
+            res = '%d (%s)' % (res, getDateFromIndexValue(res))
         return res
 
     def getApp(self):
