@@ -528,9 +528,9 @@ msgstr "Date"
 msgid "action_comment"
 msgstr "Comment"
 
-#. Default: "Create from a delayed item"
+#. Default: "Create from another object"
 msgid "create_from_predecessor"
-msgstr "Create from a delayed item"
+msgstr "Create from another object"
 
 #. Default: "Mon"
 msgid "day_Mon_short"

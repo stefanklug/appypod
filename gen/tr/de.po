@@ -49,7 +49,7 @@ msgstr "OK"
 
 #. Default: "Keywords"
 msgid "appy_SearchableText"
-msgstr ""
+msgstr "Stichwörter"
 
 #. Default: "Data change"
 msgid "data_change"
@@ -93,7 +93,7 @@ msgstr "Hinzufügen"
 
 #. Default: "Available elements"
 msgid "selectable_objects"
-msgstr ""
+msgstr "Verfügbare Elemente"
 
 #. Default: "Inserted elements"
 msgid "selected_objects"
@@ -109,11 +109,11 @@ msgstr "Nach unten verschieben"
 
 #. Default: "Move to top"
 msgid "move_top"
-msgstr ""
+msgstr "Verschiebe an den Anfang"
 
 #. Default: "Move to bottom"
 msgid "move_bottom"
-msgstr ""
+msgstr "Verschiebe ans Ende"
 
 #. Default: "Update the hereabove number and click here to move this element to a new position."
 msgid "move_number"
@@ -193,7 +193,7 @@ msgstr "Dieser Wert wird in diesem Feld nicht akzeptiert."
 
 #. Default: "(Un)select all"
 msgid "select_delesect"
-msgstr "Alles (de)aktivieren"
+msgstr "Alle aus- oder abwählen"
 
 #. Default: "You must select at least one element."
 msgid "no_elem_selected"
@@ -213,7 +213,7 @@ msgstr ""
 
 #. Default: "Remove"
 msgid "object_unlink"
-msgstr ""
+msgstr "Zurückziehen"
 
 #. Default: "Remove selection"
 msgid "object_unlink_many"
@@ -249,7 +249,7 @@ msgstr ""
 
 #. Default: "Are you sure?"
 msgid "action_confirm"
-msgstr ""
+msgstr "Sind Sie sicher?"
 
 #. Default: "The action has been performed."
 msgid "action_done"
@@ -329,7 +329,7 @@ msgstr "Die zum Hochladen bestimmte Datei muss ein Foto sein."
 
 #. Default: "ODT"
 msgid "odt"
-msgstr "ODT (Open Office/LibreOffice) "
+msgstr "ODT (LibreOffice Writer)"
 
 #. Default: "PDF"
 msgid "pdf"
@@ -341,15 +341,15 @@ msgstr "DOC (Microsoft Word)"
 
 #. Default: "ODS"
 msgid "ods"
-msgstr ""
+msgstr "ODS (LibreOffice Calc)"
 
 #. Default: "XLS"
 msgid "xls"
-msgstr ""
+msgstr "XLS (Microsoft Excel)"
 
 #. Default: "frozen"
 msgid "frozen"
-msgstr ""
+msgstr "Gesperrt"
 
 #. Default: "(Re-)freeze"
 msgid "freezeField"
@@ -457,7 +457,7 @@ msgstr "Nächster"
 
 #. Default: "Forgot password?"
 msgid "forgot_password"
-msgstr ""
+msgstr "Passwort vergessen?"
 
 #. Default: "Ask new password"
 msgid "ask_password_reinit"
@@ -497,7 +497,7 @@ msgstr ""
 
 #. Default: "History"
 msgid "object_history"
-msgstr ""
+msgstr "History"
 
 #. Default: "By"
 msgid "object_created_by"
@@ -509,11 +509,11 @@ msgstr ""
 
 #. Default: "Last updated on"
 msgid "object_modified_on"
-msgstr ""
+msgstr "Letzte Änderungen"
 
 #. Default: "Action"
 msgid "object_action"
-msgstr ""
+msgstr "Aktion"
 
 #. Default: "Author"
 msgid "object_author"
@@ -521,13 +521,13 @@ msgstr ""
 
 #. Default: "Date"
 msgid "action_date"
-msgstr ""
+msgstr "Datum"
 
 #. Default: "Comment"
 msgid "action_comment"
-msgstr ""
+msgstr "Kommentar"
 
-#. Default: "Create from a delayed item"
+#. Default: "Create from another object"
 msgid "create_from_predecessor"
 msgstr ""
 
