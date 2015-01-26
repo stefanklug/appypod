@@ -34,7 +34,7 @@ select { border: 1px solid #d0d0d0; background-color: white }
 
 textarea { width: 99%; font: 100% "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif;
            border: 1px solid #d0d0d0; background-color: white }
-label { color: #888888; font-size: 11px; margin: 3px 0;
+label { color: #555555; font-size: 11px; margin: 3px 0;
         text-transform: uppercase }
 legend { padding-bottom: 2px; padding-right: 3px; color: black }
 ul { line-height: 1.2em; margin: 0 0 0.2em 0.6em;  padding: 0;
@@ -69,7 +69,8 @@ input.buttonFixed { width:110px; padding: 0 0 0 10px }
 .xhtml p { margin: 3px 0 7px 0 }
 .clickable { cursor: pointer }
 .help { cursor: help }
-.refLink { font-style: italic; padding-left: 5px; font-size: 90%; color: grey }
+.refLink { font-style: italic; padding-left: 5px; font-size: 90%;
+           color: #555555 }
 .buttons { margin-left: 4px }
 .objectButtons { margin-top: 5px }
 .message { position: absolute; top: -40px; left: 50%; font-size: 90%;
@@ -82,7 +83,7 @@ input.buttonFixed { width:110px; padding: 0 0 0 10px }
          background-color: #d7dee4; border-radius: 2px 2px 2px 2px;
          box-shadow: 0 2px 4px #A9A9A9 }
 .focus td { padding: 4px 0px 4px 4px }
-.discreet { font-size: 90%; color: grey }
+.discreet { font-size: 90%; color: #555555 }
 .title {}
 .lostPassword { font-size: 90%; color: white; padding-left: 1em }
 .current { font-weight: bold }
@@ -115,7 +116,7 @@ td.search { padding-top: 8px }
 .addFormMenu { display: inline; padding: 0 5px 0 3px }
 .inline { display: inline }
 .list { margin-bottom: 3px }
-.list td, .list th { border: 3px solid #ededed; color: grey;
+.list td, .list th { border: 3px solid #ededed; color: #555555;
                      padding: 3px 5px 3px 5px }
 .list th { background-color: #e5e5e5; font-style: italic; font-weight: normal }
 .compact { font-size: 90%; width: 100% }
@@ -125,7 +126,7 @@ td.search { padding-top: 8px }
 .grid td { padding: 3px 3px 0 3px }
 .msgTable { margin: 6px 0; width: 100%; font-size: 93% }
 .msgTable tr { vertical-align: top }
-.msgTable td, .msgTable th { border: 1px solid grey; color: grey;
+.msgTable td, .msgTable th { border: 1px solid grey; color: #555555;
                              padding: 0px 5px; text-align: left }
 .msgTable th { background-color: #f0e3b8; font-style: italic;
                font-weight: normal }
@@ -184,7 +185,7 @@ td.search { padding-top: 8px }
 .tabs { position:relative; bottom:-2px }
 .tab { padding: 0 10px 0 10px; text-align: center; font-size: 90%;
        font-weight: bold}
-.language {color: grey; font-size: 7pt; border: grey 1px solid; padding: 2px;
+.language {color: #555555; font-size: 7pt; border: grey 1px solid; padding: 2px;
            margin: 0 2px 0 4px; font-family: monospace }
 .highlight { background-color: yellow }
 .globalActions { margin-bottom: 4px }

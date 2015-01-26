@@ -927,8 +927,10 @@ class ToolMixin(BaseMixin):
             cfg = self.getProductConfig(True).ldap
             if cfg: user = cfg.getUser(self.appy(), login, password)
         elif source == 'any':
-            # Get the user object, be it really local or a copy of a LDAP user
-            user = self.getUser(source='zodb') or self.getUser(source='ldap')
+            # Get the User object, be it really local or representing an
+            # external user. This way, we avoid contacting the distant source
+            # every time authentification is required.
+            user = tool.search1('User', noSecurity=True, login=login)
         if not user: return
         # Authentify the user if required
         if authentify:
@@ -943,6 +945,7 @@ class ToolMixin(BaseMixin):
             gutils.writeCookie(login, password, req)
         # Cache the user and some precomputed values, for performance
         req.user = user
+        req.userLogin = user.login
         req.userRoles = user.getRoles()
         req.userLogins = user.getLogins()
         req.zopeUser = user.getZopeUser()
@@ -958,7 +961,8 @@ class ToolMixin(BaseMixin):
             msg = self.translate('enable_cookies')
             return self.goto(urlBack, msg)
         # Authenticate the user
-        if self.getUser(authentify=True, source='any'):
+        if self.getUser(authentify=True, source='zodb') or \
+           self.getUser(authentify=True, source='ldap'):
             msg = self.translate('login_ok')
             logMsg = 'logged in.'
         else:
@@ -1014,6 +1018,10 @@ class ToolMixin(BaseMixin):
         # Authorize anyone to static content (image, js, css...)
         id = a.getId()
         if id and (os.path.splitext(id)[-1].lower() in tool.staticExtensions):
+            return self._nobody.__of__(self)
+        # Skip authorization when the performing http login: else, it will be
+        # done twice.
+        if (id == 'config') and (v.__name__ == 'performLogin'):
             return self._nobody.__of__(self)
         # Identify and authentify the user
         user = tool.getUser(authentify=True, source='any')

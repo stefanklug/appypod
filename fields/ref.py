@@ -226,9 +226,15 @@ class Ref(Field):
       </div>
      </div>''')
 
-    # PX that displays referred objects as a list.
+    pxToggleIcon = Px('''
+     <img class="clickable" onclick="toggleCookie('appyHistory')"
+          src=":True and url('collapse.gif') or url('expand.gif')"
+          align=":dleft" id="appyHistory_img" style="padding-right:4px"/>''')
+
+    # PX that displays referred objects as a list
     pxViewList = Px('''
      <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
+      <x if="field.collapsible">:field.pxToggleIcon</x>
       <span if="subLabel" class="discreet">:_(subLabel)</span>
       (<span class="discreet">:totalNumber</span>) 
       <x>:field.pxAdd</x>
@@ -533,7 +539,7 @@ class Ref(Field):
                  scolspan=1, swidth=None, sheight=None, sselect=None,
                  persist=True, render='list', menuIdMethod=None,
                  menuInfoMethod=None, menuUrlMethod=None, view=None, xml=None,
-                 showActions=True):
+                 showActions=True, collapsible=False):
         self.klass = klass
         self.attribute = attribute
         # May the user add new objects through this ref ? "add" may also contain
@@ -720,6 +726,9 @@ class Ref(Field):
         # appear in a "div" tag, below the object title; if "inline", they will
         # appear besides it, producing a more compact list of results.
         self.showActions = showActions
+        # If "collapsible" is True, a "+/-" icon will allow to expand/collapse
+        # the tied or available objects.
+        self.collapsible = collapsible
         if showActions == True: self.showActions = 'block'
         # Call the base constructor
         Field.__init__(self, validator, multiplicity, default, show, page,

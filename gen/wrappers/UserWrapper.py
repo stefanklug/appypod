@@ -121,7 +121,8 @@ class UserWrapper(AbstractWrapper):
         zopeUser = self.getZopeUser()
         tool = self.tool.o
         zopeUser.__ = self.encryptPassword(newPassword)
-        if self.user and (self.user.login == login):
+        req = tool.REQUEST
+        if hasattr(req, 'user') and (req.userLogin == login):
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
             gutils.writeCookie(login, newPassword, self.request)
@@ -302,7 +303,7 @@ class UserWrapper(AbstractWrapper):
         # Try first to get those logins from a cache on the request, if this
         # user corresponds to the logged user.
         rq = self.request
-        if (self.user == self) and hasattr(rq, 'userLogins'):
+        if hasattr(rq, 'userLogins') and (rq.userLogin == self.login):
             return rq.userLogins
         # Compute it
         res = [group.login for group in self.groups]
@@ -316,9 +317,9 @@ class UserWrapper(AbstractWrapper):
         # Try first to get those roles from a cache on the request, if this user
         # corresponds to the logged user.
         rq = self.request
-        if (self.user == self) and hasattr(rq, 'userRoles'):
+        if hasattr(rq, 'userRoles') and (rq.userLogin == self.login):
             return rq.userRoles
-        # Compute it.
+        # Compute it
         res = list(self.roles)
         # Add ungrantable roles
         if self.o.id == 'anon':
