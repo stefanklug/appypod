@@ -1,5 +1,6 @@
 # ------------------------------------------------------------------------------
 import re, os, os.path, base64, urllib
+from appy.px import Px
 from appy.shared import utils as sutils
 
 # Function for creating a Zope object ------------------------------------------
@@ -251,5 +252,29 @@ class Tool(Model):
     '''Subclass me to extend or modify the Tool class.'''
 class User(Model):
     '''Subclass me to extend or modify the User class.'''
-# ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+class Collapsible:
+    '''Represents a chunk of HTML code that can be collapsed/expanded via a
+       plus/minus icon.'''
+
+    # Plus/minus icon allowing to collapse/expand a chunk of HTML
+    px = Px('''
+     <img id=":'%s_img' % collapse.id" class="clickable" align=":dleft"
+          onclick=":'toggleCookie(%s,%s,%s)' % \
+                   (q(collapse.id), q(collapse.display), q(collapse.default))"
+          src=":collapse.expanded and url('collapse.gif') or url('expand.gif')"
+          style="padding-right:4px"/>''')
+
+    def __init__(self, id, request, default='collapsed', display='block'):
+        '''p_display is the value of style attribute "display" for the XHTML
+           element when it must be displayed. By default it is "block"; for a
+           table it must be "table", etc.'''
+        self.id = id # The ID of the collapsible HTML element
+        self.request = request # The request object
+        self.default = default
+        self.display = display
+        # Must the element be collapsed or expanded ?
+        self.expanded = request.get(id, default) == 'expanded'
+        self.style = 'display:%s' % (self.expanded and self.display or 'none')
+# ------------------------------------------------------------------------------

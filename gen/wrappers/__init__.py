@@ -397,16 +397,13 @@ class AbstractWrapper(object):
      <div if="not zobj.isTemporary()"
           var2="hasHistory=zobj.hasHistory();
                 historyMaxPerPage=req.get('maxPerPage', 5);
-                historyExpanded=req.get('appyHistory','collapsed')=='expanded';
+                collapse=zobj.getHistoryCollapse();
                 creator=zobj.Creator()">
       <table width="100%" class="summary" cellpadding="0" cellspacing="0">
        <tr>
         <td colspan="2" class="by">
          <!-- Plus/minus icon for accessing history -->
-         <x if="hasHistory">
-          <img class="clickable" onclick="toggleCookie('appyHistory')"
-             src=":historyExpanded and url('collapse.gif') or url('expand.gif')"
-             align=":dleft" id="appyHistory_img" style="padding-right:4px"/>
+         <x if="hasHistory"><x>:collapse.px</x>
           <x>:_('object_history')</x> &mdash;
          </x>
 
@@ -434,8 +431,7 @@ class AbstractWrapper(object):
        <!-- Object history -->
        <tr if="hasHistory">
         <td colspan="2">
-         <span id="appyHistory"
-               style=":historyExpanded and 'display:block' or 'display:none'">
+         <span id=":collapse.id" style=":collapse.style">
           <div var="ajaxHookId=zobj.id + '_history'" id=":ajaxHookId">
            <script type="text/javascript">::'askObjectHistory(%s,%s,%d,0)' % \
              (q(ajaxHookId), q(zobj.absolute_url()), \

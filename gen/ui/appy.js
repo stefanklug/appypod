@@ -673,13 +673,13 @@ function readCookie(name) {
   return null;
 }
 
-function toggleCookie(cookieId) {
+function toggleCookie(cookieId, display, defaultValue) {
   // What is the state of this boolean (expanded/collapsed) cookie?
   var state = readCookie(cookieId);
   if ((state != 'collapsed') && (state != 'expanded')) {
-    // No cookie yet, create it.
-    createCookie(cookieId, 'collapsed');
-    state = 'collapsed';
+    // No cookie yet, create it
+    createCookie(cookieId, defaultValue);
+    state = defaultValue;
   }
   var hook = document.getElementById(cookieId); // The hook is the part of
   // the HTML document that needs to be shown or hidden.
@@ -688,7 +688,7 @@ function toggleCookie(cookieId) {
   var imgSrc = 'ui/expand.gif';
   if (state == 'collapsed') {
     // Show the HTML zone
-    displayValue = 'block';
+    displayValue = display;
     imgSrc = 'ui/collapse.gif';
     newState = 'expanded';
   }

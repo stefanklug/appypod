@@ -1240,6 +1240,11 @@ class BaseMixin:
             res.append(event)
         return Object(events=res, totalNumber=len(history))
 
+    def getHistoryCollapse(self):
+        '''Gets a Collapsible instance for showing a collapse or expanded
+           history in this object.'''
+        return Collapsible('appyHistory', self.REQUEST)
+
     def mayNavigate(self):
         '''May the currently logged user see the navigation panel linked to
            this object?'''

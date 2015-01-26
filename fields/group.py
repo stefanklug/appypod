@@ -289,32 +289,25 @@ class UiGroup:
       </x>
      </x>''')
 
-    # PX that renders a group of searches.
+    # PX that renders a group of searches
     pxViewSearches = Px('''
-     <x var="expanded=req.get(field.labelId, 'collapsed') == 'expanded'">
+     <x var="collapse=field.getCollapseInfo(field.labelId, req)">
       <!-- Group name, prefixed by the expand/collapse icon -->
-      <div class="portletGroup">
-       <img class="clickable" style="margin-right: 3px" align=":dleft"
-            id=":'%s_img' % field.labelId"
-            src=":expanded and url('collapse.gif') or url('expand.gif')"
-            onclick=":'toggleCookie(%s)' % q(field.labelId)"/>
+      <div class="portletGroup"><x>:collapse.px</x>
        <x if="not field.translated">:_(field.labelId)</x>
        <x if="field.translated">:field.translated</x>
       </div>
       <!-- Group content -->
-      <div var="display=expanded and 'display:block' or 'display:none'"
-           id=":field.labelId" style=":'padding-left: 10px; %s' % display">
+      <div id=":collapse.id" style=":'padding-left: 10px; %s' % collapse.style">
        <x for="searches in field.elements">
         <x for="elem in searches">
          <!-- An inner group within this group -->
-         <x if="elem.type == 'group'"
-            var2="field=elem">:field.pxViewSearches</x>
+         <x if="elem.type== 'group'" var2="field=elem">:field.pxViewSearches</x>
          <!-- A search -->
-         <x if="elem.type != 'group'" var2="search=elem">:search.pxView</x>
+         <x if="elem.type!= 'group'" var2="search=elem">:search.pxView</x>
         </x>
        </x>
-      </div>
-     </x>''')
+      </div></x>''')
 
     # PX that renders a group of transitions.
     pxViewTransitions = Px('''
@@ -349,7 +342,7 @@ class UiGroup:
         self.group = group
         self.columnsWidths = [col.width for col in group.columns]
         self.columnsAligns = [col.align for col in group.columns]
-        # Names of i18n labels for this group.
+        # Names of i18n labels for this group
         labelName = self.name
         prefix = className
         if group.label:
@@ -397,4 +390,9 @@ class UiGroup:
                 for i in range(freeColumns): lastRow.append('')
             # Create a new row
             self.elements.append([element])
+
+    def getCollapseInfo(self, id, request):
+        '''Returns a Collapsible instance, that determines if this group,
+           represented as an expandable menu item, is collapsed or expanded.'''
+        return gutils.Collapsible(id, request)
 # ------------------------------------------------------------------------------

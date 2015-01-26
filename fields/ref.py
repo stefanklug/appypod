@@ -226,15 +226,10 @@ class Ref(Field):
       </div>
      </div>''')
 
-    pxToggleIcon = Px('''
-     <img class="clickable" onclick="toggleCookie('appyHistory')"
-          src=":True and url('collapse.gif') or url('expand.gif')"
-          align=":dleft" id="appyHistory_img" style="padding-right:4px"/>''')
-
     # PX that displays referred objects as a list
     pxViewList = Px('''
      <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
-      <x if="field.collapsible">:field.pxToggleIcon</x>
+      <x if="field.collapsible and objects">:collapse.px</x>
       <span if="subLabel" class="discreet">:_(subLabel)</span>
       (<span class="discreet">:totalNumber</span>) 
       <x>:field.pxAdd</x>
@@ -258,7 +253,8 @@ class Ref(Field):
         if="not objects and (innerRef and mayAdd)">:_('no_ref')</p>
 
      <!-- Linked objects -->
-     <table if="objects" class=":not innerRef and 'list' or ''"
+     <table if="objects" id=":collapse.id" style=":collapse.style"
+            class=":not innerRef and 'list' or ''"
             width=":innerRef and '100%' or field.layouts['view'].width"
             var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                    field.getAttribute(obj, 'shownInfo'), dir)">
@@ -350,6 +346,7 @@ class Ref(Field):
                         (totalNumber &gt; 1);
              showSubTitles=showSubTitles|\
                            req.get('showSubTitles', 'true') == 'true';
+             collapse=field.getCollapseInfo(obj, True);
              subLabel='selectable_objects'">:field.pxViewList</x>''')
 
     # PX that displays referred objects as dropdown menus.
@@ -450,6 +447,7 @@ class Ref(Field):
              checkboxesEnabled=field.getAttribute(zobj, 'checkboxes') and \
                                (layoutType != 'cell');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
+             collapse=field.getCollapseInfo(obj, False);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
       <script if="checkboxesEnabled and renderAll and (render == 'list')"
@@ -1494,6 +1492,16 @@ class Ref(Field):
         tied = obj.getTool().getObject(tiedUid)
         tiedUrl = tied.getUrl(nav=self.getNavInfo(obj, number+1, len(uids)))
         return obj.goto(tiedUrl)
+
+    def getCollapseInfo(self, obj, inPickList):
+        '''Returns a Collapsible instance, that determines if the "tied objects"
+           or "available objects" zone (depending on p_inPickList) is collapsed
+           or expanded.'''
+        # Create the ID of the collapsible zone.
+        suffix = inPickList and 'poss' or 'objs'
+        id = '%s_%s_%s' % (obj.klass.__name__, self.name, suffix)
+        return gutils.Collapsible(id, obj.request, default='expanded',
+                                  display='table')
 
 def autoref(klass, field):
     '''klass.field is a Ref to p_klass. This kind of auto-reference can't be
