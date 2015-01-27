@@ -17,11 +17,14 @@ class MailConfig:
         self.fromName = fromName
         # The email that will appear in the "from" part of the messages
         self.fromEmail = fromEmail
-        # The SMTP server address
-        self.server = server
-        # The SMTP server port
-        self.port = port
-        # Optional credentials to the SMTP server.
+        # The SMTP server address and port
+        if ':' in server:
+            self.server, port = server.split(':')
+            self.port = int(port)
+        else:
+            self.server = server
+            self.port = int(port) # That way, people can specify an int or str
+        # Optional credentials to the SMTP server
         self.login = login
         self.password = password
         # Is this server connection enabled ?
@@ -31,6 +34,13 @@ class MailConfig:
         '''Gets the "from" part of the messages to send.'''
         if self.fromName: return '%s <%s>' % (self.fromName, self.fromEmail)
         return self.fromEmail
+
+    def __repr__(self):
+        '''Short string representation of this mail config, for logging and
+           debugging purposes.'''
+        res = '%s:%d' % (self.server, self.port)
+        if self.login: res += ' (login as %s)' % self.login
+        return res
 
 # ------------------------------------------------------------------------------
 def sendMail(config, to, subject, body, attachments=None, log=None):
@@ -111,7 +121,9 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
             log('could not send mail to some recipients. %s' % str(res),
                 type='warning')
     except smtplib.SMTPException, e:
-        if log: log('mail sending failed: %s' % str(e), type='error')
+        if log:
+            log('%s: mail sending failed (%s)' % (config, str(e)), type='error')
     except socket.error, se:
-        if log: log('mail sending failed: %s' % str(se), type='error')
+        if log:
+            log('%s: mail sending failed (%s)' % (config, str(e)), type='error')
 # ------------------------------------------------------------------------------

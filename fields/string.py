@@ -151,10 +151,11 @@ class String(Field):
 
     pxView = Px('''
      <x var="fmt=field.format; isUrl=field.isUrl;
-             languages=field.getAttribute(zobj, 'languages');
+             languages=field.getAttribute(obj, 'languages');
              multilingual=len(languages) &gt; 1;
              mLayout=multilingual and field.getLanguagesLayout('view');
-             mayAjaxEdit=not showChanges and field.inlineEdit and \
+             inlineEdit=field.getAttribute(obj, 'inlineEdit');
+             mayAjaxEdit=not showChanges and inlineEdit and \
                          (layoutType != 'cell') and \
                          zobj.mayEdit(field.writePermission)">
       <x if="field.isSelect">
@@ -405,7 +406,8 @@ class String(Field):
         # other). Specify here a dict whose keys are layouts ("edit", "view")
         # and whose values are either "horizontal" or "vertical".
         self.languagesLayouts = languagesLayouts
-        # When format in XHTML, can the field be inline-edited (ckeditor)?
+        # When format in XHTML, can the field be inline-edited (ckeditor)? A
+        # method can be specified.
         self.inlineEdit = inlineEdit
         # The following field has a direct impact on the text entered by the
         # user. It applies a transformation on it, exactly as does the CSS
