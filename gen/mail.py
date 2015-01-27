@@ -125,5 +125,5 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
             log('%s: mail sending failed (%s)' % (config, str(e)), type='error')
     except socket.error, se:
         if log:
-            log('%s: mail sending failed (%s)' % (config, str(e)), type='error')
+            log('%s: mail sending failed (%s)' % (config, str(se)),type='error')
 # ------------------------------------------------------------------------------

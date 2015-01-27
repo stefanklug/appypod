@@ -18,7 +18,7 @@ class LdapConfig:
 
     def __init__(self):
         self.server = '' # Name of the LDAP server
-        self.port = None # Port for this server.
+        self.port = None # Port for this server
         # Login and password of the technical power user that the Appy
         # application will use to connect to the LDAP.
         self.adminLogin = ''
@@ -48,6 +48,11 @@ class LdapConfig:
         # "groups": a list of group IDs (logins);
         # "roles":  a list of global role names.
         self.userMap = {}
+
+    def __repr__(self):
+        '''Short string representation of this ldap config, for logging and
+           debugging purposes.'''
+        return self.getServerUri()
 
     def getServerUri(self):
         '''Returns the complete URI for accessing the LDAP, ie

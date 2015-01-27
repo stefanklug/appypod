@@ -336,7 +336,7 @@ class ZopeInstaller:
             if not getattr(cfg, sv): continue
             svConfig = getattr(cfg, sv)
             enabled = svConfig.enabled and 'enabled' or 'disabled'
-            servers.append('%s (%s, %s)' % (svConfig.server, sv, enabled))
+            servers.append('%s (%s, %s)' % (svConfig, sv, enabled))
         if servers:
             self.logger.info('server(s) %s configured.' % ', '.join(servers))
 
