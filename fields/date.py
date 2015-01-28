@@ -33,9 +33,11 @@ def getDateFromIndexValue(indexValue):
     indexValue = (indexValue-hours) / 24 # The remaining part, in days
     # Get days
     day = indexValue % 31
+    if day == 0: day = 31
     indexValue = (indexValue-day) / 31 # The remaining part, in months
     # Get months
     month = indexValue % 12
+    if month == 0: month = 12
     year = (indexValue - month) / 12
     from DateTime import DateTime
     utcDate = DateTime('%d/%d/%d %d:%d UTC' % (year,month,day,hours,minutes))

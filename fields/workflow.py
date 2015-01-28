@@ -153,12 +153,12 @@ class State:
         if isinstance(permissions, basestring): permissions = (permissions,)
         for perm, roles in self.permissions.iteritems():
             if permissions and (perm not in permissions): continue
-            # Find and delete p_oldRoleName.
+            # Find and delete p_oldRoleName
             for role in roles:
                 if role.name == oldRoleName:
-                    # Remove p_oldRoleName.
+                    # Remove p_oldRoleName
                     roles.remove(role)
-                    # Add p_newRoleName.
+                    # Add p_newRoleName
                     roles.append(self.getRole(newRoleName))
                     break
 
