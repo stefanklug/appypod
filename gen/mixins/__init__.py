@@ -1696,7 +1696,8 @@ class BaseMixin:
            name is in the request. This name can also represent an attribute
            storing an image within a rich text field. If p_name is not given, it
            is retrieved from the request.'''
-        name = self.REQUEST.get('name')
+        rq = self.REQUEST
+        name = rq.get('name')
         if not name: return
         # Security check
         if '_img_' not in name:
@@ -1704,10 +1705,14 @@ class BaseMixin:
         else:
             field = self.getAppyType(name.split('_img_')[0])
         self.mayView(field.readPermission, raiseError=True)
+        # Write the file in the HTTP response
         info = getattr(self.aq_base, name, None)
         if info:
-            # Write the file in the HTTP response.
-            info.writeResponse(self.REQUEST.RESPONSE, self.getDbFolder())
+            # Content disposition may be given in the request
+            disposition = rq.get('disposition', 'attachment')
+            if disposition not in ('inline', 'attachment'):
+                disposition = 'attachment'
+            info.writeResponse(rq.RESPONSE, self.getDbFolder(), disposition)
 
     def upload(self):
         '''Receives an image uploaded by the user via ckeditor and stores it in

@@ -115,7 +115,8 @@ class Ref(Field):
        <img src=":url('edit')" title=":_('object_edit')"/>
       </a>
       <!-- Delete -->
-      <img if="mayEdit and field.delete and tied.o.mayDelete()"
+      <img var="mayDeleteViaField=inPickList and True or field.delete"
+           if="mayEdit and mayDeleteViaField and tied.o.mayDelete()"
            class="clickable" title=":_('object_delete')" src=":url('delete')"
            onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
       <!-- Unlink -->
@@ -289,7 +290,10 @@ class Ref(Field):
         <!-- The "title" field -->
         <x if="refField.name == 'title'">
          <x if="mayView">
-          <x>:field.pxObjectTitle</x>
+          <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
+          <a if="field.menuUrlMethod"
+             var2="info=field.getMenuUrl(zobj, tied)"
+             href=":info[0]" target=":info[1]">:tied.title</a>
           <x if="tied.o.mayAct()">:field.pxObjectActions</x>
          </x>
          <div if="not mayView">
@@ -372,7 +376,8 @@ class Ref(Field):
              object in the menu. -->
         <x if="singleObject" var2="tied=menu.objects[0]">
          <a if="field.menuUrlMethod" class="dropdownMenu"
-            href=":field.getMenuUrl(zobj, tied)"
+            var2="info=field.getMenuUrl(zobj, tied)"
+            href=":info[0]" target=":info[1]"
             title=":tied.o.getShownValue('title')">:field.pxMenu</a>
          <a if="not field.menuUrlMethod" class="dropdownMenu"
             var2="linkInPopup=inPopup or (target.target != '_self')"
@@ -392,7 +397,8 @@ class Ref(Field):
           <!-- A specific link may have to be computed from
                field.menuUrlMethod -->
           <a if="field.menuUrlMethod"
-             href=":field.getMenuUrl(zobj, tied)">:tied.title</a>
+             var2="info=field.getMenuUrl(zobj, tied)"
+             href=":info[0]" target=":info[1]">:tied.title</a>
           <!-- Show standard pxObjectTitle else -->
           <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
           <x if="tied.o.mayAct()">:field.pxObjectActions</x>
@@ -717,7 +723,11 @@ class Ref(Field):
         #   the menu as an icon instead of a text.
         self.menuInfoMethod = menuInfoMethod
         # "menuUrlMethod" is an optional method that allows to compute an
-        # alternative URL for the tied object that is shown within the menu.
+        # alternative URL for the tied object that is shown within the menu
+        # (when render is "menus"). It can also be used with render being "list"
+        # as well. The method can return a URL as a string, or, alternately, a
+        # tuple (url, target), "target" being a string that will be used for
+        # the "target" attribute of the corresponding XHTML "a" tag.
         self.menuUrlMethod = menuUrlMethod
         # "showActions" determines if we must show or not actions on every tied
         # object. Values can be: True, False or "inline". If True, actions will
@@ -966,8 +976,10 @@ class Ref(Field):
            render mode, tied object's order is lost and navigation is
            impossible.'''
         if self.menuUrlMethod:
-            return self.menuUrlMethod(zobj.appy(), tied)
-        return tied.o.getUrl(nav='')
+            res = self.menuUrlMethod(zobj.appy(), tied)
+            if isinstance(res, str): return res, '_self'
+            return res
+        return tied.o.getUrl(nav=''), '_self'
 
     def getStartNumber(self, render, req, ajaxHookId):
         '''This method returns the index of the first linked object that must be
