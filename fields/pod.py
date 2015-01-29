@@ -158,7 +158,7 @@ class Pod(Field):
                  showTemplate=None, freezeTemplate=None, maxPerRow=5,
                  context=None, stylesMapping={}, formats=None, getChecked=None,
                  mailing=None, mailingName=None, showMailing=None,
-                 mailingInfo=None, view=None, xml=None):
+                 mailingInfo=None, view=None, xml=None, downloadName=None):
         # Param "template" stores the path to the pod template(s). If there is
         # a single template, a string is expected. Else, a list or tuple of
         # strings is expected. Every such path must be relative to your
@@ -271,6 +271,20 @@ class Pod(Field):
         # must be a method whose single arg is the mailing id (from
         # self.mailing) and that returns an instance of class Mailing (above).
         self.mailingInfo = mailingInfo
+        # "downloadName", if specified, is a method that will be called with
+        # the current template (from self.template) as single arg and must
+        # return the name of the file as the user will get it once he will
+        # download the pod result from its browser. This is for people that do
+        # not like the default download name. Do not specify any extension: it
+        # will be appended automatically. For example, if your method returns
+        # "PodResultForSomeObject", and the pod result is a pdf file, the file
+        # will be named "PodResultForSomeObject.pdf". If you specify such a
+        # method, you have the responsibility to produce a valid,
+        # any-OS-and-any-browser-proof file name. For inspiration, see the
+        # default m_getDownloadName method hereafter. If you have several
+        # templates in self.template, for some of them where you are satisfied
+        # with the default download name, return None.
+        self.downloadName = downloadName
         Field.__init__(self, None, (0,1), default, show, page, group, layouts,
                        move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -350,6 +364,12 @@ class Pod(Field):
         '''Gets the name of the pod result as will be seen by the user that will
            download it. Ensure the returned name is not too long for the OS that
            will store the downloaded file with this name.'''
+        # Use method self.downloadName if present and if it returns something
+        # for p_template
+        if self.downloadName:
+            name = self.downloadName(obj, template)
+            if name: return '%s.%s' % (name, format)
+        # Compute the default download name
         norm = obj.tool.normalize
         fileName = norm(self.getTemplateName(obj, template))[:100]
         if not queryRelated:
