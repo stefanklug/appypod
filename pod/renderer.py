@@ -461,7 +461,7 @@ class Renderer:
         return self.stylesManager.styles
 
     def setStylesMapping(self, stylesMapping):
-        '''Establishes a correspondance between, on one hand, CSS styles or
+        '''Establishes a correspondence between, on one hand, CSS styles or
            XHTML tags that will be found inside XHTML content given to POD,
            and, on the other hand, ODT styles found into the template.'''
         try:

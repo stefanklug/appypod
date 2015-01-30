@@ -908,12 +908,14 @@ class String(Field):
         rq = obj.REQUEST
         if rq.get('cancel') == 'True': return
         requestValue = rq['fieldContent']
-        # Remember previous value if the field is historized.
+        # Remember previous value if the field is historized
         previousData = obj.rememberPreviousData([self])
         if self.isMultilingual(obj):
-            # We take a copy of previousData because it is mutable (dict).
-            previousData[self.name] = previousData[self.name].copy()
-            # We get a partial value, for one language only.
+            # We take a copy of previousData because it is mutable (dict)
+            prevData = previousData[self.name]
+            if prevData != None: prevData = prevData.copy()
+            previousData[self.name] = prevData
+            # We get a partial value, for one language only
             language = rq['languageOnly']
             v = self.getUnilingualStorableValue(obj, requestValue)
             getattr(obj.aq_base, self.name)[language] = v
