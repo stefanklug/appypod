@@ -146,14 +146,6 @@ class Search:
             return gutils.callMethod(tool, self.show, klass=klass)
         return self.show
 
-    def getCbJsInit(self, hookId):
-        '''Returns the code that creates JS data structures for storing the
-           status of checkboxes for every result of this search.'''
-        default = self.checkboxesDefault and 'unchecked' or 'checked'
-        return '''var node=document.getElementById('%s');
-                  node['_appy_objs_cbs'] = {};
-                  node['_appy_objs_sem'] = '%s';''' % (hookId, default)
-
     def getSessionKey(self, className, full=True):
         '''Returns the name of the key, in the session, where results for this
            search are stored when relevant. If p_full is False, only the suffix
@@ -166,7 +158,7 @@ class Search:
 class UiSearch:
     '''Instances of this class are generated on-the-fly for manipulating a
        Search from the User Interface.'''
-    # PX for rendering a search.
+    # Rendering a search
     pxView = Px('''
      <div class="portletSearch">
       <a href=":'%s?className=%s&amp;search=%s' % \
@@ -175,11 +167,169 @@ class UiSearch:
          title=":search.translatedDescr">:search.translated</a>
      </div>''')
 
+    # Search results, as a list (used by pxResult below)
+    pxResultList = Px('''
+     <x var="showHeaders=showHeaders|True;
+             checkboxes=uiSearch.search.checkboxes;
+             checkboxesId=rootHookId + '_objs';
+             cbShown=uiSearch.showCheckboxes();
+             cbDisplay=cbShown and 'table-cell' or 'none'">
+      <script>:uiSearch.getAjaxData(ajaxHookId, ztool, popup=inPopup, \
+               checkboxes=checkboxes, checkboxesId=checkboxesId, \
+               cbDisplay=cbDisplay, startNumber=startNumber, \
+               totalNumber=totalNumber)</script>
+      <table class="list" width="100%">
+       <!-- Headers, with filters and sort arrows -->
+       <tr if="showHeaders">
+        <th if="checkboxes" class="cbCell" style=":'display:%s' % cbDisplay">
+         <img src=":url('checkall')" class="clickable"
+              title=":_('check_uncheck')"
+              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
+        </th>
+        <th for="column in columns"
+            var2="field=column.field;
+                  sortable=field.isSortable(usage='search');
+                  filterable=field.filterable"
+            width=":column.width" align=":column.align">
+         <x>::ztool.truncateText(_(field.labelId))</x>
+         <x if="(totalNumber &gt; 1) or filterValue">:tool.pxSortAndFilter</x>
+         <x>:tool.pxShowDetails</x>
+        </th>
+       </tr>
+
+       <!-- Results -->
+       <tr if="not zobjects">
+        <td colspan=":len(columns)+1">:_('query_no_result')</td>
+       </tr>
+       <x for="zobj in zobjects"
+          var2="@currentNumber=currentNumber + 1;
+               rowCss=loop.zobj.odd and 'even' or 'odd'">:obj.pxViewAsResult</x>
+      </table>
+      <!-- The button for selecting objects and closing the popup -->
+      <div if="inPopup and cbShown" align=":dleft">
+       <input type="button"
+              var="label=_('object_link_many'); css=ztool.getButtonCss(label)"
+              value=":label" class=":css" style=":url('linkMany', bg=True)"
+              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
+               (q(rootHookId), q(uiSearch.initiator.url), \
+                q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
+                q(filterKey), q(filterValue))"/>
+      </div>
+      <!-- Init checkboxes if present -->
+      <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
+      <script>:'initFocus(%s)' % q(ajaxHookId)</script></x>''')
+
+    # Search results, as a grid (used by pxResult below)
+    pxResultGrid = Px('''
+     <table width="100%"
+            var="modeElems=resultMode.split('_');
+                 cols=(len(modeElems)==2) and int(modeElems[1]) or 4;
+                 rows=ztool.splitList(zobjects, cols)">
+      <tr for="row in rows" valign="middle">
+       <td for="zobj in row" width=":'%d%%' % (100/cols)" align="center"
+           style="padding-top: 25px"
+           var2="obj=zobj.appy(); mayView=zobj.mayView()">
+        <x var="@currentNumber=currentNumber + 1"
+           for="column in columns"
+           var2="field=column.field">:field.pxRenderAsResult</x>
+       </td>
+      </tr>
+     </table>''')
+
+    # Render search results
+    pxResult = Px('''
+     <div var="ajaxHookId='queryResult';
+               className=req['className'];
+               searchName=req.get('search', '');
+               uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
+               rootHookId=uiSearch.getRootHookId();
+               refInfo=ztool.getRefInfo();
+               refObject=refInfo[0];
+               refField=refInfo[1];
+               refUrlPart=refObject and ('&amp;ref=%s:%s' % (refObject.id, \
+                                                             refField)) or '';
+               startNumber=req.get('startNumber', '0');
+               startNumber=int(startNumber);
+               sortKey=req.get('sortKey', '');
+               sortOrder=req.get('sortOrder', 'asc');
+               filterKey=req.get('filterKey', '');
+               filterValue=req.get('filterValue', '');
+               queryResult=ztool.executeQuery(className, \
+                   search=uiSearch.search, startNumber=startNumber, \
+                   remember=True, sortBy=sortKey, sortOrder=sortOrder, \
+                   filterKey=filterKey, filterValue=filterValue, \
+                   refObject=refObject, refField=refField);
+               zobjects=queryResult.objects;
+               totalNumber=queryResult.totalNumber;
+               batchSize=queryResult.batchSize;
+               batchNumber=len(zobjects);
+               navBaseCall='askQueryResult(%s,%s,%s,%s,%s,**v**)' % \
+                 (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
+                  q(searchName),int(inPopup));
+               showNewSearch=showNewSearch|True;
+               newSearchUrl='%s/search?className=%s%s' % \
+                   (ztool.absolute_url(), className, refUrlPart);
+               showSubTitles=req.get('showSubTitles', 'true') == 'true';
+               klass=ztool.getAppyClass(className);
+               resultMode=uiSearch.getResultMode(klass);
+               target=ztool.getLinksTargetInfo(klass)"
+          id=":ajaxHookId">
+
+      <x if="zobjects or filterValue">
+       <!-- Display here POD templates if required -->
+       <table var="fields=ztool.getResultPodFields(className);
+                   layoutType='view'"
+              if="not inPopup and zobjects and fields" align=":dright">
+        <tr>
+         <td var="zobj=zobjects[0]; obj=zobj.appy()"
+             for="field in fields"
+             class=":not loop.field.last and 'pod' or ''">:field.pxRender</td>
+        </tr>
+       </table>
+
+       <!-- The title of the search -->
+       <p if="not inPopup">
+       <x>::uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
+        <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
+         &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
+        </x>
+       </p>
+       <table width="100%">
+        <tr valign="top">
+         <!-- Search description -->
+         <td if="uiSearch.translatedDescr">
+          <span class="discreet">:uiSearch.translatedDescr</span><br/>
+         </td>
+         <!-- (Top) navigation -->
+         <td align=":dright" width="150px">:tool.pxNavigate</td>
+        </tr>
+       </table>
+
+       <!-- Results, as a list or grid -->
+       <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
+               columns=ztool.getColumnsSpecifiers(className,columnLayouts,dir);
+               currentNumber=0">
+        <x if="resultMode == 'list'">:uiSearch.pxResultList</x>
+        <x if="resultMode != 'list'">:uiSearch.pxResultGrid</x>
+       </x>
+
+       <!-- (Bottom) navigation -->
+       <x>:tool.pxNavigate</x>
+      </x>
+
+      <x if="not zobjects and not filterValue">
+       <x>:_('query_no_result')</x>
+       <x if="showNewSearch and (searchName == 'customSearch')"><br/>
+        <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>
+      </x>
+    </div>''')
+
     def __init__(self, search, className, tool):
         self.search = search
         self.name = search.name
         self.type = 'search'
         self.colspan = search.colspan
+        self.className = className
         # Property "display" of the div tag containing actions for every search
         # result.
         self.showActions = search.showActions
@@ -188,7 +338,7 @@ class UiSearch:
             self.translated = search.translated
             self.translatedDescr = search.translatedDescr
         else:
-            # The label may be specific in some special cases.
+            # The label may be specific in some special cases
             labelDescr = ''
             if search.name == 'allSearch':
                 label = '%s_plural' % className
@@ -221,6 +371,11 @@ class UiSearch:
            Else, simply return the name of the search.'''
         return getattr(self, 'initiatorHook', self.name)
 
+    def getResultMode(self, klass):
+        '''Must we show, on pxResult, instances of p_klass as a list or
+           as a grid?'''
+        return getattr(klass, 'resultMode', 'list')
+
     def showCheckboxes(self):
         '''If checkboxes are enabled for this search (and if an initiator field
            is there), they must be visible only if the initiator field is
@@ -229,4 +384,32 @@ class UiSearch:
            the DOM because they store object UIDs.'''
         if not self.search.checkboxes: return
         return not self.initiator or self.initiatorField.isMultiValued()
+
+    def getCbJsInit(self, hookId):
+        '''Returns the code that creates JS data structures for storing the
+           status of checkboxes for every result of this search.'''
+        default = self.search.checkboxesDefault and 'unchecked' or 'checked'
+        return '''var node=document.getElementById('%s');
+                  node['_appy_objs_cbs'] = {};
+                  node['_appy_objs_sem'] = '%s';''' % (hookId, default)
+
+    def getAjaxData(self, hook, ztool, **params):
+        '''Initializes an AjaxData object on the DOM node corresponding to
+           p_hook = the whole search result.'''
+        # Complete params with default parameters
+        params['className'] = self.className
+        params['searchName'] = self.name
+        params = sutils.getStringDict(params)
+        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+               "'pxResult', %s, null, '%s')" % \
+               (hook, hook, params, ztool.absolute_url())
+
+    def getAjaxDataRow(self, zobj, parentHook, **params):
+        '''Initializes an AjaxData object on the DOM node corresponding to
+           p_hook = a row within the list of results.'''
+        hook = zobj.id
+        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+               "'pxViewAsResultFromAjax',%s,'%s','%s')" % \
+               (hook, hook, sutils.getStringDict(params), parentHook,
+                zobj.absolute_url())
 # ------------------------------------------------------------------------------

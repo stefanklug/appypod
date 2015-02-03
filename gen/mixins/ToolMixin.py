@@ -272,12 +272,6 @@ class ToolMixin(BaseMixin):
                             for key in self.queryParamNames])
         return res
 
-    def getResultMode(self, className):
-        '''Must we show, on pxQueryResult, instances of p_className as a list or
-           as a grid?'''
-        klass = self.getAppyClass(className)
-        return getattr(klass, 'resultMode', 'list')
-
     def showPortlet(self, obj, layoutType):
         '''When must the portlet be shown? p_obj and p_layoutType can be None
            if we are not browing any objet (ie, we are on the home page).'''
@@ -1298,4 +1292,18 @@ class ToolMixin(BaseMixin):
             if field: msg = getattr(field, action)(obj.o)
             else: msg = getattr(obj.o, action)()
         return msg
+
+    def updatePxContextFromRequest(self):
+        '''Takes any user-defined key from the request and put it as a variable
+           on the current PX context.'''
+        req = self.REQUEST
+        ctx = req.pxContext
+        # Get "form" data (get, post) and cookie values
+        for source in (req.form, req.cookies):
+            for k, v in source.iteritems():
+                # Convert v to some Python data when relevant
+                if v in ('True', 'False', 'true', 'false'):
+                    exec 'v = %s' % v.capitalize()
+                elif v.isdigit(): v = int(v)
+                ctx[k] = v
 # ------------------------------------------------------------------------------

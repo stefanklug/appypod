@@ -1019,9 +1019,9 @@ class BaseMixin:
         wf = self.getWorkflow()
         # Get the initial workflow state
         initialState = self.State(name=False)
-        # Create a Transition instance representing the initial transition.
+        # Create a Transition instance representing the initial transition
         initialTransition = gen.Transition((initialState, initialState))
-        initialTransition.trigger('_init_', self, wf, '')
+        initialTransition.trigger('_init_', self, wf, '', doSay=False)
 
     def getWorkflow(self, name=False, className=None):
         '''Returns the workflow applicable for p_self (or for any instance of

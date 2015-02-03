@@ -66,7 +66,7 @@ class AbstractWrapper(object):
                 req=ztool.REQUEST;              resp=req.RESPONSE;
                 inPopup=req.get('popup') == '1';
                 obj=obj or ztool.getHomeObject(inPopup);
-                zobj=obj and obj.o or None;
+                zobj=obj and obj.o or None;     ajax=False;
                 isAnon=user.login=='anon';      app=ztool.getApp();
                 appFolder=app.data;             url = ztool.getIncludeUrl;
                 appName=ztool.getAppName();     _=ztool.translate;
@@ -88,8 +88,7 @@ class AbstractWrapper(object):
       <x for="name in ztool.getGlobalCssJs(dir)">
        <link if="name.endswith('.css')" rel="stylesheet" type="text/css"
              href=":url(name)"/>
-       <script if="name.endswith('.js')" type="text/javascript"
-               src=":url(name)"></script>
+       <script if="name.endswith('.js')" src=":url(name)"></script>
       </x>
      </head>
      <body style=":(cfg.skin == 'wide') and 'margin:0' or ''">
@@ -376,9 +375,8 @@ class AbstractWrapper(object):
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
            var2="formId='trigger_%s' % targetObj.id" method="post"
-           id=":formId" action=":targetObj.absolute_url() + '/do'"
+           id=":formId" action=":targetObj.absolute_url() + '/onTrigger'"
            style="display: inline">
-      <input type="hidden" name="action" value="Trigger"/>
       <input type="hidden" name="transition"/>
       <!-- Input field for storing the comment coming from the popup -->
       <textarea id="comment" name="comment" cols="30" rows="3"
@@ -388,8 +386,7 @@ class AbstractWrapper(object):
        <x if="transition.type == 'transition'">:transition.pxView</x>
        <x if="transition.type == 'group'"
           var2="uiGroup=transition">:uiGroup.px</x>
-      </x>
-     </form>''')
+      </x></form>''')
 
     # Displays header information about an object: title, workflow-related info,
     # history...
@@ -534,7 +531,7 @@ class AbstractWrapper(object):
                                                    inPopup=inPopup))"/>
       </x>
       <!-- Workflow transitions -->
-      <x var="targetObj=zobj; buttonsMode='normal'"
+      <x var="targetObj=zobj"
          if="mayAct and \
              targetObj.showTransitions(layoutType)">:obj.pxTransitions</x>
       <!-- Fields (actions) defined with layout "buttons" -->
@@ -578,6 +575,39 @@ class AbstractWrapper(object):
       </table>
      </form>''')
 
+    # The object, as shown in a list of query results
+    pxViewAsResult = Px('''
+     <tr var2="obj=zobj.appy(); mayView=zobj.mayView();
+               cbId='%s_%s' % (checkboxesId, currentNumber)"
+         id=":zobj.id" class=":rowCss" valign="top">
+      <!-- A checkbox if required -->
+      <td if="checkboxes" class="cbCell" id=":cbId"
+          style=":'display:%s' % cbDisplay">
+       <input type="checkbox" name=":checkboxesId" checked="checked"
+              value=":zobj.id" onclick="toggleCb(this)"/>
+      </td>
+      <td for="column in columns"
+          var2="field=column.field" id=":'field_%s' % field.name"
+          width=":column.width"
+          align=":column.align">:field.pxRenderAsResult</td>
+     <!-- Store data in this tr node allowing to ajax-refresh it -->
+     <script>:uiSearch.getAjaxDataRow(zobj, ajaxHookId, \
+               currentNumber=currentNumber, rowCss=rowCss)</script>
+     </tr>''')
+
+    # When calling pxViewAsResult from Ajax, this surrounding PX is called to
+    # define the appropriate variables based on request values.
+    pxViewAsResultFromAjax = Px('''
+     <x var="ajaxHookId='queryResult';
+             dummy=ztool.updatePxContextFromRequest();
+             showSubTitles=showSubTitles|True;
+             refInfo=ztool.getRefInfo();
+             columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
+             columns=ztool.getColumnsSpecifiers(className, columnLayouts, dir);
+             target=ztool.getLinksTargetInfo(ztool.getAppyClass(className));
+             uiSearch=ztool.getSearch(\
+               className, searchName, ui=True)">:obj.pxViewAsResult</x>''')
+    
     pxView = Px('''
      <x var="x=zobj.mayView(raiseError=True);
              errors=req.get('errors', {});
@@ -639,11 +669,12 @@ class AbstractWrapper(object):
              req=ztool.REQUEST;              resp=req.RESPONSE;
              dummy=setattr(req, 'pxContext', _ctx_);
              lang=ztool.getUserLanguage();   q=ztool.quote;
-             action=req.get('action', '');
+             action=req.get('action', '');   ajax=True;
              px=req['px'].split(':');
              inPopup=req.get('popup') == '1';
              className=(len(px) == 3) and px[0] or None;
-             field=className and zobj.getAppyType(px[1], className) or None;
+             field=className and (zobj.getAppyType(px[1], className) or \
+                                  ztool.getSearch(className, px[1], ui=True));
              field=(len(px) == 2) and zobj.getAppyType(px[0]) or field;
              dir=ztool.getLanguageDirection(lang);
              dleft=(dir == 'ltr') and 'left' or 'right';

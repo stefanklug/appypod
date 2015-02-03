@@ -97,6 +97,64 @@ class Field:
             context[k] = ctx[k]
         return self.pxRender(context).encode('utf-8')
 
+    # Show the field content for some object on a list of results
+    pxRenderAsResult = Px('''
+     <!-- Title -->
+     <x if="field.name == 'title'"
+        var2="navInfo='search.%s.%s.%d.%d' % (className, searchName, \
+                                      startNumber+currentNumber, totalNumber)">
+      <x if="mayView"
+         var2="titleMode=inPopup and 'select' or 'link';
+               pageName=zobj.getDefaultViewPage();
+               selectJs=inPopup and 'onSelectObject(%s,%s,%s)' % (q(cbId), \
+                          q(rootHookId), q(uiSearch.initiator.url))">
+       <x var="sup=zobj.getSupTitle(navInfo)" if="sup">::sup</x>
+       <x>::zobj.getListTitle(mode=titleMode, nav=navInfo, target=target, \
+          page=pageName, inPopup=inPopup, selectJs=selectJs, highlight=True)</x>
+       <span style=":showSubTitles and 'display:inline' or 'display:none'"
+             name="subTitle" var="sub=zobj.getSubTitle()"
+             if="sub">::zobj.highlight(sub)</span>
+
+       <!-- Actions -->
+       <div if="not inPopup and uiSearch.showActions and zobj.mayAct()"
+            class="objectActions" style=":'display:%s' % uiSearch.showActions"
+            var2="layoutType='buttons'" >
+        <!-- Edit -->
+        <a if="zobj.mayEdit()"
+           var2="linkInPopup=inPopup or (target.target != '_self')"
+           target=":target.target" onclick=":target.openPopup"
+           href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
+                              nav=navInfo, inPopup=linkInPopup)">
+         <img src=":url('edit')" title=":_('object_edit')"/>
+        </a>
+        <!-- Delete -->
+        <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
+             title=":_('object_delete')"
+             onClick=":'onDeleteObject(%s)' % q(zobj.id)"/>
+        <!-- Workflow transitions -->
+        <x if="zobj.showTransitions('result')"
+           var2="targetObj=zobj">:targetObj.appy().pxTransitions</x>
+        <!-- Fields (actions) defined with layout "buttons" -->
+        <x if="not inPopup"
+           var2="fields=zobj.getAppyTypes('buttons', 'main');
+                 layoutType='cell'">
+         <!-- Call pxCell and not pxRender to avoid having a table -->
+         <x for="field in fields"
+            var2="name=field.name; smallButtons=True">:field.pxCell</x>
+        </x>
+       </div>
+      </x>
+      <x if="not mayView">
+       <img src=":url('fake')" style="margin-right: 5px"/>
+       <x>:_('unauthorized')</x>
+      </x>
+     </x>
+     <!-- Any other field -->
+     <x if="(field.name != 'title') and mayView">
+      <x var="layoutType='cell'; innerRef=True"
+         if="field.isShowable(zobj, 'result')">:field.pxRender</x>
+     </x>''')
+
     # Displays a field label
     pxLabel = Px('''<label if="field.hasLabel and field.renderLabel"
      lfor=":field.name">::_('label', field=field)</label>''')

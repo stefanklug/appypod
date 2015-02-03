@@ -361,7 +361,7 @@ class Transition:
            "onTrigger" on the workflow class by convention. The common action is
            executed before the transition-specific action (if any).'''
         obj = obj.appy()
-        wf = wf.__instance__ # We need the prototypical instance here.
+        wf = wf.__instance__ # We need the prototypical instance here
         wf.onTrigger(obj, name, fromState)
 
     def trigger(self, name, obj, wf, comment, doAction=True, doHistory=True,
@@ -374,11 +374,11 @@ class Transition:
            the transition is triggered programmatically, and no message is
            returned to the user. If p_reindex is False, object reindexing will
            be performed by the calling method.'''
-        # "Triggerability" and security checks.
+        # "Triggerability" and security checks
         if (name != '_init_') and \
            not self.isTriggerable(obj, wf, noSecurity=noSecurity):
             raise Exception('Transition "%s" can\'t be triggered.' % name)
-        # Create the workflow_history dict if it does not exist.
+        # Create the workflow_history dict if it does not exist
         if not hasattr(obj.aq_base, 'workflow_history'):
             from persistent.mapping import PersistentMapping
             obj.workflow_history = PersistentMapping()
@@ -403,11 +403,11 @@ class Transition:
             action = None
             fromState = None
         else:
-            fromState = obj.State() # Remember the "from" (=start) state.
+            fromState = obj.State() # Remember the "from" (=start) state
         if not doHistory: comment = '_invisible_'
         obj.addHistoryEvent(action, review_state=targetStateName,
                             comments=comment)
-        # Execute the action that is common to all transitions, if defined.
+        # Execute the action that is common to all transitions, if defined
         if doAction and hasattr(wf, 'onTrigger'):
             self.executeCommonAction(obj, name, wf, fromState)
         # Execute the related action if needed
@@ -417,19 +417,22 @@ class Transition:
         # (Allowed, State) need to be updated here.
         if reindex and not obj.isTemporary(): obj.reindex()
         # Return a message to the user if needed
-        if not doSay or (name == '_init_'): return
+        if not doSay: return
         if not msg: msg = obj.translate('object_saved')
-        obj.say(msg)
+        return msg
 
     def onUiRequest(self, obj, wf, name, rq):
         '''Executed when a user wants to trigger this transition from the UI.'''
         tool = obj.getTool()
         # Trigger the transition
-        self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
-        # Reindex obj if required.
+        msg = self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
+        # Reindex obj if required
         if not obj.isTemporary(): obj.reindex()
+        # If we are called from an Ajax request, return a message
+        if hasattr(rq, 'pxContext') and rq.pxContext['ajax']: return msg
         # If we are viewing the object and if the logged user looses the
         # permission to view it, redirect the user to its home page.
+        if msg: obj.say(msg)
         if not obj.mayView() and \
            (obj.absolute_url_path() in rq['HTTP_REFERER']):
             back = tool.getHomePage()
@@ -462,22 +465,24 @@ class Transition:
                     if startOk and endOk: return trName
 
 class UiTransition:
-    '''Represents a widget that displays a transition.'''
+    '''Represents a widget that displays a transition'''
     pxView = Px('''
      <x var="label=transition.title;
-             css=ztool.getButtonCss(label, buttonsMode == 'small')">
+             inButtons=layoutType == 'buttons';
+             css=ztool.getButtonCss(label, inButtons)">
       <!-- Real button -->
       <input if="transition.mayTrigger" type="button" class=":css"
+             var="back=inButtons and q(zobj.id) or 'null'"
              style=":url(transition.icon, bg=True)" value=":label"
-             onclick=":'triggerTransition(%s,%s,%s)' % (q(formId), \
-                        q(transition.name), q(transition.confirm))"/>
+             onclick=":'triggerTransition(%s,%s,%s,%s)' % (q(formId), \
+                        q(transition.name), q(transition.confirm), back)"/>
 
       <!-- Fake button, explaining why the transition can't be triggered -->
       <input if="not transition.mayTrigger" type="button"
              class=":'fake %s' % css" style=":url('fake', bg=True)"
              value=":label" title=":transition.reason"/></x>''')
 
-    def __init__(self, name, transition, obj, mayTrigger, ):
+    def __init__(self, name, transition, obj, mayTrigger):
         self.name = name
         self.transition = transition
         self.type = 'transition'
@@ -494,7 +499,7 @@ class UiTransition:
         if not mayTrigger:
             self.mayTrigger = False
             self.reason = mayTrigger.msg
-        # Required by the UiGroup.
+        # Required by the UiGroup
         self.colspan = 1
 
 # ------------------------------------------------------------------------------

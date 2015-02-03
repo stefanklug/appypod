@@ -79,7 +79,7 @@ function XhrObject() { // Wraps a XmlHttpRequest object
                       replaced by result of executing the Ajax request. */
   this.onGet = ''; /* The name of a Javascript function to call once we
                       receive the result. */
-  this.info = {};  /* An associative array for putting anything else. */
+  this.info = {};  /* An associative array for putting anything else */
 }
 
 /* When inserting HTML at some DOM node in a page via Ajax, scripts defined in
@@ -228,11 +228,61 @@ function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
   }
 }
 
+// Object representing all the data required to perform an Ajax request
+function AjaxData(hook, px, params, parentHook, url, mode, beforeSend, onGet) {
+  this.hook = hook;
+  this.mode = mode;
+  if (!mode) this.mode = 'GET';
+  this.url = url;
+  this.px = px;
+  this.params = params;
+  this.beforeSend = beforeSend;
+  this.onGet = onGet;
+  /* If a parentHook is spefified, this AjaxData must be completed with a parent
+     AjaxData instance. */
+  this.parentHook = parentHook;
+}
+
+
+function askAjax(hook, form) {
+  /* Call askAjaxChunk by getting an AjaxData instance from p_hook and a
+      potential action from p_form). */
+  var d = document.getElementById(hook)['ajax'];
+  // Complete data with a parent data if present
+  if (d['parentHook']) {
+    var parent = document.getElementById(d['parentHook'])['ajax'];
+    for (var key in parent) {
+      if (key == 'params') continue; // Will get a specific treatment herafter
+      if (!d[key]) d[key] = parent[key]; // Override if no value on child
+    }
+    // Merge parameters
+    if (parent.params) {
+      for (var key in parent.params) {
+        if (key in d.params) continue; // Override if not value on child
+        d.params[key] = parent.params[key];
+      }
+    }
+  }
+  // If a p_form id is given, integrate the form submission in the ajax request
+  if (form) {
+    var f = document.getElementById(form);
+    var mode = 'POST';
+    // Deduce the action from the form action
+    d.params['action'] = _rsplit(f.action, '/', 2)[1];
+    // Get the other params
+    var elems = f.elements;
+    for (var i=0; i < elems.length; i++) {
+      d.params[elems[i].name] = elems[i].value;
+    }
+  }
+  else var mode = d.mode;
+  askAjaxChunk(d.hook,mode,d.url,d.px,d.params,d.beforeSend,d.onGet) }
+
 /* The functions below wrap askAjaxChunk for getting specific content through
    an Ajax request. */
 function askQueryResult(hookId, objectUrl, className, searchName, popup,
                         startNumber, sortKey, sortOrder, filterKey) {
-  // Sends an Ajax request for getting the result of a query.
+  // Sends an Ajax request for getting the result of a query
   var params = {'className': className, 'search': searchName,
                 'startNumber': startNumber, 'popup': popup};
   if (sortKey) params['sortKey'] = sortKey;
@@ -244,8 +294,8 @@ function askQueryResult(hookId, objectUrl, className, searchName, popup,
       params['filterValue'] = encodeURIComponent(filterWidget.value);
     }
   }
-  askAjaxChunk(hookId, 'GET', objectUrl, 'pxQueryResult', params, null,
-               evalInnerScripts);
+  var px = className + ':' + searchName + ':' + 'pxResult';
+  askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
 }
 
 function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
@@ -265,7 +315,7 @@ function askRefField(hookId, objectUrl, innerRef, startNumber, action,
   params[startKey] = startNumber;
   if (action) params['action'] = action;
   if (actionParams) {
-    for (key in actionParams) {
+    for (var key in actionParams) {
       if ((key == 'move') && (typeof actionParams[key] == 'object')) {
         // Get the new index from an input field
         var id = actionParams[key].id;
@@ -343,7 +393,7 @@ function _rsplit(s, delimiter, limit) {
   var elems = s.split(delimiter);
   var exc = elems.length - limit;
   if (exc <= 0) return elems;
-  // Merge back first elements to get p_limit elements.
+  // Merge back first elements to get p_limit elements
   var head = '';
   var res = [];
   for (var i=0; i < elems.length; i++) {
@@ -582,12 +632,22 @@ function submitAppyForm(button) {
 }
 
 // Function used for triggering a workflow transition
-function triggerTransition(formId, transitionId, msg) {
-  var theForm = document.getElementById(formId);
-  theForm.transition.value = transitionId;
-  if (!msg) { theForm.submit(); }
-  else { // Ask the user to confirm.
-   askConfirm('form', formId, msg, true);
+function triggerTransition(formId, transitionId, msg, back) {
+  var f = document.getElementById(formId);
+  f.transition.value = transitionId;
+  if (!msg) {
+    /* We must submit the form and either refresh the entire page (back is null)
+       or ajax-refresh a given part only (p_back corresponds to the id of the
+       DOM node to be refreshed. */
+    if (back) askAjax(back, formId);
+    else f.submit();
+  }
+  else {
+    // Ask a confirmation to the user before proceeding
+    if (back) {
+      var js = "askAjax('"+back+"', '"+formId+"');"
+      askConfirm('script', js, msg, true) }
+    else askConfirm('form', formId, msg, true);
   }
 }
 

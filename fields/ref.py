@@ -80,7 +80,7 @@ class Ref(Field):
     # (edit, delete, etc).
     pxObjectActions = Px('''
      <div if="field.showActions" class="objectActions"
-          style=":'display:%s' % field.showActions">
+          style=":'display:%s' % field.showActions" var2="layoutType='buttons'">
       <!-- Arrows for moving objects up or down -->
       <x if="(totalNumber &gt;1) and changeOrder and not inPickList \
             and not inMenu"
@@ -132,7 +132,7 @@ class Ref(Field):
                       q(field.name), q(tiedUid))"/>
       <!-- Workflow transitions -->
       <x if="tied.o.showTransitions('result')"
-         var2="targetObj=tied.o; buttonsMode='small'">:tied.pxTransitions</x>
+         var2="targetObj=tied.o">:tied.pxTransitions</x>
       <!-- Fields (actions) defined with layout "buttons" -->
       <x if="not inPopup"
          var2="fields=tied.o.getAppyTypes('buttons', 'main');
@@ -279,7 +279,8 @@ class Ref(Field):
           class=":loop.tied.odd and 'even' or 'odd'"
           var2="tiedUid=tied.o.id;
                 objectIndex=field.getIndexOf(zobj, tiedUid)|None;
-                mayView=tied.o.mayView()">
+                mayView=tied.o.mayView()"
+          id=":'%s_%s' % (ajaxHookId, tiedUid)">
        <td if="not inPickList and numbered">:field.pxNumber</td>
        <td if="checkboxes" class="cbCell">
         <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"

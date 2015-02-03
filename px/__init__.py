@@ -95,11 +95,11 @@ class Px:
               as is, without re-applying the template (else, an infinite
               recursion would occur).
         '''
-        # Developer, forget the following line forever.
+        # Developer, forget the following line forever
         if '_ctx_' not in context: context['_ctx_'] = context
 
         if self.hook and applyTemplate:
-            # Call the template PX, filling the hook with the current PX.
+            # Call the template PX, filling the hook with the current PX
             context[self.hook] = self
             return self.template(context)
         else:

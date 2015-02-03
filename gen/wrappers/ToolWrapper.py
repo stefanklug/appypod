@@ -100,11 +100,10 @@ class ToolWrapper(AbstractWrapper):
      <x if="cssJs">
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
             href=":url(cssFile)"/>
-      <script for="jsFile in cssJs['js']" type="text/javascript"
-              src=":url(jsFile)"></script></x>
+      <script for="jsFile in cssJs['js']" src=":url(jsFile)"></script></x>
 
      <!-- Javascript messages -->
-     <script type="text/javascript">::ztool.getJavascriptMessages()</script>
+     <script>::ztool.getJavascriptMessages()</script>
 
      <!-- Global form for deleting an object -->
      <form id="deleteForm" method="post" action="do">
@@ -271,7 +270,7 @@ class ToolWrapper(AbstractWrapper):
       </x>
      </x>''')
 
-    # The message that is shown when a user triggers an action.
+    # The message that is shown when a user triggers an action
     pxMessage = Px('''
      <div class=":inPopup and 'messagePopup message' or 'message'"
           style="display:none" id="appyMessage">
@@ -284,7 +283,7 @@ class ToolWrapper(AbstractWrapper):
      <script type="text/javascript" var="messages=ztool.consumeMessages()"
              if="messages">::'showAppyMessage(%s)' % q(messages)</script>''')
 
-    # The page footer.
+    # The page footer
     pxFooter = Px('''
      <table cellpadding="0" cellspacing="0" width="100%" class="footer">
       <tr>
@@ -343,231 +342,6 @@ class ToolWrapper(AbstractWrapper):
       </tr>
      </table>''', template=AbstractWrapper.pxTemplate, hook='content')
 
-    # Show on query list or grid, the field content for a given object.
-    pxQueryField = Px('''
-     <!-- Title -->
-     <x if="field.name == 'title'">
-      <x if="mayView"
-         var2="navInfo='search.%s.%s.%d.%d' % \
-                (className, searchName, startNumber+currentNumber, totalNumber);
-               titleMode=inPopup and 'select' or 'link';
-               pageName=zobj.getDefaultViewPage();
-               selectJs=inPopup and 'onSelectObject(%s,%s,%s)' % (q(cbId), \
-                          q(rootHookId), q(uiSearch.initiator.url))">
-       <x var="sup=zobj.getSupTitle(navInfo)" if="sup">::sup</x>
-       <x>::zobj.getListTitle(mode=titleMode, nav=navInfo, target=target, \
-          page=pageName, inPopup=inPopup, selectJs=selectJs, highlight=True)</x>
-       <span style=":showSubTitles and 'display:inline' or 'display:none'"
-             name="subTitle" var="sub=zobj.getSubTitle()"
-             if="sub">::zobj.highlight(sub)</span>
-
-       <!-- Actions -->
-       <div if="not inPopup and uiSearch.showActions and zobj.mayAct()"
-            class="objectActions" style=":'display:%s' % uiSearch.showActions">
-        <!-- Edit -->
-        <a if="zobj.mayEdit()"
-           var2="navInfo='search.%s.%s.%d.%d' % \
-               (className, searchName, loop.zobj.nb+1+startNumber, totalNumber);
-                 linkInPopup=inPopup or (target.target != '_self')"
-           target=":target.target" onclick=":target.openPopup"
-           href=":zobj.getUrl(mode='edit', page=zobj.getDefaultEditPage(), \
-                              nav=navInfo, inPopup=linkInPopup)">
-         <img src=":url('edit')" title=":_('object_edit')"/>
-        </a>
-        <!-- Delete -->
-        <img if="zobj.mayDelete()" class="clickable" src=":url('delete')"
-             title=":_('object_delete')"
-             onClick=":'onDeleteObject(%s)' % q(zobj.id)"/>
-        <!-- Workflow transitions -->
-        <x if="zobj.showTransitions('result')"
-           var2="targetObj=zobj;
-                 buttonsMode='small'">:targetObj.appy().pxTransitions</x>
-        <!-- Fields (actions) defined with layout "buttons" -->
-        <x if="not inPopup"
-           var2="fields=zobj.getAppyTypes('buttons', 'main');
-                 layoutType='cell'">
-         <!-- Call pxCell and not pxRender to avoid having a table -->
-         <x for="field in fields"
-            var2="name=field.name; smallButtons=True">:field.pxCell</x>
-        </x>
-       </div>
-      </x>
-      <x if="not mayView">
-       <img src=":url('fake')" style="margin-right: 5px"/>
-       <x>:_('unauthorized')</x>
-      </x>
-     </x>
-     <!-- Any other field -->
-     <x if="(field.name != 'title') and mayView">
-      <x var="layoutType='cell'; innerRef=True"
-         if="field.isShowable(zobj, 'result')">:field.pxRender</x>
-     </x>''')
-
-    # Show query results as a list.
-    pxQueryResultList = Px('''
-     <x var="showHeaders=showHeaders|True;
-             checkboxes=uiSearch.search.checkboxes;
-             checkboxesId=rootHookId + '_objs';
-             cbShown=uiSearch.showCheckboxes();
-             cbDisplay=cbShown and 'display:table-cell' or 'display:none'">
-      <table class="list" width="100%">
-       <!-- Headers, with filters and sort arrows -->
-       <tr if="showHeaders">
-        <th if="checkboxes" class="cbCell" style=":cbDisplay">
-         <img src=":url('checkall')" class="clickable"
-              title=":_('check_uncheck')"
-              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
-        </th>
-        <th for="column in columns"
-            var2="field=column.field;
-                  sortable=field.isSortable(usage='search');
-                  filterable=field.filterable"
-            width=":column.width" align=":column.align">
-         <x>::ztool.truncateText(_(field.labelId))</x>
-         <x if="(totalNumber &gt; 1) or filterValue">:tool.pxSortAndFilter</x>
-         <x>:tool.pxShowDetails</x>
-        </th>
-       </tr>
-
-       <!-- Results -->
-       <tr if="not zobjects">
-        <td colspan=":len(columns)+1">:_('query_no_result')</td>
-       </tr>
-       <tr for="zobj in zobjects" valign="top"
-           var2="@currentNumber=currentNumber + 1;
-                 obj=zobj.appy(); mayView=zobj.mayView();
-                 cbId='%s_%s' % (checkboxesId, currentNumber)"
-           class=":loop.zobj.odd and 'even' or 'odd'">
-        <!-- A checkbox if required -->
-        <td if="checkboxes" class="cbCell" id=":cbId" style=":cbDisplay">
-         <input type="checkbox" name=":checkboxesId" checked="checked"
-                value=":zobj.id" onclick="toggleCb(this)"/>
-        </td>
-        <td for="column in columns"
-            var2="field=column.field" id=":'field_%s' % field.name"
-            width=":column.width"
-            align=":column.align">:tool.pxQueryField</td>
-       </tr>
-      </table>
-      <!-- The button for selecting objects and closing the popup. -->
-      <div if="inPopup and cbShown" align=":dleft">
-       <input type="button"
-              var="label=_('object_link_many'); css=ztool.getButtonCss(label)"
-              value=":label" class=":css" style=":url('linkMany', bg=True)"
-              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
-               (q(rootHookId), q(uiSearch.initiator.url), \
-                q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
-                q(filterKey), q(filterValue))"/>
-      </div>
-      <!-- Init checkboxes if present. -->
-      <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
-      <script>:'initFocus(%s)' % q(ajaxHookId)</script></x>''')
-
-    # Show query results as a grid.
-    pxQueryResultGrid = Px('''
-     <table width="100%"
-            var="modeElems=resultMode.split('_');
-                 cols=(len(modeElems)==2) and int(modeElems[1]) or 4;
-                 rows=ztool.splitList(zobjects, cols)">
-      <tr for="row in rows" valign="middle">
-       <td for="zobj in row" width=":'%d%%' % (100/cols)" align="center"
-           style="padding-top: 25px"
-           var2="obj=zobj.appy(); mayView=zobj.mayView()">
-        <x var="currentNumber=currentNumber + 1"
-           for="column in columns"
-           var2="field=column.field">:tool.pxQueryField</x>
-       </td>
-      </tr>
-     </table>''')
-
-    # Show paginated query results as a list or grid.
-    pxQueryResult = Px('''
-     <div var="ajaxHookId='queryResult';
-               _=ztool.translate;
-               className=req['className'];
-               searchName=req.get('search', '');
-               uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
-               rootHookId=uiSearch.getRootHookId();
-               refInfo=ztool.getRefInfo();
-               refObject=refInfo[0];
-               refField=refInfo[1];
-               refUrlPart=refObject and ('&amp;ref=%s:%s' % (refObject.id, \
-                                                             refField)) or '';
-               startNumber=req.get('startNumber', '0');
-               startNumber=int(startNumber);
-               sortKey=req.get('sortKey', '');
-               sortOrder=req.get('sortOrder', 'asc');
-               filterKey=req.get('filterKey', '');
-               filterValue=req.get('filterValue', '');
-               queryResult=ztool.executeQuery(className, \
-                   search=uiSearch.search, startNumber=startNumber, \
-                   remember=True, sortBy=sortKey, sortOrder=sortOrder, \
-                   filterKey=filterKey, filterValue=filterValue, \
-                   refObject=refObject, refField=refField);
-               zobjects=queryResult.objects;
-               totalNumber=queryResult.totalNumber;
-               batchSize=queryResult.batchSize;
-               batchNumber=len(zobjects);
-               navBaseCall='askQueryResult(%s,%s,%s,%s,%s,**v**)' % \
-                 (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
-                  q(searchName),int(inPopup));
-               showNewSearch=showNewSearch|True;
-               newSearchUrl='%s/search?className=%s%s' % \
-                   (ztool.absolute_url(), className, refUrlPart);
-               showSubTitles=req.get('showSubTitles', 'true') == 'true';
-               resultMode=ztool.getResultMode(className);
-               target=ztool.getLinksTargetInfo(ztool.getAppyClass(className))"
-          id=":ajaxHookId">
-
-      <x if="zobjects or filterValue">
-       <!-- Display here POD templates if required. -->
-       <table var="fields=ztool.getResultPodFields(className);
-                   layoutType='view'"
-              if="not inPopup and zobjects and fields" align=":dright">
-        <tr>
-         <td var="zobj=zobjects[0]; obj=zobj.appy()"
-             for="field in fields"
-             class=":not loop.field.last and 'pod' or ''">:field.pxRender</td>
-        </tr>
-       </table>
-
-       <!-- The title of the search -->
-       <p if="not inPopup">
-        <x>::uiSearch.translated</x> (<span class="discreet">:totalNumber</span>)
-        <x if="showNewSearch and (searchName == 'customSearch')">&nbsp;&mdash;
-         &nbsp;<i><a href=":newSearchUrl">:_('search_new')</a></i>
-        </x>
-       </p>
-       <table width="100%">
-        <tr valign="top">
-         <!-- Search description -->
-         <td if="uiSearch.translatedDescr">
-          <span class="discreet">:uiSearch.translatedDescr</span><br/>
-         </td>
-         <!-- (Top) navigation -->
-         <td align=":dright" width="150px">:tool.pxNavigate</td>
-        </tr>
-       </table>
-
-       <!-- Results, as a list or grid -->
-       <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
-               columns=ztool.getColumnsSpecifiers(className,columnLayouts, dir);
-               currentNumber=0">
-        <x if="resultMode == 'list'">:tool.pxQueryResultList</x>
-        <x if="resultMode != 'list'">:tool.pxQueryResultGrid</x>
-       </x>
-
-       <!-- (Bottom) navigation -->
-       <x>:tool.pxNavigate</x>
-      </x>
-
-      <x if="not zobjects and not filterValue">
-       <x>:_('query_no_result')</x>
-       <x if="showNewSearch and (searchName == 'customSearch')"><br/>
-        <i class="discreet"><a href=":newSearchUrl">:_('search_new')</a></i></x>
-      </x>
-    </div>''')
-
     pxQuery = Px('''
      <div var="className=req['className'];
                searchName=req.get('search', '');
@@ -575,9 +349,8 @@ class ToolWrapper(AbstractWrapper):
                rootHookId=uiSearch.getRootHookId();
                cssJs=None"
           id=":rootHookId">
-      <script type="text/javascript">:uiSearch.search.getCbJsInit(rootHookId)
-      </script>
-      <x>:tool.pxPagePrologue</x><x>:tool.pxQueryResult</x>
+      <script>:uiSearch.getCbJsInit(rootHookId)</script>
+      <x>:tool.pxPagePrologue</x><x>:uiSearch.pxResult</x>
      </div>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxSearch = Px('''
@@ -591,8 +364,7 @@ class ToolWrapper(AbstractWrapper):
       <!-- Include type-specific CSS and JS -->
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
             href=":url(cssFile)"/>
-      <script for="jsFile in cssJs['js']" type="text/javascript"
-              src=":url(jsFile)"></script>
+      <script for="jsFile in cssJs['js']" src=":url(jsFile)"></script>
 
       <!-- Search title -->
       <h1><x>:_('%s_plural'%className)</x> &ndash;
@@ -625,13 +397,8 @@ class ToolWrapper(AbstractWrapper):
 
     pxBack = Px('''
      <html>
-      <head>
-       <script src=":ztool.getIncludeUrl('appy.js')" type="text/javascript">
-       </script>
-      </head>
-      <body>
-       <script type="text/javascript">backFromPopup()</script>
-      </body>
+      <head><script src=":ztool.getIncludeUrl('appy.js')"></script></head>
+      <body><script>backFromPopup()</script></body>
      </html>''')
 
     def isManager(self):
