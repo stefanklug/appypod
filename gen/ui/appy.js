@@ -90,26 +90,35 @@ function evalInnerScripts(xhrObject, hookElem) {
   for (var i=0; i<scripts.length; i++) { eval(scripts[i].innerHTML) }
 }
 
-function injectChunk(elem, content){
-  if (!isIe) elem.innerHTML = content;
-  else {
-    if (elem.tagName != 'TABLE') elem.innerHTML = content;
+function injectChunk(elem, content, inner, searchTop){
+  var res = elem;
+  if (!isIe || (elem.tagName != 'TABLE')) {
+    if (inner) res.innerHTML = content;
     else {
-      /* IE doesn't want to replace content of a table. Force it to do so via
-         a temporary DOM element. */
-      var temp = document.createElement('div');
-      temp.innerHTML = content;
-      temp.firstChild.id = elem.id;
-      elem.parentNode.replaceChild(temp.firstChild, elem);
-    }
+      // Replace p_elem with a new node filled with p_content and return it
+      var id = elem.id;
+      if (searchTop) id = ':' + id;
+      elem.outerHTML = content;
+      res = getAjaxHook(id); // Get the new element
+      }
   }
+  else {
+    /* IE doesn't want to replace content of a table. Force it to do so via
+       a temporary DOM element. */
+    var temp = document.createElement('div');
+    temp.innerHTML = content;
+    temp.firstChild.id = elem.id;
+    elem.parentNode.replaceChild(temp.firstChild, elem);
+  }
+  return res;
 }
 
-function getAjaxHook(hookId) {
+function getAjaxHook(hookId, forceTop) {
   /* Gets the XHTML element whose ID is p_hookId: it will be the placeholder
      for the result of an ajax request. If p_hookId starts with ':', we search
      the element in the top browser window, not in the current one that can be
-     an iframe.*/
+     an iframe. If p_forceTop is true, even if hookId does not start with ':',
+     if the elem is not found we will search in the top browser window. */
   if (!hookId) return;
   var container = window.document;
   var startIndex = 0;
@@ -117,7 +126,10 @@ function getAjaxHook(hookId) {
     container = window.top.document;
     startIndex = 1;
   }
-  return container.getElementById(hookId.slice(startIndex));
+  var id = hookId.slice(startIndex);
+  var res = container.getElementById(id);
+  if (!res && forceTop) res = window.top.document.getElementById(id);
+  return res;
 }
 
 function getAjaxChunk(pos) {
@@ -131,21 +143,18 @@ function getAjaxChunk(pos) {
       // The request has been initialized: display the waiting radar
       var hookElem = getAjaxHook(hook);
       if (hookElem)
-        injectChunk(hookElem, "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>");
+        injectChunk(hookElem, "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>", true);
     }
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
       var hookElem = getAjaxHook(hook);
       if (hookElem) {
-        injectChunk(hookElem, xhrObjects[pos].xhr.responseText);
+        var content = xhrObjects[pos].xhr.responseText;
+        var searchTop = hook[0] == ':';
+        var injected = injectChunk(hookElem, content, false, searchTop);
         // Call a custom Javascript function if required
         if (xhrObjects[pos].onGet) {
-          xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
-        }
-        // Eval inner scripts if any
-        var innerScripts = getElementsHavingName('div', 'appyHook');
-        for (var i=0; i<innerScripts.length; i++) {
-          eval(innerScripts[i].innerHTML);
+          xhrObjects[pos].onGet(xhrObjects[pos], injected);
         }
         // Display the Appy message if present
         var msg = xhrObjects[pos].xhr.getResponseHeader('Appy-Message');
@@ -156,7 +165,7 @@ function getAjaxChunk(pos) {
   }
 }
 
-function askAjaxChunk(hook,mode,url,px,params,beforeSend,onGet) {
+function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
   /* This function will ask to get a chunk of XHTML on the server through a
      XMLHttpRequest. p_mode can be 'GET' or 'POST'. p_url is the URL of a
      given server object. On this object we will call method "ajax" that will
@@ -245,10 +254,12 @@ function AjaxData(hook, px, params, parentHook, url, mode, beforeSend, onGet) {
 function askAjax(hook, form, params) {
   /* Call askAjaxChunk by getting an AjaxData instance from p_hook, a
       potential action from p_form and additional parameters from p_param. */
-  var d = document.getElementById(hook)['ajax'];
+  var d = getAjaxHook(hook)['ajax'];
   // Complete data with a parent data if present
   if (d['parentHook']) {
-    var parent = document.getElementById(d['parentHook'])['ajax'];
+    var parentHook = d['parentHook'];
+    if (hook[0] == ':') parentHook = ':' + parentHook;
+    var parent = getAjaxHook(parentHook)['ajax'];
     for (var key in parent) {
       if (key == 'params') continue; // Will get a specific treatment herafter
       if (!d[key]) d[key] = parent[key]; // Override if no value on child
@@ -278,7 +289,9 @@ function askAjax(hook, form, params) {
   else var mode = d.mode;
   // Get p_params if given. Note that they override anything else.
   if (params) { for (var key in params) d.params[key] = params[key]; }
-  askAjaxChunk(d.hook,mode,d.url,d.px,d.params,d.beforeSend,d.onGet) }
+  askAjaxChunk(hook, mode, d.url, d.px, d.params, d.beforeSend,
+               evalInnerScripts);
+}
 
 /* The functions below wrap askAjaxChunk for getting specific content through
    an Ajax request. */
@@ -658,10 +671,10 @@ function triggerTransition(formId, transitionId, msg, back) {
   submitForm(formId, msg, true, back);
 }
 
-function onDeleteObject(objectUid) {
-  f = document.getElementById('deleteForm');
-  f.objectUid.value = objectUid;
-  askConfirm('form', 'deleteForm', action_confirm);
+function onDeleteObject(uid, back) {
+  var f = document.getElementById('deleteForm');
+  f.uid.value = uid;
+  submitForm('deleteForm', action_confirm, false, back);
 }
 
 function onDeleteEvent(objectUid, eventTime) {
@@ -829,7 +842,7 @@ function protectAppyForm() {
 }
 
 // Functions for opening and closing a popup
-function openPopup(popupId, msg, width, height) {
+function openPopup(popupId, msg, width, height, back) {
   // Put the message into the popup
   if (msg) {
     var msgHook = (popupId == 'alertPopup')? 'appyAlertText': 'appyConfirmText';
@@ -844,7 +857,7 @@ function openPopup(popupId, msg, width, height) {
   if (width) popup.style.width = width + 'px';
   if (height) popup.style.height = height + 'px';
   if (popupId == 'iframePopup') {
-    // Initialize iframe's width.
+    // Initialize iframe's width
     var iframe = document.getElementById('appyIFrame');
     if (!width) width = window.innerWidth - 200;
     if (!height) {
@@ -856,6 +869,7 @@ function openPopup(popupId, msg, width, height) {
     iframe.style.width = (width-20) + 'px';
     popup.style.height = height + 'px';
     iframe.style.height = (height-20) + 'px';
+    popup['back'] = back;
   }
   popup.style.display = 'block';
 }
@@ -882,11 +896,13 @@ function closePopup(popupId, clean) {
     // Leave the form silently if we are on an edit page
     iframe.contentWindow.onbeforeunload = null;
   }
+  return popup;
 }
 
 function backFromPopup() {
-  closePopup('iframePopup');
-  window.parent.location = window.parent.location;
+  var popup = closePopup('iframePopup');
+  if (popup['back']) askAjax(':'+popup['back']);
+  else window.parent.location = window.parent.location;
 }
 
 function showAppyMessage(message) {

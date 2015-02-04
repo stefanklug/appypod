@@ -106,9 +106,8 @@ class ToolWrapper(AbstractWrapper):
      <script>::ztool.getJavascriptMessages()</script>
 
      <!-- Global form for deleting an object -->
-     <form id="deleteForm" method="post" action="do">
-      <input type="hidden" name="action" value="Delete"/>
-      <input type="hidden" name="objectUid"/>
+     <form id="deleteForm" method="post" action=":'%s/onDelete' % tool.url">
+      <input type="hidden" name="uid"/>
      </form>
      <!-- Global form for deleting an event from an object's history -->
      <form id="deleteEventForm" method="post" action="do">
@@ -133,7 +132,7 @@ class ToolWrapper(AbstractWrapper):
      </form>
      <!-- Global form for generating/freezing a document from a pod template -->
      <form id="podForm" name="podForm" method="post"
-           action=":ztool.absolute_url() + '/doPod'">
+           action=":'%s/doPod' % tool.url">
       <input type="hidden" name="objectUid"/>
       <input type="hidden" name="fieldName"/>
       <input type="hidden" name="template"/>

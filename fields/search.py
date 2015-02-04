@@ -400,7 +400,7 @@ class UiSearch:
         params['className'] = self.className
         params['searchName'] = self.name
         params = sutils.getStringDict(params)
-        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
                "'pxResult', %s, null, '%s')" % \
                (hook, hook, params, ztool.absolute_url())
 
@@ -408,7 +408,7 @@ class UiSearch:
         '''Initializes an AjaxData object on the DOM node corresponding to
            p_hook = a row within the list of results.'''
         hook = zobj.id
-        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
                "'pxViewAsResultFromAjax',%s,'%s','%s')" % \
                (hook, hook, sutils.getStringDict(params), parentHook,
                 zobj.absolute_url())

@@ -115,10 +115,12 @@ class Ref(Field):
        <img src=":url('edit')" title=":_('object_edit')"/>
       </a>
       <!-- Delete -->
-      <img var="mayDeleteViaField=inPickList and True or field.delete"
+      <img var="mayDeleteViaField=inPickList and True or field.delete;
+                back=(inMenu and (layoutType=='buttons')) and \
+                     q(zobj.id) or 'null'"
            if="mayEdit and mayDeleteViaField and tied.o.mayDelete()"
            class="clickable" title=":_('object_delete')" src=":url('delete')"
-           onclick=":'onDeleteObject(%s)' % q(tiedUid)"/>
+           onclick=":'onDeleteObject(%s,%s)' % (q(tiedUid), back)"/>
       <!-- Unlink -->
       <img if="mayUnlink and field.mayUnlinkElement(obj, tied)"
            var2="imgName=linkList and 'unlinkUp' or 'unlink'; action='unlink'"
@@ -313,7 +315,8 @@ class Ref(Field):
              batchNumber=len(objects);
              tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
              tiedClassLabel=tiedClassLabel|_(tiedClassName);
-             target=ztool.getLinksTargetInfo(field.klass);
+             backHook=(layoutType == 'cell') and zobj.id or None;
+             target=ztool.getLinksTargetInfo(field.klass, backHook);
              mayEdit=mayEdit|\
                      not field.isBack and zobj.mayEdit(field.writePermission);
              mayAdd=False;
@@ -411,7 +414,8 @@ class Ref(Field):
              folder=zobj.getCreateFolder();
              tiedClassName=ztool.getPortalType(field.klass);
              tiedClassLabel=_(tiedClassName);
-             target=ztool.getLinksTargetInfo(field.klass);
+             backHook=(layoutType == 'cell') and zobj.id or None;
+             target=ztool.getLinksTargetInfo(field.klass, backHook);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
              mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
              mayLink=mayEdit and field.mayAdd(zobj, mode='link', \
@@ -1274,7 +1278,7 @@ class Ref(Field):
         params = sutils.getStringDict(params)
         px = hook.endswith('_poss') and 'pxViewPickList' or 'pxView'
         px = '%s:%s' % (self.name, px)
-        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
                "'%s', %s, null, '%s')" % \
                (hook, hook, px, params, zobj.absolute_url())
 
@@ -1282,7 +1286,7 @@ class Ref(Field):
         '''Initializes an AjaxData object on the DOM node corresponding to
            p_hook = a row within the list of referred objects.'''
         hook = obj.id
-        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
                "'pxViewAsTiedFromAjax',%s,'%s','%s')" % \
                (hook, hook, sutils.getStringDict(params), parentHook, obj.url)
 

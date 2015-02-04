@@ -602,13 +602,14 @@ class AbstractWrapper(object):
              tied=obj;
              zobj=ztool.getObject(sourceId);
              obj=zobj.appy();
+             inMenu=False;
              field=zobj.getAppyType(refFieldName);
              layoutType='view';
              render=field.getRenderMode(layoutType);
              linkList=field.link == 'list';
              numberWidth=len(str(totalNumber));
              tiedClassName=ztool.getPortalType(field.klass);
-             target=ztool.getLinksTargetInfo(field.klass);
+             target=ztool.getLinksTargetInfo(field.klass, zobj.id);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
              mayLink=not inPickList and mayEdit and \
                      field.mayAdd(zobj, mode='link', checkMayEdit=False);

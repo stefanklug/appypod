@@ -1242,13 +1242,13 @@ class ToolMixin(BaseMixin):
         if len(label) < 15: return 'buttonFixed button'
         return 'button'
 
-    def getLinksTargetInfo(self, klass):
+    def getLinksTargetInfo(self, klass, back=None):
         '''Appy allows to open links to view or edit instances of p_klass
            either via the same browser window, or via a popup. This method
            returns info about that, as an object having 2 attributes:
            - target is "_self" if the link leads to the same browser window,
                     "appyIFrame" if the link must be opened in a popup;
-           - openPopup  is unused if target is "_self" and contains the
+           - openPopup  is unused if target is "_self" or contains the
                         Javascript code to open the popup.'''
         res = Object(target='_self', openPopup='')
         if hasattr(klass, 'popup'):
@@ -1256,10 +1256,14 @@ class ToolMixin(BaseMixin):
             d = klass.popup
             if isinstance(d, basestring):
                 # Width only
-                params = int(d[:-2])
+                params = d[:-2]
             else:
                 # Width and height
                 params = "%s, %s" % (d[0][:-2], d[1][:-2])
+            # If "back" is specified, it corresponds to some tag on the main
+            # page, that must be ajax-refreshed when coming back from the popup.
+            # Else, when back, the entire page will be reloaded.
+            if back: params += ", '%s'" % back
             res.openPopup = "openPopup('iframePopup',null,%s)" % params
         return res
 

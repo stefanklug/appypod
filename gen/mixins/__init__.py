@@ -151,17 +151,22 @@ class BaseMixin:
         self.getParentNode().manage_delObjects([self.id])
 
     def onDelete(self):
-        '''Called when an object deletion is triggered from the ui.'''
+        '''Called when an object deletion is triggered from the ui'''
         rq = self.REQUEST
-        self.delete()
-        if self.getUrl(rq['HTTP_REFERER'],mode='raw') ==self.getUrl(mode='raw'):
+        tool = self.getTool()
+        obj = tool.getObject(rq['uid'])
+        obj.delete()
+        msg = obj.translate('action_done')
+        # If we are called from an Ajax request, simply return msg
+        if hasattr(rq, 'pxContext') and rq.pxContext['ajax']: return msg
+        if obj.getUrl(rq['HTTP_REFERER'], mode='raw') == obj.getUrl(mode='raw'):
             # We were consulting the object that has been deleted. Go back to
             # the main page.
-            urlBack = self.getTool().getSiteUrl()
+            urlBack = tool.getSiteUrl()
         else:
-            urlBack = self.getUrl(rq['HTTP_REFERER'])
-        self.say(self.translate('action_done'))
-        self.goto(urlBack)
+            urlBack = obj.getUrl(rq['HTTP_REFERER'])
+        obj.say(msg)
+        obj.goto(urlBack)
 
     def onDeleteEvent(self):
         '''Called when an event (from object history) deletion is triggered
@@ -395,7 +400,7 @@ class BaseMixin:
             else:
                 if isNew: urlBack = tool.getHomePage() # Go back to home page
                 else:
-                    # Return to the same page, excepted if unshowable on view.
+                    # Return to the same page, excepted if unshowable on view
                     phaseObj = self.getAppyPhases(True, 'view')
                     pageInfo = phaseObj.getPageInfo(rq['page'], 'view')
                     if not pageInfo: urlBack = tool.getHomePage()
