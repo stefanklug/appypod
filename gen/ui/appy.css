@@ -103,7 +103,7 @@ td.search { padding-top: 8px }
 .popup { display: none; position: absolute; top: 30%; left: 35%;
          width: 350px; z-index : 100; background: white; padding: 8px;
          border: 1px solid grey; box-shadow: 2px 2px 2px #888888}
-.dropdown { display:none; position: absolute; top: 15px; left: 1px;
+.dropdown { display:none; position: absolute; top: 12px; left: 1px;
             border: 1px solid #cccccc; background-color: white;
             padding: 3px 4px 3px; font-size: 8pt; font-weight: normal;
             text-align: left; z-index: 2; line-height: normal }
