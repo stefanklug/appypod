@@ -1285,7 +1285,7 @@ class ToolMixin(BaseMixin):
            request, a server action can be executed before rendering the XHTML
            chunk. This method executes this action.'''
         if action.startswith(':'):
-            # The action corresponds to a method on Appy p_obj.
+            # The action corresponds to a method on Appy p_obj
             msg = getattr(obj, action[1:])()
         else:
             # The action must be executed on p_field if present, on obj.o else.

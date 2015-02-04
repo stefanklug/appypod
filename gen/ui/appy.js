@@ -242,10 +242,9 @@ function AjaxData(hook, px, params, parentHook, url, mode, beforeSend, onGet) {
   this.parentHook = parentHook;
 }
 
-
-function askAjax(hook, form) {
-  /* Call askAjaxChunk by getting an AjaxData instance from p_hook and a
-      potential action from p_form). */
+function askAjax(hook, form, params) {
+  /* Call askAjaxChunk by getting an AjaxData instance from p_hook, a
+      potential action from p_form and additional parameters from p_param. */
   var d = document.getElementById(hook)['ajax'];
   // Complete data with a parent data if present
   if (d['parentHook']) {
@@ -277,6 +276,8 @@ function askAjax(hook, form) {
     }
   }
   else var mode = d.mode;
+  // Get p_params if given. Note that they override anything else.
+  if (params) { for (var key in params) d.params[key] = params[key]; }
   askAjaxChunk(d.hook,mode,d.url,d.px,d.params,d.beforeSend,d.onGet) }
 
 /* The functions below wrap askAjaxChunk for getting specific content through
@@ -859,7 +860,7 @@ function openPopup(popupId, msg, width, height) {
   popup.style.display = 'block';
 }
 
-function closePopup(popupId) {
+function closePopup(popupId, clean) {
   // Get the popup
   var container = null;
   if (popupId == 'iframePopup') container = window.parent.document;
@@ -868,8 +869,13 @@ function closePopup(popupId) {
   // Close the popup
   popup.style.display = 'none';
   popup.style.width = null;
+  // Clean field "clean" if specified
+  if (clean) {
+    var f = popup.getElementsByTagName('form')[0];
+    f.elements[clean].value = '';
+  }
   if (popupId == 'iframePopup') {
-    // Reinitialise the enclosing iframe.
+    // Reinitialise the enclosing iframe
     var iframe = container.getElementById('appyIFrame');
     iframe.style.width = null;
     iframe.innerHTML = '';
@@ -920,14 +926,14 @@ function transferComment(confirmForm, targetForm) {
 
 // Function triggered when an action confirmed by the user must be performed
 function doConfirm() {
-  // The user confirmed: perform the required action.
+  // The user confirmed: perform the required action
   closePopup('confirmActionPopup');
   var confirmForm = document.getElementById('confirmActionForm');
   var actionType = confirmForm.actionType.value;
   var action = confirmForm.action.value;
   if (actionType == 'form') {
     /* Submit the form whose id is in "action", and transmit him the comment
-       from the popup when relevant */
+       from the popup when relevant. */
     var f = document.getElementById(action);
     transferComment(confirmForm, f);
     f.submit();

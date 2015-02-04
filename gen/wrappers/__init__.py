@@ -109,8 +109,8 @@ class AbstractWrapper(object):
           <br/>
          </div><br/>
          <input type="button" onclick="doConfirm()" value=":_('yes')"/>
-         <input type="button" onclick="closePopup('confirmActionPopup')"
-               value=":_('no')"/>
+         <input type="button" value=":_('no')"
+                onclick="closePopup('confirmActionPopup', 'comment')"/>
         </div>
        </form>
       </div>
