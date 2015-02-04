@@ -428,7 +428,7 @@ class Transition:
         msg = self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
         # Reindex obj if required
         if not obj.isTemporary(): obj.reindex()
-        # If we are called from an Ajax request, return a message
+        # If we are called from an Ajax request, simply return msg
         if hasattr(rq, 'pxContext') and rq.pxContext['ajax']: return msg
         # If we are viewing the object and if the logged user looses the
         # permission to view it, redirect the user to its home page.

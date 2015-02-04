@@ -97,6 +97,28 @@ class Field:
             context[k] = ctx[k]
         return self.pxRender(context).encode('utf-8')
 
+    # Show the field content for some object on a list of referred objects
+    pxRenderAsTied = Px('''
+     <!-- The "title" field -->
+     <x if="refField.name == 'title'">
+      <x if="mayView">
+       <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
+       <a if="field.menuUrlMethod"
+          var2="info=field.getMenuUrl(zobj, tied)"
+          href=":info[0]" target=":info[1]">:tied.title</a>
+       <x if="tied.o.mayAct()">:field.pxObjectActions</x>
+      </x>
+      <div if="not mayView">
+       <img src=":url('fake')" style="margin-right: 5px"/>
+       <x>:_('unauthorized')</x></div>
+     </x>
+     <!-- Any other field -->
+     <x if="(refField.name != 'title') and mayView">
+      <x var="zobj=tied.o; obj=tied; layoutType='cell';
+              innerRef=True; field=refField"
+         if="field.isShowable(zobj, 'result')">:field.pxRender</x>
+     </x>''')
+
     # Show the field content for some object on a list of results
     pxRenderAsResult = Px('''
      <!-- Title -->
@@ -118,7 +140,7 @@ class Field:
        <!-- Actions -->
        <div if="not inPopup and uiSearch.showActions and zobj.mayAct()"
             class="objectActions" style=":'display:%s' % uiSearch.showActions"
-            var2="layoutType='buttons'" >
+            var2="layoutType='buttons'">
         <!-- Edit -->
         <a if="zobj.mayEdit()"
            var2="linkInPopup=inPopup or (target.target != '_self')"

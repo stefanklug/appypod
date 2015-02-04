@@ -374,9 +374,10 @@ class AbstractWrapper(object):
 
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
-           var2="formId='trigger_%s' % targetObj.id" method="post"
+           var2="formId='trigger_%s' % targetObj.id;
+                 zobj=targetObj"
            id=":formId" action=":targetObj.absolute_url() + '/onTrigger'"
-           style="display: inline">
+           style="display: inline" method="post">
       <input type="hidden" name="transition"/>
       <!-- Input field for storing the comment coming from the popup -->
       <textarea id="comment" name="comment" cols="30" rows="3"
@@ -574,6 +575,53 @@ class AbstractWrapper(object):
        </tr>
       </table>
      </form>''')
+
+    # The object, as shown in a list of referred (tied) objects
+    pxViewAsTied = Px('''
+     <tr valign="top" class=":rowCss"
+         var2="tiedUid=tied.o.id;
+               objectIndex=field.getIndexOf(zobj, tiedUid)|None;
+               mayView=tied.o.mayView()"
+         id=":tiedUid">
+      <td if="not inPickList and numbered">:field.pxNumber</td>
+      <td if="checkboxes" class="cbCell">
+       <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
+              value=":tiedUid" onclick="toggleCb(this)"/>
+      </td>
+      <td for="column in columns" width=":column.width" align=":column.align"
+          var2="refField=column.field">:refField.pxRenderAsTied</td>
+      <!-- Store data in this tr node allowing to ajax-refresh it -->
+      <script>:field.getAjaxDataRow(tied, ajaxHookId, rowCss=rowCss, \
+               currentNumber=currentNumber)</script>
+     </tr>''')
+
+    # When calling pxViewAsTied from Ajax, this surrounding PX is called to
+    # define the appropriate variables based on request values.
+    pxViewAsTiedFromAjax = Px('''
+     <x var="dummy=ztool.updatePxContextFromRequest();
+             tied=obj;
+             zobj=ztool.getObject(sourceId);
+             obj=zobj.appy();
+             field=zobj.getAppyType(refFieldName);
+             layoutType='view';
+             render=field.getRenderMode(layoutType);
+             linkList=field.link == 'list';
+             numberWidth=len(str(totalNumber));
+             tiedClassName=ztool.getPortalType(field.klass);
+             target=ztool.getLinksTargetInfo(field.klass);
+             mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
+             mayLink=not inPickList and mayEdit and \
+                     field.mayAdd(zobj, mode='link', checkMayEdit=False);
+             mayUnlink=not inPickList and mayEdit and \
+                       field.getAttribute(zobj, 'unlink');
+             gotoNumber=numbered;
+             changeOrder=not inPickList and mayEdit and \
+                         field.getAttribute(zobj, 'changeOrder');
+             changeNumber=not inPickList and numbered and changeOrder and \
+                          (totalNumber &gt; 3);
+             columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                   field.getAttribute(obj, 'shownInfo'), dir);
+             showSubTitles=showSubTitles|True">:obj.pxViewAsTied</x>''')
 
     # The object, as shown in a list of query results
     pxViewAsResult = Px('''

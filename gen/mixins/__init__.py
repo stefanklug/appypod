@@ -701,7 +701,7 @@ class BaseMixin:
 
     def getFieldValue(self, name, layoutType=None, outerValue=None):
         '''Returns the database value of field named p_name for p_self.'''
-        if layoutType == 'search': return # No object in search screens.
+        if layoutType == 'search': return # No object in search screens
         field = self.getAppyType(name)
         if field.type == 'Pod': return
         if '*' not in name: return field.getValue(self)

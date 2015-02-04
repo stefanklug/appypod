@@ -136,14 +136,13 @@ function getAjaxChunk(pos) {
     if (xhrObjects[pos].xhr.readyState == 4) {
       // We have received the HTML chunk
       var hookElem = getAjaxHook(hook);
-      var responseOk = (xhrObjects[pos].xhr.status == 200);
-      if (hookElem && responseOk) {
+      if (hookElem) {
         injectChunk(hookElem, xhrObjects[pos].xhr.responseText);
         // Call a custom Javascript function if required
         if (xhrObjects[pos].onGet) {
           xhrObjects[pos].onGet(xhrObjects[pos], hookElem);
         }
-        // Eval inner scripts if any.
+        // Eval inner scripts if any
         var innerScripts = getElementsHavingName('div', 'appyHook');
         for (var i=0; i<innerScripts.length; i++) {
           eval(innerScripts[i].innerHTML);
@@ -152,7 +151,7 @@ function getAjaxChunk(pos) {
         var msg = xhrObjects[pos].xhr.getResponseHeader('Appy-Message');
         if (msg) showAppyMessage(decodeURIComponent(escape(msg)));
       }
-      if (responseOk) xhrObjects[pos].freed = 1;
+      xhrObjects[pos].freed = 1;
     }
   }
 }
@@ -308,7 +307,7 @@ function askRefField(hookId, objectUrl, innerRef, startNumber, action,
                      actionParams){
   var hookElems = hookId.split('_');
   var fieldName = hookElems[1];
-  // Sends an Ajax request for getting the content of a reference field.
+  // Sends an Ajax request for getting the content of a reference field
   var startKey = hookId + '_startNumber';
   var scope = hookElems.pop();
   var params = {'innerRef': innerRef, 'scope': scope};
@@ -631,12 +630,10 @@ function submitAppyForm(button) {
   theForm.submit();
 }
 
-// Function used for triggering a workflow transition
-function triggerTransition(formId, transitionId, msg, back) {
+function submitForm(formId, msg, showComment, back) {
   var f = document.getElementById(formId);
-  f.transition.value = transitionId;
   if (!msg) {
-    /* We must submit the form and either refresh the entire page (back is null)
+    /* Submit the form and either refresh the entire page (back is null)
        or ajax-refresh a given part only (p_back corresponds to the id of the
        DOM node to be refreshed. */
     if (back) askAjax(back, formId);
@@ -646,9 +643,16 @@ function triggerTransition(formId, transitionId, msg, back) {
     // Ask a confirmation to the user before proceeding
     if (back) {
       var js = "askAjax('"+back+"', '"+formId+"');"
-      askConfirm('script', js, msg, true) }
-    else askConfirm('form', formId, msg, true);
+      askConfirm('script', js, msg, showComment) }
+    else askConfirm('form', formId, msg, showComment);
   }
+}
+
+// Function used for triggering a workflow transition
+function triggerTransition(formId, transitionId, msg, back) {
+  var f = document.getElementById(formId);
+  f.transition.value = transitionId;
+  submitForm(formId, msg, true, back);
 }
 
 function onDeleteObject(objectUid) {

@@ -38,7 +38,7 @@ class Ref(Field):
     # defined. If we are on a forward reference, the "nav" parameter is added to
     # the URL for allowing to navigate from one object to the next/previous one.
     pxObjectTitle = Px('''
-     <x var="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
+     <x var="navInfo=field.getNavInfo(zobj, startNumber + currentNumber, \
                                       totalNumber, inPickList);
              pageName=field.isBack and field.back.pageName or 'main'">
       <x>::tied.o.getSupTitle(navInfo)</x>
@@ -106,7 +106,7 @@ class Ref(Field):
       </x>
       <!-- Edit -->
       <a if="not field.noForm and tied.o.mayEdit()"
-         var2="navInfo=field.getNavInfo(zobj, loop.tied.nb + 1 + startNumber, \
+         var2="navInfo=field.getNavInfo(zobj, startNumber + currentNumber, \
                                         totalNumber);
                linkInPopup=inPopup or (target.target != '_self')"
          href=":tied.o.getUrl(mode='edit', page='main', nav=navInfo, \
@@ -204,7 +204,7 @@ class Ref(Field):
                                                q(sortConfirm))"/>
      </x>''')
 
-    # Shows the object number in a numbered list of tied objects.
+    # Shows the object number in a numbered list of tied objects
     pxNumber = Px('''
      <x if="not changeNumber">:objectIndex+1</x>
      <div if="changeNumber" class="dropdownMenu"
@@ -258,7 +258,14 @@ class Ref(Field):
             class=":not innerRef and 'list' or ''"
             width=":innerRef and '100%' or field.layouts['view'].width"
             var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                   field.getAttribute(obj, 'shownInfo'), dir)">
+                   field.getAttribute(obj, 'shownInfo'), dir);
+                  currentNumber=0">
+      <script>:field.getAjaxData(ajaxHookId, zobj, popup=inPopup, \
+               checkboxes=checkboxes, startNumber=startNumber, \
+               totalNumber=totalNumber, sourceId=zobj.id, \
+               refFieldName=field.name, inPickList=inPickList, \
+               numbered=numbered, navBaseCall=navBaseCall)</script>
+
       <tr if="field.showHeaders">
        <th if="not inPickList and numbered" width=":numbered"></th>
        <th if="checkboxes" class="cbCell">
@@ -274,41 +281,10 @@ class Ref(Field):
                 field=refField">:tool.pxShowDetails</x>
        </th>
       </tr>
-      <!-- Loop on every (tied or selectable) object. -->
-      <tr for="tied in objects" valign="top"
-          class=":loop.tied.odd and 'even' or 'odd'"
-          var2="tiedUid=tied.o.id;
-                objectIndex=field.getIndexOf(zobj, tiedUid)|None;
-                mayView=tied.o.mayView()"
-          id=":'%s_%s' % (ajaxHookId, tiedUid)">
-       <td if="not inPickList and numbered">:field.pxNumber</td>
-       <td if="checkboxes" class="cbCell">
-        <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
-               value=":tiedUid" onclick="toggleCb(this)"/>
-       </td>
-       <td for="column in columns" width=":column.width" align=":column.align"
-           var2="refField=column.field">
-        <!-- The "title" field -->
-        <x if="refField.name == 'title'">
-         <x if="mayView">
-          <x if="not field.menuUrlMethod">:field.pxObjectTitle</x>
-          <a if="field.menuUrlMethod"
-             var2="info=field.getMenuUrl(zobj, tied)"
-             href=":info[0]" target=":info[1]">:tied.title</a>
-          <x if="tied.o.mayAct()">:field.pxObjectActions</x>
-         </x>
-         <div if="not mayView">
-          <img src=":url('fake')" style="margin-right: 5px"/>
-          <x>:_('unauthorized')</x></div>
-        </x>
-        <!-- Any other field -->
-        <x if="(refField.name != 'title') and mayView">
-         <x var="zobj=tied.o; obj=tied; layoutType='cell';
-                 innerRef=True; field=refField"
-            if="field.isShowable(zobj, 'result')">:field.pxRender</x>
-        </x>
-       </td>
-      </tr>
+      <!-- Loop on every (tied or selectable) object -->
+      <x for="tied in objects"
+         var2="@currentNumber=currentNumber + 1;
+               rowCss=loop.tied.odd and 'even' or 'odd'">:obj.pxViewAsTied</x>
      </table>
 
      <!-- Global actions -->
@@ -340,9 +316,9 @@ class Ref(Field):
              target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=mayEdit|\
                      not field.isBack and zobj.mayEdit(field.writePermission);
-             mayUnlink=False;
              mayAdd=False;
              mayLink=False;
+             mayUnlink=False;
              navBaseCall='askRefField(%s,%s,%s,**v**)' % \
                           (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=False;
@@ -437,10 +413,10 @@ class Ref(Field):
              tiedClassLabel=_(tiedClassName);
              target=ztool.getLinksTargetInfo(field.klass);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
-             mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
              mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
              mayLink=mayEdit and field.mayAdd(zobj, mode='link', \
-                                              checkMayEdit=False);
+                                                checkMayEdit=False);
+             mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
              navBaseCall='askRefField(%s,%s,%s,**v**)' % \
@@ -1290,6 +1266,26 @@ class Ref(Field):
         return "var node=document.getElementById('%s_%s');%s%s" % \
                (obj.id, self.name, code % ('objs', 'objs'), poss)
 
+    def getAjaxData(self, hook, zobj, **params):
+        '''Initializes an AjaxData object on the DOM node corresponding to
+           p_hook = the whole search result.'''
+        # Complete params with default parameters
+        params['ajaxHookId'] = hook;
+        params = sutils.getStringDict(params)
+        px = hook.endswith('_poss') and 'pxViewPickList' or 'pxView'
+        px = '%s:%s' % (self.name, px)
+        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+               "'%s', %s, null, '%s')" % \
+               (hook, hook, px, params, zobj.absolute_url())
+
+    def getAjaxDataRow(self, obj, parentHook, **params):
+        '''Initializes an AjaxData object on the DOM node corresponding to
+           p_hook = a row within the list of referred objects.'''
+        hook = obj.id
+        return "document.getElementById('%s')['ajax']=new AjaxData('%s', " \
+               "'pxViewAsTiedFromAjax',%s,'%s','%s')" % \
+               (hook, hook, sutils.getStringDict(params), parentHook, obj.url)
+
     def doChangeOrder(self, obj):
         '''Moves a referred object up/down/top/bottom.'''
         rq = obj.REQUEST
@@ -1308,12 +1304,12 @@ class Ref(Field):
         elif move == 'bottom':
             newIndex = len(uids) - 1
         elif move.startswith('index'):
-            # New index starts at 1 (oldIndex starts at 0).
+            # New index starts at 1 (oldIndex starts at 0)
             try:
                 newIndex = int(move.split('_')[1]) - 1
             except ValueError:
                 newIndex = -1
-        # If newIndex is negative, it means that the move can't occur.
+        # If newIndex is negative, it means that the move can't occur
         if newIndex > -1:
             uids.remove(uid)
             uids.insert(newIndex, uid)
@@ -1385,15 +1381,15 @@ class Ref(Field):
             else:
                 return [tool.getObject(rv) for rv in requestValue]
         res = []
-        # No object can be selected if the popup has not been opened yet.
+        # No object can be selected if the popup has not been opened yet
         if 'semantics' not in rq:
-            # In this case, display already linked objects if any.
+            # In this case, display already linked objects if any
             if not obj.isEmpty(self.name): return self.getValue(obj.o)
             return res
         uids = rq['selected'].split(',')
         tool = obj.tool
         if rq['semantics'] == 'checked':
-            # Simply get the selected objects from their uid.
+            # Simply get the selected objects from their uid
             return [tool.getObject(uid) for uid in uids]
         else:
             # Replay the search in self.select to get the list of uids that were

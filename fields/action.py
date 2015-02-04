@@ -31,19 +31,18 @@ class Action(Field):
                 label=_(field.labelId);
                 descr=field.hasDescr and _(field.descrId) or None;
                 smallButtons=smallButtons|False;
-                css=ztool.getButtonCss(label, smallButtons)"
+                css=ztool.getButtonCss(label, smallButtons);
+                back=(layoutType == 'cell') and q(zobj.id) or 'null'"
            id=":formId" action=":zobj.absolute_url() + '/onExecuteAction'"
            style="display:inline">
       <input type="hidden" name="fieldName" value=":name"/>
       <input type="hidden" name="comment" value=""/>
-      <input if="field.confirm" type="button" class=":css" title=":descr"
-         var="labelConfirm=_(field.labelId + '_confirm');
-              commentParam=(field.confirm == 'text') and 'true' or 'false'"
+      <input type="button" class=":css" title=":descr"
+         var="textConfirm=field.confirm and _(field.labelId+'_confirm') or '';
+              showComment=(field.confirm == 'text') and 'true' or 'false'"
          value=":label" style=":url(field.icon, bg=True)"
-         onclick=":'askConfirm(%s,%s,%s,%s)' % (q('form'), q(formId), \
-                                               q(labelConfirm), commentParam)"/>
-      <input if="not field.confirm" type="submit" class=":css" name="do"
-             value=":label" title=":descr" style=":url(field.icon, bg=True)"/>
+         onclick=":'submitForm(%s,%s,%s,%s)' % (q(formId), q(textConfirm), \
+                                                showComment, back)"/>
      </form>''')
 
     # It is not possible to edit an action, not to search it
@@ -145,6 +144,8 @@ class Action(Field):
             suffix = successfull and 'done' or 'ko'
             msg = obj.translate('action_%s' % suffix)
         if (self.result == 'computation') or not successfull:
+            # If we are called from an Ajax request, simply return msg
+            if hasattr(rq, 'pxContext') and rq.pxContext['ajax']: return msg
             obj.say(msg)
             return obj.goto(obj.getUrl(rq['HTTP_REFERER']))
         elif self.result == 'file':
