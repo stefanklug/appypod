@@ -271,7 +271,9 @@ function askAjax(hook, form) {
     // Get the other params
     var elems = f.elements;
     for (var i=0; i < elems.length; i++) {
-      d.params[elems[i].name] = elems[i].value;
+      var value = elems[i].value;
+      if (elems[i].name == 'comment') value = encodeURIComponent(value);
+      d.params[elems[i].name] = value;
     }
   }
   else var mode = d.mode;
@@ -624,10 +626,10 @@ function initSlaves(objectUrl, layoutType, requestValues, errors) {
 
 // Function used to submit the appy form on pxEdit
 function submitAppyForm(button) {
-  var theForm = document.getElementById('appyForm');
-  // On which button has the user clicked?
-  theForm.button.value = button;
-  theForm.submit();
+  var f = document.getElementById('appyForm');
+  // On which button has the user clicked ?
+  f.button.value = button;
+  f.submit();
 }
 
 function submitForm(formId, msg, showComment, back) {
@@ -642,8 +644,8 @@ function submitForm(formId, msg, showComment, back) {
   else {
     // Ask a confirmation to the user before proceeding
     if (back) {
-      var js = "askAjax('"+back+"', '"+formId+"');"
-      askConfirm('script', js, msg, showComment) }
+      var js = "askAjax('"+back+"', '"+formId+"');";
+      askConfirm('form-script', formId+'+'+js, msg, showComment); }
     else askConfirm('form', formId, msg, showComment);
   }
 }
@@ -816,8 +818,8 @@ function uploadPod(uid, fieldName, template, podFormat) {
 
 function protectAppyForm() {
   window.onbeforeunload = function(e){
-    theForm = document.getElementById("appyForm");
-    if (theForm.button.value == "") {
+    f = document.getElementById("appyForm");
+    if (f.button.value == "") {
       var e = e || window.event;
       if (e) {e.returnValue = warn_leave_form;}
       return warn_leave_form;
@@ -906,6 +908,16 @@ function askConfirm(actionType, action, msg, showComment) {
   openPopup("confirmActionPopup", msg);
 }
 
+// Transfer comment from the confirm form to some other form
+function transferComment(confirmForm, targetForm) {
+  if ((confirmForm.comment.style.display != 'none') &&
+      (confirmForm.comment.value)) {
+    targetForm.comment.value = confirmForm.comment.value;
+    // Clean the confirm form
+    confirmForm.comment.value = '';
+  }
+}
+
 // Function triggered when an action confirmed by the user must be performed
 function doConfirm() {
   // The user confirmed: perform the required action.
@@ -914,25 +926,29 @@ function doConfirm() {
   var actionType = confirmForm.actionType.value;
   var action = confirmForm.action.value;
   if (actionType == 'form') {
-    /* Submit the form whose id is in "action", and transmmit him the comment
+    /* Submit the form whose id is in "action", and transmit him the comment
        from the popup when relevant */
-    var theForm = document.getElementById(action);
-    if ((confirmForm.comment.style.display != 'none') &&
-        (confirmForm.comment.value)) {
-      theForm.comment.value = confirmForm.comment.value;
-    }
-    theForm.submit();
+    var f = document.getElementById(action);
+    transferComment(confirmForm, f);
+    f.submit();
   }
-  // We must go to the URL defined in "action"
-  else if (actionType == 'url') { goto(action) }
-  else if (actionType == 'script') {
-    // We must execute Javascript code in "action"
-    eval(action);
-  }
+  else if (actionType == 'url') { goto(action) } // Go to some URL
+  else if (actionType == 'script') { eval(action) } // Exec some JS code
   else if (actionType == 'form+script') {
     var elems = action.split('+');
+    var f = document.getElementById(elems[0]);
     // Submit the form in elems[0] and execute the JS code in elems[1]
-    document.getElementById(elems[0]).submit();
+    transferComment(confirmForm, f);
+    f.submit();
+    eval(elems[1]);
+  }
+  else if (actionType == 'form-script') {
+    /* Similar to form+script, but the form must not be submitted. It will
+       probably be used by the JS code, so the comment must be transfered. */
+    var elems = action.split('+');
+    var f = document.getElementById(elems[0]);
+    // Submit the form in elems[0] and execute the JS code in elems[1]
+    transferComment(confirmForm, f);
     eval(elems[1]);
   }
 }
@@ -940,22 +956,22 @@ function doConfirm() {
 // Function triggered when the user asks password reinitialisation
 function doAskPasswordReinit() {
   // Check that the user has typed a login
-  var theForm = document.getElementById('askPasswordReinitForm');
-  var login = theForm.login.value.replace(' ', '');
-  if (!login) { theForm.login.style.background = wrongTextInput; }
+  var f = document.getElementById('askPasswordReinitForm');
+  var login = f.login.value.replace(' ', '');
+  if (!login) { f.login.style.background = wrongTextInput; }
   else {
     closePopup('askPasswordReinitPopup');
-    theForm.submit();
+    f.submit();
   }
 }
 
 // Function that finally posts the edit form after the user has confirmed that
 // she really wants to post it.
 function postConfirmedEditForm() {
-  var theForm = document.getElementById('appyForm');
-  theForm.confirmed.value = "True";
-  theForm.button.value = 'save';
-  theForm.submit();
+  var f = document.getElementById('appyForm');
+  f.confirmed.value = "True";
+  f.button.value = 'save';
+  f.submit();
 }
 
 // Function that shows or hides a tab. p_action is 'show' or 'hide'.

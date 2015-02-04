@@ -29,7 +29,7 @@ class Ref(Field):
     # Some default layouts. "w" stands for "wide": those layouts produce tables
     # of Ref objects whose width is 100%.
     wLayouts = Table('lrv-f', width='100%')
-    # "d" stands for "description": a description label is added.
+    # "d" stands for "description": a description label is added
     wdLayouts = {'view': Table('l-d-f', width='100%')}
 
     # This PX displays the title of a referenced object, with a link on it to
