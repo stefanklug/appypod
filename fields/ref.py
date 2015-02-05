@@ -231,80 +231,79 @@ class Ref(Field):
 
     # PX that displays referred objects as a list
     pxViewList = Px('''
-     <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
-      <x if="field.collapsible and objects">:collapse.px</x>
-      <span if="subLabel" class="discreet">:_(subLabel)</span>
-      (<span class="discreet">:totalNumber</span>) 
-      <x>:field.pxAdd</x>
-      <!-- This button opens a popup for linking additional objects -->
-      <x if="mayLink and not inPickList"
-         var2="popupMode='add'">:field.pxLink</x>
-      <!-- The search button if field is queryable -->
-      <input if="objects and field.queryable" type="button"
-             var2="label=_('search_button'); css=ztool.getButtonCss(label)"
-             value=":label" class=":css" style=":url('search', bg=True)"
-             onclick=":'goto(%s)' % \
-              q('%s/search?className=%s&amp;ref=%s:%s' % \
-              (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
-     </div>
+     <div id=":ajaxHookId">
+      <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
+       <x if="field.collapsible and objects">:collapse.px</x>
+       <span if="subLabel" class="discreet">:_(subLabel)</span>
+       (<span class="discreet">:totalNumber</span>) 
+       <x>:field.pxAdd</x>
+       <!-- This button opens a popup for linking additional objects -->
+       <x if="mayLink and not inPickList"
+          var2="popupMode='add'">:field.pxLink</x>
+       <!-- The search button if field is queryable -->
+       <input if="objects and field.queryable" type="button"
+              var2="label=_('search_button'); css=ztool.getButtonCss(label)"
+              value=":label" class=":css" style=":url('search', bg=True)"
+              onclick=":'goto(%s)' % \
+               q('%s/search?className=%s&amp;ref=%s:%s' % \
+               (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
+      </div>
 
-     <!-- (Top) navigation -->
-     <x>:tool.pxNavigate</x>
+      <!-- (Top) navigation -->
+      <x>:tool.pxNavigate</x>
 
-     <!-- No object is present -->
-     <p class="discreet"
-        if="not objects and (innerRef and mayAdd)">:_('no_ref')</p>
+      <!-- No object is present -->
+      <p class="discreet"
+         if="not objects and (innerRef and mayAdd)">:_('no_ref')</p>
 
-     <!-- Linked objects -->
-     <table if="objects" id=":collapse.id" style=":collapse.style"
-            class=":not innerRef and 'list' or ''"
-            width=":innerRef and '100%' or field.layouts['view'].width"
-            var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
-                   field.getAttribute(obj, 'shownInfo'), dir);
-                  currentNumber=0">
-      <script>:field.getAjaxData(ajaxHookId, zobj, popup=inPopup, \
-               checkboxes=checkboxes, startNumber=startNumber, \
-               totalNumber=totalNumber, sourceId=zobj.id, \
-               refFieldName=field.name, inPickList=inPickList, \
-               numbered=numbered, navBaseCall=navBaseCall)</script>
+      <!-- Linked objects -->
+      <table if="objects" id=":collapse.id" style=":collapse.style"
+             class=":not innerRef and 'list' or ''"
+             width=":innerRef and '100%' or field.layouts['view'].width"
+             var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
+                    field.getAttribute(obj, 'shownInfo'), dir);
+                   currentNumber=0">
+       <script>:field.getAjaxData(ajaxHookId, zobj, popup=inPopup, \
+                checkboxes=checkboxes, startNumber=startNumber, \
+                totalNumber=totalNumber, sourceId=zobj.id, \
+                refFieldName=field.name, inPickList=inPickList, \
+                numbered=numbered, navBaseCall=navBaseCall)</script>
 
-      <tr if="field.showHeaders">
-       <th if="not inPickList and numbered" width=":numbered"></th>
-       <th if="checkboxes" class="cbCell">
-        <img src=":url('checkall')" class="clickable"
-             title=":_('check_uncheck')"
-             onclick=":'toggleAllCbs(%s)' % q(ajaxHookId)"/>
-       </th>
-       <th for="column in columns" width=":column.width"
-           align=":column.align" var2="refField=column.field">
-        <span>:_(refField.labelId)</span>
-        <x>:field.pxSortIcons</x>
-        <x var="className=tiedClassName;
-                field=refField">:tool.pxShowDetails</x>
-       </th>
-      </tr>
-      <!-- Loop on every (tied or selectable) object -->
-      <x for="tied in objects"
-         var2="@currentNumber=currentNumber + 1;
-               rowCss=loop.tied.odd and 'even' or 'odd'">:obj.pxViewAsTied</x>
-     </table>
-
-     <!-- Global actions -->
-     <x if="mayEdit and checkboxes">:field.pxGlobalActions</x>
-
-     <!-- (Bottom) navigation -->
-     <x>:tool.pxNavigate</x>
-
-     <!-- Init checkboxes if present. -->
-     <script if="checkboxes"
-             type="text/javascript">:'initCbs(%s)' % q(ajaxHookId)
-     </script>''')
+       <tr if="field.showHeaders">
+        <th if="not inPickList and numbered" width=":numbered"></th>
+        <th if="checkboxes" class="cbCell">
+         <img src=":url('checkall')" class="clickable"
+              title=":_('check_uncheck')"
+              onclick=":'toggleAllCbs(%s)' % q(ajaxHookId)"/>
+        </th>
+        <th for="column in columns" width=":column.width"
+            align=":column.align" var2="refField=column.field">
+         <span>:_(refField.labelId)</span>
+         <x>:field.pxSortIcons</x>
+         <x var="className=tiedClassName;
+                 field=refField">:tool.pxShowDetails</x>
+        </th>
+       </tr>
+       <!-- Loop on every (tied or selectable) object -->
+       <x for="tied in objects"
+          var2="@currentNumber=currentNumber + 1;
+                rowCss=loop.tied.odd and 'even' or 'odd'">:obj.pxViewAsTied</x>
+      </table>
+      <!-- Global actions -->
+      <x if="mayEdit and checkboxes">:field.pxGlobalActions</x>
+      <!-- (Bottom) navigation -->
+      <x>:tool.pxNavigate</x>
+      <!-- Init checkboxes if present. -->
+      <script if="checkboxes">:'initCbs(%s)' % q(ajaxHookId)</script>
+     </div>''')
 
     # PX that displays the list of objects the user may select to insert into a
     # ref field with link="list".
     pxViewPickList = Px('''
      <x var="innerRef=False;
              ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
+             layoutType='view';
+             inMenu=False;
              inPickList=True;
              startNumber=field.getStartNumber('list', req, ajaxHookId);
              info=field.getPossibleValues(zobj, startNumber=startNumber, \
@@ -326,6 +325,7 @@ class Ref(Field):
                           (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=False;
              changeNumber=False;
+             numbered=False;
              checkboxes=field.getAttribute(zobj, 'checkboxes') and \
                         (totalNumber &gt; 1);
              showSubTitles=showSubTitles|\
@@ -439,14 +439,12 @@ class Ref(Field):
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
       <script if="checkboxesEnabled and renderAll and (render == 'list')"
               type="text/javascript">:field.getCbJsInit(zobj)</script>
-      <div if="linkList and renderAll and mayEdit"
-           var2="ajaxHookId='%s_%s_poss' % (zobj.id, field.name)"
-           id=":ajaxHookId">:field.pxViewPickList</div>
+      <x if="linkList and renderAll and mayEdit"
+         var2="ajaxHookId='%s_%s_poss' % \
+                (zobj.id, field.name)">:field.pxViewPickList</x>
       <x if="render == 'list'"
-         var2="subLabel=linkList and 'selected_objects' or None">
-       <div if="renderAll" id=":ajaxHookId">:field.pxViewList</div>
-       <x if="not renderAll">:field.pxViewList</x>
-      </x>
+         var2="subLabel=linkList and \
+                'selected_objects' or None">:field.pxViewList</x>
       <x if="render in ('menus','minimal')">:getattr(field, 'pxView%s' % \
          render.capitalize())</x>
      </x>''')

@@ -303,17 +303,17 @@ class AbstractWrapper(object):
 
     # This PX displays an object's history
     pxHistory = Px('''
-     <x var="startNumber=req.get('startNumber', 0);
-             startNumber=int(startNumber);
-             batchSize=int(req.get('maxPerPage', 5));
-             historyInfo=zobj.getHistory(startNumber,batchSize=batchSize)"
-        if="historyInfo.events"
-        var2="objs=historyInfo.events;
-              totalNumber=historyInfo.totalNumber;
-              batchNumber=len(objs);
-              ajaxHookId='appyHistory';
-              navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
-                (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
+     <div id="appyHistory"
+          var="startNumber=int(req.get('startNumber', 0));
+               batchSize=int(req.get('maxPerPage', 5));
+               historyInfo=zobj.getHistory(startNumber, batchSize=batchSize)"
+          if="historyInfo.events"
+          var2="objs=historyInfo.events;
+                totalNumber=historyInfo.totalNumber;
+                batchNumber=len(objs);
+                ajaxHookId='appyHistory';
+                navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
+                  (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
 
       <!-- Navigate between history pages -->
       <x>:tool.pxNavigate</x>
@@ -370,7 +370,7 @@ class AbstractWrapper(object):
         </td>
        </tr>
       </table>
-     </x>''')
+     </div>''')
 
     pxTransitions = Px('''
      <form var="transitions=targetObj.getTransitions()" if="transitions"
@@ -429,12 +429,7 @@ class AbstractWrapper(object):
        <!-- Object history -->
        <tr if="hasHistory">
         <td colspan="2">
-         <span id=":collapse.id" style=":collapse.style">
-          <div var="ajaxHookId=zobj.id + '_history'" id=":ajaxHookId">
-           <script type="text/javascript">::'askObjectHistory(%s,%s,%d,0)' % \
-             (q(ajaxHookId), q(zobj.absolute_url()), \
-              historyMaxPerPage)</script>
-          </div>
+         <span id=":collapse.id" style=":collapse.style"><x>:obj.pxHistory</x>
          </span>
         </td>
        </tr>
