@@ -176,7 +176,7 @@ class Ref(Field):
      <a target="appyIFrame"
         var="tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
              className=ztool.getPortalType(obj.klass)"
-        href=":'%s/query?className=%s&amp;search=%s:%s:%s&amp;popup=1' % \
+        href=":'%s/query?className=%s&amp;search=%s*%s*%s&amp;popup=1' % \
                (ztool.absolute_url(), tiedClassName, obj.uid, field.name, \
                 popupMode)">
       <input type="button"
@@ -287,13 +287,13 @@ class Ref(Field):
        <!-- Loop on every (tied or selectable) object -->
        <x for="tied in objects"
           var2="@currentNumber=currentNumber + 1;
-                rowCss=loop.tied.odd and 'even' or 'odd'">:obj.pxViewAsTied</x>
+                rowCss=loop.tied.odd and 'even' or 'odd'">:tied.pxViewAsTied</x>
       </table>
       <!-- Global actions -->
       <x if="mayEdit and checkboxes">:field.pxGlobalActions</x>
       <!-- (Bottom) navigation -->
       <x>:tool.pxNavigate</x>
-      <!-- Init checkboxes if present. -->
+      <!-- Init checkboxes if present -->
       <script if="checkboxes">:'initCbs(%s)' % q(ajaxHookId)</script>
      </div>''')
 
@@ -437,8 +437,8 @@ class Ref(Field):
              collapse=field.getCollapseInfo(obj, False);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
-      <script if="checkboxesEnabled and renderAll and (render == 'list')"
-              type="text/javascript">:field.getCbJsInit(zobj)</script>
+      <script if="checkboxesEnabled and renderAll \
+                  and (render == 'list')">:field.getCbJsInit(zobj)</script>
       <x if="linkList and renderAll and mayEdit"
          var2="ajaxHookId='%s_%s_poss' % \
                 (zobj.id, field.name)">:field.pxViewPickList</x>
@@ -1265,7 +1265,7 @@ class Ref(Field):
         code = "\nnode['_appy_%%s_cbs']={};\nnode['_appy_%%s_sem']='%s';" % \
                default
         poss = (self.link == 'list') and (code % ('poss', 'poss')) or ''
-        return "var node=document.getElementById('%s_%s');%s%s" % \
+        return "var node=findNode(this, '%s_%s');%s%s" % \
                (obj.id, self.name, code % ('objs', 'objs'), poss)
 
     def getAjaxData(self, hook, zobj, **params):

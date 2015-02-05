@@ -279,7 +279,7 @@ class ToolWrapper(AbstractWrapper):
       <!-- The message content -->
       <div id="appyMessageContent"></div>
      </div>
-     <script type="text/javascript" var="messages=ztool.consumeMessages()"
+     <script var="messages=ztool.consumeMessages()"
              if="messages">::'showAppyMessage(%s)' % q(messages)</script>''')
 
     # The page footer

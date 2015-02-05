@@ -403,7 +403,7 @@ function toggleCheckbox(visibleCheckbox, hiddenBoolean) {
   else hidden.value = 'False';
 }
 
-// JS implementation of Python ''.rsplit.
+// JS implementation of Python ''.rsplit
 function _rsplit(s, delimiter, limit) {
   var elems = s.split(delimiter);
   var exc = elems.length - limit;
@@ -419,11 +419,11 @@ function _rsplit(s, delimiter, limit) {
   return res;
 }
 
-// (Un)checks a checkbox corresponding to a linked object.
+// (Un)checks a checkbox corresponding to a linked object
 function toggleCb(checkbox) {
   var name = checkbox.getAttribute('name');
   var elems = _rsplit(name, '_', 3);
-  // Get the DOM node corresponding to the Ref field.
+  // Get the DOM node corresponding to the Ref field
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the array that stores checkbox statuses.
   var statuses = node['_appy_' + elems[2] + '_cbs'];
@@ -440,17 +440,26 @@ function toggleCb(checkbox) {
   }
 }
 
-// Initialise checkboxes of a Ref field or Search.
+function findNode(node, id) {
+  /* When coming back from the iframe popup, we are still in the context of the
+     iframe, which can cause problems for finding nodes. We have found that this
+     case can be detected by checking node.window. */
+  if (node.window) var container = node.window.document;
+  else var container = window.parent.document;
+  return container.getElementById(id);
+}
+
+// Initialise checkboxes of a Ref field or Search
 function initCbs(id) {
   var elems = _rsplit(id, '_', 3);
-  // Get the DOM node corresponding to the Ref field.
+  // Get the DOM node corresponding to the Ref field
   var node = document.getElementById(elems[0] + '_' + elems[1]);
-  // Get the array that stores checkbox statuses.
+  // Get the array that stores checkbox statuses
   var statuses = node['_appy_' + elems[2] + '_cbs'];
   // Get the array semantics
   var semantics = node['_appy_' + elems[2] + '_sem'];
   var value = (semantics == 'unchecked')? false: true;
-  // Update visible checkboxes.
+  // Update visible checkboxes
   var checkboxes = getElementsHavingName('input', id);
   for (var i=0; i < checkboxes.length; i++) {
     if (checkboxes[i].value in statuses) checkboxes[i].checked = value;
@@ -458,15 +467,15 @@ function initCbs(id) {
   }
 }
 
-// Toggle all checkboxes of a Ref field or Search.
+// Toggle all checkboxes of a Ref field or Search
 function toggleAllCbs(id) {
   var elems = _rsplit(id, '_', 3);
-  // Get the DOM node corresponding to the Ref field.
+  // Get the DOM node corresponding to the Ref field
   var node = document.getElementById(elems[0] + '_' + elems[1]);
-  // Empty the array that stores checkbox statuses.
+  // Empty the array that stores checkbox statuses
   var statuses = node['_appy_' + elems[2] + '_cbs'];
   for (var key in statuses) delete statuses[key];
-  // Switch the array semantics.
+  // Switch the array semantics
   var semAttr = '_appy_' + elems[2] + '_sem';
   if (node[semAttr] == 'unchecked') node[semAttr] = 'checked';
   else node[semAttr] = 'unchecked';
@@ -892,7 +901,7 @@ function closePopup(popupId, clean) {
     // Reinitialise the enclosing iframe
     var iframe = container.getElementById('appyIFrame');
     iframe.style.width = null;
-    iframe.innerHTML = '';
+    while (iframe.firstChild) iframe.removeChild(iframe.firstChild);
     // Leave the form silently if we are on an edit page
     iframe.contentWindow.onbeforeunload = null;
   }
@@ -907,10 +916,10 @@ function backFromPopup() {
 
 function showAppyMessage(message) {
   // Fill the message zone with the message to display
-  var messageZone = document.getElementById('appyMessageContent');
+  var messageZone = getAjaxHook(':appyMessageContent');
   messageZone.innerHTML = message;
   // Display the message zone
-  var messageDiv = document.getElementById('appyMessage');
+  var messageDiv = getAjaxHook(':appyMessage');
   messageDiv.style.display = 'block';
 }
 
@@ -1172,12 +1181,12 @@ function onSelectObjects(nodeId, objectUrl, mode, sortKey, sortOrder,
   var node = document.getElementById(nodeId);
   var uids = stringFromDictKeys(node['_appy_objs_cbs']);
   var semantics = node['_appy_objs_sem'];
-  // Show an error message if no element is selected.
+  // Show an error message if no element is selected
   if ((semantics == 'checked') && (!uids)) {
     openPopup('alertPopup', no_elem_selected);
     return;
   }
-  // Close the popup.
+  // Close the popup
   closePopup('iframePopup');
   /* When refreshing the Ref field we will need to pass all those parameters,
      for replaying the popup query. */
@@ -1190,7 +1199,7 @@ function onSelectObjects(nodeId, objectUrl, mode, sortKey, sortOrder,
     askField(':'+nodeId, objectUrl, 'edit', params, false);
   }
   else {
-    // Link the selected objects and refresh the Ref view widget.
+    // Link the selected objects and refresh the Ref view widget
     params['action'] = 'onSelectFromPopup';
     askField(':'+nodeId, objectUrl, 'view', params, false);
   }

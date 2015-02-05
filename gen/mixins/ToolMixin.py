@@ -223,11 +223,11 @@ class ToolMixin(BaseMixin):
         return res
 
     def getRootClasses(self):
-        '''Returns the list of root classes for this application.'''
+        '''Returns the list of root classes for this application'''
         cfg = self.getProductConfig().appConfig
         rootClasses = cfg.rootClasses
         if not rootClasses:
-            # We consider every class as being a root class.
+            # We consider every class as being a root class
             rootClasses = self.getProductConfig().appClassNames
         return [self.getAppyClass(k) for k in rootClasses]
 
@@ -749,10 +749,10 @@ class ToolMixin(BaseMixin):
             # It is a custom search whose parameters are in the session
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
-        elif ':' in name:
+        elif '*' in name:
             # The search is defined in a Ref field with link=popup. Get the
             # search, the initiator object and the Ref field.
-            uid, ref, mode = name.split(':')
+            uid, ref, mode = name.split('*')
             initiator = self.getObject(uid, appy=True)
             initiatorField = initiator.getField(ref)
             res = getattr(initiator.klass, ref).select

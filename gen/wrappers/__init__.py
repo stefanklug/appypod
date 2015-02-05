@@ -728,12 +728,16 @@ class AbstractWrapper(object):
              x=resp.setHeader('Content-Language', lang);
              x=resp.setHeader('Cache-Control', 'no-cache')">
 
-      <!-- If an action is defined, execute it on p_zobj or on p_field. -->
+      <!-- If an action is defined, execute it on p_zobj or on p_field -->
       <x if="action"
          var2="msg=ztool.executeAjaxAction(action, obj, field) or '';
                x=resp.setHeader('Appy-Message', msg)"></x>
 
-      <!-- Then, call the PX on p_obj or on p_field. -->
+      <!-- Consume and return any session message -->
+      <x var="msg=ztool.consumeMessages()" if="msg"
+         var2="x=resp.setHeader('Appy-Message', msg)"></x>
+
+      <!-- Then, call the PX on p_obj or on p_field -->
       <x if="not field">:getattr(obj, px[0])</x>
       <x if="field">:getattr(field, px[-1])</x>
      </x>''')

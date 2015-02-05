@@ -405,8 +405,8 @@ class BaseMixin:
                     pageInfo = phaseObj.getPageInfo(rq['page'], 'view')
                     if not pageInfo: urlBack = tool.getHomePage()
                     else: urlBack = self.getUrl(page=pageInfo.page.name)
-            self.say(self.translate('object_canceled'))
             self.removeLock(rq['page'])
+            self.say(self.translate('object_canceled'))
             if inPopup: return back
             return self.goto(urlBack)
 

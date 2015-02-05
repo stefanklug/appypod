@@ -202,8 +202,8 @@ class UiSearch:
         <td colspan=":len(columns)+1">:_('query_no_result')</td>
        </tr>
        <x for="zobj in zobjects"
-          var2="@currentNumber=currentNumber + 1;
-               rowCss=loop.zobj.odd and 'even' or 'odd'">:obj.pxViewAsResult</x>
+          var2="rowCss=loop.zobj.odd and 'even' or 'odd';
+               @currentNumber=currentNumber + 1">:zobj.appy().pxViewAsResult</x>
       </table>
       <!-- The button for selecting objects and closing the popup -->
       <div if="inPopup and cbShown" align=":dleft">
@@ -241,7 +241,7 @@ class UiSearch:
      <div var="ajaxHookId='queryResult';
                className=req['className'];
                searchName=req.get('search', '');
-               uiSearch=uiSearch|ztool.getSearch(className,searchName,ui=True);
+               uiSearch=field|ztool.getSearch(className, searchName, ui=True);
                rootHookId=uiSearch.getRootHookId();
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
@@ -389,7 +389,7 @@ class UiSearch:
         '''Returns the code that creates JS data structures for storing the
            status of checkboxes for every result of this search.'''
         default = self.search.checkboxesDefault and 'unchecked' or 'checked'
-        return '''var node=document.getElementById('%s');
+        return '''var node=findNode(this, '%s');
                   node['_appy_objs_cbs'] = {};
                   node['_appy_objs_sem'] = '%s';''' % (hookId, default)
 
