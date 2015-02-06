@@ -61,17 +61,17 @@ class Pod(Field):
                     '"%s" (%s).'
     FREEZE_FATAL_ERROR = 'Server error. Please contact the administrator.'
 
-    # Icon allowing to generate a given template in a given format.
+    # Icon allowing to generate a given template in a given format
     pxIcon = Px('''
-     <img var="iconSuffix=frozen and 'Frozen' or '';
-               gc=field.getChecked and q(field.getChecked) or 'null'"
+     <img var="iconSuffix=frozen and 'Frozen' or ''"
           src=":url(fmt + iconSuffix)" class="clickable"
           title=":field.getIconTitle(obj, fmt, frozen)"
           onclick=":'generatePod(%s,%s,%s,%s,%s,null,%s)' % (q(uid), q(name), \
                    q(info.template), q(fmt), q(ztool.getQueryInfo()), gc)"/>''')
 
     pxView = pxCell = Px('''
-     <x var="uid=obj.uid"
+     <x var="uid=obj.uid;
+             gc=field.getChecked and q(field.getChecked) or 'null'"
         for="info in field.getVisibleTemplates(obj)"
         var2="mailings=field.getVisibleMailings(obj, info.template);
               lineBreak=((loop.info.nb + 1) % field.maxPerRow) == 0">
@@ -84,7 +84,7 @@ class Pod(Field):
        <!-- A clickable icon if no freeze action is allowed and no mailing is
             available for this format -->
        <x if="not dropdownEnabled">:field.pxIcon</x>
-       <!-- A clickable icon and a dropdown menu else. -->
+       <!-- A clickable icon and a dropdown menu else -->
        <span if="dropdownEnabled" class="dropdownMenu"
              var2="dropdownId='%s_%s' % (uid, \
                               field.getFreezeName(info.template, fmt, sep='_'))"
@@ -125,9 +125,9 @@ class Pod(Field):
           <tr for="mailing in mailings[fmt]" valign="top"
               var2="mailingName=field.getMailingName(obj, mailing)">
            <td colspan="2">
-            <a var="js='generatePod(%s,%s,%s,%s,%s,null,null,%s)' % \
+            <a var="js='generatePod(%s,%s,%s,%s,%s,null,%s,%s)' % \
                        (q(uid), q(name), q(info.template), q(fmt), \
-                        q(ztool.getQueryInfo()), q(mailing))"
+                        q(ztool.getQueryInfo()), gc, q(mailing))"
                onclick=":'askConfirm(%s,%s)' % (q('script'), q(js, False))"
                title=":sendLabel">
              <img src=":url('email')" align="left" style="margin-right: 2px"/>

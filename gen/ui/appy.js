@@ -495,13 +495,13 @@ function toggleDropdown(dropdownId, forcedValue){
   }
 }
 
-// Function that sets a value for showing/hiding sub-titles.
+// Function that sets a value for showing/hiding sub-titles
 function setSubTitles(value, tag) {
   createCookie('showSubTitles', value);
   // Get the sub-titles
   var subTitles = getElementsHavingName(tag, 'subTitle');
   if (subTitles.length == 0) return;
-  // Define the display style depending on p_tag.
+  // Define the display style depending on p_tag
   var displayStyle = 'inline';
   if (tag == 'tr') displayStyle = 'table-row';
   for (var i=0; i < subTitles.length; i++) {
@@ -510,7 +510,7 @@ function setSubTitles(value, tag) {
   }
 }
 
-// Function that toggles the value for showing/hiding sub-titles.
+// Function that toggles the value for showing/hiding sub-titles
 function toggleSubTitles(tag) {
   // Get the current value
   var value = readCookie('showSubTitles');
@@ -524,13 +524,13 @@ function toggleSubTitles(tag) {
 
 // Functions used for master/slave relationships between widgets
 function getSlaveInfo(slave, infoType) {
-  // Returns the appropriate info about slavery, depending on p_infoType.
+  // Returns the appropriate info about slavery, depending on p_infoType
   var cssClasses = slave.className.split(' ');
   var masterInfo = null;
-  // Find the CSS class containing master-related info.
+  // Find the CSS class containing master-related info
   for (var j=0; j < cssClasses.length; j++) {
     if (cssClasses[j].indexOf('slave*') == 0) {
-      // Extract, from this CSS class, master name or master values.
+      // Extract, from this CSS class, master name or master values
       masterInfo = cssClasses[j].split('*');
       if (infoType == 'masterName') return masterInfo[1];
       else return masterInfo.slice(2); 
@@ -539,7 +539,7 @@ function getSlaveInfo(slave, infoType) {
 }
 
 function getMasterValues(master) {
-  // Returns the list of values that p_master currently has.
+  // Returns the list of values that p_master currently has
   var res = null;
   if ((master.tagName == 'INPUT') && (master.type != 'checkbox')) {
     res = master.value;
@@ -570,11 +570,11 @@ function getMasterValues(master) {
 }
 
 function getSlaves(master) {
-  // Gets all the slaves of master.
+  // Gets all the slaves of master
   allSlaves = getElementsHavingName('table', 'slave');
   res = [];  
   masterName = master.attributes['name'].value;
-  // Remove leading 'w_' if the master is in a search screen.
+  // Remove leading 'w_' if the master is in a search screen
   if (masterName.indexOf('w_') == 0) masterName = masterName.slice(2);
   if (master.type == 'checkbox') {
     masterName = masterName.substr(0, masterName.length-8);
@@ -604,7 +604,7 @@ function updateSlaves(master, slave, objectUrl, layoutType, requestValues,
   for (var i=0; i < slaves.length; i++) {
     slaveryValues = getSlaveInfo(slaves[i], 'masterValues');
     if (slaveryValues[0] != '+') {
-      // Update slaves visibility depending on master values.
+      // Update slaves visibility depending on master values
       var showSlave = false;
       for (var j=0; j < slaveryValues.length; j++) {
         for (var k=0; k< masterValues.length; k++) {
@@ -615,7 +615,7 @@ function updateSlaves(master, slave, objectUrl, layoutType, requestValues,
       else slaves[i].style.display = 'none';
     }
     else {
-      // Update slaves' values depending on master values.
+      // Update slaves' values depending on master values
       var slaveId = slaves[i].id;
       var slaveName = slaveId.split('_')[1];
       var reqValue = null;
@@ -703,7 +703,7 @@ function onLink(action, sourceUid, fieldName, targetUid) {
 }
 
 function stringFromDictKeys(d){
-  // Gets a string containing comma-separated keys from dict p_d.
+  // Gets a string containing comma-separated keys from dict p_d
   var res = [];
   for (var key in d) res.push(key);
   return res.join();
@@ -711,14 +711,14 @@ function stringFromDictKeys(d){
 
 function onLinkMany(action, id) {
   var elems = _rsplit(id, '_', 3);
-  // Get the DOM node corresponding to the Ref field.
+  // Get the DOM node corresponding to the Ref field
   var node = document.getElementById(elems[0] + '_' + elems[1]);
   // Get the uids of (un-)checked objects.
   var statuses = node['_appy_' + elems[2] + '_cbs'];
   var uids = stringFromDictKeys(statuses);
   // Get the array semantics
   var semantics = node['_appy_' + elems[2] + '_sem'];
-  // Show an error message if no element is selected.
+  // Show an error message if no element is selected
   if ((semantics == 'checked') && (len(statuses) == 0)) {
     openPopup('alertPopup', no_elem_selected);
     return;
@@ -789,7 +789,7 @@ function toggleCookie(cookieId, display, defaultValue) {
   createCookie(cookieId, newState);
 }
 
-// Function that allows to generate a document from a pod template.
+// Function that allows to generate a document from a pod template
 function generatePod(uid, fieldName, template, podFormat, queryData,
                      customParams, getChecked, mailing) {
   var f = document.getElementById('podForm');
@@ -807,7 +807,7 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
   f.checkedUids.value = '';
   f.checkedSem.value = '';
   if (getChecked) {
-    // We must collect selected objects from a Ref field.
+    // We must collect selected objects from a Ref field
     var node = document.getElementById(uid + '_' + getChecked);
     if (node && node.hasOwnProperty('_appy_objs_cbs')) {
       f.checkedUids.value = stringFromDictKeys(node['_appy_objs_cbs']);
@@ -817,7 +817,7 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
   f.submit();
 }
 
-// Function that allows to (un-)freeze a document from a pod template.
+// Function that allows to (un-)freeze a document from a pod template
 function freezePod(uid, fieldName, template, podFormat, action) {
   var f = document.getElementById('podForm');
   f.objectUid.value = uid;
@@ -828,7 +828,7 @@ function freezePod(uid, fieldName, template, podFormat, action) {
   askConfirm('form', 'podForm', action_confirm);
 }
 
-// Function that allows to upload a file for freezing it in a pod field.
+// Function that allows to upload a file for freezing it in a pod field
 function uploadPod(uid, fieldName, template, podFormat) {
   var f = document.getElementById('uploadForm');
   f.objectUid.value = uid;
