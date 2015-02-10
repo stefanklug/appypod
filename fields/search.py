@@ -164,6 +164,7 @@ class UiSearch:
       <a href=":'%s?className=%s&amp;search=%s' % \
                  (queryUrl, className, search.name)"
          class=":(search.name == currentSearch) and 'current' or ''"
+         onclick="clickOn(this)"
          title=":search.translatedDescr">:search.translated</a>
      </div>''')
 

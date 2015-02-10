@@ -223,6 +223,7 @@ class ToolWrapper(AbstractWrapper):
                             searchInfo.default.name or ''"
             href=":'%s?className=%s&amp;search=%s' % \
                    (queryUrl, className, queryParam)"
+            onclick="clickOn(this)"
             class=":(not currentSearch and (currentClass==className) and \
                     (currentPage=='query')) and \
                     'current' or ''">::_(className + '_plural')</a>

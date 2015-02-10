@@ -457,35 +457,35 @@ class AbstractWrapper(object):
                css=ztool.getButtonCss(label, small=False)">
        <!-- Button on the edit page -->
        <x if="isEdit">
-        <input type="button" class=":css" value=":label"
-               onclick="submitAppyForm('previous')"
+        <input type="button" class=":css" value=":label" id="previous"
+               onclick="submitAppyForm(this)"
                style=":url('previous', bg=True)"/>
         <input type="hidden" name="previousPage" value=":previousPage"/>
        </x>
        <!-- Button on the view page -->
        <input if="not isEdit" type="button" class=":css" value=":label"
-              style=":url('previous', bg=True)"
+              style=":url('previous', bg=True)" id="previous"
               onclick=":'goto(%s)' % q(zobj.getUrl(page=previousPage, \
                                                    inPopup=inPopup))"/>
       </x>
       <!-- Save -->
-      <input if="isEdit and pageInfo.showSave" type="button"
+      <input if="isEdit and pageInfo.showSave" type="button" id="save"
              var2="label=_('object_save');
                    css=ztool.getButtonCss(label, small=False)"
-             class=":css" onclick="submitAppyForm('save')"
+             class=":css" onclick="submitAppyForm(this)"
              value=":label" style=":url('save', bg=True)" />
       <!-- Cancel -->
-      <input if="isEdit and pageInfo.showCancel" type="button"
+      <input if="isEdit and pageInfo.showCancel" type="button" id="cancel"
              var2="label=_('object_cancel');
                    css=ztool.getButtonCss(label, small=False)"
-             class=":css" onclick="submitAppyForm('cancel')" value=":label"
+             class=":css" onclick="submitAppyForm(this)" value=":label"
              style=":url('cancel', bg=True)"/>
       <x if="not isEdit"
          var2="locked=zobj.isLocked(user, page);
                editable=pageInfo.showOnEdit and pageInfo.showEdit and \
                         mayAct and zobj.mayEdit()">
        <!-- Edit -->
-       <input if="editable and not locked" type="button"
+       <input if="editable and not locked" type="button" id="edit"
               var="label=_('object_edit');
                    css=ztool.getButtonCss(label, small=False)"
               value=":label" class=":css" style=":url('edit', bg=True)"
@@ -511,18 +511,18 @@ class AbstractWrapper(object):
              value=":label" class=":css" style=":url('delete', bg=True)"
              onclick=":'onDeleteObject(%s)' % q(zobj.id)"/>
       <!-- Next -->
-      <x if="nextPage and pageInfo.showNext"
+      <x if="nextPage and pageInfo.showNext" id="next"
          var2="label=_('page_next');
                css=ztool.getButtonCss(label, small=False)">
        <!-- Button on the edit page -->
        <x if="isEdit">
-        <input type="button" class=":css" onclick="submitAppyForm('next')"
-               style=":url('next', bg=True)" value=":label"/>
+        <input type="button" class=":css" onclick="submitAppyForm(this)"
+               id="next" style=":url('next', bg=True)" value=":label"/>
         <input type="hidden" name="nextPage" value=":nextPage"/>
        </x>
        <!-- Button on the view page -->
        <input if="not isEdit" type="button" class=":css" value=":label"
-              style=":url('next', bg=True)"
+              style=":url('next', bg=True)" id="next"
               onclick=":'goto(%s)' % q(zobj.getUrl(page=nextPage, \
                                                    inPopup=inPopup))"/>
       </x>

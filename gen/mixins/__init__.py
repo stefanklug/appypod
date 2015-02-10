@@ -1006,10 +1006,9 @@ class BaseMixin:
         if mode == 'link':
             inPopup = inPopup or (target.target != '_self')
             url = self.getUrl(page=page, nav=nav, inPopup=inPopup)
-            onClick = target.openPopup and \
-                      (' onclick="%s"' % target.openPopup) or ''
-            res = '<a href="%s" class="%s" target="%s"%s>%s</a>' % \
-                  (url, cssClass, target.target, onClick, title)
+            onClick = target.openPopup or 'clickOn(this)'
+            res = '<a href="%s" class="%s" onclick="%s" target="%s">%s</a>' % \
+                  (url, cssClass, onClick, target.target, title)
         elif mode == 'select':
             res = '<span class="%s clickable" onclick="%s">%s</span>' % \
                   (cssClass, selectJs, title)

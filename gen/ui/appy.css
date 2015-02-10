@@ -13,6 +13,7 @@ h5 { font-size: 10pt; margin:0; font-style: italic; font-weight: normal;
 h6 { font-size: 9pt; margin:0; font-weight: bold }
 a { text-decoration: none; color: #114353 }
 a:visited { color: #114353 }
+.unclickable { pointer-events: none; color: grey !important }
 table { font-size: 100%; border-spacing: 0px; border-collapse:collapse }
 form { margin: 0; padding: 0 }
 p { margin: 0 0 5px 0 }

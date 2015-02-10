@@ -472,10 +472,10 @@ class UiTransition:
              css=ztool.getButtonCss(label, inButtons)">
       <!-- Real button -->
       <input if="transition.mayTrigger" type="button" class=":css"
-             var="back=inButtons and q(zobj.id) or 'null'"
+             var="back=inButtons and q(zobj.id) or 'null'" id=":transition.name"
              style=":url(transition.icon, bg=True)" value=":label"
-             onclick=":'triggerTransition(%s,%s,%s,%s)' % (q(formId), \
-                        q(transition.name), q(transition.confirm), back)"/>
+             onclick=":'triggerTransition(%s,this,%s,%s)' % \
+                        (q(formId), q(transition.confirm), back)"/>
 
       <!-- Fake button, explaining why the transition can't be triggered -->
       <input if="not transition.mayTrigger" type="button"

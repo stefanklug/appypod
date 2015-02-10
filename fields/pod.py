@@ -66,8 +66,8 @@ class Pod(Field):
      <img var="iconSuffix=frozen and 'Frozen' or ''"
           src=":url(fmt + iconSuffix)" class="clickable"
           title=":field.getIconTitle(obj, fmt, frozen)"
-          onclick=":'generatePod(%s,%s,%s,%s,%s,null,%s)' % (q(uid), q(name), \
-                   q(info.template), q(fmt), q(ztool.getQueryInfo()), gc)"/>''')
+          onclick=":'generatePod(this,%s,%s,%s,%s,%s,null,%s)' % (q(uid), \
+          q(name), q(info.template), q(fmt), q(ztool.getQueryInfo()), gc)"/>''')
 
     pxView = pxCell = Px('''
      <x var="uid=obj.uid;
@@ -125,7 +125,7 @@ class Pod(Field):
           <tr for="mailing in mailings[fmt]" valign="top"
               var2="mailingName=field.getMailingName(obj, mailing)">
            <td colspan="2">
-            <a var="js='generatePod(%s,%s,%s,%s,%s,null,%s,%s)' % \
+            <a var="js='generatePod(this,%s,%s,%s,%s,%s,null,%s,%s)' % \
                        (q(uid), q(name), q(info.template), q(fmt), \
                         q(ztool.getQueryInfo()), gc, q(mailing))"
                onclick=":'askConfirm(%s,%s)' % (q('script'), q(js, False))"
@@ -738,21 +738,21 @@ class Pod(Field):
         '''This method is called when an action tied to this pod field
            (generate, freeze, upload...) is triggered from the user
            interface.'''
-        # What is the action to perform?
+        # What is the action to perform ?
         action = rq.get('action', 'generate')
-        # Security check.
+        # Security check
         obj.o.mayView(self.readPermission, raiseError=True)
-        # Perform the requested action.
+        # Perform the requested action
         tool = obj.tool.o
         template = rq.get('template')
         format = rq.get('podFormat')
         if action == 'generate':
-            # Generate a (or get a frozen) document.
+            # Generate a (or get a frozen) document
             res = self.getValue(obj, template=template, format=format,
                                 queryData=rq.get('queryData'),
                                 customContext=self.getCustomContext(obj, rq))
             if isinstance(res, basestring):
-                # An error has occurred, and p_res contains the error message.
+                # An error has occurred, and p_res contains the error message
                 obj.say(res)
                 return tool.goto(rq.get('HTTP_REFERER'))
             # res contains a FileInfo instance.
@@ -763,35 +763,36 @@ class Pod(Field):
                 # With disposition=inline, Google Chrome and IE may launch a PDF
                 # viewer that triggers one or many additional crashing HTTP GET
                 # requests.
+                rq.RESPONSE.setCookie('podDownload', 'true', path='/')
                 res.writeResponse(rq.RESPONSE, disposition='attachment')
                 return
             else:
-                # Send the email(s).
+                # Send the email(s)
                 msg = self.sendMailing(obj, template, mailing, res)
                 obj.say(obj.translate(msg))
                 return tool.goto(rq.get('HTTP_REFERER'))
-        # Performing any other action requires write access to p_obj.
+        # Performing any other action requires write access to p_obj
         obj.o.mayEdit(self.writePermission, raiseError=True)
         msg = 'action_done'
         if action == 'freeze':
-            # (Re-)freeze a document in the database.
+            # (Re-)freeze a document in the database
             self.freeze(obj, template, format, noSecurity=False,
                         freezeOdtOnError=False)
         elif action == 'unfreeze':
-            # Unfreeze a document in the database.
+            # Unfreeze a document in the database
             self.unfreeze(obj, template, format, noSecurity=False)
         elif action == 'upload':
-            # Ensure a file from the correct type has been uploaded.
+            # Ensure a file from the correct type has been uploaded
             upload = rq.get('uploadedFile')
             if not upload or not upload.filename or \
                not upload.filename.endswith('.%s' % format):
                 # A wrong file has been uploaded (or no file at all)
                 msg = 'upload_invalid'
             else:
-                # Store the uploaded file in the database.
+                # Store the uploaded file in the database
                 self.freeze(obj, template, format, noSecurity=False,
                             upload=upload)
-        # Return a message to the user interface.
+        # Return a message to the user interface
         obj.say(obj.translate(msg))
         return tool.goto(rq.get('HTTP_REFERER'))
 # ------------------------------------------------------------------------------

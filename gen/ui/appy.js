@@ -1,4 +1,9 @@
 var wrongTextInput = '#F9EDBE none';
+var loadingLink = '<img src="ui/loading.gif"/>';
+var loadingButton = '<img align="center" src="ui/loadingBtn.gif"/>';
+var loadingZone = '<div align="center"><img src="ui/loadingBig.gif"/></div>';
+var lsTimeout; // Timout for the live search
+var podTimeout; // Timeout for checking status of pod downloads
 
 // Functions related to user authentication
 function cookiesAreEnabled() {
@@ -97,10 +102,10 @@ function injectChunk(elem, content, inner, searchTop){
     else {
       // Replace p_elem with a new node filled with p_content and return it
       var id = elem.id;
-      if (searchTop) id = ':' + id;
+      if (id && searchTop) id = ':' + id;
       elem.outerHTML = content;
-      res = getAjaxHook(id); // Get the new element
-      }
+      if (id) res = getAjaxHook(id); // Get the new element
+    }
   }
   else {
     /* IE doesn't want to replace content of a table. Force it to do so via
@@ -111,6 +116,25 @@ function injectChunk(elem, content, inner, searchTop){
     elem.parentNode.replaceChild(temp.firstChild, elem);
   }
   return res;
+}
+
+function clickOn(node) {
+  // If node is a form, disable all form buttons
+  if (node.tagName == 'FORM') {
+    var i = node.elements.length -1;
+    while (i >= 0) {
+      if (node.elements[i].type == 'button') { clickOn(node.elements[i]); }
+      i = i - 1;
+    }
+    return;
+  }
+  // Disable any click on p_node to be protected against double-click
+  var cn = (node.className)? 'unclickable ' + node.className : 'unclickable';
+  node.className = cn;
+  /* For a button, show the preloader directly. For a link, show it only after
+     a while, if the target page is still not there. */
+  if (node.tagName != 'A') injectChunk(node, loadingButton);
+  else setTimeout(function(){injectChunk(node, loadingLink)}, 700);
 }
 
 function getAjaxHook(hookId, forceTop) {
@@ -136,32 +160,22 @@ function getAjaxChunk(pos) {
   // This function is the callback called by the AJAX machinery (see function
   // askAjaxChunk below) when an Ajax response is available.
   // First, find back the correct XMLHttpRequest object
-  if ( (typeof(xhrObjects[pos]) != 'undefined') &&
-       (xhrObjects[pos].freed == 0)) {
-    var hook = xhrObjects[pos].hook;
-    if (hook && (xhrObjects[pos].xhr.readyState == 1)) {
-      // The request has been initialized: display the waiting radar
-      var hookElem = getAjaxHook(hook);
-      if (hookElem)
-        injectChunk(hookElem, "<div align=\"center\"><img src=\"ui/waiting.gif\"/><\/div>", true);
+  var rq = xhrObjects[pos];
+  if ( (typeof(rq) != 'undefined') && (rq.freed == 0)) {
+    if ((!rq.hook) || (rq.xhr.readyState != 4)) return;
+    // We have received the HTML chunk
+    var hookElem = getAjaxHook(rq.hook);
+    if (hookElem) {
+      var content = rq.xhr.responseText;
+      var searchTop = rq.hook[0] == ':';
+      var injected = injectChunk(hookElem, content, false, searchTop);
+      // Call a custom Javascript function if required
+      if (rq.onGet) rq.onGet(rq, injected);
+      // Display the Appy message if present
+      var msg = rq.xhr.getResponseHeader('Appy-Message');
+      if (msg) showAppyMessage(decodeURIComponent(escape(msg)));
     }
-    if (xhrObjects[pos].xhr.readyState == 4) {
-      // We have received the HTML chunk
-      var hookElem = getAjaxHook(hook);
-      if (hookElem) {
-        var content = xhrObjects[pos].xhr.responseText;
-        var searchTop = hook[0] == ':';
-        var injected = injectChunk(hookElem, content, false, searchTop);
-        // Call a custom Javascript function if required
-        if (xhrObjects[pos].onGet) {
-          xhrObjects[pos].onGet(xhrObjects[pos], injected);
-        }
-        // Display the Appy message if present
-        var msg = xhrObjects[pos].xhr.getResponseHeader('Appy-Message');
-        if (msg) showAppyMessage(decodeURIComponent(escape(msg)));
-      }
-      xhrObjects[pos].freed = 1;
-    }
+    rq.freed = 1;
   }
 }
 
@@ -217,6 +231,8 @@ function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
     if (mode == 'GET') {
       urlFull = urlFull + '?' + paramsFull;
     }
+    // Display the preloader
+    injectChunk(getAjaxHook(rq.hook), loadingZone, true);
     // Perform the asynchronous HTTP GET or POST
     rq.xhr.open(mode, urlFull, true);
     if (mode == 'POST') {
@@ -651,8 +667,8 @@ function initSlaves(objectUrl, layoutType, requestValues, errors) {
 function submitAppyForm(button) {
   var f = document.getElementById('appyForm');
   // On which button has the user clicked ?
-  f.button.value = button;
-  f.submit();
+  f.button.value = button.id;
+  f.submit(); clickOn(button);
 }
 
 function submitForm(formId, msg, showComment, back) {
@@ -661,8 +677,8 @@ function submitForm(formId, msg, showComment, back) {
     /* Submit the form and either refresh the entire page (back is null)
        or ajax-refresh a given part only (p_back corresponds to the id of the
        DOM node to be refreshed. */
-    if (back) askAjax(back, formId);
-    else f.submit();
+    if (back) { askAjax(back, formId); }
+    else { f.submit(); clickOn(f) }
   }
   else {
     // Ask a confirmation to the user before proceeding
@@ -674,9 +690,9 @@ function submitForm(formId, msg, showComment, back) {
 }
 
 // Function used for triggering a workflow transition
-function triggerTransition(formId, transitionId, msg, back) {
+function triggerTransition(formId, node, msg, back) {
   var f = document.getElementById(formId);
-  f.transition.value = transitionId;
+  f.transition.value = node.id;
   submitForm(formId, msg, true, back);
 }
 
@@ -789,8 +805,17 @@ function toggleCookie(cookieId, display, defaultValue) {
   createCookie(cookieId, newState);
 }
 
+function podDownloadStatus(node, data) {
+  // Checks the status of cookie "podDownload"
+  var status = readCookie('podDownload');
+  // Stop the timeout if the download is complete
+  if (status == 'false') return;
+  clearInterval(podTimeout);
+  for (var key in data) node.setAttribute(key, data[key]);
+}
+
 // Function that allows to generate a document from a pod template
-function generatePod(uid, fieldName, template, podFormat, queryData,
+function generatePod(node, uid, fieldName, template, podFormat, queryData,
                      customParams, getChecked, mailing) {
   var f = document.getElementById('podForm');
   f.objectUid.value = uid;
@@ -814,7 +839,22 @@ function generatePod(uid, fieldName, template, podFormat, queryData,
       f.checkedSem.value = node['_appy_objs_sem'];
     }
   }
+  // Submitting the form at the end blocks the animated gifs on FF
   f.submit();
+  // If p_node is an image, replace it with a preloader to prevent double-clicks
+  if (node.tagName == 'IMG') {
+    var data = {'src': node.src, 'class': node.className,
+                'onclick': node.attributes.onclick.value};
+    node.setAttribute('onclick', '');
+    node.className = '';
+    var src2 = node.src.replace(podFormat + '.png', 'loadingPod.gif');
+    node.setAttribute('src', src2);
+    // Initialize the pod download cookie. "false" means: not downloaded yet
+    createCookie('podDownload', 'false');
+    // Set a timer that will check the cookie value
+    podTimeout = window.setInterval(function(){
+      podDownloadStatus(node, data)}, 700);
+  }
 }
 
 // Function that allows to (un-)freeze a document from a pod template
@@ -961,7 +1001,7 @@ function doConfirm() {
        from the popup when relevant. */
     var f = document.getElementById(action);
     transferComment(confirmForm, f);
-    f.submit();
+    f.submit(); clickOn(f);
   }
   else if (actionType == 'url') { goto(action) } // Go to some URL
   else if (actionType == 'script') { eval(action) } // Exec some JS code
@@ -970,7 +1010,7 @@ function doConfirm() {
     var f = document.getElementById(elems[0]);
     // Submit the form in elems[0] and execute the JS code in elems[1]
     transferComment(confirmForm, f);
-    f.submit();
+    f.submit(); clickOn(f);
     eval(elems[1]);
   }
   else if (actionType == 'form-script') {
@@ -1031,13 +1071,13 @@ function manageTab(tabId, action) {
 function showTab(tabId) {
   // 1st, show the tab to show
   manageTab(tabId, 'show');
-  // Compute the number of tabs.
+  // Compute the number of tabs
   var idParts = tabId.split('_');
   var prefix = idParts[0] + '_';
-  // Store the currently selected tab in a cookie.
+  // Store the currently selected tab in a cookie
   createCookie('tab_' + idParts[0], tabId);
   var nbOfTabs = idParts[2]*1;
-  // Then, hide the other tabs.
+  // Then, hide the other tabs
   for (var i=0; i<nbOfTabs; i++) {
      var idTab = prefix + (i+1) + '_' + nbOfTabs;
      if (idTab != tabId) {
@@ -1238,7 +1278,6 @@ function reindexObject(indexName){
 }
 
 // Live-search-related functions (LS)
-var lsTimeout;
 function detectEventType(event) {
   /* After p_event occurred on a live search input field, must we trigger a
      search (a new char has been added), move up/down within the search
