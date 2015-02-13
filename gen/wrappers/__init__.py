@@ -53,7 +53,7 @@ class AbstractWrapper(object):
        <!-- Object navigation -->
        <td var="nav=req.get('nav', None)" if="nav"
            var2="self=ztool.getNavigationInfo(nav, inPopup)" align=":dright"
-           width="150px">:self.pxNavigate</td>
+           width="200px">:self.pxNavigate</td>
       </tr>
      </table>
      <!-- Object phases and pages -->
@@ -303,18 +303,17 @@ class AbstractWrapper(object):
 
     # This PX displays an object's history
     pxHistory = Px('''
-     <div id="appyHistory"
-          var="startNumber=int(req.get('startNumber', 0));
+     <div var="startNumber=int(req.get('startNumber', 0));
                batchSize=int(req.get('maxPerPage', 5));
                historyInfo=zobj.getHistory(startNumber, batchSize=batchSize)"
           if="historyInfo.events"
-          var2="objs=historyInfo.events;
+          var2="ajaxHookId='appyHistory';
+                objs=historyInfo.events;
                 totalNumber=historyInfo.totalNumber;
-                batchNumber=len(objs);
-                ajaxHookId='appyHistory';
-                navBaseCall='askObjectHistory(%s,%s,%d,**v**)' % \
-                  (q(ajaxHookId), q(zobj.absolute_url()), batchSize)">
-
+                batchNumber=len(objs)"
+          id=":ajaxHookId">
+      <script>:zobj.getHistoryAjaxData(ajaxHookId, startNumber, \
+                                       batchSize)</script>
       <!-- Navigate between history pages -->
       <x>:tool.pxNavigate</x>
       <!-- History -->

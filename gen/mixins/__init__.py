@@ -1247,7 +1247,15 @@ class BaseMixin:
     def getHistoryCollapse(self):
         '''Gets a Collapsible instance for showing a collapse or expanded
            history in this object.'''
-        return Collapsible('appyHistory', self.REQUEST)
+        return Collapsible('objectHistory', self.REQUEST)
+
+    def getHistoryAjaxData(self, hook, startNumber, batchSize):
+        '''Gets data allowing to ajax-ask paginated history data.'''
+        params = {'startNumber': startNumber, 'maxPerPage': batchSize}
+        # Convert params into a JS dict
+        params = sutils.getStringDict(params)
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s','pxHistory', "\
+               "%s, null, '%s')" % (hook, hook, params, self.absolute_url())
 
     def mayNavigate(self):
         '''May the currently logged user see the navigation panel linked to

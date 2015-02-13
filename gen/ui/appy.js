@@ -118,25 +118,6 @@ function injectChunk(elem, content, inner, searchTop){
   return res;
 }
 
-function clickOn(node) {
-  // If node is a form, disable all form buttons
-  if (node.tagName == 'FORM') {
-    var i = node.elements.length -1;
-    while (i >= 0) {
-      if (node.elements[i].type == 'button') { clickOn(node.elements[i]); }
-      i = i - 1;
-    }
-    return;
-  }
-  // Disable any click on p_node to be protected against double-click
-  var cn = (node.className)? 'unclickable ' + node.className : 'unclickable';
-  node.className = cn;
-  /* For a button, show the preloader directly. For a link, show it only after
-     a while, if the target page is still not there. */
-  if (node.tagName != 'A') injectChunk(node, loadingButton);
-  else setTimeout(function(){injectChunk(node, loadingLink)}, 700);
-}
-
 function getAjaxHook(hookId, forceTop) {
   /* Gets the XHTML element whose ID is p_hookId: it will be the placeholder
      for the result of an ajax request. If p_hookId starts with ':', we search
@@ -309,61 +290,62 @@ function askAjax(hook, form, params) {
                evalInnerScripts);
 }
 
-/* The functions below wrap askAjaxChunk for getting specific content through
-   an Ajax request. */
-function askQueryResult(hookId, objectUrl, className, searchName, popup,
-                        startNumber, sortKey, sortOrder, filterKey) {
-  // Sends an Ajax request for getting the result of a query
-  var params = {'className': className, 'search': searchName,
-                'startNumber': startNumber, 'popup': popup};
-  if (sortKey) params['sortKey'] = sortKey;
-  if (sortOrder) params['sortOrder'] = sortOrder;
-  if (filterKey) {
-    var filterWidget = document.getElementById(hookId + '_' + filterKey);
-    if (filterWidget && filterWidget.value) {
-      params['filterKey'] = filterKey;
-      params['filterValue'] = encodeURIComponent(filterWidget.value);
+function askBunch(hookId, startNumber) {
+  askAjax(hookId, null, {'startNumber': startNumber})}
+
+function askBunchSorted(hookId, sortKey, sortOrder) {
+  var data = {'startNumber': '0', 'sortKey': sortKey, 'sortOrder': sortOrder};
+  askAjax(hookId, null, data);
+}
+
+function askBunchFiltered(hookId, filterKey) {
+  var data = {'startNumber': '0', 'filterKey': filterKey, 'filterValue': ''};
+  var node = document.getElementById(hookId + '_' + filterKey);
+  if (node.value) data['filterValue'] = encodeURIComponent(node.value);
+  askAjax(hookId, null, data);
+}
+
+function askBunchMove(hookId, startNumber, uid, move){
+  var moveTo = move;
+  if (typeof move == 'object'){
+    // Get the new index from an input field
+    var id = move.id;
+    id = id.substr(0, id.length-4);
+    var input = document.getElementById(id);
+    if (isNaN(input.value)) {
+      input.style.background = wrongTextInput;
+      return;
     }
+    moveTo = 'index_' + input.value;
   }
-  var px = className + ':' + searchName + ':' + 'pxResult';
-  askAjaxChunk(hookId, 'GET', objectUrl, px, params, null, evalInnerScripts);
+  var data = {'startNumber': startNumber, 'action': 'doChangeOrder',
+              'refObjectUid': uid, 'move': moveTo};
+  askAjax(hookId, null, data);
 }
 
-function askObjectHistory(hookId, objectUrl, maxPerPage, startNumber) {
-  // Sends an Ajax request for getting the history of an object
-  var params = {'maxPerPage': maxPerPage, 'startNumber': startNumber};
-  askAjaxChunk(hookId, 'GET', objectUrl, 'pxHistory', params);
+function askBunchSortRef(hookId, startNumber, sortKey, reverse) {
+  var data = {'startNumber': startNumber, 'action': 'sort', 'sortKey': sortKey,
+              'reverse': reverse};
+  askAjax(hookId, null, data);
 }
 
-function askRefField(hookId, objectUrl, innerRef, startNumber, action,
-                     actionParams){
-  var hookElems = hookId.split('_');
-  var fieldName = hookElems[1];
-  // Sends an Ajax request for getting the content of a reference field
-  var startKey = hookId + '_startNumber';
-  var scope = hookElems.pop();
-  var params = {'innerRef': innerRef, 'scope': scope};
-  params[startKey] = startNumber;
-  if (action) params['action'] = action;
-  if (actionParams) {
-    for (var key in actionParams) {
-      if ((key == 'move') && (typeof actionParams[key] == 'object')) {
-        // Get the new index from an input field
-        var id = actionParams[key].id;
-        id = id.substr(0, id.length-4);
-        var input = document.getElementById(id);
-        if (isNaN(input.value)) {
-          input.style.background = wrongTextInput;
-          return;
-        }
-        params[key] = 'index_' + input.value;
-      }
-      else params[key] = actionParams[key];
-    };
+function clickOn(node) {
+  // If node is a form, disable all form buttons
+  if (node.tagName == 'FORM') {
+    var i = node.elements.length -1;
+    while (i >= 0) {
+      if (node.elements[i].type == 'button') { clickOn(node.elements[i]); }
+      i = i - 1;
+    }
+    return;
   }
-  var px = (scope == 'objs')? ':pxView': ':pxViewPickList';
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName + px, params, null,
-               evalInnerScripts);
+  // Disable any click on p_node to be protected against double-click
+  var cn = (node.className)? 'unclickable ' + node.className : 'unclickable';
+  node.className = cn;
+  /* For a button, show the preloader directly. For a link, show it only after
+     a while, if the target page is still not there. */
+  if (node.tagName != 'A') injectChunk(node, loadingButton);
+  else setTimeout(function(){injectChunk(node, loadingLink)}, 700);
 }
 
 function gotoTied(objectUrl, field, numberWidget, total) {
@@ -381,7 +363,7 @@ function gotoTied(objectUrl, field, numberWidget, total) {
 
 function askField(hookId, objectUrl, layoutType, customParams, showChanges,
                   masterValues, requestValue, error, className){
-  // Sends an Ajax request for getting the content of any field.
+  // Sends an Ajax request for getting the content of any field
   var fieldName = hookId.split('_')[1];
   var params = {'layoutType': layoutType, 'showChanges': showChanges};
   if (customParams){for (var key in customParams) params[key]=customParams[key]}
@@ -833,10 +815,10 @@ function generatePod(node, uid, fieldName, template, podFormat, queryData,
   f.checkedSem.value = '';
   if (getChecked) {
     // We must collect selected objects from a Ref field
-    var node = document.getElementById(uid + '_' + getChecked);
-    if (node && node.hasOwnProperty('_appy_objs_cbs')) {
-      f.checkedUids.value = stringFromDictKeys(node['_appy_objs_cbs']);
-      f.checkedSem.value = node['_appy_objs_sem'];
+    var cNode = document.getElementById(uid + '_' + getChecked);
+    if (cNode && cNode.hasOwnProperty('_appy_objs_cbs')) {
+      f.checkedUids.value = stringFromDictKeys(cNode['_appy_objs_cbs']);
+      f.checkedSem.value = cNode['_appy_objs_sem'];
     }
   }
   // Submitting the form at the end blocks the animated gifs on FF

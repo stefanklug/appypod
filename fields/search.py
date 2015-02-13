@@ -24,6 +24,7 @@ from group import Group
 # ------------------------------------------------------------------------------
 class Search:
     '''Used for specifying a search for a given class.'''
+
     def __init__(self, name=None, group=None, sortBy='', sortOrder='asc',
                  maxPerPage=30, default=False, colspan=1, translated=None,
                  show=True, showActions=True, translatedDescr=None,
@@ -158,6 +159,10 @@ class Search:
 class UiSearch:
     '''Instances of this class are generated on-the-fly for manipulating a
        Search from the User Interface.'''
+    # Default values for request parameters defining query sort and filter
+    sortFilterDefaults = {'sortKey': '', 'sortOrder': 'asc',
+                          'filterKey': '', 'filterValue': ''}
+
     # Rendering a search
     pxView = Px('''
      <div class="portletSearch">
@@ -240,8 +245,8 @@ class UiSearch:
     # Render search results
     pxResult = Px('''
      <div var="ajaxHookId='queryResult';
-               className=req['className'];
-               searchName=req.get('search', '');
+               className=className|req['className'];
+               searchName=field.name|req.get('search', '');
                uiSearch=field|ztool.getSearch(className, searchName, ui=True);
                rootHookId=uiSearch.getRootHookId();
                refInfo=ztool.getRefInfo();
@@ -264,9 +269,6 @@ class UiSearch:
                totalNumber=queryResult.totalNumber;
                batchSize=queryResult.batchSize;
                batchNumber=len(zobjects);
-               navBaseCall='askQueryResult(%s,%s,%s,%s,%s,**v**)' % \
-                 (q(ajaxHookId), q(ztool.absolute_url()), q(className), \
-                  q(searchName),int(inPopup));
                showNewSearch=showNewSearch|True;
                newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
@@ -302,7 +304,7 @@ class UiSearch:
           <span class="discreet">:uiSearch.translatedDescr</span><br/>
          </td>
          <!-- (Top) navigation -->
-         <td align=":dright" width="150px">:tool.pxNavigate</td>
+         <td align=":dright" width="200px">:tool.pxNavigate</td>
         </tr>
        </table>
 
@@ -397,13 +399,20 @@ class UiSearch:
     def getAjaxData(self, hook, ztool, **params):
         '''Initializes an AjaxData object on the DOM node corresponding to
            p_hook = the whole search result.'''
-        # Complete params with default parameters
+        # Complete params with default ones and optional filter/sort params. For
+        # performing a complete Ajax request, "className" and "searcName" are
+        # not needed because included in the PX name. But they are requested by
+        # sub-Ajax queries at the row level.
         params['className'] = self.className
         params['searchName'] = self.name
+        req = ztool.REQUEST
+        for param, default in UiSearch.sortFilterDefaults.iteritems():
+            params[param] = req.get(param, default)
+        # Convert params into a JS dict
         params = sutils.getStringDict(params)
-        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
-               "'pxResult', %s, null, '%s')" % \
-               (hook, hook, params, ztool.absolute_url())
+        px = '%s:%s:pxResult' % (self.className, self.name)
+        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', '%s', %s, " \
+               "null, '%s')" % (hook, hook, px, params, ztool.absolute_url())
 
     def getAjaxDataRow(self, zobj, parentHook, **params):
         '''Initializes an AjaxData object on the DOM node corresponding to

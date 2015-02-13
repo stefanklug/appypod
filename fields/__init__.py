@@ -114,8 +114,7 @@ class Field:
      </x>
      <!-- Any other field -->
      <x if="(refField.name != 'title') and mayView">
-      <x var="zobj=tied.o; obj=tied; layoutType='cell';
-              innerRef=True; field=refField"
+      <x var="zobj=tied.o; obj=tied; layoutType='cell'; field=refField"
          if="field.isShowable(zobj, 'result')">:field.pxRender</x>
      </x>''')
 
@@ -173,7 +172,7 @@ class Field:
      </x>
      <!-- Any other field -->
      <x if="(field.name != 'title') and mayView">
-      <x var="layoutType='cell'; innerRef=True"
+      <x var="layoutType='cell'"
          if="field.isShowable(zobj, 'result')">:field.pxRender</x>
      </x>''')
 

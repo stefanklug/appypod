@@ -24,44 +24,40 @@ class ToolWrapper(AbstractWrapper):
     pxSortAndFilter = Px('''
      <x if="sortable">
       <img if="(sortKey != field.name) or (sortOrder == 'desc')"
-           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
-                     (q(field.name), q('asc'), q(filterKey)))"
+           onclick=":'askBunchSorted(%s, %s, %s)' % \
+                      (q(ajaxHookId), q(field.name), q('asc'))"
            src=":url('sortDown.gif')" class="clickable"/>
       <img if="(sortKey != field.name) or (sortOrder == 'asc')"
-           onclick=":navBaseCall.replace('**v**', '0,%s,%s,%s' % \
-                     (q(field.name), q('desc'), q(filterKey)))"
+           onclick=":'askBunchSorted(%s, %s, %s)' % \
+                      (q(ajaxHookId), q(field.name), q('desc'))"
            src=":url('sortUp.gif')" class="clickable"/>
      </x>
      <x if="filterable"
         var2="filterId='%s_%s' % (ajaxHookId, field.name);
               filterIdIcon='%s_icon' % filterId">
-      <!-- Pressing the "enter" key in the field clicks the icon (onkeydown)--> 
+      <!-- Pressing the "enter" key in the field clicks the icon (onkeydown)-->
       <input type="text" size="7" id=":filterId"
              value=":filterKey == field.name and filterValue or ''"
              onkeydown=":'if (event.keyCode==13) document.getElementById ' \
                          '(%s).click()' % q(filterIdIcon)"/>
       <img id=":filterIdIcon" class="clickable" src=":url('funnel')"
-           onclick=":navBaseCall.replace('**v**', '0, %s,%s,%s' % \
-                     (q(sortKey), q(sortOrder), q(field.name)))"/>
+           onclick=":'askBunchFiltered(%s, %s)' % \
+                      (q(ajaxHookId), q(field.name))"/>
      </x>''')
 
     # Buttons for navigating among a list of objects (from a Ref field or a
     # query): next,back,first,last...
     pxNavigate = Px('''
-     <div if="totalNumber &gt; batchSize" align=":dright"
-          var2="mustSortAndFilter=ajaxHookId == 'queryResult';
-                sortAndFilter=mustSortAndFilter and \
-                    ',%s,%s,%s' % (q(sortKey),q(sortOrder),q(filterKey)) or ''">
-       
+     <div if="totalNumber &gt; batchSize" align=":dright">
       <!-- Go to the first page -->
       <img if="(startNumber != 0) and (startNumber != batchSize)"
            class="clickable" src=":url('arrowsLeft')" title=":_('goto_first')"
-           onClick=":navBaseCall.replace('**v**', '0'+sortAndFilter)"/>
+           onclick=":'askBunch(%s, %s)' % (q(ajaxHookId), q('0'))"/>
 
       <!-- Go to the previous page -->
       <img var="sNumber=startNumber - batchSize" if="startNumber != 0"
            class="clickable" src=":url('arrowLeft')" title=":_('goto_previous')"
-           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
+           onclick=":'askBunch(%s, %s)' % (q(ajaxHookId), q(sNumber))"/>
 
       <!-- Explain which elements are currently shown -->
       <span class="discreet"> 
@@ -73,7 +69,7 @@ class ToolWrapper(AbstractWrapper):
       <!-- Go to the next page -->
       <img var="sNumber=startNumber + batchSize" if="sNumber &lt; totalNumber"
            class="clickable" src=":url('arrowRight')" title=":_('goto_next')"
-           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
+           onclick=":'askBunch(%s, %s)' % (q(ajaxHookId), q(sNumber))"/>
 
       <!-- Go to the last page -->
       <img var="lastPageIsIncomplete=totalNumber % batchSize;
@@ -84,7 +80,7 @@ class ToolWrapper(AbstractWrapper):
            if="(startNumber != sNumber) and \
                (startNumber != sNumber-batchSize)" class="clickable"
            src=":url('arrowsRight')" title=":_('goto_last')"
-           onClick=":navBaseCall.replace('**v**', str(sNumber)+sortAndFilter)"/>
+           onclick=":'askBunch(%s, %s)' % (q(ajaxHookId), q(sNumber))"/>
 
       <!-- Go to the element number... -->
       <x var="gotoNumber=gotoNumber|False" if="gotoNumber"

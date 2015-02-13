@@ -83,26 +83,27 @@ class Ref(Field):
           style=":'display:%s' % field.showActions" var2="layoutType='buttons'">
       <!-- Arrows for moving objects up or down -->
       <x if="(totalNumber &gt;1) and changeOrder and not inPickList \
-            and not inMenu"
-         var2="ajaxBaseCall=navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:%s}'%\
-                (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
-                 q(tiedUid), q('move'), q('**v**')))">
+            and not inMenu">
        <!-- Move to top -->
        <img if="objectIndex &gt; 1" class="clickable"
             src=":url('arrowsUp')" title=":_('move_top')"
-            onclick=":ajaxBaseCall.replace('**v**', 'top')"/>
+            onclick=":'askBunchMove(%s, %s, %s, %s)' % \
+                       (q(ajaxHookId), q(startNumber), q(tiedUid), q('top'))"/>
        <!-- Move to bottom -->
        <img if="objectIndex &lt; (totalNumber-2)" class="clickable"
             src=":url('arrowsDown')" title=":_('move_bottom')"
-            onclick=":ajaxBaseCall.replace('**v**', 'bottom')"/>
+            onclick=":'askBunchMove(%s, %s, %s, %s)' % \
+                     (q(ajaxHookId), q(startNumber), q(tiedUid), q('bottom'))"/>
        <!-- Move up -->
        <img if="objectIndex &gt; 0" class="clickable" src=":url('arrowUp')"
             title=":_('move_up')"
-            onclick=":ajaxBaseCall.replace('**v**', 'up')"/>
+            onclick=":'askBunchMove(%s, %s, %s, %s)' % \
+                       (q(ajaxHookId), q(startNumber), q(tiedUid), q('up'))"/>
        <!-- Move down -->
        <img if="objectIndex &lt; (totalNumber-1)" class="clickable"
             src=":url('arrowDown')" title=":_('move_down')"
-            onclick=":ajaxBaseCall.replace('**v**', 'down')"/>
+            onclick=":'askBunchMove(%s, %s, %s, %s)' % \
+                       (q(ajaxHookId), q(startNumber), q(tiedUid), q('down'))"/>
       </x>
       <!-- Edit -->
       <a if="not field.noForm and tied.o.mayEdit()"
@@ -167,7 +168,7 @@ class Ref(Field):
             css=ztool.getButtonCss(label)" class=":css"
        value=":label" style=":url('add', bg=True)" title=":addLabel"
        onclick=":field.getOnAdd(q, formName, addConfirmMsg, target, \
-                                navBaseCall, startNumber)"/>
+                                ajaxHookId, startNumber)"/>
      </form>''')
 
     # Displays the button allowing to select from a popup objects to be linked
@@ -192,16 +193,15 @@ class Ref(Field):
     # ref field according to the field that corresponds to this column.
     pxSortIcons = Px('''
      <x if="changeOrder and (len(objects) &gt; 1) and \
-            refField.isSortable(usage='ref')"
-        var2="ajaxBaseCall=navBaseCall.replace('**v**', '%s,%s,{%s:%s,%s:%s}'% \
-               (q(startNumber), q('sort'), q('sortKey'), q(refField.name), \
-                q('reverse'), q('**v**')))">
+            refField.isSortable(usage='ref')">
       <img class="clickable" src=":url('sortAsc')"
-           var="js=ajaxBaseCall.replace('**v**', 'False')"
+           var="js='askBunchSortRef(%s, %s, %s, %s)' % \
+                  (q(ajaxHookId), q(startNumber), q(refField.name), q('False'))"
            onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js,False), \
                                                q(sortConfirm))"/>
       <img class="clickable" src=":url('sortDesc')"
-           var="js=ajaxBaseCall.replace('**v**', 'True')"
+           var="js='askBunchSortRef(%s, %s, %s, %s)' % \
+                  (q(ajaxHookId), q(startNumber), q(refField.name), q('True'))"
            onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js,False), \
                                                q(sortConfirm))"/>
      </x>''')
@@ -223,16 +223,16 @@ class Ref(Field):
       <div id=":dropdownId" class="dropdown">
        <img class="clickable" src=":url('move')" id=":imgId"
             title=":_('move_number')"
-            onclick=":navBaseCall.replace('**v**','%s,%s,{%s:%s,%s:this}' % \
-                      (q(startNumber), q('doChangeOrder'), q('refObjectUid'),
-                       q(tiedUid), q('move')))"/>
+            onclick=":'askBunchMove(%s, %s, %s, this)' % \
+                       (q(ajaxHookId), q(startNumber), q(tiedUid))"/>
       </div>
      </div>''')
 
     # PX that displays referred objects as a list
     pxViewList = Px('''
      <div id=":ajaxHookId">
-      <div if="not innerRef or mayAdd or mayLink" style="margin-bottom: 4px">
+      <div if="(layoutType == 'view') or mayAdd or mayLink"
+           style="margin-bottom: 4px">
        <x if="field.collapsible and objects">:collapse.px</x>
        <span if="subLabel" class="discreet">:_(subLabel)</span>
        (<span class="discreet">:totalNumber</span>) 
@@ -253,13 +253,11 @@ class Ref(Field):
       <x>:tool.pxNavigate</x>
 
       <!-- No object is present -->
-      <p class="discreet"
-         if="not objects and (innerRef and mayAdd)">:_('no_ref')</p>
+      <p class="discreet" if="not objects and mayAdd">:_('no_ref')</p>
 
       <!-- Linked objects -->
-      <table if="objects" id=":collapse.id" style=":collapse.style"
-             class=":not innerRef and 'list' or ''"
-             width=":innerRef and '100%' or field.layouts['view'].width"
+      <table if="objects" id=":collapse.id" style=":collapse.style" class="list"
+             width=":field.layouts['view'].width"
              var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                     field.getAttribute(obj, 'shownInfo'), dir);
                    currentNumber=0">
@@ -267,7 +265,7 @@ class Ref(Field):
                 checkboxes=checkboxes, startNumber=startNumber, \
                 totalNumber=totalNumber, sourceId=zobj.id, \
                 refFieldName=field.name, inPickList=inPickList, \
-                numbered=numbered, navBaseCall=navBaseCall)</script>
+                numbered=numbered)</script>
 
        <tr if="field.showHeaders">
         <th if="not inPickList and numbered" width=":numbered"></th>
@@ -300,8 +298,7 @@ class Ref(Field):
     # PX that displays the list of objects the user may select to insert into a
     # ref field with link="list".
     pxViewPickList = Px('''
-     <x var="innerRef=False;
-             ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
+     <x var="ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
              layoutType='view';
              inMenu=False;
              inPickList=True;
@@ -321,8 +318,6 @@ class Ref(Field):
              mayAdd=False;
              mayLink=False;
              mayUnlink=False;
-             navBaseCall='askRefField(%s,%s,%s,**v**)' % \
-                          (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=False;
              changeNumber=False;
              numbered=False;
@@ -396,8 +391,7 @@ class Ref(Field):
     # if, in the request, key "scope" is present and holds value "objs", the
     # pick list (containing possible values) will not be rendered.
     pxView = Px('''
-     <x var="innerRef=req.get('innerRef', False) == 'True';
-             ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
+     <x var="ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
              layoutType=layoutType|'view';
              render=field.getRenderMode(layoutType);
              linkList=field.link == 'list';
@@ -423,8 +417,6 @@ class Ref(Field):
              mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
-             navBaseCall='askRefField(%s,%s,%s,**v**)' % \
-                          (q(ajaxHookId), q(zobj.absolute_url()), q(innerRef));
              changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
              sortConfirm=changeOrder and _('sort_confirm');
              numbered=field.isNumbered(zobj);
@@ -960,7 +952,7 @@ class Ref(Field):
             return res
         return tied.o.getUrl(nav=''), '_self'
 
-    def getStartNumber(self, render, req, ajaxHookId):
+    def getStartNumber(self, render, req, hookId):
         '''This method returns the index of the first linked object that must be
            shown, or None if all linked objects must be shown at once (it
            happens when p_render is "menus").'''
@@ -968,7 +960,9 @@ class Ref(Field):
         if render == 'menus': return
         # When using 'list' (=default) render mode, the index of the first
         # object to show is in the request.
-        return int(req.get('%s_startNumber' % ajaxHookId, 0))
+        key = '%s_startNumber' % hookId
+        nb = req.has_key(key) and req[key] or req.get('startNumber', 0)
+        return int(nb)
 
     def getFormattedValue(self, obj, value, showChanges=False, language=None):
         return value
@@ -1197,14 +1191,13 @@ class Ref(Field):
             obj.raiseUnauthorized("User can't write Ref field '%s' (%s)." % \
                                   (self.name, may.msg))
 
-    def getOnAdd(self, q, formName, addConfirmMsg, target, navBaseCall,
-                 startNumber):
+    def getOnAdd(self, q, formName, addConfirmMsg, target, hookId, startNumber):
         '''Computes the JS code to execute when button "add" is clicked.'''
         if self.noForm:
             # Ajax-refresh the Ref with a special param to link a newly created
             # object.
-            res = navBaseCall.replace('**v**',
-                                      "%d,'doCreateWithoutForm'" % startNumber)
+            res = "askAjax('%s', null, {'startNumber':'%d', " \
+                  "'action':'doCreateWithoutForm'})" % (hookId, startNumber)
             if self.addConfirm:
                 res = "askConfirm('script', %s, %s)" % \
                       (q(res, False), q(addConfirmMsg))
@@ -1273,9 +1266,10 @@ class Ref(Field):
            p_hook = the whole search result.'''
         # Complete params with default parameters
         params['ajaxHookId'] = hook;
-        params = sutils.getStringDict(params)
-        px = hook.endswith('_poss') and 'pxViewPickList' or 'pxView'
+        params['scope'] = hook.rsplit('_', 1)[-1]
+        px = (params['scope'] == 'poss') and 'pxViewPickList' or 'pxView'
         px = '%s:%s' % (self.name, px)
+        params = sutils.getStringDict(params)
         return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
                "'%s', %s, null, '%s')" % \
                (hook, hook, px, params, zobj.absolute_url())

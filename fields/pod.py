@@ -92,10 +92,10 @@ class Pod(Field):
              onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
         <x>:field.pxIcon</x>
         <!-- The dropdown menu containing freeze actions -->
-        <table id=":dropdownId" class="dropdown" width="100px">
+        <table id=":dropdownId" class="dropdown" width="110px">
          <!-- Unfreeze -->
          <tr if="freezeAllowed and frozen" valign="top">
-          <td width="85px">
+          <td width="95px">
            <a onclick=":'freezePod(%s,%s,%s,%s,%s)' % (q(uid), q(name), \
                         q(info.template), q(fmt), q('unfreeze'))"
               class="smaller">:_('unfreezeField')</a>
