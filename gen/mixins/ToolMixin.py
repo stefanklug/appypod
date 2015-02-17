@@ -226,6 +226,7 @@ class ToolMixin(BaseMixin):
         '''Returns the list of root classes for this application'''
         cfg = self.getProductConfig().appConfig
         rootClasses = cfg.rootClasses
+        if rootClasses == None: return [] # No root class at all
         if not rootClasses:
             # We consider every class as being a root class
             rootClasses = self.getProductConfig().appClassNames
@@ -258,19 +259,6 @@ class ToolMixin(BaseMixin):
             field = self.getAppyType(name, className=className)
             fields.append(field)
         return Object(fields=fields, nbOfColumns=nbOfColumns)
-
-    queryParamNames = ('className', 'search', 'sortKey', 'sortOrder',
-                       'filterKey', 'filterValue')
-    def getQueryInfo(self):
-        '''If we are showing search results, this method encodes in a string all
-           the params in the request that are required for re-triggering the
-           search.'''
-        rq = self.REQUEST
-        res = ''
-        if rq.has_key('search'):
-            res = ';'.join([rq.get(key,'').replace(';','') \
-                            for key in self.queryParamNames])
-        return res
 
     def showPortlet(self, obj, layoutType):
         '''When must the portlet be shown? p_obj and p_layoutType can be None

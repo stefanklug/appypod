@@ -1,7 +1,17 @@
+function toggleVisibility(node, nodeType){
+  // Toggle visibility of all elements having p_nodeType within p_node
+  var elements = node.getElementsByTagName(nodeType);
+  for (var i=0; i<elements.length; i++){
+    var sNode = elements[i];
+    if (sNode.style.visibility == 'hidden') sNode.style.visibility = 'visible';
+    else sNode.style.visibility = 'hidden';
+  }
+}
+
 function askMonthView(hookId, objectUrl, fieldName, month) {
   // Sends an Ajax request for getting the view month of a calendar field
   var params = {'month': month};
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxMonthView', params);
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxViewMonth', params);
 }
 
 function openEventPopup(action, fieldName, day, spansDays,
@@ -78,7 +88,7 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
   }
   var elems = f.elements;
   var params = {};
-  // Put form elements into "params".
+  // Put form elements into "params"
   for (var i=0; i < elems.length; i++) {
     params[elems[i].name] = elems[i].value;
   }

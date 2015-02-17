@@ -121,8 +121,8 @@ class UserWrapper(AbstractWrapper):
         zopeUser = self.getZopeUser()
         tool = self.tool.o
         zopeUser.__ = self.encryptPassword(newPassword)
-        req = tool.REQUEST
-        if hasattr(req, 'user') and (req.userLogin == login):
+        req = getattr(tool, 'REQUEST', None)
+        if req and hasattr(req, 'user') and (req.userLogin == login):
             # The user for which we change the password is the currently logged
             # user. So update the authentication cookie, too.
             gutils.writeCookie(login, newPassword, self.request)

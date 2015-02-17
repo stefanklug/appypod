@@ -51,6 +51,9 @@ class Pod(Field):
     # "r"ight "m"ulti-template (where the global field label is not used
     rmLayouts = {'view': Table('f!', css_class='podTable')}
     allFormats = {'.odt': ('pdf', 'doc', 'odt'), '.ods': ('xls', 'ods')}
+    # Parameters needed to perform a query for query-related pods
+    queryParams = ('className', 'search', 'sortKey', 'sortOrder',
+                   'filterKey', 'filterValue')
 
     POD_ERROR = 'An error occurred while generating the document. Please ' \
                 'contact the system administrator.'
@@ -67,7 +70,8 @@ class Pod(Field):
           src=":url(fmt + iconSuffix)" class="clickable"
           title=":field.getIconTitle(obj, fmt, frozen)"
           onclick=":'generatePod(this,%s,%s,%s,%s,%s,null,%s)' % (q(uid), \
-          q(name), q(info.template), q(fmt), q(ztool.getQueryInfo()), gc)"/>''')
+          q(name), q(info.template), q(fmt), q(field.getQueryInfo(req)), \
+          gc)"/>''')
 
     pxView = pxCell = Px('''
      <x var="uid=obj.uid;
@@ -127,7 +131,7 @@ class Pod(Field):
            <td colspan="2">
             <a var="js='generatePod(this,%s,%s,%s,%s,%s,null,%s,%s)' % \
                        (q(uid), q(name), q(info.template), q(fmt), \
-                        q(ztool.getQueryInfo()), gc, q(mailing))"
+                        q(field.getQueryInfo(req)), gc, q(mailing))"
                onclick=":'askConfirm(%s,%s)' % (q('script'), q(js, False))"
                title=":sendLabel">
              <img src=":url('email')" align="left" style="margin-right: 2px"/>
@@ -538,7 +542,7 @@ class Pod(Field):
         # result in the pod context.
         if queryData:
             # Retrieve query params
-            cmd = ', '.join(tool.o.queryParamNames)
+            cmd = ', '.join(Pod.queryParams)
             cmd += " = queryData.split(';')"
             exec cmd
             # (re-)execute the query, but without any limit on the number of
@@ -733,6 +737,13 @@ class Pod(Field):
             res['_checked'] = Object()
             setattr(res['_checked'], self.getChecked, objects)
         return res
+
+    def getQueryInfo(self, req):
+        '''This method encodes in a string all the params in the request that
+           are required for re-triggering a search.'''
+        if not req.has_key('search'): return ''
+        return ';'.join([req.get(key,'').replace(';','') \
+                        for key in Pod.queryParams])
 
     def onUiRequest(self, obj, rq):
         '''This method is called when an action tied to this pod field

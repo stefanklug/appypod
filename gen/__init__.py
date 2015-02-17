@@ -73,7 +73,9 @@ class Config:
     # of classes defined in your application.
     defaultCreators = ['Manager']
     # The "root" classes are those that will get their menu in the user
-    # interface. Put their names in the list below.
+    # interface. Put their names in the list below. If you leave the list empty,
+    # all gen-classes will be considered root classes (the default). If
+    # rootClasses is None, no class will be considered as root.
     rootClasses = []
     # Number of translations for every page on a Translation object
     translationsPerPage = 30

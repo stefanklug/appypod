@@ -1270,17 +1270,15 @@ class Ref(Field):
         px = (params['scope'] == 'poss') and 'pxViewPickList' or 'pxView'
         px = '%s:%s' % (self.name, px)
         params = sutils.getStringDict(params)
-        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
-               "'%s', %s, null, '%s')" % \
-               (hook, hook, px, params, zobj.absolute_url())
+        return "new AjaxData('%s', '%s', %s, null, '%s')" % \
+               (hook, px, params, zobj.absolute_url())
 
     def getAjaxDataRow(self, obj, parentHook, **params):
         '''Initializes an AjaxData object on the DOM node corresponding to
            p_hook = a row within the list of referred objects.'''
         hook = obj.id
-        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
-               "'pxViewAsTiedFromAjax',%s,'%s','%s')" % \
-               (hook, hook, sutils.getStringDict(params), parentHook, obj.url)
+        return "new AjaxData('%s', 'pxViewAsTiedFromAjax', %s, '%s', '%s')" % \
+               (hook, sutils.getStringDict(params), parentHook, obj.url)
 
     def doChangeOrder(self, obj):
         '''Moves a referred object up/down/top/bottom.'''

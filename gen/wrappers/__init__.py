@@ -575,18 +575,20 @@ class AbstractWrapper(object):
      <tr valign="top" class=":rowCss"
          var2="tiedUid=tied.o.id;
                objectIndex=field.getIndexOf(zobj, tiedUid)|None;
-               mayView=tied.o.mayView()"
+               mayView=tied.o.mayView();
+               cbId='%s_%s' % (ajaxHookId, currentNumber)"
          id=":tiedUid">
       <td if="not inPickList and numbered">:field.pxNumber</td>
       <td if="checkboxes" class="cbCell">
-       <input if="mayView" type="checkbox" name=":ajaxHookId" checked="checked"
+       <input if="mayView" type="checkbox" name=":ajaxHookId" id=":cbId"
+              var2="checked=cbChecked|True" checked=":checked"
               value=":tiedUid" onclick="toggleCb(this)"/>
       </td>
       <td for="column in columns" width=":column.width" align=":column.align"
           var2="refField=column.field">:refField.pxRenderAsTied</td>
       <!-- Store data in this tr node allowing to ajax-refresh it -->
       <script>:field.getAjaxDataRow(tied, ajaxHookId, rowCss=rowCss, \
-               currentNumber=currentNumber)</script>
+               currentNumber=currentNumber, cbChecked=cbId)</script>
      </tr>''')
 
     # When calling pxViewAsTied from Ajax, this surrounding PX is called to
@@ -624,18 +626,18 @@ class AbstractWrapper(object):
                cbId='%s_%s' % (checkboxesId, currentNumber)"
          id=":zobj.id" class=":rowCss" valign="top">
       <!-- A checkbox if required -->
-      <td if="checkboxes" class="cbCell" id=":cbId"
-          style=":'display:%s' % cbDisplay">
+      <td if="checkboxes" class="cbCell" style=":'display:%s' % cbDisplay">
        <input type="checkbox" name=":checkboxesId" checked="checked"
-              value=":zobj.id" onclick="toggleCb(this)"/>
+              var2="checked=cbChecked|True" value=":zobj.id"
+              onclick="toggleCb(this)" id=":cbId"/>
       </td>
       <td for="column in columns"
           var2="field=column.field" id=":'field_%s' % field.name"
           width=":column.width"
           align=":column.align">:field.pxRenderAsResult</td>
      <!-- Store data in this tr node allowing to ajax-refresh it -->
-     <script>:uiSearch.getAjaxDataRow(zobj, ajaxHookId, \
-               currentNumber=currentNumber, rowCss=rowCss)</script>
+     <script>:uiSearch.getAjaxDataRow(zobj, ajaxHookId, rowCss=rowCss, \
+              currentNumber=currentNumber, cbChecked=cbId)</script>
      </tr>''')
 
     # When calling pxViewAsResult from Ajax, this surrounding PX is called to
@@ -1291,7 +1293,7 @@ class AbstractWrapper(object):
             i -= 1
 
     def removeEvent(self, event):
-        '''Removes p_event from this object's history.'''
+        '''Removes p_event from this object's history'''
         res = []
         # Because data change events carry the workflow state, we must ensure
         # that, after having removed p_event, this workflow state is still
@@ -1313,7 +1315,7 @@ class AbstractWrapper(object):
         return self.o.formatText(text, format)
 
     def listStates(self):
-        '''Lists the possible states for this object.'''
+        '''Lists the possible states for this object'''
         res = []
         o = self.o
         workflow = o.getWorkflow()
@@ -1325,7 +1327,7 @@ class AbstractWrapper(object):
         return res
 
     def path(self, name):
-        '''Returns the absolute file name of file stored in File field p_nnamed
+        '''Returns the absolute file name of file stored in File field p_named
            p_name.'''
         v = getattr(self, name)
         if v: return v.getFilePath(self)
@@ -1337,7 +1339,7 @@ class AbstractWrapper(object):
         return o.getAppyType(name).getIndexOf(o, obj.uid)
 
     def allows(self, permission, raiseError=False):
-        '''Check doc @Mixin.allows.'''
+        '''Check doc @Mixin.allows'''
         return self.o.allows(permission, raiseError=raiseError)
 
     def resetLocalRoles(self):

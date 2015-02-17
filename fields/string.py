@@ -434,14 +434,15 @@ class String(Field):
             self.sdefault = []
         # Default width, height and maxChars vary according to String format
         if width == None:
-            if format == String.TEXT:  self.width  = 60
-            # This width corresponds to the standard width of an Appy page.
-            if format == String.XHTML: self.width  = None
-            else:                      self.width  = 30
+            if format == String.TEXT:    self.width  = 60
+            # This width corresponds to the standard width of an Appy page
+            elif format == String.XHTML: self.width  = None
+            else:                        self.width  = 30
         if height == None:
-            if format == String.TEXT: self.height = 5
-            elif self.isSelect:       self.height = 4
-            else:                     self.height = 1
+            if format == String.TEXT:    self.height = 5
+            elif format == String.XHTML: self.height  = None
+            elif self.isSelect:          self.height = 4
+            else:                        self.height = 1
         if maxChars == None:
             if self.isSelect: pass
             elif format == String.LINE: self.maxChars = 256
@@ -987,6 +988,7 @@ class String(Field):
                    'format_tags': ';'.join(self.styles),
                    'scayt_sLang': self.getCkLanguage(obj, language)}
         if self.width: ckAttrs['width'] = self.width
+        if self.height: ckAttrs['height'] = self.height
         if self.spellcheck: ckAttrs['scayt_autoStartup'] = True
         if self.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % obj.absolute_url()

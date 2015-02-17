@@ -278,8 +278,7 @@ class UiSearch:
                target=ztool.getLinksTargetInfo(klass)"
           id=":ajaxHookId">
 
-      <x if="zobjects or filterValue">
-       <!-- Display here POD templates if required -->
+      <x if="zobjects or filterValue"> <!-- Pod templates -->
        <table var="fields=ztool.getResultPodFields(className);
                    layoutType='view'"
               if="not inPopup and zobjects and fields" align=":dright">
@@ -404,22 +403,21 @@ class UiSearch:
         # not needed because included in the PX name. But they are requested by
         # sub-Ajax queries at the row level.
         params['className'] = self.className
-        params['searchName'] = self.name
+        params['searchName'] = params['search'] = self.name
         req = ztool.REQUEST
         for param, default in UiSearch.sortFilterDefaults.iteritems():
             params[param] = req.get(param, default)
         # Convert params into a JS dict
         params = sutils.getStringDict(params)
         px = '%s:%s:pxResult' % (self.className, self.name)
-        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', '%s', %s, " \
-               "null, '%s')" % (hook, hook, px, params, ztool.absolute_url())
+        return "new AjaxData('%s', '%s', %s, null, '%s')" % \
+               (hook, px, params, ztool.absolute_url())
 
     def getAjaxDataRow(self, zobj, parentHook, **params):
         '''Initializes an AjaxData object on the DOM node corresponding to
            p_hook = a row within the list of results.'''
         hook = zobj.id
-        return "getAjaxHook('%s',true)['ajax']=new AjaxData('%s', " \
-               "'pxViewAsResultFromAjax',%s,'%s','%s')" % \
-               (hook, hook, sutils.getStringDict(params), parentHook,
+        return "new AjaxData('%s', 'pxViewAsResultFromAjax', %s, '%s', '%s')"% \
+               (hook, sutils.getStringDict(params), parentHook,
                 zobj.absolute_url())
 # ------------------------------------------------------------------------------

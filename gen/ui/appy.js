@@ -246,6 +246,8 @@ function AjaxData(hook, px, params, parentHook, url, mode, beforeSend, onGet) {
   /* If a parentHook is spefified, this AjaxData must be completed with a parent
      AjaxData instance. */
   this.parentHook = parentHook;
+  // Inject this AjaxData instance into p_hook
+  getAjaxHook(hook, true)['ajax'] = this;
 }
 
 function askAjax(hook, form, params) {
@@ -268,6 +270,12 @@ function askAjax(hook, form, params) {
         d.params[key] = parent.params[key];
       }
     }
+  }
+  // Resolve dynamic parameter "cbChecked" if present
+  if ('cbChecked' in d.params) {
+    var cb = getAjaxHook(d.params['cbChecked'], true);
+    if (cb) d.params['cbChecked'] = cb.checked;
+    else delete d.params['cbChecked'];
   }
   // If a p_form id is given, integrate the form submission in the ajax request
   if (form) {

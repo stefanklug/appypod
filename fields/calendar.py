@@ -12,14 +12,15 @@ class Calendar(Field):
     '''This field allows to produce an agenda (monthly view) and view/edit
        events on it.'''
     jsFiles = {'view': ('calendar.js',)}
+    DateTime = DateTime
 
     # Month view for a calendar. Called by pxView, and directly from the UI,
     # via Ajax, when the user selects another month.
-    pxMonthView = Px('''
+    pxViewMonth = Px('''
      <div var="ajaxHookId=zobj.id + field.name;
                month=req['month'];
-               monthDayOne=DateTime('%s/01' % month);
-               today=DateTime('00:00');
+               monthDayOne=field.DateTime('%s/01' % month);
+               today=field.DateTime('00:00');
                grid=field.getMonthGrid(month);
                allEventTypes=field.getEventTypes(zobj);
                preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
@@ -34,8 +35,8 @@ class Calendar(Field):
                otherCalendars=field.getOtherCalendars(zobj, preComputed)"
           id=":ajaxHookId">
 
-      <script type="text/javascript">:'var %s_maxEventLength = %d' % \
-                                     (field.name, field.maxEventLength)</script>
+      <script>:'var %s_maxEventLength = %d;' % \
+                (field.name, field.maxEventLength)</script>
 
       <!-- Month chooser -->
       <div style="margin-bottom: 5px"
@@ -90,14 +91,12 @@ class Calendar(Field):
                    mayCreate=mayEdit and not events;
                    mayDelete=mayEdit and events;
                    day=date.day();
-                   dayString=date.strftime('%Y/%m/%d')"
-             style="date.isCurrentDay() and 'font-weight:bold' or \
-                                            'font-weight:normal'"
-             class=":cssClasses"
-             onmouseover=":mayEdit and 'this.getElementsByTagName(\
-               %s)[0].style.visibility=%s' % (q('img'), q('visible')) or ''"
-             onmouseout="mayEdit and 'this.getElementsByTagName(\
-               %s)[0].style.visibility=%s' % (q('img'), q('hidden')) or ''">
+                   dayString=date.strftime('%Y/%m/%d');
+                   js=mayEdit and 'toggleVisibility(this, %s)' % q('img') \
+                      or ''"
+             style=":date.isCurrentDay() and 'font-weight:bold' or \
+                                             'font-weight:normal'"
+             class=":cssClasses" onmouseover=":js" onmouseout=":js">
           <span>:day</span>
           <span if="day == 1">:_('month_%s_short' % date.aMonth())</span>
           <!-- Icon for adding an event -->
@@ -138,11 +137,11 @@ class Calendar(Field):
       <div var="prefix='%s_newEvent' % field.name;
                 popupId=prefix + 'Popup'"
            id=":popupId" class="popup" align="center">
-       <form id="prefix + 'Form'" method="post">
+       <form id=":prefix + 'Form'" method="post">
         <input type="hidden" name="fieldName" value=":field.name"/>
         <input type="hidden" name="month" value=":month"/>
         <input type="hidden" name="name" value=":field.name"/>
-        <input type="hidden" name="action" value="Process"/>
+        <input type="hidden" name="action" value="process"/>
         <input type="hidden" name="actionType" value="createEvent"/>
         <input type="hidden" name="day"/>
 
@@ -177,11 +176,11 @@ class Calendar(Field):
         <input type="hidden" name="fieldName" value=":field.name"/>
         <input type="hidden" name="month" value=":month"/>
         <input type="hidden" name="name" value=":field.name"/>
-        <input type="hidden" name="action" value="Process"/>
+        <input type="hidden" name="action" value="process"/>
         <input type="hidden" name="actionType" value="deleteEvent"/>
         <input type="hidden" name="day"/>
-
-        <div align="center" style="margin-bottom: 5px">_('action_confirm')</div>
+        <div align="center"
+             style="margin-bottom: 5px">:_('action_confirm')</div>
 
         <!-- Delete successive events ? -->
         <div class="discreet" style="margin-bottom: 10px"
@@ -205,7 +204,7 @@ class Calendar(Field):
     pxView = pxCell = Px('''
      <x var="defaultDate=field.getDefaultDate(zobj);
              x=req.set('month', defaultDate.strftime('%Y/%m'));
-             x=req.set('fieldName', field.name)">:field.pxMonthView</x>''')
+             x=req.set('fieldName', field.name)">:field.pxViewMonth</x>''')
 
     pxEdit = pxSearch = ''
 
