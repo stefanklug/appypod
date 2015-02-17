@@ -212,8 +212,10 @@ function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
     if (mode == 'GET') {
       urlFull = urlFull + '?' + paramsFull;
     }
-    // Display the preloader
-    injectChunk(getAjaxHook(rq.hook), loadingZone, true);
+    /* Display the preloader (rq.hook may be null if the ajax result would be
+       the same as what is currently shown, as when inline-editing a rich text
+       field). */
+    if (rq.hook) injectChunk(getAjaxHook(rq.hook), loadingZone, true);
     // Perform the asynchronous HTTP GET or POST
     rq.xhr.open(mode, urlFull, true);
     if (mode == 'POST') {
