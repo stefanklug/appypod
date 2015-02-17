@@ -607,13 +607,12 @@ class AbstractWrapper(object):
              tiedClassName=ztool.getPortalType(field.klass);
              target=ztool.getLinksTargetInfo(field.klass, zobj.id);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
-             mayLink=not inPickList and mayEdit and \
-                     field.mayAdd(zobj, mode='link', checkMayEdit=False);
-             mayUnlink=not inPickList and mayEdit and \
-                       field.getAttribute(zobj, 'unlink');
+             mayEd=not inPickList and mayEdit;
+             mayLink=mayEd and field.mayAdd(zobj, mode='link', \
+                                            checkMayEdit=False);
+             mayUnlink=mayEd and field.getAttribute(zobj, 'unlink');
              gotoNumber=numbered;
-             changeOrder=not inPickList and mayEdit and \
-                         field.getAttribute(zobj, 'changeOrder');
+             changeOrder=mayEd and field.getAttribute(zobj, 'changeOrder');
              changeNumber=not inPickList and numbered and changeOrder and \
                           (totalNumber &gt; 3);
              columns=ztool.getColumnsSpecifiers(tiedClassName, \

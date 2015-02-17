@@ -295,39 +295,6 @@ class Ref(Field):
       <script if="checkboxes">:'initCbs(%s)' % q(ajaxHookId)</script>
      </div>''')
 
-    # PX that displays the list of objects the user may select to insert into a
-    # ref field with link="list".
-    pxViewPickList = Px('''
-     <x var="ajaxHookId=ajaxHookId|'%s_%s_poss' % (zobj.id, field.name);
-             layoutType='view';
-             inMenu=False;
-             inPickList=True;
-             startNumber=field.getStartNumber('list', req, ajaxHookId);
-             info=field.getPossibleValues(zobj, startNumber=startNumber, \
-                                          someObjects=True, removeLinked=True);
-             objects=info.objects;
-             totalNumber=info.totalNumber;
-             batchSize=info.batchSize;
-             batchNumber=len(objects);
-             tiedClassName=tiedClassName|ztool.getPortalType(field.klass);
-             tiedClassLabel=tiedClassLabel|_(tiedClassName);
-             backHook=(layoutType == 'cell') and zobj.id or None;
-             target=ztool.getLinksTargetInfo(field.klass, backHook);
-             mayEdit=mayEdit|\
-                     not field.isBack and zobj.mayEdit(field.writePermission);
-             mayAdd=False;
-             mayLink=False;
-             mayUnlink=False;
-             changeOrder=False;
-             changeNumber=False;
-             numbered=False;
-             checkboxes=field.getAttribute(zobj, 'checkboxes') and \
-                        (totalNumber &gt; 1);
-             showSubTitles=showSubTitles|\
-                           req.get('showSubTitles', 'true') == 'true';
-             collapse=field.getCollapseInfo(obj, True);
-             subLabel='selectable_objects'">:field.pxViewList</x>''')
-
     # PX that displays referred objects as dropdown menus.
     pxMenu = Px('''
      <img if="menu.icon" src=":menu.icon" title=":menu.text"/><x
@@ -387,19 +354,25 @@ class Ref(Field):
      <x var2="infos=[field.getReferenceLabel(obj, o, True) \
                      for o in objects]">:', '.join(infos) or _('no_ref')</x>''')
 
-    # PX that displays referred objects through this field. In mode link="list",
-    # if, in the request, key "scope" is present and holds value "objs", the
-    # pick list (containing possible values) will not be rendered.
+    # PX that displays referred objects through this field.
+    # In mode link="list", if request key "scope" is:
+    # - not in the request, the whole field is shown (both available and already
+    #   tied objects);
+    # - "objs", only tied objects are rendered;
+    # - "poss", only available objects are rendered (the pick list).
+    # ! scope is forced to "objs" on non-view "inner" (cell, buttons) layouts.
     pxView = Px('''
-     <x var="ajaxHookId='%s_%s_objs' % (zobj.id, field.name);
-             layoutType=layoutType|'view';
+     <x var="layoutType=layoutType|'view';
              render=field.getRenderMode(layoutType);
              linkList=field.link == 'list';
-             renderAll=req.get('scope') != 'objs';
-             inPickList=False;
+             scope=(layoutType != 'view') and 'objs' or \
+                   scope|req.get('scope', 'all');
+             inPickList=(scope == 'poss');
+             ajaxSuffix=inPickList and 'poss' or 'objs';
+             ajaxHookId='%s_%s_%s' % (zobj.id, field.name, ajaxSuffix);
              inMenu=False;
              startNumber=field.getStartNumber(render, req, ajaxHookId);
-             info=field.getValue(zobj,startNumber=startNumber,someObjects=True);
+             info=field.getViewValues(zobj, startNumber, scope);
              objects=info.objects;
              totalNumber=info.totalNumber;
              numberWidth=len(str(totalNumber));
@@ -411,32 +384,33 @@ class Ref(Field):
              backHook=(layoutType == 'cell') and zobj.id or None;
              target=ztool.getLinksTargetInfo(field.klass, backHook);
              mayEdit=not field.isBack and zobj.mayEdit(field.writePermission);
-             mayAdd=mayEdit and field.mayAdd(zobj, checkMayEdit=False);
-             mayLink=mayEdit and field.mayAdd(zobj, mode='link', \
-                                                checkMayEdit=False);
-             mayUnlink=mayEdit and field.getAttribute(zobj, 'unlink');
+             mayEd=not inPickList and mayEdit;
+             mayAdd=mayEd and field.mayAdd(zobj, checkMayEdit=False);
+             mayLink=mayEd and field.mayAdd(zobj, mode='link', \
+                                            checkMayEdit=False);
+             mayUnlink=mayEd and field.getAttribute(zobj, 'unlink');
              addConfirmMsg=field.addConfirm and \
                            _('%s_addConfirm' % field.labelId) or '';
-             changeOrder=mayEdit and field.getAttribute(zobj, 'changeOrder');
+             changeOrder=mayEd and field.getAttribute(zobj, 'changeOrder');
              sortConfirm=changeOrder and _('sort_confirm');
-             numbered=field.isNumbered(zobj);
+             numbered=not inPickList and field.isNumbered(zobj);
              gotoNumber=numbered;
              changeNumber=not inPickList and numbered and changeOrder and \
                           (totalNumber &gt; 3);
-             checkboxesEnabled=field.getAttribute(zobj, 'checkboxes') and \
-                               (layoutType != 'cell');
+             checkboxesEnabled=(layoutType != 'cell') and \
+                               field.getAttribute(zobj, 'checkboxes');
              checkboxes=checkboxesEnabled and (totalNumber &gt; 1);
-             collapse=field.getCollapseInfo(obj, False);
+             collapse=field.getCollapseInfo(obj, inPickList);
              showSubTitles=req.get('showSubTitles', 'true') == 'true'">
       <!-- JS tables storing checkbox statuses if checkboxes are enabled -->
-      <script if="checkboxesEnabled and renderAll \
-                  and (render == 'list')">:field.getCbJsInit(zobj)</script>
-      <x if="linkList and renderAll and mayEdit"
-         var2="ajaxHookId='%s_%s_poss' % \
-                (zobj.id, field.name)">:field.pxViewPickList</x>
+      <script if="checkboxesEnabled and (render == 'list') and \
+                  (scope == 'all')">:field.getCbJsInit(zobj)</script>
+      <!-- The list of possible values, when relevant -->
+      <x if="linkList and (scope == 'all') and mayEdit"
+         var2="scope='poss'; layoutType='view'">:field.pxView</x>
+      <!-- The list of tied or possible values, depending on scope -->
       <x if="render == 'list'"
-         var2="subLabel=linkList and \
-                'selected_objects' or None">:field.pxViewList</x>
+         var2="subLabel=field.getListLabel(inPickList)">:field.pxViewList</x>
       <x if="render in ('menus','minimal')">:getattr(field, 'pxView%s' % \
          render.capitalize())</x>
      </x>''')
@@ -888,8 +862,8 @@ class Ref(Field):
         # Indeed, in this case, unlike m_getValue, we already have all objects
         # in "objects": we can't limit objects "waking up" to at most
         # self.maxPerPage.
+        total = len(objects)
         if paginated and not isSearch:
-            total = len(objects)
             objects = objects[startNumber:startNumber + self.maxPerPage]
         # Return the result, wrapped in a SomeObjects instance if required
         if not someObjects:
@@ -902,6 +876,17 @@ class Ref(Field):
         res.startNumber = startNumber
         res.objects = objects
         return res
+
+    def getViewValues(self, obj, startNumber, scope):
+        '''Gets the values as must be shown on pxView. If p_scope is "poss", it
+           is the list of possible, not-yet-linked, values. Else, it is the list
+           of linked values. In both cases, we take the subset starting at
+           p_startNumber.'''
+        if scope == 'poss':
+            return self.getPossibleValues(obj, startNumber=startNumber,
+                                          someObjects=True, removeLinked=True)
+        # Return the list of already linked values
+        return self.getValue(obj, startNumber=startNumber, someObjects=True)
 
     def getLinkedObjectsByMenu(self, obj, objects):
         '''This method groups p_objects into sub-lists of objects, grouped by
@@ -1220,6 +1205,13 @@ class Ref(Field):
         if not inMenu: return obj.translate('add_ref')
         return tiedClassLabel
 
+    def getListLabel(self, inPickList):
+        '''If self.link == "list", a label must be shown in front of the list.
+           Moreover, the label is different if the list is a pick list or the
+           list of tied objects.'''
+        if self.link != 'list': return
+        return inPickList and 'selectable_objects' or 'selected_objects'
+
     def mayUnlinkElement(self, obj, tied, raiseError=False):
         '''May we unlink from this Ref field this specific p_tied object?'''
         if not self.unlinkElement: return True
@@ -1267,11 +1259,9 @@ class Ref(Field):
         # Complete params with default parameters
         params['ajaxHookId'] = hook;
         params['scope'] = hook.rsplit('_', 1)[-1]
-        px = (params['scope'] == 'poss') and 'pxViewPickList' or 'pxView'
-        px = '%s:%s' % (self.name, px)
         params = sutils.getStringDict(params)
-        return "new AjaxData('%s', '%s', %s, null, '%s')" % \
-               (hook, px, params, zobj.absolute_url())
+        return "new AjaxData('%s', '%s:pxView', %s, null, '%s')" % \
+               (hook, self.name, params, zobj.absolute_url())
 
     def getAjaxDataRow(self, obj, parentHook, **params):
         '''Initializes an AjaxData object on the DOM node corresponding to
