@@ -89,7 +89,7 @@ class Calendar(Field):
              var2="events=field.getEventsAt(zobj, date);
                    spansDays=field.hasEventsAt(zobj, date+1, events);
                    mayCreate=mayEdit and not events;
-                   mayDelete=mayEdit and events;
+                   mayDelete=mayEdit and events and field.mayDelete(obj,events);
                    day=date.day();
                    dayString=date.strftime('%Y/%m/%d');
                    js=mayEdit and 'toggleVisibility(this, %s)' % q('img') \
@@ -216,7 +216,7 @@ class Calendar(Field):
                  mapping=None, label=None, maxEventLength=50,
                  otherCalendars=None, additionalInfo=None, startDate=None,
                  endDate=None, defaultDate=None, preCompute=None,
-                 applicableEvents=None, view=None, xml=None):
+                 applicableEvents=None, view=None, xml=None, delete=True):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -294,6 +294,9 @@ class Calendar(Field):
         # for explaining him why he can, for this day, only create events of a
         # sub-set of the possible event types (or even no event at all).
         self.applicableEvents = applicableEvents
+        # May the user delete events in this calendar? If "delete" is a method,
+        # it must accept an event type as single arg.
+        self.delete = delete
 
     def getPreComputedInfo(self, obj, monthDayOne, grid):
         '''Returns the result of calling self.preComputed, or None if no such
@@ -573,9 +576,9 @@ class Calendar(Field):
             eventSpan = rq.get('eventSpan', None)
         # Split the p_date into separate parts
         year, month, day = date.year(), date.month(), date.day()
-        # Check that the "preferences" dict exists or not.
+        # Check that the "preferences" dict exists or not
         if not hasattr(obj.aq_base, self.name):
-            # 1st level: create a IOBTree whose keys are years.
+            # 1st level: create a IOBTree whose keys are years
             setattr(obj, self.name, IOBTree())
         yearsDict = getattr(obj, self.name)
         # Get the sub-dict storing months for a given year
@@ -593,7 +596,7 @@ class Calendar(Field):
             events = daysDict[day]
         else:
             daysDict[day] = events = PersistentList()
-        # Create and store the event, excepted if an event already exists.
+        # Create and store the event, excepted if an event already exists
         if not events:
             event = Object(eventType=eventType)
             events.append(event)
@@ -603,6 +606,12 @@ class Calendar(Field):
             for i in range(nbOfDays):
                 date = date + 1
                 self.createEvent(obj, date, handleEventSpan=False)
+
+    def mayDelete(self, obj, events):
+        '''May the user delete p_events?'''
+        if not self.delete: return
+        if callable(self.delete): return self.delete(obj, events[0].eventType)
+        return True
 
     def deleteEvent(self, obj, date, handleEventSpan=True):
         '''Deletes an event. It actually deletes all events at p_date.

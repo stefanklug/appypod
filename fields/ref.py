@@ -248,6 +248,10 @@ class Ref(Field):
                q('%s/search?className=%s&amp;ref=%s:%s' % \
                (ztool.absolute_url(), tiedClassName, zobj.id, field.name))"/>
       </div>
+      <script>:field.getAjaxData(ajaxHookId, zobj, popup=inPopup, \
+        checkboxes=checkboxes, startNumber=startNumber, sourceId=zobj.id, \
+        totalNumber=totalNumber, refFieldName=field.name, \
+        inPickList=inPickList, numbered=numbered)</script>
 
       <!-- (Top) navigation -->
       <x>:tool.pxNavigate</x>
@@ -261,11 +265,6 @@ class Ref(Field):
              var2="columns=ztool.getColumnsSpecifiers(tiedClassName, \
                     field.getAttribute(obj, 'shownInfo'), dir);
                    currentNumber=0">
-       <script>:field.getAjaxData(ajaxHookId, zobj, popup=inPopup, \
-                checkboxes=checkboxes, startNumber=startNumber, \
-                totalNumber=totalNumber, sourceId=zobj.id, \
-                refFieldName=field.name, inPickList=inPickList, \
-                numbered=numbered)</script>
 
        <tr if="field.showHeaders">
         <th if="not inPickList and numbered" width=":numbered"></th>

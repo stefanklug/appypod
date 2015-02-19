@@ -22,9 +22,11 @@ from appy.gen.layout import Table
 
 # ------------------------------------------------------------------------------
 class List(Field):
-    '''A list.'''
+    '''A list, stored as a list of Object instances ~[Object]~. Every object in
+       the list has attributes named according to the sub-fields defined in this
+       List.'''
 
-    # PX for rendering a single row.
+    # PX for rendering a single row
     pxRow = Px('''
      <tr valign="top" style=":(rowIndex==-1) and 'display: none' or ''">
       <td for="info in subFields" if="info[1]" align="center"
@@ -38,7 +40,7 @@ class List(Field):
       </td>
      </tr>''')
 
-    # PX for rendering the list (shared between pxView and pxEdit).
+    # PX for rendering the list (shared between pxView and pxEdit)
     pxTable = Px('''
      <table var="isEdit=layoutType == 'edit'" if="isEdit or value"
             id=":'list_%s' % name" class=":isEdit and 'grid' or 'list'"
@@ -177,9 +179,12 @@ class List(Field):
         if i == -1: return ''
         if not outerValue: return ''
         if i >= len(outerValue): return ''
-        # Return the value, or a potential default value.
-        return getattr(outerValue[i], name, '') or \
-               self.getField(name).getValue(obj) or ''
+        # Return the value, or a potential default value
+        value = getattr(outerValue[i], name, None)
+        if value != None: return value
+        value = self.getField(name).getValue(obj)
+        if value != None: return value
+        return ''
 
     def getCss(self, layoutType, res):
         '''Gets the CSS required by sub-fields if any.'''

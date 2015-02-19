@@ -40,9 +40,13 @@ class Object:
     def get(self, name, default=None): return getattr(self, name, default)
     def __getitem__(self, k): return getattr(self, k)
     def update(self, other):
-        '''Includes information from p_other into p_self.'''
+        '''Includes information from p_other into p_self'''
         for k, v in other.__dict__.iteritems():
             setattr(self, k, v)
+    def clone(self):
+        res = Object()
+        res.update(self)
+        return res
 
 # ------------------------------------------------------------------------------
 class Hack:

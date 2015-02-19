@@ -179,7 +179,7 @@ class Group:
         return uiGroup
 
 class Column:
-    '''Used for describing a column within a Group like defined above.'''
+    '''Used for describing a column within a Group like defined above'''
     def __init__(self, width, align="left"):
         self.width = width
         self.align = align
