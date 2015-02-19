@@ -14,59 +14,11 @@ class Calendar(Field):
     jsFiles = {'view': ('calendar.js',)}
     DateTime = DateTime
 
-    # Month view for a calendar. Called by pxView, and directly from the UI,
-    # via Ajax, when the user selects another month.
+    # Timeline view for a calendar
+    pxViewTimeline = Px('''<p>Hello timeline</p>''')
+
+    # Month view for a calendar
     pxViewMonth = Px('''
-     <div var="ajaxHookId=zobj.id + field.name;
-               month=req['month'];
-               monthDayOne=field.DateTime('%s/01' % month);
-               today=field.DateTime('00:00');
-               grid=field.getMonthGrid(month);
-               allEventTypes=field.getEventTypes(zobj);
-               preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
-               defaultDate=field.getDefaultDate(zobj);
-               defaultDateMonth=defaultDate.strftime('%Y/%m');
-               previousMonth=field.getSiblingMonth(month, 'previous');
-               nextMonth=field.getSiblingMonth(month, 'next');
-               mayEdit=zobj.mayEdit(field.writePermission);
-               objUrl=zobj.absolute_url();
-               startDate=field.getStartDate(zobj);
-               endDate=field.getEndDate(zobj);
-               otherCalendars=field.getOtherCalendars(zobj, preComputed)"
-          id=":ajaxHookId">
-
-      <script>:'var %s_maxEventLength = %d;' % \
-                (field.name, field.maxEventLength)</script>
-
-      <!-- Month chooser -->
-      <div style="margin-bottom: 5px"
-           var="fmt='%Y/%m/%d';
-                goBack=not startDate or (startDate.strftime(fmt) &lt; \
-                                         grid[0][0].strftime(fmt));
-                goForward=not endDate or (endDate.strftime(fmt) &gt; \
-                                          grid[-1][-1].strftime(fmt))">
-       <!-- Go to the previous month -->
-       <img class="clickable" if="goBack" src=":url('arrowLeft')"
-            onclick=":'askMonthView(%s,%s,%s,%s)' % \
-                     (q(ajaxHookId),q(objUrl),q(field.name),q(previousMonth))"/>
-       <!-- Go back to the default date -->
-       <input type="button" if="goBack or goForward"
-              var="fmt='%Y/%m';
-                   label=(defaultDate.strftime(fmt)==today.strftime(fmt)) and \
-                         'today' or 'goto_source'"
-              value=":_(label)"
-              onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
-                                 q(objUrl), q(field.name), q(defaultDateMonth))"
-              disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
-       <!-- Go to the next month -->
-       <img class="clickable" if="goForward" src=":url('arrowRight')"
-            onclick=":'askMonthView(%s, %s, %s, %s)' % (q(ajaxHookId), \
-                                   q(objUrl), q(field.name), q(nextMonth))"/>
-       <span>:_('month_%s' % monthDayOne.aMonth())</span>
-       <span>:month.split('/')[0]</span>
-      </div>
-
-      <!-- Calendar month view -->
       <table cellpadding="0" cellspacing="0" width="100%" class="list"
              style="font-size: 95%"
              var="rowHeight=int(field.height/float(len(grid)))">
@@ -104,7 +56,7 @@ class Calendar(Field):
            <img class="clickable" style="visibility:hidden"
                 var="info=field.getApplicableEventsTypesAt(zobj, date, \
                             allEventTypes, preComputed, True)"
-                if="info.eventTypes" src=":url('plus')"
+                if="info and info.eventTypes" src=":url('plus')"
                 onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
                  (q('new'), q(field.name), q(dayString), q(info.eventTypes),\
                   q(info.message))"/>
@@ -134,7 +86,8 @@ class Calendar(Field):
       </table>
 
       <!-- Popup for creating a calendar event -->
-      <div var="prefix='%s_newEvent' % field.name;
+      <div if="allEventTypes"
+           var="prefix='%s_newEvent' % field.name;
                 popupId=prefix + 'Popup'"
            id=":popupId" class="popup" align="center">
        <form id=":prefix + 'Form'" method="post">
@@ -198,13 +151,59 @@ class Calendar(Field):
         <input type="button" value=":_('no')"
                onclick=":'closePopup(%s)' % q(popupId)"/>
        </form>
-      </div>
-     </div>''')
+      </div>''')
 
     pxView = pxCell = Px('''
-     <x var="defaultDate=field.getDefaultDate(zobj);
-             x=req.set('month', defaultDate.strftime('%Y/%m'));
-             x=req.set('fieldName', field.name)">:field.pxViewMonth</x>''')
+     <div var="defaultDate=field.getDefaultDate(zobj);
+               defaultDateMonth=defaultDate.strftime('%Y/%m');
+               ajaxHookId=zobj.id + field.name;
+               month=req.get('month', defaultDate.strftime('%Y/%m'));
+               monthDayOne=field.DateTime('%s/01' % month);
+               render=req.get('render', field.render);
+               today=field.DateTime('00:00');
+               grid=field.getGrid(month, render);
+               allEventTypes=field.getEventTypes(zobj);
+               preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
+               previousMonth=field.getSiblingMonth(month, 'previous');
+               nextMonth=field.getSiblingMonth(month, 'next');
+               mayEdit=zobj.mayEdit(field.writePermission);
+               objUrl=zobj.absolute_url();
+               startDate=field.getStartDate(zobj);
+               endDate=field.getEndDate(zobj);
+               otherCalendars=field.getOtherCalendars(zobj, preComputed)"
+          id=":ajaxHookId">
+      <script>:'var %s_maxEventLength = %d;' % \
+                (field.name, field.maxEventLength)</script>
+
+      <!-- Month chooser -->
+      <div style="margin-bottom: 5px"
+           var="fmt='%Y/%m/%d';
+                goBack=not startDate or (startDate.strftime(fmt) &lt; \
+                                         grid[0][0].strftime(fmt));
+                goForward=not endDate or (endDate.strftime(fmt) &gt; \
+                                          grid[-1][-1].strftime(fmt))">
+       <!-- Go to the previous month -->
+       <img class="clickable" if="goBack" src=":url('arrowLeft')"
+            onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
+                       q(objUrl), q(render), q(field.name), q(previousMonth))"/>
+       <!-- Go back to the default date -->
+       <input type="button" if="goBack or goForward"
+              var="fmt='%Y/%m';
+                   label=(defaultDate.strftime(fmt)==today.strftime(fmt)) and \
+                         'today' or 'goto_source'"
+              value=":_(label)"
+              onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
+                      q(objUrl), q(render), q(field.name), q(defaultDateMonth))"
+              disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
+       <!-- Go to the next month -->
+       <img class="clickable" if="goForward" src=":url('arrowRight')"
+            onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
+                       q(objUrl), q(render), q(field.name), q(nextMonth))"/>
+       <span>:_('month_%s' % monthDayOne.aMonth())</span>
+       <span>:month.split('/')[0]</span>
+      </div>
+      <x>:getattr(field, 'pxView%s' % render.capitalize())</x>
+     </div>''')
 
     pxEdit = pxSearch = ''
 
@@ -213,7 +212,7 @@ class Calendar(Field):
                  layouts=None, move=0, specificReadPermission=False,
                  specificWritePermission=False, width=None, height=300,
                  colspan=1, master=None, masterValue=None, focus=False,
-                 mapping=None, label=None, maxEventLength=50,
+                 mapping=None, label=None, maxEventLength=50, render='month',
                  otherCalendars=None, additionalInfo=None, startDate=None,
                  endDate=None, defaultDate=None, preCompute=None,
                  applicableEvents=None, view=None, xml=None, delete=True):
@@ -232,12 +231,17 @@ class Calendar(Field):
         # of this event as it must be shown to the user.
         self.eventTypes = eventTypes
         self.eventNameMethod = eventNameMethod
-        if (type(eventTypes) == types.FunctionType) and not eventNameMethod:
+        if callable(eventTypes) and not eventNameMethod:
             raise Exception("When param 'eventTypes' is a method, you must " \
                             "give another method in param 'eventNameMethod'.")
         # It is not possible to create events that span more days than
         # maxEventLength.
         self.maxEventLength = maxEventLength
+        # Various render modes exist. Default is the classical "month" view.
+        # It can also be "timeline": in this case, on the x axis, we have one
+        # column per day, and on the y axis, we have one row per calendar (this
+        # one and others as specified in "otherCalendars", see below).
+        self.render = render
         # When displaying a given month for this agenda, one may want to
         # pre-compute, once for the whole month, some information that will then
         # be given as arg for other methods specified in subsequent parameters.
@@ -325,10 +329,10 @@ class Calendar(Field):
             res.append(obj.translate('day_%s%s' % (day, suffix)))
         return res
 
-    def getMonthGrid(self, month):
+    def getGrid(self, month, render):
         '''Creates a list of lists of DateTime objects representing the calendar
            grid to render for a given p_month.'''
-        # Month is a string "YYYY/mm".
+        # Month is a string "YYYY/mm"
         currentDay = DateTime('%s/01 UTC' % month)
         currentMonth = currentDay.month()
         res = [[]]
@@ -379,10 +383,8 @@ class Calendar(Field):
     def getEventTypes(self, obj):
         '''Returns the (dynamic or static) event types as defined in
            self.eventTypes.'''
-        if type(self.eventTypes) == types.FunctionType:
-            return self.eventTypes(obj.appy())
-        else:
-            return self.eventTypes
+        if callable(self.eventTypes): return self.eventTypes(obj.appy())
+        return self.eventTypes
 
     def getApplicableEventsTypesAt(self, obj, date, allEventTypes, preComputed,
                                    forBrowser=False):
@@ -393,6 +395,7 @@ class Calendar(Field):
                         contains a message explaining those event types are
                         not applicable.
         '''
+        if not allEventTypes: return # There may be no event type at all
         if not self.applicableEvents:
             eventTypes = allEventTypes
             message = None

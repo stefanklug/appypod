@@ -8,10 +8,10 @@ function toggleVisibility(node, nodeType){
   }
 }
 
-function askMonthView(hookId, objectUrl, fieldName, month) {
-  // Sends an Ajax request for getting the view month of a calendar field
-  var params = {'month': month};
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxViewMonth', params);
+function askCalendar(hookId, objectUrl, render, fieldName, month) {
+  // Sends an Ajax request for getting the calendar, at p_month
+  var params = {'month': month, 'render': render};
+  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
 }
 
 function openEventPopup(action, fieldName, day, spansDays,
@@ -93,5 +93,5 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
     params[elems[i].name] = elems[i].value;
   }
   closePopup(prefix + 'Popup');
-  askAjaxChunk(hookId, 'POST', objectUrl, fieldName+':pxViewMonth', params);
+  askAjaxChunk(hookId, 'POST', objectUrl, fieldName+':pxView', params);
 }
