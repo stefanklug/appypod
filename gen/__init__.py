@@ -107,4 +107,15 @@ class Config:
     # user interface (CSS, Javascript and image files) is folder "ui" within
     # this app.
     uiFolders = ['ui']
+    # CK editor configuration. Appy integrates CK editor via CDN (see
+    # http://cdn.ckeditor.com). Do not change "ckVersion" hereafter, excepted
+    # if you are sure that the customized configuration files config.js,
+    # contents.css and styles.js stored in appy/gen/ui/ckeditor will be
+    # compatible with the version you want to use.
+    ckVersion = '4.4.7'
+    # ckDistribution can be "basic", "standard", "standard-all", "full" or
+    # "full-all" (see doc in http://cdn.ckeditor.com).
+    ckDistribution = 'standard'
+    # CK toolbars are not configurable yet. So toolbar "Appy", defined in
+    # appy/gen/ui/ckeditor/config.js, will always be used.
 # ------------------------------------------------------------------------------

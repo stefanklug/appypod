@@ -621,7 +621,7 @@ class Field:
             res = copy.deepcopy(defaultFieldLayouts)
         return res
 
-    def getCss(self, layoutType, res):
+    def getCss(self, layoutType, res, config):
         '''This method completes the list p_res with the names of CSS files
            that are required for displaying widgets of self's type on a given
            p_layoutType. p_res is not a set because order of inclusion of CSS
@@ -631,7 +631,7 @@ class Field:
                 if fileName not in res:
                     res.append(fileName)
 
-    def getJs(self, layoutType, res):
+    def getJs(self, layoutType, res, config):
         '''This method completes the list p_res with the names of Javascript
            files that are required for displaying widgets of self's type on a
            given p_layoutType. p_res is not a set because order of inclusion of

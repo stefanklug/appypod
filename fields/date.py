@@ -209,13 +209,13 @@ class Date(Field):
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, persist, view, xml)
 
-    def getCss(self, layoutType, res):
-        # CSS files are only required if the calendar must be shown.
-        if self.calendar: Field.getCss(self, layoutType, res)
+    def getCss(self, layoutType, res, config):
+        # CSS files are only required if the calendar must be shown
+        if self.calendar: Field.getCss(self, layoutType, res, config)
 
-    def getJs(self, layoutType, res):
-        # Javascript files are only required if the calendar must be shown.
-        if self.calendar: Field.getJs(self, layoutType, res)
+    def getJs(self, layoutType, res, config):
+        # Javascript files are only required if the calendar must be shown
+        if self.calendar: Field.getJs(self, layoutType, res, config)
 
     def getSelectableYears(self):
         '''Gets the list of years one may select for this field.'''

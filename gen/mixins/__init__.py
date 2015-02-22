@@ -784,28 +784,28 @@ class BaseMixin:
         '''Returns the fields sorted by group. If a dict is given in p_cssJs,
            we will add it in the css and js files required by the fields.'''
         res = []
-        groups = {} # The already encountered groups.
+        groups = {} # The already encountered groups
         # If a dict is given in p_cssJs, we must fill it with the CSS and JS
         # files required for every returned field.
         collectCssJs = isinstance(cssJs, dict)
         css = js = None
+        config = self.getProductConfig(True)
         # If param "refresh" is there, we must reload the Python class
         refresh = ('refresh' in self.REQUEST)
-        if refresh:
-            klass = self.getClass(reloaded=True)
+        if refresh: klass = self.getClass(reloaded=True)
         for field in self.getAllAppyTypes():
             if refresh: field = field.reload(klass, self)
             if field.page.name != pageName: continue
             if not field.isShowable(self, layoutType): continue
             if collectCssJs:
                 if css == None: css = []
-                field.getCss(layoutType, css)
+                field.getCss(layoutType, css, config)
                 if js == None: js = []
-                field.getJs(layoutType, js)
+                field.getJs(layoutType, js, config)
             if not field.group:
                 res.append(field)
             else:
-                # Insert the UiGroup instance corresponding to field.group.
+                # Insert the UiGroup instance corresponding to field.group
                 uiGroup = field.group.insertInto(res, groups, field.page,
                                                  self.meta_type)
                 uiGroup.addElement(field)
@@ -858,9 +858,10 @@ class BaseMixin:
         # inclusion can be important, and this could be losed by using sets.
         css = []
         js = []
+        config = self.getProductConfig(True)
         for field in fields:
-            field.getCss(layoutType, css)
-            field.getJs(layoutType, js)
+            field.getCss(layoutType, css, config)
+            field.getJs(layoutType, js, config)
         res['css'] = css
         res['js'] = js
 

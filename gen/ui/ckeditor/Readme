@@ -1,0 +1,5 @@
+Appy is integrated with CKeditor 4.4.7 via CDN (see http://cdn.ckeditor.com).
+This folder stores the custom files for configuring ckeditor for Appy:
+  config.js, contents.css and styles.js.
+Those files were copied from the same download version of ckeditor and
+customized (on 2015-02-22).

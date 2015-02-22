@@ -96,7 +96,8 @@ class ToolWrapper(AbstractWrapper):
      <x if="cssJs">
       <link for="cssFile in cssJs['css']" rel="stylesheet" type="text/css"
             href=":url(cssFile)"/>
-      <script for="jsFile in cssJs['js']" src=":url(jsFile)"></script></x>
+      <script for="jsFile in cssJs['js']"
+          src=":jsFile.startswith('//') and jsFile or url(jsFile)"></script></x>
 
      <!-- Javascript messages -->
      <script>::ztool.getJavascriptMessages()</script>

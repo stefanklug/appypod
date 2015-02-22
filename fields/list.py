@@ -186,13 +186,13 @@ class List(Field):
         if value != None: return value
         return ''
 
-    def getCss(self, layoutType, res):
-        '''Gets the CSS required by sub-fields if any.'''
+    def getCss(self, layoutType, res, config):
+        '''Gets the CSS required by sub-fields if any'''
         for name, field in self.fields:
-            field.getCss(layoutType, res)
+            field.getCss(layoutType, res, config)
 
-    def getJs(self, layoutType, res):
-        '''Gets the JS required by sub-fields if any.'''
+    def getJs(self, layoutType, res, config):
+        '''Gets the JS required by sub-fields if any'''
         for name, field in self.fields:
-            field.getJs(layoutType, res)
+            field.getJs(layoutType, res, config)
 # ------------------------------------------------------------------------------

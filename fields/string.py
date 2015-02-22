@@ -69,9 +69,9 @@ class Selection:
 
 # ------------------------------------------------------------------------------
 class String(Field):
-    # Javascript files sometimes required by this type
-    jsFiles = {'edit': ('ckeditor/ckeditor.js',),
-               'view': ('ckeditor/ckeditor.js',)}
+    # Javascript files sometimes required by this type. Method String.getJs
+    # below determines when the files must be included.
+    cdnUrl = '//cdn.ckeditor.com/%s/%s/ckeditor.js'
 
     # Some predefined regular expressions that may be used as validators
     c = re.compile
@@ -944,8 +944,11 @@ class String(Field):
             return 'XhtmlIndex'
         return Field.getIndexType(self)
 
-    def getJs(self, layoutType, res):
-        if self.format == String.XHTML: Field.getJs(self, layoutType, res)
+    def getJs(self, layoutType, res, config):
+        if (self.format == String.XHTML) and (layoutType in ('edit', 'view')):
+            # Compute the URL to ckeditor CDN
+            ckUrl = String.cdnUrl % (config.ckVersion, config.ckDistribution)
+            if ckUrl not in res: res.append(ckUrl)
 
     def getCaptchaChallenge(self, session):
         '''Returns a Captcha challenge in the form of a dict. At key "text",
@@ -983,8 +986,10 @@ class String(Field):
         return 'en_US'
 
     def getCkParams(self, obj, language):
-        '''Gets the base params to set on a rich text field.'''
-        ckAttrs = {'toolbar': 'Appy',
+        '''Gets the base params to set on a rich text field'''
+        ckAttrs = {'customConfig': '/ui/ckeditor/config.js',
+                   'contentsCss': '/ui/ckeditor/contents.css',
+                   'stylesSet': '/ui/ckeditor/styles.js', 'toolbar': 'Appy',
                    'format_tags': ';'.join(self.styles),
                    'scayt_sLang': self.getCkLanguage(obj, language)}
         if self.width: ckAttrs['width'] = self.width
