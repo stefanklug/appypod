@@ -15,9 +15,27 @@ class Calendar(Field):
     DateTime = DateTime
     timelineBgColors = {'Fri': '#a6a6a6', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
+    # For timeline rendering, the row displaying month names
+    pxTimeLineMonths = Px('''
+     <tr><th></th> <!-- Names of months -->
+      <th for="mInfo in monthsInfos"
+          colspan=":mInfo.colspan">::mInfo.month</th></tr>''')
+
+    # For timeline rendering, the row displaying day letters
+    pxTimelineDayLetters = Px('''
+     <tr><td></td> <!-- Days (letters) -->
+      <td for="date in grid"><b>:namesOfDays[date.aDay()].name[0]</b></td>
+     </tr>''')
+
+    # For timeline rendering, the row displaying day numbers
+    pxTimelineDayNumbers = Px('''
+      <tr><td></td> <!-- Days (numbers) -->
+       <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td></tr>''')
+
     # Timeline view for a calendar
     pxViewTimeline = Px('''
-     <table cellpadding="0" cellspacing="0" class="list timeline">
+     <table cellpadding="0" cellspacing="0" class="list timeline"
+            var="monthsInfos=field.getTimelineMonths(grid, zobj)">
       <!-- Column specifiers -->
       <colgroup>
        <!-- Names of calendars -->
@@ -25,15 +43,22 @@ class Calendar(Field):
        <col for="date in grid"
             style=":field.getCellStyle(zobj, date, render, today)"></col>
       </colgroup>
-      <!-- Names of months -->
-      <tr><th></th>
-          <th for="mInfo in field.getTimelineMonths(grid, zobj)"
-              colspan=":mInfo.colspan">::mInfo.month</th>
+      <!-- Header rows (months and days) -->
+      <x>:field.pxTimeLineMonths</x>
+      <x>:field.pxTimelineDayLetters</x><x>:field.pxTimelineDayNumbers</x>
+      <!-- The calendar in itself -->
+      <tr if="allEventTypes">
+       <td class="tlName">Name</td>
+       <td for="date in grid"></td>
       </tr>
-      <!-- Days (letters) -->
-      <tr><td></td><td for="date in grid">L</td></tr>
-      <!-- Days (numbers) -->
-      <tr><td></td><td for="date in grid">:str(date.day()).zfill(2)</td></tr>
+      <!-- Other calendars -->
+      <tr for="other in otherCalendars">
+       <td class="tlName">:field.getTimelineName(*other)</td>
+       <td for="date in grid"></td>
+      </tr>
+      <!-- Footer (repetition of months and days) -->
+      <x>:field.pxTimelineDayNumbers</x><x>:field.pxTimelineDayLetters</x>
+      <x>:field.pxTimeLineMonths</x>
      </table>''')
 
     # Month view for a calendar
@@ -43,8 +68,8 @@ class Calendar(Field):
              var="rowHeight=int(field.height/float(len(grid)))">
        <!-- 1st row: names of days -->
        <tr height="22px">
-        <th for="dayName in field.getNamesOfDays(zobj)"
-            width="14%">:dayName</th>
+        <th for="dayId in field.weekDays"
+            width="14%">:namesOfDays[dayId].short</th>
        </tr>
        <!-- The calendar in itself -->
        <tr for="row in grid" valign="top" height=":rowHeight">
@@ -189,7 +214,8 @@ class Calendar(Field):
                objUrl=zobj.absolute_url();
                startDate=field.getStartDate(zobj);
                endDate=field.getEndDate(zobj);
-               otherCalendars=field.getOtherCalendars(zobj, preComputed)"
+               otherCalendars=field.getOtherCalendars(zobj, preComputed);
+               namesOfDays=field.getNamesOfDays(_)"
           id=":ajaxHookId">
       <script>:'var %s_maxEventLength = %d;' % \
                 (field.name, field.maxEventLength)</script>
@@ -232,9 +258,10 @@ class Calendar(Field):
                  specificWritePermission=False, width=None, height=300,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50, render='month',
-                 otherCalendars=None, additionalInfo=None, startDate=None,
-                 endDate=None, defaultDate=None, preCompute=None,
-                 applicableEvents=None, view=None, xml=None, delete=True):
+                 otherCalendars=None, timelineName=None, additionalInfo=None,
+                 startDate=None, endDate=None, defaultDate=None,
+                 preCompute=None, applicableEvents=None, view=None, xml=None,
+                 delete=True):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -288,6 +315,13 @@ class Calendar(Field):
         #   leading "#" when relevant) into which events of the calendar must
         #   appear.
         self.otherCalendars = otherCalendars
+        # When displaying a timeline calendar, a name is shown for every other
+        # calendar. If "timelineName" is None (the default), this name will be
+        # the title of the object where the other calendar is defined. Else, it
+        # will be the result of the method specified in "timelineName". This
+        # method must return a string and accepts 3 args: object, name and color
+        # (corresponding to a sub-list produced by "otherCalendars" hereabove).
+        self.timelineName = timelineName
         # One may want to add, day by day, custom information in the calendar.
         # When a method is given in p_additionalInfo, for every cell of the
         # month view, this method will be called with 2 args: the cell's date
@@ -338,14 +372,14 @@ class Calendar(Field):
         return refDate.strftime('%Y/%m')
 
     weekDays = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
-    def getNamesOfDays(self, obj, short=True):
-        res = []
+    def getNamesOfDays(self, _):
+        '''Returns the translated names of all week days, short and long
+           versions.'''
+        res = {}
         for day in self.weekDays:
-            if short:
-                suffix = '_short'
-            else:
-                suffix = ''
-            res.append(obj.translate('day_%s%s' % (day, suffix)))
+            name = _('day_%s' % day)
+            short = _('day_%s_short' % day)
+            res[day] = Object(name=name, short=short)
         return res
 
     def getGrid(self, month, render):
@@ -404,6 +438,11 @@ class Calendar(Field):
             for i in range(len(res)):
                 res[i][1] = res[i][0].getField(res[i][1])
             return res
+
+    def getTimelineName(self, obj, name, color):
+        '''Returns the name of this calendar as must be shown in a timeline.'''
+        if not self.timelineName: return obj.title
+        return self.timelineName(self, obj, name, color)
 
     def getAdditionalInfoAt(self, obj, date, preComputed):
         '''If the user has specified a method in self.additionalInfo, we call
