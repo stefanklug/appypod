@@ -320,7 +320,7 @@ function askBunchMove(hookId, startNumber, uid, move){
   if (typeof move == 'object'){
     // Get the new index from an input field
     var id = move.id;
-    id = id.substr(0, id.length-4);
+    id = id.substr(0, id.length-4) + '_v';
     var input = document.getElementById(id);
     if (isNaN(input.value)) {
       input.style.background = wrongTextInput;

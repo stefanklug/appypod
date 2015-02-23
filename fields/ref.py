@@ -212,11 +212,12 @@ class Ref(Field):
      <div if="changeNumber" class="dropdownMenu"
           var2="id='%s_%d' % (ajaxHookId, objectIndex);
                 dropdownId='%s_dd' % id;
-                imgId='%s_img' % id"
+                imgId='%s_img' % id;
+                inputId='%s_v' % id"
           onmouseover=":'toggleDropdown(%s)' % q(dropdownId)"
           onmouseout=":'toggleDropdown(%s,%s)' % (q(dropdownId), q('none'))">
-      <input type="text" size=":numberWidth" id=":id" value=":objectIndex+1"
-             onclick="this.select()"
+      <input type="text" size=":numberWidth" id=":inputId"
+             value=":objectIndex+1" onclick="this.select()"
              onkeydown=":'if (event.keyCode==13) \
                               document.getElementById(%s).click()' % q(imgId)"/>
       <!-- The menu -->
