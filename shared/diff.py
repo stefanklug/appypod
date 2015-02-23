@@ -31,7 +31,7 @@ class Merger:
         self.i = 0
         # The delta index that must be applied on previous diffs
         self.deltaPrevious = 0
-        # A link to the caller HtmlDiff class.
+        # A link to the caller HtmlDiff class
         self.differ = differ
 
     def computeNewDiffs(self):

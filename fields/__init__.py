@@ -30,7 +30,7 @@ class Field:
     '''Basic abstract class for defining any field.'''
 
     # Some global static variables
-    nullValues = (None, '', [])
+    nullValues = (None, '', [], {})
     validatorTypes = (types.FunctionType, types.UnboundMethodType,
                       type(re.compile('')))
     labelTypes = ('label', 'descr', 'help')

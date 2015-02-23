@@ -1189,7 +1189,7 @@ class BaseMixin:
         if not includeInvisible:
             history = [e for e in history if e['comments'] != '_invisible_']
         if reverse: history.reverse()
-        # Keep only events which are within the batch.
+        # Keep only events which are within the batch
         res = []
         stopIndex = startNumber + batchSize - 1
         i = -1

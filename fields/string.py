@@ -557,15 +557,14 @@ class String(Field):
         return res
 
     def isEmptyValue(self, obj, value):
-        '''Returns True if the p_value must be considered as an empty value.'''
-        if not self.isMultilingual(obj):
+        '''Returns True if the p_value must be considered as an empty value'''
+        if not isinstance(obj, dict):
             return Field.isEmptyValue(self, obj, value)
-        # For a multilingual value, as soon as a value is not empty for a given
-        # language, the whole value is considered as not being empty.
-        if not value: return True
+        # p_value is a dict of multilingual values. For such values, as soon
+        # as a value is not empty for a given language, the whole value is
+        # considered as not being empty.
         for v in value.itervalues():
             if not Field.isEmptyValue(self, obj, v): return
-        return True
 
     def isCompleteValue(self, obj, value):
         '''Returns True if the p_value must be considered as complete. For a
@@ -910,12 +909,15 @@ class String(Field):
         if rq.get('cancel') == 'True': return
         requestValue = rq['fieldContent']
         # Remember previous value if the field is historized
-        previousData = obj.rememberPreviousData([self])
+        isHistorized = self.getAttribute(obj, 'historized')
+        previousData = None
+        if isHistorized: previousData = obj.rememberPreviousData([self])
         if self.isMultilingual(obj):
-            # We take a copy of previousData because it is mutable (dict)
-            prevData = previousData[self.name]
-            if prevData != None: prevData = prevData.copy()
-            previousData[self.name] = prevData
+            if isHistorized:
+                # We take a copy of previousData because it is mutable (dict)
+                prevData = previousData[self.name]
+                if prevData != None: prevData = prevData.copy()
+                previousData[self.name] = prevData
             # We get a partial value, for one language only
             language = rq['languageOnly']
             v = self.getUnilingualStorableValue(obj, requestValue)
@@ -925,7 +927,7 @@ class String(Field):
             self.store(obj, self.getStorableValue(obj, requestValue))
             part = ''
         # Update the object history when relevant
-        if previousData: obj.historizeData(previousData)
+        if isHistorized and previousData: obj.historizeData(previousData)
         # Update obj's last modification date
         from DateTime import DateTime
         obj.modified = DateTime()
