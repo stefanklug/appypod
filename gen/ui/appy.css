@@ -125,6 +125,8 @@ td.search { padding-top: 8px }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
 .grid td { padding: 3px 3px 0 3px }
+.timeline { font-size: 90%; color: #555555 }
+.timeline td { text-align: center; padding: 2px 2px 0px 2px }
 .msgTable { margin: 6px 0; width: 100%; font-size: 93% }
 .msgTable tr { vertical-align: top }
 .msgTable td, .msgTable th { border: 1px solid grey; color: #555555;

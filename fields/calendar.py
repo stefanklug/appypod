@@ -13,9 +13,28 @@ class Calendar(Field):
        events on it.'''
     jsFiles = {'view': ('calendar.js',)}
     DateTime = DateTime
+    timelineBgColors = {'Fri': '#a6a6a6', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
     # Timeline view for a calendar
-    pxViewTimeline = Px('''<p>Hello timeline</p>''')
+    pxViewTimeline = Px('''
+     <table cellpadding="0" cellspacing="0" class="list timeline">
+      <!-- Column specifiers -->
+      <colgroup>
+       <!-- Names of calendars -->
+       <col style="width: 140px"></col>
+       <col for="date in grid"
+            style=":field.getCellStyle(zobj, date, render, today)"></col>
+      </colgroup>
+      <!-- Names of months -->
+      <tr><th></th>
+          <th for="mInfo in field.getTimelineMonths(grid, zobj)"
+              colspan=":mInfo.colspan">::mInfo.month</th>
+      </tr>
+      <!-- Days (letters) -->
+      <tr><td></td><td for="date in grid">L</td></tr>
+      <!-- Days (numbers) -->
+      <tr><td></td><td for="date in grid">:str(date.day()).zfill(2)</td></tr>
+     </table>''')
 
     # Month view for a calendar
     pxViewMonth = Px('''
@@ -33,7 +52,7 @@ class Calendar(Field):
            var2="tooEarly=startDate and (date &lt; startDate);
                  tooLate=endDate and not tooEarly and (date &gt; endDate);
                  inRange=not tooEarly and not tooLate;
-                 cssClasses=field.getCellStyle(zobj, date, today)">
+                 cssClasses=field.getCellClass(zobj, date, render, today)">
          <!-- Dump an empty cell if we are out of the supported date range -->
          <td if="not inRange" class=":cssClasses"></td>
          <!-- Dump a normal cell if we are in range -->
@@ -330,37 +349,50 @@ class Calendar(Field):
         return res
 
     def getGrid(self, month, render):
-        '''Creates a list of lists of DateTime objects representing the calendar
-           grid to render for a given p_month.'''
+        '''Creates a list of DateTime objects representing the calendar grid to
+           render for a given p_month. If p_render is "month", it is a list of
+           lists (one sub-list for every week; indeed, every week is rendered as
+           a row). If p_render is "timeline", the result is a linear list of
+           DateTime instances.'''
         # Month is a string "YYYY/mm"
         currentDay = DateTime('%s/01 UTC' % month)
         currentMonth = currentDay.month()
-        res = [[]]
-        dayOneNb = currentDay.dow() or 7 # This way, Sunday is 7 and not 0.
+        isLinear = render == 'timeline'
+        if isLinear: res = []
+        else: res = [[]]
+        dayOneNb = currentDay.dow() or 7 # This way, Sunday is 7 and not 0
         if dayOneNb != 1:
             previousDate = DateTime(currentDay)
-            # If the 1st day of the month is not a Monday, start the row with
-            # the last days of the previous month.
+            # If the 1st day of the month is not a Monday, integrate the last
+            # days of the previous month.
             for i in range(1, dayOneNb):
                 previousDate = previousDate - 1
-                res[0].insert(0, previousDate)
+                if isLinear:
+                    target = res
+                else:
+                    target = res[0]
+                target.insert(0, previousDate)
         finished = False
         while not finished:
-            # Insert currentDay in the grid
-            if len(res[-1]) == 7:
-                # Create a new row
-                res.append([currentDay])
+            # Insert currentDay in the result
+            if isLinear:
+                res.append(currentDay)
             else:
-                res[-1].append(currentDay)
-            currentDay = currentDay + 1
+                if len(res[-1]) == 7:
+                    # Create a new row
+                    res.append([currentDay])
+                else:
+                    res[-1].append(currentDay)
+            currentDay += 1
             if currentDay.month() != currentMonth:
                 finished = True
         # Complete, if needed, the last row with the first days of the next
-        # month.
-        if len(res[-1]) != 7:
-            while len(res[-1]) != 7:
-                res[-1].append(currentDay)
-                currentDay = currentDay + 1
+        # month. Indeed, we must have a complete week, ending with a Sunday.
+        if isLinear: target = res
+        else: target = res[-1]
+        while target[-1].dow() != 0:
+            target.append(currentDay)
+            currentDay += 1
         return res
 
     def getOtherCalendars(self, obj, preComputed):
@@ -649,17 +681,58 @@ class Calendar(Field):
         elif action == 'deleteEvent':
             return self.deleteEvent(obj, DateTime(rq['day']))
 
-    def getCellStyle(self, obj, date, today):
-        '''What CSS classes must apply to the table cell representing p_date
+    def getCellStyle(self, obj, date, render, today):
+        '''What style(s) must apply to the table cell representing p_date
            in the calendar?'''
+        if render != 'timeline': return ''
+        # Cells representing specific days must have a specific background color
+        res = ''
+        day = date.aDay()
+        if day in Calendar.timelineBgColors:
+            res = 'background-color: %s' % Calendar.timelineBgColors[day]
+        return res
+
+    def getCellClass(self, obj, date, render, today):
+        '''What CSS class(es) must apply to the table cell representing p_date
+           in the calendar?'''
+        if render != 'month': return ''
         res = []
-        # We must distinguish between past and future dates.
+        # We must distinguish between past and future dates
         if date < today:
             res.append('even')
         else:
             res.append('odd')
-        # Week-end days must have a specific style.
+        # Week-end days must have a specific style
         if date.aDay() in ('Sat', 'Sun'):
             res.append('cellDashed')
         return ' '.join(res)
+
+    def getTimelineMonths(self, grid, obj):
+        '''Given the p_grid of dates, this method returns the list of
+           corresponding months.'''
+        res = []
+        for date in grid:
+            if not res:
+                # Get the month correspoding to the first day in the grid
+                m = Object(month=date.aMonth(), colspan=1, year=date.year())
+                res.append(m)
+            else:
+                # Augment current month' colspan or create a new one
+                current = res[-1]
+                if date.aMonth() == current.month:
+                    current.colspan += 1
+                else:
+                    m = Object(month=date.aMonth(), colspan=1, year=date.year())
+                    res.append(m)
+        # Replace month short names by translated names whose format may vary
+        # according to colspan (a higher colspan allow us to produce a longer
+        # month name).
+        for m in res:
+            text = '%s %d' % (obj.translate('month_%s' % m.month), m.year)
+            if m.colspan < 6:
+                # Short version: a single letter with an acronym
+                m.month = '<acronym title="%s">%s</acronym>' % (text, text[0])
+            else:
+                m.month = text
+        return res
 # ------------------------------------------------------------------------------
