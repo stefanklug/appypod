@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 import types
 from appy import Object
@@ -19,18 +20,19 @@ class Calendar(Field):
     pxTimeLineMonths = Px('''
      <tr><th></th> <!-- Names of months -->
       <th for="mInfo in monthsInfos"
-          colspan=":mInfo.colspan">::mInfo.month</th></tr>''')
+          colspan=":mInfo.colspan">::mInfo.month</th><th></th></tr>''')
 
     # For timeline rendering, the row displaying day letters
     pxTimelineDayLetters = Px('''
      <tr><td></td> <!-- Days (letters) -->
       <td for="date in grid"><b>:namesOfDays[date.aDay()].name[0]</b></td>
-     </tr>''')
+      <td></td></tr>''')
 
     # For timeline rendering, the row displaying day numbers
     pxTimelineDayNumbers = Px('''
       <tr><td></td> <!-- Days (numbers) -->
-       <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td></tr>''')
+       <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td>
+       <td></td></tr>''')
 
     # Timeline view for a calendar
     pxViewTimeline = Px('''
@@ -39,22 +41,35 @@ class Calendar(Field):
       <!-- Column specifiers -->
       <colgroup>
        <!-- Names of calendars -->
-       <col style="width: 140px"></col>
+       <col></col>
        <col for="date in grid"
-            style=":field.getCellStyle(zobj, date, render, today)"></col>
+            style=":field.getColumnStyle(zobj, date, render, today)"></col>
+       <col></col>
       </colgroup>
       <!-- Header rows (months and days) -->
       <x>:field.pxTimeLineMonths</x>
       <x>:field.pxTimelineDayLetters</x><x>:field.pxTimelineDayNumbers</x>
       <!-- The calendar in itself -->
       <tr if="allEventTypes">
-       <td class="tlName">Name</td>
+       <td class="tlName"></td>
        <td for="date in grid"></td>
+       <td></td>
       </tr>
       <!-- Other calendars -->
-      <tr for="other in otherCalendars">
-       <td class="tlName">:field.getTimelineName(*other)</td>
-       <td for="date in grid"></td>
+      <tr for="other in otherCalendars"
+          var2="tlName=field.getTimelineName(*other)">
+       <td class="tlLeft">::tlName</td>
+       <!-- A cell in this other calendar -->
+       <x for="date in grid"
+          var2="inRange=field.dateInRange(date, startDate, endDate)">
+        <td if="not inRange"></td>
+        <td if="inRange"
+            var2="events=field.getOtherEventsAt(zobj, date, other, eventNames,\
+                                                render, colors, single=True)"
+            style=":field.getCellStyle(zobj, date, render, \
+                                   events)">::field.getTimelineCell(events)</td>
+       </x>
+       <td class="tlRight">::tlName</td>
       </tr>
       <!-- Footer (repetition of months and days) -->
       <x>:field.pxTimelineDayNumbers</x><x>:field.pxTimelineDayLetters</x>
@@ -74,9 +89,7 @@ class Calendar(Field):
        <!-- The calendar in itself -->
        <tr for="row in grid" valign="top" height=":rowHeight">
         <x for="date in row"
-           var2="tooEarly=startDate and (date &lt; startDate);
-                 tooLate=endDate and not tooEarly and (date &gt; endDate);
-                 inRange=not tooEarly and not tooLate;
+           var2="inRange=field.dateInRange(date, startDate, endDate);
                  cssClasses=field.getCellClass(zobj, date, render, today)">
          <!-- Dump an empty cell if we are out of the supported date range -->
          <td if="not inRange" class=":cssClasses"></td>
@@ -112,12 +125,12 @@ class Calendar(Field):
                  (q('del'), q(field.name), q(dayString), q(spansDays))"/>
           <!-- A single event is allowed for the moment -->
           <div if="events" var2="eventType=events[0].eventType">
-           <span style="color: grey">:field.getEventName(zobj, eventType)</span>
+           <span style="color: grey">:eventNames[eventType]</span>
           </div>
           <!-- Events from other calendars -->
           <x if="otherCalendars"
              var2="otherEvents=field.getOtherEventsAt(zobj, date, \
-                                                      otherCalendars)">
+                                otherCalendars, eventNames, render, colors)">
            <div style=":'color: %s; font-style: italic' % event.color"
                 for="event in otherEvents">:event.name</div>
           </x>
@@ -147,7 +160,7 @@ class Calendar(Field):
         <select name="eventType">
          <option value="">:_('choose_a_value')</option>
          <option for="eventType in allEventTypes"
-                 value=":eventType">:field.getEventName(zobj,eventType)</option>
+                 value=":eventType">:eventNames[eventType]</option>
         </select><br/><br/>
         <!--Span the event on several days -->
         <div align="center" class="discreet" style="margin-bottom: 3px">
@@ -215,6 +228,9 @@ class Calendar(Field):
                startDate=field.getStartDate(zobj);
                endDate=field.getEndDate(zobj);
                otherCalendars=field.getOtherCalendars(zobj, preComputed);
+               eventNames=field.getEventNames(zobj, allEventTypes, \
+                                              otherCalendars);
+               colors=field.getColors(zobj);
                namesOfDays=field.getNamesOfDays(_)"
           id=":ajaxHookId">
       <script>:'var %s_maxEventLength = %d;' % \
@@ -259,9 +275,9 @@ class Calendar(Field):
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50, render='month',
                  otherCalendars=None, timelineName=None, additionalInfo=None,
-                 startDate=None, endDate=None, defaultDate=None,
-                 preCompute=None, applicableEvents=None, view=None, xml=None,
-                 delete=True):
+                 startDate=None, endDate=None, defaultDate=None, colors=None,
+                 showUncolored=False, preCompute=None, applicableEvents=None,
+                 view=None, xml=None, delete=True):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -340,6 +356,15 @@ class Calendar(Field):
         # date is specified, it will be 'now' at the moment the calendar is
         # shown.
         self.defaultDate = defaultDate
+        # "colors" must be or return a dict ~{s_eventType: s_color}~ giving a
+        # color to every event type defined in this calendar or in any calendar
+        # from "otherCalendars". In a timeline, cells are too small to display
+        # translated names for event types, so colors are used instead.
+        self.colors = colors or {}
+        # For event types that are not present in self.colors hereabove, must we
+        # still show them? If yes, they will be represented by a dot with a
+        # tooltip containing the event name.
+        self.showUncolored = showUncolored
         # For a specific day, all event types may not be applicable. If this is
         # the case, one may specify here a method that defines, for a given day,
         # a sub-set of all event types. This method must accept 3 args: the day
@@ -441,8 +466,15 @@ class Calendar(Field):
 
     def getTimelineName(self, obj, name, color):
         '''Returns the name of this calendar as must be shown in a timeline.'''
-        if not self.timelineName: return obj.title
+        if not self.timelineName:
+            return '<a href="%s">%s</a>' % (obj.url, obj.title)
         return self.timelineName(self, obj, name, color)
+
+    def getTimelineCell(self, events):
+        '''Gets the content of a cell in a timeline calendar.'''
+        # Currently a single event is allowed
+        if not events or not events[0].symbol: return ''
+        return events[0].symbol
 
     def getAdditionalInfoAt(self, obj, date, preComputed):
         '''If the user has specified a method in self.additionalInfo, we call
@@ -456,6 +488,19 @@ class Calendar(Field):
            self.eventTypes.'''
         if callable(self.eventTypes): return self.eventTypes(obj.appy())
         return self.eventTypes
+
+    def getColors(self, obj):
+        '''Gets the colors for event types managed by this calendar and
+           otherCalendars (from self.colors).'''
+        if callable(self.colors): return self.colors(obj)
+        return self.colors
+
+    def dateInRange(self, date, startDate, endDate):
+        '''Is p_date within the range (possibly) defined for this calendar by
+           p_startDate and p_endDate ?'''
+        tooEarly = startDate and (date < startDate)
+        tooLate = endDate and not tooEarly and (date > endDate)
+        return not tooEarly and not tooLate
 
     def getApplicableEventsTypesAt(self, obj, date, allEventTypes, preComputed,
                                    forBrowser=False):
@@ -593,15 +638,36 @@ class Calendar(Field):
         if not events: return False
         return events[0].eventType == otherEvents[0].eventType
 
-    def getOtherEventsAt(self, obj, date, otherCalendars):
-        '''Gets events that are defined in p_otherCalendars at some p_date.'''
+    def getOtherEventsAt(self, obj, date, otherCalendars, eventNames, render,
+                         colors, single=False):
+        '''Gets events that are defined in p_otherCalendars at some p_date.
+           If p_single is True, p_otherCalendars does not contain the list of
+           all other calendars, but information about a single calendar.'''
         res = []
+        if single: otherCalendars = [otherCalendars]
+        isTimeline = render == 'timeline'
         for o, field, color in otherCalendars:
             events = field.getEventsAt(o.o, date)
             if events:
                 eventType = events[0].eventType
-                eventName = field.getEventName(o.o, eventType)
-                info = Object(name=eventName, color=color)
+                info = Object(color=color)
+                if isTimeline:
+                    # Get the background color for this cell if it has been
+                    # defined, or (a) nothing if showUncolored is False, (b) a
+                    # tooltipped dot else.
+                    if eventType in colors:
+                        info.bgColor = colors[eventType]
+                        info.symbol = None
+                    else:
+                        info.bgColor = None
+                        if self.showUncolored:
+                            info.symbol = '<acronym title="%s">▪</acronym>' % \
+                                          eventNames[eventType]
+                        else:
+                            info.symbol = None
+                else:
+                    # Get the event name
+                    info.name = eventNames[eventType]
                 res.append(info)
         return res
 
@@ -613,15 +679,31 @@ class Calendar(Field):
         else:
             return obj.translate('%s_event_%s' % (self.labelId, eventType))
 
+    def getEventNames(self, obj, eventTypes, otherCalendars):
+        '''Computes a dict of event names, keyed by event types, for all events
+           in this calendar and p_otherCalendars).'''
+        res = {}
+        if eventTypes:
+            for et in eventTypes:
+                res[et] = self.getEventName(obj, et)
+        if not otherCalendars: return res
+        for other, field, color in otherCalendars:
+            eventTypes = field.getEventTypes(other)
+            if eventTypes:
+                for et in eventTypes:
+                    if et not in res:
+                        res[et] = field.getEventName(other, et)
+        return res
+
     def getStartDate(self, obj):
-        '''Get the start date for this calendar if defined.'''
+        '''Get the start date for this calendar if defined'''
         if self.startDate:
             d = self.startDate(obj.appy())
-            # Return the start date without hour, in UTC.
+            # Return the start date without hour, in UTC
             return DateTime('%d/%d/%d UTC' % (d.year(), d.month(), d.day()))
 
     def getEndDate(self, obj):
-        '''Get the end date for this calendar if defined.'''
+        '''Get the end date for this calendar if defined'''
         if self.endDate:
             d = self.endDate(obj.appy())
             # Return the end date without hour, in UTC.
@@ -720,9 +802,9 @@ class Calendar(Field):
         elif action == 'deleteEvent':
             return self.deleteEvent(obj, DateTime(rq['day']))
 
-    def getCellStyle(self, obj, date, render, today):
-        '''What style(s) must apply to the table cell representing p_date
-           in the calendar?'''
+    def getColumnStyle(self, obj, date, render, today):
+        '''What style(s) must apply to the table column representing p_date
+           in the calendar? For timelines only.'''
         if render != 'timeline': return ''
         # Cells representing specific days must have a specific background color
         res = ''
@@ -731,10 +813,18 @@ class Calendar(Field):
             res = 'background-color: %s' % Calendar.timelineBgColors[day]
         return res
 
+    def getCellStyle(self, obj, date, render, events):
+        '''Gets the cell style to apply to the cell corresponding to p_date.'''
+        if render != 'timeline': return '' # Currently, for timelines only
+        if not events: return ''
+        # Currently, a single event is allowed
+        event = events[0]
+        return event.bgColor and ('background-color: %s' % event.bgColor) or ''
+
     def getCellClass(self, obj, date, render, today):
         '''What CSS class(es) must apply to the table cell representing p_date
            in the calendar?'''
-        if render != 'month': return ''
+        if render != 'month': return '' # Currently, for month rendering only
         res = []
         # We must distinguish between past and future dates
         if date < today:

@@ -27,7 +27,8 @@ input[type=button] { border: 1px solid #d0d0d0; margin: 0 3px;
                      background-color: #f8f8f8; cursor: pointer }
 input[type=submit] { border: 1px solid #d0d0d0; background-color: #f8f8f8;
                      cursor: pointer }
-input[type=password] { border: 1px solid #d0d0d0;
+input[type=password] { border: 1px solid #d0d0d0; padding: 0 2px;
+                       margin-bottom:1px;
                        font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
 input[type=text] { border: 1px solid #d0d0d0; padding: 0 2px; margin-bottom:1px;
                    font-family: "Lucida Grande","Lucida Sans Unicode",Helvetica,Arial,Verdana,sans-serif }
@@ -128,7 +129,9 @@ td.search { padding-top: 8px }
 .timeline { font-size: 90%; color: #555555 }
 .timeline td { text-align: center; padding: 1px }
 .timeline th { padding: 1px }
-.tlName { text-align: left !important }
+.tlLeft { text-align: left !important }
+.tlRight { text-align: right !important }
+.tlRight { text-align: right !important }
 .msgTable { margin: 6px 0; width: 100%; font-size: 93% }
 .msgTable tr { vertical-align: top }
 .msgTable td, .msgTable th { border: 1px solid grey; color: #555555;

@@ -209,7 +209,8 @@ class String(Field):
               name=":name" id=":name" class=":masterCss"
               multiple=":isMultiple and 'multiple' or ''"
               onchange=":field.getOnChange(zobj, layoutType)"
-              size=":isMultiple and field.height or 1">
+              size=":field.getSelectSize(isMultiple)"
+              style=":field.getSelectStyle(isMultiple)">
        <option for="val in possibleValues" value=":val[0]"
                selected=":field.isSelected(zobj, name, val[0], rawValue)"
                title=":val[1]">:ztool.truncateValue(val[1],field.width)</option>
@@ -478,6 +479,21 @@ class String(Field):
             if not isinstance(self.validator, Selection):
                 res = False
         return res
+
+    def getSelectSize(self, isMultiple):
+        '''When this field renders as a selection list, get the value of its
+           "size" attribute.'''
+        if not isMultiple: return 1
+        if isinstance(self.height, int): return self.height
+        # "height" can be defined as a string. In this case it is used to define
+        # height via a attribute "style", not "size".
+        return ''
+
+    def getSelectStyle(self, isMultiple):
+        '''When thiss field renders as a selection list, get the value of its
+           "style" attribute.'''
+        if not isMultiple or not isinstance(self.height, str): return ''
+        return 'height: %s' % self.height
 
     def isMultilingual(self, obj, dontKnow=False):
         '''Is this field multilingual ? If we don't know, say p_dontKnow.'''
