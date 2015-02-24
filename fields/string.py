@@ -1005,10 +1005,11 @@ class String(Field):
 
     def getCkParams(self, obj, language):
         '''Gets the base params to set on a rich text field'''
-        ckAttrs = {'customConfig': '/ui/ckeditor/config.js',
-                   'contentsCss': '/ui/ckeditor/contents.css',
-                   'stylesSet': '/ui/ckeditor/styles.js', 'toolbar': 'Appy',
-                   'format_tags': ';'.join(self.styles),
+        base = obj.getTool().getSiteUrl()
+        ckAttrs = {'customConfig': '%s/ui/ckeditor/config.js' % base,
+                   'contentsCss': '%s/ui/ckeditor/contents.css' % base,
+                   'stylesSet': '%s/ui/ckeditor/styles.js' % base,
+                   'toolbar': 'Appy', 'format_tags': ';'.join(self.styles),
                    'scayt_sLang': self.getCkLanguage(obj, language)}
         if self.width: ckAttrs['width'] = self.width
         if self.height: ckAttrs['height'] = self.height
