@@ -26,6 +26,7 @@ from appy.pod.actions import IfAction, ElseAction, ForAction, VariablesAction, \
 
 # ------------------------------------------------------------------------------
 class ParsingError(Exception): pass
+class EvaluationError(Exception): pass
 
 # ParsingError-related constants -----------------------------------------------
 ELEMENT = 'identifies the part of the document that will be impacted ' \
@@ -703,12 +704,17 @@ class MemoryBuffer(Buffer):
                         res, escape = evalEntry.evaluate(context)
                         if escape: result.dumpContent(res)
                         else: result.write(res)
+                    except EvaluationError, e:
+                        # This exception has already been treated (see the 
+                        # "except" block below). Simply re-raise it when needed.
+                        if self.env.raiseOnError: raise e
                     except Exception, e:
                         if not self.env.raiseOnError:
                             PodError.dump(result, EVAL_EXPR_ERROR % (
-                                          evalEntry.expr, e), dumpTb=False)
+                                          evalEntry.expr, e))
                         else:
-                            raise Exception(EVAL_EXPR_ERROR %(evalEntry.expr,e))
+                            raise EvaluationError(EVAL_EXPR_ERROR % \
+                                             (evalEntry.expr, Traceback.get(5)))
                 elif isinstance(evalEntry, Attributes) or \
                      isinstance(evalEntry, Attribute):
                     result.write(evalEntry.evaluate(context))

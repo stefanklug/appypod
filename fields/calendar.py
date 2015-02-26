@@ -2,6 +2,7 @@
 # ------------------------------------------------------------------------------
 import types
 from appy import Object
+from appy.shared.utils import splitList, IterSub
 from appy.gen import Field
 from appy.px import Px
 from DateTime import DateTime
@@ -9,11 +10,54 @@ from BTrees.IOBTree import IOBTree
 from persistent.list import PersistentList
 
 # ------------------------------------------------------------------------------
+class Other:
+    '''Identifies a Calendar field that must be shown within another Calendar
+       (see parameter "others" in class Calendar).'''
+    def __init__(self, obj, name, color='grey'):
+        # The object on which this calendar is defined
+        self.obj = obj
+        # The other calendar instance
+        self.field = obj.getField(name)
+        # The color into which events from this calendar must be shown (in the
+        # month rendering) in the calendar integrating this one.
+        self.color = color
+
+    def getEventsAt(self, res, calendar, date, eventNames, inTimeline, colors):
+        '''Gets the events defined at p_date in this calendar and append them in
+           p_res.'''
+        events = self.field.getEventsAt(self.obj.o, date)
+        if not events: return
+        eventType = events[0].eventType
+        # Gathered info will be an Object instance
+        info = Object(color=self.color)
+        if inTimeline:
+            # Get the background color for this cell if it has been
+            # defined, or (a) nothing if showUncolored is False, (b) a
+            # tooltipped dot else.
+            if eventType in colors:
+                info.bgColor = colors[eventType]
+                info.symbol = None
+            else:
+                info.bgColor = None
+                if calendar.showUncolored:
+                    info.symbol = '<acronym title="%s">▪</acronym>' % \
+                                  eventNames[eventType]
+                else:
+                    info.symbol = None
+        else:
+            # Get the event name
+            info.name = eventNames[eventType]
+        res.append(info)
+
+# ------------------------------------------------------------------------------
 class Calendar(Field):
     '''This field allows to produce an agenda (monthly view) and view/edit
        events on it.'''
     jsFiles = {'view': ('calendar.js',)}
     DateTime = DateTime
+    Other = Other # Access to the Other class via the Calendar class
+    IterSub = IterSub
+
     timelineBgColors = {'Fri': '#a6a6a6', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
     # For timeline rendering, the row displaying month names
@@ -34,6 +78,26 @@ class Calendar(Field):
        <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td>
        <td></td></tr>''')
 
+    # Legend for a timeline calendar
+    pxTimelineLegend = Px('''
+     <table align="center" class="discreet"
+            var="legendTypes=[et for et in allEventTypes if et in colors]">
+      <tr for="row in field.splitList(legendTypes, 4)">
+       <x for="eventType in row">
+        <td> <!-- A colored cell (as mono-cell sub-table) -->
+         <table>
+          <tr height="9px">
+           <td width="9px"
+               style=":'background-color: %s' % colors[eventType]">&nbsp;</td>
+          </tr>
+         </table>
+        </td>
+        <!-- The event name -->
+        <td>:allEventNames[eventType]</td>
+       </x>
+      </tr>
+     </table>''')
+
     # Timeline view for a calendar
     pxViewTimeline = Px('''
      <table cellpadding="0" cellspacing="0" class="list timeline"
@@ -50,22 +114,22 @@ class Calendar(Field):
       <x>:field.pxTimeLineMonths</x>
       <x>:field.pxTimelineDayLetters</x><x>:field.pxTimelineDayNumbers</x>
       <!-- The calendar in itself -->
-      <tr if="allEventTypes">
+      <tr if="eventTypes">
        <td class="tlName"></td>
        <td for="date in grid"></td>
        <td></td>
       </tr>
       <!-- Other calendars -->
-      <tr for="other in otherCalendars"
-          var2="tlName=field.getTimelineName(*other)">
+      <tr for="other in field.IterSub(others)"
+          var2="tlName=field.getTimelineName(other)">
        <td class="tlLeft">::tlName</td>
        <!-- A cell in this other calendar -->
        <x for="date in grid"
           var2="inRange=field.dateInRange(date, startDate, endDate)">
         <td if="not inRange"></td>
         <td if="inRange"
-            var2="events=field.getOtherEventsAt(zobj, date, other, eventNames,\
-                                                render, colors, single=True)"
+            var2="events=field.getOtherEventsAt(zobj, date, other, \
+                    allEventNames, render, colors)"
             style=":field.getCellStyle(zobj, date, render, \
                                    events)">::field.getTimelineCell(events)</td>
        </x>
@@ -74,7 +138,8 @@ class Calendar(Field):
       <!-- Footer (repetition of months and days) -->
       <x>:field.pxTimelineDayNumbers</x><x>:field.pxTimelineDayLetters</x>
       <x>:field.pxTimeLineMonths</x>
-     </table>''')
+     </table>
+     <x>:field.pxTimelineLegend</x>''')
 
     # Month view for a calendar
     pxViewMonth = Px('''
@@ -112,7 +177,7 @@ class Calendar(Field):
           <x if="mayCreate">
            <img class="clickable" style="visibility:hidden"
                 var="info=field.getApplicableEventsTypesAt(zobj, date, \
-                            allEventTypes, preComputed, True)"
+                           eventTypes, preComputed, True)"
                 if="info and info.eventTypes" src=":url('plus')"
                 onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
                  (q('new'), q(field.name), q(dayString), q(info.eventTypes),\
@@ -125,12 +190,12 @@ class Calendar(Field):
                  (q('del'), q(field.name), q(dayString), q(spansDays))"/>
           <!-- A single event is allowed for the moment -->
           <div if="events" var2="eventType=events[0].eventType">
-           <span style="color: grey">:eventNames[eventType]</span>
+           <span style="color: grey">:allEventNames[eventType]</span>
           </div>
           <!-- Events from other calendars -->
-          <x if="otherCalendars"
+          <x if="others"
              var2="otherEvents=field.getOtherEventsAt(zobj, date, \
-                                otherCalendars, eventNames, render, colors)">
+                                others, allEventNames, render, colors)">
            <div style=":'color: %s; font-style: italic' % event.color"
                 for="event in otherEvents">:event.name</div>
           </x>
@@ -143,7 +208,7 @@ class Calendar(Field):
       </table>
 
       <!-- Popup for creating a calendar event -->
-      <div if="allEventTypes"
+      <div if="eventTypes"
            var="prefix='%s_newEvent' % field.name;
                 popupId=prefix + 'Popup'"
            id=":popupId" class="popup" align="center">
@@ -159,8 +224,8 @@ class Calendar(Field):
         <div align="center" style="margin-bottom: 3px">:_('which_event')</div>
         <select name="eventType">
          <option value="">:_('choose_a_value')</option>
-         <option for="eventType in allEventTypes"
-                 value=":eventType">:eventNames[eventType]</option>
+         <option for="eventType in eventTypes"
+                 value=":eventType">:allEventNames[eventType]</option>
         </select><br/><br/>
         <!--Span the event on several days -->
         <div align="center" class="discreet" style="margin-bottom: 3px">
@@ -219,7 +284,7 @@ class Calendar(Field):
                render=req.get('render', field.render);
                today=field.DateTime('00:00');
                grid=field.getGrid(month, render);
-               allEventTypes=field.getEventTypes(zobj);
+               eventTypes=field.getEventTypes(zobj);
                preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
                previousMonth=field.getSiblingMonth(month, 'previous');
                nextMonth=field.getSiblingMonth(month, 'next');
@@ -227,9 +292,10 @@ class Calendar(Field):
                objUrl=zobj.absolute_url();
                startDate=field.getStartDate(zobj);
                endDate=field.getEndDate(zobj);
-               otherCalendars=field.getOtherCalendars(zobj, preComputed);
-               eventNames=field.getEventNames(zobj, allEventTypes, \
-                                              otherCalendars);
+               others=field.getOthers(zobj, preComputed);
+               events=field.getAllEvents(zobj, eventTypes, others);
+               allEventTypes=events[0];
+               allEventNames=events[1];
                colors=field.getColors(zobj);
                namesOfDays=field.getNamesOfDays(_)"
           id=":ajaxHookId">
@@ -274,7 +340,7 @@ class Calendar(Field):
                  specificWritePermission=False, width=None, height=300,
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50, render='month',
-                 otherCalendars=None, timelineName=None, additionalInfo=None,
+                 others=None, timelineName=None, additionalInfo=None,
                  startDate=None, endDate=None, defaultDate=None, colors=None,
                  showUncolored=False, preCompute=None, applicableEvents=None,
                  view=None, xml=None, delete=True):
@@ -302,7 +368,7 @@ class Calendar(Field):
         # Various render modes exist. Default is the classical "month" view.
         # It can also be "timeline": in this case, on the x axis, we have one
         # column per day, and on the y axis, we have one row per calendar (this
-        # one and others as specified in "otherCalendars", see below).
+        # one and others as specified in "others", see below).
         self.render = render
         # When displaying a given month for this agenda, one may want to
         # pre-compute, once for the whole month, some information that will then
@@ -318,25 +384,21 @@ class Calendar(Field):
         # methods that you may specify as args of other parameters of this
         # Calendar class (see comments below).
         self.preCompute = preCompute
-        # If a method is specified in the following parameters, it must accept
-        # a single arg (the result of self.preCompute) and must return a list of
-        # calendars whose events must be shown within this agenda.
-        # Every element in this list must be a sub-list [object, name, color]
-        # (not a tuple):
-        # - object must refer to the other object on which the other calendar
-        #   field is defined;
-        # - name is the name of the field on this object that stores the
-        #   calendar;
-        # - color must be a string containing the HTML color (including the
-        #   leading "#" when relevant) into which events of the calendar must
-        #   appear.
-        self.otherCalendars = otherCalendars
+        # If a method is specified in parameter "others" below, it must accept a
+        # single arg (the result of self.preCompute) and must return a list of
+        # calendars whose events must be shown within this agenda. More
+        # precisely, the method can return:
+        # - a single Other instance (see at the top of this file);
+        # - a list of Other instances;
+        # - a list of lists of Other instances, when it has sense to group other
+        #   calendars (the timeline rendering exploits this).
+        self.others = others
         # When displaying a timeline calendar, a name is shown for every other
         # calendar. If "timelineName" is None (the default), this name will be
         # the title of the object where the other calendar is defined. Else, it
         # will be the result of the method specified in "timelineName". This
-        # method must return a string and accepts 3 args: object, name and color
-        # (corresponding to a sub-list produced by "otherCalendars" hereabove).
+        # method must return a string and accepts an Other instance as single
+        # arg.
         self.timelineName = timelineName
         # One may want to add, day by day, custom information in the calendar.
         # When a method is given in p_additionalInfo, for every cell of the
@@ -358,7 +420,7 @@ class Calendar(Field):
         self.defaultDate = defaultDate
         # "colors" must be or return a dict ~{s_eventType: s_color}~ giving a
         # color to every event type defined in this calendar or in any calendar
-        # from "otherCalendars". In a timeline, cells are too small to display
+        # from "others". In a timeline, cells are too small to display
         # translated names for event types, so colors are used instead.
         self.colors = colors or {}
         # For event types that are not present in self.colors hereabove, must we
@@ -454,21 +516,25 @@ class Calendar(Field):
             currentDay += 1
         return res
 
-    def getOtherCalendars(self, obj, preComputed):
+    def getOthers(self, obj, preComputed):
         '''Returns the list of other calendars whose events must also be shown
            on this calendar.'''
-        if self.otherCalendars:
-            res = self.otherCalendars(obj.appy(), preComputed)
-            # Replace field names with field objects
-            for i in range(len(res)):
-                res[i][1] = res[i][0].getField(res[i][1])
-            return res
+        res = None
+        if self.others:
+            res = self.others(obj.appy(), preComputed)
+            if res:
+                # Ensure we have a list of lists
+                if isinstance(res, Other): res = [res]
+                if isinstance(res[0], Other): res = [res]
+        if res != None: return res
+        return [[]]
 
-    def getTimelineName(self, obj, name, color):
-        '''Returns the name of this calendar as must be shown in a timeline.'''
+    def getTimelineName(self, other):
+        '''Returns the name of some p_other calendar as must be shown in a
+           timeline.'''
         if not self.timelineName:
-            return '<a href="%s">%s</a>' % (obj.url, obj.title)
-        return self.timelineName(self, obj, name, color)
+            return '<a href="%s">%s</a>' % (other.obj.url, other.obj.title)
+        return self.timelineName(self, other)
 
     def getTimelineCell(self, events):
         '''Gets the content of a cell in a timeline calendar.'''
@@ -490,8 +556,8 @@ class Calendar(Field):
         return self.eventTypes
 
     def getColors(self, obj):
-        '''Gets the colors for event types managed by this calendar and
-           otherCalendars (from self.colors).'''
+        '''Gets the colors for event types managed by this calendar and others
+           (from self.colors).'''
         if callable(self.colors): return self.colors(obj)
         return self.colors
 
@@ -502,7 +568,7 @@ class Calendar(Field):
         tooLate = endDate and not tooEarly and (date > endDate)
         return not tooEarly and not tooLate
 
-    def getApplicableEventsTypesAt(self, obj, date, allEventTypes, preComputed,
+    def getApplicableEventsTypesAt(self, obj, date, eventTypes, preComputed,
                                    forBrowser=False):
         '''Returns the event types that are applicable at a given p_date. More
            precisely, it returns an object with 2 attributes:
@@ -511,12 +577,12 @@ class Calendar(Field):
                         contains a message explaining those event types are
                         not applicable.
         '''
-        if not allEventTypes: return # There may be no event type at all
+        if not eventTypes: return # There may be no event type at all
         if not self.applicableEvents:
-            eventTypes = allEventTypes
+            # Keep p_eventTypes as is
             message = None
         else:
-            eventTypes = allEventTypes[:]
+            eventTypes = eventTypes[:]
             message = self.applicableEvents(obj.appy(), date, eventTypes,
                                             preComputed)
         res = Object(eventTypes=eventTypes, message=message)
@@ -638,37 +704,17 @@ class Calendar(Field):
         if not events: return False
         return events[0].eventType == otherEvents[0].eventType
 
-    def getOtherEventsAt(self, obj, date, otherCalendars, eventNames, render,
-                         colors, single=False):
-        '''Gets events that are defined in p_otherCalendars at some p_date.
-           If p_single is True, p_otherCalendars does not contain the list of
-           all other calendars, but information about a single calendar.'''
+    def getOtherEventsAt(self, obj, date, others, eventNames, render, colors):
+        '''Gets events that are defined in p_others at some p_date. If p_single
+           is True, p_others does not contain the list of all other calendars,
+           but information about a single calendar.'''
         res = []
-        if single: otherCalendars = [otherCalendars]
         isTimeline = render == 'timeline'
-        for o, field, color in otherCalendars:
-            events = field.getEventsAt(o.o, date)
-            if events:
-                eventType = events[0].eventType
-                info = Object(color=color)
-                if isTimeline:
-                    # Get the background color for this cell if it has been
-                    # defined, or (a) nothing if showUncolored is False, (b) a
-                    # tooltipped dot else.
-                    if eventType in colors:
-                        info.bgColor = colors[eventType]
-                        info.symbol = None
-                    else:
-                        info.bgColor = None
-                        if self.showUncolored:
-                            info.symbol = '<acronym title="%s">▪</acronym>' % \
-                                          eventNames[eventType]
-                        else:
-                            info.symbol = None
-                else:
-                    # Get the event name
-                    info.name = eventNames[eventType]
-                res.append(info)
+        if isinstance(others, Other):
+            others.getEventsAt(res, self, date, eventNames, isTimeline, colors)
+        else:
+            for other in IterSub(others):
+                other.getEventsAt(res, self, date, eventNames,isTimeline,colors)
         return res
 
     def getEventName(self, obj, eventType):
@@ -679,20 +725,24 @@ class Calendar(Field):
         else:
             return obj.translate('%s_event_%s' % (self.labelId, eventType))
 
-    def getEventNames(self, obj, eventTypes, otherCalendars):
-        '''Computes a dict of event names, keyed by event types, for all events
-           in this calendar and p_otherCalendars).'''
-        res = {}
+    def getAllEvents(self, obj, eventTypes, others):
+        '''Computes:
+           * the list of all event types (from this calendar and p_others);
+           * a dict of event names, keyed by event types, for all events
+             in this calendar and p_others).'''
+        res = [[], {}]
         if eventTypes:
             for et in eventTypes:
-                res[et] = self.getEventName(obj, et)
-        if not otherCalendars: return res
-        for other, field, color in otherCalendars:
-            eventTypes = field.getEventTypes(other)
+                res[0].append(et)
+                res[1][et] = self.getEventName(obj, et)
+        if not others: return res
+        for other in IterSub(others):
+            eventTypes = other.field.getEventTypes(other.obj)
             if eventTypes:
                 for et in eventTypes:
-                    if et not in res:
-                        res[et] = field.getEventName(other, et)
+                    if et not in res[1]:
+                        res[0].append(et)
+                        res[1][et] = other.field.getEventName(other.obj, et)
         return res
 
     def getStartDate(self, obj):
@@ -864,4 +914,6 @@ class Calendar(Field):
             else:
                 m.month = text
         return res
+
+    def splitList(self, l, sub): return splitList(l, sub)
 # ------------------------------------------------------------------------------

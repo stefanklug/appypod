@@ -169,6 +169,26 @@ def splitList(l, sub):
             res[-1].append(elem)
     return res
 
+class IterSub:
+    '''Iterator over a list of lists.'''
+    def __init__(self, l):
+        self.l = l
+        self.i = 0 # The current index in the main list
+        self.j = 0 # The current index in the current sub-list
+    def __iter__(self): return self
+    def next(self):
+        # Get the next ith sub-list
+        if (self.i + 1) > len(self.l): raise StopIteration
+        sub = self.l[self.i]
+        if (self.j + 1) > len(sub):
+            self.i += 1
+            self.j = 0
+            return self.next()
+        else:
+            elem = sub[self.j]
+            self.j += 1
+            return elem
+
 # ------------------------------------------------------------------------------
 def flipDict(d):
     '''Flips dict p_d: keys become values, values become keys. p_d is left
@@ -179,16 +199,23 @@ def flipDict(d):
 
 # ------------------------------------------------------------------------------
 class Traceback:
-    '''Dumps the last traceback into a string.'''
-    def get():
-        res = ''
+    '''Dumps the last traceback into a string'''
+    @staticmethod
+    def get(last=None):
+        '''Gets the traceback as a string. If p_last is given (must be an
+           integer value), only the p_last lines of the traceback will be
+           included. It can be useful for pod/px tracebacks: when an exception
+           occurs while evaluating a complex tree of buffers, most of the
+           traceback lines concern uninteresting buffer/action-related recursive
+           calls.'''
+        res = []
         excType, excValue, tb = sys.exc_info()
         tbLines = traceback.format_tb(tb)
         for tbLine in tbLines:
-            res += ' %s' % tbLine
-        res += ' %s: %s' % (str(excType), str(excValue))
-        return res
-    get = staticmethod(get)
+            res.append(' %s' % tbLine)
+        res.append(' %s: %s' % (str(excType), str(excValue)))
+        if last: res = res[-last:]
+        return ''.join(res)
 
 # ------------------------------------------------------------------------------
 def getOsTempFolder():
