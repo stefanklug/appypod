@@ -252,8 +252,12 @@ class ToolMixin(BaseMixin):
                 # Gather all the indexed fields on this class
                 fieldNames = [f.name for f in self.getAllAppyTypes(className) \
                               if f.indexed]
-                fieldNames.insert(0, 'SearchableText')
+                # Put SearchableText in front of the list and ensure "title"
+                # is not there
                 if 'title' in fieldNames: fieldNames.remove('title')
+                st = 'SearchableText'
+                if st in fieldNames: fieldNames.remove(st)
+                fieldNames.insert(0, st)
             nbOfColumns = getattr(klass, 'numberOfSearchColumns', 3)
         for name in fieldNames:
             field = self.getAppyType(name, className=className)
