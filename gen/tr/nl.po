@@ -715,6 +715,14 @@ msgstr "Het event uitbreiden naar de volgende dagen (leeg laten om een event aan
 msgid "del_next_events"
 msgstr "Verwijder ook alle opeenvolgende events van hetzelfde type"
 
+#. Default: "Timeslot"
+msgid "timeslot"
+msgstr ""
+
+#. Default: "All day"
+msgid "timeslot_main"
+msgstr ""
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr "Ingevuld door ${userName}"

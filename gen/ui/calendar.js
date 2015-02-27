@@ -14,26 +14,28 @@ function askCalendar(hookId, objectUrl, render, fieldName, month) {
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
 }
 
-function openEventPopup(action, fieldName, day, spansDays,
+function openEventPopup(action, fieldName, day, timeslot, spansDays,
                         applicableEventTypes, message) {
   /* Opens the popup for creating (or deleting, depending on p_action) a
-     calendar event at some p_day. When action is "del", we need to know
-     (from p_spansDays) if the event spans more days, in order to propose a
-     checkbox allowing to delete events for those successive days. When action
-     is "new", a possibly restricted list of applicable event types for this
-     day is given in p_applicableEventTypes; p_message contains an optional
-     message explaining why not applicable types are not applicable. */
+     calendar event at some p_day. When action is "del", we need to know the
+     p_timeslot where the event is assigned and if the event spans more days
+     (from p_spansDays), in order to propose a checkbox allowing to delete
+     events for those successive days. When action is "new", a possibly
+     restricted list of applicable event types for this day is given in
+     p_applicableEventTypes; p_message contains an optional message explaining
+     why not applicable types are not applicable. */
   var prefix = fieldName + '_' + action + 'Event';
   var f = document.getElementById(prefix + 'Form');
   f.day.value = day;
   if (action == 'del') {
-    // Show or hide the checkbox for deleting the event for successive days.
+    f.timeslot.value = timeslot;
+    // Show or hide the checkbox for deleting the event for successive days
     var elem = document.getElementById(prefix + 'DelNextEvent');
     var cb = elem.getElementsByTagName('input');
     cb[0].checked = false;
     cb[1].value = 'False';
-    if (spansDays == 'True') { elem.style.display = 'block' }
-    else { elem.style.display = 'none' }
+    if (spansDays == 'True') elem.style.display = 'block';
+    else elem.style.display = 'none';
   }
   else if (action == 'new') {
     // First: reinitialise input fields
@@ -42,8 +44,8 @@ function openEventPopup(action, fieldName, day, spansDays,
     for (var i=0; i < allOptions.length; i++) {
       allOptions[i].selected = false;
     }
-    f.eventSpan.style.background = '';
-    // Among all event types, show applicable ones and hide the others.
+    if (f.eventSpan) f.eventSpan.style.background = '';
+    // Among all event types, show applicable ones and hide the others
     var applicable = applicableEventTypes.split(',');
     var applicableDict = {};
     for (var i=0; i < applicable.length; i++) {
@@ -76,13 +78,15 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
       f.eventType.style.background = wrongTextInput;
       return;
     }
-    // Check that eventSpan is empty or contains a valid number
-    var spanNumber = f.eventSpan.value.replace(' ', '');
-    if (spanNumber) {
-      spanNumber = parseInt(spanNumber);
-      if (isNaN(spanNumber) || (spanNumber > maxEventLength)) {
-        f.eventSpan.style.background = wrongTextInput;
-        return;
+    if (f.eventSpan) {
+      // Check that eventSpan is empty or contains a valid number
+      var spanNumber = f.eventSpan.value.replace(' ', '');
+      if (spanNumber) {
+        spanNumber = parseInt(spanNumber);
+        if (isNaN(spanNumber) || (spanNumber > maxEventLength)) {
+          f.eventSpan.style.background = wrongTextInput;
+          return;
+        }
       }
     }
   }

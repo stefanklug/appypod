@@ -715,6 +715,14 @@ msgstr ""
 msgid "del_next_events"
 msgstr ""
 
+#. Default: "Timeslot"
+msgid "timeslot"
+msgstr ""
+
+#. Default: "All day"
+msgid "timeslot_main"
+msgstr ""
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr ""

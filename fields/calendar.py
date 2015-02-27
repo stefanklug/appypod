@@ -8,6 +8,24 @@ from appy.px import Px
 from DateTime import DateTime
 from BTrees.IOBTree import IOBTree
 from persistent.list import PersistentList
+from persistent import Persistent
+
+# ------------------------------------------------------------------------------
+class Timeslot:
+    '''A timeslot defines a time range within a single day'''
+    def __init__(self, id, start=None, end=None, name=None, eventTypes=None):
+        # A short, human-readable string identifier, unique among all timeslots
+        # for a given Calendar. Id "main" is reserved for the main timeslot that
+        # represents the whole day.
+        self.id = id
+        # The time range can be defined by p_start ~(i_hour, i_minute)~ and
+        # p_end (idem), or by a simple name, like "AM" or "PM".
+        self.start = start
+        self.end = end
+        self.name = name or id
+        # The event types (among all event types defined at the Calendar level)
+        # that can be assigned to this slot.
+        self.eventTypes = eventTypes # "None" means "all"
 
 # ------------------------------------------------------------------------------
 class Other:
@@ -50,15 +68,32 @@ class Other:
         res.append(info)
 
 # ------------------------------------------------------------------------------
+class Event(Persistent):
+    '''An event as will be stored in the database'''
+    def __init__(self, eventType, timeslot='main'):
+        self.eventType = eventType
+        self.timeslot = timeslot
+
+    def getName(self, allEventNames):
+        '''Gets the name for this event, that depends on it type and may include
+           the timeslot if not "main".'''
+        res = allEventNames[self.eventType]
+        if self.timeslot != 'main': res += ' ' + self.timeslot
+        return res
+
+# ------------------------------------------------------------------------------
 class Calendar(Field):
     '''This field allows to produce an agenda (monthly view) and view/edit
        events on it.'''
     jsFiles = {'view': ('calendar.js',)}
     DateTime = DateTime
-    Other = Other # Access to the Other class via the Calendar class
+    # Access to Calendar utility classes via the Calendar class
+    Timeslot = Timeslot
+    Other = Other
+    Event = Event
     IterSub = IterSub
 
-    timelineBgColors = {'Fri': '#a6a6a6', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
+    timelineBgColors = {'Fri': '#dedede', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
     # For timeline rendering, the row displaying month names
     pxTimeLineMonths = Px('''
@@ -120,26 +155,113 @@ class Calendar(Field):
        <td></td>
       </tr>
       <!-- Other calendars -->
-      <tr for="other in field.IterSub(others)"
-          var2="tlName=field.getTimelineName(other)">
-       <td class="tlLeft">::tlName</td>
-       <!-- A cell in this other calendar -->
-       <x for="date in grid"
-          var2="inRange=field.dateInRange(date, startDate, endDate)">
-        <td if="not inRange"></td>
-        <td if="inRange"
-            var2="events=field.getOtherEventsAt(zobj, date, other, \
-                    allEventNames, render, colors)"
-            style=":field.getCellStyle(zobj, date, render, \
+      <x for="otherGroup in others">
+       <tr for="other in otherGroup"
+           var2="tlName=field.getTimelineName(other)">
+        <td class="tlLeft">::tlName</td>
+        <!-- A cell in this other calendar -->
+        <x for="date in grid"
+           var2="inRange=field.dateInRange(date, startDate, endDate)">
+         <td if="not inRange"></td>
+         <td if="inRange"
+             var2="events=field.getOtherEventsAt(zobj, date, other, \
+                     allEventNames, render, colors)"
+             style=":field.getCellStyle(zobj, date, render, \
                                    events)">::field.getTimelineCell(events)</td>
-       </x>
-       <td class="tlRight">::tlName</td>
-      </tr>
+        </x>
+        <td class="tlRight">::tlName</td>
+       </tr>
+       <!-- A separator between groups of other calendars -->
+       <tr if="not loop.otherGroup.last" height="5px">
+        <th colspan=":len(grid)+2"></th></tr>
+      </x>
       <!-- Footer (repetition of months and days) -->
       <x>:field.pxTimelineDayNumbers</x><x>:field.pxTimelineDayLetters</x>
       <x>:field.pxTimeLineMonths</x>
      </table>
      <x>:field.pxTimelineLegend</x>''')
+
+    # Popup for adding an event in the month view
+    pxAddEvent = Px('''
+     <div var="prefix='%s_newEvent' % field.name;
+               popupId=prefix + 'Popup';
+               showTimeslots=len(field.timeslots) &gt; 2"
+          id=":popupId" class="popup" align="center">
+      <form id=":prefix + 'Form'" method="post">
+       <input type="hidden" name="fieldName" value=":field.name"/>
+       <input type="hidden" name="month" value=":month"/>
+       <input type="hidden" name="name" value=":field.name"/>
+       <input type="hidden" name="action" value="process"/>
+       <input type="hidden" name="actionType" value="createEvent"/>
+       <input type="hidden" name="day"/>
+
+       <!-- Choose an event type -->
+       <div align="center" style="margin-bottom: 3px">:_('which_event')</div>
+       <select name="eventType" style="margin-bottom: 10px">
+        <option value="">:_('choose_a_value')</option>
+        <option for="eventType in eventTypes"
+                value=":eventType">:allEventNames[eventType]</option>
+       </select>
+       <!-- Choose a timeslot -->
+       <div if="showTimeslots" style="margin-bottom: 10px">
+        <span class="discreet">:_('timeslot')</span>
+        <select if="showTimeslots" name="timeslot">
+         <option value="main">:_('timeslot_main')</option>
+         <option for="timeslot in field.timeslots"
+                 if="timeslot.id != 'main'">:timeslot.name</option>
+        </select>
+       </div>
+       <!-- Span the event on several days -->
+       <x if="not showTimeslots">
+        <div align="center" class="discreet" style="margin-bottom: 3px">
+         <span>:_('event_span')</span>
+         <input type="text" size="3" name="eventSpan"/>
+        </div>
+       </x>
+       <input type="button"
+              value=":_('object_save')"
+              onclick=":'triggerCalendarEvent(%s, %s, %s, %s, \
+                         %s_maxEventLength)' % (q('new'), q(ajaxHookId), \
+                         q(field.name), q(objUrl), field.name)"/>
+       <input type="button"
+              value=":_('object_cancel')"
+              onclick=":'closePopup(%s)' % q(popupId)"/>
+      </form>
+     </div>''')
+
+    # Popup for removing events in the month view
+    pxDelEvent = Px('''
+     <div var="prefix='%s_delEvent' % field.name;
+               popupId=prefix + 'Popup'"
+          id=":popupId" class="popup" align="center">
+      <form id=":prefix + 'Form'" method="post">
+       <input type="hidden" name="fieldName" value=":field.name"/>
+       <input type="hidden" name="month" value=":month"/>
+       <input type="hidden" name="name" value=":field.name"/>
+       <input type="hidden" name="action" value="process"/>
+       <input type="hidden" name="actionType" value="deleteEvent"/>
+       <input type="hidden" name="timeslot" value="main"/>
+       <input type="hidden" name="day"/>
+       <div align="center"
+            style="margin-bottom: 5px">:_('action_confirm')</div>
+
+       <!-- Delete successive events ? -->
+       <div class="discreet" style="margin-bottom: 10px"
+            id=":prefix + 'DelNextEvent'">
+         <input type="checkbox" name="deleteNext_cb"
+                id=":prefix + '_cb'"
+                onClick=":'toggleCheckbox(%s, %s)' % \
+                          (q('%s_cb' % prefix), q('%s_hd' % prefix))"/>
+         <input type="hidden" id=":prefix + '_hd'" name="deleteNext"/>
+         <span>:_('del_next_events')</span>
+       </div>
+       <input type="button" value=":_('yes')"
+              onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
+                (q('del'), q(ajaxHookId), q(field.name), q(objUrl))"/>
+       <input type="button" value=":_('no')"
+              onclick=":'closePopup(%s)' % q(popupId)"/>
+      </form>
+     </div>''')
 
     # Month view for a calendar
     pxViewMonth = Px('''
@@ -161,8 +283,9 @@ class Calendar(Field):
          <!-- Dump a normal cell if we are in range -->
          <td if="inRange"
              var2="events=field.getEventsAt(zobj, date);
+                   single=events and (len(events) == 1);
                    spansDays=field.hasEventsAt(zobj, date+1, events);
-                   mayCreate=mayEdit and not events;
+                   mayCreate=mayEdit and not field.dayIsFull(date, events);
                    mayDelete=mayEdit and events and field.mayDelete(obj,events);
                    day=date.day();
                    dayString=date.strftime('%Y/%m/%d');
@@ -179,19 +302,26 @@ class Calendar(Field):
                 var="info=field.getApplicableEventsTypesAt(zobj, date, \
                            eventTypes, preComputed, True)"
                 if="info and info.eventTypes" src=":url('plus')"
-                onclick=":'openEventPopup(%s, %s, %s, null, %s, %s)' % \
+                onclick=":'openEventPopup(%s, %s, %s, null, null, %s, %s)' % \
                  (q('new'), q(field.name), q(dayString), q(info.eventTypes),\
                   q(info.message))"/>
           </x>
-          <!-- Icon for deleting an event -->
+          <!-- Icon for deleting event(s) -->
           <img if="mayDelete" class="clickable" style="visibility:hidden"
-               src=":url('delete')"
-               onclick=":'openEventPopup(%s, %s, %s, %s, null, null)' % \
-                 (q('del'), q(field.name), q(dayString), q(spansDays))"/>
-          <!-- A single event is allowed for the moment -->
-          <div if="events" var2="eventType=events[0].eventType">
-           <span style="color: grey">:allEventNames[eventType]</span>
+               src=":url(single and 'delete' or 'deleteMany')"
+               onclick=":'openEventPopup(%s, %s, %s, %s, %s, null, null)' % \
+             (q('del'), q(field.name), q(dayString), q('main'), q(spansDays))"/>
+          <!-- Events -->
+          <x if="events">
+          <div for="event in events" style="color: grey">
+           <x>:event.getName(allEventNames)</x>
+           <!-- Icon for delete this particular event -->
+            <img if="mayDelete and not single" class="clickable"
+                 src=":url('delete')"  style="visibility:hidden"
+                 onclick=":'openEventPopup(%s, %s, %s, %s, null, null, null)'% \
+                   (q('del'), q(field.name), q(dayString), q(event.timeslot))"/>
           </div>
+          </x>
           <!-- Events from other calendars -->
           <x if="others"
              var2="otherEvents=field.getOtherEventsAt(zobj, date, \
@@ -207,73 +337,9 @@ class Calendar(Field):
        </tr>
       </table>
 
-      <!-- Popup for creating a calendar event -->
-      <div if="eventTypes"
-           var="prefix='%s_newEvent' % field.name;
-                popupId=prefix + 'Popup'"
-           id=":popupId" class="popup" align="center">
-       <form id=":prefix + 'Form'" method="post">
-        <input type="hidden" name="fieldName" value=":field.name"/>
-        <input type="hidden" name="month" value=":month"/>
-        <input type="hidden" name="name" value=":field.name"/>
-        <input type="hidden" name="action" value="process"/>
-        <input type="hidden" name="actionType" value="createEvent"/>
-        <input type="hidden" name="day"/>
-
-        <!-- Choose an event type -->
-        <div align="center" style="margin-bottom: 3px">:_('which_event')</div>
-        <select name="eventType">
-         <option value="">:_('choose_a_value')</option>
-         <option for="eventType in eventTypes"
-                 value=":eventType">:allEventNames[eventType]</option>
-        </select><br/><br/>
-        <!--Span the event on several days -->
-        <div align="center" class="discreet" style="margin-bottom: 3px">
-         <span>:_('event_span')</span>
-         <input type="text" size="3" name="eventSpan"/>
-        </div>
-        <input type="button"
-               value=":_('object_save')"
-               onclick=":'triggerCalendarEvent(%s, %s, %s, %s, \
-                          %s_maxEventLength)' % (q('new'), q(ajaxHookId), \
-                          q(field.name), q(objUrl), field.name)"/>
-        <input type="button"
-               value=":_('object_cancel')"
-               onclick=":'closePopup(%s)' % q(popupId)"/>
-       </form>
-      </div>
-
-      <!-- Popup for deleting a calendar event -->
-      <div var="prefix='%s_delEvent' % field.name;
-                popupId=prefix + 'Popup'"
-           id=":popupId" class="popup" align="center">
-       <form id=":prefix + 'Form'" method="post">
-        <input type="hidden" name="fieldName" value=":field.name"/>
-        <input type="hidden" name="month" value=":month"/>
-        <input type="hidden" name="name" value=":field.name"/>
-        <input type="hidden" name="action" value="process"/>
-        <input type="hidden" name="actionType" value="deleteEvent"/>
-        <input type="hidden" name="day"/>
-        <div align="center"
-             style="margin-bottom: 5px">:_('action_confirm')</div>
-
-        <!-- Delete successive events ? -->
-        <div class="discreet" style="margin-bottom: 10px"
-             id=":prefix + 'DelNextEvent'">
-          <input type="checkbox" name="deleteNext_cb"
-                 id=":prefix + '_cb'"
-                 onClick=":'toggleCheckbox(%s, %s)' % \
-                           (q('%s_cb' % prefix), q('%s_hd' % prefix))"/>
-          <input type="hidden" id=":prefix + '_hd'" name="deleteNext"/>
-          <span>:_('del_next_events')</span>
-        </div>
-        <input type="button" value=":_('yes')"
-               onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
-                 (q('del'), q(ajaxHookId), q(field.name), q(objUrl))"/>
-        <input type="button" value=":_('no')"
-               onclick=":'closePopup(%s)' % q(popupId)"/>
-       </form>
-      </div>''')
+      <!-- Popups for creating and deleting a calendar event -->
+      <x if="mayEdit and eventTypes">
+       <x>:field.pxAddEvent</x><x>:field.pxDelEvent</x></x>''')
 
     pxView = pxCell = Px('''
      <div var="defaultDate=field.getDefaultDate(zobj);
@@ -341,9 +407,9 @@ class Calendar(Field):
                  colspan=1, master=None, masterValue=None, focus=False,
                  mapping=None, label=None, maxEventLength=50, render='month',
                  others=None, timelineName=None, additionalInfo=None,
-                 startDate=None, endDate=None, defaultDate=None, colors=None,
-                 showUncolored=False, preCompute=None, applicableEvents=None,
-                 view=None, xml=None, delete=True):
+                 startDate=None, endDate=None, defaultDate=None, timeslots=None,
+                 colors=None, showUncolored=False, preCompute=None,
+                 applicableEvents=None, view=None, xml=None, delete=True):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -418,6 +484,14 @@ class Calendar(Field):
         # date is specified, it will be 'now' at the moment the calendar is
         # shown.
         self.defaultDate = defaultDate
+        # "timeslots" are a way to define, within a single day, time ranges. It
+        # must be a list of Timeslot instances (see above). If you define
+        # timeslots, the first one must be the one representing the whole day
+        # and must have id "main".
+        if not timeslots: self.timeslots = [Timeslot('main')]
+        else:
+            self.timeslots = timeslots
+            self.checkTimeslots()
         # "colors" must be or return a dict ~{s_eventType: s_color}~ giving a
         # color to every event type defined in this calendar or in any calendar
         # from "others". In a timeline, cells are too small to display
@@ -441,6 +515,13 @@ class Calendar(Field):
         # May the user delete events in this calendar? If "delete" is a method,
         # it must accept an event type as single arg.
         self.delete = delete
+
+    def checkTimeslots(self):
+        '''Checks whether self.timeslots defines corect timeslots.'''
+        # The first timeslot must be the global one, named 'main'
+        if self.timeslots[0].id != 'main':
+            raise Exception('The first timeslot must have id "main" and is ' \
+                            'the one representing the whole day.')
 
     def getPreComputedInfo(self, obj, monthDayOne, grid):
         '''Returns the result of calling self.preComputed, or None if no such
@@ -561,6 +642,15 @@ class Calendar(Field):
         if callable(self.colors): return self.colors(obj)
         return self.colors
 
+    def dayIsFull(self, date, events):
+        '''In the calendar full at p_date? Defined events at this p_date are in
+           p_events. We check here if the main timeslot is used or if all
+           others are used.'''
+        if not events: return
+        for e in events:
+            if e.timeslot == 'main': return True
+        return len(events) == len(self.timeslots)-1
+
     def dateInRange(self, date, startDate, endDate):
         '''Is p_date within the range (possibly) defined for this calendar by
            p_startDate and p_endDate ?'''
@@ -612,6 +702,28 @@ class Calendar(Field):
         events = self.getEventsAt(obj, date)
         if not events: return
         return events[0].eventType
+
+    def walkEvents(self, obj, callback):
+        '''Walks on p_obj, the calendar value for this field and calls
+           p_callback for every day containing events. The callback must accept
+           3 args: p_obj, the current day (as a DateTime instance) and the list
+           of events at that day (the database-stored PersistentList
+           instance). If the callback returns True we stop the walk.'''
+        obj = obj.o
+        if not hasattr(obj, self.name): return
+        # Browse years
+        years = getattr(obj, self.name)
+        if not years: return
+        for year in years.keys():
+            # Browse this year's months
+            months = years[year]
+            for month in months.keys():
+                # Browse this month's days
+                days = months[month]
+                for day in days.keys():
+                    date = DateTime('%d/%d/%d UTC' % (year, month, day))
+                    stop = callback(obj, date, days[day])
+                    if stop: return
 
     def getEventsByType(self, obj, eventType, minDate=None, maxDate=None,
                         sorted=True, groupSpanned=False):
@@ -669,7 +781,7 @@ class Calendar(Field):
                         # Filter unwanted events
                         if eventType and (event.eventType != eventType):
                             continue
-                        # We have found a event.
+                        # We have found a event
                         date = DateTime('%d/%d/%d UTC' % (year, month, day))
                         if groupSpanned:
                             singleRes = [date, None, event]
@@ -699,9 +811,9 @@ class Calendar(Field):
     def hasEventsAt(self, obj, date, otherEvents):
         '''Returns True if, at p_date, an event is found of the same type as
            p_otherEvents.'''
-        if not otherEvents: return False
+        if not otherEvents: return
         events = self.getEventsAt(obj, date)
-        if not events: return False
+        if not events: return
         return events[0].eventType == otherEvents[0].eventType
 
     def getOtherEventsAt(self, obj, date, others, eventNames, render, colors):
@@ -756,7 +868,7 @@ class Calendar(Field):
         '''Get the end date for this calendar if defined'''
         if self.endDate:
             d = self.endDate(obj.appy())
-            # Return the end date without hour, in UTC.
+            # Return the end date without hour, in UTC
             return DateTime('%d/%d/%d UTC' % (d.year(), d.month(), d.day()))
 
     def getDefaultDate(self, obj):
@@ -767,14 +879,14 @@ class Calendar(Field):
         else:
             return DateTime() # Now
 
-    def createEvent(self, obj, date, eventType=None, eventSpan=None,
+    def createEvent(self, obj, date, timeslot, eventType=None, eventSpan=None,
                     handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day).
            If p_eventType is given, it is used; else, rq['eventType'] is used.
            If p_handleEventSpan is True, we will use p_eventSpan (or
            rq["eventSpan"] if p_eventSpan is not given) and also
            create the same event for successive days.'''
-        obj = obj.o # Ensure p_obj is not a wrapper.
+        obj = obj.o # Ensure p_obj is not a wrapper
         rq = obj.REQUEST
         # Get values from parameters
         if not eventType: eventType = rq['eventType']
@@ -802,16 +914,27 @@ class Calendar(Field):
             events = daysDict[day]
         else:
             daysDict[day] = events = PersistentList()
-        # Create and store the event, excepted if an event already exists
-        if not events:
-            event = Object(eventType=eventType)
-            events.append(event)
+        # Return an error if the creation cannot occur
+        for e in events:
+            if e.timeslot == timeslot:
+                return 'An event for this timeslot already exist'
+            elif e.timeslot == 'main':
+                return 'No more place for adding this event'
+        if events and (timeslot == 'main'):
+            return 'No more place (2) for adding this event'
+        # Create and store the event
+        events.append(Event(eventType, timeslot))
+        # Sort events in the order of timeslots
+        timeslots = [timeslot.id for timeslot in self.timeslots]
+        if len(events) > 1:
+            events.data.sort(key=lambda e: timeslots.index(e.timeslot))
+            events._p_changed = 1
         # Span the event on the successive days if required
-        if handleEventSpan and eventSpan:
+        if handleEventSpan and eventSpan and (timeslot != 'main'):
             nbOfDays = min(int(eventSpan), self.maxEventLength)
             for i in range(nbOfDays):
                 date = date + 1
-                self.createEvent(obj, date, handleEventSpan=False)
+                self.createEvent(obj, date, timeslot, handleEventSpan=False)
 
     def mayDelete(self, obj, events):
         '''May the user delete p_events?'''
@@ -819,25 +942,38 @@ class Calendar(Field):
         if callable(self.delete): return self.delete(obj, events[0].eventType)
         return True
 
-    def deleteEvent(self, obj, date, handleEventSpan=True):
-        '''Deletes an event. It actually deletes all events at p_date.
-           If p_handleEventSpan is True, we will use rq["deleteNext"] to
-           delete successive events, too.'''
-        obj = obj.o # Ensure p_obj is not a wrapper.
+    def deleteEvent(self, obj, date, timeslot, handleEventSpan=True):
+        '''Deletes an event. If t_timeslot is "main", it deletes all events at
+           p_date, be there a single event on the main timeslot or several
+           events on other timeslots. Else, it only deletes the event at
+           p_timeslot. If p_handleEventSpan is True, we will use
+           rq["deleteNext"] to delete successive events, too.'''
+        obj = obj.o # Ensure p_obj is not a wrapper
         if not self.getEventsAt(obj, date): return
         daysDict = getattr(obj, self.name)[date.year()][date.month()]
-        # Remember events, in case we must delete similar ones for next days.
         events = self.getEventsAt(obj, date)
-        del daysDict[date.day()]
-        rq = obj.REQUEST
-        if handleEventSpan and rq.has_key('deleteNext') and \
-           (rq['deleteNext'] == 'True'):
-            while True:
-                date = date + 1
-                if self.hasEventsAt(obj, date, events):
-                    self.deleteEvent(obj, date, handleEventSpan=False)
-                else:
+        if timeslot == 'main':
+            # Delete all events; delete them also in the following days when
+            # relevant.
+            del daysDict[date.day()]
+            rq = obj.REQUEST
+            if handleEventSpan and rq.has_key('deleteNext') and \
+               (rq['deleteNext'] == 'True'):
+                while True:
+                    date = date + 1
+                    if self.hasEventsAt(obj, date, events):
+                        self.deleteEvent(obj, date, timeslot,
+                                         handleEventSpan=False)
+                    else:
+                        break
+        else:
+            # Delete the event at p_timeslot
+            i = len(events) - 1
+            while i >= 0:
+                if events[i].timeslot == timeslot:
+                    del events[i]
                     break
+                i -= 1
 
     def process(self, obj):
         '''Processes an action coming from the calendar widget, ie, the creation
@@ -846,11 +982,13 @@ class Calendar(Field):
         action = rq['actionType']
         # Security check
         obj.mayEdit(self.writePermission, raiseError=True)
-        # Get the date for this action
+        # Get the date and timeslot for this action
+        date = DateTime(rq['day'])
+        timeslot = rq.get('timeslot', 'main')
         if action == 'createEvent':
-            return self.createEvent(obj, DateTime(rq['day']))
+            return self.createEvent(obj, date, timeslot)
         elif action == 'deleteEvent':
-            return self.deleteEvent(obj, DateTime(rq['day']))
+            return self.deleteEvent(obj, date, timeslot)
 
     def getColumnStyle(self, obj, date, render, today):
         '''What style(s) must apply to the table column representing p_date
