@@ -14,8 +14,40 @@ function askCalendar(hookId, objectUrl, render, fieldName, month) {
   askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
 }
 
+function enableOptions(select, enabled, selectFirst, message){
+  /* This function disables, in p_select, all options that are not in p_enabled.
+     p_enabled is a string containing a comma-separated list of option names.
+     If p_selectFirst is True, the first option from p_enabled will be selected
+     by default. p_message will be shown (as "title") for disabled options. */
+  // Get p_enabled as a dict
+  var l = enabled.split(',');
+  var d = {};
+  for (var i=0; i < l.length; i++) d[l[i]] = true;
+  // Remember if we have already selected the first enabled option
+  var isSelected = false;
+  var options = select.options;
+  // Disable options not being p_enabled
+  for (var i=0; i<options.length; i++) {
+    options[i].selected = false;
+    if (!options[i].value) continue;
+    if (options[i].value in d) {
+      options[i].disabled = false;
+      options[i].title = '';
+      // Select it?
+      if (selectFirst && !isSelected) {
+        options[i].selected = true;
+        isSelected = true;
+      }
+    }
+    else {
+      options[i].disabled = true;
+      options[i].title = message;
+    }
+  }
+}
+
 function openEventPopup(action, fieldName, day, timeslot, spansDays,
-                        applicableEventTypes, message) {
+                        applicableEventTypes, message, freeSlots) {
   /* Opens the popup for creating (or deleting, depending on p_action) a
      calendar event at some p_day. When action is "del", we need to know the
      p_timeslot where the event is assigned and if the event spans more days
@@ -23,12 +55,13 @@ function openEventPopup(action, fieldName, day, timeslot, spansDays,
      events for those successive days. When action is "new", a possibly
      restricted list of applicable event types for this day is given in
      p_applicableEventTypes; p_message contains an optional message explaining
-     why not applicable types are not applicable. */
+     why not applicable types are not applicable. When "new", p_freeSlots may
+     list the available timeslots at p_day. */
   var prefix = fieldName + '_' + action + 'Event';
   var f = document.getElementById(prefix + 'Form');
   f.day.value = day;
   if (action == 'del') {
-    f.timeslot.value = timeslot;
+    if (f.timeslot) f.timeslot.value = timeslot;
     // Show or hide the checkbox for deleting the event for successive days
     var elem = document.getElementById(prefix + 'DelNextEvent');
     var cb = elem.getElementsByTagName('input');
@@ -38,30 +71,12 @@ function openEventPopup(action, fieldName, day, timeslot, spansDays,
     else elem.style.display = 'none';
   }
   else if (action == 'new') {
-    // First: reinitialise input fields
+    // Reinitialise field backgrounds
     f.eventType.style.background = '';
-    var allOptions = f.eventType.options;
-    for (var i=0; i < allOptions.length; i++) {
-      allOptions[i].selected = false;
-    }
     if (f.eventSpan) f.eventSpan.style.background = '';
-    // Among all event types, show applicable ones and hide the others
-    var applicable = applicableEventTypes.split(',');
-    var applicableDict = {};
-    for (var i=0; i < applicable.length; i++) {
-      applicableDict[applicable[i]] = true;
-    }
-    for (var i=0; i < allOptions.length; i++) {
-      if (!allOptions[i].value) continue;
-      if (allOptions[i].value in applicableDict) {
-        allOptions[i].disabled = false;
-        allOptions[i].title = '';
-      }
-      else {
-        allOptions[i].disabled = true;
-        allOptions[i].title = message;
-      }
-    }
+    // Disable unapplicable events and non-free timeslots
+    enableOptions(f.eventType, applicableEventTypes, false, message);
+    if (f.timeslot) enableOptions(f.timeslot, freeSlots, true, 'Not free');
   }
   openPopup(prefix + 'Popup');
 }
