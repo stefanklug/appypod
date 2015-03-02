@@ -723,6 +723,10 @@ msgstr ""
 msgid "timeslot_main"
 msgstr ""
 
+#. Default: "Cannot create such an event in the ${slot} slot."
+msgid "timeslot_misfit"
+msgstr ""
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr ""

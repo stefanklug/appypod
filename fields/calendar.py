@@ -27,6 +27,12 @@ class Timeslot:
         # that can be assigned to this slot.
         self.eventTypes = eventTypes # "None" means "all"
 
+    def allows(self, eventType):
+        '''It is allowed to have an event of p_eventType in this timeslot?'''
+        # self.eventTypes being None means that no restriction applies
+        if not self.eventTypes: return True
+        return eventType in self.eventTypes
+
 # ------------------------------------------------------------------------------
 class Other:
     '''Identifies a Calendar field that must be shown within another Calendar
@@ -97,6 +103,10 @@ class Calendar(Field):
     Other = Other
     Event = Event
     IterSub = IterSub
+    # Error messages
+    TIMESLOT_USED = 'An event is already defined at this timeslot.'
+    DAY_FULL = 'No more place for adding this event.'
+    
 
     timelineBgColors = {'Fri': '#dedede', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
@@ -249,13 +259,13 @@ class Calendar(Field):
 
        <!-- Delete successive events ? -->
        <div class="discreet" style="margin-bottom: 10px"
-            id=":prefix + 'DelNextEvent'">
-         <input type="checkbox" name="deleteNext_cb"
-                id=":prefix + '_cb'"
-                onClick=":'toggleCheckbox(%s, %s)' % \
-                          (q('%s_cb' % prefix), q('%s_hd' % prefix))"/>
-         <input type="hidden" id=":prefix + '_hd'" name="deleteNext"/>
-         <span>:_('del_next_events')</span>
+            id=":prefix + 'DelNextEvent'"
+            var="cbId=prefix + '_cb'; hdId=prefix + '_hd'">
+         <input type="checkbox" name="deleteNext_cb" id=":cbId"
+                onClick=":'toggleCheckbox(%s, %s)' % (q(cbId), q(hdId))"/>
+         <input type="hidden" id=":hdId" name="deleteNext"/>
+         <label lfor=":cbId"
+                style="text-transform: none">:_('del_next_events')</label>
        </div>
        <input type="button" value=":_('yes')"
               onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
@@ -905,6 +915,41 @@ class Calendar(Field):
         else:
             return DateTime() # Now
 
+    def checkCreateEvent(self, obj, eventType, timeslot, events):
+        '''Checks if one may create an event of p_eventType in p_timeslot.
+           Events already defined at p_date are in p_events. If the creation is
+           not possible, an error message is returned.'''
+        # The following errors should not occur if we have a normal user behind
+        # the ui.
+        for e in events:
+            if e.timeslot == timeslot: return Calendar.TIMESLOT_USED
+            elif e.timeslot == 'main': return Calendar.DAY_FULL
+        if events and (timeslot == 'main'): return Calendar.DAY_FULL
+        # Get the Timeslot and check if, at this timeslot, it is allowed to
+        # create an event of p_eventType.
+        for slot in self.timeslots:
+            if slot.id == timeslot:
+                # I have the timeslot
+                if not slot.allows(eventType):
+                    _ = obj.translate
+                    return _('timeslot_misfit', mapping={'slot': timeslot})
+
+    def mergeEvent(self, eventType, timeslot, events):
+        '''If, after adding an event of p_eventType, all timeslots are used with
+           events of the same type, we can merge them and create a single event
+           of this type in the main timeslot.'''
+        # When defining an event in the main timeslot, no merge is needed
+        if timeslot == 'main': return
+        # Merge is required when all non-main timeslots are used by events of
+        # the same type.
+        if len(events) != (len(self.timeslots)-2): return
+        for event in events:
+            if event.eventType != eventType: return
+        # If we are here, we must merge all events
+        del events[:]
+        events.append(Event(eventType))
+        return True
+
     def createEvent(self, obj, date, timeslot, eventType=None, eventSpan=None,
                     handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day).
@@ -941,20 +986,18 @@ class Calendar(Field):
         else:
             daysDict[day] = events = PersistentList()
         # Return an error if the creation cannot occur
-        for e in events:
-            if e.timeslot == timeslot:
-                return 'An event for this timeslot already exist'
-            elif e.timeslot == 'main':
-                return 'No more place for adding this event'
-        if events and (timeslot == 'main'):
-            return 'No more place (2) for adding this event'
-        # Create and store the event
-        events.append(Event(eventType, timeslot))
-        # Sort events in the order of timeslots
-        timeslots = [slot.id for slot in self.timeslots]
-        if len(events) > 1:
-            events.data.sort(key=lambda e: timeslots.index(e.timeslot))
-            events._p_changed = 1
+        error = self.checkCreateEvent(obj, eventType, timeslot, events)
+        if error: return error
+        # Merge this event with others when relevant
+        merged = self.mergeEvent(eventType, timeslot, events)
+        if not merged:
+            # Create and store the event
+            events.append(Event(eventType, timeslot))
+            # Sort events in the order of timeslots
+            if len(events) > 1:
+                timeslots = [slot.id for slot in self.timeslots]
+                events.data.sort(key=lambda e: timeslots.index(e.timeslot))
+                events._p_changed = 1
         # Span the event on the successive days if required
         if handleEventSpan and eventSpan:
             nbOfDays = min(int(eventSpan), self.maxEventLength)

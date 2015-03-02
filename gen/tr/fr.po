@@ -724,6 +724,10 @@ msgstr "Plage horaire"
 msgid "timeslot_main"
 msgstr "Toute la journée"
 
+#. Default: "Cannot create such an event in the ${slot} slot."
+msgid "timeslot_misfit"
+msgstr "Impossible de créer ce type d'événement dans la plage horaire ${slot}."
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr "Inséré par ${userName}"

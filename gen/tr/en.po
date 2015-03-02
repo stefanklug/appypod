@@ -724,6 +724,10 @@ msgstr "Timeslot"
 msgid "timeslot_main"
 msgstr "All day"
 
+#. Default: "Cannot create such an event in the ${slot} slot."
+msgid "timeslot_misfit"
+msgstr "Cannot create such an event in the ${slot} slot."
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr "Inserted by ${userName}"
