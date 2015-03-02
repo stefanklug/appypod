@@ -80,11 +80,15 @@ class Event(Persistent):
         self.eventType = eventType
         self.timeslot = timeslot
 
-    def getName(self, allEventNames):
+    def getName(self, allEventNames, xhtml=True):
         '''Gets the name for this event, that depends on it type and may include
            the timeslot if not "main".'''
         res = allEventNames[self.eventType]
-        if self.timeslot != 'main': res += ' ' + self.timeslot
+        if self.timeslot != 'main':
+            # Prefix it with the timeslot
+            prefix = xhtml and ('<b>[%s]</b> ' % self.timeslot) or \
+                               ('[%s] ' % self.timeslot)
+            res = '%s%s' % (prefix, res)
         return res
 
     def sameAs(self, other):
@@ -328,7 +332,7 @@ class Calendar(Field):
           <!-- Events -->
           <x if="events">
           <div for="event in events" style="color: grey">
-           <x>:event.getName(allEventNames)</x>
+           <x>::event.getName(allEventNames)</x>
            <!-- Icon for delete this particular event -->
             <img if="mayDelete and not single" class="clickable"
                  src=":url('delete')"  style="visibility:hidden"
@@ -714,7 +718,7 @@ class Calendar(Field):
 
     def getEventsAt(self, obj, date):
         '''Returns the list of events that exist at some p_date (=day).'''
-        obj = obj.o # Ensure p_obj is not a wrapper.
+        obj = obj.o # Ensure p_obj is not a wrapper
         if not hasattr(obj.aq_base, self.name): return
         years = getattr(obj, self.name)
         year = date.year()
@@ -950,8 +954,8 @@ class Calendar(Field):
         events.append(Event(eventType))
         return True
 
-    def createEvent(self, obj, date, timeslot, eventType=None, eventSpan=None,
-                    handleEventSpan=True):
+    def createEvent(self, obj, date, timeslot='main', eventType=None,
+                    eventSpan=None, handleEventSpan=True):
         '''Create a new event in the calendar, at some p_date (day).
            If p_eventType is given, it is used; else, rq['eventType'] is used.
            If p_handleEventSpan is True, we will use p_eventSpan (or
