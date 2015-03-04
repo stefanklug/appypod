@@ -64,32 +64,34 @@ class Other:
         # month rendering) in the calendar integrating this one.
         self.color = color
 
-    def getEventsAt(self, res, calendar, date, eventNames, inTimeline, colors):
+    def getEventsInfoAt(self, res, calendar, date, eventNames, inTimeline,
+                        colors):
         '''Gets the events defined at p_date in this calendar and append them in
            p_res.'''
         events = self.field.getEventsAt(self.obj.o, date)
         if not events: return
-        eventType = events[0].eventType
-        # Gathered info will be an Object instance
-        info = Object(color=self.color)
-        if inTimeline:
-            # Get the background color for this cell if it has been
-            # defined, or (a) nothing if showUncolored is False, (b) a
-            # tooltipped dot else.
-            if eventType in colors:
-                info.bgColor = colors[eventType]
-                info.symbol = None
-            else:
-                info.bgColor = None
-                if calendar.showUncolored:
-                    info.symbol = '<acronym title="%s">▪</acronym>' % \
-                                  eventNames[eventType]
-                else:
+        for event in events:
+            eventType = event.eventType
+            # Gathered info will be an Object instance
+            info = Object(event=event, color=self.color)
+            if inTimeline:
+                # Get the background color for this cell if it has been defined,
+                # or (a) nothing if showUncolored is False, (b) a tooltipped dot
+                # else.
+                if eventType in colors:
+                    info.bgColor = colors[eventType]
                     info.symbol = None
-        else:
-            # Get the event name
-            info.name = eventNames[eventType]
-        res.append(info)
+                else:
+                    info.bgColor = None
+                    if calendar.showUncolored:
+                        info.symbol = '<acronym title="%s">▪</acronym>' % \
+                                      eventNames[eventType]
+                    else:
+                        info.symbol = None
+            else:
+                # Get the event name
+                info.name = eventNames[eventType]
+            res.append(info)
 
 # ------------------------------------------------------------------------------
 class Event(Persistent):
@@ -133,7 +135,6 @@ class Calendar(Field):
     # Error messages
     TIMESLOT_USED = 'An event is already defined at this timeslot.'
     DAY_FULL = 'No more place for adding this event.'
-    
 
     timelineBgColors = {'Fri': '#dedede', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
 
@@ -910,10 +911,12 @@ class Calendar(Field):
         res = []
         isTimeline = render == 'timeline'
         if isinstance(others, Other):
-            others.getEventsAt(res, self, date, eventNames, isTimeline, colors)
+            others.getEventsInfoAt(res, self, date, eventNames, isTimeline,
+                                   colors)
         else:
             for other in sutils.IterSub(others):
-                other.getEventsAt(res, self, date, eventNames,isTimeline,colors)
+                other.getEventsInfoAt(res, self, date, eventNames, isTimeline,
+                                      colors)
         return res
 
     def getEventName(self, obj, eventType):
@@ -1141,8 +1144,7 @@ class Calendar(Field):
     def getCellStyle(self, obj, date, render, events):
         '''Gets the cell style to apply to the cell corresponding to p_date.'''
         if render != 'timeline': return '' # Currently, for timelines only
-        if not events: return ''
-        # Currently, a single event is allowed
+        if not events or (len(events) > 1): return ''
         event = events[0]
         return event.bgColor and ('background-color: %s' % event.bgColor) or ''
 
