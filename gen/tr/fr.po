@@ -738,7 +738,7 @@ msgstr "Tous les événements sélectionnés seront confirmés, tandis que ceux 
 
 #. Default: "${validated} event(s) was (were) validated and ${discarded} was (were) discarded."
 msgid "validate_events_done"
-msgstr "${validated} événement(s) a (ont) été validé(s) et ${discarded} a (ont) été rejeté(s)."
+msgstr "${validated} événement(s) a (ont) été validé(s) et ${discarded} ne l'a (ont) pas été."
 
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"

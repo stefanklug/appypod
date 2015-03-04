@@ -40,7 +40,7 @@ class Validation:
        validated events. This class holds information about this validation
        process. For more information, see the Calendar constructor, parameter
        "validation".'''
-    def __init__(self, method, schema):
+    def __init__(self, method, schema, removeDiscarded=False):
         # p_method holds a method that must return True if the currently logged
         # user can validate whish events.
         self.method = method
@@ -48,6 +48,8 @@ class Validation:
         # and whose values are the event types being the corresponding validated
         # event types.
         self.schema = schema
+        # When discarding events, mmust we simply let them there or remove it?
+        self.removeDiscarded = removeDiscarded
 
 # ------------------------------------------------------------------------------
 class Other:
@@ -96,10 +98,14 @@ class Event(Persistent):
         self.eventType = eventType
         self.timeslot = timeslot
 
-    def getName(self, allEventNames, xhtml=True):
+    def getName(self, allEventNames=None, xhtml=True):
         '''Gets the name for this event, that depends on it type and may include
            the timeslot if not "main".'''
-        res = allEventNames[self.eventType]
+        # If we have the translated names for event types, use it.
+        if allEventNames:
+            res = allEventNames[self.eventType]
+        else:
+            res = self.eventType
         if self.timeslot != 'main':
             # Prefix it with the timeslot
             prefix = xhtml and ('<b>[%s]</b> ' % self.timeslot) or \
@@ -575,6 +581,12 @@ class Calendar(Field):
             raise Exception('The first timeslot must have id "main" and is ' \
                             'the one representing the whole day.')
 
+    def log(self, obj, msg, date=None):
+        '''Logs m_msg, field-specifically prefixed.'''
+        prefix = '%s:%s' % (obj.id, self.name)
+        if date: prefix += '@%s' % date.strftime('%Y/%m/%d')
+        obj.log('%s: %s' % (prefix, msg))
+
     def getPreComputedInfo(self, obj, monthDayOne, grid):
         '''Returns the result of calling self.preComputed, or None if no such
            method exists.'''
@@ -1038,11 +1050,16 @@ class Calendar(Field):
                 events.data.sort(key=lambda e: timeslots.index(e.timeslot))
                 events._p_changed = 1
         # Span the event on the successive days if required
+        suffix = ''
         if handleEventSpan and eventSpan:
             nbOfDays = min(int(eventSpan), self.maxEventLength)
             for i in range(nbOfDays):
                 date = date + 1
                 self.createEvent(obj, date, timeslot, handleEventSpan=False)
+                suffix = ', span+%d' % nbOfDays
+        if handleEventSpan:
+            msg = 'added %s, slot %s%s' % (eventType, timeslot, suffix)
+            self.log(obj, msg, date)
 
     def mayDelete(self, obj, events):
         '''May the user delete p_events?'''
@@ -1060,26 +1077,38 @@ class Calendar(Field):
         if not self.getEventsAt(obj, date): return
         daysDict = getattr(obj, self.name)[date.year()][date.month()]
         events = self.getEventsAt(obj, date)
+        count = len(events)
+        eNames = ', '.join([e.getName(xhtml=False) for e in events])
         if timeslot == 'main':
             # Delete all events; delete them also in the following days when
             # relevant.
             del daysDict[date.day()]
             rq = obj.REQUEST
+            suffix = ''
             if handleEventSpan and rq.has_key('deleteNext') and \
                (rq['deleteNext'] == 'True'):
+                nbOfDays = 0
                 while True:
                     date = date + 1
                     if self.hasEventsAt(obj, date, events):
                         self.deleteEvent(obj, date, timeslot,
                                          handleEventSpan=False)
+                        nbOfDays += 1
                     else:
                         break
+                if nbOfDays: suffix = ', span+%d' % nbOfDays
+            if handleEventSpan:
+                msg = '%s deleted (%d)%s.' % (eNames, count, suffix)
+                self.log(obj, msg, date)
         else:
             # Delete the event at p_timeslot
             i = len(events) - 1
             while i >= 0:
                 if events[i].timeslot == timeslot:
+                    msg = '%s deleted at slot %s.' % \
+                          (events[i].getName(xhtml=False), timeslot)
                     del events[i]
+                    self.log(obj, msg, date)
                     break
                 i -= 1
 
@@ -1178,6 +1207,7 @@ class Calendar(Field):
         '''Validate or discard events from the request.'''
         rq = obj.REQUEST.form
         counts = {'validated': 0, 'discarded': 0}
+        removeDiscarded = self.validation.removeDiscarded
         for action in ('validated', 'discarded'):
             if not rq[action]: continue
             for info in rq[action].split(','):
@@ -1197,12 +1227,13 @@ class Calendar(Field):
                         if action == 'validated':
                             event.eventType = self.validation.schema[eventType]
                         else:
-                            del events[i]
+                            if removeDiscarded: del events[i]
                         counts[action] += 1
                     i -= 1
-        obj.log('%s:%s: %d event(s) validated and %d discarded.' % \
-                (obj.id, self.name, counts['validated'], counts['discarded']))
         if not counts['validated'] and not counts['discarded']:
             return obj.translate('action_null')
+        part = not removeDiscarded and ' (but not removed)' or ''
+        self.log(obj, '%d event(s) validated and %d discarded%s.' % \
+                 (counts['validated'], counts['discarded'], part))
         return obj.translate('validate_events_done', mapping=counts)
 # ------------------------------------------------------------------------------
