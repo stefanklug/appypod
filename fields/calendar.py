@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 import types
 from appy import Object
-from appy.shared.utils import splitList, IterSub
+from appy.shared import utils as sutils
 from appy.gen import Field
 from appy.px import Px
 from DateTime import DateTime
@@ -32,6 +32,22 @@ class Timeslot:
         # self.eventTypes being None means that no restriction applies
         if not self.eventTypes: return True
         return eventType in self.eventTypes
+
+# ------------------------------------------------------------------------------
+class Validation:
+    '''The validation process for a calendar consists in "converting" some event
+       types being "wishes" to other event types being the corresponding
+       validated events. This class holds information about this validation
+       process. For more information, see the Calendar constructor, parameter
+       "validation".'''
+    def __init__(self, method, schema):
+        # p_method holds a method that must return True if the currently logged
+        # user can validate whish events.
+        self.method = method
+        # p_schema must hold a dict whose keys are the event types being wishes
+        # and whose values are the event types being the corresponding validated
+        # event types.
+        self.schema = schema
 
 # ------------------------------------------------------------------------------
 class Other:
@@ -104,9 +120,10 @@ class Calendar(Field):
     DateTime = DateTime
     # Access to Calendar utility classes via the Calendar class
     Timeslot = Timeslot
+    Validation = Validation
     Other = Other
     Event = Event
-    IterSub = IterSub
+    IterSub = sutils.IterSub
     # Error messages
     TIMESLOT_USED = 'An event is already defined at this timeslot.'
     DAY_FULL = 'No more place for adding this event.'
@@ -155,6 +172,7 @@ class Calendar(Field):
     # Timeline view for a calendar
     pxViewTimeline = Px('''
      <table cellpadding="0" cellspacing="0" class="list timeline"
+            id=":ajaxHookId + '_cal'"
             var="monthsInfos=field.getTimelineMonths(grid, zobj)">
       <!-- Column specifiers -->
       <colgroup>
@@ -202,14 +220,12 @@ class Calendar(Field):
 
     # Popup for adding an event in the month view
     pxAddPopup = Px('''
-     <div var="prefix='%s_newEvent' % field.name;
-               popupId=prefix + 'Popup'"
+     <div var="popupId=ajaxHookId + '_new'"
           id=":popupId" class="popup" align="center">
-      <form id=":prefix + 'Form'" method="post">
+      <form id=":popupId + 'Form'" method="post" action="/process">
        <input type="hidden" name="fieldName" value=":field.name"/>
        <input type="hidden" name="month" value=":month"/>
        <input type="hidden" name="name" value=":field.name"/>
-       <input type="hidden" name="action" value="process"/>
        <input type="hidden" name="actionType" value="createEvent"/>
        <input type="hidden" name="day"/>
 
@@ -236,9 +252,8 @@ class Calendar(Field):
        </div>
        <input type="button"
               value=":_('object_save')"
-              onclick=":'triggerCalendarEvent(%s, %s, %s, %s, \
-                         %s_maxEventLength)' % (q('new'), q(ajaxHookId), \
-                         q(field.name), q(objUrl), field.name)"/>
+              onclick=":'triggerCalendarEvent(%s, %s, %s_maxEventLength)' % \
+                        (q(ajaxHookId), q('new'), field.name)"/>
        <input type="button"
               value=":_('object_cancel')"
               onclick=":'closePopup(%s)' % q(popupId)"/>
@@ -247,14 +262,12 @@ class Calendar(Field):
 
     # Popup for removing events in the month view
     pxDelPopup = Px('''
-     <div var="prefix='%s_delEvent' % field.name;
-               popupId=prefix + 'Popup'"
+     <div var="popupId=ajaxHookId + '_del'"
           id=":popupId" class="popup" align="center">
-      <form id=":prefix + 'Form'" method="post">
+      <form id=":popupId + 'Form'" method="post" action="/process">
        <input type="hidden" name="fieldName" value=":field.name"/>
        <input type="hidden" name="month" value=":month"/>
        <input type="hidden" name="name" value=":field.name"/>
-       <input type="hidden" name="action" value="process"/>
        <input type="hidden" name="actionType" value="deleteEvent"/>
        <input type="hidden" name="timeslot" value="main"/>
        <input type="hidden" name="day"/>
@@ -263,8 +276,8 @@ class Calendar(Field):
 
        <!-- Delete successive events ? -->
        <div class="discreet" style="margin-bottom: 10px"
-            id=":prefix + 'DelNextEvent'"
-            var="cbId=prefix + '_cb'; hdId=prefix + '_hd'">
+            id=":ajaxHookId + '_DelNextEvent'"
+            var="cbId=popupId + '_cb'; hdId=popupId + '_hd'">
          <input type="checkbox" name="deleteNext_cb" id=":cbId"
                 onClick=":'toggleCheckbox(%s, %s)' % (q(cbId), q(hdId))"/>
          <input type="hidden" id=":hdId" name="deleteNext"/>
@@ -272,8 +285,8 @@ class Calendar(Field):
                 style="text-transform: none">:_('del_next_events')</label>
        </div>
        <input type="button" value=":_('yes')"
-              onClick=":'triggerCalendarEvent(%s, %s, %s, %s)' % \
-                (q('del'), q(ajaxHookId), q(field.name), q(objUrl))"/>
+              onClick=":'triggerCalendarEvent(%s, %s)' % \
+                        (q(ajaxHookId), q('del'))"/>
        <input type="button" value=":_('no')"
               onclick=":'closePopup(%s)' % q(popupId)"/>
       </form>
@@ -282,7 +295,7 @@ class Calendar(Field):
     # Month view for a calendar
     pxViewMonth = Px('''
       <table cellpadding="0" cellspacing="0" width="100%" class="list"
-             style="font-size: 95%"
+             style="font-size: 95%" id=":ajaxHookId + '_cal'"
              var="rowHeight=int(field.height/float(len(grid)))">
        <!-- 1st row: names of days -->
        <tr height="22px">
@@ -321,23 +334,28 @@ class Calendar(Field):
                 var2="freeSlots=field.getFreeSlotsAt(date, events, slotIds,\
                                                      slotIdsStr, True)"
                 onclick=":'openEventPopup(%s,%s,%s,null,null,%s,%s,%s)' % \
-                 (q('new'), q(field.name), q(dayString), q(info.eventTypes), \
+                 (q(ajaxHookId), q('new'), q(dayString), q(info.eventTypes), \
                   q(info.message), q(freeSlots))"/>
           </x>
           <!-- Icon for deleting event(s) -->
           <img if="mayDelete" class="clickable" style="visibility:hidden"
                src=":url(single and 'delete' or 'deleteMany')"
-               onclick=":'openEventPopup(%s,%s,%s,%s,%s)' %  (q('del'), \
-                        q(field.name), q(dayString), q('main'), q(spansDays))"/>
+               onclick=":'openEventPopup(%s,%s,%s,%s,%s)' %  (q(ajaxHookId), \
+                          q('del'), q(dayString), q('main'), q(spansDays))"/>
           <!-- Events -->
           <x if="events">
           <div for="event in events" style="color: grey">
+           <!-- Checkbox for validating the event -->
+           <input type="checkbox" checked="checked" class="smallbox"
+               if="mayValidate and (event.eventType in field.validation.schema)"
+               id=":'%s_%s_%s' % (date.strftime('%Y%m%d'), event.eventType, \
+                                  event.timeslot)"/>
            <x>::event.getName(allEventNames)</x>
            <!-- Icon for delete this particular event -->
             <img if="mayDelete and not single" class="clickable"
                  src=":url('delete')"  style="visibility:hidden"
-                 onclick=":'openEventPopup(%s,%s,%s,%s)' % (q('del'), \
-                            q(field.name), q(dayString), q(event.timeslot))"/>
+                 onclick=":'openEventPopup(%s,%s,%s,%s)' % (q(ajaxHookId), \
+                            q('del'), q(dayString), q(event.timeslot))"/>
           </div>
           </x>
           <!-- Events from other calendars -->
@@ -384,12 +402,15 @@ class Calendar(Field):
                namesOfDays=field.getNamesOfDays(_);
                showTimeslots=len(field.timeslots) &gt; 1;
                slotIds=[slot.id for slot in field.timeslots];
-               slotIdsStr=','.join(slotIds)"
+               slotIdsStr=','.join(slotIds);
+               mayValidate=field.mayValidate(zobj)"
           id=":ajaxHookId">
       <script>:'var %s_maxEventLength = %d;' % \
                 (field.name, field.maxEventLength)</script>
+      <script>:field.getAjaxData(ajaxHookId, zobj, render=render, \
+                 month=defaultDateMonth)</script>
 
-      <!-- Month chooser -->
+      <!-- Actions (month chooser, validation) -->
       <div style="margin-bottom: 5px"
            var="fmt='%Y/%m/%d';
                 goBack=not startDate or (startDate.strftime(fmt) &lt; \
@@ -398,23 +419,26 @@ class Calendar(Field):
                                           grid[-1][-1].strftime(fmt))">
        <!-- Go to the previous month -->
        <img class="clickable" if="goBack" src=":url('arrowLeft')"
-            onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
-                       q(objUrl), q(render), q(field.name), q(previousMonth))"/>
+            onclick=":'askMonth(%s,%s)' % (q(ajaxHookId), q(previousMonth))"/>
        <!-- Go back to the default date -->
        <input type="button" if="goBack or goForward"
               var="fmt='%Y/%m';
                    label=(defaultDate.strftime(fmt)==today.strftime(fmt)) and \
                          'today' or 'goto_source'"
               value=":_(label)"
-              onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
-                      q(objUrl), q(render), q(field.name), q(defaultDateMonth))"
+              onclick=":'askMonth(%s,%s)' % (q(ajaxHookId),q(defaultDateMonth))"
               disabled=":defaultDate.strftime(fmt)==monthDayOne.strftime(fmt)"/>
        <!-- Go to the next month -->
        <img class="clickable" if="goForward" src=":url('arrowRight')"
-            onclick=":'askCalendar(%s,%s,%s,%s,%s)' % (q(ajaxHookId), \
-                       q(objUrl), q(render), q(field.name), q(nextMonth))"/>
+            onclick=":'askMonth(%s,%s)' % (q(ajaxHookId), q(nextMonth))"/>
        <span>:_('month_%s' % monthDayOne.aMonth())</span>
        <span>:month.split('/')[0]</span>
+       <!-- Validate button -->
+       <input if="mayValidate" type="button" value=":_('validate_events')"
+              class="buttonSmall button" style=":url('validate', bg=True)"
+              var2="js='validateEvents(%s)' % q(ajaxHookId)"
+              onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js, False), \
+                        q(_('validate_events_confirm')))"/>
       </div>
       <x>:getattr(field, 'pxView%s' % render.capitalize())</x>
      </div>''')
@@ -430,7 +454,8 @@ class Calendar(Field):
                  others=None, timelineName=None, additionalInfo=None,
                  startDate=None, endDate=None, defaultDate=None, timeslots=None,
                  colors=None, showUncolored=False, preCompute=None,
-                 applicableEvents=None, view=None, xml=None, delete=True):
+                 applicableEvents=None, validation=None, view=None, xml=None,
+                 delete=True):
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -533,6 +558,12 @@ class Calendar(Field):
         # for explaining him why he can, for this day, only create events of a
         # sub-set of the possible event types (or even no event at all).
         self.applicableEvents = applicableEvents
+        # A validation process can be associated to a Calendar event. It
+        # consists in identifying validators and letting them "convert" event
+        # types being wished to final, validated event types. If you want to
+        # enable this, define a Validation instance (see the hereabove class)
+        # in parameter "validation".
+        self.validation = validation
         # May the user delete events in this calendar? If "delete" is a method,
         # it must accept an event type as single arg.
         self.delete = delete
@@ -717,17 +748,21 @@ class Calendar(Field):
         return ','.join(res)
 
     def getEventsAt(self, obj, date):
-        '''Returns the list of events that exist at some p_date (=day).'''
+        '''Returns the list of events that exist at some p_date (=day). p_date
+           can be a DateTime instance or a tuple (i_year, i_month, i_day).'''
         obj = obj.o # Ensure p_obj is not a wrapper
         if not hasattr(obj.aq_base, self.name): return
         years = getattr(obj, self.name)
-        year = date.year()
+        # Get year, month and name from p_date
+        if isinstance(date, tuple):
+            year, month, day = date
+        else:
+            year, month, day = date.year(), date.month(), date.day()
+        # Dig into the oobtree
         if year not in years: return
         months = years[year]
-        month = date.month()
         if month not in months: return
         days = months[month]
-        day = date.day()
         if day not in days: return
         return days[day]
 
@@ -865,7 +900,7 @@ class Calendar(Field):
         if isinstance(others, Other):
             others.getEventsAt(res, self, date, eventNames, isTimeline, colors)
         else:
-            for other in IterSub(others):
+            for other in sutils.IterSub(others):
                 other.getEventsAt(res, self, date, eventNames,isTimeline,colors)
         return res
 
@@ -888,7 +923,7 @@ class Calendar(Field):
                 res[0].append(et)
                 res[1][et] = self.getEventName(obj, et)
         if not others: return res
-        for other in IterSub(others):
+        for other in sutils.IterSub(others):
             eventTypes = other.field.getEventTypes(other.obj)
             if eventTypes:
                 for et in eventTypes:
@@ -1126,5 +1161,48 @@ class Calendar(Field):
                 m.month = text
         return res
 
-    def splitList(self, l, sub): return splitList(l, sub)
+    def splitList(self, l, sub): return sutils.splitList(l, sub)
+    def mayValidate(self, obj):
+        '''May the currently logged user validate wish events ?'''
+        if not self.validation: return
+        return self.validation.method(obj.appy())
+
+    def getAjaxData(self, hook, zobj, **params):
+        '''Initializes an AjaxData object on the DOM node corresponding to
+           this calendar field.'''
+        params = sutils.getStringDict(params)
+        return "new AjaxData('%s', '%s:pxView', %s, null, '%s')" % \
+               (hook, self.name, params, zobj.absolute_url())
+
+    def validateEvents(self, obj):
+        '''Validate or discard events from the request.'''
+        rq = obj.REQUEST.form
+        counts = {'validated': 0, 'discarded': 0}
+        for action in ('validated', 'discarded'):
+            if not rq[action]: continue
+            for info in rq[action].split(','):
+                sdate, eventType, timeslot = info.split('_')
+                # Get the events defined at that date
+                date = int(sdate[:4]), int(sdate[4:6]), int(sdate[6:8])
+                events = self.getEventsAt(obj, date)
+                i = len(events) - 1
+                while i >= 0:
+                    # Get the event at that timeslot
+                    event = events[i]
+                    if event.timeslot == timeslot:
+                        # We have found the event
+                        if event.eventType != eventType:
+                            raise Exception('Wrong event type')
+                        # Validate or discard it
+                        if action == 'validated':
+                            event.eventType = self.validation.schema[eventType]
+                        else:
+                            del events[i]
+                        counts[action] += 1
+                    i -= 1
+        obj.log('%s:%s: %d event(s) validated and %d discarded.' % \
+                (obj.id, self.name, counts['validated'], counts['discarded']))
+        if not counts['validated'] and not counts['discarded']:
+            return obj.translate('action_null')
+        return obj.translate('validate_events_done', mapping=counts)
 # ------------------------------------------------------------------------------

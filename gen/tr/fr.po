@@ -728,6 +728,18 @@ msgstr "Toute la journée"
 msgid "timeslot_misfit"
 msgstr "Impossible de créer ce type d'événement dans la plage horaire ${slot}."
 
+#. Default: "Validate events"
+msgid "validate_events"
+msgstr "Valider les événements"
+
+#. Default: "All the checked events will be confirmed, while the unchecked ones will be discarded. The concerned user(s) will be warned. Are you sure?"
+msgid "validate_events_confirm"
+msgstr "Tous les événements sélectionnés seront confirmés, tandis que ceux qui sont désélectionnés seront rejetés. Le ou les utilisateurs concernés seront prévenus. Êtes-vous sûr?"
+
+#. Default: "${validated} event(s) was (were) validated and ${discarded} was (were) discarded."
+msgid "validate_events_done"
+msgstr "${validated} événement(s) a (ont) été validé(s) et ${discarded} a (ont) été rejeté(s)."
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr "Inséré par ${userName}"

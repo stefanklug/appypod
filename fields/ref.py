@@ -1254,8 +1254,8 @@ class Ref(Field):
                (obj.id, self.name, code % ('objs', 'objs'), poss)
 
     def getAjaxData(self, hook, zobj, **params):
-        '''Initializes an AjaxData object on the DOM node corresponding to
-           p_hook = the whole search result.'''
+        '''Initializes an AjaxData object on the DOM node corresponding to this
+           Ref field.'''
         # Complete params with default parameters
         params['ajaxHookId'] = hook;
         params['scope'] = hook.rsplit('_', 1)[-1]

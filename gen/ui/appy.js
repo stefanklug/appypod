@@ -295,9 +295,10 @@ function askAjax(hook, form, params) {
   }
   else var mode = d.mode;
   // Get p_params if given. Note that they override anything else.
+  if (params && ('mode' in params)) {
+    mode = params['mode']; delete params['mode'] }
   if (params) { for (var key in params) d.params[key] = params[key]; }
-  askAjaxChunk(hook, mode, d.url, d.px, d.params, d.beforeSend,
-               evalInnerScripts);
+  askAjaxChunk(hook,mode,d.url,d.px,d.params,d.beforeSend,evalInnerScripts);
 }
 
 function askBunch(hookId, startNumber) {

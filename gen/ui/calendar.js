@@ -8,11 +8,8 @@ function toggleVisibility(node, nodeType){
   }
 }
 
-function askCalendar(hookId, objectUrl, render, fieldName, month) {
-  // Sends an Ajax request for getting the calendar, at p_month
-  var params = {'month': month, 'render': render};
-  askAjaxChunk(hookId, 'GET', objectUrl, fieldName+':pxView', params);
-}
+// Sends an Ajax request for getting the calendar, at p_month
+function askMonth(hookId, month) {askAjax(hookId, null, {'month': month})}
 
 function enableOptions(select, enabled, selectFirst, message){
   /* This function disables, in p_select, all options that are not in p_enabled.
@@ -46,7 +43,7 @@ function enableOptions(select, enabled, selectFirst, message){
   }
 }
 
-function openEventPopup(action, fieldName, day, timeslot, spansDays,
+function openEventPopup(hookId, action, day, timeslot, spansDays,
                         applicableEventTypes, message, freeSlots) {
   /* Opens the popup for creating (or deleting, depending on p_action) a
      calendar event at some p_day. When action is "del", we need to know the
@@ -57,13 +54,13 @@ function openEventPopup(action, fieldName, day, timeslot, spansDays,
      p_applicableEventTypes; p_message contains an optional message explaining
      why not applicable types are not applicable. When "new", p_freeSlots may
      list the available timeslots at p_day. */
-  var prefix = fieldName + '_' + action + 'Event';
-  var f = document.getElementById(prefix + 'Form');
+  var popupId = hookId + '_' + action;
+  var f = document.getElementById(popupId + 'Form');
   f.day.value = day;
   if (action == 'del') {
     if (f.timeslot) f.timeslot.value = timeslot;
     // Show or hide the checkbox for deleting the event for successive days
-    var elem = document.getElementById(prefix + 'DelNextEvent');
+    var elem = document.getElementById(hookId + '_DelNextEvent');
     var cb = elem.getElementsByTagName('input');
     cb[0].checked = false;
     cb[1].value = 'False';
@@ -78,15 +75,15 @@ function openEventPopup(action, fieldName, day, timeslot, spansDays,
     enableOptions(f.eventType, applicableEventTypes, false, message);
     if (f.timeslot) enableOptions(f.timeslot, freeSlots, true, 'Not free');
   }
-  openPopup(prefix + 'Popup');
+  openPopup(popupId);
 }
 
-function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
-                              maxEventLength) {
+function triggerCalendarEvent(hookId, action, maxEventLength) {
   /* Sends an Ajax request for triggering a calendar event (create or delete an
      event) and refreshing the view month. */
-  var prefix = fieldName + '_' + action + 'Event';
-  var f = document.getElementById(prefix + 'Form');
+  var popupId = hookId + '_' + action;
+  var formId = popupId + 'Form';
+  var f = document.getElementById(formId);
   if (action == 'new') {
     // Check that an event span has been specified
     if (f.eventType.selectedIndex == 0) {
@@ -105,12 +102,25 @@ function triggerCalendarEvent(action, hookId, fieldName, objectUrl,
       }
     }
   }
-  var elems = f.elements;
-  var params = {};
-  // Put form elements into "params"
-  for (var i=0; i < elems.length; i++) {
-    params[elems[i].name] = elems[i].value;
+  closePopup(popupId);
+  askAjax(hookId, formId);
+}
+
+// Function for validating and discarding calendar events
+function validateEvents(hookId) {
+  // Collect checkboxes from hookId and identify checked and unchecked ones
+  var validated = [];
+  var discarded = [];
+  var node = document.getElementById(hookId + '_cal');
+  var cbs = node.getElementsByTagName('input');
+  for (var i=0; i<cbs.length; i++) {
+    if (cbs[i].type != 'checkbox') continue;
+    if (cbs[i].checked) validated.push(cbs[i].id);
+    else discarded.push(cbs[i].id);
   }
-  closePopup(prefix + 'Popup');
-  askAjaxChunk(hookId, 'POST', objectUrl, fieldName+':pxView', params);
+  validated = validated.join()
+  discarded = discarded.join()
+  var params = {'action': 'validateEvents', 'validated': validated,
+                'discarded': discarded, 'mode': 'POST'};
+  askAjax(hookId, null, params);
 }

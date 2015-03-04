@@ -727,6 +727,18 @@ msgstr ""
 msgid "timeslot_misfit"
 msgstr ""
 
+#. Default: "Validate events"
+msgid "validate_events"
+msgstr ""
+
+#. Default: "All the checked events will be confirmed, while the unchecked ones will be discarded. The concerned user(s) will be warned. Are you sure?"
+msgid "validate_events_confirm"
+msgstr ""
+
+#. Default: "${validated} event(s) was (were) validated and ${discarded} was (were) discarded."
+msgid "validate_events_done"
+msgstr ""
+
 #. Default: "Inserted by ${userName}"
 msgid "history_insert"
 msgstr "Ingevuld door ${userName}"
