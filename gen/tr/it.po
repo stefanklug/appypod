@@ -715,6 +715,10 @@ msgstr ""
 msgid "del_next_events"
 msgstr ""
 
+#. Default: "Several events"
+msgid "several_events"
+msgstr ""
+
 #. Default: "Timeslot"
 msgid "timeslot"
 msgstr ""

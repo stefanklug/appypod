@@ -93,6 +93,10 @@ class Other:
                 info.name = eventNames[eventType]
             res.append(info)
 
+    def mayValidate(self):
+        '''Is validation enabled for this other calendar?'''
+        return self.field.mayValidate(self.obj)
+
 # ------------------------------------------------------------------------------
 class Event(Persistent):
     '''An event as will be stored in the database'''
@@ -159,19 +163,15 @@ class Calendar(Field):
     # Legend for a timeline calendar
     pxTimelineLegend = Px('''
      <table align="center" class="discreet"
-            var="legendTypes=[et for et in allEventTypes if et in colors]">
-      <tr for="row in field.splitList(legendTypes, 4)">
-       <x for="eventType in row">
-        <td> <!-- A colored cell (as mono-cell sub-table) -->
-         <table>
-          <tr height="9px">
-           <td width="9px"
-               style=":'background-color: %s' % colors[eventType]">&nbsp;</td>
-          </tr>
-         </table>
-        </td>
+            var="items=field.getLegendItems(allEventTypes, allEventNames, \
+                                            colors, url, _)">
+      <tr for="row in field.splitList(items, 4)">
+       <x for="item in row">
+        <td><table> <!-- A colored cell (as mono-cell sub-table) -->
+          <tr height="9px"><td width="9px" style=":item.style">&nbsp;</td></tr>
+        </table></td>
         <!-- The event name -->
-        <td>:allEventNames[eventType]</td>
+        <td width="115px">:item.name</td>
        </x>
       </tr>
      </table>''')
@@ -201,7 +201,8 @@ class Calendar(Field):
       <!-- Other calendars -->
       <x for="otherGroup in others">
        <tr for="other in otherGroup"
-           var2="tlName=field.getTimelineName(other)">
+           var2="tlName=field.getTimelineName(other);
+                 mayValidate=mayValidate and other.mayValidate()">
         <td class="tlLeft">::tlName</td>
         <!-- A cell in this other calendar -->
         <x for="date in grid"
@@ -211,7 +212,7 @@ class Calendar(Field):
              var2="events=field.getOtherEventsAt(zobj, date, other, \
                      allEventNames, render, colors)"
              style=":field.getCellStyle(zobj, date, render, \
-                                   events)">::field.getTimelineCell(events)</td>
+                        events)">::field.getTimelineCell(date, other, events, mayValidate)</td>
         </x>
         <td class="tlRight">::tlName</td>
        </tr>
@@ -682,11 +683,63 @@ class Calendar(Field):
             return '<a href="%s">%s</a>' % (other.obj.url, other.obj.title)
         return self.timelineName(self, other)
 
-    def getTimelineCell(self, events):
-        '''Gets the content of a cell in a timeline calendar.'''
-        # Currently a single event is allowed
-        if not events or not events[0].symbol: return ''
-        return events[0].symbol
+    def getTimelineCell(self, date, other, events, mayValidate):
+        '''Gets the content of a cell in a timeline calendar'''
+        if events and mayValidate:
+            # If at least one event from p_events is in the validation schema,
+            # propose a unique checkbox, that will allow to validate or not all
+            # validable events at p_date.
+            for info in events:
+                if info.event.eventType in other.field.validation.schema:
+                    return '<input type="checkbox" checked="checked" class="smallbox"/>'
+            return ''
+        # When there are multiple events, a background image is already shown
+        if not events or (len(events) > 1): return ''
+        # A single event: if not colored, show a symbol
+        return events[0].symbol or '' 
+
+    def getLegendItems(self, allEventTypes, allEventNames, colors, url, _):
+        '''Gets information needed to produce the legend for a timeline.'''
+        # Produce one legend item by event type shown and colored
+        res = []
+        for eventType in allEventTypes:
+            if eventType not in colors: continue
+            res.append(Object(name=allEventNames[eventType],
+                              style='background-color: %s' % colors[eventType]))
+        # Add the background indicating that several events are hidden behind
+        # the timeline cell
+        res.append(Object(name=_('several_events'),
+                          style=url('angled', bg=True)))
+        return res
+
+    def getTimelineMonths(self, grid, obj):
+        '''Given the p_grid of dates, this method returns the list of
+           corresponding months.'''
+        res = []
+        for date in grid:
+            if not res:
+                # Get the month correspoding to the first day in the grid
+                m = Object(month=date.aMonth(), colspan=1, year=date.year())
+                res.append(m)
+            else:
+                # Augment current month' colspan or create a new one
+                current = res[-1]
+                if date.aMonth() == current.month:
+                    current.colspan += 1
+                else:
+                    m = Object(month=date.aMonth(), colspan=1, year=date.year())
+                    res.append(m)
+        # Replace month short names by translated names whose format may vary
+        # according to colspan (a higher colspan allow us to produce a longer
+        # month name).
+        for m in res:
+            text = '%s %d' % (obj.translate('month_%s' % m.month), m.year)
+            if m.colspan < 6:
+                # Short version: a single letter with an acronym
+                m.month = '<acronym title="%s">%s</acronym>' % (text, text[0])
+            else:
+                m.month = text
+        return res
 
     def getAdditionalInfoAt(self, obj, date, preComputed):
         '''If the user has specified a method in self.additionalInfo, we call
@@ -1144,9 +1197,15 @@ class Calendar(Field):
     def getCellStyle(self, obj, date, render, events):
         '''Gets the cell style to apply to the cell corresponding to p_date.'''
         if render != 'timeline': return '' # Currently, for timelines only
-        if not events or (len(events) > 1): return ''
-        event = events[0]
-        return event.bgColor and ('background-color: %s' % event.bgColor) or ''
+        if not events: return ''
+        elif len(events) > 1:
+            # Return a special background indicating that several events are
+            # hidden behing this cell.
+            return 'background-image: url(%s/ui/angled.png)' % \
+                   obj.getTool().getSiteUrl()
+        else:
+            event = events[0]
+            return event.bgColor and ('background-color: %s' % event.bgColor) or ''
 
     def getCellClass(self, obj, date, render, today):
         '''What CSS class(es) must apply to the table cell representing p_date
@@ -1162,35 +1221,6 @@ class Calendar(Field):
         if date.aDay() in ('Sat', 'Sun'):
             res.append('cellDashed')
         return ' '.join(res)
-
-    def getTimelineMonths(self, grid, obj):
-        '''Given the p_grid of dates, this method returns the list of
-           corresponding months.'''
-        res = []
-        for date in grid:
-            if not res:
-                # Get the month correspoding to the first day in the grid
-                m = Object(month=date.aMonth(), colspan=1, year=date.year())
-                res.append(m)
-            else:
-                # Augment current month' colspan or create a new one
-                current = res[-1]
-                if date.aMonth() == current.month:
-                    current.colspan += 1
-                else:
-                    m = Object(month=date.aMonth(), colspan=1, year=date.year())
-                    res.append(m)
-        # Replace month short names by translated names whose format may vary
-        # according to colspan (a higher colspan allow us to produce a longer
-        # month name).
-        for m in res:
-            text = '%s %d' % (obj.translate('month_%s' % m.month), m.year)
-            if m.colspan < 6:
-                # Short version: a single letter with an acronym
-                m.month = '<acronym title="%s">%s</acronym>' % (text, text[0])
-            else:
-                m.month = text
-        return res
 
     def splitList(self, l, sub): return sutils.splitList(l, sub)
     def mayValidate(self, obj):

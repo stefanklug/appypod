@@ -716,6 +716,10 @@ msgstr "Extend the event on the following number of days (leave blank to create 
 msgid "del_next_events"
 msgstr "Also delete successive events of the same type."
 
+#. Default: "Several events"
+msgid "several_events"
+msgstr "Several events"
+
 #. Default: "Timeslot"
 msgid "timeslot"
 msgstr "Timeslot"

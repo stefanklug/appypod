@@ -716,6 +716,10 @@ msgstr "Étendre l'événement sur le nombre de jours suivants (laissez vide pou
 msgid "del_next_events"
 msgstr "Supprimer aussi les événements successifs de même type"
 
+#. Default: "Several events"
+msgid "several_events"
+msgstr "Plusieurs événements"
+
 #. Default: "Timeslot"
 msgid "timeslot"
 msgstr "Plage horaire"
