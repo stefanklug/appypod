@@ -691,12 +691,15 @@ class Calendar(Field):
             # validable events at p_date.
             for info in events:
                 if info.event.eventType in other.field.validation.schema:
-                    return '<input type="checkbox" checked="checked" class="smallbox"/>'
+                    cbId = '%s_%s_%s' % (other.obj.id, other.field.name,
+                                         date.strftime('%Y%m%d'))
+                    return '<input type="checkbox" checked="checked" ' \
+                           'class="smallbox" id="%s"/>' % cbId
             return ''
         # When there are multiple events, a background image is already shown
         if not events or (len(events) > 1): return ''
         # A single event: if not colored, show a symbol
-        return events[0].symbol or '' 
+        return events[0].symbol or ''
 
     def getLegendItems(self, allEventTypes, allEventNames, colors, url, _):
         '''Gets information needed to produce the legend for a timeline.'''
@@ -815,13 +818,19 @@ class Calendar(Field):
 
     def getEventsAt(self, obj, date):
         '''Returns the list of events that exist at some p_date (=day). p_date
-           can be a DateTime instance or a tuple (i_year, i_month, i_day).'''
+           can be:
+           * a DateTime instance;
+           * a tuple (i_year, i_month, i_day);
+           * a string YYYYmmdd.
+        '''
         obj = obj.o # Ensure p_obj is not a wrapper
         if not hasattr(obj.aq_base, self.name): return
         years = getattr(obj, self.name)
         # Get year, month and name from p_date
         if isinstance(date, tuple):
             year, month, day = date
+        elif isinstance(date, str):
+            year, month, day = int(date[:4]), int(date[4:6]), int(date[6:8])
         else:
             year, month, day = date.year(), date.month(), date.day()
         # Dig into the oobtree
@@ -1236,32 +1245,61 @@ class Calendar(Field):
                (hook, self.name, params, zobj.absolute_url())
 
     def validateEvents(self, obj):
-        '''Validate or discard events from the request.'''
+        '''Validate or discard events from the request'''
         rq = obj.REQUEST.form
         counts = {'validated': 0, 'discarded': 0}
         removeDiscarded = self.validation.removeDiscarded
+        tool = obj.getTool()
         for action in ('validated', 'discarded'):
             if not rq[action]: continue
             for info in rq[action].split(','):
-                sdate, eventType, timeslot = info.split('_')
-                # Get the events defined at that date
-                date = int(sdate[:4]), int(sdate[4:6]), int(sdate[6:8])
-                events = self.getEventsAt(obj, date)
-                i = len(events) - 1
-                while i >= 0:
-                    # Get the event at that timeslot
-                    event = events[i]
-                    if event.timeslot == timeslot:
-                        # We have found the event
-                        if event.eventType != eventType:
-                            raise Exception('Wrong event type')
-                        # Validate or discard it
-                        if action == 'validated':
-                            event.eventType = self.validation.schema[eventType]
-                        else:
-                            if removeDiscarded: del events[i]
-                        counts[action] += 1
-                    i -= 1
+                if rq['render'] == 'month':
+                    # Every checkbox corresponds to an event at at given date,
+                    # with a given event type at a given timeslot, in this
+                    # calendar (self) on p_obj.
+                    date, eventType, timeslot = info.split('_')
+                    # Get the events defined at that date
+                    events = self.getEventsAt(obj, date)
+                    i = len(events) - 1
+                    while i >= 0:
+                        # Get the event at that timeslot
+                        event = events[i]
+                        if event.timeslot == timeslot:
+                            # We have found the event
+                            if event.eventType != eventType:
+                                raise Exception('Wrong event type')
+                            # Validate or discard it
+                            if action == 'validated':
+                                schema = self.validation.schema
+                                event.eventType = schema[eventType]
+                            else:
+                                if removeDiscarded: del events[i]
+                            counts[action] += 1
+                        i -= 1
+                elif rq['render'] == 'timeline':
+                    # Every checkbox corresponds to a given date in some
+                    # calendar (self, or one among self.others). It means that
+                    # all "impactable" events at that date will be the target
+                    # of the action.
+                    otherId, fieldName, date = info.split('_')
+                    otherObj = tool.getObject(otherId)
+                    otherField = otherObj.getAppyType(fieldName)
+                    # Get, on this calendar, the events defined at that date
+                    events = otherField.getEventsAt(otherObj, date)
+                    # Among them, validate or discard any impactable one
+                    schema = otherField.validation.schema
+                    i = len(events) - 1
+                    while i >= 0:
+                        event = events[i]
+                        # Take this event into account only if in the schema
+                        if event.eventType in schema:
+                            if action == 'validated':
+                                event.eventType = schema[event.eventType]
+                            else:
+                                # "self" imposes its own "removeDiscarded"
+                                if removeDiscarded: del events[i]
+                            counts[action] += 1
+                        i -= 1
         if not counts['validated'] and not counts['discarded']:
             return obj.translate('action_null')
         part = not removeDiscarded and ' (but not removed)' or ''

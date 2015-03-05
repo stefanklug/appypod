@@ -17,6 +17,7 @@
 # ------------------------------------------------------------------------------
 from appy import Object
 from appy.pod import PodError
+from appy.shared.utils import Traceback
 from appy.pod.elements import *
 
 # ------------------------------------------------------------------------------
@@ -63,11 +64,13 @@ class BufferAction:
                 # Add in the error message the line nb where the errors occurs
                 # within the PX.
                 locator = self.buffer.env.parser.locator
-                # The column number may not be given.
+                # The column number may not be given
                 col = locator.getColumnNumber()
                 if col == None: col = ''
                 else: col = ', column %d' % col
                 errorMessage += ' (line %s%s)' % (locator.getLineNumber(), col)
+                # Integrate the traceback if requested
+                if dumpTb: errorMessage += '\n' + Traceback.get(5)
             raise Exception(errorMessage)
         # Create a temporary buffer to dump the error. If I reuse this buffer to
         # dump the error (what I did before), and we are, at some depth, in a
