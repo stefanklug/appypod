@@ -195,6 +195,10 @@ msgstr "Este valor no es permitido para este campo."
 msgid "select_delesect"
 msgstr "(des)seleccionar todo"
 
+#. Default: "Automatic (de)selection"
+msgid "select_auto"
+msgstr ""
+
 #. Default: "You must select at least one element."
 msgid "no_elem_selected"
 msgstr "Debe elegir al menos un elemento."

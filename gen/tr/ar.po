@@ -195,6 +195,10 @@ msgstr ""
 msgid "select_delesect"
 msgstr ""
 
+#. Default: "Automatic (de)selection"
+msgid "select_auto"
+msgstr ""
+
 #. Default: "You must select at least one element."
 msgid "no_elem_selected"
 msgstr ""

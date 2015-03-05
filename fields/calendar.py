@@ -212,7 +212,8 @@ class Calendar(Field):
              var2="events=field.getOtherEventsAt(zobj, date, other, \
                      allEventNames, render, colors)"
              style=":field.getCellStyle(zobj, date, render, \
-                        events)">::field.getTimelineCell(date, other, events, mayValidate)</td>
+                      events)">::field.getTimelineCell(date, other, events, \
+                                                   mayValidate, ajaxHookId)</td>
         </x>
         <td class="tlRight">::tlName</td>
        </tr>
@@ -289,8 +290,7 @@ class Calendar(Field):
          <input type="checkbox" name="deleteNext_cb" id=":cbId"
                 onClick=":'toggleCheckbox(%s, %s)' % (q(cbId), q(hdId))"/>
          <input type="hidden" id=":hdId" name="deleteNext"/>
-         <label lfor=":cbId"
-                style="text-transform: none">:_('del_next_events')</label>
+         <label lfor=":cbId" class="simpleLabel">:_('del_next_events')</label>
        </div>
        <input type="button" value=":_('yes')"
               onClick=":'triggerCalendarEvent(%s, %s)' % \
@@ -357,7 +357,8 @@ class Calendar(Field):
            <input type="checkbox" checked="checked" class="smallbox"
                if="mayValidate and (event.eventType in field.validation.schema)"
                id=":'%s_%s_%s' % (date.strftime('%Y%m%d'), event.eventType, \
-                                  event.timeslot)"/>
+                                  event.timeslot)"
+               onclick=":'onCheckCbCell(this,%s)' % q(ajaxHookId)"/>
            <x>::event.getName(allEventNames)</x>
            <!-- Icon for delete this particular event -->
             <img if="mayDelete and not single" class="clickable"
@@ -447,6 +448,9 @@ class Calendar(Field):
               var2="js='validateEvents(%s)' % q(ajaxHookId)"
               onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js, False), \
                         q(_('validate_events_confirm')))"/>
+       <input type="checkbox" checked="checked" id=":'%s_auto' % ajaxHookId"
+              class="smallbox"/>
+       <label lfor="selectAuto" class="simpleLabel">:_('select_auto')</label>
       </div>
       <x>:getattr(field, 'pxView%s' % render.capitalize())</x>
      </div>''')
@@ -683,7 +687,7 @@ class Calendar(Field):
             return '<a href="%s">%s</a>' % (other.obj.url, other.obj.title)
         return self.timelineName(self, other)
 
-    def getTimelineCell(self, date, other, events, mayValidate):
+    def getTimelineCell(self, date, other, events, mayValidate, hook):
         '''Gets the content of a cell in a timeline calendar'''
         if events and mayValidate:
             # If at least one event from p_events is in the validation schema,
@@ -694,7 +698,8 @@ class Calendar(Field):
                     cbId = '%s_%s_%s' % (other.obj.id, other.field.name,
                                          date.strftime('%Y%m%d'))
                     return '<input type="checkbox" checked="checked" ' \
-                           'class="smallbox" id="%s"/>' % cbId
+                           'class="smallbox" id="%s" onclick="onCheckCbCell' \
+                           '(this,\'%s\')"/>' % (cbId, hook)
             return ''
         # When there are multiple events, a background image is already shown
         if not events or (len(events) > 1): return ''

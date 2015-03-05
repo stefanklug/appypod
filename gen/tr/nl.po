@@ -195,6 +195,10 @@ msgstr "Deze waarde wordt niet geaccepteerd voor dit veld."
 msgid "select_delesect"
 msgstr "Alles (de)selecteren"
 
+#. Default: "Automatic (de)selection"
+msgid "select_auto"
+msgstr ""
+
 #. Default: "You must select at least one element."
 msgid "no_elem_selected"
 msgstr "U moet minstens één element selecteren."

@@ -196,6 +196,10 @@ msgstr "The value is not among possible values for this field."
 msgid "select_delesect"
 msgstr "(Un)select all"
 
+#. Default: "Automatic (de)selection"
+msgid "select_auto"
+msgstr "Automatic (de)selection"
+
 #. Default: "You must select at least one element."
 msgid "no_elem_selected"
 msgstr "You must select at least one element."

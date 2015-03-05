@@ -124,3 +124,40 @@ function validateEvents(hookId) {
                 'discarded': discarded, 'mode': 'POST'};
   askAjax(hookId, null, params);
 }
+
+// Function for (un)-checking checkboxes automatically
+function onCheckCbCell(cb, hook) {
+  // Is automatic selection on/off?
+  var auto = document.getElementById(hook + '_auto');
+  if (!auto.checked) return;
+  // Get the current render mode
+  var render = document.getElementById(hook)['ajax'].params['render'];
+  // Change the state of every successive checkbox
+  var timeline = render == 'timeline'; // Else, render is "month"
+  // From the checkbox id, extract the date and the remaining part
+  var elems = cb.id.split('_');
+  if (timeline) { var date = elems[2], part = elems[0] + '_' + elems[1] + '_'; }
+  else          { var date = elems[0], part = '_' + elems[1] + '_' + elems[2]; }
+  // Create a Date instance
+  var year = parseInt(date.slice(0,4)), month = parseInt(date.slice(4,6))-1,
+      day = parseInt(date.slice(6,8));
+  var next = new Date(year, month, day);
+  // Change the status of successive checkboxes if found
+  var checked = cb.checked;
+  var nextId = nextCb = null;
+  while (true) {
+      // Compute the date at the next day
+      next.setDate(next.getDate() + 1);
+      month = (next.getMonth() + 1).toString();
+      if (month.length == 1) month = '0' + month;
+      day = next.getDate().toString();
+      if (day.length == 1) day = '0' + day;
+      date = next.getFullYear().toString() + month + day;
+      // Find the next checkbox
+      if (timeline) nextId = part + date;
+      else          nextId = date + part;
+      nextCb = document.getElementById(nextId);
+      if (!nextCb) break;
+      nextCb.checked = checked;
+  }
+}
