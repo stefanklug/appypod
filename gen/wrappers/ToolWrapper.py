@@ -150,11 +150,12 @@ class ToolWrapper(AbstractWrapper):
      </script>''')
 
     pxLiveSearchResults = Px('''
-     <x var="className=req['className'];
-             klass=ztool.getAppyClass(className);
-             search=ztool.getLiveSearch(klass, req['w_SearchableText']);
-             zobjects=ztool.executeQuery(className, search=search, \
-                                         maxResults=10).objects">
+     <div var="className=req['className'];
+               klass=ztool.getAppyClass(className);
+               search=ztool.getLiveSearch(klass, req['w_SearchableText']);
+               zobjects=ztool.executeQuery(className, search=search, \
+                                           maxResults=10).objects"
+          id=":'%s_LSResults' % className">
       <p if="not zobjects" class="lsNoResult">:_('query_no_result')</p>
       <div for="zobj in zobjects" style="padding: 3px 5px">
        <a href=":zobj.absolute_url()"
@@ -167,7 +168,7 @@ class ToolWrapper(AbstractWrapper):
           onclick=":'document.forms[%s].submit()' % \
             q('%s_LSForm' % className)">:_('search_results_all') + '...'</a>
       </div>
-     </x>''')
+     </div>''')
 
     pxLiveSearch = Px('''
      <form var="formId='%s_LSForm' % className"

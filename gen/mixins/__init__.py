@@ -1002,7 +1002,11 @@ class BaseMixin:
         # Compute common parts
         cssClass = self.getCssFor('title')
         # Get the title, with highlighted parts when relevant
-        title = self.getShownValue('title')
+        klass = self.getClass()
+        if hasattr(klass, 'listTitle'):
+            title = klass.listTitle(self.appy(), nav)
+        else:
+            title = self.getShownValue('title')
         if highlight: title = self.highlight(title)
         if mode == 'link':
             inPopup = inPopup or (target.target != '_self')
@@ -1557,23 +1561,22 @@ class BaseMixin:
             return False
         if parent.meta_type not in ('Folder', 'Temporary Folder'): return parent
 
-    def getShownValue(self, name='title', language=None):
-        '''Call field.getShownValue on field named p_name.'''
+    def getShownValue(self, name='title', layoutType='view', language=None):
+        '''Call field.getShownValue on field named p_name'''
         field = self.getAppyType(name)
-        return field.getShownValue(self, field.getValue(self),
+        return field.getShownValue(self, field.getValue(self), layoutType,
                                    language=language)
 
     def getBreadCrumb(self, inPopup=False):
         '''Gets breadcrumb info about this object and its parents (if it must
            be shown).'''
-        # Return an empty breadcrumb if it must not be shown.
+        # Return an empty breadcrumb if it must not be shown
         klass = self.getClass()
         if hasattr(klass, 'breadcrumb') and not klass.breadcrumb: return ()
         # Compute the breadcrumb
-        title = self.getAppyType('title')
         res = [Object(url=self.getUrl(inPopup=inPopup),
-                      title=title.getShownValue(self, title.getValue(self)))]
-        # In a popup: limit the breadcrumb to the current object.
+                      title=self.getShownValue('title'))]
+        # In a popup, limit the breadcrumb to the current object
         if inPopup: return res
         parent = self.getParent()
         if parent: res = parent.getBreadCrumb() + res

@@ -117,7 +117,8 @@ class Boolean(Field):
             return '%s_%s' % (self.labelId, self.trueFalse[value])
         return self.yesNo[value]
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         return obj.translate(self.getValueLabel(value), language=language)
 
     def getStorableValue(self, obj, value):

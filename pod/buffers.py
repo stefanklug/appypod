@@ -714,7 +714,7 @@ class MemoryBuffer(Buffer):
                                           evalEntry.expr, e))
                         else:
                             raise EvaluationError(EVAL_EXPR_ERROR % \
-                                             (evalEntry.expr, Traceback.get(5)))
+                                        (evalEntry.expr, '\n'+Traceback.get(5)))
                 elif isinstance(evalEntry, Attributes) or \
                      isinstance(evalEntry, Attribute):
                     result.write(evalEntry.evaluate(context))

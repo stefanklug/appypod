@@ -949,7 +949,8 @@ class Ref(Field):
         nb = req.has_key(key) and req[key] or req.get('startNumber', 0)
         return int(nb)
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         return value
 
     def getIndexType(self): return 'ListIndex'

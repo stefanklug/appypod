@@ -62,7 +62,7 @@ class Field:
              rawValue=not isSearch and zobj.getFieldValue(name, \
                         layoutType=layoutType, outerValue=outerValue);
              value=not isSearch and \
-                   field.getFormattedValue(zobj, rawValue, showChanges);
+                  field.getFormattedValue(zobj,rawValue,layoutType,showChanges);
              requestValue=not isSearch and zobj.getRequestFieldValue(name);
              inRequest=field.valueIsInRequest(zobj, req, name, layoutType);
              error=req.get('%s_error' % name);
@@ -672,7 +672,8 @@ class Field:
            if this value is mutable, get a copy of it.'''
         return self.getValue(obj)
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         '''p_value is a real p_obj(ect) value from a field from this type. This
            method returns a pretty, string-formatted version, for displaying
            purposes. Needs to be overridden by some child classes. If
@@ -683,12 +684,13 @@ class Field:
         if self.isEmptyValue(obj, value): return ''
         return value
 
-    def getShownValue(self, obj, value, showChanges=False, language=None):
+    def getShownValue(self, obj, value, layoutType='view',
+                      showChanges=False, language=None):
         '''Similar to m_getFormattedValue, but in some contexts, only a part of
            p_value must be shown. For example, sometimes we need to display only
            a language-specific part of a multilingual field (see overridden
            method in string.py).'''
-        return self.getFormattedValue(obj, value, showChanges, language)
+        return self.getFormattedValue(obj,value,layoutType,showChanges,language)
 
     def getXmlValue(self, obj, value):
         '''This method allows a developer to customize the value that will be

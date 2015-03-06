@@ -71,7 +71,8 @@ class Integer(Field):
     def getStorableValue(self, obj, value):
         if not self.isEmptyValue(obj, value): return self.pythonType(value)
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         if self.isEmptyValue(obj, value): return ''
         return str(value)
 # ------------------------------------------------------------------------------

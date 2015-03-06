@@ -230,7 +230,8 @@ class Date(Field):
         except DateTime.DateError, ValueError:
             return obj.translate('bad_date')
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         if self.isEmptyValue(obj, value): return ''
         tool = obj.getTool().appy()
         # A problem may occur with some extreme year values. Replace the "year"

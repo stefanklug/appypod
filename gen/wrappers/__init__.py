@@ -44,7 +44,7 @@ class AbstractWrapper(object):
         <x for="bc in breadcrumb" var2="nb=loop.bc.nb">
          <img if="nb != 0" src=":url('to')"/>
          <!-- Display only the title of the current object -->
-         <span if="nb == len(breadcrumb)-1">:bc.title</span>
+         <span if="nb == len(breadcrumb)-1">::bc.title</span>
          <!-- Display a link for parent objects -->
          <a if="nb != len(breadcrumb)-1" href=":bc.url">:bc.title</a>
         </x>
@@ -874,7 +874,7 @@ class AbstractWrapper(object):
 
     def getField(self, name): return self.o.getAppyType(name)
 
-    def getValue(self, name, formatted=False, language=None):
+    def getValue(self, name, layoutType='view', formatted=False, language=None):
         '''Gets the possibly p_formatted value of field p_name. If this
            formatting implies translating something, it will be done in
            p_language, or in the user language if not specified. If the "shown"
@@ -887,7 +887,7 @@ class AbstractWrapper(object):
         if not formatted: return val
         method = (formatted == 'shown') and 'getShownValue' or \
                                             'getFormattedValue'
-        return getattr(field, method)(obj, val, language=language)
+        return getattr(field, method)(obj, val, layoutType, language=language)
 
     def getLabel(self, name, type='field'):
         '''Gets the translated label of field named p_name. If p_type is

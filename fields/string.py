@@ -109,12 +109,11 @@ class String(Field):
       <x if="(fmt != 3) and not isUrl">::value</x>
      </x>''')
 
-    # pxView part for format String.TEXT.
+    # pxView part for format String.TEXT
     pxViewText = Px('''
-     <span if="not value" class="smaller">-</span>
-     <x if="value">::zobj.formatText(value, format='html')</x>''')
+     <span if="not value" class="smaller">-</span><x if="value">::value</x>''')
 
-    # pxView part for format String.XHTML.
+    # pxView part for format String.XHTML
     pxViewRich = Px('''
      <div if="not mayAjaxEdit" class="xhtml">::value or '-'</div>
      <x if="mayAjaxEdit" var2="name=lg and ('%s_%s' % (name, lg)) or name">
@@ -188,7 +187,7 @@ class String(Field):
                             mapping=field.getCaptchaChallenge(req.SESSION))
      </span>''')
 
-    # pxEdit part for formats String.TEXT and String.XHTML.
+    # pxEdit part for formats String.TEXT and String.XHTML
     pxEditTextArea = Px('''
      <textarea var="inputId=not lg and name or '%s_%s' % (name, lg)"
                id=":inputId" name=":inputId" cols=":field.width"
@@ -626,8 +625,8 @@ class String(Field):
         comparator = HtmlDiff(res, value or '', iMsg, dMsg)
         return comparator.get()
 
-    def getUnilingualFormattedValue(self, obj, value, showChanges=False,
-                                    userLanguage=None, language=None):
+    def getUnilingualFormattedValue(self, obj, value, layoutType='view',
+          showChanges=False, userLanguage=None, language=None):
         '''If no p_language is specified, this method is called by
            m_getFormattedValue for getting a non-multilingual value (ie, in
            most cases). Else, this method returns a formatted value for the
@@ -654,22 +653,26 @@ class String(Field):
                     res = _('%s_list_%s' % (self.labelId, value), \
                             language=userLanguage)
         elif (self.format == String.XHTML) and showChanges:
-            # Compute the successive changes that occurred on p_value.
+            # Compute the successive changes that occurred on p_value
             res = self.getDiffValue(obj, res, language)
+        elif self.format == String.TEXT:
+            if layoutType != 'edit':
+                res = obj.formatText(res, format='html')
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
         if isinstance(res, basestring) and \
            (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
         return res
 
-    def getFormattedValue(self, obj, value, showChanges=False, language=None):
+    def getFormattedValue(self, obj, value, layoutType='view',
+                          showChanges=False, language=None):
         '''Be careful: p_language represents the UI language, while "languages"
            below represents the content language(s) of this field. p_language
            can be used, ie, to translate a Selection value.'''
         languages = self.getAttribute(obj, 'languages')
         if len(languages) == 1:
-            return self.getUnilingualFormattedValue(obj, value, showChanges,
-                                                    userLanguage=language)
+            return self.getUnilingualFormattedValue(obj, value, layoutType,
+                     showChanges, userLanguage=language)
         # Return the dict of values whose individual, language-specific values
         # have been formatted via m_getUnilingualFormattedValue.
         if not value and not showChanges: return value
@@ -677,26 +680,27 @@ class String(Field):
         for lg in languages:
             if not value: val = ''
             else: val = value[lg]
-            res[lg] = self.getUnilingualFormattedValue(obj, val, showChanges,
-                                                       language=lg)
+            res[lg] = self.getUnilingualFormattedValue(obj, val, layoutType,
+                                                       showChanges, language=lg)
         return res
 
-    def getShownValue(self, obj, value, showChanges=False, language=None):
+    def getShownValue(self, obj, value, layoutType='view',
+                      showChanges=False, language=None):
         '''Be careful: p_language represents the UI language, while "languages"
            below represents the content language(s) of this field. For a
            multilingual field, this method only shows one specific language
            part.'''
         languages = self.getAttribute(obj, 'languages')
         if len(languages) == 1:
-            return self.getUnilingualFormattedValue(obj, value, showChanges,
-                                                    userLanguage=language)
+            return self.getUnilingualFormattedValue(obj, value, layoutType,
+                                             showChanges, userLanguage=language)
         if not value: return value
         # Try to propose the part that is in the user language, or the part of
         # the first content language else.
         lg = obj.getUserLanguage()
         if lg not in value: lg = languages[0]
-        return self.getUnilingualFormattedValue(obj, value[lg], showChanges,
-                                                language=lg)
+        return self.getUnilingualFormattedValue(obj, value[lg], layoutType,
+                                                showChanges, language=lg)
 
     def extractText(self, value):
         '''Extracts pure text from XHTML p_value.'''
