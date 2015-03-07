@@ -894,20 +894,21 @@ function openPopup(popupId, msg, width, height, back) {
   // Open the popup
   var popup = document.getElementById(popupId);
   // Put it at the right place on the screen and give it the right dimensions
+  if (!width) {
+    width = (popupId == 'iframePopup')? window.innerWidth-200: 350;
+  }
   var scrollTop = document.documentElement.scrollTop || window.pageYOffset || 0;
   popup.style.top = (scrollTop + 150) + 'px';
-  if (width) popup.style.width = width + 'px';
+  popup.style.width = width + 'px';
+  popup.style.left = ((window.innerWidth - width) / 2).toFixed() + 'px';
   if (height) popup.style.height = height + 'px';
   if (popupId == 'iframePopup') {
     // Initialize iframe's width
     var iframe = document.getElementById('appyIFrame');
-    if (!width) width = window.innerWidth - 200;
     if (!height) {
       height = window.innerHeight - 200;
       popup.style.top = ((window.innerHeight - height) / 2).toFixed() + 'px';
     }
-    popup.style.left = ((window.innerWidth - width) / 2).toFixed() + 'px';
-    popup.style.width = width + 'px';
     iframe.style.width = (width-20) + 'px';
     popup.style.height = height + 'px';
     iframe.style.height = (height-20) + 'px';
