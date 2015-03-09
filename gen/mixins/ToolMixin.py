@@ -504,7 +504,7 @@ class ToolMixin(BaseMixin):
 
            If p_klass does not define this attr "creators", we will use a
            default list of roles as defined in the config.'''
-        # Get the value of attr "creators", or a default value if not present.
+        # Get the value of attr "creators", or a default value if not present
         if hasattr(klass, 'creators'):
             creators = klass.creators
         else:
@@ -741,6 +741,9 @@ class ToolMixin(BaseMixin):
             # It is a custom search whose parameters are in the session
             fields = self.REQUEST.SESSION['searchCriteria']
             res = Search('customSearch', **fields)
+        elif (name == 'allSearch') or not name:
+            # It is the search for every instance of p_className
+            res = Search('allSearch')            
         elif '*' in name:
             # The search is defined in a Ref field with link=popup. Get the
             # search, the initiator object and the Ref field.
@@ -748,7 +751,7 @@ class ToolMixin(BaseMixin):
             initiator = self.getObject(uid, appy=True)
             initiatorField = initiator.getField(ref)
             res = getattr(initiator.klass, ref).select
-        elif name:
+        else:
             appyClass = self.getAppyClass(className)
             # Search among static searches
             res = ClassDescriptor.getSearch(appyClass, name)
@@ -758,9 +761,6 @@ class ToolMixin(BaseMixin):
                     if search.name == name:
                         res = search
                         break
-        else:
-            # It is the search for every instance of p_className
-            res = Search('allSearch')
         # Return a UiSearch if required
         if ui:
             res = UiSearch(res, className, self)

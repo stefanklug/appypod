@@ -9,7 +9,7 @@ from appy.shared.utils import sequenceTypes
 
 # ------------------------------------------------------------------------------
 class MailConfig:
-    '''Parameters for conneting to a SMTP server.'''
+    '''Parameters for conneting to a SMTP server'''
     def __init__(self, fromName=None, fromEmail='info@appyframework.org',
                  server='localhost', port=25, login=None, password=None,
                  enabled=True):

@@ -484,12 +484,12 @@ class ToolWrapper(AbstractWrapper):
                 app.config.reindex()
             except:
                 failed.append(app.config)
-            # Then, refresh objects in the "data" folder.
+            # Then, refresh objects in the "data" folder
             for obj in app.data.objectValues():
                 subNb, subFailed = self.refreshCatalog(startObject=obj)
                 nb += subNb
                 failed += subFailed
-            # Re-try to index all objects for which reindexation has failed.
+            # Re-try to index all objects for which reindexation has failed
             for obj in failed: obj.reindex()
             if failed:
                 failMsg = ' (%d retried)' % len(failed)
