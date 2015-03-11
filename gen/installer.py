@@ -24,14 +24,21 @@ class FakeXmlrpc:
     def response(self, response): return response
 
 class FakeZCatalog:
+    # This prevents Zope frop crashing when, while updating the catalog, an
+    # entry in the catalog corresponds to a missing object.
     def resolve_url(self, path, REQUEST):
-        '''Cheat: "hasattr" test has been added in first line.'''
+        '''Cheat: "hasattr" test has been added in first line'''
         if REQUEST and hasattr(REQUEST, 'script'):
             script=REQUEST.script
             if path.find(script) != 0:
                 path='%s/%s' % (script, path)
             try: return REQUEST.resolve_url(path)
             except: pass
+    try:
+        from Products.ZCatalog.ZCatalog import ZCatalog
+        ZCatalog.resolve_url = resolve_url
+    except ImportError:
+        pass
 
 def onDelSession(sessionObject, container):
     '''This function is called when a session expires.'''
@@ -328,10 +335,6 @@ class ZopeInstaller:
         # XML to Appy without trying to recognize it himself as XMLRPC requests.
         import ZPublisher.HTTPRequest
         ZPublisher.HTTPRequest.xmlrpc = FakeXmlrpc()
-        # This prevents Zope frop crashing when, while updating the catalog, an
-        # entry in the catalog corresponds to a missing object.
-        from Products.ZCatalog.ZCatalog import ZCatalog
-        ZCatalog.resolve_url = FakeZCatalog.resolve_url
 
     def installDependencies(self):
         '''Zope products are installed in alphabetical order. But here, we need
