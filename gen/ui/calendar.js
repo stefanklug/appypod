@@ -172,6 +172,6 @@ function onCheckCbCell(cb, hook, totalRows) {
   if (totalRows) {
     var params = getValidationStatus(hook);
     params['mode'] = 'POST';
-    askAjax(hook + '_trs', null, params);
+    askAjax(hook + '_trs', null, params, 'loadingPod');
   }
 }

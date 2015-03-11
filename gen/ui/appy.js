@@ -1,24 +1,24 @@
 var wrongTextInput = '#F9EDBE none';
 var loadingLink = '<img src="ui/loading.gif"/>';
 var loadingButton = '<img align="center" src="ui/loadingBtn.gif"/>';
-var loadingZone = '<div align="center"><img src="ui/loadingBig.gif"/></div>';
+var loadingZone = '<div align="center"><img src="ui/?.gif"/></div>';
 var lsTimeout; // Timout for the live search
 var podTimeout; // Timeout for checking status of pod downloads
 
 // Functions related to user authentication
 function cookiesAreEnabled() {
-  // Test whether cookies are enabled by attempting to set a cookie and then
-  // change its value
+  /* Test whether cookies are enabled by attempting to set a cookie and then
+     change its value. */
   var c = "areYourCookiesEnabled=0";
   document.cookie = c;
   var dc = document.cookie;
-  // Cookie not set? Fail
+  // Cookie not set? Fail.
   if (dc.indexOf(c) == -1) return 0;
   // Change test cookie
   c = "areYourCookiesEnabled=1";
   document.cookie = c;
   dc = document.cookie;
-  // Cookie not changed?  fail
+  // Cookie not changed? Fail.
   if (dc.indexOf(c) == -1) return 0;
   // Delete cookie
   document.cookie = "areYourCookiesEnabled=; expires=Thu, 01-Jan-70 00:00:01 GMT";
@@ -30,9 +30,10 @@ function setLoginVars() {
   document.getElementById('js_enabled').value = 1;
   // Indicate if cookies are enabled
   document.getElementById('cookies_enabled').value = cookiesAreEnabled();
-  // Copy login and password length to alternative vars since current vars will
-  // be removed from the request by zope's authentication mechanism.
-  document.getElementById('login_name').value = document.getElementById('__ac_name').value;
+  /* Copy login and password length to alternative vars since current vars will
+     be removed from the request by zope's authentication mechanism. */
+  var v = document.getElementById('__ac_name').value;
+  document.getElementById('login_name').value = v;
   password = document.getElementById('__ac_password');
   emptyPassword = document.getElementById('pwd_empty');
   if (password.value.length==0) emptyPassword.value = '1';
@@ -40,10 +41,10 @@ function setLoginVars() {
 }
 
 function showLoginForm() {
-  // Hide the login link.
+  // Hide the login link
   var loginLink = document.getElementById('loginLink');
   loginLink.style.display = "none";
-  // Displays the login form.
+  // Displays the login form
   var loginFields = document.getElementById('loginFields');
   loginFields.style.display = "inline";
 }
@@ -160,7 +161,17 @@ function getAjaxChunk(pos) {
   }
 }
 
-function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
+// Displays the waiting icon when an ajax chunk is asked
+function showPreloader(hook, waiting) {
+  /* p_hook may be null if the ajax result would be the same as what is
+     currently shown, as when inline-editing a rich text field). */
+  if (!hook || (waiting == 'none')) return;
+  // What waiting icon to show?
+  if (!waiting) waiting = 'loadingBig';
+  injectChunk(getAjaxHook(hook), loadingZone.replace('?', waiting), true);
+}
+
+function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet, waiting) {
   /* This function will ask to get a chunk of XHTML on the server through a
      XMLHttpRequest. p_mode can be 'GET' or 'POST'. p_url is the URL of a
      given server object. On this object we will call method "ajax" that will
@@ -181,6 +192,11 @@ function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
      p_onGet is a Javascript function to call when we will receive the answer.
      This function will get 2 args, too: the XMLHttpRequest object and the
      HTML node element into which the result has been inserted.
+
+     p_waiting is the name of the animated icon that will be shown while waiting
+     for the ajax result. If null, it will be loadingBig.gif. Other values can
+     be "loading", "loadingBtn" or "loadingPod" (the .gif must be omitted).
+     If "none", there will be no icon at all.
   */
   // First, get a non-busy XMLHttpRequest object.
   var pos = -1;
@@ -212,10 +228,7 @@ function askAjaxChunk(hook, mode, url, px, params, beforeSend, onGet) {
     if (mode == 'GET') {
       urlFull = urlFull + '?' + paramsFull;
     }
-    /* Display the preloader (rq.hook may be null if the ajax result would be
-       the same as what is currently shown, as when inline-editing a rich text
-       field). */
-    if (rq.hook) injectChunk(getAjaxHook(rq.hook), loadingZone, true);
+    showPreloader(rq.hook, waiting); // Display the pre-loader
     // Perform the asynchronous HTTP GET or POST
     rq.xhr.open(mode, urlFull, true);
     if (mode == 'POST') {
@@ -252,7 +265,7 @@ function AjaxData(hook, px, params, parentHook, url, mode, beforeSend, onGet) {
   getAjaxHook(hook, true)['ajax'] = this;
 }
 
-function askAjax(hook, form, params) {
+function askAjax(hook, form, params, waiting) {
   /* Call askAjaxChunk by getting an AjaxData instance from p_hook, a
       potential action from p_form and additional parameters from p_param. */
   var d = getAjaxHook(hook)['ajax'];
@@ -298,7 +311,8 @@ function askAjax(hook, form, params) {
   if (params && ('mode' in params)) {
     mode = params['mode']; delete params['mode'] }
   if (params) { for (var key in params) d.params[key] = params[key]; }
-  askAjaxChunk(hook,mode,d.url,d.px,d.params,d.beforeSend,evalInnerScripts);
+  askAjaxChunk(hook, mode, d.url, d.px, d.params, d.beforeSend,
+               evalInnerScripts, waiting);
 }
 
 function askBunch(hookId, startNumber) {
