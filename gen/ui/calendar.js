@@ -106,46 +106,53 @@ function triggerCalendarEvent(hookId, action, maxEventLength) {
   askAjax(hookId, formId);
 }
 
-// Function for validating and discarding calendar events
-function validateEvents(hookId) {
-  // Collect checkboxes from hookId and identify checked and unchecked ones
-  var validated = [];
-  var discarded = [];
+// Function that collects the status of all validation checkboxes
+function getValidationStatus(hookId) {
+  var res = {'validated': [], 'discarded': []};
   var node = document.getElementById(hookId + '_cal');
   var cbs = node.getElementsByTagName('input');
+  var key = null;
   for (var i=0; i<cbs.length; i++) {
     if (cbs[i].type != 'checkbox') continue;
-    if (cbs[i].checked) validated.push(cbs[i].id);
-    else discarded.push(cbs[i].id);
+    key = (cbs[i].checked)? 'validated': 'discarded';
+    res[key].push(cbs[i].id);
   }
-  validated = validated.join()
-  discarded = discarded.join()
-  var params = {'action': 'validateEvents', 'validated': validated,
-                'discarded': discarded, 'mode': 'POST'};
+  // Convert lists to comma-separated strings
+  for (key in res) res[key] = res[key].join();
+  return res;
+}
+
+// Function for validating and discarding calendar events
+function validateEvents(hookId, month) {
+  // Collect checkboxes from hookId and identify checked and unchecked ones
+  var params = {'action': 'validateEvents', 'mode': 'POST', 'month': month};
+  var status = getValidationStatus(hookId);
+  for (var key in status) params[key] = status[key];
   askAjax(hookId, null, params);
 }
 
 // Function for (un)-checking checkboxes automatically
-function onCheckCbCell(cb, hook) {
+function onCheckCbCell(cb, hook, totalRows) {
   // Is automatic selection on/off?
   var auto = document.getElementById(hook + '_auto');
-  if (!auto.checked) return;
-  // Get the current render mode
-  var render = document.getElementById(hook)['ajax'].params['render'];
-  // Change the state of every successive checkbox
-  var timeline = render == 'timeline'; // Else, render is "month"
-  // From the checkbox id, extract the date and the remaining part
-  var elems = cb.id.split('_');
-  if (timeline) { var date = elems[2], part = elems[0] + '_' + elems[1] + '_'; }
-  else          { var date = elems[0], part = '_' + elems[1] + '_' + elems[2]; }
-  // Create a Date instance
-  var year = parseInt(date.slice(0,4)), month = parseInt(date.slice(4,6))-1,
-      day = parseInt(date.slice(6,8));
-  var next = new Date(year, month, day);
-  // Change the status of successive checkboxes if found
-  var checked = cb.checked;
-  var nextId = nextCb = null;
-  while (true) {
+  if (auto.checked) {
+    // Get the current render mode
+    var render = document.getElementById(hook)['ajax'].params['render'];
+    // Change the state of every successive checkbox
+    var timeline = render == 'timeline'; // Else, render is "month"
+    // From the checkbox id, extract the date and the remaining part
+    var elems = cb.id.split('_');
+    if (timeline) {
+           var date = elems[2], part = elems[0] + '_' + elems[1] + '_'; }
+    else { var date = elems[0], part = '_' + elems[1] + '_' + elems[2]; }
+    // Create a Date instance
+    var year = parseInt(date.slice(0,4)), month = parseInt(date.slice(4,6))-1,
+        day = parseInt(date.slice(6,8));
+    var next = new Date(year, month, day);
+    // Change the status of successive checkboxes if found
+    var checked = cb.checked;
+    var nextId = nextCb = null;
+    while (true) {
       // Compute the date at the next day
       next.setDate(next.getDate() + 1);
       month = (next.getMonth() + 1).toString();
@@ -159,5 +166,12 @@ function onCheckCbCell(cb, hook) {
       nextCb = document.getElementById(nextId);
       if (!nextCb) break;
       nextCb.checked = checked;
+    }
+  }
+  // Refresh the total rows if requested
+  if (totalRows) {
+    var params = getValidationStatus(hook);
+    params['mode'] = 'POST';
+    askAjax(hook + '_trs', null, params);
   }
 }
