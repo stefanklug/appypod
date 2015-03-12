@@ -656,7 +656,7 @@ class String(Field):
             # Compute the successive changes that occurred on p_value
             res = self.getDiffValue(obj, res, language)
         elif self.format == String.TEXT:
-            if layoutType != 'edit':
+            if layoutType in ('view', 'cell'):
                 res = obj.formatText(res, format='html')
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
