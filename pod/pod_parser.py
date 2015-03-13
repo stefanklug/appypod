@@ -83,9 +83,11 @@ class PodEnvironment(OdfEnvironment):
         # Current state
         self.state = self.READING_CONTENT
         # Elements we must ignore (they will not be included in the result)
-        self.ignorableElements = None # Will be set after namespace propagation
+        self.ignorableElems = None # Will be set after namespace propagation
         # Elements that may be impacted by POD statements
-        self.impactableElements = None # Idem
+        self.impactableElems = None # Idem
+        # Elements representing start and end tags surrounding expressions
+        self.exprStartElems = self.exprEndElems = None # Idem
         # Stack of currently visited tables
         self.tableStack = []
         self.tableIndex = -1
@@ -193,30 +195,36 @@ class PodEnvironment(OdfEnvironment):
         # Create a table of names of used tags and attributes (precomputed,
         # including namespace, for performance).
         table = ns[self.NS_TABLE]
-        self.tags = {
-          'tracked-changes': '%s:tracked-changes' % ns[self.NS_TEXT],
-          'change': '%s:change' % ns[self.NS_TEXT],
-          'annotation': '%s:annotation' % ns[self.NS_OFFICE],
-          'change-start': '%s:change-start' % ns[self.NS_TEXT],
-          'change-end': '%s:change-end' % ns[self.NS_TEXT],
-          'conditional-text': '%s:conditional-text' % ns[self.NS_TEXT],
+        text = ns[self.NS_TEXT]
+        office = ns[self.NS_OFFICE]
+        tags = {
+          'tracked-changes': '%s:tracked-changes' % text,
+          'change': '%s:change' % text,
+          'annotation': '%s:annotation' % office,
+          'change-start': '%s:change-start' % text,
+          'change-end': '%s:change-end' % text,
+          'conditional-text': '%s:conditional-text' % text,
+          'text-input': '%s:text-input' % text,
           'table': '%s:table' % table,
           'table-name': '%s:name' % table,
           'table-cell': '%s:table-cell' % table,
           'table-column': '%s:table-column' % table,
           'formula': '%s:formula' % table,
-          'value-type': '%s:value-type' % ns[self.NS_OFFICE],
-          'value': '%s:value' % ns[self.NS_OFFICE],
-          'string-value': '%s:string-value' % ns[self.NS_OFFICE],
-          'span': '%s:span' % ns[self.NS_TEXT],
+          'value-type': '%s:value-type' % office,
+          'value': '%s:value' % office,
+          'string-value': '%s:string-value' % office,
+          'span': '%s:span' % text,
           'number-columns-spanned': '%s:number-columns-spanned' % table,
           'number-columns-repeated': '%s:number-columns-repeated' % table,
         }
-        self.ignorableElements = (self.tags['tracked-changes'],
-                                  self.tags['change'])
-        self.impactableElements = (
-           Text.OD.elem, Title.OD.elem, Table.OD.elem, Row.OD.elem,
-           Cell.OD.elem, Section.OD.elem)
+        self.tags = tags
+        self.ignorableElems = (tags['tracked-changes'], tags['change'])
+        self.exprStartElems = (tags['change-start'], tags['conditional-text'], \
+                               tags['text-input'])
+        self.exprEndElems = (tags['change-end'], tags['conditional-text'], \
+                             tags['text-input'])
+        self.impactableElems = (Text.OD.elem, Title.OD.elem, Table.OD.elem,
+                                Row.OD.elem, Cell.OD.elem, Section.OD.elem)
         self.inserts = self.transformInserts()
 
 # ------------------------------------------------------------------------------
@@ -234,15 +242,15 @@ class PodParser(OdfParser):
         officeNs = ns[e.NS_OFFICE]
         textNs = ns[e.NS_TEXT]
         tableNs = ns[e.NS_TABLE]
-        if elem in e.ignorableElements:
+        if elem in e.ignorableElems:
             e.state = e.IGNORING
         elif elem == e.tags['annotation']:
             # Be it in an ODT or ODS template, an annotation is considered to
             # contain a POD statement.
             e.state = e.READING_STATEMENT
-        elif elem in (e.tags['change-start'], e.tags['conditional-text']):
-            # In an ODT template, any text in track-changes or any conditional
-            # field is considered to contain a POD expression.
+        elif elem in e.exprStartElems:
+            # Any track-changed text or being in a conditional or input field is
+            # considered to be a POD expression.
             e.state = e.READING_EXPRESSION
             e.exprHasStyle = False
         elif (elem == e.tags['table-cell']) and \
@@ -272,7 +280,7 @@ class PodParser(OdfParser):
             if e.state == e.IGNORING:
                 pass
             elif e.state == e.READING_CONTENT:
-                if elem in e.impactableElements:
+                if elem in e.impactableElems:
                     if e.mode == e.ADD_IN_SUBBUFFER:
                         e.addSubBuffer()
                     e.currentBuffer.addElement(e.currentElem.name)
@@ -290,7 +298,7 @@ class PodParser(OdfParser):
         ns = e.onEndElement()
         officeNs = ns[e.NS_OFFICE]
         textNs = ns[e.NS_TEXT]
-        if elem in e.ignorableElements:
+        if elem in e.ignorableElems:
             e.state = e.READING_CONTENT
         elif elem == e.tags['annotation']:
             # Manage statement
@@ -317,7 +325,7 @@ class PodParser(OdfParser):
                     e.currentOdsHook = None
                 # Dump the ending tag
                 e.currentBuffer.dumpEndElement(elem)
-                if elem in e.impactableElements:
+                if elem in e.impactableElems:
                     if isinstance(e.currentBuffer, MemoryBuffer):
                         isMainElement = e.currentBuffer.isMainElement(elem)
                         # Unreference the element among buffer.elements
@@ -346,8 +354,7 @@ class PodParser(OdfParser):
                         e.currentStatement.append(statementLine)
                     e.currentContent = ''
             elif e.state == e.READING_EXPRESSION:
-                if (elem == e.tags['change-end']) or \
-                   (elem == e.tags['conditional-text']):
+                if elem in e.exprEndElems:
                     expression = e.currentContent.strip()
                     e.currentContent = ''
                     # Manage expression

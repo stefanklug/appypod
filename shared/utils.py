@@ -245,7 +245,7 @@ def getTempFileName(prefix='', extension=''):
 
 # ------------------------------------------------------------------------------
 def executeCommand(cmd):
-    '''Executes command p_cmd and returns the content of its stderr.'''
+    '''Executes command p_cmd and returns the content of its stderr'''
     childStdIn, childStdOut, childStdErr = os.popen3(cmd)
     res = childStdErr.read()
     childStdIn.close(); childStdOut.close(); childStdErr.close()

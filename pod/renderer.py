@@ -18,13 +18,12 @@
 
 # ------------------------------------------------------------------------------
 import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
-
 from UserDict import UserDict
-
-import appy.pod, time, cgi
+import appy.pod
 from appy.pod import PodError
 from appy.shared import mimeTypes, mimeTypesExts
 from appy.shared.xml_parser import XmlElement
+from appy.shared.zip import unzip, zip
 from appy.shared.utils import FolderDeleter, executeCommand, FileWrapper
 from appy.pod.pod_parser import PodParser, PodEnvironment, OdInsert
 from appy.pod.converter import FILE_TYPES
@@ -101,7 +100,7 @@ class Renderer:
     def __init__(self, template, context, result, pythonWithUnoPath=None,
                  ooPort=2002, stylesMapping={}, forceOoCall=False,
                  finalizeFunction=None, overwriteExisting=False,
-                 raiseOnError=False, imageResolver=None):
+                 raiseOnError=False, imageResolver=None, stylesTemplate=None):
         '''This Python Open Document Renderer (PodRenderer) loads a document
            template (p_template) which is an ODT or ODS file with some elements
            written in Python. Based on this template and some Python objects
@@ -145,9 +144,11 @@ class Renderer:
            XHTML content. Indeed, POD may not be able (ie, may not have the
            permission to) perform a HTTP GET on those images. Currently, the
            resolver can only be a Zope application object.
+
+         - p_stylesTemplate can be the path to a LibreOffice file (ie, a .ott
+           file) whose styles will be imported within the result.
         '''
         self.template = template
-        self.templateZip = zipfile.ZipFile(template)
         self.result = result
         self.contentXml = None # Content (string) of content.xml
         self.stylesXml = None # Content (string) of styles.xml
@@ -162,6 +163,7 @@ class Renderer:
         self.overwriteExisting = overwriteExisting
         self.raiseOnError = raiseOnError
         self.imageResolver = imageResolver
+        self.stylesTemplate = stylesTemplate
         # Remember potential files or images that will be included through
         # "do ... from document" statements: we will need to declare them in
         # META-INF/manifest.xml. Keys are file names as they appear within the
@@ -173,49 +175,16 @@ class Renderer:
         # Unzip template
         self.unzipFolder = os.path.join(self.tempFolder, 'unzip')
         os.mkdir(self.unzipFolder)
-        for zippedFile in self.templateZip.namelist():
-            # Before writing the zippedFile into self.unzipFolder, create the
-            # intermediary subfolder(s) if needed.
-            fileName = None
-            if zippedFile.endswith('/') or zippedFile.endswith(os.sep):
-                # This is an empty folder. Create it nevertheless. If zippedFile
-                # starts with a '/', os.path.join will consider it an absolute
-                # path and will throw away self.unzipFolder.
-                os.makedirs(os.path.join(self.unzipFolder,
-                                         zippedFile.lstrip('/')))
-            else:
-                fileName = os.path.basename(zippedFile)
-                folderName = os.path.dirname(zippedFile)
-                fullFolderName = self.unzipFolder
-                if folderName:
-                    fullFolderName = os.path.join(fullFolderName, folderName)
-                    if not os.path.exists(fullFolderName):
-                        os.makedirs(fullFolderName)
-            # Unzip the file in self.unzipFolder
-            if fileName:
-                fullFileName = os.path.join(fullFolderName, fileName)
-                f = open(fullFileName, 'wb')
-                fileContent = self.templateZip.read(zippedFile)
-                if (fileName == 'content.xml') and not folderName:
-                    # content.xml files may reside in subfolders.
-                    # We modify only the one in the root folder.
-                    self.contentXml = fileContent
-                elif (fileName == 'styles.xml') and not folderName:
-                    # Same remark as above.
-                    self.stylesManager = StylesManager(fileContent)
-                    self.stylesXml = fileContent
-                elif (fileName == 'mimetype') and \
-                     (fileContent == mimeTypes['ods']):
-                    # From LibreOffice 3.5, it is not possible anymore to dump
-                    # errors into the resulting ods as annotations. Indeed,
-                    # annotations can't reside anymore within paragraphs. ODS
-                    # files generated with pod and containing error messages in
-                    # annotations cause LibreOffice 3.5 and 4.0 to crash.
-                    # LibreOffice >= 4.1 simply does not show the annotation.
-                    self.raiseOnError = True
-                f.write(fileContent)
-                f.close()
-        self.templateZip.close()
+        info = unzip(template, self.unzipFolder, odf=True)
+        self.contentXml = info['content.xml']
+        self.stylesXml = info['styles.xml']
+        self.stylesManager = StylesManager(self.stylesXml)
+        # From LibreOffice 3.5, it is not possible anymore to dump errors into
+        # the resulting ods as annotations. Indeed, annotations can't reside
+        # anymore within paragraphs. ODS files generated with pod and containing
+        # error messages in annotations cause LibreOffice 3.5 and 4.0 to crash.
+        # LibreOffice >= 4.1 simply does not show the annotation.
+        if info['mimetype'] == mimeTypes['ods']: self.raiseOnError = True
         # Create the content.xml parser
         pe = PodEnvironment
         contentInserts = (
@@ -440,7 +409,7 @@ class Renderer:
 
     # Public interface
     def run(self):
-        '''Renders the result.'''
+        '''Renders the result'''
         try:
             # Remember which parser is running
             self.currentParser = self.contentParser
@@ -490,7 +459,8 @@ class Renderer:
             try:
                 from appy.pod.converter import Converter, ConverterError
                 try:
-                    Converter(resultName, resultType, self.ooPort).run()
+                    Converter(resultName, resultType, self.ooPort,
+                              self.stylesTemplate).run()
                 except ConverterError, ce:
                     raise PodError(CONVERT_ERROR % str(ce))
             except ImportError:
@@ -513,6 +483,7 @@ class Renderer:
                 cmd = '%s %s %s %s -p%d' % \
                     (self.pyPath, convScript, qResultName, resultType,
                     self.ooPort)
+                if self.stylesTemplate: cmd += ' -t%s' % self.stylesTemplate
                 loOutput = executeCommand(cmd)
         except PodError, pe:
             # When trying to call LO in server mode for producing ODT or ODS
@@ -559,7 +530,7 @@ class Renderer:
         f = file(contentXml, 'w')
         f.write(content)
         f.close()
-        # Call the user-defined "finalize" function when present.
+        # Call the user-defined "finalize" function when present
         if self.finalizeFunction:
             try:
                 self.finalizeFunction(self.unzipFolder)
@@ -569,38 +540,7 @@ class Renderer:
         # the POD template (odt, ods...)
         resultExt = self.getTemplateType()
         resultName = os.path.join(self.tempFolder, 'result.%s' % resultExt)
-        try:
-            resultZip = zipfile.ZipFile(resultName, 'w', zipfile.ZIP_DEFLATED)
-        except RuntimeError:
-            resultZip = zipfile.ZipFile(resultName,'w')
-        # Insert first the file "mimetype" (uncompressed), in order to be
-        # compliant with the OpenDocument Format specification, section 17.4,
-        # that expresses this restriction. Else, libraries like "magic", under
-        # Linux/Unix, are unable to detect the correct mimetype for a pod result
-        # (it simply recognizes it as a "application/zip" and not a
-        # "application/vnd.oasis.opendocument.text)".
-        mimetypeFile = os.path.join(self.unzipFolder, 'mimetype')
-        # This file may not exist (presumably, ods files from Google Drive)
-        if not os.path.exists(mimetypeFile):
-            f = open(mimetypeFile, 'w')
-            f.write(mimeTypes[resultExt])
-            f.close()
-        resultZip.write(mimetypeFile, 'mimetype', zipfile.ZIP_STORED)
-        for dir, dirnames, filenames in os.walk(self.unzipFolder):
-            for f in filenames:
-                folderName = dir[len(self.unzipFolder)+1:]
-                # Ignore file "mimetype" that was already inserted.
-                if (folderName == '') and (f == 'mimetype'): continue
-                resultZip.write(os.path.join(dir, f),
-                                os.path.join(folderName, f))
-            if not dirnames and not filenames:
-                # This is an empty leaf folder. We must create an entry in the
-                # zip for him.
-                folderName = dir[len(self.unzipFolder):]
-                zInfo = zipfile.ZipInfo("%s/" % folderName,time.localtime()[:6])
-                zInfo.external_attr = 48
-                resultZip.writestr(zInfo, '')
-        resultZip.close()
+        zip(resultName, self.unzipFolder, odf=True)
         resultType = os.path.splitext(self.result)[1].strip('.')
         if (resultType in self.templateTypes) and not self.forceOoCall:
             # Simply move the ODT result to the result

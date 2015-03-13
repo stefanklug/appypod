@@ -17,13 +17,13 @@ from appy.pod import *
 
 # To which ODT tags do HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
-              'p':'p', 'div': 'p', 'b':'span', 'i':'span', 'strong':'span',
-              'strike':'span', 'u':'span', 'em': 'span', 'sub': 'span',
-              'sup': 'span', 'br': 'line-break'}
+  'p':'p', 'div': 'p', 'b':'span', 'i':'span', 'strong':'span', 'strike':'span',
+  's':'span', 'u':'span', 'em': 'span', 'sub': 'span', 'sup': 'span',
+  'br': 'line-break'}
 DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
-                      'u': 'podUnderline', 'strike': 'podStrike',
-                      'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub',
-                      'td': 'podCell', 'th': 'podHeaderCell'}
+  'u': 'podUnderline', 'strike': 'podStrike', 's': 'podStrike',
+  'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub', 'td': 'podCell',
+  'th': 'podHeaderCell'}
 INNER_TAGS = ('b', 'strong', 'i', 'u', 'em', 'sup', 'sub', 'span')
 TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)

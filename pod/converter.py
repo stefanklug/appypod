@@ -53,7 +53,7 @@ FILE_TYPES = {'odt': 'writer8',
 class ConverterError(Exception): pass
 
 # ConverterError-related messages ----------------------------------------------
-DOC_NOT_FOUND = 'Document "%s" was not found.'
+DOC_NOT_FOUND = '"%s" not found.'
 URL_NOT_FOUND = 'Doc URL "%s" is wrong. %s'
 BAD_RESULT_TYPE = 'Bad result type "%s". Available types are %s.'
 CANNOT_WRITE_RESULT = 'I cannot write result "%s". %s'
@@ -71,9 +71,11 @@ class Converter:
                         'openoffice.org 1': 'openof~1',
                         'openoffice.org 2': 'openof~1',
                         }
-    def __init__(self, docPath, resultType, port=DEFAULT_PORT):
+    def __init__(self, docPath, resultType, port=DEFAULT_PORT,
+                 templatePath=None):
         self.port = port
-        self.docUrl, self.docPath = self.getInputUrls(docPath)
+        # The path to the document to convert
+        self.docUrl, self.docPath = self.getFilePath(docPath)
         self.inputType = os.path.splitext(docPath)[1][1:].lower()
         self.resultType = resultType
         self.resultFilter = self.getResultFilter()
@@ -81,16 +83,21 @@ class Converter:
         self.loContext = None
         self.oo = None # The LibreOffice application object
         self.doc = None # The LibreOffice loaded document
+        # The path to a LibreOffice template (ie, a ".ott" file) from which
+        # styles can be imported
+        self.templateUrl = self.templatePath = None
+        if templatePath:
+            self.templateUrl, self.templatePath = self.getFilePath(templatePath)
 
-    def getInputUrls(self, docPath):
-        '''Returns the absolute path of the input file. In fact, it returns a
-           tuple with some URL version of the path for OO as the first element
+    def getFilePath(self, filePath):
+        '''Returns the absolute path of p_filePath. In fact, it returns a
+           tuple with some URL version of the path for LO as the first element
            and the absolute path as the second element.''' 
         import unohelper
-        if not os.path.exists(docPath) and not os.path.isfile(docPath):
-            raise ConverterError(DOC_NOT_FOUND % docPath)
-        docAbsPath = os.path.abspath(docPath)
-        # Return one path for OO, one path for me.
+        if not os.path.exists(filePath) and not os.path.isfile(filePath):
+            raise ConverterError(DOC_NOT_FOUND % filePath)
+        docAbsPath = os.path.abspath(filePath)
+        # Return one path for OO, one path for me
         return unohelper.systemPathToFileUrl(docAbsPath), docAbsPath
 
     def getResultFilter(self):
@@ -132,6 +139,18 @@ class Converter:
             e = sys.exc_info()[1]
             raise ConverterError(CANNOT_WRITE_RESULT % (res, e))
 
+    def props(self, properties):
+        '''Create a UNO-compliant tuple of properties, from tuple p_properties
+           containing sub-tuples (s_propertyName, value).'''
+        from com.sun.star.beans import PropertyValue
+        res = []
+        for name, value in properties:
+            prop = PropertyValue()
+            prop.Name = name
+            prop.Value = value
+            res.append(prop)
+        return tuple(res)
+
     def connect(self):
         '''Connects to LibreOffice'''
         if os.name == 'nt':
@@ -161,10 +180,11 @@ class Converter:
             raise ConverterError(CONNECT_ERROR % (self.port, e))
 
     def updateOdtDocument(self):
-        '''If the input file is an ODT document, we will perform 2 tasks:
-           1) Update all annexes;
-           2) Update sections (if sections refer to external content, we try to
-              include the content within the result file)
+        '''If the input file is an ODT document, we will perform those tasks:
+           1) update all annexes;
+           2) update sections (if sections refer to external content, we try to
+              include the content within the result file);
+           3) load styles from an external template if given.
         '''
         from com.sun.star.lang import IndexOutOfBoundsException
         # I need to use IndexOutOfBoundsException because sometimes, when
@@ -197,29 +217,26 @@ class Converter:
                         # of the section. Else, it won't appear.
                 except IndexOutOfBoundsException:
                     pass
-        
+        # Import styles from an external file when required
+        if self.templateUrl:
+            params = self.props(('OverwriteStyles', True),
+                                ('LoadPageStyles', False))
+            self.doc.StyleFamilies.loadStylesFromURL(self.templateUrl, params)
+
     def loadDocument(self):
         from com.sun.star.lang import IllegalArgumentException, \
                                       IndexOutOfBoundsException
-        from com.sun.star.beans import PropertyValue
         try:
             # Loads the document to convert in a new hidden frame
-            prop = PropertyValue(); prop.Name = 'Hidden'; prop.Value = True
+            props = [('Hidden', True)]
             if self.inputType == 'csv':
                 # Give some additional params if we need to open a CSV file
-                prop2 = PropertyValue()
-                prop2.Name = 'FilterFlags'
-                prop2.Value = '59,34,76,1'
-                #prop2.Name = 'FilterData'
-                #prop2.Value = 'Any'
-                props = (prop, prop2)
-            else:
-                props = (prop,)
+                props.append(('FilterFlags', '59,34,76,1'))
+                #props.append(('FilterData', 'Any'))
             self.doc = self.oo.loadComponentFromURL(self.docUrl, "_blank", 0,
-                                                    props)
-            if self.inputType == 'odt':
-                # Perform additional tasks for odt documents
-                self.updateOdtDocument()
+                                                    self.props(props))
+            # Perform additional tasks for odt documents
+            if self.inputType == 'odt': self.updateOdtDocument()
             try:
                 self.doc.refresh()
             except AttributeError:
@@ -232,22 +249,13 @@ class Converter:
         '''Calls LO to perform a document conversion. Note that the conversion
            is not really done if the source and target documents have the same
            type.'''
-        properties = []
-        from com.sun.star.beans import PropertyValue
-        prop = PropertyValue()
-        prop.Name = 'FilterName'
-        prop.Value = self.resultFilter
-        properties.append(prop)
-        if self.resultType == 'csv':
-            # For CSV export, add options (separator, etc)
-            optionsProp = PropertyValue()
-            optionsProp.Name = 'FilterOptions'
-            optionsProp.Value = '59,34,76,1'
-            properties.append(optionsProp)
-        self.doc.storeToURL(self.resultUrl, tuple(properties))
+        props = [('FilterName', self.resultFilter)]
+        if self.resultType == 'csv': # Add options for CSV export (separator...)
+            props.append(('FilterOptions', '59,34,76,1'))
+        self.doc.storeToURL(self.resultUrl, self.props(props))
 
     def run(self):
-        '''Connects to LO, does the job and disconnects.'''
+        '''Connects to LO, does the job and disconnects'''
         self.connect()
         self.loadDocument()
         self.convertDocument()
@@ -274,13 +282,17 @@ class ConverterScript:
                              help="The port on which LibreOffice runs " \
                              "Default is %d." % DEFAULT_PORT,
                              default=DEFAULT_PORT, metavar="PORT", type='int')
+        optParser.add_option("-t", "--template", dest="template",
+                             default=None, metavar="TEMPLATE", type='string',
+                             help="The path to a LibreOffice template from " \
+                                  "which you may import styles.")
         (options, args) = optParser.parse_args()
         if len(args) != 2:
             sys.stderr.write(WRONG_NB_OF_ARGS)
             sys.stderr.write('\n')
             optParser.print_help()
             sys.exit(ERROR_CODE)
-        converter = Converter(args[0], args[1], options.port)
+        converter = Converter(args[0], args[1], options.port, options.template)
         try:
             converter.run()
         except ConverterError:
