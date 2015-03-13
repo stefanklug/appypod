@@ -653,12 +653,12 @@ class FileWrapper:
         return filePath
 
     def copy(self):
-        '''Returns a copy of this file.'''
+        '''Returns a copy of this file'''
         return FileWrapper(self._zopeFile._getCopy(self._zopeFile))
 
 # ------------------------------------------------------------------------------
 def getMimeType(fileName):
-    '''Tries to guess mime type from p_fileName.'''
+    '''Tries to guess mime type from p_fileName'''
     res, encoding = mimetypes.guess_type(fileName)
     if not res:
         if fileName.endswith('.po'):
@@ -667,4 +667,37 @@ def getMimeType(fileName):
     if not res: return ''
     if not encoding: return res
     return '%s;;charset=%s' % (res, encoding)
+
+# ------------------------------------------------------------------------------
+class WhitespaceCruncher:
+    '''Takes care of removing unnecessary whitespace in several contexts'''
+    whitechars = u' \r\t\n' # Chars considered as whitespace
+    allWhitechars = whitechars + u' ' # nbsp
+    @staticmethod
+    def crunch(s, previous=None):
+        '''Return a version of p_s (expected to be a unicode string) where all
+           "whitechars" are:
+           * converted to real whitespace;
+           * reduced in such a way that there cannot be 2 consecutive
+             whitespace chars.
+           If p_previous is given, those rules must also apply globally to
+           previous+s.'''
+        res = ''
+        # Initialise the previous char
+        if previous:
+            previousChar = previous[-1]
+        else:
+            previousChar = u''
+        for char in s:
+            if char in WhitespaceCruncher.whitechars:
+                # Include the current whitechar in the result if the previous
+                # char is not a whitespace or nbsp.
+                if not previousChar or \
+                   (previousChar not in WhitespaceCruncher.allWhitechars):
+                    res += u' '
+            else: res += char
+            previousChar = char
+        # "res" can be a single whitespace. It is up to the caller method to
+        # identify when this single whitespace must be kept or crunched.
+        return res
 # ------------------------------------------------------------------------------

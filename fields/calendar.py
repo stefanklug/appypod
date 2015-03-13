@@ -254,10 +254,10 @@ class Calendar(Field):
             var="monthsInfos=field.getTimelineMonths(grid, zobj)">
       <colgroup> <!-- Column specifiers -->
        <!-- Names of calendars -->
-       <col></col>
+       <col/>
        <col for="date in grid"
-            style=":field.getColumnStyle(zobj, date, render, today)"></col>
-       <col></col>
+            style=":field.getColumnStyle(zobj, date, render, today)"/>
+       <col/>
       </colgroup>
       <tbody>
        <!-- Header rows (months and days) -->

@@ -84,6 +84,6 @@ class PodError(Exception):
                 buffer.write('</%s>' % subTag.elem)
             buffer.write('</%s>' % withinElement.OD.elem)
 
-# XXX To remove, present for backward compatibility only.
+# XXX To remove, present for backward compatibility only
 convertToXhtml = escapeXhtml
 # ------------------------------------------------------------------------------

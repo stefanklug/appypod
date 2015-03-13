@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 # ------------------------------------------------------------------------------
 # Appy is a framework for building applications in the Python language.
-# Copyright (C) 2007-2011 Gaetan Delannay
-#
+# Copyright (c) 2007-2015 Gaetan Delannay
 # Distributed under the GNU General Public License.
-#
-# Thanks to Fabio Marcuzzi and Gauthier Bastien for management of strike and
-# underline.
+# Contributors: Gauthier Bastien, Fabio Marcuzzi, IMIO.
 
 # ------------------------------------------------------------------------------
 import xml.sax, time, random
-from appy.shared.xml_parser import XmlEnvironment, XmlParser, escapeXml
+from appy.pod import *
 from appy.pod.odf_parser import OdfEnvironment
 from appy.pod.styles_manager import Style
-from appy.pod import *
+from appy.shared.xml_parser import XmlEnvironment, XmlParser, escapeXml
+from appy.shared.utils import WhitespaceCruncher
 
 # To which ODT tags do HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
@@ -24,14 +22,15 @@ DEFAULT_ODT_STYLES = {'b': 'podBold', 'strong':'podBold', 'i': 'podItalic',
   'u': 'podUnderline', 'strike': 'podStrike', 's': 'podStrike',
   'em': 'podItalic', 'sup': 'podSup', 'sub':'podSub', 'td': 'podCell',
   'th': 'podHeaderCell'}
-INNER_TAGS = ('b', 'strong', 'i', 'u', 'em', 'sup', 'sub', 'span')
+INNER_TAGS = ('b', 'i', 'strong', 'strike', 's', 'u', 'em', 'sub', 'sup', 'br',
+              'span', 'acronym', 'a')
 TABLE_CELL_TAGS = ('td', 'th')
 OUTER_TAGS = TABLE_CELL_TAGS + ('li',)
 # The following elements can't be rendered inside paragraphs
 NOT_INSIDE_P = XHTML_HEADINGS + XHTML_LISTS + ('table',)
 NOT_INSIDE_P_OR_P = NOT_INSIDE_P + ('p', 'div')
 NOT_INSIDE_LIST = ('table',)
-IGNORABLE_TAGS = ('meta', 'title', 'style')
+IGNORABLE_TAGS = ('meta', 'title', 'style', 'script')
 
 # ------------------------------------------------------------------------------
 class HtmlElement:
@@ -216,7 +215,7 @@ class HtmlTable:
         elems = str(time.time()).split('.')
         self.name= 'AppyTable%s%s%d' % (elems[0],elems[1],random.randint(1,100))
         self.styleNs = env.ns[OdfEnvironment.NS_STYLE]
-        self.res = u'' # The sub-buffer.
+        self.res = u'' # The sub-buffer
         self.tempRes = u'' # The temporary sub-buffer, into which we will
         # dump all table sub-elements, until we encounter the end of the first
         # row. Then, we will know how much columns are defined in the table;
@@ -299,6 +298,7 @@ class XhtmlEnvironment(XmlEnvironment):
         self.currentElements = [] # Stack of currently walked elements
         self.currentLists = [] # Stack of currently walked lists (ul or ol)
         self.currentTables = [] # Stack of currently walked tables
+        self.lastElem = None # Last walked element before the current one
         self.textNs = self.ns[OdfEnvironment.NS_TEXT]
         self.linkNs = self.ns[OdfEnvironment.NS_XLINK]
         self.tableNs = self.ns[OdfEnvironment.NS_TABLE]
@@ -326,25 +326,31 @@ class XhtmlEnvironment(XmlEnvironment):
             res = True
         return res
 
-    def dumpCurrentContent(self):
+    def dumpCurrentContent(self, place, elem):
         '''Dumps content that was temporarily stored in self.currentContent
            into the result.'''
         contentSize = 0
-        if self.currentContent.strip(' \n\r\t'): # NBSP must not be in this list
+        # Remove the trailing whitespace if needed
+        if place == 'start':
+            if self.currentContent.endswith(' ') and \
+               ((elem not in INNER_TAGS) or (elem == 'br')):
+                self.currentContent = self.currentContent[:-1]
+        # Remove the leading whitespace if needed
+        if self.currentContent.startswith(' '):
+            if not self.lastElem or \
+               ((self.lastElem not in INNER_TAGS) or (self.lastElem == 'br')):
+                self.currentContent = self.currentContent[1:]
+        if self.currentContent:
             # Manage missing elements
             currentElem = self.getCurrentElement()
             if self.anElementIsMissing(currentElem, None):
                 currentElem.addInnerParagraph(self)
             # Dump and reinitialize the current content
-            content = self.currentContent.strip('\n\t')
-            # We remove leading and trailing carriage returns, but not
-            # whitespace because whitespace may be part of the text to dump.
-            contentSize = len(content)
-            # We do not escape carriage returns, because, in XHTML, carriage
-            # returns are just ignorable white space.
-            self.dumpString(escapeXml(content))
+            contentSize = len(self.currentContent)
+            self.dumpString(escapeXml(self.currentContent))
             self.currentContent = u''
-        # If we are within a table cell, update the total size of cell content.
+        # If we are within a table cell, update the total size of cell content
+        if not contentSize: return
         if self.currentTables and self.currentTables[-1].inCell:
             for table in self.currentTables:
                 table.cellContentSize += contentSize
@@ -419,8 +425,8 @@ class XhtmlEnvironment(XmlEnvironment):
         return conflictElems
 
     def onElementStart(self, elem, attrs):
+        self.dumpCurrentContent('start', elem)
         previousElem = self.getCurrentElement()
-        self.dumpCurrentContent()
         currentElem = HtmlElement(elem, attrs)
         # Manage conflictual elements
         conflictElems = currentElem.getConflictualElements(self)
@@ -472,7 +478,7 @@ class XhtmlEnvironment(XmlEnvironment):
 
     def onElementEnd(self, elem):
         res = None
-        self.dumpCurrentContent()
+        self.dumpCurrentContent('end', elem)
         currentElem = self.currentElements.pop()
         if elem in XHTML_LISTS:
             self.currentLists.pop()
@@ -482,7 +488,7 @@ class XhtmlEnvironment(XmlEnvironment):
             table.computeColumnStyles(self.parser.caller.renderer)
             # Dumps the content of the last parsed table into the parent buffer
             self.dumpString(table.res)
-            # Remove cell-paragraph from local styles mapping if it was added.
+            # Remove cell-paragraph from local styles mapping if it was added
             map = self.parser.caller.localStylesMapping
             if not self.currentTables and ('p' in map):
                 mapValue = map['p']
@@ -519,6 +525,7 @@ class XhtmlEnvironment(XmlEnvironment):
             self.closeConflictualElements(currentElem.tagsToClose)
         if currentElem.tagsToReopen:
             res = currentElem.tagsToReopen
+        self.lastElem = currentElem.elem
         return currentElem, res
 
 # ------------------------------------------------------------------------------
@@ -614,8 +621,8 @@ class XhtmlParser(XmlParser):
 
     def characters(self, content):
         e = XmlParser.characters(self, content)
-        if not e.ignore:
-            e.currentContent += content
+        if e.ignore: return
+        e.currentContent += WhitespaceCruncher.crunch(content, e.currentContent)
 
 # -------------------------------------------------------------------------------
 class Xhtml2OdtConverter:

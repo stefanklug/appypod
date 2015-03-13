@@ -59,10 +59,10 @@ class Hack:
            "_base_<initial_method_name>_". In the patched method, one may use
            Hack.base to call the base method. If p_method is static, you must
            specify its class in p_klass.'''
-        # Get the class on which the surgery will take place.
+        # Get the class on which the surgery will take place
         isStatic = klass
         klass = klass or method.im_class
-        # On this class, store m_method under its "base" name.
+        # On this class, store m_method under its "base" name
         name = isStatic and method.func_name or method.im_func.__name__
         baseName = '_base_%s_' % name
         setattr(klass, baseName, method)

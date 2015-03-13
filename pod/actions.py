@@ -56,7 +56,7 @@ class BufferAction:
            class, message and line number.'''
         return '%s: %s' % (e.__class__.__name__, str(e))
 
-    def manageError(self, result, context, errorMessage, dumpTb=True):
+    def manageError(self, result, context, errorMessage):
         '''Manage the encountered error: dump it into the buffer or raise an
            exception.'''
         if self.buffer.env.raiseOnError:
@@ -69,8 +69,8 @@ class BufferAction:
                 if col == None: col = ''
                 else: col = ', column %d' % col
                 errorMessage += ' (line %s%s)' % (locator.getLineNumber(), col)
-                # Integrate the traceback if requested
-                if dumpTb: errorMessage += '\n' + Traceback.get(5)
+                # Integrate the traceback (at least, it last lines)
+                errorMessage += '\n' + Traceback.get(4)
             raise Exception(errorMessage)
         # Create a temporary buffer to dump the error. If I reuse this buffer to
         # dump the error (what I did before), and we are, at some depth, in a
@@ -78,8 +78,7 @@ class BufferAction:
         # content to repeat anymore. It means that this error will also show up
         # for every subsequent iteration.
         tempBuffer = self.buffer.clone()
-        PodError.dump(tempBuffer, errorMessage, withinElement=self.elem,
-                      dumpTb=dumpTb)
+        PodError.dump(tempBuffer, errorMessage, withinElement=self.elem)
         tempBuffer.evaluate(result, context)
 
     def _evalExpr(self, expr, context):
@@ -137,7 +136,7 @@ class BufferAction:
                 feRes = eval(self.fromExpr, context)
             except Exception, e:
                 msg = FROM_EVAL_ERROR% (self.fromExpr, self.getExceptionLine(e))
-                self.manageError(result, context, msg, dumpTb=False)
+                self.manageError(result, context, msg)
                 error = True
             if not error:
                 result.write(feRes)

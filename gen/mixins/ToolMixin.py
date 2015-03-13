@@ -1105,7 +1105,7 @@ class ToolMixin(BaseMixin):
         return '%s%s%s' % (name, timestamp, randomNumber)
 
     def manageError(self, error):
-        '''Manages an error.'''
+        '''Manages an error'''
         tb = sys.exc_info()
         if error.type.__name__ == 'Unauthorized':
             siteUrl = self.getSiteUrl()
