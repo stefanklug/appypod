@@ -65,11 +65,12 @@ class Hack:
         # On this class, store m_method under its "base" name
         name = isStatic and method.func_name or method.im_func.__name__
         baseName = '_base_%s_' % name
+        if isStatic:
+            # If "staticmethod" isn't called hereafter, the static functions
+            # will be wrapped in methods.
+            method = staticmethod(method)
+            replacement = staticmethod(replacement)
         setattr(klass, baseName, method)
-        # Store the replacement method on klass. When doing so, even when
-        # m_method is static, it is wrapped in a method. This is why, in
-        # m_base below, when the method is static, we return method.im_func to
-        # retrieve the original static method.
         setattr(klass, name, replacement)
 
     @staticmethod
@@ -79,17 +80,21 @@ class Hack:
         isStatic = klass
         klass = klass or method.im_class
         name = isStatic and method.func_name or method.im_func.__name__
-        res = getattr(klass, '_base_%s_' % name)
-        if isStatic: res = res.im_func
-        return res
+        return getattr(klass, '_base_%s_' % name)
 
     @staticmethod
     def inject(patchClass, klass, verbose=False):
         '''Injects any method or attribute from p_patchClass into klass.'''
         patched = []
         added = []
-        for name, attr in patchClass.__dict__.iteritems():
+        for name, attr in patchClass.__dict__.items():
             if name.startswith('__'): continue # Ignore special methods
+            # Unwrap functions from static methods
+            if attr.__class__.__name__ == 'staticmethod':
+                attr = attr.__get__(attr)
+                static = True
+            else:
+                static = False
             # Is this name already defined on p_klass ?
             if hasattr(klass, name):
                 hasAttr = True
@@ -99,7 +104,10 @@ class Hack:
                 klassAttr = None
             if hasAttr and callable(attr) and callable(klassAttr):
                 # Patch this method via Hack.patch
-                Hack.patch(klassAttr, attr)
+                if static:
+                    Hack.patch(klassAttr, attr, klass)
+                else:
+                    Hack.patch(klassAttr, attr)
                 patched.append(name)
             else:
                 # Simply replace the static attr or add the new static
