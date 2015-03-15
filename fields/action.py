@@ -36,7 +36,7 @@ class Action(Field):
            id=":formId" action=":zobj.absolute_url() + '/onExecuteAction'"
            style="display:inline">
       <input type="hidden" name="fieldName" value=":name"/>
-      <input type="hidden" name="comment" value=""/>
+      <input type="hidden" name="popupComment" value=""/>
       <input type="button" class=":css" title=":descr"
          var="textConfirm=field.confirm and _(field.labelId+'_confirm') or '';
               showComment=(field.confirm == 'text') and 'true' or 'false'"
@@ -91,10 +91,10 @@ class Action(Field):
         else: return method(obj)
 
     def __call__(self, obj):
-        '''Calls the action on p_obj.'''
+        '''Calls the action on p_obj'''
         # Must we call the method(s) with a param ?
         hasParam = self.confirm == 'text'
-        param = hasParam and obj.request.get('comment', None)
+        param = hasParam and obj.request.get('popupComment', None)
         if type(self.action) in sutils.sequenceTypes:
             # There are multiple Python methods
             res = [True, '']

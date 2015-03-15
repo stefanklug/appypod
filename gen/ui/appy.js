@@ -989,11 +989,11 @@ function askConfirm(actionType, action, msg, showComment) {
 
 // Transfer comment from the confirm form to some other form
 function transferComment(confirmForm, targetForm) {
-  if ((confirmForm.comment.style.display != 'none') &&
-      (confirmForm.comment.value)) {
-    targetForm.comment.value = confirmForm.comment.value;
+  if ((confirmForm.popupComment.style.display != 'none') &&
+      (confirmForm.popupComment.value)) {
+    targetForm.popupComment.value = confirmForm.popupComment.value;
     // Clean the confirm form
-    confirmForm.comment.value = '';
+    confirmForm.popupComment.value = '';
   }
 }
 

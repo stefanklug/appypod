@@ -105,7 +105,7 @@ class AbstractWrapper(object):
          <input type="hidden" name="action"/>
          <div id="commentArea" align=":dleft"><br/>
           <span class="discreet">:_('workflow_comment')</span>
-          <textarea name="comment" cols="30" rows="3"></textarea>
+          <textarea name="popupComment" cols="30" rows="3"></textarea>
           <br/>
          </div><br/>
          <input type="button" onclick="doConfirm()" value=":_('yes')"/>
@@ -379,7 +379,7 @@ class AbstractWrapper(object):
            style="display: inline" method="post">
       <input type="hidden" name="transition"/>
       <!-- Input field for storing the comment coming from the popup -->
-      <textarea id="comment" name="comment" cols="30" rows="3"
+      <textarea id="popupComment" name="popupComment" cols="30" rows="3"
                 style="display:none"></textarea>
       <x for="transition in transitions">
        <!-- Render a transition or a group of transitions. -->
@@ -1290,6 +1290,17 @@ class AbstractWrapper(object):
                 condition = event['action'] in transition
             if condition: return event
             i -= 1
+
+    def getHistoryComments(self, transition, xhtml=False):
+        '''Gets the concatenation of all comments for all transitions of type
+           p_transition in the object history.'''
+        res = []
+        for event in self.history:
+            if event['action'] != transition: continue
+            if not event['comments']: continue
+            res.append(event['comments'])
+        br = xhtml and '<br/>' or '\n'
+        return br.join(res)
 
     def removeEvent(self, event):
         '''Removes p_event from this object's history'''

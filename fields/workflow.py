@@ -425,7 +425,8 @@ class Transition:
         '''Executed when a user wants to trigger this transition from the UI.'''
         tool = obj.getTool()
         # Trigger the transition
-        msg = self.trigger(name, obj, wf, rq.get('comment', ''), reindex=False)
+        msg = self.trigger(name, obj, wf, rq.get('popupComment', ''),
+                           reindex=False)
         # Reindex obj if required
         if not obj.isTemporary(): obj.reindex()
         # If we are called from an Ajax request, simply return msg
