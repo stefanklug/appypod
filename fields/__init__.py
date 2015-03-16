@@ -879,7 +879,7 @@ class Field:
            m_getRequestValue defined above, is valid according to this type
            definition. If it is the case, None is returned. Else, a translated
            error message is returned.'''
-        # If the value is required, check that a (complete) value is present.
+        # If the value is required, check that a (complete) value is present
         if not self.isCompleteValue(obj, value):
             if self.required and self.isClientVisible(obj):
                 # If the field is required, but not visible according to
@@ -897,7 +897,7 @@ class Field:
         if self.validator and (type(self.validator) in self.validatorTypes):
             obj = obj.appy()
             if type(self.validator) != self.validatorTypes[-1]:
-                # It is a custom function. Execute it.
+                # It is a custom function: execute it
                 try:
                     validValue = self.validator(obj, value)
                     if isinstance(validValue, basestring) and validValue:

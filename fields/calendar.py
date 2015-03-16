@@ -1165,19 +1165,15 @@ class Calendar(Field):
         events.append(Event(eventType))
         return True
 
-    def createEvent(self, obj, date, timeslot='main', eventType=None,
-                    eventSpan=None, handleEventSpan=True):
-        '''Create a new event in the calendar, at some p_date (day).
-           If p_eventType is given, it is used; else, rq['eventType'] is used.
-           If p_handleEventSpan is True, we will use p_eventSpan (or
-           rq["eventSpan"] if p_eventSpan is not given) and also
-           create the same event for successive days.'''
+    def createEvent(self, obj, date, eventType, timeslot='main', eventSpan=None,
+                    handleEventSpan=True):
+        '''Create a new event in the calendar, at some p_date (day). If
+           p_handleEventSpan is True, we will use p_eventSpan and also create
+           the same event for successive days.'''
         obj = obj.o # Ensure p_obj is not a wrapper
         rq = obj.REQUEST
         # Get values from parameters
         if not eventType: eventType = rq['eventType']
-        if handleEventSpan and not eventSpan:
-            eventSpan = rq.get('eventSpan', None)
         # Split the p_date into separate parts
         year, month, day = date.year(), date.month(), date.day()
         # Check that the "preferences" dict exists or not
@@ -1216,11 +1212,11 @@ class Calendar(Field):
         # Span the event on the successive days if required
         suffix = ''
         if handleEventSpan and eventSpan:
-            nbOfDays = min(int(eventSpan), self.maxEventLength)
-            for i in range(nbOfDays):
+            for i in range(eventSpan):
                 date = date + 1
-                self.createEvent(obj, date, timeslot, handleEventSpan=False)
-                suffix = ', span+%d' % nbOfDays
+                self.createEvent(obj, date, eventType, timeslot,
+                                 handleEventSpan=False)
+                suffix = ', span+%d' % eventSpan
         if handleEventSpan:
             msg = 'added %s, slot %s%s' % (eventType, timeslot, suffix)
             self.log(obj, msg, date)
@@ -1276,6 +1272,21 @@ class Calendar(Field):
                     break
                 i -= 1
 
+    def validate(self, obj, date, eventType, timeslot, span=0):
+        '''The validation process for a calendar is a bit different from the
+           standard one, that checks a "complete" request value. Here, we only
+           check the validity of some insertion of events within the
+           calendar.'''
+        if not self.validator: return
+        res = self.validator(obj, date, eventType, timeslot, span)
+        if isinstance(res, basestring):
+            # Validation failed, and we have the error message in "res"
+            return res
+        if not res:
+            # Validation failed, without specific message: return a standard one
+            return obj.translate('field_invalid')
+        return res
+
     def process(self, obj):
         '''Processes an action coming from the calendar widget, ie, the creation
            or deletion of a calendar event.'''
@@ -1285,9 +1296,16 @@ class Calendar(Field):
         obj.mayEdit(self.writePermission, raiseError=True)
         # Get the date and timeslot for this action
         date = DateTime(rq['day'])
+        eventType = rq.get('eventType')
         timeslot = rq.get('timeslot', 'main')
+        eventSpan = rq.get('eventSpan') or 0
+        eventSpan = min(int(eventSpan), self.maxEventLength)
         if action == 'createEvent':
-            return self.createEvent(obj, date, timeslot)
+            # Trigger validation
+            valid = self.validate(obj.appy(), date, eventType, timeslot,
+                                  eventSpan)
+            if isinstance(valid, basestring): return valid
+            return self.createEvent(obj, date, eventType, timeslot, eventSpan)
         elif action == 'deleteEvent':
             return self.deleteEvent(obj, date, timeslot)
 
