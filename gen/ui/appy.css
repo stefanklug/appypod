@@ -124,7 +124,7 @@ td.search { padding-top: 8px }
 .compact th, .compact td { padding: 0px 3px 0px 3px }
 .grid th { font-style: italic; font-weight: normal;
            border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
-.grid td { padding: 3px 3px 0 3px }
+.grid td { padding: 0 3px }
 .timeline { font-size: 85%; color: #555555 }
 .timeline td { text-align: center; padding: 1px }
 .timeline th { padding: 1px }

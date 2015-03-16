@@ -256,12 +256,12 @@ class BaseMixin:
         return dbFolder, path
 
     def view(self):
-        '''Returns the view PX.'''
+        '''Returns the view PX'''
         obj = self.appy()
         return obj.pxView({'obj': obj, 'tool': obj.tool})
 
     def edit(self):
-        '''Returns the edit PX.'''
+        '''Returns the edit PX'''
         obj = self.appy()
         return obj.pxEdit({'obj': obj, 'tool': obj.tool})
 
@@ -347,8 +347,8 @@ class BaseMixin:
                 setattr(errors, field.name, message)
             else:
                 setattr(values, field.name, field.getStorableValue(self, value))
-            # Validate sub-fields within Lists
-            if field.type != 'List': continue
+            # Validate sub-fields within Lists/Dicts
+            if field.type not in ('List', 'Dict'): continue
             i = -1
             for row in value:
                 i += 1
@@ -710,7 +710,7 @@ class BaseMixin:
         field = self.getAppyType(name)
         if field.type == 'Pod': return
         if '*' not in name: return field.getValue(self)
-        # The field is an inner field from a List.
+        # The field is an inner field from a List/Dict
         listName, name, i = name.split('*')
         listType = self.getAppyType(listName)
         return listType.getInnerValue(self, outerValue, name, int(i))

@@ -29,6 +29,7 @@ from appy.fields.float import Float
 from appy.fields.info import Info
 from appy.fields.integer import Integer
 from appy.fields.list import List
+from appy.fields.dict import Dict
 from appy.fields.pod import Pod
 from appy.fields.ref import Ref, autoref
 from appy.fields.string import String, Selection

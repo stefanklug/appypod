@@ -319,6 +319,7 @@ class FieldDescriptor:
                 self.i18n('%s_descr' % label, ' ')
             if field.hasHelp:
                 self.i18n('%s_help' % label, ' ')
+    walkDict = walkList # Same i18n labels for a dict
 
     def walkCalendar(self):
         # Add i18n-specific messages

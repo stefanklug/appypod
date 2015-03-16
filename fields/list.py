@@ -123,14 +123,14 @@ class List(Field):
         return res
 
     def getRequestValue(self, obj, requestName=None):
-        '''Concatenates the list from distinct form elements in the request.'''
+        '''Concatenates the list from distinct form elements in the request'''
         request = obj.REQUEST
         name = requestName or self.name # A List may be into another List (?)
         prefix = name + '*' + self.fields[0][0] + '*'
         res = {}
         for key in request.keys():
             if not key.startswith(prefix): continue
-            # I have found a row. Gets its index
+            # I have found a row. Gets its index.
             row = Object()
             if '_' in key: key = key[:key.index('_')]
             rowIndex = int(key.split('*')[-1])
@@ -140,7 +140,7 @@ class List(Field):
                 v = subField.getRequestValue(obj, requestName=keyName)
                 setattr(row, subName, v)
             res[rowIndex] = row
-        # Produce a sorted list.
+        # Produce a sorted list
         keys = res.keys()
         keys.sort()
         res = [res[key] for key in keys]
@@ -153,7 +153,7 @@ class List(Field):
         return res
 
     def getStorableValue(self, obj, value):
-        '''Gets p_value in a form that can be stored in the database.'''
+        '''Gets p_value in a form that can be stored in the database'''
         res = []
         for v in value:
             sv = Object()

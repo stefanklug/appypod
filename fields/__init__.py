@@ -25,6 +25,9 @@ from group import Group
 from search import Search
 from page import Page
 
+# In this file, names "list" and "dict" refer to sub-modules. To use Python
+# builtin types, use __builtins__['list'] and __builtins__['dict']
+
 # ------------------------------------------------------------------------------
 class Field:
     '''Basic abstract class for defining any field.'''
@@ -396,7 +399,7 @@ class Field:
             # We must initialise the corresponding back reference
             self.back.klass = klass
             self.back.init(self.back.attribute, self.klass, appName)
-        if self.type == "List":
+        if self.type in ('List', 'Dict'):
             for subName, subField in self.fields:
                 fullName = '%s_%s' % (name, subName)
                 subField.init(fullName, klass, appName)
@@ -490,7 +493,7 @@ class Field:
     def formatMapping(self, mapping):
         '''Creates a dict of mappings, one entry by label type (label, descr,
            help).'''
-        if isinstance(mapping, dict):
+        if isinstance(mapping, __builtins__['dict']):
             # Is it a dict like {'label':..., 'descr':...}, or is it directly a
             # dict with a mapping?
             for k, v in mapping.iteritems():
@@ -504,7 +507,7 @@ class Field:
                     mapping[labelType] = None # No mapping for this value.
             return mapping
         else:
-            # Mapping is a method that must be applied to any i18n message.
+            # Mapping is a method that must be applied to any i18n message
             return {'label':mapping, 'descr':mapping, 'help':mapping}
 
     def formatLayouts(self, layouts):
@@ -532,7 +535,7 @@ class Field:
                 layouts = copy.deepcopy(layouts)
                 if 'edit' not in layouts:
                     defEditLayout = self.computeDefaultLayouts()
-                    if type(defEditLayout) == dict:
+                    if isinstance(defEditLayout, __builtins__['dict']):
                         defEditLayout = defEditLayout['edit']
                     layouts['edit'] = defEditLayout
         # We have now a dict of layouts in p_layouts. Ensure now that a Table
