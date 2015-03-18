@@ -267,8 +267,9 @@ class ToolMixin(BaseMixin):
     def showPortlet(self, obj, layoutType):
         '''When must the portlet be shown? p_obj and p_layoutType can be None
            if we are not browing any objet (ie, we are on the home page).'''
-        # Not on 'edit' pages.
-        if layoutType == 'edit': return
+        # Not on 'edit' pages or if there is no root class
+        classes = self.getProductConfig(True).rootClasses
+        if not classes or (layoutType == 'edit'): return
         res = True
         if obj and hasattr(obj, 'showPortlet'):
             res = obj.showPortlet()

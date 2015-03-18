@@ -26,6 +26,9 @@ class Timeslot:
         # The event types (among all event types defined at the Calendar level)
         # that can be assigned to this slot.
         self.eventTypes = eventTypes # "None" means "all"
+        # "day part" is the part of the day (from 0 to 1.0) that is taken by
+        # the timeslot.
+        self.dayPart = 1.0
 
     def allows(self, eventType):
         '''It is allowed to have an event of p_eventType in this timeslot?'''
@@ -161,6 +164,10 @@ class Event(Persistent):
         '''Is p_self the same as p_other?'''
         return (self.eventType == other.eventType) and \
                (self.timeslot == other.timeslot)
+
+    def getDayPart(self, field):
+        '''What is the day part taken by this event ?'''
+        return field.getTimeslot(self.timeslot).dayPart
 
 # ------------------------------------------------------------------------------
 class Calendar(Field):
@@ -506,17 +513,24 @@ class Calendar(Field):
             onclick=":'askMonth(%s,%s)' % (q(ajaxHookId), q(nextMonth))"/>
        <span>:_('month_%s' % monthDayOne.aMonth())</span>
        <span>:month.split('/')[0]</span>
-       <!-- Validate button -->
-       <input if="mayValidate" type="button" value=":_('validate_events')"
-              class="buttonSmall button" style=":url('validate', bg=True)"
-              var2="js='validateEvents(%s,%s)' % (q(ajaxHookId), q(month))"
-              onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js, False), \
-                        q(_('validate_events_confirm')))"/>
-       <input type="checkbox" checked="checked" id=":'%s_auto' % ajaxHookId"
-              class="smallbox"/>
-       <label lfor="selectAuto" class="simpleLabel">:_('select_auto')</label>
+       <!-- Validate button, with checkbox for automatic checbox selection -->
+       <x if="mayValidate">
+        <input if="mayValidate" type="button" value=":_('validate_events')"
+               class="buttonSmall button" style=":url('validate', bg=True)"
+               var2="js='validateEvents(%s,%s)' % (q(ajaxHookId), q(month))"
+               onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js, False), \
+                         q(_('validate_events_confirm')))"/>
+        <input type="checkbox" checked="checked" id=":'%s_auto' % ajaxHookId"
+               class="smallbox"/>
+        <label lfor="selectAuto" class="simpleLabel">:_('select_auto')</label>
+       </x>
       </div>
+      <!-- The top PX, if defined -->
+      <x if="field.topPx">::field.topPx</x>
+      <!-- The calendar in itself -->
       <x>:getattr(field, 'pxView%s' % render.capitalize())</x>
+      <!-- The bottom PX, if defined -->
+      <x if="field.bottomPx">::field.bottomPx</x>
      </div>''')
 
     pxEdit = pxSearch = ''
@@ -531,7 +545,24 @@ class Calendar(Field):
                  startDate=None, endDate=None, defaultDate=None, timeslots=None,
                  colors=None, showUncolored=False, preCompute=None,
                  applicableEvents=None, totalRows=None, validation=None,
-                 view=None, xml=None, delete=True):
+                 topPx=None, bottomPx=None, view=None, xml=None, delete=True):
+        # The "validator" attribute, allowing field-specific validation, behaves
+        # differently for the Calendar field. If specified, it must hold a
+        # method that will be executed every time a user wants to create an
+        # event (or series of events) in the calendar. This method must accept
+        # those args:
+        #  - date       the date of the event (as a DateTime instance);
+        #  - eventType  the event type (one among p_eventTypes);
+        #  - timeslot   the timeslot for the event (see param "timeslots"
+        #               below);
+        #  - span       the number of additional days on wich the event will
+        #               span (will be 0 if the user wants to create an event
+        #               for a single day).
+        # If validation succeeds (ie, the event creation can take place), the
+        # method must return True (boolean). Else, it will be canceled and an
+        # error message will be shown. If the method returns False (boolean), it
+        # will be a standard error message. If the method returns a string, it
+        # will be used as specific error message.
         Field.__init__(self, validator, (0,1), default, show, page, group,
                        layouts, move, False, True, False, specificReadPermission,
                        specificWritePermission, width, height, None, colspan,
@@ -649,13 +680,22 @@ class Calendar(Field):
         # May the user delete events in this calendar? If "delete" is a method,
         # it must accept an event type as single arg.
         self.delete = delete
+        # You may specify PXs that will show specific information, respectively,
+        # before and after the calendar.
+        self.topPx = topPx
+        self.bottomPx = bottomPx
 
     def checkTimeslots(self):
-        '''Checks whether self.timeslots defines corect timeslots.'''
+        '''Checks whether self.timeslots defines corect timeslots'''
         # The first timeslot must be the global one, named 'main'
         if self.timeslots[0].id != 'main':
             raise Exception('The first timeslot must have id "main" and is ' \
                             'the one representing the whole day.')
+        # Set the day parts for every timeslot
+        count = len(self.timeslots) - 1 # Count the timeslots, main excepted
+        for timeslot in self.timeslots:
+            if timeslot.id == 'main': continue
+            timeslot.dayPart = 1.0 / count
 
     def log(self, obj, msg, date=None):
         '''Logs m_msg, field-specifically prefixed.'''
@@ -915,6 +955,11 @@ class Calendar(Field):
         if not forBrowser: return res
         return ','.join(res)
 
+    def getTimeslot(self, id):
+        '''Get the timeslot corresponding to p_id'''
+        for slot in self.timeslots:
+            if slot.id == id: return slot
+
     def getEventsAt(self, obj, date):
         '''Returns the list of events that exist at some p_date (=day). p_date
            can be:
@@ -947,38 +992,95 @@ class Calendar(Field):
         if not events: return
         return events[0].eventType
 
-    def walkEvents(self, obj, callback):
-        '''Walks on p_obj, the calendar value for this field and calls
-           p_callback for every day containing events. The callback must accept
-           3 args: p_obj, the current day (as a DateTime instance) and the list
-           of events at that day (the database-stored PersistentList
-           instance). If the callback returns True we stop the walk.'''
+    def standardizeDateRange(self, range):
+        '''p_range can have various formats (see m_walkEvents below). This
+           method standardizes the date range as a 6-tuple
+           (startYear, startMonth, startDay, endYear, endMonth, endDay).'''
+        if not range: return
+        if isinstance(range, int):
+            # p_range represents a year
+            return (range, 1, 1, range, 12, 31)
+        elif isinstance(range[0], int):
+            # p_range represents a month
+            year, month = range
+            return (year, month, 1, year, month, 31)
+        else:
+            # p_range is a tuple (start, end) of DateTime instances
+            start, end = range
+            return (start.year(), start.month(), start.day(),
+                    end.year(),   end.month(),   end.day())
+
+    def walkEvents(self, obj, callback, dateRange=None):
+        '''Walks on p_obj, the calendar value in chronological order for this
+           field and calls p_callback for every day containing events. The
+           callback must accept 3 args: p_obj, the current day (as a DateTime
+           instance) and the list of events at that day (the database-stored
+           PersistentList instance). If the callback returns True we stop the
+           walk.
+
+           If p_dateRange is specified, it limits the walk to this range. It
+           can be:
+           * an integer, representing a year;
+           * a tuple of integers (year, month) representing a given month
+             (first month is numbered 1);
+           * a tuple (start, end) of DateTime instances.
+        '''
         obj = obj.o
         if not hasattr(obj, self.name): return
+        yearsDict = getattr(obj, self.name)
+        if not yearsDict: return
+        # Standardize date range
+        if dateRange:
+            startYear, startMonth, startDay, endYear, endMonth, endDay = \
+              self.standardizeDateRange(dateRange)
         # Browse years
-        years = getattr(obj, self.name)
-        if not years: return
-        for year in years.keys():
+        years = list(yearsDict.keys())
+        years.sort()
+        for year in years:
+            # Ignore this year if out of range
+            if dateRange:
+                if (year < startYear) or (year > endYear): continue
+                isStartYear = year == startYear
+                isEndYear = year == endYear
             # Browse this year's months
-            months = years[year]
-            for month in months.keys():
+            monthsDict = yearsDict[year]
+            if not monthsDict: continue
+            months = list(monthsDict.keys())
+            months.sort()
+            for month in months:
+                # Ignore this month if out of range
+                if dateRange:
+                    if (isStartYear and (month < startMonth)) or \
+                       (isEndYear and (month > endMonth)): continue
+                    isStartMonth = isStartYear and (month == startMonth)
+                    isEndMonth = isEndYear and (month == endMonth)
                 # Browse this month's days
-                days = months[month]
-                for day in days.keys():
+                daysDict = monthsDict[month]
+                if not daysDict: continue
+                days = list(daysDict.keys())
+                days.sort()
+                for day in days:
+                    # Ignore this day if out of range
+                    if dateRange:
+                        if (isStartMonth and (day < startDay)) or \
+                           (isEndMonth and (day > endDay)): continue
                     date = DateTime('%d/%d/%d UTC' % (year, month, day))
-                    stop = callback(obj, date, days[day])
+                    stop = callback(obj, date, daysDict[day])
                     if stop: return
 
     def getEventsByType(self, obj, eventType, minDate=None, maxDate=None,
                         sorted=True, groupSpanned=False):
         '''Returns all the events of a given p_eventType. If p_eventType is
-           None, it returns events of all types. The return value is a list of
-           2-tuples whose 1st elem is a DateTime instance and whose 2nd elem is
-           the event.
+           None, it returns events of all types. p_eventType can also be a
+           list or tuple. The return value is a list of 2-tuples whose 1st elem
+           is a DateTime instance and whose 2nd elem is the event.
+
            If p_sorted is True, the list is sorted in chronological order. Else,
            the order is random, but the result is computed faster.
+
            If p_minDate and/or p_maxDate is/are specified, it restricts the
            search interval accordingly.
+
            If p_groupSpanned is True, events spanned on several days are
            grouped into a single event. In this case, tuples in the result
            are 3-tuples: (DateTime_startDate, DateTime_endDate, event).
@@ -987,7 +1089,7 @@ class Calendar(Field):
         if groupSpanned and not sorted:
             raise Exception('Events must be sorted if you want to get ' \
                             'spanned events to be grouped.')
-        obj = obj.o # Ensure p_obj is not a wrapper.
+        obj = obj.o # Ensure p_obj is not a wrapper
         res = []
         if not hasattr(obj, self.name): return res
         # Compute "min" and "max" tuples
@@ -1023,8 +1125,12 @@ class Calendar(Field):
                     # Browse this day's events
                     for event in events:
                         # Filter unwanted events
-                        if eventType and (event.eventType != eventType):
-                            continue
+                        if eventType:
+                            if isinstance(eventType, str):
+                                keepIt = (event.eventType == eventType)
+                            else:
+                                keepIt = (event.eventType in eventType)
+                            if not keepIt: continue
                         # We have found a event
                         date = DateTime('%d/%d/%d UTC' % (year, month, day))
                         if groupSpanned:

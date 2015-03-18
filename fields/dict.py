@@ -31,7 +31,7 @@ class Dict(List):
     # PX for rendering a single row
     pxRow = Px('''
      <tr valign="top" class=":loop.row.odd and 'even' or 'odd'">
-      <td>:row[1]</td>
+      <td class="discreet">:row[1]</td>
       <td for="info in subFields" if="info[1]" align="center"
           var2="field=info[1];
                 fieldName='%s*%d' % (field.name, rowIndex);
@@ -41,15 +41,15 @@ class Dict(List):
     # PX for rendering the dict (shared between pxView and pxEdit)
     pxTable = Px('''
      <table var="isEdit=layoutType == 'edit'" if="isEdit or value"
-            id=":'list_%s' % name" class=":isEdit and 'grid' or 'compact list'"
+            id=":'list_%s' % name" class=":isEdit and 'grid' or 'list'"
             width=":field.width"
             var2="keys=field.keys(obj);
                   subFields=field.getSubFields(zobj, layoutType)">
       <!-- Header -->
       <tr valign="bottom">
-       <th></th>
+       <th width=":field.widths[0]"></th>
        <th for="info in subFields" if="info[1]"
-           width=":field.widths[loop.info.nb]">::_(info[1].labelId)</th>
+           width=":field.widths[loop.info.nb+1]">::_(info[1].labelId)</th>
       </tr>
       <!-- Rows of data -->
       <x for="row in keys" var2="rowIndex=loop.row.nb">:field.pxRow</x>
@@ -79,7 +79,7 @@ class Dict(List):
         '''Formats the dict value as a list of values'''
         res = []
         for key, title in self.keys(obj.appy()):
-            if key in value:
+            if value and (key in value):
                 res.append(value[key])
             else:
                 # There is no value for this key in the database p_value
