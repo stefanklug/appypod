@@ -99,6 +99,10 @@ class List(Field):
                 field.layouts = field.formatLayouts(subLayouts)
         # One may specify the width of every column in the list. Indeed, using
         # widths and layouts of sub-fields may not be sufficient.
+        self.computeWidths(widths)
+
+    def computeWidths(self, widths):
+        '''Set given p_widths or compute default ones if not given.'''
         if not widths:
             self.widths = [''] * len(self.fields)
         else:

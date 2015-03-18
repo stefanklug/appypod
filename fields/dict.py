@@ -74,6 +74,13 @@ class Dict(List):
         # while encoding/viewing this entry.
         self.keys = keys
 
+    def computeWidths(self, widths):
+        '''Set given p_widths or compute default ones if not given.'''
+        if not widths:
+            self.widths = [''] * (len(self.fields) + 1)
+        else:
+            self.widths = widths
+
     def getFormattedValue(self, obj, value, layoutType='view',
                           showChanges=False, language=None):
         '''Formats the dict value as a list of values'''
