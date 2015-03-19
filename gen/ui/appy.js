@@ -56,9 +56,14 @@ function len(dict) {
   return res;
 }
 
-function switchLanguage(selectWidget, siteUrl) {
-  var language = selectWidget.options[selectWidget.selectedIndex].value;
+function switchLanguage(select, siteUrl) {
+  var language = select.options[select.selectedIndex].value;
   goto(siteUrl + '/config/changeLanguage?language=' + language);
+}
+
+function switchResultMode(select, hook) {
+  var mode = select.options[select.selectedIndex].value;
+  askAjax(hook, null, {'resultMode': mode});
 }
 
 var isIe = (navigator.appName == "Microsoft Internet Explorer");
@@ -308,11 +313,14 @@ function askAjax(hook, form, params, waiting) {
   }
   else var mode = d.mode;
   // Get p_params if given. Note that they override anything else.
-  if (params && ('mode' in params)) {
-    mode = params['mode']; delete params['mode'] }
-  if (params) { for (var key in params) d.params[key] = params[key]; }
-  askAjaxChunk(hook, mode, d.url, d.px, d.params, d.beforeSend,
-               evalInnerScripts, waiting);
+  var px = d.px;
+  if (params) {
+    if ('mode' in params) { mode = params['mode']; delete params['mode'] };
+    if ('px' in params) { px = params['px']; delete params['px'] };
+    for (var key in params) d.params[key] = params[key];
+  }
+  askAjaxChunk(hook, mode, d.url, px, d.params, d.beforeSend, evalInnerScripts,
+               waiting);
 }
 
 function askBunch(hookId, startNumber) {

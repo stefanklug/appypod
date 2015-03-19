@@ -794,3 +794,11 @@ msgstr ""
 #. Default: "Hello, this email that was sent to you via ${site}. Please consult the attached file(s)."
 msgid "podmail_body"
 msgstr ""
+
+#. Default: "List"
+msgid "result_mode_list"
+msgstr ""
+
+#. Default: "Grid"
+msgid "result_mode_grid"
+msgstr ""

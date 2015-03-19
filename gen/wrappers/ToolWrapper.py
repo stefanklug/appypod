@@ -344,11 +344,21 @@ class ToolWrapper(AbstractWrapper):
      <div var="className=req['className'];
                searchName=req.get('search', '');
                uiSearch=ztool.getSearch(className, searchName, ui=True);
+               klass=ztool.getAppyClass(className);
+               resultModes=uiSearch.getAllResultModes(klass);
                rootHookId=uiSearch.getRootHookId();
                cssJs=None"
           id=":rootHookId">
       <script>:uiSearch.getCbJsInit(rootHookId)</script>
-      <x>:tool.pxPagePrologue</x><x>:uiSearch.pxResult</x>
+      <x>:tool.pxPagePrologue</x>
+      <div align=":dright" if="len(resultModes) &gt; 1">
+       <select name="px"
+               onchange=":'switchResultMode(this, %s)' % q('queryResult')">
+        <option for="mode in resultModes"
+                value=":mode">:uiSearch.getModeText(mode, _)</option>
+       </select>
+      </div>
+      <x>:uiSearch.pxResult</x>
      </div>''', template=AbstractWrapper.pxTemplate, hook='content')
 
     pxSearch = Px('''

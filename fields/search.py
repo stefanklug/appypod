@@ -162,6 +162,7 @@ class UiSearch:
     # Default values for request parameters defining query sort and filter
     sortFilterDefaults = {'sortKey': '', 'sortOrder': 'asc',
                           'filterKey': '', 'filterValue': ''}
+    pxByMode = {'list': 'pxResultList', 'grid': 'pxResultGrid'}
 
     # Rendering a search
     pxView = Px('''
@@ -175,55 +176,46 @@ class UiSearch:
 
     # Search results, as a list (used by pxResult below)
     pxResultList = Px('''
-     <x var="showHeaders=showHeaders|True;
-             checkboxes=uiSearch.search.checkboxes;
-             checkboxesId=rootHookId + '_objs';
-             cbShown=uiSearch.showCheckboxes();
-             cbDisplay=cbShown and 'table-cell' or 'none'">
-      <script>:uiSearch.getAjaxData(ajaxHookId, ztool, popup=inPopup, \
-               checkboxes=checkboxes, checkboxesId=checkboxesId, \
-               cbDisplay=cbDisplay, startNumber=startNumber, \
-               totalNumber=totalNumber)</script>
-      <table class="list" width="100%">
-       <!-- Headers, with filters and sort arrows -->
-       <tr if="showHeaders">
-        <th if="checkboxes" class="cbCell" style=":'display:%s' % cbDisplay">
-         <img src=":url('checkall')" class="clickable"
-              title=":_('check_uncheck')"
-              onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
-        </th>
-        <th for="column in columns"
-            var2="field=column.field;
-                  sortable=field.isSortable(usage='search');
-                  filterable=field.filterable"
-            width=":column.width" align=":column.align">
-         <x>::ztool.truncateText(_(field.labelId))</x>
-         <x if="(totalNumber &gt; 1) or filterValue">:tool.pxSortAndFilter</x>
-         <x>:tool.pxShowDetails</x>
-        </th>
-       </tr>
+     <table class="list" width="100%">
+      <!-- Headers, with filters and sort arrows -->
+      <tr if="showHeaders">
+       <th if="checkboxes" class="cbCell" style=":'display:%s' % cbDisplay">
+        <img src=":url('checkall')" class="clickable"
+             title=":_('check_uncheck')"
+             onclick=":'toggleAllCbs(%s)' % q(checkboxesId)"/>
+       </th>
+       <th for="column in columns"
+           var2="field=column.field;
+                 sortable=field.isSortable(usage='search');
+                 filterable=field.filterable"
+           width=":column.width" align=":column.align">
+        <x>::ztool.truncateText(_(field.labelId))</x>
+        <x if="(totalNumber &gt; 1) or filterValue">:tool.pxSortAndFilter</x>
+        <x>:tool.pxShowDetails</x>
+       </th>
+      </tr>
 
-       <!-- Results -->
-       <tr if="not zobjects">
-        <td colspan=":len(columns)+1">:_('query_no_result')</td>
-       </tr>
-       <x for="zobj in zobjects"
-          var2="rowCss=loop.zobj.odd and 'even' or 'odd';
-               @currentNumber=currentNumber + 1">:zobj.appy().pxViewAsResult</x>
-      </table>
-      <!-- The button for selecting objects and closing the popup -->
-      <div if="inPopup and cbShown" align=":dleft">
-       <input type="button"
-              var="label=_('object_link_many'); css=ztool.getButtonCss(label)"
-              value=":label" class=":css" style=":url('linkMany', bg=True)"
-              onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
-               (q(rootHookId), q(uiSearch.initiator.url), \
-                q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
-                q(filterKey), q(filterValue))"/>
-      </div>
-      <!-- Init checkboxes if present -->
-      <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
-      <script>:'initFocus(%s)' % q(ajaxHookId)</script></x>''')
+      <!-- Results -->
+      <tr if="not zobjects">
+       <td colspan=":len(columns)+1">:_('query_no_result')</td>
+      </tr>
+      <x for="zobj in zobjects"
+         var2="rowCss=loop.zobj.odd and 'even' or 'odd';
+              @currentNumber=currentNumber + 1">:zobj.appy().pxViewAsResult</x>
+     </table>
+     <!-- The button for selecting objects and closing the popup -->
+     <div if="inPopup and cbShown" align=":dleft">
+      <input type="button"
+             var="label=_('object_link_many'); css=ztool.getButtonCss(label)"
+             value=":label" class=":css" style=":url('linkMany', bg=True)"
+             onclick=":'onSelectObjects(%s,%s,%s,%s,%s,%s,%s)' % \
+              (q(rootHookId), q(uiSearch.initiator.url), \
+               q(uiSearch.initiatorMode), q(sortKey), q(sortOrder), \
+               q(filterKey), q(filterValue))"/>
+     </div>
+     <!-- Init checkboxes if present -->
+     <script if="checkboxes">:'initCbs(%s)' % q(checkboxesId)</script>
+     <script>:'initFocus(%s)' % q(ajaxHookId)</script>''')
 
     # Search results, as a grid (used by pxResult below)
     pxResultGrid = Px('''
@@ -246,8 +238,12 @@ class UiSearch:
     pxResult = Px('''
      <div var="ajaxHookId='queryResult';
                className=className|req['className'];
+               klass=ztool.getAppyClass(className);
                searchName=field.name|req.get('search', '');
                uiSearch=field|ztool.getSearch(className, searchName, ui=True);
+               resultMode=uiSearch.getResultMode(klass, req);
+               customPx=resultMode not in uiSearch.pxByMode;
+               maxResults=customPx and 'NO_LIMIT' or None;
                rootHookId=uiSearch.getRootHookId();
                refInfo=ztool.getRefInfo();
                refObject=refInfo[0];
@@ -261,11 +257,13 @@ class UiSearch:
                filterKey=req.get('filterKey', '');
                filterValue=req.get('filterValue', '');
                queryResult=ztool.executeQuery(className, \
-                   search=uiSearch.search, startNumber=startNumber, \
-                   remember=True, sortBy=sortKey, sortOrder=sortOrder, \
-                   filterKey=filterKey, filterValue=filterValue, \
-                   refObject=refObject, refField=refField);
+                 search=uiSearch.search, startNumber=startNumber, \
+                 maxResults=maxResults, remember=True, sortBy=sortKey, \
+                 sortOrder=sortOrder, filterKey=filterKey, \
+                 filterValue=filterValue, refObject=refObject, \
+                 refField=refField);
                zobjects=queryResult.objects;
+               objects=maxResults and [z.appy() for z in zobjects];
                totalNumber=queryResult.totalNumber;
                batchSize=queryResult.batchSize;
                batchNumber=len(zobjects);
@@ -273,10 +271,17 @@ class UiSearch:
                newSearchUrl='%s/search?className=%s%s' % \
                    (ztool.absolute_url(), className, refUrlPart);
                showSubTitles=req.get('showSubTitles', 'true') == 'true';
-               klass=ztool.getAppyClass(className);
-               resultMode=uiSearch.getResultMode(klass);
-               target=ztool.getLinksTargetInfo(klass)"
+               target=ztool.getLinksTargetInfo(klass);
+               showHeaders=showHeaders|True;
+               checkboxes=uiSearch.search.checkboxes;
+               checkboxesId=rootHookId + '_objs';
+               cbShown=uiSearch.showCheckboxes();
+               cbDisplay=cbShown and 'table-cell' or 'none'"
           id=":ajaxHookId">
+      <script>:uiSearch.getAjaxData(ajaxHookId, ztool, popup=inPopup, \
+               checkboxes=checkboxes, checkboxesId=checkboxesId, \
+               cbDisplay=cbDisplay, startNumber=startNumber, \
+               totalNumber=totalNumber)</script>
 
       <x if="zobjects or filterValue"> <!-- Pod templates -->
        <table var="fields=ztool.getResultPodFields(className);
@@ -303,20 +308,18 @@ class UiSearch:
           <span class="discreet">:uiSearch.translatedDescr</span><br/>
          </td>
          <!-- (Top) navigation -->
-         <td align=":dright" width="200px">:tool.pxNavigate</td>
+         <td if="not customPx"
+             align=":dright" width="200px">:tool.pxNavigate</td>
         </tr>
        </table>
 
-       <!-- Results, as a list or grid -->
+       <!-- Results -->
        <x var="columnLayouts=ztool.getResultColumnsLayouts(className, refInfo);
                columns=ztool.getColumnsSpecifiers(className,columnLayouts,dir);
-               currentNumber=0">
-        <x if="resultMode == 'list'">:uiSearch.pxResultList</x>
-        <x if="resultMode != 'list'">:uiSearch.pxResultGrid</x>
-       </x>
+               currentNumber=0"><x>:uiSearch.getPx(resultMode, klass)</x></x>
 
        <!-- (Bottom) navigation -->
-       <x>:tool.pxNavigate</x>
+       <x if="not customPx">:tool.pxNavigate</x>
       </x>
 
       <x if="not zobjects and not filterValue">
@@ -373,10 +376,22 @@ class UiSearch:
            Else, simply return the name of the search.'''
         return getattr(self, 'initiatorHook', self.name)
 
-    def getResultMode(self, klass):
-        '''Must we show, on pxResult, instances of p_klass as a list or
-           as a grid?'''
-        return getattr(klass, 'resultMode', 'list')
+    def getAllResultModes(self, klass):
+        '''How must we show the result? As a list, grid, or a custom px?'''
+        return getattr(klass, 'resultModes', ('list',))
+
+    def getResultMode(self, klass, req):
+        '''Get the current result mode'''
+        res = req.get('resultMode')
+        if not res: res = self.getAllResultModes(klass)[0]
+        return res
+
+    def getPx(self, mode, klass):
+        '''What is the PX to show, according to the current result p_mode?'''
+        if mode in UiSearch.pxByMode:
+            return getattr(UiSearch, UiSearch.pxByMode[mode])
+        # It must be a custom PX on p_klass
+        return getattr(klass, mode)
 
     def showCheckboxes(self):
         '''If checkboxes are enabled for this search (and if an initiator field
@@ -420,4 +435,9 @@ class UiSearch:
         return "new AjaxData('%s', 'pxViewAsResultFromAjax', %s, '%s', '%s')"% \
                (hook, sutils.getStringDict(params), parentHook,
                 zobj.absolute_url())
+
+    def getModeText(self, mode, _):
+        '''Gets the i18n text corresponding to p_mode'''
+        if mode in UiSearch.pxByMode: return _('result_mode_%s' % mode)
+        return _('custom_%s' % mode)
 # ------------------------------------------------------------------------------
