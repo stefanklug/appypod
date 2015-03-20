@@ -201,25 +201,25 @@ class Calendar(Field):
     # For timeline rendering, the row displaying month names
     pxTimeLineMonths = Px('''
      <tr>
-      <th class="no"></th>
+      <th class="hidden"></th>
       <th for="mInfo in monthsInfos" colspan=":mInfo.colspan">::mInfo.month</th>
-      <th class="no"></th>
+      <th class="hidden"></th>
      </tr>''')
 
     # For timeline rendering, the row displaying day letters
     pxTimelineDayLetters = Px('''
      <tr>
-      <td class="no"></td>
+      <td class="hidden"></td>
       <td for="date in grid"><b>:namesOfDays[date.aDay()].name[0]</b></td>
-      <td class="no"></td>
+      <td class="hidden"></td>
      </tr>''')
 
     # For timeline rendering, the row displaying day numbers
     pxTimelineDayNumbers = Px('''
      <tr>
-      <td class="no"></td>
+      <td class="hidden"></td>
       <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td>
-      <td class="no"></td>
+      <td class="hidden"></td>
      </tr>''')
 
     # Legend for a timeline calendar
@@ -270,7 +270,7 @@ class Calendar(Field):
             var="totals=field.computeTotals('col', zobj, grid, others, \
                                             preComputed)">
       <tr for="i in range(2)"> <!-- 2 empty rows -->
-       <td for="col in field.totalCols" class="no">&nbsp;</td>
+       <td for="col in field.totalCols" class="hidden">&nbsp;</td>
       </tr>
       <tr> <!-- The column headers -->
        <th for="col in field.totalCols">
@@ -296,7 +296,7 @@ class Calendar(Field):
        </th>
       </tr>
       <tr for="i in range(2)"> <!-- 2 empty rows -->
-       <td for="col in field.totalCols" class="no">&nbsp;</td>
+       <td for="col in field.totalCols" class="hidden">&nbsp;</td>
       </tr>
      </table>''')
 

@@ -142,6 +142,7 @@ td.search { padding-top: 8px }
 .no, .no td, .no th {
   border: 0 !important; padding: 0 !important; margin: 0 !important;
   background-color: transparent !important }
+.hidden { visibility: hidden }
 .simpleLabel { text-transform: none }
 .translationLabel { background-color: #EAEAEA; border-bottom: 1px dashed grey;
                     margin-top: 0.5em; margin-bottom: 0.5em }
