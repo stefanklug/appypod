@@ -555,7 +555,7 @@ class Field:
         if 'cell' not in layouts:
             layouts['cell'] = Table(other=layouts['view'], derivedType='cell')
         # Put the required CSS classes in the layouts
-        layouts['cell'].addCssClasses('noStyle')
+        layouts['cell'].addCssClasses('no')
         if self.focus:
             # We need to make it flashy
             layouts['view'].addCssClasses('focus')

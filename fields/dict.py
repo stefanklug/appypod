@@ -35,7 +35,7 @@ class Dict(List):
       <td for="info in subFields" if="info[1]" align="center"
           var2="field=info[1];
                 fieldName='%s*%d' % (field.name, rowIndex);
-                tagCss='noStyle'">:field.pxRender</td>
+                tagCss='no'">:field.pxRender</td>
      </tr>''')
 
     # PX for rendering the dict (shared between pxView and pxEdit)

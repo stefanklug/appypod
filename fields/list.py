@@ -32,7 +32,7 @@ class List(Field):
       <td for="info in subFields" if="info[1]" align="center"
           var2="field=info[1];
                 fieldName='%s*%d' % (field.name, rowIndex);
-                tagCss='noStyle'">:field.pxRender</td>
+                tagCss='no'">:field.pxRender</td>
       <!-- Icon for removing the row -->
       <td if="layoutType=='edit'" align=":dright">
        <img class="clickable" src=":url('delete')" title=":_('object_delete')"

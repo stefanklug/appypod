@@ -200,21 +200,27 @@ class Calendar(Field):
 
     # For timeline rendering, the row displaying month names
     pxTimeLineMonths = Px('''
-     <tr><th></th> <!-- Names of months -->
-      <th for="mInfo in monthsInfos"
-          colspan=":mInfo.colspan">::mInfo.month</th><th></th></tr>''')
+     <tr>
+      <th class="no"></th>
+      <th for="mInfo in monthsInfos" colspan=":mInfo.colspan">::mInfo.month</th>
+      <th class="no"></th>
+     </tr>''')
 
     # For timeline rendering, the row displaying day letters
     pxTimelineDayLetters = Px('''
-     <tr><td></td> <!-- Days (letters) -->
+     <tr>
+      <td class="no"></td>
       <td for="date in grid"><b>:namesOfDays[date.aDay()].name[0]</b></td>
-      <td></td></tr>''')
+      <td class="no"></td>
+     </tr>''')
 
     # For timeline rendering, the row displaying day numbers
     pxTimelineDayNumbers = Px('''
-      <tr><td></td> <!-- Days (numbers) -->
-       <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td>
-       <td></td></tr>''')
+     <tr>
+      <td class="no"></td>
+      <td for="date in grid"><b>:str(date.day()).zfill(2)</b></td>
+      <td class="no"></td>
+     </tr>''')
 
     # Legend for a timeline calendar
     pxTimelineLegend = Px('''
@@ -263,14 +269,14 @@ class Calendar(Field):
             style="float:right" id=":'%s_tcs' % ajaxHookId"
             var="totals=field.computeTotals('col', zobj, grid, others, \
                                             preComputed)">
-      <!-- The column headers -->
-      <tr>
+      <tr for="i in range(2)"> <!-- 2 empty rows -->
+       <td for="col in field.totalCols" class="no">&nbsp;</td>
+      </tr>
+      <tr> <!-- The column headers -->
        <th for="col in field.totalCols">
         <acronym title=":_(col.label)">:col.name</acronym>
        </th>
       </tr>
-      <!-- 2 empty rows (correspond to month and day names) -->
-      <tr for="i in range(2)"><td>&nbsp;</td></tr>
       <!-- Re-create one row for every other calendar -->
       <x var="i=-1" for="otherGroup in others">
        <tr for="other in otherGroup" var2="@i=i+1">
@@ -280,9 +286,18 @@ class Calendar(Field):
        <x if="not loop.otherGroup.last">::field.getOthersSep(\
          len(field.totalCols))</x>
       </x>
-      <!-- Repeat the 2 empty rows and add one for every total row -->
-      <tr for="i in range(2+len(field.totalRows))"><td>&nbsp;</td></tr>
-      <tr><th>&nbsp;</th></tr>
+      <!-- Add empty rows for every total row -->
+      <tr for="i in range(len(field.totalRows))">
+       <td for="col in field.totalCols">&nbsp;</td>
+      </tr>
+      <tr> <!-- Repeat the column headers -->
+       <th for="col in field.totalCols">
+        <acronym title=":_(col.label)">:col.name</acronym>
+       </th>
+      </tr>
+      <tr for="i in range(2)"> <!-- 2 empty rows -->
+       <td for="col in field.totalCols" class="no">&nbsp;</td>
+      </tr>
      </table>''')
 
     # Timeline view for a calendar
@@ -1590,6 +1605,7 @@ class Calendar(Field):
     def computeTotals(self, totalType, obj, grid, others, preComputed):
         '''Compute the totals for every column (p_totalType == 'row') or row
            (p_totalType == "col").'''
+        obj = obj.appy()
         allTotals = getattr(self, 'total%ss' % totalType.capitalize())
         if not allTotals: return
         # Count other calendars and dates in the grid
@@ -1605,11 +1621,11 @@ class Calendar(Field):
             res[totals.name] = [Total(totals.initValue) \
                                 for i in range(totalCount)]
         # Get the status of validation checkboxes
-        status = self.getValidationCheckboxesStatus(obj.REQUEST)
+        status = self.getValidationCheckboxesStatus(obj.request)
         # Walk every date within every calendar
         indexes = {'i': -1, 'j': -1}
-        ii = (totalType == 'row') and 'i' or 'j'
-        jj = (totalType == 'row') and 'j' or 'i'
+        ii = isRow and 'i' or 'j'
+        jj = isRow and 'j' or 'i'
         for other in sutils.IterSub(others):
             indexes['i'] += 1
             indexes['j'] = -1
