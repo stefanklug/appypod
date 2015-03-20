@@ -126,11 +126,11 @@ td.search { padding-top: 8px }
            border-bottom: 5px solid #fdfdfd; padding: 3px 5px 0 5px }
 .grid td { padding: 0 3px }
 .timeline { font-size: 85%; color: #555555 }
-.timeline td { text-align: center; padding: 1px }
+.timeline tr { height: 18px }
+.timeline td { text-align: center; padding: 0 1px }
 .timeline th { padding: 1px }
-.tlLeft { text-align: left !important }
-.tlRight { text-align: right !important }
-.tlRight { text-align: right !important }
+.tlLeft { text-align: left !important; padding-left: 1px !important }
+.tlRight { text-align: right !important; padding-right: 1px !important }
 .msgTable { margin: 6px 0; width: 100%; font-size: 93% }
 .msgTable tr { vertical-align: top }
 .msgTable td, .msgTable th { border: 1px solid grey; color: #555555;

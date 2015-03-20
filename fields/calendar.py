@@ -104,16 +104,17 @@ class Other:
 class Total:
     '''Represents a computation that will be executed on a series of cells
        within a timeline calendar.'''
-    def __init__(self, initValue):
-        self.value = initValue
+    def __init__(self, initValue): self.value = initValue
+    def __repr__(self): return '<Total=%s>' % str(self.value)
 
-class TotalRow:
-    '''For a timeline calendar, if you want to add rows representing totals
-       computed from other rows (representing agendas), specify it via TotalRow
-       instances (see field Agenda.totalRows below).'''
+class Totals:
+    '''For a timeline calendar, if you want to add rows or columns representing
+       totals computed from other rows/columns (representing agendas), specify
+       it via Totals instances (see Agenda fields "totalRows" and "totalCols"
+       below).'''
     def __init__(self, name, label, onCell, initValue=0):
         # "name" must hold a short name or acronym and will directly appear
-        # at the beginning of the row. It must be unique within all TotalRow
+        # at the beginning of the row. It must be unique within all Totals
         # instances defined for a given Calendar field.
         self.name = name
         # "label" is a i18n label that will be used to produce a longer name
@@ -121,19 +122,20 @@ class TotalRow:
         self.label = label
         # A method that will be called every time a cell is walked in the
         # agenda. It will get these args:
-        # * date    - the date representing the current day;
-        # * other   - the Other instance representing the currently walked
-        #             calendar;
-        # * events  - the list of events (as Event instances) defined at that
-        #             day in this calendar. Be careful: this can be None;
-        # * total   - the Total instance (see above) corresponding to the
-        #             current column;
-        # * last    - a boolean that is True if we are walking the last shown
-        #             calendar;
-        # * checked - a value "checked" indicating the status of the possible
-        #             validation checkbox corresponding to this cell. If there
-        #             is a checkbox in this cell, the value will be True or
-        #             False; else, the value will be None.
+        # * date       - the date representing the current day;
+        # * other      - the Other instance representing the currently walked
+        #                calendar;
+        # * events     - the list of events (as Event instances) defined at that
+        #                day in this calendar. Be careful: this can be None;
+        # * total      - the Total instance (see above) corresponding to the
+        #                current column;
+        # * last       - a boolean that is True if we are walking the last shown
+        #                calendar;
+        # * checked    - a value "checked" indicating the status of the possible
+        #                validation checkbox corresponding to this cell. If
+        #                there is a checkbox in this cell, the value will be
+        #                True or False; else, the value will be None.
+        # * preCompute - the result of Calendar.preCompute (see below)
         self.onCell = onCell
         # "initValue" is the initial value given to created Total instances
         self.initValue = initValue
@@ -179,7 +181,7 @@ class Calendar(Field):
     Timeslot = Timeslot
     Validation = Validation
     Other = Other
-    TotalRow = TotalRow
+    Totals = Totals
     Event = Event
     IterSub = sutils.IterSub
     # Error messages
@@ -190,7 +192,7 @@ class Calendar(Field):
       "must give another method in param 'eventNameMethod'."
     TIMESLOT_USED = 'An event is already defined at this timeslot.'
     DAY_FULL = 'No more place for adding this event.'
-    TOTALROW_MISUSED = 'Total rows can only be specified for timelines ' \
+    TOTALS_MISUSED = 'Totals can only be specified for timelines ' \
       '(render == "timeline").'
 
     timelineBgColors = {'Fri': '#dedede', 'Sat': '#c0c0c0', 'Sun': '#c0c0c0'}
@@ -233,7 +235,8 @@ class Calendar(Field):
     # Displays the total rows at the bottom of a timeline calendar
     pxTotalRows = Px('''
      <tbody id=":'%s_trs' % ajaxHookId"
-            var="totals=field.getColumnTotals(zobj, grid, others)">
+            var="totals=field.computeTotals('row', zobj, grid, others, \
+                                            preComputed)">
       <script>:field.getAjaxDataTotalRow(ajaxHookId)</script>
       <tr for="row in field.totalRows" var2="rowTitle=_(row.label)">
        <td class="tlLeft">
@@ -254,14 +257,41 @@ class Calendar(Field):
              others=field.getOthers(zobj, \
                                     preComputed)">:field.pxTotalRows</x>''')
 
+    # Displays the total columns besides the calendar, as a separate table
+    pxTotalCols = Px('''
+     <table cellpadding="0" cellspacing="0" class="list timeline"
+            style="float:right" id=":'%s_tcs' % ajaxHookId"
+            var="totals=field.computeTotals('col', zobj, grid, others, \
+                                            preComputed)">
+      <!-- The column headers -->
+      <tr>
+       <th for="col in field.totalCols">
+        <acronym title=":_(col.label)">:col.name</acronym>
+       </th>
+      </tr>
+      <!-- 2 empty rows (correspond to month and day names) -->
+      <tr for="i in range(2)"><td>&nbsp;</td></tr>
+      <!-- Re-create one row for every other calendar -->
+      <x var="i=-1" for="otherGroup in others">
+       <tr for="other in otherGroup" var2="@i=i+1">
+        <td for="col in field.totalCols">::totals[col.name][i].value</td>
+       </tr>
+       <!-- The separator between groups of other calendars -->
+       <x if="not loop.otherGroup.last">::field.getOthersSep(\
+         len(field.totalCols))</x>
+      </x>
+      <!-- Repeat the 2 empty rows and add one for every total row -->
+      <tr for="i in range(2+len(field.totalRows))"><td>&nbsp;</td></tr>
+      <tr><th>&nbsp;</th></tr>
+     </table>''')
+
     # Timeline view for a calendar
     pxViewTimeline = Px('''
      <table cellpadding="0" cellspacing="0" class="list timeline"
-            id=":ajaxHookId + '_cal'"
+            id=":ajaxHookId + '_cal'" style="display: inline-block"
             var="monthsInfos=field.getTimelineMonths(grid, zobj)">
       <colgroup> <!-- Column specifiers -->
-       <!-- Names of calendars -->
-       <col/>
+       <col/> <!-- 1st col: Names of calendars -->
        <col for="date in grid"
             style=":field.getColumnStyle(zobj, date, render, today)"/>
        <col/>
@@ -284,9 +314,8 @@ class Calendar(Field):
          </x>
          <td class="tlRight">::tlName</td>
         </tr>
-        <!-- A separator between groups of other calendars -->
-        <tr if="not loop.otherGroup.last" height="5px">
-         <th colspan=":len(grid)+2"></th></tr>
+        <!-- The separator between groups of other calendars -->
+        <x if="not loop.otherGroup.last">::field.getOthersSep(len(grid)+2)</x>
        </x>
       </tbody>
       <!-- Total rows -->
@@ -296,6 +325,8 @@ class Calendar(Field):
        <x>:field.pxTimeLineMonths</x>
       </tbody>
      </table>
+     <!-- Total columns, as a separate table -->
+     <x if="field.totalCols">:field.pxTotalCols</x>
      <x>:field.pxTimelineLegend</x>''')
 
     # Popup for adding an event in the month view
@@ -544,8 +575,9 @@ class Calendar(Field):
                  others=None, timelineName=None, additionalInfo=None,
                  startDate=None, endDate=None, defaultDate=None, timeslots=None,
                  colors=None, showUncolored=False, preCompute=None,
-                 applicableEvents=None, totalRows=None, validation=None,
-                 topPx=None, bottomPx=None, view=None, xml=None, delete=True):
+                 applicableEvents=None, totalRows=None, totalCols=None,
+                 validation=None, topPx=None, bottomPx=None, view=None,
+                 xml=None, delete=True):
         # The "validator" attribute, allowing field-specific validation, behaves
         # differently for the Calendar field. If specified, it must hold a
         # method that will be executed every time a user wants to create an
@@ -669,8 +701,12 @@ class Calendar(Field):
         # representing totals, give in "totalRows" a list of TotalRow instances
         # (see above).
         if totalRows and (self.render != 'timeline'):
-            raise Exception(Calendar.TOTALROW_MISUSED)
+            raise Exception(Calendar.TOTALS_MISUSED)
         self.totalRows = totalRows or []
+        # Similarly, you can specify additional columns in "totalCols"
+        if totalCols and (self.render != 'timeline'):
+            raise Exception(Calendar.TOTALS_MISUSED)
+        self.totalCols = totalCols or []
         # A validation process can be associated to a Calendar event. It
         # consists in identifying validators and letting them "convert" event
         # types being wished to final, validated event types. If you want to
@@ -791,6 +827,11 @@ class Calendar(Field):
                 if isinstance(res[0], Other): res = [res]
         if res != None: return res
         return [[]]
+
+    def getOthersSep(self, colspan):
+        '''Produces the separator between groups of other calendars'''
+        return '<tr style="height: 8px"><th colspan="%s" style="background-' \
+               'color: grey"></th></tr>' % colspan
 
     def getTimelineName(self, other):
         '''Returns the name of some p_other calendar as must be shown in a
@@ -1546,40 +1587,48 @@ class Calendar(Field):
                 for id in ids.split(','): res[id] = value
         return res
 
-    def getColumnTotals(self, obj, grid, others):
-        '''If self.totalRows is not empty, this method creates a dict of Total
-           instances ~{s_totalRowName: [Total]}~ that will hold such an instance
-           for every TotalRow and every column in the Calendar.'''
-        if not self.totalRows: return
-        # Initialise totals for every total row
-        res = {}
-        for row in self.totalRows:
-            res[row.name] = [Total(row.initValue) for date in grid]
-        # Get the status of validation checkboxes
-        status = self.getValidationCheckboxesStatus(obj.REQUEST)
-        # Compute the number of other calendars
+    def computeTotals(self, totalType, obj, grid, others, preComputed):
+        '''Compute the totals for every column (p_totalType == 'row') or row
+           (p_totalType == "col").'''
+        allTotals = getattr(self, 'total%ss' % totalType.capitalize())
+        if not allTotals: return
+        # Count other calendars and dates in the grid
         othersCount = 0
         for group in others: othersCount += len(group)
+        datesCount = len(grid)
+        isRow = totalType == 'row'
+        # Initialise, for every (row or col) totals, Total instances
+        totalCount = isRow and datesCount or othersCount
+        lastCount = isRow and othersCount or datesCount
+        res = {}
+        for totals in allTotals:
+            res[totals.name] = [Total(totals.initValue) \
+                                for i in range(totalCount)]
+        # Get the status of validation checkboxes
+        status = self.getValidationCheckboxesStatus(obj.REQUEST)
         # Walk every date within every calendar
-        i = 0
+        indexes = {'i': -1, 'j': -1}
+        ii = (totalType == 'row') and 'i' or 'j'
+        jj = (totalType == 'row') and 'j' or 'i'
         for other in sutils.IterSub(others):
-            i += 1
-            j = -1
+            indexes['i'] += 1
+            indexes['j'] = -1
             for date in grid:
-                j += 1
+                indexes['j'] += 1
                 # Get the events in this other calendar at this date
                 events = other.field.getEventsAt(other.obj, date)
-                # From info @this date, update the total for every total row
-                last = i == othersCount
+                # From info @this date, update the total for every totals
+                last = indexes[ii] == lastCount - 1
                 # Get the status of the validation checkbox that is possibly
                 # present at this date for this calendar
                 checked = None
                 cbId = '%s_%s_%s' % (other.obj.id, other.field.name,
                                      date.strftime('%Y%m%d'))
                 if cbId in status: checked = status[cbId]
-                # Update the Total instance for every total row at this date
-                for row in self.totalRows:
-                    total = res[row.name][j]
-                    row.onCell(obj, date, other, events, total, last, checked)
+                # Update the Total instance for every totals at this date
+                for totals in allTotals:
+                    total = res[totals.name][indexes[jj]]
+                    totals.onCell(obj, date, other, events, total, last,
+                                  checked, preComputed)
         return res
 # ------------------------------------------------------------------------------
