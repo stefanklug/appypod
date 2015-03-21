@@ -351,8 +351,6 @@ class Calendar(Field):
      <div var="popupId=ajaxHookId + '_new'"
           id=":popupId" class="popup" align="center">
       <form id=":popupId + 'Form'" method="post" action="/process">
-       <input type="hidden" name="fieldName" value=":field.name"/>
-       <input type="hidden" name="month" value=":month"/>
        <input type="hidden" name="name" value=":field.name"/>
        <input type="hidden" name="actionType" value="createEvent"/>
        <input type="hidden" name="day"/>
@@ -393,8 +391,6 @@ class Calendar(Field):
      <div var="popupId=ajaxHookId + '_del'"
           id=":popupId" class="popup" align="center">
       <form id=":popupId + 'Form'" method="post" action="/process">
-       <input type="hidden" name="fieldName" value=":field.name"/>
-       <input type="hidden" name="month" value=":month"/>
        <input type="hidden" name="name" value=":field.name"/>
        <input type="hidden" name="actionType" value="deleteEvent"/>
        <input type="hidden" name="timeslot" value="main"/>
@@ -536,7 +532,7 @@ class Calendar(Field):
       <script>:'var %s_maxEventLength = %d;' % \
                 (field.name, field.maxEventLength)</script>
       <script>:field.getAjaxData(ajaxHookId, zobj, render=render, \
-                 month=defaultDateMonth)</script>
+                 month=month)</script>
 
       <!-- Actions (month chooser, validation) -->
       <div style="margin-bottom: 5px"
