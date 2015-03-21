@@ -132,7 +132,7 @@ function validateEvents(hookId, month) {
 }
 
 // Function for (un)-checking checkboxes automatically
-function onCheckCbCell(cb, hook, totalRows) {
+function onCheckCbCell(cb, hook, totalRows, totalCols) {
   // Is automatic selection on/off?
   var auto = document.getElementById(hook + '_auto');
   if (auto.checked) {
@@ -169,9 +169,16 @@ function onCheckCbCell(cb, hook, totalRows) {
     }
   }
   // Refresh the total rows if requested
-  if (totalRows) {
+  if (totalRows || totalCols) {
     var params = getValidationStatus(hook);
     params['mode'] = 'POST';
-    askAjax(hook + '_trs', null, params, 'loadingPod');
+    if (totalRows) {
+      params['totalType'] = 'rows';
+      askAjax(hook + '_trs', null, params, 'loadingPod');
+    }
+    if (totalCols) {
+      params['totalType'] = 'cols';
+      askAjax(hook + '_tcs', null, params, 'loadingPod');
+    }
   }
 }

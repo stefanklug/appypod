@@ -243,7 +243,7 @@ class Calendar(Field):
      <tbody id=":'%s_trs' % ajaxHookId"
             var="totals=field.computeTotals('row', zobj, grid, others, \
                                             preComputed)">
-      <script>:field.getAjaxDataTotalRow(ajaxHookId)</script>
+      <script>:field.getAjaxDataTotals('rows', ajaxHookId)</script>
       <tr for="row in field.totalRows" var2="rowTitle=_(row.label)">
        <td class="tlLeft">
         <acronym title=":rowTitle"><b>:row.name</b></acronym></td>
@@ -253,22 +253,13 @@ class Calendar(Field):
       </tr>
      </tbody>''')
 
-    # Ajax-call the previous PX
-    pxTotalRowsFromAjax = Px('''
-     <x var="month=req.get('month');
-             ajaxHookId=zobj.id + field.name;
-             monthDayOne=field.DateTime('%s/01' % month);
-             grid=field.getGrid(month, 'timeline');
-             preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
-             others=field.getOthers(zobj, \
-                                    preComputed)">:field.pxTotalRows</x>''')
-
     # Displays the total columns besides the calendar, as a separate table
     pxTotalCols = Px('''
      <table cellpadding="0" cellspacing="0" class="list timeline"
             style="float:right" id=":'%s_tcs' % ajaxHookId"
             var="totals=field.computeTotals('col', zobj, grid, others, \
                                             preComputed)">
+      <script>:field.getAjaxDataTotals('cols', ajaxHookId)</script>
       <tr for="i in range(2)"> <!-- 2 empty rows -->
        <td for="col in field.totalCols" class="hidden">&nbsp;</td>
       </tr>
@@ -299,6 +290,17 @@ class Calendar(Field):
        <td for="col in field.totalCols" class="hidden">&nbsp;</td>
       </tr>
      </table>''')
+
+    # Ajax-call pxTotalRows or pxTotalCols
+    pxTotalsFromAjax = Px('''
+     <x var="month=req['month'];
+             totalType=req['totalType'].capitalize();
+             ajaxHookId=zobj.id + field.name;
+             monthDayOne=field.DateTime('%s/01' % month);
+             grid=field.getGrid(month, 'timeline');
+             preComputed=field.getPreComputedInfo(zobj, monthDayOne, grid);
+             others=field.getOthers(zobj, \
+               preComputed)">:getattr(field, 'pxTotal%s' % totalType)</x>''')
 
     # Timeline view for a calendar
     pxViewTimeline = Px('''
@@ -475,7 +477,7 @@ class Calendar(Field):
                if="mayValidate and (event.eventType in field.validation.schema)"
                id=":'%s_%s_%s' % (date.strftime('%Y%m%d'), event.eventType, \
                                   event.timeslot)"
-               onclick=":'onCheckCbCell(this,%s,false)' % q(ajaxHookId)"/>
+               onclick=":'onCheckCbCell(this,%s)' % q(ajaxHookId)"/>
            <x>::event.getName(allEventNames)</x>
            <!-- Icon for delete this particular event -->
             <img if="mayDelete and not single" class="clickable"
@@ -885,9 +887,11 @@ class Calendar(Field):
                     cbId = '%s_%s_%s' % (other.obj.id, other.field.name,
                                          date.strftime('%Y%m%d'))
                     totalRows = self.totalRows and 'true' or 'false'
+                    totalCols = self.totalCols and 'true' or 'false'
                     content = '<input type="checkbox" checked="checked" ' \
                       'class="smallbox" id="%s" onclick="onCheckCbCell(this,' \
-                      '\'%s\',%s)"/>' % (cbId, c['ajaxHookId'], totalRows)
+                      '\'%s\',%s,%s)"/>' % \
+                      (cbId, c['ajaxHookId'], totalRows, totalCols)
                     break
         elif len(events) == 1:
             # A single event: if not colored, show a symbol. When there are
@@ -1523,11 +1527,13 @@ class Calendar(Field):
         return "new AjaxData('%s', '%s:pxView', %s, null, '%s')" % \
                (hook, self.name, params, zobj.absolute_url())
 
-    def getAjaxDataTotalRow(self, hook):
+    def getAjaxDataTotals(self, type, hook):
         '''Initializes an AjaxData object on the DOM node corresponding to
-           the zone containing the total rows in a timeline calendar.'''
-        return "new AjaxData('%s_trs', '%s:pxTotalRowsFromAjax', {}, '%s')" % \
-               (hook, self.name, hook)
+           the zone containing the total rows/cols (depending on p_type) in a
+           timeline calendar.'''
+        suffix = (type == 'rows') and 'trs' or 'tcs'
+        return "new AjaxData('%s_%s', '%s:pxTotalsFromAjax', {}, '%s')" % \
+               (hook, suffix, self.name, hook)
 
     def validateEvents(self, obj):
         '''Validate or discard events from the request'''
