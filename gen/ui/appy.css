@@ -200,4 +200,4 @@ td.search { padding-top: 8px }
 .highlight { background-color: yellow }
 .globalActions { margin-bottom: 4px }
 .objectActions { margin: 2px 0 }
-.smallbox { margin: 0; vertical-align: middle }
+.smallbox { margin: 0 0 0 3px; vertical-align: middle }

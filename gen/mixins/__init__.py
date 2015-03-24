@@ -39,7 +39,8 @@ class BaseMixin:
            * initiator is the initiator (Zope or Appy) object;
            * field is the Ref instance.
         '''
-        rq = self.REQUEST
+        rq = getattr(self, 'REQUEST', None)
+        if not rq: return None, None
         if not rq.get('nav', '').startswith('ref.'): return None, None
         splitted = rq['nav'].split('.')
         initiator = self.getTool().getObject(splitted[1])

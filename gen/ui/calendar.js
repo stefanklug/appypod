@@ -182,3 +182,25 @@ function onCheckCbCell(cb, hook, totalRows, totalCols) {
     }
   }
 }
+ // Switches a layer on/off within a calendar
+function switchCalendarLayer(hookId, checkbox) {
+  /* Update the ajax data about active layers from p_checkbox, that represents
+     the status of some layer */
+  var layer = checkbox.id.split('_').pop();
+  var d = getAjaxHook(hookId)['ajax'];
+  var activeLayers = d.params['activeLayers'];
+  if (checkbox.checked) {
+    // Add the layer to active layers
+    activeLayers = (!activeLayers)? layer: activeLayers + ',' + layer;
+  }
+  else {
+    // Remove the layer from active layers
+    var res = [];
+    var splitted = activeLayers.split(',');
+    for (var i=0; i<splitted.length; i++) {
+      if (splitted[i] != layer) res.push(splitted[i]);
+    }
+    activeLayers = res.join();
+  }
+  askAjax(hookId, null, {'activeLayers': activeLayers});
+}

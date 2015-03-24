@@ -122,23 +122,68 @@ class Totals:
         self.label = label
         # A method that will be called every time a cell is walked in the
         # agenda. It will get these args:
-        # * date       - the date representing the current day;
-        # * other      - the Other instance representing the currently walked
-        #                calendar;
-        # * events     - the list of events (as Event instances) defined at that
-        #                day in this calendar. Be careful: this can be None;
-        # * total      - the Total instance (see above) corresponding to the
-        #                current column;
-        # * last       - a boolean that is True if we are walking the last shown
-        #                calendar;
-        # * checked    - a value "checked" indicating the status of the possible
-        #                validation checkbox corresponding to this cell. If
-        #                there is a checkbox in this cell, the value will be
-        #                True or False; else, the value will be None.
-        # * preCompute - the result of Calendar.preCompute (see below)
+        # * date        - the date representing the current day (a DateTime
+        #                 instance);
+        # * other       - the Other instance representing the currently walked
+        #                 calendar;
+        # * events      - the list of events (as Event instances) defined at
+        #                 that day in this calendar. Be careful: this can be
+        #                 None;
+        # * total       - the Total instance (see above) corresponding to the
+        #                 current column;
+        # * last        - a boolean that is True if we are walking the last
+        #                 shown calendar;
+        # * checked     - a value "checked" indicating the status of the
+        #                 possible validation checkbox corresponding to this
+        #                 cell. If there is a checkbox in this cell, the value
+        #                 will be True or False; else, the value will be None.
+        # * preComputed - the result of Calendar.preCompute (see below)
         self.onCell = onCell
         # "initValue" is the initial value given to created Total instances
         self.initValue = initValue
+
+# ------------------------------------------------------------------------------
+class Layer:
+    '''A layer is a set of additional data that can be activated or not on top
+       of calendar data. Currently available for timelines only.'''
+    def __init__(self, name, label, onCell, activeByDefault=False):
+        # "name" must hold a short name or acronym, unique among all layers
+        self.name = name
+        # "label" is a i18n label that will be used to produce the layer name in
+        # the user interface.
+        self.label = label
+        # "onCell" must be a method that will be called for every calendar cell
+        # and must return a 3-tuple (style, title, content). "style" will be
+        # dumped in the "style" attribute of the current calendar cell, "title"
+        # in its "title" attribute, while "content" will be shown within the
+        # cell. If nothing must be shown at all, None must be returned.
+        # This method must accept those args:
+        # * date        - the currently walked day (a DateTime instance);
+        # * other       - the Other instance representing the currently walked
+        #                 calendar;
+        # * events      - the list of events (as Event instances) defined at
+        #                 that day in this calendar. Be careful: this can be
+        #                 None.
+        # * preComputed - the result of Calendar.preCompute (see below)
+        self.onCell = onCell
+        # Is this layer activated by default ?
+        self.activeByDefault = activeByDefault
+        # Layers will be chained: one layer will access the previous one in the
+        # stack via attribute "previous". "previous" fields will automatically
+        # be filled by the Calendar.
+        self.previous = None
+
+    def getCellInfo(self, obj, activeLayers, date, other, events, preComputed):
+        '''Get the cell info from this layer or one previous layer when
+           relevant.'''
+        # Take this layer into account only if active
+        if self.name in activeLayers:
+            info = self.onCell(obj, date, other, events, preComputed)
+            if info: return info
+        # Get info from the previous layer
+        if self.previous:
+            return self.previous.getCellInfo(obj, activeLayers, date, other,
+                                             events, preComputed)
 
 # ------------------------------------------------------------------------------
 class Event(Persistent):
@@ -182,6 +227,7 @@ class Calendar(Field):
     Validation = Validation
     Other = Other
     Totals = Totals
+    Layer = Layer
     Event = Event
     IterSub = sutils.IterSub
     # Error messages
@@ -241,8 +287,7 @@ class Calendar(Field):
     # Displays the total rows at the bottom of a timeline calendar
     pxTotalRows = Px('''
      <tbody id=":'%s_trs' % ajaxHookId"
-            var="totals=field.computeTotals('row', zobj, grid, others, \
-                                            preComputed)">
+            var="totals=field.computeTotals('row',obj,grid,others,preComputed)">
       <script>:field.getAjaxDataTotals('rows', ajaxHookId)</script>
       <tr for="row in field.totalRows" var2="rowTitle=_(row.label)">
        <td class="tlLeft">
@@ -257,8 +302,7 @@ class Calendar(Field):
     pxTotalCols = Px('''
      <table cellpadding="0" cellspacing="0" class="list timeline"
             style="float:right" id=":'%s_tcs' % ajaxHookId"
-            var="totals=field.computeTotals('col', zobj, grid, others, \
-                                            preComputed)">
+            var="totals=field.computeTotals('col',obj,grid,others,preComputed)">
       <script>:field.getAjaxDataTotals('cols', ajaxHookId)</script>
       <tr for="i in range(2)"> <!-- 2 empty rows -->
        <td for="col in field.totalCols" class="hidden">&nbsp;</td>
@@ -327,7 +371,7 @@ class Calendar(Field):
          <x for="date in grid"
             var2="inRange=field.dateInRange(date, startDate, endDate)">
           <td if="not inRange"></td>
-          <x if="inRange">::field.getTimelineCell(req, zobj)</x>
+          <x if="inRange">::field.getTimelineCell(req, obj)</x>
          </x>
          <td class="tlRight">::tlName</td>
         </tr>
@@ -484,8 +528,8 @@ class Calendar(Field):
           </x>
           <!-- Events from other calendars -->
           <x if="others"
-             var2="otherEvents=field.getOtherEventsAt(zobj, date, \
-                                others, allEventNames, render, colors)">
+             var2="otherEvents=field.getOtherEventsAt(date, others, \
+                     allEventNames, render, colors)">
            <div style=":'color: %s; font-style: italic' % event.color"
                 for="event in otherEvents">:event.name</div>
           </x>
@@ -527,12 +571,13 @@ class Calendar(Field):
                showTimeslots=len(field.timeslots) &gt; 1;
                slotIds=[slot.id for slot in field.timeslots];
                slotIdsStr=','.join(slotIds);
-               mayValidate=field.mayValidate(zobj)"
+               mayValidate=field.mayValidate(zobj);
+               activeLayers=field.getActiveLayers(req)"
           id=":ajaxHookId">
       <script>:'var %s_maxEventLength = %d;' % \
                 (field.name, field.maxEventLength)</script>
       <script>:field.getAjaxData(ajaxHookId, zobj, render=render, \
-                 month=month)</script>
+                 month=month, activeLayers=','.join(activeLayers))</script>
 
       <!-- Actions (month chooser, validation) -->
       <div style="margin-bottom: 5px"
@@ -558,15 +603,22 @@ class Calendar(Field):
        <span>:_('month_%s' % monthDayOne.aMonth())</span>
        <span>:month.split('/')[0]</span>
        <!-- Validate button, with checkbox for automatic checbox selection -->
-       <x if="mayValidate">
+       <x if="mayValidate" var2="cbId='%s_auto' % ajaxHookId">
         <input if="mayValidate" type="button" value=":_('validate_events')"
                class="buttonSmall button" style=":url('validate', bg=True)"
                var2="js='validateEvents(%s,%s)' % (q(ajaxHookId), q(month))"
                onclick=":'askConfirm(%s,%s,%s)' % (q('script'), q(js, False), \
                          q(_('validate_events_confirm')))"/>
-        <input type="checkbox" checked="checked" id=":'%s_auto' % ajaxHookId"
-               class="smallbox"/>
-        <label lfor="selectAuto" class="simpleLabel">:_('select_auto')</label>
+        <input type="checkbox" checked="checked" id=":cbId" class="smallbox"/>
+        <label lfor=":cbId" class="simpleLabel">:_('select_auto')</label>
+       </x>
+       <!-- Checkboxes for (de-)activating layers -->
+       <x for="layer in field.layers"
+          var2="cbId='%s_layer_%s' % (ajaxHookId, layer.name)">
+        <input type="checkbox" id=":cbId" class="smallbox"
+               checked=":layer.name in activeLayers"
+               onclick=":'switchCalendarLayer(%s, this)' % q(ajaxHookId)"/>
+        <label lfor=":cbId" class="simpleLabel">:_(layer.label)</label>
        </x>
       </div>
       <!-- The top PX, if defined -->
@@ -587,10 +639,10 @@ class Calendar(Field):
                  mapping=None, label=None, maxEventLength=50, render='month',
                  others=None, timelineName=None, additionalInfo=None,
                  startDate=None, endDate=None, defaultDate=None, timeslots=None,
-                 colors=None, showUncolored=False, preCompute=None,
-                 applicableEvents=None, totalRows=None, totalCols=None,
-                 validation=None, topPx=None, bottomPx=None, view=None,
-                 xml=None, delete=True):
+                 colors=None, showUncolored=False, columnColors=None,
+                 preCompute=None, applicableEvents=None, totalRows=None,
+                 totalCols=None, validation=None, layers=None, topPx=None,
+                 bottomPx=None, view=None, xml=None, delete=True):
         # The "validator" attribute, allowing field-specific validation, behaves
         # differently for the Calendar field. If specified, it must hold a
         # method that will be executed every time a user wants to create an
@@ -699,6 +751,12 @@ class Calendar(Field):
         # still show them? If yes, they will be represented by a dot with a
         # tooltip containing the event name.
         self.showUncolored = showUncolored
+        # In the timeline, the background color for columns can be defined in a
+        # method you specify here. This method must accept the current date (as
+        # a DateTime instance) as unique arg. If None, a default color scheme
+        # is used (see Calendar.timelineBgColors). Every time your method
+        # returns None, the default color scheme will apply.
+        self.columnColors = columnColors
         # For a specific day, all event types may not be applicable. If this is
         # the case, one may specify here a method that defines, for a given day,
         # a sub-set of all event types. This method must accept 3 args: the day
@@ -726,6 +784,10 @@ class Calendar(Field):
         # enable this, define a Validation instance (see the hereabove class)
         # in parameter "validation".
         self.validation = validation
+        # "layers" define a stack of layers (as a list or tuple). Every layer
+        # must be a Layer instance and represents a set of data that can be
+        # shown or not on top of calendar data (currently, only for timelines).
+        self.layers = self.formatLayers(layers)
         # May the user delete events in this calendar? If "delete" is a method,
         # it must accept an event type as single arg.
         self.delete = delete
@@ -745,6 +807,15 @@ class Calendar(Field):
         for timeslot in self.timeslots:
             if timeslot.id == 'main': continue
             timeslot.dayPart = 1.0 / count
+
+    def formatLayers(self, layers):
+        '''Chain layers via attribute "previous"'''
+        if not layers: return ()
+        i = len(layers) - 1
+        while i >= 1:
+            layers[i].previous = layers[i-1]
+            i -= 1
+        return layers
 
     def log(self, obj, msg, date=None):
         '''Logs m_msg, field-specifically prefixed.'''
@@ -858,10 +929,17 @@ class Calendar(Field):
         # Unwrap some variables from the PX context
         c = req.pxContext
         date = c['date']; other = c['other']; render = 'timeline'
-        allEventNames = c['allEventNames']
+        allEventNames = c['allEventNames']; activeLayers = c['activeLayers']
         # Get the events defined at that day, in the current calendar
-        events = self.getOtherEventsAt(obj, date, other, allEventNames, render,
+        events = self.getOtherEventsAt(date, other, allEventNames, render,
                                        c['colors'])
+        # In priority we will display info from a layer
+        if activeLayers:
+            # Walk layers in reverse order
+            layer = self.layers[-1]
+            info = layer.getCellInfo(obj, activeLayers, date, other, events,
+                                     c['preComputed'])
+            if info: return '<td%s%s>%s</td>' % info
         # Define the cell's style
         style = self.getCellStyle(obj, date, render, events) or ''
         if style: style = ' style="%s"' % style
@@ -1227,7 +1305,7 @@ class Calendar(Field):
             i += 1
         return True
 
-    def getOtherEventsAt(self, obj, date, others, eventNames, render, colors):
+    def getOtherEventsAt(self, date, others, eventNames, render, colors):
         '''Gets events that are defined in p_others at some p_date. If p_single
            is True, p_others does not contain the list of all other calendars,
            but information about a single calendar.'''
@@ -1478,19 +1556,24 @@ class Calendar(Field):
         # Cells representing specific days must have a specific background color
         res = ''
         day = date.aDay()
-        if day in Calendar.timelineBgColors:
-            res = 'background-color: %s' % Calendar.timelineBgColors[day]
+        # Do we have a custom color scheme where to get a color ?
+        color = None
+        if self.columnColors:
+            color = self.columnColors(obj.appy(), date)
+        if not color and (day in Calendar.timelineBgColors):
+            color = Calendar.timelineBgColors[day]
+        if color: res = 'background-color: %s' % color
         return res
 
     def getCellStyle(self, obj, date, render, events):
-        '''Gets the cell style to apply to the cell corresponding to p_date.'''
+        '''Gets the cell style to apply to the cell corresponding to p_date'''
         if render != 'timeline': return # Currently, for timelines only
         if not events: return
         elif len(events) > 1:
             # Return a special background indicating that several events are
             # hidden behing this cell.
             return 'background-image: url(%s/ui/angled.png)' % \
-                   obj.getTool().getSiteUrl()
+                   obj.o.getTool().getSiteUrl()
         else:
             event = events[0]
             if event.bgColor: return 'background-color: %s' % event.bgColor
@@ -1607,7 +1690,6 @@ class Calendar(Field):
     def computeTotals(self, totalType, obj, grid, others, preComputed):
         '''Compute the totals for every column (p_totalType == 'row') or row
            (p_totalType == "col").'''
-        obj = obj.appy()
         allTotals = getattr(self, 'total%ss' % totalType.capitalize())
         if not allTotals: return
         # Count other calendars and dates in the grid
@@ -1648,5 +1730,17 @@ class Calendar(Field):
                     total = res[totals.name][indexes[jj]]
                     totals.onCell(obj, date, other, events, total, last,
                                   checked, preComputed)
+        return res
+
+    def getActiveLayers(self, req):
+        '''Gets the layers that are currently active'''
+        if req.has_key('activeLayers'):
+            # Get the from the request
+            layers = req['activeLayers'] or ()
+            if not layers: return layers
+            return layers.split(',')
+        else:
+            # Get the layers that are active by default
+            res = [layer for layer in self.layers if layer.activeByDefault]
         return res
 # ------------------------------------------------------------------------------

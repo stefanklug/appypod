@@ -950,8 +950,8 @@ function closePopup(popupId, clean) {
   popup.style.width = null;
   // Clean field "clean" if specified
   if (clean) {
-    var f = popup.getElementsByTagName('form')[0];
-    f.elements[clean].value = '';
+    var elem = popup.getElementsByTagName('form')[0].elements[clean];
+    if (elem) elem.value = '';
   }
   if (popupId == 'iframePopup') {
     // Reinitialise the enclosing iframe
