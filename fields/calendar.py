@@ -146,7 +146,7 @@ class Totals:
 class Layer:
     '''A layer is a set of additional data that can be activated or not on top
        of calendar data. Currently available for timelines only.'''
-    def __init__(self, name, label, onCell, activeByDefault=False):
+    def __init__(self, name, label, onCell, activeByDefault=False, legend=None):
         # "name" must hold a short name or acronym, unique among all layers
         self.name = name
         # "label" is a i18n label that will be used to produce the layer name in
@@ -168,6 +168,14 @@ class Layer:
         self.onCell = onCell
         # Is this layer activated by default ?
         self.activeByDefault = activeByDefault
+        # "legend" is a method that must produce legend items that are specific
+        # to this layer. The method must accept no arg and must return a list of
+        # objects (you can use class appy.Object) having these attributes:
+        # * name        - the legend item name as shown in the calendar
+        # * style       - the content of the "style" attribute that will be
+        #                 applied to the little square ("td" tag) for this item;
+        # * content     - the content of this "td" (if any).
+        self.legend = legend
         # Layers will be chained: one layer will access the previous one in the
         # stack via attribute "previous". "previous" fields will automatically
         # be filled by the Calendar.
@@ -184,6 +192,11 @@ class Layer:
         if self.previous:
             return self.previous.getCellInfo(obj, activeLayers, date, other,
                                              events, preComputed)
+
+    def getLegendItems(self, obj):
+        '''Returns the legend items by calling method in self.legend'''
+        if not self.legend: return
+        return self.legend(obj)
 
 # ------------------------------------------------------------------------------
 class Event(Persistent):
@@ -271,12 +284,14 @@ class Calendar(Field):
     # Legend for a timeline calendar
     pxTimelineLegend = Px('''
      <table align="center" class="discreet"
-            var="items=field.getLegendItems(allEventTypes, allEventNames, \
-                                            colors, url, _)">
-      <tr for="row in field.splitList(items, 4)">
+            var="items=field.getLegendItems(obj, allEventTypes, allEventNames, \
+                                            colors, url, _, activeLayers)">
+      <tr for="row in field.splitList(items, 4)" valign="top">
        <x for="item in row">
         <td><table> <!-- A colored cell (as mono-cell sub-table) -->
-          <tr height="9px"><td width="9px" style=":item.style">&nbsp;</td></tr>
+          <tr height="9px" valign="middle">
+           <td width="9px" align="center"
+               style=":item.style">:item.content or '&nbsp;'</td></tr>
         </table></td>
         <!-- The event name -->
         <td width="115px">:item.name</td>
@@ -979,18 +994,24 @@ class Calendar(Field):
             content = events[0].symbol or '' 
         return '<td%s%s>%s</td>' % (style, title, content)
 
-    def getLegendItems(self, allEventTypes, allEventNames, colors, url, _):
-        '''Gets information needed to produce the legend for a timeline.'''
+    def getLegendItems(self, obj, allEventTypes, allEventNames, colors, url, _,
+                       activeLayers):
+        '''Gets information needed to produce the legend for a timeline'''
         # Produce one legend item by event type shown and colored
         res = []
         for eventType in allEventTypes:
             if eventType not in colors: continue
-            res.append(Object(name=allEventNames[eventType],
+            res.append(Object(name=allEventNames[eventType], content='',
                               style='background-color: %s' % colors[eventType]))
         # Add the background indicating that several events are hidden behind
         # the timeline cell
-        res.append(Object(name=_('several_events'),
+        res.append(Object(name=_('several_events'), content='',
                           style=url('angled', bg=True)))
+        # Add layer-specific items
+        for layer in self.layers:
+            if layer.name not in activeLayers: continue
+            items = layer.getLegendItems(obj)
+            if items: res += items
         return res
 
     def getTimelineMonths(self, grid, obj):
