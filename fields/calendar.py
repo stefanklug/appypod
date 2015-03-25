@@ -161,9 +161,9 @@ class Layer:
         # * date        - the currently walked day (a DateTime instance);
         # * other       - the Other instance representing the currently walked
         #                 calendar;
-        # * events      - the list of events (as Event instances) defined at
-        #                 that day in this calendar. Be careful: this can be
-        #                 None.
+        # * events      - the list of events (as a list of custom Object
+        #                 instances whose attribute "event" points to an Event
+        #                 instance) defined at that day in this calendar.
         # * preComputed - the result of Calendar.preCompute (see below)
         self.onCell = onCell
         # Is this layer activated by default ?
@@ -939,7 +939,12 @@ class Calendar(Field):
             layer = self.layers[-1]
             info = layer.getCellInfo(obj, activeLayers, date, other, events,
                                      c['preComputed'])
-            if info: return '<td%s%s>%s</td>' % info
+            if info:
+                style, title, content = info
+                style = style and (' style="%s"' % style) or ''
+                title = title and (' title="%s"' % title) or ''
+                content = content or ''
+                return '<td%s%s>%s</td>' % (style, title, content)
         # Define the cell's style
         style = self.getCellStyle(obj, date, render, events) or ''
         if style: style = ' style="%s"' % style

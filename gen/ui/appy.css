@@ -143,7 +143,7 @@ td.search { padding-top: 8px }
   border: 0 !important; padding: 0 !important; margin: 0 !important;
   background-color: transparent !important }
 .hidden { visibility: hidden }
-.simpleLabel { text-transform: none }
+.simpleLabel { text-transform: none; padding-right: 3px }
 .translationLabel { background-color: #EAEAEA; border-bottom: 1px dashed grey;
                     margin-top: 0.5em; margin-bottom: 0.5em }
 .section1 { font-size: 120%; margin: 0.45em 0em 0.1em 0;
@@ -200,4 +200,4 @@ td.search { padding-top: 8px }
 .highlight { background-color: yellow }
 .globalActions { margin-bottom: 4px }
 .objectActions { margin: 2px 0 }
-.smallbox { margin: 0 0 0 3px; vertical-align: middle }
+.smallbox { margin: 0; vertical-align: middle }
