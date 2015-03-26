@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: appy
+Version: dev
+Summary: The Appy framework
+Home-page: http://appyframework.org
+Author: Gaetan Delannay
+Author-email: gaetan.delannay AT geezteem.com
+License: GPL
+Description: Appy builds simple but complex web Python apps.
+Platform: all
