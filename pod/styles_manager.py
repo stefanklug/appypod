@@ -63,7 +63,7 @@ HTML_TEXT_ODT_PARA = 'For XHTML element "%s", you must associate an ' \
                      'style.'
 # ------------------------------------------------------------------------------
 class Style:
-    '''Represents a paragraph style as found in styles.xml in a ODT file.'''
+    '''Represents a paragraph style as found in styles.xml in a ODT file'''
     numberRex = re.compile('(\d+)(.*)')
     def __init__(self, name, family):
         self.name = name
@@ -306,7 +306,7 @@ class StylesManager:
         return res
 
     def styleMatch(self, attrs, matchingAttrs):
-        '''p_match is a dict of attributes found on some HTML element.
+        '''p_attrs is a dict of attributes found on some HTML element.
            p_matchingAttrs is a dict of attributes corresponding to some style.
            This method returns True if p_attrs contains the winning (name,value)
            pairs that match those in p_matchingAttrs. Note that ALL attrs in

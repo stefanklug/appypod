@@ -12,6 +12,7 @@ from appy.pod.odf_parser import OdfEnvironment
 from appy.pod.styles_manager import Style
 from appy.shared.xml_parser import XmlEnvironment, XmlParser, escapeXml
 from appy.shared.utils import WhitespaceCruncher
+from appy.shared.css import CssStyles
 
 # To which ODT tags do HTML tags correspond ?
 HTML_2_ODT = {'h1':'h', 'h2':'h', 'h3':'h', 'h4':'h', 'h5':'h', 'h6':'h',
@@ -68,7 +69,7 @@ class HtmlElement:
         return self
 
     def getOdfTag(self, env):
-        '''Gets the raw ODF tag that corresponds to me.'''
+        '''Gets the raw ODF tag that corresponds to me'''
         res = ''
         if HTML_2_ODT.has_key(self.elem):
             res += '%s:%s' % (env.textNs, HTML_2_ODT[self.elem])
@@ -105,7 +106,7 @@ class HtmlElement:
         # Check elements that can't be found within a paragraph
         if (parentElem.elemType == 'para') and \
            (self.elem in NOT_INSIDE_P_OR_P):
-            # Oups, li->p wrongly considered as a conflict.
+            # Oups, li->p wrongly considered as a conflict
             if (parentElem.elem == 'li') and (self.elem in ('p', 'div')):
                 return ()
             return (parentElem.setConflictual(),)
@@ -464,16 +465,12 @@ class XhtmlEnvironment(XmlEnvironment):
             # If we are in the first row of a table, update columns count
             if not table.firstRowParsed:
                 table.nbOfColumns += colspan
-            if attrs.has_key('width') and (colspan == 1):
-                # Get the width, keep figures only.
-                width = ''
-                for c in attrs['width']:
-                    if c.isdigit(): width += c
-                width = int(width)
+            styles = CssStyles(elem, attrs)
+            if hasattr(styles, 'width') and (colspan == 1):
                 # Ensure self.columnWidths is long enough
                 while (len(table.columnWidths)-1) < table.cellIndex:
                     table.columnWidths.append(None)
-                table.columnWidths[table.cellIndex] = width
+                table.columnWidths[table.cellIndex] = styles.width.value
         return currentElem
 
     def onElementEnd(self, elem):
