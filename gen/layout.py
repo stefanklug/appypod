@@ -39,9 +39,9 @@
 
 # ------------------------------------------------------------------------------
 rowDelimiters =  {'-':'middle', '=':'top', '_':'bottom'}
-rowDelms = ''.join(rowDelimiters.keys())
+rowDelms = ''.join(list(rowDelimiters.keys()))
 cellDelimiters = {'|': 'center', ';': 'left', '!': 'right'}
-cellDelms = ''.join(cellDelimiters.keys())
+cellDelms = ''.join(list(cellDelimiters.keys()))
 
 pxDict = {
   # Page-related elements
@@ -138,7 +138,7 @@ class Table:
         # Initialise simple params, either from the true params, either from
         # the p_other Table instance.
         for param in Table.simpleParams:
-            exec 'self.%s = %s%s' % (param, source, param)
+            exec('self.%s = %s%s' % (param, source, param))
         # The following attribute will store a special Row instance used for
         # defining column properties.
         self.headerRow = None

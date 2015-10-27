@@ -120,10 +120,10 @@ def sendMail(config, to, subject, body, attachments=None, log=None):
         if res and log:
             log('could not send mail to some recipients. %s' % str(res),
                 type='warning')
-    except smtplib.SMTPException, e:
+    except smtplib.SMTPException as e:
         if log:
             log('%s: mail sending failed (%s)' % (config, str(e)), type='error')
-    except socket.error, se:
+    except socket.error as se:
         if log:
             log('%s: mail sending failed (%s)' % (config, str(se)),type='error')
 # ------------------------------------------------------------------------------

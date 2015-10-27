@@ -109,18 +109,18 @@ class CsvParser:
     def convertValue(self, value, basicType):
         '''Converts the atomic p_value which is a string into some other atomic
            Python type specified in p_basicType (int, float, ...).'''
-        if (basicType != str) and (basicType != unicode):
+        if (basicType != str) and (basicType != str):
             try:
-                exec 'res = %s' % str(value)
-            except SyntaxError, se:
+                exec('res = %s' % str(value))
+            except SyntaxError as se:
                 res = None
         else:   
             try:
-                exec 'res = """%s"""' % str(value)
-            except SyntaxError, se:
+                exec('res = """%s"""' % str(value))
+            except SyntaxError as se:
                 try:
-                    exec "res = '''%s'''" % str(value)
-                except SyntaxError, se:
+                    exec("res = '''%s'''" % str(value))
+                except SyntaxError as se:
                     res = None
         return res
 
@@ -183,7 +183,7 @@ class CsvParser:
                 self.res.append(lineObject)
         f.close()
         # The second pass resolves the p_references if any
-        for attrName, refInfo in self.references.iteritems():
+        for attrName, refInfo in self.references.items():
             if attrName in self.attributes:
                 # Replace ID with real object from p_references
                 for obj in self.res:
@@ -228,7 +228,7 @@ class CsvMarshaller:
 
     def marshallValue(self, field, value):
         '''Produces a version of p_value that can be dumped in a CSV file.'''
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             # Format the string as a one-line CSV-ready value
             res = self.marshallString(value)
         elif type(value) in sequenceTypes:

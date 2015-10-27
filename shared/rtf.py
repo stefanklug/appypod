@@ -25,8 +25,8 @@
      be strictly greater than 1.'''
 
 # -----------------------------------------------------------------------------
-import re, sys, UserList, UserDict
-from StringIO import StringIO
+import re, sys, collections, UserDict
+from io import StringIO
 
 # -----------------------------------------------------------------------------
 class ParserError(Exception): pass
@@ -69,7 +69,7 @@ LIST_VALUE_ERROR = 'Value "%s" is malformed: within it, %s. You should check ' \
 
 # -----------------------------------------------------------------------------
 class Type:
-    basicTypes = {'f': float, 'i':int, 'g':long, 'b':bool}
+    basicTypes = {'f': float, 'i':int, 'g':int, 'b':bool}
     separators = ['-', ';', ',', ':']
     def __init__(self, typeDecl):
         self.basicType = None # The python basic type
@@ -85,12 +85,12 @@ class Type:
                 self.listNumber += 1
             else:
                 # Get the basic type
-                if not (char in Type.basicTypes.keys()):
+                if not (char in list(Type.basicTypes.keys())):
                     raise TypeError(BASIC_TYPE_ERROR % char)
                 self.basicType = Type.basicTypes[char]
                 break
         if not self.basicType:
-            self.basicType = unicode
+            self.basicType = str
     def convertBasicValue(self, value):
         try:
             return self.basicType(value.strip())
@@ -136,7 +136,7 @@ class Type:
             elif not resIsComplete:
                 try:
                     res = self.convertListItem(value, separators)
-                except TypeError, te:
+                except TypeError as te:
                     raise TypeError(LIST_VALUE_ERROR % (value, te, self.name))
         return res
     def convertListItem(self, stringItem, remainingSeps):
@@ -161,9 +161,9 @@ class Type:
         return self.name
 
 # -----------------------------------------------------------------------------
-class Table(UserList.UserList):
+class Table(collections.UserList):
     def __init__(self):
-        UserList.UserList.__init__(self)
+        collections.UserList.__init__(self)
         self.name = None
         self.parent = None
         self.parentRow = None
@@ -213,7 +213,7 @@ class TableRow(UserDict.UserDict):
         via the parent table self.table.'''
         keyError = False
         t = self.table
-        if self.has_key(key):
+        if key in self:
             res = UserDict.UserDict.__getitem__(self, key)
         else:
             # Get the parent row
@@ -259,9 +259,9 @@ class TableRow(UserDict.UserDict):
 # -----------------------------------------------------------------------------
 class NameResolver:
     def resolveNames(self, tables):
-        for tableName, table in tables.iteritems():
+        for tableName, table in tables.items():
             if table.parent:
-                if not tables.has_key(table.parent):
+                if table.parent not in tables:
                     raise ParserError(PARENT_NOT_FOUND %
                                           (table.parent, table.name))
                 table.parent = tables[table.parent]
@@ -330,10 +330,10 @@ class TableParser:
     def manageSpecialChar(self):
         specialChar = int(self.specialCharBuffer)
         self.specialCharBuffer = ''
-        if self.specialChars.has_key(specialChar):
+        if specialChar in self.specialChars:
             self.contentBuffer.write(self.specialChars[specialChar])
         else:
-            print('Warning: char %d not known.' % specialChar)
+            print(('Warning: char %d not known.' % specialChar))
         self.state = TableParser.READING_CONTENT
     def bufferize(self, char):
         if self.state == TableParser.READING_CONTROL_WORD:
@@ -403,7 +403,7 @@ class TableParser:
                 columnNames.append(name.strip())
                 try:
                     columnTypes.append(Type(typeDecl.strip()))
-                except TypeError, te:
+                except TypeError as te:
                     raise ParserError(TYPE_ERROR %
                                       (header, self.currentTableName, te))
             else:
@@ -449,7 +449,7 @@ class TableParser:
                 if columnType:
                     try:
                         columnValue = columnType.convertValue(columnValue)
-                    except TypeError, te:
+                    except TypeError as te:
                         raise ParserError(VALUE_ERROR %
                                           (columnName, self.currentTableName,
                                            te))
@@ -496,7 +496,7 @@ class RtfTablesParser:
 # -----------------------------------------------------------------------------
 if __name__ =='__main__':
     tables = RtfTablesParser("Tests.rtf").parse()
-    for key, item in tables.iteritems():
-        print('Table %s' % key)
+    for key, item in tables.items():
+        print(('Table %s' % key))
         print(item)
 # -----------------------------------------------------------------------------

@@ -22,26 +22,27 @@ class Object:
     '''At every place we need an object, but without any requirement on its
        class (methods, attributes,...) we will use this minimalist class.'''
     def __init__(self, **fields):
-        for k, v in fields.iteritems():
+        for k, v in fields.items():
             setattr(self, k, v)
     def __repr__(self):
-        res = u'<Object '
-        for attrName, attrValue in self.__dict__.iteritems():
+        res = '<Object '
+        for attrName, attrValue in self.__dict__.items():
             v = attrValue
             if hasattr(v, '__repr__'):
                 v = v.__repr__()
             try:
-                res += u'%s=%s ' % (attrName, v)
+                res += '%s=%s ' % (attrName, v)
             except UnicodeDecodeError:
-                res += u'%s=<encoding problem> ' % attrName
+                res += '%s=<encoding problem> ' % attrName
         res  = res.strip() + '>'
         return res.encode('utf-8')
-    def __nonzero__(self): return bool(self.__dict__)
+    def __bool__(self):
+        return bool(self.__dict__)
     def get(self, name, default=None): return getattr(self, name, default)
     def __getitem__(self, k): return getattr(self, k)
     def update(self, other):
-        '''Includes information from p_other into p_self'''
-        for k, v in other.__dict__.iteritems():
+        '''Includes information from p_other into p_self.'''
+        for k, v in other.__dict__.items():
             setattr(self, k, v)
     def clone(self):
         res = Object()
@@ -59,11 +60,11 @@ class Hack:
            "_base_<initial_method_name>_". In the patched method, one may use
            Hack.base to call the base method. If p_method is static, you must
            specify its class in p_klass.'''
-        # Get the class on which the surgery will take place
+        # Get the class on which the surgery will take place.
         isStatic = klass
-        klass = klass or method.im_class
-        # On this class, store m_method under its "base" name
-        name = isStatic and method.func_name or method.im_func.__name__
+        klass = klass or method.__self__.__class__
+        # On this class, store m_method under its "base" name.
+        name = isStatic and method.__name__ or method.__func__.__name__
         baseName = '_base_%s_' % name
         if isStatic:
             # If "staticmethod" isn't called hereafter, the static functions
@@ -78,8 +79,8 @@ class Hack:
         '''Allows to call the base (replaced) method. If p_method is static,
            you must specify its p_klass.'''
         isStatic = klass
-        klass = klass or method.im_class
-        name = isStatic and method.func_name or method.im_func.__name__
+        klass = klass or method.__self__.__class__
+        name = isStatic and method.__name__ or method.__func__.__name__
         return getattr(klass, '_base_%s_' % name)
 
     @staticmethod
@@ -87,7 +88,7 @@ class Hack:
         '''Injects any method or attribute from p_patchClass into klass.'''
         patched = []
         added = []
-        for name, attr in patchClass.__dict__.items():
+        for name, attr in patchClass.__dict__.iteritems():
             if name.startswith('__'): continue # Ignore special methods
             # Unwrap functions from static methods
             if attr.__class__.__name__ == 'staticmethod':

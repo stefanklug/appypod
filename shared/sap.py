@@ -74,7 +74,7 @@ class Sap:
         try:
             self.sap = pysap.Rfc_connection(conn_string = params)
             self.sap.open()
-        except pysap.BaseSapRfcError, se:
+        except pysap.BaseSapRfcError as se:
             # Put in the error message the connection string without the
             # password.
             connNoPasswd = params[:params.index('PASSWD')] + 'PASSWD=********'
@@ -84,7 +84,7 @@ class Sap:
         '''Create a struct corresponding to SAP/C structure definition
            p_structDef and fills it with dict p_userData.'''
         res = structDef()
-        for name, value in userData.iteritems():
+        for name, value in userData.items():
             if name not in structDef._sfield_names_:
                 raise SapError(SAP_STRUCT_ELEM_NOT_FOUND % (paramName, name))
             sapType = structDef._sfield_sap_types_[name]
@@ -93,7 +93,7 @@ class Sap:
                 sType = '%s%d' % (sapType[0], sapType[1])
                 # "None" value is tolerated.
                 if value == None: value = ''
-                if not isinstance(value, basestring):
+                if not isinstance(value, str):
                     raise SapError(
                         SAP_STRING_REQUIRED % (name, paramName, sType))
                 if len(value) > sapType[1]:
@@ -113,7 +113,7 @@ class Sap:
                 functionName = self.functionName
             function = self.sap.get_interface(functionName)
             # Specify the parameters
-            for name, value in params.iteritems():
+            for name, value in params.items():
                 if type(value) == dict:
                     # The param corresponds to a SAP/C "struct"
                     v = self.createStructure(
@@ -140,7 +140,7 @@ class Sap:
                 function[name] = v
             # Call the function
             function()
-        except pysap.BaseSapRfcError, se:
+        except pysap.BaseSapRfcError as se:
             raise SapError(SAP_FUNCTION_ERROR % (functionName, str(se)))
         return SapResult(function)
 
@@ -198,10 +198,10 @@ class Sap:
                         self.sap.get_structure(typeName)
                         res += '%s\n%s\n\n' % \
                             (typeName, self.getTypeInfo(typeName))
-                    except pysap.BaseSapRfcError, ee:
+                    except pysap.BaseSapRfcError as ee:
                         pass
             return res
-        except pysap.BaseSapRfcError, se:
+        except pysap.BaseSapRfcError as se:
             if se.value == 'FU_NOT_FOUND':
                 raise SapError(SAP_FUNCTION_NOT_FOUND % (functionName))
             else:
@@ -229,6 +229,6 @@ class Sap:
         '''Disconnects from SAP.'''
         try:
             self.sap.close()
-        except pysap.BaseSapRfcError, se:
+        except pysap.BaseSapRfcError as se:
             raise SapError(SAP_DISCONNECT_ERROR % str(se))
 # ------------------------------------------------------------------------------

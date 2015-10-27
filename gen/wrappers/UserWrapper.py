@@ -343,7 +343,7 @@ class UserWrapper(AbstractWrapper):
         if not localRoles: return res
         # Gets the logins of this user and all its groups.
         logins = self.getLogins()
-        for login, roles in localRoles.iteritems():
+        for login, roles in localRoles.items():
             # Ignore logins not corresponding to this user.
             if login not in logins: continue
             for role in roles:
@@ -388,7 +388,7 @@ class UserWrapper(AbstractWrapper):
         if not localRoles: return
         # Gets the logins of this user and all its groups.
         userLogins = self.getLogins()
-        for login, roles in localRoles.iteritems():
+        for login, roles in localRoles.items():
             # Ignore logins not corresponding to this user.
             if login not in userLogins: continue
             for role in roles:

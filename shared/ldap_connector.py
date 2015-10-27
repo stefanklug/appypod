@@ -239,14 +239,14 @@ class LdapConnector:
             self.server = ldap.initialize(self.serverUri)
             self.server.simple_bind_s(login, password)
             return True, None
-        except AttributeError, ae:
+        except AttributeError as ae:
             # When the ldap module is not there, trying to catch ldap.LDAPError
             # will raise an error.
             message = str(ae)
             self.log('Ldap connect error with login %s (%s).' % \
                      (login, message))
             return False, message
-        except ldap.LDAPError, le:
+        except ldap.LDAPError as le:
             message = str(le)
             self.log('%s: connect error with login %s (%s).' % \
                      (self.serverUri, login, message))
@@ -275,7 +275,7 @@ class LdapConnector:
                         timeout=self.timeout)
                 except ldap.TIMEOUT:
                     pass
-        except ldap.LDAPError, le:
+        except ldap.LDAPError as le:
             self.log('LDAP query error %s: %s' % \
                      (le.__class__.__name__, str(le)))
 # ------------------------------------------------------------------------------

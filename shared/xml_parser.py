@@ -66,9 +66,9 @@ HTML_ENTITIES = {
         'euro':'€', 'nbsp':' ', "rsquo":"'", "lsquo":"'", "ldquo":"'",
         "rdquo":"'", 'ndash': '—', 'mdash': '—', 'oelig':'oe', 'quot': "'",
         'mu': 'µ'}
-import htmlentitydefs
-for k, v in htmlentitydefs.entitydefs.iteritems():
-    if not HTML_ENTITIES.has_key(k) and not XML_ENTITIES.has_key(k):
+import html.entities
+for k, v in html.entities.entitydefs.items():
+    if k not in HTML_ENTITIES and k not in XML_ENTITIES:
         HTML_ENTITIES[k] = ''
 
 def escapeXml(s, format='xml', nsText='text'):
@@ -77,13 +77,13 @@ def escapeXml(s, format='xml', nsText='text'):
        their ODF counterparts. In this case, it is needed to give the name of
        the "text" namespace (p_nsText) as defined in the ODF document where the
        line breaks and tabs must be inserted.'''
-    if isinstance(s, unicode):
-        res = u''
+    if isinstance(s, str):
+        res = ''
     else:
         res = ''
     odf = format == 'odf'
     for c in s:
-        if XML_SPECIAL_CHARS_NO_APOS.has_key(c):
+        if c in XML_SPECIAL_CHARS_NO_APOS:
             # We do not escape 'apos': there is no particular need for that.
             res += XML_SPECIAL_CHARS_NO_APOS[c]
         elif odf and (c == '\n'):
@@ -99,12 +99,12 @@ def escapeXml(s, format='xml', nsText='text'):
 def escapeXhtml(s):
     '''Return p_s, whose XHTML special chars and carriage return chars have
        been replaced with corresponding XHTML entities.'''
-    if isinstance(s, unicode):
-        res = u''
+    if isinstance(s, str):
+        res = ''
     else:
         res = ''
     for c in s:
-        if XML_SPECIAL_CHARS_NO_APOS.has_key(c):
+        if c in XML_SPECIAL_CHARS_NO_APOS:
             res += XML_SPECIAL_CHARS_NO_APOS[c]
         elif c == '\n':
             res += '<br/>'
@@ -144,7 +144,7 @@ class XmlElement:
         res = self.elem
         if self.attrs:
             res += '('
-            for attrName, attrValue in self.attrs.items():
+            for attrName, attrValue in list(self.attrs.items()):
                 res += '%s="%s"' % (attrName, attrValue)
             res += ')'
         return res
@@ -167,7 +167,7 @@ class XmlEnvironment:
         self.parser = None
     def manageNamespaces(self, attrs):
         '''Manages namespaces definitions encountered in p_attrs.'''
-        for attrName, attrValue in attrs.items():
+        for attrName, attrValue in list(attrs.items()):
             if attrName.startswith('xmlns:'):
                 self.namespaces[attrValue] = attrName[6:]
     def ns(self, nsUri):
@@ -221,7 +221,7 @@ class XmlParser(ContentHandler, ErrorHandler):
     def skippedEntity(self, name):
         '''This method is called every time expat does not recognize an entity.
            We provide here support for HTML entities.'''
-        if HTML_ENTITIES.has_key(name):
+        if name in HTML_ENTITIES:
             self.characters(HTML_ENTITIES[name].decode('utf-8'))
         else:
             # Put a question mark instead of raising an exception.
@@ -230,10 +230,10 @@ class XmlParser(ContentHandler, ErrorHandler):
     # ErrorHandler methods ---------------------------------------------------
     def error(self, error):
         if self.raiseOnError: raise error
-        else: print('SAX error %s' % str(error))
+        else: print(('SAX error %s' % str(error)))
     def fatalError(self, error):
         if self.raiseOnError: raise error
-        else: print('SAX fatal error %s' % str(error))
+        else: print(('SAX fatal error %s' % str(error)))
     def warning(self, error): pass
 
     def parse(self, xml, source='string'):
@@ -246,9 +246,9 @@ class XmlParser(ContentHandler, ErrorHandler):
                method will close it.
         '''
         try:
-            from cStringIO import StringIO
+            from io import StringIO
         except ImportError:
-            from StringIO import StringIO
+            from io import StringIO
         self._xml = xml
         self.parser.setContentHandler(self)
         self.parser.setErrorHandler(self)
@@ -333,7 +333,7 @@ class XmlUnmarshaller(XmlParser):
     def convertAttrs(self, attrs):
         '''Converts XML attrs to a dict.'''
         res = {}
-        for k, v in attrs.items():
+        for k, v in list(attrs.items()):
             if ':' in k: # An attr prefixed with a namespace. Remove this.
                 k = k.split(':')[-1]
             res[str(k)] = self.encode(v)
@@ -362,9 +362,9 @@ class XmlUnmarshaller(XmlParser):
         e = XmlParser.startElement(self, elem, attrs)
         # Determine the type of the element.
         elemType = 'unicode' # Default value
-        if attrs.has_key('type'):
+        if 'type' in attrs:
             elemType = attrs['type']
-        elif self.tagTypes.has_key(elem):
+        elif elem in self.tagTypes:
             elemType = self.tagTypes[elem]
         if elemType in self.containerTags:
             # I must create a new container object.
@@ -375,9 +375,9 @@ class XmlUnmarshaller(XmlParser):
             elif elemType == 'dict': newObject = {}
             elif elemType == 'file':
                 newObject = UnmarshalledFile()
-                if attrs.has_key('name'):
+                if 'name' in attrs:
                     newObject.name = self.encode(attrs['name'])
-                if attrs.has_key('mimeType'):
+                if 'mimeType' in attrs:
                     newObject.mimeType = self.encode(attrs['mimeType'])
             else: newObject = Object(**self.convertAttrs(attrs))
             # Store the value on the last container, or on the root object.
@@ -454,17 +454,17 @@ class XmlUnmarshaller(XmlParser):
             if not value: value = None
             else:
                 # If we have a custom converter for values of this type, use it.
-                if self.conversionFunctions.has_key(e.currentBasicType):
+                if e.currentBasicType in self.conversionFunctions:
                     try:
                         value = self.conversionFunctions[e.currentBasicType](
                             value)
-                    except Exception, err:
+                    except Exception as err:
                         raise AppyError(CUSTOM_CONVERSION_ERROR % (
                             e.currentBasicType, value, str(err)))
                 # If not, try a standard conversion
                 elif e.currentBasicType in self.numericTypes:
                     try:
-                        exec 'value = %s' % value
+                        exec('value = %s' % value)
                     except SyntaxError:
                         raise AppyError(CONVERSION_ERROR % (
                             e.currentBasicType, value))
@@ -578,7 +578,7 @@ class XmlMarshaller:
         tagName = self.getTagName(self.rootElementName)
         res.write('<'); res.write(tagName)
         # Dumps namespace definitions if any
-        for prefix, url in self.namespaces.iteritems():
+        for prefix, url in self.namespaces.items():
             if not prefix:
                 pre = 'xmlns' # The default namespace
             else:
@@ -597,7 +597,7 @@ class XmlMarshaller:
             s = s.decode('utf-8')
         # Replace special chars by XML entities
         for c in s:
-            if self.xmlEntities.has_key(c):
+            if c in self.xmlEntities:
                 res.write(self.xmlEntities[c])
             else:
                 res.write(c)
@@ -617,13 +617,13 @@ class XmlMarshaller:
                 # There will be several parts.
                 w(v.data.data.encode('base64'))
                 # Write subsequent parts
-                nextPart = v.data.next
+                nextPart = v.data.__next__
                 nextPartNb = 2
                 while nextPart:
                     w('</%s>' % partTag) # Close the previous part
                     w('<%s type="base64" number="%d">' % (partTag, nextPartNb))
                     w(nextPart.data.encode('base64'))
-                    nextPart = nextPart.next
+                    nextPart = nextPart.__next__
                     nextPartNb += 1
             else:
                 w(v.data.encode('base64'))
@@ -654,7 +654,7 @@ class XmlMarshaller:
 
     def dumpDict(self, res, v):
         '''Dumps the XML version of dict p_v.'''
-        for key, value in v.iteritems():
+        for key, value in v.items():
             res.write('<entry type="object">')
             self.dumpField(res, 'k', key)
             self.dumpField(res, 'v', value)
@@ -681,7 +681,7 @@ class XmlMarshaller:
             # The previous condition must be checked before this one because
             # referred objects may be stored in lists or tuples, too.
             for elem in value: self.dumpField(res, 'e', elem)
-        elif isinstance(value, basestring): self.dumpString(res, value)
+        elif isinstance(value, str): self.dumpString(res, value)
         elif isinstance(value, bool): res.write(self.trueFalse[value])
         elif fieldType == 'object':
             if hasattr(value, 'absolute_url'):
@@ -689,7 +689,7 @@ class XmlMarshaller:
                 res.write(value.absolute_url())
             else:
                 # Dump the entire object content
-                for k, v in value.__dict__.iteritems():
+                for k, v in value.__dict__.items():
                     if not k.startswith('__'):
                         self.dumpField(res, k, v)
                 # Maybe we could add a parameter to the marshaller to know how
@@ -771,7 +771,7 @@ class XmlMarshaller:
             rootTagName = self.dumpRootTag(res, instance)
             # Dump the fields of this root object
             if objectType == 'popo':
-                for fieldName, fieldValue in instance.__dict__.iteritems():
+                for fieldName, fieldValue in instance.__dict__.items():
                     mustDump = False
                     if fieldName in self.fieldsToExclude:
                         mustDump = False
@@ -823,11 +823,11 @@ class XmlMarshaller:
                     histTag = self.getTagName('history')
                     eventTag = self.getTagName('event')
                     res.write('<%s type="list">' % histTag)
-                    key = instance.workflow_history.keys()[0]
+                    key = list(instance.workflow_history.keys())[0]
                     history = instance.workflow_history[key]
                     for event in history:
                         res.write('<%s type="object">' % eventTag)
-                        for k, v in event.iteritems():
+                        for k, v in event.items():
                             self.dumpField(res, k, v)
                         res.write('</%s>' % eventTag)
                     res.write('</%s>' % histTag)
@@ -856,7 +856,7 @@ class XmlHandler(ContentHandler):
        (like dates) from a file that need to be compared to another file.'''
     def __init__(self, xmlTagsToIgnore, xmlAttrsToIgnore):
         ContentHandler.__init__(self)
-        self.res = unicode(xmlPrologue)
+        self.res = str(xmlPrologue)
         self.namespaces = {} # ~{s_namespaceUri:s_namespaceName}~
         self.indentLevel = -1
         self.tabWidth = 3
@@ -891,7 +891,7 @@ class XmlHandler(ContentHandler):
         self.res += '\n' + (' ' * self.indentLevel * self.tabWidth)
     def manageNamespaces(self, attrs):
         '''Manage namespaces definitions encountered in attrs'''
-        for attrName, attrValue in attrs.items():
+        for attrName, attrValue in list(attrs.items()):
             if attrName.startswith('xmlns:'):
                 self.namespaces[attrValue] = attrName[6:]
     def ns(self, nsUri):
@@ -906,7 +906,7 @@ class XmlHandler(ContentHandler):
                 self.indentLevel += 1
                 self.dumpSpaces()
                 self.res += '<%s' % elem
-                attrsNames = attrs.keys()
+                attrsNames = list(attrs.keys())
                 attrsNames.sort()
                 for attrToIgnore in self.attrsToIgnore:
                     if attrToIgnore in attrsNames:
@@ -986,7 +986,7 @@ class XmlComparator:
                     else: print(line)
                 else:
                     if report: report.say(line[:-1], encoding=encoding)
-                    else: print(line[:-1])
+                    else: print((line[:-1]))
                 lastLinePrinted = True
             else:
                 lastLinePrinted = False
@@ -1061,7 +1061,7 @@ class XhtmlCleaner(XmlParser):
         self.env.ignoreContent = False
         try:
             res = self.parse('<x>%s</x>' % s).encode('utf-8')
-        except SAXParseException, e:
+        except SAXParseException as e:
             raise self.Error(str(e))
         return res
 
@@ -1106,7 +1106,7 @@ class XhtmlCleaner(XmlParser):
             prefix = ''
         res = '%s<%s' % (prefix, elem)
         # Include the found attributes, excepted those that must be ignored.
-        for name, value in attrs.items():
+        for name, value in list(attrs.items()):
             if not self.keepStyles:
                 if name in self.attrsToIgnore: continue
                 elif name == 'style':
@@ -1115,7 +1115,7 @@ class XhtmlCleaner(XmlParser):
             res += ' %s="%s"' % (name, value)
         # Include additional attributes if required.
         if elem in self.attrsToAdd:
-            for name, value in self.attrsToAdd[elem].iteritems():
+            for name, value in self.attrsToAdd[elem].items():
                 res += ' %s="%s"' % (name, value)
         # Close the tag if it is a no-end tag
         if elem in self.noEndTags:
@@ -1163,7 +1163,7 @@ class XhtmlCleaner(XmlParser):
             # I give here to lstrip an explicit list of what is to be considered
             # as blank chars, because I do not want unicode NBSP chars to be in
             # this list.
-            toAdd = content.lstrip(u' \n\r\t')
+            toAdd = content.lstrip(' \n\r\t')
         else:
             toAdd = content
         # Re-transform XML special chars to entities.

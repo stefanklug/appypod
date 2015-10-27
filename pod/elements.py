@@ -148,7 +148,7 @@ class Expression(PodElement):
         # pod/px result.
         resultType = res.__class__.__name__
         if resultType == 'NoneType':
-            res = u''
+            res = ''
         elif resultType == 'str':
             res = res.decode('utf-8')
         elif resultType == 'unicode':
@@ -160,7 +160,7 @@ class Expression(PodElement):
             # Force escapeXml to False.
             escapeXml = False
         else:
-            res = unicode(res)
+            res = str(res)
         return res, escapeXml
 
 class Attributes(PodElement):
@@ -199,7 +199,7 @@ class Attributes(PodElement):
         try:
             self.tiedExpression.evaluate(context)
             self.tiedExpression.evaluated = True
-        except Exception, e:
+        except Exception as e:
             # Don't set "evaluated" to True. This way, when the buffer will
             # evaluate the expression directly, we will really evaluate it, so
             # the error will be dumped into the pod result.
@@ -208,7 +208,7 @@ class Attributes(PodElement):
         self.computeAttributes(self.tiedExpression)
         # Now, self.attrs has been populated. Transform it into a string.
         res = ''
-        for name, value in self.attrs.iteritems():
+        for name, value in self.attrs.items():
             res += ' %s=%s' % (name, quoteattr(value))
         return res
 

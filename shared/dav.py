@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
-import os, re, httplib, sys, stat, urlparse, time, socket, xml.sax
-import urllib
+import os, re, http.client, sys, stat, urllib.parse, time, socket, xml.sax
+from urllib.parse import quote
 from StringIO import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
@@ -19,12 +19,12 @@ class FormDataEncoder:
 
     def marshalValue(self, name, value):
         if isinstance(value, basestring):
-            return '%s=%s' % (name, urllib.quote(str(value)))
+            return '%s=%s' % (name, quote(str(value)))
         elif isinstance(value, float):
             return '%s:float=%s' % (name, value)
         elif isinstance(value, int):
             return '%s:int=%s' % (name, value)
-        elif isinstance(value, long):
+        elif isinstance(value, int):
             res = '%s:long=%s' % (name, value)
             if res[-1] == 'L':
                 res = res[:-1]
@@ -101,8 +101,8 @@ class HttpResponse:
            redirect the user to if self.code is 302, or will unmarshall XML
            data into Python objects.'''
         if self.code == 302:
-            return urlparse.urlparse(self.headers['location'])[2]
-        elif self.headers.has_key('content-type'):
+            return urllib.parse.urlparse(self.headers['location'])[2]
+        elif 'content-type' in self.headers:
             contentType = self.extractContentType(self.headers['content-type'])
             for xmlHeader in self.xmlHeaders:
                 if contentType.startswith(xmlHeader):
@@ -116,7 +116,7 @@ class HttpResponse:
                             raise ResourceError('Distant server exception: ' \
                                                 '%s' % res)
                         return res
-                    except xml.sax.SAXParseException, se:
+                    except xml.sax.SAXParseException as se:
                         raise ResourceError('Invalid XML response (%s)'%str(se))
 
 # ------------------------------------------------------------------------------
@@ -158,7 +158,7 @@ class Resource:
     def updateHeaders(self, headers):
         # Add credentials if present
         if not (self.username and self.password): return
-        if headers.has_key('Authorization'): return
+        if 'Authorization' in headers: return
         credentials = '%s:%s' % (self.username, self.password)
         credentials = credentials.replace('\012', '')
         headers['Authorization'] = "Basic %s" % encodestring(credentials)
@@ -170,19 +170,19 @@ class Resource:
 
     def send(self, method, uri, body=None, headers={}, bodyType=None):
         '''Sends a HTTP request with p_method, for p_uri.'''
-        conn = httplib.HTTPConnection(self.host, self.port)
+        conn = http.client.HTTPConnection(self.host, self.port)
         try:
             conn.connect()
-        except socket.gaierror, sge:
+        except socket.gaierror as sge:
             raise ResourceError('Check your Internet connection (%s)'% str(sge))
-        except socket.error, se:
+        except socket.error as se:
             raise ResourceError('Connection error (%s)' % str(se))
         # Tell what kind of HTTP request it will be.
         conn.putrequest(method, uri, skip_host=True)
         # Add HTTP headers
         self.updateHeaders(headers)
         if self.headers: headers.update(self.headers)
-        for n, v in headers.items(): conn.putheader(n, v)
+        for n, v in list(headers.items()): conn.putheader(n, v)
         conn.endheaders()
         # Add HTTP body
         if body:

@@ -1263,20 +1263,20 @@ class Calendar(Field):
             maxDay = (maxYear, maxDate.month(), maxDate.day())
         # Browse years
         years = getattr(obj, self.name)
-        for year in years.keys():
+        for year in list(years.keys()):
             # Don't take this year into account if outside interval
             if minDate and (year < minYear): continue
             if maxDate and (year > maxYear): continue
             months = years[year]
             # Browse this year's months
-            for month in months.keys():
+            for month in list(months.keys()):
                 # Don't take this month into account if outside interval
                 thisMonth = (year, month)
                 if minDate and (thisMonth < minMonth): continue
                 if maxDate and (thisMonth > maxMonth): continue
                 days = months[month]
                 # Browse this month's days
-                for day in days.keys():
+                for day in list(days.keys()):
                     # Don't take this day into account if outside interval
                     thisDay = (year, month, day)
                     if minDate and (thisDay < minDay): continue

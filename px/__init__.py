@@ -4,7 +4,7 @@
 
 # ------------------------------------------------------------------------------
 import xml.sax
-from px_parser import PxParser, PxEnvironment
+from .px_parser import PxParser, PxEnvironment
 from appy.pod.buffers import MemoryBuffer
 from appy.shared.xml_parser import xmlPrologue, xhtmlPrologue
 
@@ -18,7 +18,7 @@ class Px:
     xhtmlPrologue = xhtmlPrologue
 
     def __init__(self, content, isFileName=False, partial=True,
-                 template=None, hook=None, prologue=None, unicode=True):
+                 template=None, hook=None, prologue=None, str=True):
         '''p_content is the PX code, as a string, or a file name if p_isFileName
            is True. If this code represents a complete XML file, p_partial is
            False. Else, we must surround p_content with a root tag to be able
@@ -49,7 +49,7 @@ class Px:
         # Is there some (XML, XHTML...) prologue to dump?
         self.prologue = prologue
         # Will the result be unicode or str?
-        self.unicode = unicode
+        self.str = str
         self.parse()
 
     def parse(self):
@@ -64,7 +64,7 @@ class Px:
         # produce a tree of memory buffers.
         try:
             self.parser.parse(self.content)
-        except xml.sax.SAXParseException, spe:
+        except xml.sax.SAXParseException as spe:
             self.completeErrorMessage(spe)
             raise spe
 
@@ -110,7 +110,7 @@ class Px:
             res = result.content
             if self.prologue:
                 res = self.prologue + res
-            if not self.unicode:
+            if not self.str:
                 res = res.encode('utf-8')
             return res
 

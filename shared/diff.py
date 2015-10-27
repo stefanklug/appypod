@@ -250,7 +250,7 @@ class HtmlDiff:
     deleteStyle = 'color: red; text-decoration: line-through; cursor: help'
 
     def __init__(self, old, new,
-                 insertMsg=u'Inserted text', deleteMsg=u'Deleted text',
+                 insertMsg='Inserted text', deleteMsg='Deleted text',
                  insertCss=None, deleteCss=None, insertName='insert',
                  deleteName='delete', diffRatio=0.7):
         # p_old and p_new are strings containing chunks of HTML. If they are not
@@ -306,24 +306,24 @@ class HtmlDiff:
         else: tag = 'span'
         # What message will it show in its 'title' attribute?
         if not msg:
-            exec 'msg = self.%sMsg' % type
+            exec('msg = self.%sMsg' % type)
         # What CSS class (or, if none, tag-specific style) will be used ?
-        exec 'cssClass = self.%sCss' % type
+        exec('cssClass = self.%sCss' % type)
         if cssClass:
             style = 'class="%s"' % cssClass
         else:
-            exec 'style = self.%sStyle' % type
+            exec('style = self.%sStyle' % type)
             style = 'style="%s"' % style
         # The 'name' attribute of the tag indicates the type of the update.
-        exec 'tagName = self.%sName' % type
+        exec('tagName = self.%sName' % type)
         # The idea is: if there are several lines, every line must be surrounded
         # by a tag. This way, we know that a surrounding tag can't span several
         # lines, which is a prerequisite for managing cumulative diffs.
         if sep == ' ':
-            if not isinstance(seq, basestring):
+            if not isinstance(seq, str):
                 seq = sep.join(seq)
             sep = ''
-        if isinstance(seq, basestring):
+        if isinstance(seq, str):
             return '%s<%s name="%s" %s title="%s">%s</%s>%s' % \
                    (sep, tag, tagName, style, msg, seq, tag, sep)
         else:
@@ -592,7 +592,7 @@ class HtmlDiff:
                     try:
                         merger = Merger(lineA, add, previousDiffsA, self)
                         add = merger.merge()
-                    except Merger.MergeError, e:
+                    except Merger.MergeError as e:
                         # The merge algorithm has made a burn out. Simplify and
                         # consider lineA has having been completely deleted and
                         # lineB has completely inserted.

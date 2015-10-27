@@ -14,10 +14,12 @@
 # You should have received a copy of the GNU General Public License along with
 # Appy. If not, see <http://www.gnu.org/licenses/>.
 # ------------------------------------------------------------------------------
-import types, string
-from group import Group
+import types
+import .string
+from .group import Group
 from appy.px import Px
 from appy.gen.utils import User
+import collections
 
 # Default Appy permissions -----------------------------------------------------
 r, w, d = ('read', 'write', 'delete')
@@ -73,7 +75,7 @@ class State:
            exists, or creates a Role instance, puts it in self.usedRoles and
            returns it else. If it is a Role instance, the method stores it in
            self.usedRoles if it is not in it yet and returns it.'''
-        if isinstance(role, basestring):
+        if isinstance(role, str):
             if role in self.usedRoles:
                 return self.usedRoles[role]
             else:
@@ -88,24 +90,24 @@ class State:
     def standardizeRoles(self):
         '''This method converts, within self.permissions, every role to a
            Role instance. Every used role is stored in self.usedRoles.'''
-        for permission, roles in self.permissions.iteritems():
+        for permission, roles in self.permissions.items():
             if not roles: continue # Nobody may have this permission
-            if isinstance(roles, basestring) or isinstance(roles, Role):
+            if isinstance(roles, str) or isinstance(roles, Role):
                 self.permissions[permission] = [self.getRole(roles)]
             elif isinstance(roles, list):
                 for i in range(len(roles)): roles[i] = self.getRole(roles[i])
             else: # A tuple
                 self.permissions[permission] = [self.getRole(r) for r in roles]
 
-    def getUsedRoles(self): return self.usedRoles.values()
+    def getUsedRoles(self): return list(self.usedRoles.values())
 
     def addRoles(self, roleNames, permissions=()):
         '''Adds p_roleNames in self.permissions. If p_permissions is specified,
            roles are added to those permissions only. Else, roles are added for
            every permission within self.permissions.'''
-        if isinstance(roleNames, basestring): roleNames = (roleNames,)
-        if isinstance(permissions, basestring): permissions = (permissions,)
-        for perm, roles in self.permissions.iteritems():
+        if isinstance(roleNames, str): roleNames = (roleNames,)
+        if isinstance(permissions, str): permissions = (permissions,)
+        for perm, roles in self.permissions.items():
             if permissions and (perm not in permissions): continue
             for roleName in roleNames:
                 # Do nothing if p_roleName is already almong roles.
@@ -124,9 +126,9 @@ class State:
         '''Removes p_roleNames within dict self.permissions. If p_permissions is
            specified, removal is restricted to those permissions. Else, removal
            occurs throughout the whole dict self.permissions.'''
-        if isinstance(roleNames, basestring): roleNames = (roleNames,)
-        if isinstance(permissions, basestring): permissions = (permissions,)
-        for perm, roles in self.permissions.iteritems():
+        if isinstance(roleNames, str): roleNames = (roleNames,)
+        if isinstance(permissions, str): permissions = (permissions,)
+        for perm, roles in self.permissions.items():
             if permissions and (perm not in permissions): continue
             for roleName in roleNames:
                 # Remove this role if present in roles for this permission.
@@ -138,9 +140,9 @@ class State:
     def setRoles(self, roleNames, permissions=()):
         '''Sets p_rolesNames for p_permissions if not empty, for every
            permission in self.permissions else.'''
-        if isinstance(roleNames, basestring): roleNames = (roleNames,)
-        if isinstance(permissions, basestring): permissions = (permissions,)
-        for perm in self.permissions.iterkeys():
+        if isinstance(roleNames, str): roleNames = (roleNames,)
+        if isinstance(permissions, str): permissions = (permissions,)
+        for perm in self.permissions.keys():
             if permissions and (perm not in permissions): continue
             roles = self.permissions[perm] = []
             for roleName in roleNames:
@@ -150,8 +152,8 @@ class State:
         '''Replaces p_oldRoleName by p_newRoleName. If p_permissions is
            specified, the replacement is restricted to those permissions. Else,
            replacements apply to the whole dict self.permissions.'''
-        if isinstance(permissions, basestring): permissions = (permissions,)
-        for perm, roles in self.permissions.iteritems():
+        if isinstance(permissions, str): permissions = (permissions,)
+        for perm, roles in self.permissions.items():
             if permissions and (perm not in permissions): continue
             # Find and delete p_oldRoleName
             for role in roles:
@@ -170,7 +172,7 @@ class State:
            worklflow, this method will always return True (I mean: in this case,
            having an isolated state does not mean the state has been
            deactivated).'''
-        for tr in wf.__dict__.itervalues():
+        for tr in wf.__dict__.values():
             if not isinstance(tr, Transition): continue
             if not tr.hasState(self, True): continue
             # Transition "tr" has this state as start state. If the end state is
@@ -200,7 +202,7 @@ class Transition:
         # be useful for "undo" transitions, for example.
         self.states = self.standardiseStates(states)
         self.condition = condition
-        if isinstance(condition, basestring):
+        if isinstance(condition, str):
             # The condition specifies the name of a role.
             self.condition = Role(condition)
         self.action = action
@@ -276,7 +278,7 @@ class Transition:
 
     def isShowable(self, workflow, obj):
         '''Is this transition showable?'''
-        if callable(self.show):
+        if isinstance(self.show, collections.Callable):
             return self.show(workflow, obj.appy())
         else:
             return self.show
@@ -330,7 +332,7 @@ class Transition:
             for condition in self.condition:
                 # "Unwrap" role names from Role instances
                 if isinstance(condition, Role): condition = condition.name
-                if isinstance(condition, basestring): # It is a role
+                if isinstance(condition, str): # It is a role
                     if hasRole == None:
                         hasRole = False
                     if user.has_role(condition, obj):
@@ -450,7 +452,7 @@ class Transition:
         transition = getattr(workflow, transition)
         # Browse all transitions and find the one starting at p_transition's end
         # state and coming back to p_transition's start state.
-        for trName, tr in workflow.__dict__.iteritems():
+        for trName, tr in workflow.__dict__.items():
             if not isinstance(tr, Transition) or (tr == transition): continue
             if transition.isSingle():
                 if tr.hasState(transition.states[1], True) and \

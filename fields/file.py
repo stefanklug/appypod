@@ -108,7 +108,7 @@ class FileInfo:
         '''Removes the file from the filesystem.'''
         try:
             os.remove(osPathJoin(dbFolder, self.fsPath, self.fsName))
-        except Exception, e:
+        except Exception as e:
             # If the current ZODB transaction is re-triggered, the file may
             # already have been deleted.
             pass
@@ -207,10 +207,10 @@ class FileInfo:
             if fileObj.data.__class__.__name__ == 'Pdata':
                 # The file content is splitted in several chunks
                 f.write(fileObj.data.data)
-                nextPart = fileObj.data.next
+                nextPart = fileObj.data.__next__
                 while nextPart:
                     f.write(nextPart.data)
-                    nextPart = nextPart.next
+                    nextPart = nextPart.__next__
             else:
                 # Only one chunk
                 f.write(fileObj.data)
@@ -393,7 +393,7 @@ class File(Field):
     def validateValue(self, obj, value):
         form = obj.REQUEST.form
         action = '%s_delete' % self.name
-        if (not value or not value.filename) and form.has_key(action) and \
+        if (not value or not value.filename) and action in form and \
             not form[action]:
             # If this key is present but empty, it means that the user selected
             # "replace the file with a new one". So in this case he must provide
@@ -450,7 +450,7 @@ class File(Field):
                 # Case c
                 fileInfo = (value.name, value.content, value.mimeType)
                 info.writeFile(self.name, fileInfo, dbFolder)
-            elif isinstance(value, basestring):
+            elif isinstance(value, str):
                 # Case d
                 info.copyFile(self.name, value, dbFolder)
             elif isinstance(value, FileInfo):

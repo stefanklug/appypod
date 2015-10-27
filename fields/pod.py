@@ -16,7 +16,7 @@
 
 # ------------------------------------------------------------------------------
 import time, os, os.path
-from file import FileInfo
+from .file import FileInfo
 from appy import Object
 from appy.fields import Field
 from appy.px import Px
@@ -25,6 +25,7 @@ from appy.gen import utils as gutils
 from appy.pod import PodError
 from appy.pod.renderer import Renderer
 from appy.shared import utils as sutils
+import collections
 
 # ------------------------------------------------------------------------------
 class Mailing:
@@ -170,7 +171,7 @@ class Pod(Field):
         # of your app will be referred as "Test.odt" in self.template. If it is
         # stored within sub-folder "pod", it will be referred as "pod/Test.odt".
         if not template: raise Exception(Pod.NO_TEMPLATE)
-        if isinstance(template, basestring):
+        if isinstance(template, str):
             self.template = [template]
         elif isinstance(template, tuple):
             self.template = list(template)
@@ -396,7 +397,7 @@ class Pod(Field):
                 formats = self.showTemplate(obj, template)
                 if not formats: continue
                 elif isinstance(formats, bool): formats = self.formats
-                elif isinstance(formats, basestring): formats = (formats,)
+                elif isinstance(formats, str): formats = (formats,)
                 res.append(Object(template=template, formats=formats,
                            freezeFormats=self.getFreezeFormats(obj, template)))
         return res
@@ -525,7 +526,7 @@ class Pod(Field):
         templatePath = self.getTemplatePath(diskFolder, template)
         # Get or compute the specific POD context
         specificContext = None
-        if callable(self.context):
+        if isinstance(self.context, collections.Callable):
             specificContext = self.callMethod(obj, self.context)
         else:
             specificContext = self.context
@@ -544,7 +545,7 @@ class Pod(Field):
             # Retrieve query params
             cmd = ', '.join(Pod.queryParams)
             cmd += " = queryData.split(';')"
-            exec cmd
+            exec(cmd)
             # (re-)execute the query, but without any limit on the number of
             # results; return Appy objects.
             objs = tool.o.executeQuery(obj.o.portal_type, searchName=search,
@@ -559,7 +560,7 @@ class Pod(Field):
         # when generating frozen documents).
         if '_checked' not in podContext: podContext['_checked'] = Object()
         # Define a potential global styles mapping
-        if callable(self.stylesMapping):
+        if isinstance(self.stylesMapping, collections.Callable):
             stylesMapping = self.callMethod(obj, self.stylesMapping)
         else:
             stylesMapping = self.stylesMapping
@@ -575,7 +576,7 @@ class Pod(Field):
         try:
             renderer = Renderer(**rendererParams)
             renderer.run()
-        except PodError, pe:
+        except PodError as pe:
             if not os.path.exists(result):
                 # In some (most?) cases, when OO returns an error, the result is
                 # nevertheless generated.
@@ -643,7 +644,7 @@ class Pod(Field):
             # Generate the document
             doc = self.getValue(obj, template=template, format=format,
                                 result=result)
-            if isinstance(doc, basestring):
+            if isinstance(doc, str):
                 # An error occurred, the document was not generated.
                 obj.log(self.FREEZE_ERROR % (format, self.name, doc),
                         type='error')
@@ -658,7 +659,7 @@ class Pod(Field):
                     obj.log('freeze: overwriting %s...' % result)
                 doc = self.getValue(obj, template=template, format='odt',
                                     result=result)
-                if isinstance(doc, basestring):
+                if isinstance(doc, str):
                     self.log(self.FREEZE_ERROR % ('odt', self.name, doc),
                              type='error')
                     raise Exception(self.FREEZE_FATAL_ERROR)
@@ -762,7 +763,7 @@ class Pod(Field):
             res = self.getValue(obj, template=template, format=format,
                                 queryData=rq.get('queryData'),
                                 customContext=self.getCustomContext(obj, rq))
-            if isinstance(res, basestring):
+            if isinstance(res, str):
                 # An error has occurred, and p_res contains the error message
                 obj.say(res)
                 return tool.goto(rq.get('HTTP_REFERER'))

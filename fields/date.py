@@ -219,7 +219,7 @@ class Date(Field):
 
     def getSelectableYears(self):
         '''Gets the list of years one may select for this field.'''
-        res = range(self.startYear, self.endYear + 1)
+        res = list(range(self.startYear, self.endYear + 1))
         if self.reverseYears: res.reverse()
         return res
 
@@ -227,7 +227,7 @@ class Date(Field):
         DateTime = obj.getProductConfig().DateTime
         try:
             value = DateTime(value)
-        except DateTime.DateError, ValueError:
+        except DateTime.DateError as ValueError:
             return obj.translate('bad_date')
 
     def getFormattedValue(self, obj, value, layoutType='view',
@@ -278,7 +278,7 @@ class Date(Field):
         # Get the value we must compare (from request or from database)
         rq = obj.REQUEST
         partName = '%s_%s' % (self.name, fieldPart)
-        if rq.has_key(partName):
+        if partName in rq:
             compValue = rq.get(partName)
             if compValue.isdigit():
                 compValue = int(compValue)

@@ -25,6 +25,7 @@ from appy.shared.data import countries
 from appy.shared.xml_parser import XhtmlCleaner
 from appy.shared.diff import HtmlDiff
 from appy.shared import utils as sutils
+import collections
 
 # ------------------------------------------------------------------------------
 digit  = re.compile('[0-9]')
@@ -471,7 +472,7 @@ class String(Field):
         res = True
         if type(self.validator) in (list, tuple):
             for elem in self.validator:
-                if not isinstance(elem, basestring):
+                if not isinstance(elem, str):
                     res = False
                     break
         else:
@@ -533,7 +534,7 @@ class String(Field):
         if not value:
             if self.isMultiValued(): return emptyTuple
             else: return value
-        if isinstance(value, basestring) and self.isMultiValued():
+        if isinstance(value, str) and self.isMultiValued():
             value = [value]
         elif isinstance(value, tuple):
             value = list(value)
@@ -602,8 +603,7 @@ class String(Field):
            identifies the language-specific part we will work on.'''
         res = None
         lastEvent = None
-        name = language and ('%s-%s' % (self.name, language)) or self.name
-        for event in obj.workflow_history['appy']:
+        for event in obj.workflow_history.values()[0]:
             if event['action'] != '_datachange_': continue
             if name not in event['changes']: continue
             if res == None:
@@ -660,7 +660,7 @@ class String(Field):
                 res = obj.formatText(res, format='html')
         # If value starts with a carriage return, add a space; else, it will
         # be ignored.
-        if isinstance(res, basestring) and \
+        if isinstance(res, str) and \
            (res.startswith('\n') or res.startswith('\r\n')): res = ' ' + res
         return res
 
@@ -774,7 +774,7 @@ class String(Field):
             # If this field is an ajax-updatable slave, no need to compute
             # possible values: it will be overridden by method self.masterValue
             # by a subsequent ajax request (=the "if" statement above).
-            if self.masterValue and callable(self.masterValue) and \
+            if self.masterValue and isinstance(self.masterValue, collections.Callable) and \
                not ignoreMasterValues: return []
             if isinstance(self.validator, Selection):
                 # We need to call self.methodName for getting the (dynamic)
@@ -808,9 +808,9 @@ class String(Field):
                             obj = brains[0].getObject()
                 # Do we need to call the method on the object or on the wrapper?
                 if methodName.startswith('_appy_'):
-                    exec 'res = obj.%s(*args)' % methodName
+                    exec('res = obj.%s(*args)' % methodName)
                 else:
-                    exec 'res = obj.appy().%s(*args)' % methodName
+                    exec('res = obj.appy().%s(*args)' % methodName)
                 if not withTranslations: res = [v[0] for v in res]
                 elif isinstance(res, list): res = res[:]
             else:
@@ -847,7 +847,7 @@ class String(Field):
         elif self.isSelect:
             # Check that the value is among possible values
             possibleValues = self.getPossibleValues(obj,ignoreMasterValues=True)
-            if isinstance(value, basestring):
+            if isinstance(value, str):
                 error = value not in possibleValues
             else:
                 error = False
@@ -872,7 +872,7 @@ class String(Field):
         return value
 
     def getUnilingualStorableValue(self, obj, value):
-        isString = isinstance(value, basestring)
+        isString = isinstance(value, str)
         isEmpty = Field.isEmptyValue(self, obj, value)
         # Apply transform if required
         if isString and not isEmpty and (self.transform != 'none'):
@@ -1021,7 +1021,7 @@ class String(Field):
         if self.allowImageUpload:
             ckAttrs['filebrowserUploadUrl'] = '%s/upload' % obj.absolute_url()
         ck = []
-        for k, v in ckAttrs.iteritems():
+        for k, v in ckAttrs.items():
             if isinstance(v, int): sv = str(v)
             if isinstance(v, bool): sv = str(v).lower()
             else: sv = '"%s"' % v
@@ -1059,7 +1059,7 @@ class String(Field):
            name containing a row number from a field within a list field.'''
         rq = obj.REQUEST
         # Get the value we must compare (from request or from database)
-        if rq.has_key(fieldName):
+        if fieldName in rq:
             compValue = rq.get(fieldName)
         else:
             compValue = dbValue

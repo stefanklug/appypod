@@ -83,13 +83,13 @@ class Ogone(Field):
         # Create a new dict by removing p_keysToIgnore from p_values, and by
         # upperizing all keys.
         shaRes = {}
-        for k, v in values.iteritems():
+        for k, v in values.items():
             if k in keysToIgnore: continue
             # Ogone: we must not include empty values.
             if (v == None) or (v == ''): continue
             shaRes[k.upper()] = v
         # Create a sorted list of keys
-        keys = shaRes.keys()
+        keys = list(shaRes.keys())
         keys.sort()
         shaList = []
         for k in keys:
@@ -127,7 +127,7 @@ class Ogone(Field):
         # Ogone's response.
         res['paramplus'] = 'name=%s' % self.name
         # Ensure every value is a str
-        for k in res.iterkeys():
+        for k in res.keys():
             if not isinstance(res[k], str):
                 res[k] = str(res[k])
         # Compute a SHA-1 key as required by Ogone and add it to the res
@@ -154,7 +154,7 @@ class Ogone(Field):
                             'administrator has been contacted.')
         # Create a nice object from the form.
         response = Object()
-        for k, v in obj.REQUEST.form.iteritems():
+        for k, v in obj.REQUEST.form.items():
             setattr(response, k, v)
         # Call the field method that handles the response received from Ogone.
         url = self.responseMethod(obj.appy(), response)

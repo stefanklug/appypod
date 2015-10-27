@@ -21,9 +21,9 @@ from appy.gen.layout import Table, defaultFieldLayouts
 from appy.gen import utils as gutils
 from appy.px import Px
 from appy.shared import utils as sutils
-from group import Group
-from search import Search
-from page import Page
+from .group import Group
+from .page import Page
+import collections
 
 # In this file, names "list" and "dict" refer to sub-modules. To use Python
 # builtin types, use __builtins__['list'] and __builtins__['dict']
@@ -370,7 +370,7 @@ class Field:
         labelName = name
         trPrefix = None
         if self.label:
-            if isinstance(self.label, basestring): trPrefix = self.label
+            if isinstance(self.label, str): trPrefix = self.label
             else: # It is a tuple (trPrefix, name)
                 if self.label[1]: labelName = self.label[1]
                 if self.label[0]: trPrefix = self.label[0]
@@ -382,16 +382,16 @@ class Field:
         self.helpId  = self.labelId + '_help'
         # Determine read and write permissions for this field
         rp = self.specificReadPermission
-        if rp and not isinstance(rp, basestring):
+        if rp and not isinstance(rp, str):
             self.readPermission = '%s: Read %s %s' % (appName, prefix, name)
-        elif rp and isinstance(rp, basestring):
+        elif rp and isinstance(rp, str):
             self.readPermission = rp
         else:
             self.readPermission = 'read'
         wp = self.specificWritePermission
-        if wp and not isinstance(wp, basestring):
+        if wp and not isinstance(wp, str):
             self.writePermission = '%s: Write %s %s' % (appName, prefix, name)
-        elif wp and isinstance(wp, basestring):
+        elif wp and isinstance(wp, str):
             self.writePermission = wp
         else:
             self.writePermission = 'write'
@@ -442,7 +442,7 @@ class Field:
                                           self.readPermission
         if not obj.allows(perm): return
         # Evaluate self.show
-        if callable(self.show):
+        if isinstance(self.show, collections.Callable):
             res = self.callMethod(obj, self.show)
         else:
             res = self.show
@@ -480,7 +480,7 @@ class Field:
         if not masterData: return True
         else:
             master, masterValue = masterData
-            if masterValue and callable(masterValue): return True
+            if masterValue and isinstance(masterValue, collections.Callable): return True
             reqValue = master.getRequestValue(obj)
             # reqValue can be a list or not
             if type(reqValue) not in sutils.sequenceTypes:
@@ -496,8 +496,8 @@ class Field:
         if isinstance(mapping, __builtins__['dict']):
             # Is it a dict like {'label':..., 'descr':...}, or is it directly a
             # dict with a mapping?
-            for k, v in mapping.iteritems():
-                if (k not in self.labelTypes) or isinstance(v, basestring):
+            for k, v in mapping.items():
+                if (k not in self.labelTypes) or isinstance(v, str):
                     # It is already a mapping
                     return {'label':mapping, 'descr':mapping, 'help':mapping}
             # If we are here, we have {'label':..., 'descr':...}. Complete
@@ -520,7 +520,7 @@ class Field:
             areDefault = True
             layouts = self.computeDefaultLayouts()
         else:
-            if isinstance(layouts, basestring):
+            if isinstance(layouts, str):
                 # The user specified a single layoutString (the "edit" one)
                 layouts = {'edit': layouts}
             elif isinstance(layouts, Table):
@@ -541,8 +541,8 @@ class Field:
         # We have now a dict of layouts in p_layouts. Ensure now that a Table
         # instance is created for every layout (=value from the dict). Indeed,
         # a layout could have been expressed as a simple layout string.
-        for layoutType in layouts.iterkeys():
-            if isinstance(layouts[layoutType], basestring):
+        for layoutType in layouts.keys():
+            if isinstance(layouts[layoutType], str):
                 layouts[layoutType] = Table(layouts[layoutType])
         # Derive "view", "search" and "cell" layouts from the "edit" layout
         # when relevant.
@@ -566,11 +566,11 @@ class Field:
         if areDefault and not self.group and \
            not ((self.type == 'String') and (self.format == self.XHTML)) and \
            not (self.type == 'Ref'):
-            for layoutType in layouts.iterkeys():
+            for layoutType in layouts.keys():
                 layouts[layoutType].width = ''
         # Remove letters "r" from the layouts if the field is not required.
         if not self.required:
-            for layoutType in layouts.iterkeys():
+            for layoutType in layouts.keys():
                 layouts[layoutType].removeElement('r')
         # Derive some boolean values from the layouts.
         self.hasLabel = self.hasLayoutElement('l', layouts)
@@ -597,7 +597,7 @@ class Field:
     def hasLayoutElement(self, element, layouts):
         '''This method returns True if the given layout p_element can be found
            at least once among the various p_layouts defined for this field.'''
-        for layout in layouts.itervalues():
+        for layout in layouts.values():
             if element in layout.layoutString: return True
         return False
 
@@ -610,7 +610,7 @@ class Field:
         '''Gets, as a string, the layouts as could have been specified as input
            value for the Field constructor.'''
         res = '{'
-        for k, v in self.layouts.iteritems():
+        for k, v in self.layouts.items():
             res += '"%s":"%s",' % (k, v.layoutString)
         res += '}'
         return res
@@ -650,7 +650,7 @@ class Field:
         if self.isEmptyValue(obj, value):
             # If there is no value, get the default value if any: return
             # self.default, of self.default() if it is a method.
-            if callable(self.default):
+            if isinstance(self.default, collections.Callable):
                 try:
                     # Caching a default value can lead to problems. For example,
                     # the process of creating an object from another one, or
@@ -660,7 +660,7 @@ class Field:
                     # but it they depend on values set at (b), and are cached
                     # and indexed, (c) will get the wrong, cached value.
                     return self.callMethod(obj, self.default, cache=False)
-                except Exception, e:
+                except Exception as e:
                     # Already logged. Here I do not raise the exception,
                     # because it can be raised as the result of reindexing
                     # the object in situations that are not foreseen by
@@ -723,12 +723,13 @@ class Field:
         # Start by getting the field value on p_obj
         res = self.getValue(obj)
         # Zope catalog does not like unicode strings
-        if isinstance(res, unicode): res = res.encode('utf-8')
+        if isinstance(value, str):
+            res = value.encode('utf-8')
         if forSearch and (res != None):
             if type(res) in sutils.sequenceTypes:
                 vals = []
                 for v in res:
-                    if isinstance(v, unicode): vals.append(v.encode('utf-8'))
+                    if isinstance(v, str): vals.append(v.encode('utf-8'))
                     else: vals.append(str(v))
                 res = ' '.join(vals)
             else:
@@ -824,7 +825,7 @@ class Field:
            this field is the slave of another field.'''
         if not self.master: return ''
         res = 'slave*%s*' % self.masterName
-        if not callable(self.masterValue):
+        if not isinstance(self.masterValue, collections.Callable):
             res += '*'.join(self.masterValue)
         else:
             res += '+'
@@ -866,7 +867,7 @@ class Field:
     def securityCheck(self, obj, value):
         '''This method performs some security checks on the p_value that
            represents user input.'''
-        if not isinstance(value, basestring): return
+        if not isinstance(value, str): return
         # Search Javascript code in the value (prevent XSS attacks).
         if '<script' in value:
             obj.log('Detected Javascript in user input.', type='error')
@@ -900,14 +901,14 @@ class Field:
                 # It is a custom function: execute it
                 try:
                     validValue = self.validator(obj, value)
-                    if isinstance(validValue, basestring) and validValue:
+                    if isinstance(validValue, str) and validValue:
                         # Validation failed; and p_validValue contains an error
                         # message.
                         return validValue
                     else:
                         if not validValue:
                             return obj.translate('field_invalid')
-                except Exception, e:
+                except Exception as e:
                     return str(e)
                 except:
                     return obj.translate('field_invalid')
@@ -931,7 +932,7 @@ class Field:
         obj = obj.appy()
         try:
             return gutils.callMethod(obj, method, cache=cache)
-        except TypeError, te:
+        except TypeError as te:
             # Try a version of the method that would accept self as an
             # additional parameter. In this case, we do not try to cache the
             # value (we do not call gutils.callMethod), because the value may
@@ -939,11 +940,11 @@ class Field:
             tb = sutils.Traceback.get()
             try:
                 return method(obj, self)
-            except Exception, e:
+            except Exception as e:
                 obj.log(tb, type='error')
                 # Raise the initial error.
                 raise te
-        except Exception, e:
+        except Exception as e:
             obj.log(sutils.Traceback.get(), type='error')
             raise e
 
@@ -951,7 +952,7 @@ class Field:
         '''Gets the value of attribue p_name on p_self, which can be a simple
            value or the result of a method call on p_obj.'''
         res = getattr(self, name)
-        if not callable(res): return res
+        if not isinstance(res, collections.Callable): return res
         return self.callMethod(obj, res)
 
     def process(self, obj):

@@ -132,7 +132,7 @@ class List(Field):
         name = requestName or self.name # A List may be into another List (?)
         prefix = name + '*' + self.fields[0][0] + '*'
         res = {}
-        for key in request.keys():
+        for key in list(request.keys()):
             if not key.startswith(prefix): continue
             # I have found a row. Gets its index.
             row = Object()
@@ -145,7 +145,7 @@ class List(Field):
                 setattr(row, subName, v)
             res[rowIndex] = row
         # Produce a sorted list
-        keys = res.keys()
+        keys = list(res.keys())
         keys.sort()
         res = [res[key] for key in keys]
         # I store in the request this computed value. This way, when individual

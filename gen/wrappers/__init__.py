@@ -861,7 +861,7 @@ class AbstractWrapper(object):
         if len(self.__class__.__bases__) > 1:
             # There is a custom user class
             custom = self.__class__.__bases__[-1]
-            if custom.__dict__.has_key(methodName):
+            if methodName in custom.__dict__:
                 return custom.__dict__[methodName]
 
     def _callCustom(self, methodName, *args, **kwargs):
@@ -973,7 +973,7 @@ class AbstractWrapper(object):
            present, will not be called; any other defined method will not be
            called neither (ie, Ref.insert, Ref.beforeLink, Ref.afterLink...).
         '''
-        isField = isinstance(fieldNameOrClass, basestring)
+        isField = isinstance(fieldNameOrClass, str)
         tool = self.tool.o
         # Determine the class of the object to create
         if isField:
@@ -984,7 +984,7 @@ class AbstractWrapper(object):
             klass = fieldNameOrClass
             portalType = tool.getPortalType(klass)
         # Determine object id
-        if kwargs.has_key('id'):
+        if 'id' in kwargs:
             objId = kwargs['id']
             del kwargs['id']
         else:
@@ -1002,7 +1002,7 @@ class AbstractWrapper(object):
                                noSecurity=noSecurity)
         appyObj = zopeObj.appy()
         # Set object attributes
-        for attrName, attrValue in kwargs.iteritems():
+        for attrName, attrValue in kwargs.items():
             try:
                 setattr(appyObj, attrName, attrValue)
             except AttributeError, ae:
@@ -1183,8 +1183,8 @@ class AbstractWrapper(object):
             # Get the Appy object from the brain
             if noSecurity: method = '_unrestrictedGetObject'
             else: method = 'getObject'
-            exec 'obj = brain.%s().appy()' % method
-            exec expression
+            exec('obj = brain.%s().appy()' % method)
+            exec(expression)
         return ctx
 
     def reindex(self, fields=None, unindex=False):
@@ -1249,7 +1249,7 @@ class AbstractWrapper(object):
             else:
                 return xml
         elif format == 'csv':
-            if isinstance(at, basestring):
+            if isinstance(at, str):
                 marshaller = CsvMarshaller(include=include, exclude=exclude)
                 return marshaller.marshall(self)
             else:

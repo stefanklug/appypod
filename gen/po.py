@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 import os, re, time, copy
-from utils import produceNiceMessage
+from .utils import produceNiceMessage
 
 # ------------------------------------------------------------------------------
 poHeader = '''msgid ""
@@ -213,7 +213,7 @@ class PoFile:
         if keepExistingOrder:
             # Update existing messages and add inexistent messages to the end.
             for newMsg in newMessages:
-                if self.messagesDict.has_key(newMsg.id):
+                if newMsg.id in self.messagesDict:
                     msg = self.messagesDict[newMsg.id]
                 else:
                     msg = self.addMessage(newMsg)
@@ -224,7 +224,7 @@ class PoFile:
             notNewMessages = [m for m in self.messages if m.id not in newIds]
             del self.messages[:]
             for newMsg in newMessages:
-                if self.messagesDict.has_key(newMsg.id):
+                if newMsg.id in self.messagesDict:
                     msg = self.messagesDict[newMsg.id]
                     self.messages.append(msg)
                 else:
@@ -240,7 +240,7 @@ class PoFile:
             fb = ''
             if not self.isPot:
                 # I must add fallbacks
-                if fallbacks.has_key(self.language):
+                if self.language in fallbacks:
                     fb = '"X-is-fallback-for: %s\\n"' % fallbacks[self.language]
             f.write(poHeader % (self.applicationName, creationTime,
                                 self.language, self.language, self.domain, fb))

@@ -1,7 +1,8 @@
 # ------------------------------------------------------------------------------
-import re, os, os.path, base64, urllib
+import re, os, os.path, base64, urllib.request, urllib.parse, urllib.error
 from appy.px import Px
 from appy.shared import utils as sutils
+import collections
 
 # Function for creating a Zope object ------------------------------------------
 def createObject(folder, id, className, appName, wf=True, noSecurity=False):
@@ -10,8 +11,8 @@ def createObject(folder, id, className, appName, wf=True, noSecurity=False):
        creation of the config object), computing workflow-related info is not
        possible at this time. This is why this function can be called with
        p_wf=False.'''
-    exec 'from Products.%s.%s import %s as ZopeClass' % \
-         (appName, className, className)
+    exec('from Products.%s.%s import %s as ZopeClass' % \
+         (appName, className, className))
     # Get the tool. It may not be present yet, maybe are we creating it now.
     if folder.meta_type.endswith('Folder'):
         # p_folder is a standard Zope (temp) folder.
@@ -178,7 +179,7 @@ def callMethod(obj, method, klass=None, cache=True):
     if methodType == 'staticmethod':
         method = method.__get__(klass)
     elif methodType == 'instancemethod':
-        method = method.im_func
+        method = method.__func__
     # Call the method if cache is not needed
     if not cache: return method(obj)
     # If first arg of method is named "tool" instead of the traditional "self",
@@ -187,7 +188,7 @@ def callMethod(obj, method, klass=None, cache=True):
     # Every method call, even on different instances, will be cached in a unique
     # key.
     cheat = False
-    if not klass and (method.func_code.co_varnames[0] == 'tool'):
+    if not klass and (method.__code__.co_varnames[0] == 'tool'):
         prefix = obj.klass.__name__
         obj = obj.tool
         cheat = True
@@ -200,7 +201,7 @@ def callMethod(obj, method, klass=None, cache=True):
         else:
             prefix = obj.uid
     # Second part of the key: p_method name
-    key = '%s:%s' % (prefix, method.func_name)
+    key = '%s:%s' % (prefix, method.__name__)
     # Return the cached value if present in the method cache.
     if key in rq.methodCache:
         return rq.methodCache[key]
@@ -216,20 +217,20 @@ def readCookie(request):
        (None, None).'''
     cookie = request.get('_appy_', None)
     if not cookie: return None, None
-    cookieValue = base64.decodestring(urllib.unquote(cookie))
+    cookieValue = base64.decodestring(urllib.parse.unquote(cookie))
     if ':' in cookieValue: return cookieValue.split(':')
     return None, None
 
 def writeCookie(login, password, request):
     '''Encode p_login and p_password into the cookie set in the p_request.'''
     cookieValue = base64.encodestring('%s:%s' % (login, password)).rstrip()
-    cookieValue = urllib.quote(cookieValue)
+    cookieValue = urllib.parse.quote(cookieValue)
     request.RESPONSE.setCookie('_appy_', cookieValue, path='/')
 
 # ------------------------------------------------------------------------------
 def initMasterValue(v):
     '''Standardizes p_v as a list of strings, excepted if p_v is a method.'''
-    if callable(v): return v
+    if isinstance(v, collections.Callable): return v
     if not isinstance(v, bool) and not v: res = []
     elif type(v) not in sutils.sequenceTypes: res = [v]
     else: res = v
@@ -243,7 +244,7 @@ class No:
        instead. When creating such an instance, you can specify an error
        message.'''
     def __init__(self, msg): self.msg = msg
-    def __nonzero__(self): return False
+    def __bool__(self): return False
     def __repr__(self): return '<No: %s>' % self.msg
 
 # ------------------------------------------------------------------------------

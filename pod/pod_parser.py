@@ -50,7 +50,7 @@ class OdInsert:
     def resolve(self, namespaces):
         '''Replaces all unresolved namespaces in p_odtChunk, thanks to the dict
            of p_namespaces.'''
-        for nsName, nsUri in self.nsUris.iteritems():
+        for nsName, nsUri in self.nsUris.items():
             self.odtChunk = re.sub('@%s@' % nsName, namespaces[nsUri],
                                    self.odtChunk)
         return self.odtChunk
@@ -126,14 +126,14 @@ class PodEnvironment(OdfEnvironment):
         res = {}
         for insert in self.inserts:
             elemName = insert.elem.getFullName(self.namespaces)
-            if not res.has_key(elemName):
+            if elemName not in res:
                 res[elemName] = insert
         return res
 
     def manageInserts(self):
         '''We just dumped the start of an elem. Here we will insert any odt
            chunk if needed.'''
-        if self.inserts.has_key(self.currentElem.elem):
+        if self.currentElem.elem in self.inserts:
             insert = self.inserts[self.currentElem.elem]
             self.currentBuffer.write(insert.resolve(self.namespaces))
             # The insert is destroyed after single use
@@ -160,12 +160,12 @@ class PodEnvironment(OdfEnvironment):
         elif elem == Cell.OD.elem:
             colspan = 1
             attrSpan = self.tags['number-columns-spanned']
-            if self.currentElem.attrs.has_key(attrSpan):
+            if attrSpan in self.currentElem.attrs:
                 colspan = int(self.currentElem.attrs[attrSpan])
             self.getTable().curColIndex += colspan
         elif elem == self.tags['table-column']:
             attrs = self.currentElem.attrs
-            if attrs.has_key(self.tags['number-columns-repeated']):
+            if self.tags['number-columns-repeated'] in attrs:
                 self.getTable().nbOfColumns += int(
                     attrs[self.tags['number-columns-repeated']])
             else:
@@ -254,8 +254,8 @@ class PodParser(OdfParser):
             e.state = e.READING_EXPRESSION
             e.exprHasStyle = False
         elif (elem == e.tags['table-cell']) and \
-             attrs.has_key(e.tags['formula']) and \
-             attrs.has_key(e.tags['value-type']) and \
+             e.tags['formula'] in attrs and \
+             e.tags['value-type'] in attrs and \
              (attrs[e.tags['value-type']] == 'string') and \
              attrs[e.tags['formula']].startswith('of:="'):
             # In an ODS template, any cell containing a formula of type "string"

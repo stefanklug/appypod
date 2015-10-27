@@ -5,9 +5,9 @@
 # ------------------------------------------------------------------------------
 import types, copy
 import appy.gen as gen
-import po
-from model import ModelClass
-from utils import produceNiceMessage, getClassName
+from . import po
+from .model import ModelClass
+from .utils import produceNiceMessage, getClassName
 TABS = 4 # Number of blanks in a Python indentation.
 
 # ------------------------------------------------------------------------------
@@ -130,7 +130,7 @@ class ClassDescriptor(Descriptor):
     def isAbstract(self):
         '''Is self.klass abstract?'''
         res = False
-        if self.klass.__dict__.has_key('abstract'):
+        if 'abstract' in self.klass.__dict__:
             res = self.klass.__dict__['abstract']
         return res
 
@@ -139,7 +139,7 @@ class ClassDescriptor(Descriptor):
            concept into the application. For example, creating instances
            of such classes will be easy from the user interface.'''
         res = False
-        if self.klass.__dict__.has_key('root'):
+        if 'root' in self.klass.__dict__:
             res = self.klass.__dict__['root']
         return res
 
@@ -150,7 +150,7 @@ class ClassDescriptor(Descriptor):
         theClass = self.klass
         if klass:
             theClass = klass
-        if theClass.__dict__.has_key('folder'):
+        if 'folder' in theClass.__dict__:
             res = theClass.__dict__['folder']
         else:
             if theClass.__bases__:
@@ -176,14 +176,14 @@ class ClassDescriptor(Descriptor):
     def getCreateMean(self, type='Import'):
         '''Returns the mean for this class that corresponds to p_type, or
            None if the class does not support this create mean.'''
-        if not self.klass.__dict__.has_key('create'): return
+        if 'create' not in self.klass.__dict__: return
         else:
             means = self.klass.create
             if not means: return
             if not isinstance(means, tuple) and not isinstance(means, list):
                 means = [means]
             for mean in means:
-                exec 'found = isinstance(mean, %s)' % type
+                exec('found = isinstance(mean, %s)' % type)
                 if found: return mean
 
     @staticmethod
@@ -192,7 +192,7 @@ class ClassDescriptor(Descriptor):
            p_tool is given, we are at execution time (not a generation time),
            and we may potentially execute search.show methods that allow to
            conditionnaly include a search or not.'''
-        if klass.__dict__.has_key('search'):
+        if 'search' in klass.__dict__:
             searches = klass.__dict__['search']
             if not tool: return searches
             # Evaluate attributes "show" for every search.
@@ -229,10 +229,10 @@ class ClassDescriptor(Descriptor):
 
     def addField(self, fieldName, fieldType):
         '''Adds a new field to the Tool.'''
-        exec "self.modelClass.%s = fieldType" % fieldName
+        exec("self.modelClass.%s = fieldType" % fieldName)
         if fieldName in self.modelClass._appy_attributes:
-            print('Warning, field "%s" is already existing on class "%s"' % \
-                  (fieldName, self.modelClass.__name__))
+            print(('Warning, field "%s" is already existing on class "%s"' % \
+                  (fieldName, self.modelClass.__name__)))
             return
         self.modelClass._appy_attributes.append(fieldName)
         self.orderedAttributes.append(fieldName)
@@ -488,9 +488,9 @@ class TranslationClassDescriptor(ClassDescriptor):
         maxLine = 100 # We suppose a line is 100 characters long.
         width = 0
         height = 0
-        for fileName, poFile in i18nFiles.iteritems():
+        for fileName, poFile in i18nFiles.items():
             if not fileName.startswith('%s-' % appName) or \
-               not i18nFiles[fileName].messagesDict.has_key(messageId):
+               messageId not in i18nFiles[fileName].messagesDict:
                 # In this case this is not one of our Appy-managed translation
                 # files.
                 continue

@@ -40,7 +40,7 @@ class Group:
         # which will be used for HTML param "width".
         if wide == True:
             self.wide = '100%'
-        elif isinstance(wide, basestring):
+        elif isinstance(wide, str):
             self.wide = wide
         else:
             self.wide = ''
@@ -106,7 +106,7 @@ class Group:
            can be a string or a Group instance; this method returns always a
            Group instance.'''
         res = groupData
-        if res and isinstance(res, basestring):
+        if res and isinstance(res, str):
             # Group data is given as a string. 2 more possibilities:
             # (a) groupData is simply the name of the group;
             # (b) groupData is of the form <groupName>_<numberOfColumns>.
@@ -336,7 +336,7 @@ class UiGroup:
         # All p_group attributes become self attributes. This is required
         # because a UiGroup, in some PXs, must behave like a Field (ie, have
         # the same attributes, like "master".
-        for name, value in group.__dict__.iteritems():
+        for name, value in group.__dict__.items():
             if not name.startswith('_'):
                 setattr(self, name, value)
         self.group = group
@@ -346,7 +346,7 @@ class UiGroup:
         labelName = self.name
         prefix = className
         if group.label:
-            if isinstance(group.label, basestring): prefix = group.label
+            if isinstance(group.label, str): prefix = group.label
             else: # It is a tuple (className, name)
                 if group.label[1]: labelName = group.label[1]
                 if group.label[0]: prefix = group.label[0]

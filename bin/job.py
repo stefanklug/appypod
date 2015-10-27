@@ -82,6 +82,6 @@ else:
                 targetObject = getattr(targetObject, elem)
         # Execute the method on the target object
         if args: args = args.split('*')
-        exec 'targetObject.%s(*args)' % toolMethod
+        exec('targetObject.%s(*args)' % toolMethod)
     transaction.commit()
 # ------------------------------------------------------------------------------

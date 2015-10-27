@@ -160,20 +160,20 @@ class Debianizer:
             name = '%s/%sctl' % (binFolder, self.appNameLower)
             f = file(name, 'w')
             f.write(appCtl % self.appNameLower)
-            os.chmod(name, 0744) # Make it executable by owner.
+            os.chmod(name, 0o744) # Make it executable by owner.
             f.close()
             # <app>run
             name = '%s/%srun' % (binFolder, self.appNameLower)
             f = file(name, 'w')
             f.write(appRun % self.appNameLower)
-            os.chmod(name, 0744) # Make it executable by owner.
+            os.chmod(name, 0o744) # Make it executable by owner.
             f.close()
             # startoo
             name = '%s/startoo' % binFolder
             f = file(name, 'w')
             f.write(ooStart)
             f.close()
-            os.chmod(name, 0744) # Make it executable by owner.
+            os.chmod(name, 0o744) # Make it executable by owner.
             # /var/lib/<app> (will store Data.fs, lock files, etc)
             varLibFolder = j(debFolder, 'var', 'lib', self.appNameLower)
             os.makedirs(varLibFolder)
@@ -208,7 +208,7 @@ class Debianizer:
                                   'application.' % n, '%sctl start' % n,
                                   '%sctl restart' % n, '%sctl stop' % n))
             f.close()
-            os.chmod(name, 0744) # Make it executable by owner.
+            os.chmod(name, 0o744) # Make it executable by owner.
             # /etc/init.d/oo (start OpenOffice at boot time)
             name = '%s/oo' % initdFolder
             f = file(name, 'w')
@@ -216,7 +216,7 @@ class Debianizer:
                                   'startoo', 'startoo', "#Can't stop OO."))
             f.write('\n')
             f.close()
-            os.chmod(name, 0744) # Make it executable by owner.
+            os.chmod(name, 0o744) # Make it executable by owner.
         # Get the size of the app, in Kb.
         os.chdir(tempFolder)
         cmd = subprocess.Popen(['du', '-b', '-s', 'debian'],

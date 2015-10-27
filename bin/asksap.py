@@ -73,10 +73,10 @@ class AskSap:
                 # Return info about a given function.
                 info = sap.getFunctionInfo(sapElement)
                 prefix = 'Function'
-            print('%s: %s' % (prefix, sapElement))
+            print(('%s: %s' % (prefix, sapElement)))
             print(info)
             sap.disconnect()
-        except SapError, se:
+        except SapError as se:
             sys.stderr.write(str(se))
             sys.stderr.write('\n')
             sys.exit(ERROR_CODE)

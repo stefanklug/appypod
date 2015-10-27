@@ -13,6 +13,7 @@ from appy.shared import mimeTypes
 from appy.shared import utils as sutils
 from appy.shared.data import languages
 from appy.shared.ldap_connector import LdapConnector
+import collections
 try:
     from AccessControl.ZopeSecurityPolicy import _noroles
 except ImportError:
@@ -36,7 +37,7 @@ class ToolMixin(BaseMixin):
            p_metaTypeOrAppyType.'''
         appName = self.getProductConfig().PROJECTNAME
         res = metaTypeOrAppyClass
-        if not isinstance(metaTypeOrAppyClass, basestring):
+        if not isinstance(metaTypeOrAppyClass, str):
             res = gutils.getClassName(metaTypeOrAppyClass, appName)
         if res.find('_wrappers') != -1:
             elems = res.split('_')
@@ -439,7 +440,7 @@ class ToolMixin(BaseMixin):
 
     def quote(self, s, escapeWithEntity=True):
         '''Returns the quoted version of p_s.'''
-        if not isinstance(s, basestring): s = str(s)
+        if not isinstance(s, str): s = str(s)
         repl = escapeWithEntity and '&apos;' or "\\'"
         s = s.replace('\r\n', '').replace('\n', '').replace("'", repl)
         return "'%s'" % s
@@ -452,7 +453,7 @@ class ToolMixin(BaseMixin):
 
     def getZopeClass(self, name):
         '''Returns the Zope class whose name is p_name.'''
-        exec 'from Products.%s.%s import %s as C'% (self.getAppName(),name,name)
+        exec('from Products.%s.%s import %s as C'% (self.getAppName(),name,name))
         return C
 
     def getAppyClass(self, zopeName, wrapper=False):
@@ -476,12 +477,12 @@ class ToolMixin(BaseMixin):
         '''Gets the different ways objects of p_klass can be created (currently:
            via a web form or programmatically only). Result is a list.'''
         res = []
-        if not klass.__dict__.has_key('create'):
+        if 'create' not in klass.__dict__:
             return ['form']
         else:
             means = klass.create
             if means:
-                if isinstance(means, basestring): res = [means]
+                if isinstance(means, str): res = [means]
                 else: res = means
         return res
 
@@ -511,7 +512,7 @@ class ToolMixin(BaseMixin):
         else:
             creators = self.getProductConfig().appConfig.defaultCreators
         # Resolve case (3): if "creators" is a method, execute it.
-        if callable(creators): creators = creators(self.appy())
+        if isinstance(creators, collections.Callable): creators = creators(self.appy())
         # Resolve case (2)
         if isinstance(creators, bool) or not creators: return creators
         # Resolve case (1): checks whether the user has at least one of the
@@ -595,7 +596,7 @@ class ToolMixin(BaseMixin):
         rq = self.REQUEST
         # Store the search criteria in the session
         criteria = self._getDefaultSearchCriteria()
-        for name in rq.form.keys():
+        for name in list(rq.form.keys()):
             if name.startswith('w_') and not self._searchValueIsEmpty(name):
                 hasStar = name.find('*') != -1
                 fieldName = not hasStar and name[2:] or name[2:name.find('*')]
@@ -609,17 +610,17 @@ class ToolMixin(BaseMixin):
                     # The type of the value is encoded after char "*".
                     name, type = name.split('*')
                     if type == 'bool':
-                        exec 'value = %s' % value
+                        exec('value = %s' % value)
                     elif type in ('int', 'float'):
                         # Get the "from" value
                         if not value: value = None
                         else:
-                            exec 'value = %s(value)' % type
+                            exec('value = %s(value)' % type)
                         # Get the "to" value
                         toValue = rq.form['%s_to' % name[2:]].strip()
                         if not toValue: toValue = None
                         else:
-                            exec 'toValue = %s(toValue)' % type
+                            exec('toValue = %s(toValue)' % type)
                         value = (value, toValue)
                     elif type == 'date':
                         prefix = name[2:]
@@ -640,8 +641,8 @@ class ToolMixin(BaseMixin):
                         if len(type) > 6:
                             transform = type.split('-')[1]
                             if (transform != 'none') and value:
-                                exec 'value = value.%s()' % \
-                                     self.transformMethods[transform]
+                                exec('value = value.%s()' % \
+                                     self.transformMethods[transform])
                 if isinstance(value, list):
                     # It is a list of values. Check if we have an operator for
                     # the field, to see if we make an "and" or "or" for all
@@ -697,7 +698,7 @@ class ToolMixin(BaseMixin):
            it among search criteria in the session.'''
         if not refInfo and (self.REQUEST.get('search', None) == 'customSearch'):
             criteria = self.REQUEST.SESSION.get('searchCriteria', None)
-            if criteria and criteria.has_key('_ref'): refInfo = criteria['_ref']
+            if criteria and '_ref' in criteria: refInfo = criteria['_ref']
         if not refInfo: return None, None
         objectUid, fieldName = refInfo.split(':')
         obj = self.getObject(objectUid)
@@ -856,7 +857,7 @@ class ToolMixin(BaseMixin):
                 try:
                     creds = creds.split(' ')[-1]
                     login, password = base64.decodestring(creds).split(':', 1)
-                except Exception, e:
+                except Exception as e:
                     pass
         # b. Identify the user from the authentication cookie.
         if not login:
@@ -968,7 +969,7 @@ class ToolMixin(BaseMixin):
         # Invalidate the user session.
         try:
             sdm = self.session_data_manager
-        except AttributeError, ae:
+        except AttributeError as ae:
             # When ran in test mode, session_data_manager is not there.
             sdm = None
         if sdm:
@@ -977,7 +978,7 @@ class ToolMixin(BaseMixin):
                 session.invalidate()
         self.log('logged out.')
         # Remove user from variable "loggedUsers"
-        if self.loggedUsers.has_key(userId): del self.loggedUsers[userId]
+        if userId in self.loggedUsers: del self.loggedUsers[userId]
         return self.goto(self.getApp().absolute_url())
 
     # This dict stores, for every logged user, the date/time of its last access
@@ -1247,7 +1248,7 @@ class ToolMixin(BaseMixin):
         if hasattr(klass, 'popup'):
             res.target = 'appyIFrame'
             d = klass.popup
-            if isinstance(d, basestring):
+            if isinstance(d, str):
                 # Width only
                 params = d[:-2]
             else:

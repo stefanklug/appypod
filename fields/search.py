@@ -19,7 +19,7 @@ from appy.px import Px
 from appy.gen import utils as gutils
 from appy.gen.indexer import defaultIndexes
 from appy.shared import utils as sutils
-from group import Group
+from .group import Group
 
 # ------------------------------------------------------------------------------
 class Search:
@@ -85,12 +85,12 @@ class Search:
            (fieldName == 'SearchableText'):
             # For TextIndex indexes. We must split p_fieldValue into keywords.
             res = gutils.Keywords(fieldValue).get()
-        elif isinstance(fieldValue, basestring) and fieldValue.endswith('*'):
+        elif isinstance(fieldValue, str) and fieldValue.endswith('*'):
             v = fieldValue[:-1]
             # Warning: 'z' is higher than 'Z'!
             res = {'query':(v,v+'z'), 'range':'min:max'}
         elif type(fieldValue) in sutils.sequenceTypes:
-            if fieldValue and isinstance(fieldValue[0], basestring):
+            if fieldValue and isinstance(fieldValue[0], str):
                 # We have a list of string values (ie: we need to
                 # search v1 or v2 or...)
                 res = fieldValue
@@ -118,7 +118,7 @@ class Search:
            sortBy and sortOrder (and not "resolve" them to Zope's sort_on and
            sort_order).'''
         # Put search criteria in p_criteria
-        for name, value in self.fields.iteritems():
+        for name, value in self.fields.items():
             # Management of searches restricted to objects linked through a
             # Ref field: not implemented yet.
             if name == '_ref': continue

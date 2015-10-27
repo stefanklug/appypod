@@ -41,7 +41,7 @@ class GeneratorScript:
             sys.exit(ERROR_CODE)
         # Check existence of application
         if not os.path.exists(args[0]):
-            print(APP_NOT_FOUND % args[0])
+            print((APP_NOT_FOUND % args[0]))
             sys.exit(ERROR_CODE)
         # Convert app path to an absolute path
         args[0] = os.path.abspath(args[0])
@@ -55,8 +55,8 @@ class GeneratorScript:
         (options, args) = optParser.parse_args()
         try:
             self.manageArgs(optParser, options, args)
-            print('Appy version: %s' % appy.version.verbose)
-            print('Generating Zope product in %s/zope...' % args[0])
+            print(('Appy version: %s' % appy.version.verbose))
+            print(('Generating Zope product in %s/zope...' % args[0]))
             ZopeGenerator(args[0], options).run()
             # Give the user some statistics about its code
             LinesCounter(args[0], excludes=['%szope' % os.sep]).run()
@@ -71,7 +71,7 @@ class GeneratorScript:
                 f.close()
                 version = version[:version.find('build')-1]
                 Debianizer(app, appDir, appVersion=version).run()
-        except GeneratorError, ge:
+        except GeneratorError as ge:
             sys.stderr.write(str(ge))
             sys.stderr.write('\n')
             optParser.print_help()

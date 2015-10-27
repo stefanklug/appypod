@@ -106,17 +106,17 @@ class ZopeInstanceCreator:
         f = file('bin/zopectl', 'w')
         f.write(zopeCtl % self.instancePath)
         f.close()
-        os.chmod('bin/zopectl', 0744) # Make it executable by owner.
+        os.chmod('bin/zopectl', 0o744) # Make it executable by owner.
         # Create bin/runzope
         f = file('bin/runzope', 'w')
         f.write(runZope % self.instancePath)
         f.close()
-        os.chmod('bin/runzope', 0744) # Make it executable by owner.
+        os.chmod('bin/runzope', 0o744) # Make it executable by owner.
         # Create bin/startoo
         f = file('bin/startoo', 'w')
         f.write(ooStart)
         f.close()
-        os.chmod('bin/startoo', 0744) # Make it executable by owner.
+        os.chmod('bin/startoo', 0o744) # Make it executable by owner.
         # Create etc/zope.conf
         os.mkdir('etc')
         f = file('etc/zope.conf', 'w')
@@ -138,10 +138,10 @@ class ZopeInstanceCreator:
         password = binascii.b2a_base64(sha('admin').digest())[:-1]
         f.write('admin:{SHA}%s\n' % password)
         f.close()
-        os.chmod('inituser', 0644)
+        os.chmod('inituser', 0o644)
         # User "zope" must own this instance
         os.system('chown -R zope %s' % self.instancePath)
-        print('Zope instance created in %s.' % self.instancePath)
+        print(('Zope instance created in %s.' % self.instancePath))
         os.chdir(curdir)
 
 # ------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ class NewScript:
         j = os.path.join
         # As eggs have been deleted, versions of components are lost. Reify
         # them from p_versions.
-        dVersions = ['"%s":"%s"' % (n, v) for n, v in versions.iteritems()]
+        dVersions = ['"%s":"%s"' % (n, v) for n, v in versions.items()]
         sVersions = 'appyVersions = {' + ','.join(dVersions) + '}'
         codeFile = "%s/pkg_resources.py" % self.libFolder
         f = file(codeFile)
@@ -326,7 +326,7 @@ class NewScript:
         action = 'Copying'
         if linksForProducts:
             action = 'Symlinking'
-        print('%s Plone stuff in the Zope instance...' % action)
+        print(('%s Plone stuff in the Zope instance...' % action))
         if self.ploneVersion in ('plone25', 'plone30'):
             self.installPlone25or30Stuff(linksForProducts)
         elif self.ploneVersion in ('plone3x', 'plone4'):
@@ -379,11 +379,11 @@ class NewScript:
         try:
             self.manageArgs(args)
             if self.ploneVersion != 'zope':
-                print('Creating new %s instance...' % self.ploneVersion)
+                print(('Creating new %s instance...' % self.ploneVersion))
                 self.createInstance(linksForProducts)
             else:
                 ZopeInstanceCreator(self.instancePath).run()
-        except NewError, ne:
+        except NewError as ne:
             optParser.print_help()
             sys.stderr.write(str(ne))
             sys.stderr.write('\n')

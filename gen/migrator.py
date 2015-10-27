@@ -38,10 +38,10 @@ class Migrator:
                     if frozen.data.__class__.__name__ == 'Pdata':
                         # The file content is splitted in several chunks.
                         f.write(frozen.data.data)
-                        nextPart = frozen.data.next
+                        nextPart = frozen.data.__next__
                         while nextPart:
                             f.write(nextPart.data)
-                            nextPart = nextPart.next
+                            nextPart = nextPart.__next__
                     else:
                         # Only one chunk
                         f.write(frozen.data)

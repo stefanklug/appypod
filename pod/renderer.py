@@ -18,7 +18,11 @@
 
 # ------------------------------------------------------------------------------
 import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
-from UserDict import UserDict
+#python3 compat
+try:
+    from UserDict import UserDict
+except ImportError:
+    from collections import UserDict
 import appy.pod
 from appy.pod import PodError
 from appy.shared import mimeTypes, mimeTypesExts
@@ -80,7 +84,7 @@ CONTENT_POD_FONTS = '<@style@:font-face @style@:name="PodStarSymbol" ' \
                     '@svg@:font-family="StarSymbol"/>'
 
 # Default text styles added by pod in styles.xml
-f = file('%s/styles.in.styles.xml' % os.path.dirname(appy.pod.__file__))
+f = open('%s/styles.in.styles.xml' % os.path.dirname(appy.pod.__file__))
 STYLES_POD_STYLES = f.read()
 f.close()
 
@@ -263,7 +267,7 @@ class Renderer:
 
     imageFormats = ('png', 'jpeg', 'jpg', 'gif', 'svg')
     ooFormats = ('odt',)
-    convertibleFormats = FILE_TYPES.keys()
+    convertibleFormats = list(FILE_TYPES.keys())
     def importDocument(self, content=None, at=None, format=None,
                        anchor='as-char', wrapInPara=True, size=None,
                        sizeUnit='cm', style=None,
@@ -309,7 +313,7 @@ class Renderer:
             format = os.path.splitext(at)[1][1:]
         else:
             # If format is a mimeType, convert it to an extension
-            if mimeTypesExts.has_key(format):
+            if format in mimeTypesExts:
                 format = mimeTypesExts[format]
         isImage = False
         isOdt = False
@@ -370,9 +374,9 @@ class Renderer:
             f = open(self.result, 'w')
             f.write('Hello')
             f.close()
-        except OSError, oe:
+        except OSError as oe:
             raise PodError(CANT_WRITE_RESULT % (self.result, oe))
-        except IOError, ie:
+        except IOError as ie:
             raise PodError(CANT_WRITE_RESULT % (self.result, ie))
         self.result = os.path.abspath(self.result)
         os.remove(self.result)
@@ -381,7 +385,7 @@ class Renderer:
         self.tempFolder = '%s.%f' % (absResult, time.time())
         try:
             os.mkdir(self.tempFolder)
-        except OSError, oe:
+        except OSError as oe:
             raise PodError(CANT_WRITE_TEMP_FOLDER % (self.result, oe))
 
     def patchManifest(self):
@@ -390,7 +394,7 @@ class Renderer:
         if self.fileNames:
             j = os.path.join
             toInsert = ''
-            for fileName in self.fileNames.iterkeys():
+            for fileName in self.fileNames.keys():
                 if fileName.endswith('.svg'):
                     fileName = os.path.splitext(fileName)[0] + '.png'
                 mimeType = mimetypes.guess_type(fileName)[0]
@@ -442,7 +446,7 @@ class Renderer:
             if 'span[font-style=italic]' not in stylesMapping:
                 stylesMapping['span[font-style=italic]'] = 'podItalic'
             self.stylesManager.stylesMapping = stylesMapping
-        except PodError, po:
+        except PodError as po:
             self.contentParser.env.currentBuffer.content.close()
             self.stylesParser.env.currentBuffer.content.close()
             if os.path.exists(self.tempFolder):
@@ -454,14 +458,14 @@ class Renderer:
         loOutput = ''
         try:
             if (not isinstance(self.ooPort, int)) and \
-               (not isinstance(self.ooPort, long)):
+               (not isinstance(self.ooPort, int)):
                 raise PodError(BAD_OO_PORT % str(self.ooPort))
             try:
                 from appy.pod.converter import Converter, ConverterError
                 try:
                     Converter(resultName, resultType, self.ooPort,
                               self.stylesTemplate).run()
-                except ConverterError, ce:
+                except ConverterError as ce:
                     raise PodError(CONVERT_ERROR % str(ce))
             except ImportError:
                 # I do not have UNO. So try to launch a UNO-enabled Python
@@ -485,13 +489,13 @@ class Renderer:
                     self.ooPort)
                 if self.stylesTemplate: cmd += ' -t%s' % self.stylesTemplate
                 loOutput = executeCommand(cmd)
-        except PodError, pe:
+        except PodError as pe:
             # When trying to call LO in server mode for producing ODT or ODS
             # (=forceOoCall=True), if an error occurs we have nevertheless
             # an ODT or ODS to return to the user. So we produce a warning
             # instead of raising an error.
             if (resultType in self.templateTypes) and self.forceOoCall:
-                print(WARNING_INCOMPLETE_OD % str(pe))
+                print((WARNING_INCOMPLETE_OD % str(pe)))
             else:
                 raise pe
         return loOutput
@@ -501,7 +505,7 @@ class Renderer:
            (ods or odt). If self.template is a string, it is a file name and we
            simply get its extension. Else, it is a binary file in a StringIO
            instance, and we seek the mime type from the first bytes.'''
-        if isinstance(self.template, basestring):
+        if isinstance(self.template, str):
             res = os.path.splitext(self.template)[1][1:]
         else:
             # A StringIO instance
@@ -534,8 +538,8 @@ class Renderer:
         if self.finalizeFunction:
             try:
                 self.finalizeFunction(self.unzipFolder)
-            except Exception, e:
-                print(WARNING_FINALIZE_ERROR % str(e))
+            except Exception as e:
+                print((WARNING_FINALIZE_ERROR % str(e)))
         # Re-zip the result, first as an OpenDocument file of the same type as
         # the POD template (odt, ods...)
         resultExt = self.getTemplateType()

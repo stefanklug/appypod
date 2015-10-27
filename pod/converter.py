@@ -109,7 +109,7 @@ class Converter:
                 res = res[self.inputType]
         else:
             raise ConverterError(BAD_RESULT_TYPE % (self.resultType,
-                                                    FILE_TYPES.keys()))
+                                                    list(FILE_TYPES.keys())))
         return res
 
     def getResultUrl(self):
@@ -275,7 +275,7 @@ class ConverterScript:
             '         %s.\n' \
             ' "python" should be a UNO-enabled Python interpreter (ie the ' \
             '  one which is included in the LibreOffice distribution).' % \
-            str(FILE_TYPES.keys())
+            str(list(FILE_TYPES.keys()))
     def run(self):
         optParser = OptionParser(usage=ConverterScript.usage)
         optParser.add_option("-p", "--port", dest="port",

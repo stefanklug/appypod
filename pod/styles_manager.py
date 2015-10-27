@@ -18,7 +18,12 @@
 
 # ------------------------------------------------------------------------------
 import re, os.path
-from UserDict import UserDict
+#python3 compat
+try:
+    from UserDict import UserDict
+except ImportError:
+    from collections import UserDict
+    
 import appy.pod
 from appy.pod import *
 from appy.pod.odf_parser import OdfEnvironment, OdfParser
@@ -93,7 +98,7 @@ class Styles(UserDict):
         '''Tries to find a style which has level p_level. Returns None if no
            such style exists.'''
         res = None
-        for style in self.itervalues():
+        for style in self.values():
             if (style.family == 'paragraph') and (style.outlineLevel == level):
                 res = style
                 break
@@ -102,7 +107,7 @@ class Styles(UserDict):
         '''Gets the style that has this p_displayName. Returns None if not
            found.'''
         res = None
-        for style in self.itervalues():
+        for style in self.values():
             if style.displayName == displayName:
                 res = style
                 break
@@ -111,9 +116,9 @@ class Styles(UserDict):
         '''Returns a list of all the styles of the given p_stylesType.'''
         res = []
         if stylesType == 'all':
-            res = self.values()
+            res = list(self.values())
         else:
-            for style in self.itervalues():
+            for style in self.values():
                 if (style.family == stylesType) and style.displayName:
                     res.append(style)
         return res
@@ -145,22 +150,22 @@ class StylesParser(OdfParser):
             displayNameAttr = '%s:display-name' % e.ns(e.NS_STYLE)
             # Create the style
             style = Style(name=attrs[nameAttr], family=attrs[familyAttr])
-            if attrs.has_key(classAttr):
+            if classAttr in attrs:
                 style.styleClass = attrs[classAttr]
-            if attrs.has_key(displayNameAttr):
+            if displayNameAttr in attrs:
                 style.displayName = attrs[displayNameAttr]
             # Record this style in the environment
             e.styles[style.name] = style
             e.currentStyle = style
             levelKey = '%s:default-outline-level' % e.ns(e.NS_STYLE)
-            if attrs.has_key(levelKey) and attrs[levelKey].strip():
+            if levelKey in attrs and attrs[levelKey].strip():
                 style.outlineLevel = int(attrs[levelKey])
         else:
             if e.state == PARSING_STYLE:
                 # I am parsing tags within the style.
                 if elem == ('%s:text-properties' % e.ns(e.NS_STYLE)):
                     fontSizeKey = '%s:font-size' % e.ns(e.NS_FO)
-                    if attrs.has_key(fontSizeKey):
+                    if fontSizeKey in attrs:
                         e.currentStyle.setFontSize(attrs[fontSizeKey])
     def endElement(self, elem):
         e = OdfParser.endElement(self, elem)
@@ -250,14 +255,14 @@ class StylesManager:
         if not isinstance(stylesMapping, dict) and \
            not isinstance(stylesMapping, UserDict):
             raise PodError(MAPPING_NOT_DICT)
-        for xhtmlStyleName, odtStyleName in stylesMapping.iteritems():
-            if not isinstance(xhtmlStyleName, basestring):
+        for xhtmlStyleName, odtStyleName in stylesMapping.items():
+            if not isinstance(xhtmlStyleName, str):
                 raise PodError(MAPPING_ELEM_NOT_STRING)
             if (xhtmlStyleName == 'h*') and \
                 not isinstance(odtStyleName, int):
                 raise PodError(MAPPING_OUTLINE_DELTA_NOT_INT)
             if (xhtmlStyleName != 'h*') and \
-                not isinstance(odtStyleName, basestring):
+                not isinstance(odtStyleName, str):
                 raise PodError(MAPPING_ELEM_NOT_STRING)
             if (xhtmlStyleName != 'h*') and \
                ((not xhtmlStyleName) or (not odtStyleName)):
@@ -278,7 +283,7 @@ class StylesManager:
             if xhtmlStyleName != 'h*':
                 odtStyle = self.styles.getStyle(odtStyleName)
                 if not odtStyle:
-                    if self.podSpecificStyles.has_key(odtStyleName):
+                    if odtStyleName in self.podSpecificStyles:
                         odtStyle = self.podSpecificStyles[odtStyleName]
                     else:
                         raise PodError(STYLE_NOT_FOUND % odtStyleName)
@@ -311,7 +316,7 @@ class StylesManager:
            This method returns True if p_attrs contains the winning (name,value)
            pairs that match those in p_matchingAttrs. Note that ALL attrs in
            p_matchingAttrs must be present in p_attrs.'''
-        for name, value in matchingAttrs.iteritems():
+        for name, value in matchingAttrs.items():
             if name not in attrs: return
             if value != attrs[name]: return
         return True
@@ -356,29 +361,29 @@ class StylesManager:
         '''
         res = None
         cssStyleName = None
-        if attrs and attrs.has_key('class'):
+        if attrs and 'class' in attrs:
             cssStyleName = attrs['class']
         if classValue:
             cssStyleName = classValue
         # (1)
-        if localStylesMapping.has_key(cssStyleName):
+        if cssStyleName in localStylesMapping:
             res = localStylesMapping[cssStyleName]
         # (2)
-        if (not res) and localStylesMapping.has_key(elem):
+        if (not res) and elem in localStylesMapping:
             styles = localStylesMapping[elem]
             res = self.getStyleFromMapping(elem, attrs, styles)
         # (3)
-        if (not res) and self.stylesMapping.has_key(cssStyleName):
+        if (not res) and cssStyleName in self.stylesMapping:
             res = self.stylesMapping[cssStyleName]
         # (4)
-        if (not res) and self.stylesMapping.has_key(elem):
+        if (not res) and elem in self.stylesMapping:
             styles = self.stylesMapping[elem]
             res = self.getStyleFromMapping(elem, attrs, styles)
         # (5)
-        if (not res) and self.styles.has_key(cssStyleName):
+        if (not res) and cssStyleName in self.styles:
             res = self.styles[cssStyleName]
         # (6)
-        if (not res) and self.podSpecificStyles.has_key(cssStyleName):
+        if (not res) and cssStyleName in self.podSpecificStyles:
             res = self.podSpecificStyles[cssStyleName]
         # (7)
         if not res:
@@ -386,9 +391,9 @@ class StylesManager:
             if elem in XHTML_HEADINGS:
                 # Is there a delta that must be taken into account ?
                 outlineDelta = 0
-                if localStylesMapping.has_key('h*'):
+                if 'h*' in localStylesMapping:
                     outlineDelta += localStylesMapping['h*']
-                elif self.stylesMapping.has_key('h*'):
+                elif 'h*' in self.stylesMapping:
                     outlineDelta += self.stylesMapping['h*']
                 outlineLevel = int(elem[1]) + outlineDelta
                 # Normalize the outline level

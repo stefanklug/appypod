@@ -60,7 +60,7 @@ class Integer(Field):
                        height, maxChars, colspan, master, masterValue, focus,
                        historized, mapping, label, sdefault, scolspan, swidth,
                        sheight, persist, view, xml)
-        self.pythonType = long
+        self.pythonType = int
 
     def validateValue(self, obj, value):
         try:

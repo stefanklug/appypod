@@ -13,18 +13,18 @@ class TestMixin:
         '''Returns the list of sub-modules of p_app that are non-empty.'''
         res = []
         try:
-            exec 'import %s' % moduleName
-            exec 'moduleObj = %s' % moduleName
+            exec('import %s' % moduleName)
+            exec('moduleObj = %s' % moduleName)
             moduleFile = moduleObj.__file__
             if moduleFile.endswith('.pyc'):
                 moduleFile = moduleFile[:-1]
-        except ImportError, ie:
+        except ImportError as ie:
             return res
-        except SyntaxError, se:
+        except SyntaxError as se:
             return res
         # Include the module if not empty. "Emptyness" is determined by the
         # absence of names beginning with other chars than "__".
-        for elem in moduleObj.__dict__.iterkeys():
+        for elem in moduleObj.__dict__.keys():
             if not elem.startswith('__'):
                 res.append(moduleObj)
                 break
@@ -66,10 +66,10 @@ def afterTest(test):
     '''Is executed after every test.'''
     g = test.globs
     appName = g['tool'].o.getAppName()
-    exec 'from Products.%s import cov, covFolder, totalNumberOfTests, ' \
-         'countTest' % appName
+    exec('from Products.%s import cov, covFolder, totalNumberOfTests, ' \
+         'countTest' % appName)
     countTest()
-    exec 'from Products.%s import numberOfExecutedTests' % appName
+    exec('from Products.%s import numberOfExecutedTests' % appName)
     if cov and (numberOfExecutedTests == totalNumberOfTests):
         cov.stop()
         appModules = test.getNonEmptySubModules(appName)

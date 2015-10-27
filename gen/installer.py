@@ -43,7 +43,7 @@ class FakeZCatalog:
 def onDelSession(sessionObject, container):
     '''This function is called when a session expires.'''
     rq = container.REQUEST
-    if rq.cookies.has_key('_appy_') and rq.cookies.has_key('_ZopeId') and \
+    if '_appy_' in rq.cookies and '_ZopeId' in rq.cookies and \
        (rq['_ZopeId'] == sessionObject.token):
         # The request comes from a guy whose session has expired.
         resp = rq.RESPONSE
@@ -155,7 +155,7 @@ class ZopeInstaller:
         # Create or update Appy-wide indexes and field-related indexes
         indexInfo = defaultIndexes.copy()
         tool = self.app.config
-        for className in self.config.attributes.iterkeys():
+        for className in self.config.attributes.keys():
             wrapperClass = tool.getAppyClass(className, wrapper=True)
             indexInfo.update(wrapperClass.getIndexes(includeDefaults=False))
         updateIndexes(self, indexInfo)
@@ -196,7 +196,7 @@ class ZopeInstaller:
         if hasattr(appyTool, 'beforeInstall'): appyTool.beforeInstall()
 
         # Create the default users if they do not exist.
-        for login, roles in self.defaultUsers.iteritems():
+        for login, roles in self.defaultUsers.items():
             if not appyTool.count('User', noSecurity=True, login=login):
                 appyTool.create('users', noSecurity=True, id=login, login=login,
                                 password3=login, password4=login,
@@ -277,7 +277,7 @@ class ZopeInstaller:
             name = klass.__name__
             module = klass.__module__
             wrapper = klass.wrapperClass
-            exec 'from %s import manage_add%s as ctor' % (module, name)
+            exec('from %s import manage_add%s as ctor' % (module, name))
             self.zopeContext.registerClass(meta_type=name,
                 constructors = (ctor,), permission = None)
             # Create workflow prototypical instances in __instance__ attributes
@@ -316,7 +316,7 @@ class ZopeInstaller:
             # Post-initialise every Appy type
             for baseClass in klass.wrapperClass.__bases__:
                 if baseClass.__name__ == 'AbstractWrapper': continue
-                for name, appyType in baseClass.__dict__.iteritems():
+                for name, appyType in baseClass.__dict__.items():
                     if not isinstance(appyType, gen.Field) or \
                            (isinstance(appyType, gen.Ref) and appyType.isBack):
                         continue # Back refs are initialised within fw refs

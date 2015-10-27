@@ -123,7 +123,7 @@ class Boolean(Field):
 
     def getStorableValue(self, obj, value):
         if not self.isEmptyValue(obj, value):
-            exec 'res = %s' % value
+            exec('res = %s' % value)
             return res
 
     def isTrue(self, obj, dbValue):
@@ -131,7 +131,7 @@ class Boolean(Field):
            not?'''
         rq = obj.REQUEST
         # Get the value we must compare (from request or from database)
-        if rq.has_key(self.name):
+        if self.name in rq:
             return rq.get(self.name) in ('True', 1, '1')
         return dbValue
 # ------------------------------------------------------------------------------

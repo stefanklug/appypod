@@ -66,7 +66,7 @@ class PxParser(XmlParser):
         # See if we have a PX attribute among p_attrs.
         found = False
         for name in self.pxAttributes:
-            if attrs.has_key(name):
+            if name in attrs:
                 if not found:
                     # This is the first PX attr we find.
                     # Create a sub-buffer with an action.
@@ -87,7 +87,7 @@ class PxParser(XmlParser):
             hook = None
             ignorableAttrs = self.pxAttributes
             for name in self.noDumpTags:
-                if attrs.has_key(name) and attrs[name].startswith(':'):
+                if name in attrs and attrs[name].startswith(':'):
                     hook = (name, attrs[name][1:])
                     ignorableAttrs += (name,)
                     break

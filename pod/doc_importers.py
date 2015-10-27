@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, time, shutil, struct, random, urlparse
+import os, os.path, time, shutil, struct, random, urllib.parse
 from appy.pod import PodError
 from appy.pod.odf_parser import OdfEnvironment
 from appy.shared import mimeTypesExts
@@ -53,7 +53,7 @@ class DocImporter:
         if at and not at.startswith('http') and not os.path.isfile(at):
             raise PodError(FILE_NOT_FOUND % at)
         self.format = format
-        self.res = u''
+        self.res = ''
         self.renderer = renderer
         self.ns = renderer.currentParser.env.namespaces
         # Unpack some useful namespaces
@@ -285,7 +285,7 @@ class ImageImporter(DocImporter):
     def moveFile(self, at, importPath):
         '''Copies file at p_at into the ODT file at p_importPath.'''
         # Has this image already been imported ?
-        for imagePath, imageAt in self.fileNames.iteritems():
+        for imagePath, imageAt in self.fileNames.items():
             if imageAt == at:
                 # Yes!
                 i = importPath.rfind(self.pictFolder) + 1
@@ -327,7 +327,7 @@ class ImageImporter(DocImporter):
             # The imageResolver is a Zope application. From it, we will
             # retrieve the object on which the image is stored and get
             # the file to download.
-            urlParts = urlparse.urlsplit(at)
+            urlParts = urllib.parse.urlsplit(at)
             path = urlParts[2][1:].split('/')[:-1]
             try:
                 obj = imageResolver.unrestrictedTraverse(path)

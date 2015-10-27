@@ -80,15 +80,15 @@ NULL_ACTION_ERROR = 'There was a problem with this action. Possible causes: ' \
 class BufferIterator:
     def __init__(self, buffer):
         self.buffer = buffer
-        self.remainingSubBufferIndexes = self.buffer.subBuffers.keys()
-        self.remainingElemIndexes = self.buffer.elements.keys()
+        self.remainingSubBufferIndexes = list(self.buffer.subBuffers.keys())
+        self.remainingElemIndexes = list(self.buffer.elements.keys())
         self.remainingSubBufferIndexes.sort()
         self.remainingElemIndexes.sort()
 
     def hasNext(self):
         return self.remainingSubBufferIndexes or self.remainingElemIndexes
 
-    def next(self):
+    def __next__(self):
         nextSubBufferIndex = None
         if self.remainingSubBufferIndexes:
             nextSubBufferIndex = self.remainingSubBufferIndexes[0]
@@ -131,7 +131,7 @@ class Buffer:
         return subBuffer
 
     def removeLastSubBuffer(self):
-        subBufferIndexes = self.subBuffers.keys()
+        subBufferIndexes = list(self.subBuffers.keys())
         subBufferIndexes.sort()
         lastIndex = subBufferIndexes.pop()
         del self.subBuffers[lastIndex]
@@ -176,7 +176,7 @@ class Buffer:
         self.write('<%s' % elem)
         # Some table elements must be patched (pod only)
         if self.pod: self.patchTableElement(elem, attrs)
-        for name, value in attrs.items():
+        for name, value in list(attrs.items()):
             if ignoreAttrs and (name in ignoreAttrs): continue
             if renamedAttrs and (name in renamedAttrs): name=renamedAttrs[name]
             # If the value begins with ':', it is a Python expression. Else,
@@ -244,7 +244,7 @@ class FileBuffer(Buffer):
             res, escape = expr.evaluate(self.env.context)
             if escape: self.dumpContent(res)
             else: self.write(res)
-        except Exception, e:
+        except Exception as e:
             if not self.env.raiseOnError:
                 PodError.dump(self, EVAL_EXPR_ERROR % (expression, e),
                               dumpTb=False)
@@ -271,7 +271,7 @@ class MemoryBuffer(Buffer):
 
     def __init__(self, env, parent):
         Buffer.__init__(self, env, parent)
-        self.content = u''
+        self.content = ''
         self.elements = {}
         self.action = None
 
@@ -297,7 +297,7 @@ class MemoryBuffer(Buffer):
 
     def getIndex(self, podElemName):
         res = -1
-        for index, podElem in self.elements.iteritems():
+        for index, podElem in self.elements.items():
             if podElem.__class__.__name__.lower() == podElemName:
                 if index > res:
                     res = index
@@ -305,7 +305,7 @@ class MemoryBuffer(Buffer):
 
     def getMainElement(self):
         res = None
-        if self.elements.has_key(0):
+        if 0 in self.elements:
             res = self.elements[0]
         return res
 
@@ -317,7 +317,7 @@ class MemoryBuffer(Buffer):
         if elem != mainElem: return
         # elem is the same as the main elem. But is it really the main elem, or
         # the same elem, found deeper in the buffer?
-        for index, iElem in self.elements.iteritems():
+        for index, iElem in self.elements.items():
             foundElem = None
             if hasattr(iElem, 'OD'):
                 if iElem.OD:
@@ -331,7 +331,7 @@ class MemoryBuffer(Buffer):
     def unreferenceElement(self, elem):
         # Find last occurrence of this element
         elemIndex = -1
-        for index, iElem in self.elements.iteritems():
+        for index, iElem in self.elements.items():
             foundElem = None
             if hasattr(iElem, 'OD'):
                 # A POD element
@@ -347,7 +347,7 @@ class MemoryBuffer(Buffer):
     def pushSubBuffer(self, subBuffer):
         '''Sets p_subBuffer at the very end of the buffer.'''
         subIndex = None
-        for index, aSubBuffer in self.subBuffers.iteritems():
+        for index, aSubBuffer in self.subBuffers.items():
             if aSubBuffer == subBuffer:
                 subIndex = index
                 break
@@ -356,7 +356,7 @@ class MemoryBuffer(Buffer):
             # in the parent (if it is a temp buffer generated from a cut)
             del self.subBuffers[subIndex]
             self.subBuffers[self.getLength()] = subBuffer
-            self.content += u' '
+            self.content += ' '
 
     def transferAllContent(self):
         '''Transfer all content to parent.'''
@@ -370,10 +370,10 @@ class MemoryBuffer(Buffer):
             oldParentLength = self.parent.getLength()
             self.parent.write(self.content)
             # Transfer elements
-            for index, podElem in self.elements.iteritems():
+            for index, podElem in self.elements.items():
                 self.parent.elements[oldParentLength + index] = podElem
             # Transfer sub-buffers
-            for index, buf in self.subBuffers.iteritems():
+            for index, buf in self.subBuffers.items():
                 self.parent.subBuffers[oldParentLength + index] = buf
         # Empty the buffer
         MemoryBuffer.__init__(self, self.env, self.parent)
@@ -391,7 +391,7 @@ class MemoryBuffer(Buffer):
                 elem.colIndex = elem.tableInfo.curColIndex
         if elem == 'x':
             # See comment on similar statement in the method below.
-            self.content += u' '
+            self.content += ' '
 
     def addExpression(self, expression, tiedHook=None):
         # Create the POD expression
@@ -400,20 +400,20 @@ class MemoryBuffer(Buffer):
         self.elements[self.getLength()] = expr
         # To be sure that an expr and an elem can't be found at the same index
         # in the buffer.
-        self.content += u' '
+        self.content += ' '
 
     def addAttributes(self):
         '''pod-only: adds an Attributes instance into this buffer.'''
         attrs = Attributes(self.env)
         self.elements[self.getLength()] = attrs
-        self.content += u' '
+        self.content += ' '
         return attrs
 
     def addAttribute(self, name, expr):
         '''px-only: adds an Attribute instance into this buffer.'''
         attr = Attribute(name, expr)
         self.elements[self.getLength()] = attr
-        self.content += u' '
+        self.content += ' '
         return attr
 
     def _getVariables(self, expr):
@@ -453,7 +453,7 @@ class MemoryBuffer(Buffer):
                 raise ParsingError(
                     ELEMENT_NOT_FOUND % (podElem, str([
                         e.__class__.__name__.lower() \
-                        for e in self.elements.values()])))
+                        for e in list(self.elements.values())])))
             podElem = self.elements[indexPodElem]
             # Check the 'from' clause
             fromClause = None
@@ -471,7 +471,7 @@ class MemoryBuffer(Buffer):
                 self.env.ifActions.append(self.action)
                 if self.action.name:
                     # We must register this action as a named action
-                    if self.env.namedIfActions.has_key(self.action.name):
+                    if self.action.name in self.env.namedIfActions:
                         raise ParsingError(DUPLICATE_NAMED_IF)
                     self.env.namedIfActions[self.action.name] = self.action
             elif actionType == 'else':
@@ -480,7 +480,7 @@ class MemoryBuffer(Buffer):
                 # Does the "else" action reference a named "if" action?
                 ifReference = subExpr.strip()
                 if ifReference:
-                    if not self.env.namedIfActions.has_key(ifReference):
+                    if ifReference not in self.env.namedIfActions:
                         raise ParsingError(ELSE_WITHOUT_NAMED_IF % ifReference)
                     linkedIfAction = self.env.namedIfActions[ifReference]
                     # This "else" action "consumes" the "if" action: this way,
@@ -510,7 +510,7 @@ class MemoryBuffer(Buffer):
                 self.action = NullAction(statementName, self, None, podElem,
                                          None, source, fromClause)
             res = indexPodElem
-        except ParsingError, ppe:
+        except ParsingError as ppe:
             PodError.dump(self, ppe, removeFirstLine=True)
         return res
 
@@ -552,7 +552,7 @@ class MemoryBuffer(Buffer):
         elementsToDelete = []
         mustShift = False
         while iter.hasNext():
-            itemIndex, item = iter.next()
+            itemIndex, item = next(iter)
             if keepFirstPart:
                 if itemIndex >= index:
                     newIndex = itemIndex-index
@@ -580,11 +580,11 @@ class MemoryBuffer(Buffer):
                 del self.subBuffers[subIndex]
         if mustShift:
             elements = {}
-            for elemIndex, elem in self.elements.iteritems():
+            for elemIndex, elem in self.elements.items():
                 elements[elemIndex-index] = elem
             self.elements = elements
             subBuffers = {}
-            for subIndex, buf in self.subBuffers.iteritems():
+            for subIndex, buf in self.subBuffers.items():
                 subBuffers[subIndex-index] = buf
             self.subBuffers = subBuffers
         # Manage content
@@ -598,7 +598,7 @@ class MemoryBuffer(Buffer):
 
     def getElementIndexes(self, expressions=True):
         res = []
-        for index, elem in self.elements.iteritems():
+        for index, elem in self.elements.items():
             condition = isinstance(elem, Expression) or \
                         isinstance(elem, Attributes)
             if not expressions:
@@ -696,7 +696,7 @@ class MemoryBuffer(Buffer):
             iter = BufferIterator(self)
             currentIndex = self.getStartIndex(removeMainElems)
             while iter.hasNext():
-                index, evalEntry = iter.next()
+                index, evalEntry = next(iter)
                 result.write(self.content[currentIndex:index])
                 currentIndex = index + 1
                 if isinstance(evalEntry, Expression):
@@ -708,7 +708,7 @@ class MemoryBuffer(Buffer):
                         # This exception has already been treated (see the 
                         # "except" block below). Simply re-raise it when needed.
                         if self.env.raiseOnError: raise e
-                    except Exception, e:
+                    except Exception as e:
                         if not self.env.raiseOnError:
                             PodError.dump(result, EVAL_EXPR_ERROR % (
                                           evalEntry.expr, e))
@@ -729,5 +729,5 @@ class MemoryBuffer(Buffer):
 
     def clean(self):
         '''Cleans the buffer content.'''
-        self.content = u''
+        self.content = ''
 # ------------------------------------------------------------------------------

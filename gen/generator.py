@@ -3,10 +3,11 @@ import os, os.path, re, sys, parser, symbol, token, types
 import appy, appy.pod.renderer
 from appy.shared.utils import FolderDeleter
 import appy.gen as gen
-import po
-from descriptors import *
-from utils import getClassName
-from model import ModelClass, User, Group, Tool, Translation, Page
+from . import po
+from .descriptors import *
+from .utils import getClassName
+from .model import ModelClass, User, Group, Tool, Translation, Page
+import collections
 
 # ------------------------------------------------------------------------------
 class GeneratorError(Exception): pass
@@ -160,7 +161,7 @@ class Generator:
            appy.fields.Field, it will be considered a gen-class. If p_klass
            declares at least one static attribute that is a appy.gen.State,
            it will be considered a gen-workflow.'''
-        for attr in klass.__dict__.itervalues():
+        for attr in klass.__dict__.values():
             if isinstance(attr, gen.Field): return 'class'
             elif isinstance(attr, gen.State): return 'workflow'
 
@@ -173,11 +174,11 @@ class Generator:
             self.totalNumberOfTests += 1
             res = True
         # Count also docstring in methods
-        if type(moduleOrClass) == types.ClassType:
-            for name, elem in moduleOrClass.__dict__.iteritems():
+        if type(moduleOrClass) == type:
+            for name, elem in moduleOrClass.__dict__.items():
                 if type(elem) in (staticmethod, classmethod):
                     elem = elem.__get__(name)
-                if callable(elem) and (type(elem) != types.ClassType) and \
+                if isinstance(elem, collections.Callable) and (type(elem) != type) and \
                    hasattr(elem, '__doc__') and elem.__doc__ and \
                    (elem.__doc__.find('>>>') != -1):
                     res = True
@@ -198,8 +199,8 @@ class Generator:
             self.modulesWithTests.add(module.__name__)
         classType = type(Generator)
         # Find all classes in this module
-        for name in module.__dict__.keys():
-            exec 'moduleElem = module.%s' % name
+        for name in list(module.__dict__.keys()):
+            exec('moduleElem = module.%s' % name)
             # Ignore non-classes module elements or classes that were imported
             # from other modules.
             if (type(moduleElem) != classType) or  \
@@ -213,7 +214,7 @@ class Generator:
             # Collect non-parsable attrs = back references added
             # programmatically
             moreAttrs = []
-            for eName, eValue in moduleElem.__dict__.iteritems():
+            for eName, eValue in moduleElem.__dict__.items():
                 if isinstance(eValue, gen.Field) and (eName not in attrs):
                     moreAttrs.append(eName)
             # Sort them in alphabetical order: else, order would be random
@@ -257,7 +258,7 @@ class Generator:
         # What is the name of the application ?
         appName = os.path.basename(self.application)
         # Get the app-specific config if any
-        exec 'import %s as appModule' % appName
+        exec('import %s as appModule' % appName)
         if hasattr (appModule, 'Config'):
             self.config = appModule.Config
             if not issubclass(self.config, gen.Config):
@@ -273,7 +274,7 @@ class Generator:
             # Ignore non Python files
             if not fileName.endswith('.py'): continue
             moduleName = '%s.%s' % (appName, os.path.splitext(fileName)[0])
-            exec 'import %s' % moduleName
+            exec('import %s' % moduleName)
             modules.append(eval(moduleName))
         # Parse imported modules
         for module in modules:
@@ -321,7 +322,7 @@ class Generator:
             fileContent = f.read()
             f.close()
             if not fileName.endswith('.png'):
-                for rKey, rValue in replacements.iteritems():
+                for rKey, rValue in replacements.items():
                     fileContent = fileContent.replace(
                         '<!%s!>' % rKey, str(rValue))
             f = file(resultPath, 'w')
@@ -343,7 +344,7 @@ class Generator:
         msg = ''
         if self.totalNumberOfTests:
             msg = ' (number of tests found: %d)' % self.totalNumberOfTests
-        print('Done%s.' % msg)
+        print(('Done%s.' % msg))
 
 # ------------------------------------------------------------------------------
 class ZopeGenerator(Generator):
@@ -413,7 +414,7 @@ class ZopeGenerator(Generator):
             f.close()
         # Generate i18n pot file
         potFileName = '%s.pot' % self.applicationName
-        if self.i18nFiles.has_key(potFileName):
+        if potFileName in self.i18nFiles:
             potFile = self.i18nFiles[potFileName]
         else:
             fullName = os.path.join(self.application, 'tr', potFileName)
@@ -427,14 +428,14 @@ class ZopeGenerator(Generator):
             self.options.i18nClean, keepExistingOrder=False)
         potFile.generate()
         if removedLabels:
-            print('Warning: %d messages were removed from translation ' \
-                  'files: %s' % (len(removedLabels), str(removedLabels)))
+            print(('Warning: %d messages were removed from translation ' \
+                  'files: %s' % (len(removedLabels), str(removedLabels))))
         # Generate i18n po files
         for language in self.config.languages:
             # I must generate (or update) a po file for the language(s)
             # specified in the configuration.
             poFileName = potFile.getPoFileName(language)
-            if self.i18nFiles.has_key(poFileName):
+            if poFileName in self.i18nFiles:
                 poFile = self.i18nFiles[poFileName]
             else:
                 fullName = os.path.join(self.application, 'tr', poFileName)
@@ -501,7 +502,7 @@ class ZopeGenerator(Generator):
             for role in creators:
                 if role.name not in allRoles:
                     allRoles[role.name] = role
-        res = allRoles.values()
+        res = list(allRoles.values())
         # Filter the result according to parameters
         for p in ('appy', 'local', 'grantable'):
             if eval(p) != None:
@@ -621,12 +622,12 @@ class ZopeGenerator(Generator):
             else:
                 # If a child of this class is already present, we must insert
                 # this klass before it.
-                lowestChildIndex = sys.maxint
+                lowestChildIndex = sys.maxsize
                 for resClass in resClasses:
                     if klass in resClass.__bases__:
                         lowestChildIndex = min(lowestChildIndex,
                                                resClasses.index(resClass))
-                if lowestChildIndex != sys.maxint:
+                if lowestChildIndex != sys.maxsize:
                     res.insert(lowestChildIndex, classDescr)
                     resClasses.insert(lowestChildIndex, klass)
                 else:
@@ -745,7 +746,7 @@ class ZopeGenerator(Generator):
         '''Is called each time an Appy class is found in the application, for
            generating the corresponding Archetype class.'''
         k = classDescr.klass
-        print('Generating %s.%s (gen-class)...' % (k.__module__, k.__name__))
+        print(('Generating %s.%s (gen-class)...' % (k.__module__, k.__name__)))
         # Determine base Zope class
         isFolder = classDescr.isFolder()
         baseClass = isFolder and 'Folder' or 'SimpleItem'
@@ -772,7 +773,7 @@ class ZopeGenerator(Generator):
         '''This method creates the i18n labels related to the workflow described
            by p_wfDescr.'''
         k = wfDescr.klass
-        print('Generating %s.%s (gen-workflow)...' % (k.__module__, k.__name__))
+        print(('Generating %s.%s (gen-workflow)...' % (k.__module__, k.__name__)))
         # Identify workflow name
         wfName = WorkflowDescriptor.getWorkflowName(wfDescr.klass)
         # Add i18n messages for states

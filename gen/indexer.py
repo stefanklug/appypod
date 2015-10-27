@@ -33,7 +33,7 @@ def updateIndexes(installer, indexInfo):
     '''This function updates the indexes defined in the catalog.'''
     catalog = installer.app.catalog
     logger = installer.logger
-    for indexName, indexType in indexInfo.iteritems():
+    for indexName, indexType in indexInfo.items():
         indexRealType = indexType
         if indexType in ('XhtmlIndex', 'TextIndex', 'ListIndex'):
             indexRealType = 'ZCTextIndex'

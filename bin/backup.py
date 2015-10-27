@@ -4,7 +4,7 @@ from optparse import OptionParser
 import ZODB.FileStorage
 import ZODB.serialize
 from DateTime import DateTime
-from StringIO import StringIO
+from io import StringIO
 folderName = os.path.dirname(__file__)
 
 # ------------------------------------------------------------------------------
@@ -87,9 +87,9 @@ class ZodbBackuper:
                 w('Try to create backup folder for logs "%s"...' % \
                   self.logsBackupFolder)
                 os.mkdir(self.logsBackupFolder)
-            except IOError, ioe:
+            except IOError as ioe:
                 w(folderCreateError % str(ioe))
-            except OSError, oe:
+            except OSError as oe:
                 w(folderCreateError % str(oe))
         if os.path.exists(self.logsBackupFolder):
             # Ok, we can make the backup of the log files.
@@ -175,7 +175,7 @@ class ZodbBackuper:
         except smtplib.SMTPException, sme:
             w('Error while contacting SMTP server %s (%s).' % \
               (self.options.smtpServer, str(se)))
-        except socket.error, se:
+        except socket.error as se:
             w('Could not connect to SMTP server %s (%s).' % \
               (self.options.smtpServer, str(se)))
 
@@ -191,12 +191,12 @@ class ZodbBackuper:
         for fileName in os.listdir(self.tempFolder):
             ext = os.path.splitext(fileName)[1]
             if ext in self.toRemoveExts:
-                exec '%sCount += 1' % ext[1:]
+                exec('%sCount += 1' % ext[1:])
                 fullFileName = os.path.join(self.tempFolder, fileName)
                 #w('Removing "%s"...' % fullFileName)
                 try:
                     os.remove(fullFileName)
-                except OSError, oe:
+                except OSError as oe:
                     w('Could not remove "%s" (%s).' % (fullFileName, str(oe)))
         w('%d .pdf, %d .doc, %d .rtf and %d .odt file(s) removed.' % \
           (pdfCount, docCount, rtfCount, odtCount))
@@ -268,7 +268,7 @@ class ZodbBackuper:
         if self.emails:
             self.sendEmails()
         self.logFile.close()
-        print(self.logMem.getvalue())
+        print((self.logMem.getvalue()))
         self.logMem.close()
 
 # ------------------------------------------------------------------------------
@@ -302,7 +302,7 @@ class ZodbBackupScript:
             f.write('Hello.')
             f.close()
             os.remove(fileName)
-        except OSError, oe:
+        except OSError as oe:
             raise BackupError('I do not have the right to write in ' \
                               'folder "%s".' % args[1])
         # Check temp folder
@@ -401,7 +401,7 @@ class ZodbBackupScript:
             self.checkArgs(options, args)
             backuper = ZodbBackuper(args[0], args[1], options)
             backuper.run()
-        except BackupError, be:
+        except BackupError as be:
             sys.stderr.write(str(be) + '\nRun the script without any ' \
                                        'argument for getting help.\n')
             sys.exit(ERROR_CODE)

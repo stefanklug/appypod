@@ -177,7 +177,7 @@ class Tester:
            (not isinstance(flavours, tuple)):
             raise TesterError(FLAVOURS_NOT_LIST)
         for flavour in flavours:
-            if not isinstance(flavour, basestring):
+            if not isinstance(flavour, str):
                 raise TesterError(FLAVOUR_NOT_STRING)
         self.flavours = flavours
         self.flavour = None
@@ -198,7 +198,7 @@ class Tester:
         if self.flavour:
             ext = '.%s' % self.flavour
         configTableName = 'Configuration%s' % ext
-        if self.tables.has_key(configTableName):
+        if configTableName in self.tables:
             self.config = self.tables[configTableName].asDict()
         self.tempFolder = os.path.join(self.testFolder, 'temp')
         if os.path.exists(self.tempFolder):
@@ -249,11 +249,11 @@ class Tester:
                     self.report.say('Test successful.\n')
                     self.nbOfSuccesses += 1
     def run(self):
-        assert self.tables.has_key('TestSuites'), \
+        assert 'TestSuites' in self.tables, \
                TesterError(MAIN_TABLE_NOT_FOUND % self.testPlan)
         for testSuite in self.tables['TestSuites']:
-            if (not testSuite.has_key('Name')) or \
-               (not testSuite.has_key('Description')):
+            if ('Name' not in testSuite) or \
+               ('Description' not in testSuite):
                 raise TesterError(MAIN_TABLE_MALFORMED)
             if testSuite['Name'].startswith('_'):
                 tsName = testSuite['Name'][1:]
@@ -261,8 +261,8 @@ class Tester:
             else:
                 tsName = testSuite['Name']
                 tsIgnored = False
-            assert self.tables.has_key('%s.descriptions' % tsName) \
-                   and self.tables.has_key('%s.data' % tsName), \
+            assert '%s.descriptions' % tsName in self.tables \
+                   and '%s.data' % tsName in self.tables, \
                    TesterError(TEST_SUITE_NOT_FOUND % (tsName, tsName))
             assert len(self.tables['%s.descriptions' % tsName]) == \
                    len(self.tables['%s.data' % tsName]), \

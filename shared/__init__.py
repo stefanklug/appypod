@@ -50,12 +50,12 @@ class UnicodeBuffer:
         self.buffer = []
     def write(self, s):
         if s == None: return
-        if isinstance(s, unicode):
+        if isinstance(s, str):
             self.buffer.append(s)
         elif isinstance(s, str):
             self.buffer.append(s.decode('utf-8'))
         else:
-            self.buffer.append(unicode(s))
+            self.buffer.append(str(s))
     def getValue(self):
-        return u''.join(self.buffer)
+        return ''.join(self.buffer)
 # ------------------------------------------------------------------------------

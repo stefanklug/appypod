@@ -21,10 +21,10 @@ class ZodbRestorer:
             datePart = '-D %s' % self.restoreDate
         repozoCmd = '%s %s -Rv -r %s %s -o %s' % (self.python,
             self.repozo, self.backupFolder, datePart, self.storageLocation)
-        print('Executing %s...' % repozoCmd)
+        print(('Executing %s...' % repozoCmd))
         os.system(repozoCmd)
         stopTime = time.time()
-        print('Done in %d minute(s).' % ((stopTime-startTime)/60))
+        print(('Done in %d minute(s).' % ((stopTime-startTime)/60)))
 
 # ------------------------------------------------------------------------------
 class ZodbRestoreScript:
@@ -56,7 +56,7 @@ class ZodbRestoreScript:
             f.write('Hello.')
             f.close()
             os.remove(args[0])
-        except OSError, oe:
+        except OSError as oe:
             raise RestoreError('I do not have the right to write file ' \
                                '"%s".' % args[0])
 
@@ -81,7 +81,7 @@ class ZodbRestoreScript:
             self.checkArgs(options, args)
             backuper = ZodbRestorer(args[0], args[1], options)
             backuper.run()
-        except RestoreError, be:
+        except RestoreError as be:
             sys.stderr.write(str(be))
             sys.stderr.write('\n')
             optParser.print_help()

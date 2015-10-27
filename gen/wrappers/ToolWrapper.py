@@ -424,7 +424,7 @@ class ToolWrapper(AbstractWrapper):
               '<tr><th></th><th>%s</th></tr>' % \
               self.translate('last_user_access')
         rows = []
-        for userId, lastAccess in self.o.loggedUsers.items():
+        for userId, lastAccess in list(self.o.loggedUsers.items()):
             user = self.search1('User', noSecurity=True, login=userId)
             if not user: continue # Could have been deleted in the meanwhile
             fmt = '%s (%s)' % (self.dateFormat, self.hourFormat)
@@ -515,7 +515,7 @@ class ToolWrapper(AbstractWrapper):
                 failed += subFailed
             try:
                 startObject.reindex()
-            except Exception, e:
+            except Exception as e:
                 failed.append(startObject)
             return nb, failed
 

@@ -21,7 +21,7 @@ class LdapTester:
     def __init__(self):
         # Get params from shell args.
         if len(sys.argv) != 8:
-            print(LdapTester.__doc__)
+            print((LdapTester.__doc__))
             sys.exit(0)
         s = self
         s.uri,s.login,s.password,s.base,s.attrs,s.filter,s.scope = sys.argv[1:]
@@ -33,15 +33,15 @@ class LdapTester:
 
     def test(self):
         # Connect the the LDAP
-        print('Connecting to... %s' % self.uri)
+        print(('Connecting to... %s' % self.uri))
         connector = LdapConnector(self.uri)
         success, msg = connector.connect(self.login, self.password)
         if not success: return
         # Perform the query.
-        print ('Querying %s...' % self.base)
+        print(('Querying %s...' % self.base))
         res = connector.search(self.base, self.scope, self.filter,
                                self.attributes)
-        print('Got %d results' % len(res))
+        print(('Got %d results' % len(res)))
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__': LdapTester().test()

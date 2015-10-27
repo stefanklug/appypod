@@ -23,6 +23,7 @@ from appy.px import Px
 from appy.gen.layout import Table
 from appy.gen import utils as gutils
 from appy.shared import utils as sutils
+import collections
 
 # ------------------------------------------------------------------------------
 class Ref(Field):
@@ -826,7 +827,7 @@ class Ref(Field):
             # If this field is an ajax-updatable slave, no need to compute
             # possible values: it will be overridden by method self.masterValue
             # by a subsequent ajax request (=the "if" statement above).
-            if self.masterValue and callable(self.masterValue):
+            if self.masterValue and isinstance(self.masterValue, collections.Callable):
                 objects = []
             else:
                 if not self.select:
@@ -921,7 +922,7 @@ class Ref(Field):
         res = self.getAttribute(obj, 'numbered')
         if not res: return res
         # Returns the column width.
-        if not isinstance(res, basestring): return '15px'
+        if not isinstance(res, str): return '15px'
         return res
 
     def getMenuUrl(self, zobj, tied):
@@ -996,14 +997,14 @@ class Ref(Field):
         # Also ensure that multiplicities are enforced.
         if not value:
             nbOfRefs = 0
-        elif isinstance(value, basestring):
+        elif isinstance(value, str):
             nbOfRefs = 1
         else:
             nbOfRefs = len(value)
         minRef = self.multiplicity[0]
         maxRef = self.multiplicity[1]
         if maxRef == None:
-            maxRef = sys.maxint
+            maxRef = sys.maxsize
         if nbOfRefs < minRef:
             return obj.translate('min_ref_violated')
         elif nbOfRefs > maxRef:
@@ -1119,7 +1120,7 @@ class Ref(Field):
         if type(objects) not in sutils.sequenceTypes: objects = [objects]
         tool = obj.getTool()
         for i in range(len(objects)):
-            if isinstance(objects[i], basestring):
+            if isinstance(objects[i], str):
                 # We have an UID here
                 objects[i] = tool.getObject(objects[i], appy=True)
             else:

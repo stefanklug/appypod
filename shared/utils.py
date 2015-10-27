@@ -44,7 +44,7 @@ class FolderDeleter:
                     dirName = os.path.dirname(dirName)
                 else:
                     break
-            except OSError, oe:
+            except OSError:
                 break
 
 # ------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ def cleanFolder(folder, exts=extsToClean, folders=(), verbose=False):
     '''This function allows to remove, in p_folder and subfolders, any file
        whose extension is in p_exts, and any folder whose name is in
        p_folders.'''
-    if verbose: print('Cleaning folder %s...' % folder)
+    if verbose: print(('Cleaning folder %s...' % folder))
     # Remove files with an extension listed in p_exts
     if exts:
         for root, dirs, files in os.walk(folder):
@@ -61,7 +61,7 @@ def cleanFolder(folder, exts=extsToClean, folders=(), verbose=False):
                 ext = os.path.splitext(fileName)[1]
                 if (ext in exts) or ext.endswith('~'):
                     fileToRemove = os.path.join(root, fileName)
-                    if verbose: print('Removing file %s...' % fileToRemove)
+                    if verbose: print(('Removing file %s...' % fileToRemove))
                     os.remove(fileToRemove)
     # Remove folders whose names are in p_folders.
     if folders:
@@ -69,7 +69,7 @@ def cleanFolder(folder, exts=extsToClean, folders=(), verbose=False):
             for folderName in dirs:
                 if folderName in folders:
                     toDelete = os.path.join(root, folderName)
-                    if verbose: print('Removing folder %s...' % toDelete)
+                    if verbose: print(('Removing folder %s...' % toDelete))
                     FolderDeleter.delete(toDelete)
 
 # ------------------------------------------------------------------------------
@@ -142,14 +142,14 @@ def copyData(data, target, targetMethod, type='string', encoding=None,
             dump(encodeData(chunk, encoding))
     elif type == 'zope':
         # A OFS.Image.File instance can be split into several chunks
-        if isinstance(data.data, basestring): # One chunk
+        if isinstance(data.data, str): # One chunk
             dump(encodeData(data.data, encoding))
         else:
             # Several chunks
             data = data.data
             while data is not None:
                 dump(encodeData(data.data, encoding))
-                data = data.next
+                data = data.__next__
 
 # ------------------------------------------------------------------------------
 def splitList(l, sub):
@@ -222,12 +222,12 @@ def getOsTempFolder():
     tmp = '/tmp'
     if os.path.exists(tmp) and os.path.isdir(tmp):
         res = tmp
-    elif os.environ.has_key('TMP'):
+    elif 'TMP' in os.environ:
         res = os.environ['TMP']
-    elif os.environ.has_key('TEMP'):
+    elif 'TEMP' in os.environ:
         res = os.environ['TEMP']
     else:
-        raise "Sorry, I can't find a temp folder on your machine."
+        raise Exception("Sorry, I can't find a temp folder on your machine.")
     return res
 
 def getTempFileName(prefix='', extension=''):
@@ -273,10 +273,10 @@ def normalizeString(s, usage='fileName'):
         except UnicodeDecodeError:
             # Another encoding may be in use
             s = s.decode('latin-1')
-    elif not isinstance(s, unicode): s = unicode(s)
+    elif not isinstance(s, str): s = str(s)
     # For extracted text, replace any unwanted char with a blank
     if usage == 'extractedText':
-        res = u''
+        res = ''
         for char in s:
             if char not in extractIgnore: res += char
             else: res += ' '
@@ -291,7 +291,7 @@ def normalizeString(s, usage='fileName'):
         for char in s:
             if char not in fileNameIgnore: res += char
     elif usage.startswith('alpha'):
-        exec 'rex = %sRex' % usage
+        exec('rex = %sRex' % usage)
         res = ''
         for char in s:
             if rex.match(char): res += char
@@ -319,7 +319,7 @@ def keepDigits(s):
 def getStringDict(d):
     '''Gets the string literal corresponding to dict p_d.'''
     res = []
-    for k, v in d.iteritems():
+    for k, v in d.items():
         if type(v) not in sequenceTypes:
             if not isinstance(k, basestring): k = str(k)
             if not isinstance(v, basestring): v = str(v)
@@ -386,7 +386,7 @@ def formatNumber(n, sep=',', precision=2, tsep=' '):
 # ------------------------------------------------------------------------------
 def lower(s):
     '''French-accents-aware variant of string.lower.'''
-    isUnicode = isinstance(s, unicode)
+    isUnicode = isinstance(s, str)
     if not isUnicode: s = s.decode('utf-8')
     res = s.lower()
     if not isUnicode: res = res.encode('utf-8')
@@ -394,14 +394,14 @@ def lower(s):
 
 def upper(s):
     '''French-accents-aware variant of string.upper.'''
-    isUnicode = isinstance(s, unicode)
+    isUnicode = isinstance(s, str)
     if not isUnicode: s = s.decode('utf-8')
     res = s.upper()
     if not isUnicode: res = res.encode('utf-8')
     return res
 
 # ------------------------------------------------------------------------------
-typeLetters = {'b': bool, 'i': int, 'j': long, 'f':float, 's':str, 'u':unicode,
+typeLetters = {'b': bool, 'i': int, 'j': int, 'f':float, 's':str, 'u':str,
                'l': list, 'd': dict}
 caExts = {'py': ('.py', '.vpy', '.cpy'), 'xml': ('.pt', '.cpt', '.xml')}
 
@@ -506,8 +506,8 @@ class CodeAnalysis:
         if not lines: return
         commentRate = (self.commentLines / float(lines)) * 100.0
         blankRate = (self.emptyLines / float(lines)) * 100.0
-        print('%s: %d files, %d lines (%.0f%% comments, %.0f%% blank)' % \
-              (self.name, self.numberOfFiles, lines, commentRate, blankRate))
+        print(('%s: %d files, %d lines (%.0f%% comments, %.0f%% blank)' % \
+              (self.name, self.numberOfFiles, lines, commentRate, blankRate)))
 
 # ------------------------------------------------------------------------------
 class LinesCounter:
@@ -516,7 +516,7 @@ class LinesCounter:
                        '%stemp' % os.sep)
 
     def __init__(self, folderOrModule, excludes=None):
-        if isinstance(folderOrModule, basestring):
+        if isinstance(folderOrModule, str):
             # It is the path of some folder
             self.folder = folderOrModule
         else:
@@ -624,10 +624,10 @@ class FileWrapper:
         if self.content.__class__.__name__ == 'Pdata':
             # The file content is splitted in several chunks.
             f.write(self.content.data)
-            nextPart = self.content.next
+            nextPart = self.content.__next__
             while nextPart:
                 f.write(nextPart.data)
-                nextPart = nextPart.next
+                nextPart = nextPart.__next__
         else:
             # Only one chunk
             f.write(self.content)

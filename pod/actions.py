@@ -101,7 +101,7 @@ class BufferAction:
         try:
             res = self._evalExpr(expr, context)
             error = False
-        except Exception, e:
+        except Exception as e:
             res = None
             errorMessage = EVAL_ERROR % (expr, self.getExceptionLine(e))
             self.manageError(result, context, errorMessage)
@@ -134,7 +134,7 @@ class BufferAction:
             error = False
             try:
                 feRes = eval(self.fromExpr, context)
-            except Exception, e:
+            except Exception as e:
                 msg = FROM_EVAL_ERROR% (self.fromExpr, self.getExceptionLine(e))
                 self.manageError(result, context, msg)
                 error = True
@@ -240,7 +240,7 @@ class ForAction(BufferAction):
             return
         # Remember variable hidden by iter if any
         hasHiddenVariable = False
-        if context.has_key(self.iter):
+        if self.iter in context:
             hiddenVariable = context[self.iter]
             hasHiddenVariable = True
         # In the case of cells, initialize some values

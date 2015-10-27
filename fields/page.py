@@ -16,6 +16,7 @@
 
 # ------------------------------------------------------------------------------
 from appy import Object
+import collections
 
 # ------------------------------------------------------------------------------
 class Page:
@@ -53,7 +54,7 @@ class Page:
            (c) a Page instance.
            This method returns always a Page instance.'''
         res = pageData
-        if res and isinstance(res, basestring):
+        if res and isinstance(res, str):
             # Page data is given as a string.
             pageElems = pageData.rsplit('_', 1)
             if len(pageElems) == 1: # We have case (a)

@@ -3,7 +3,7 @@
    - mixins/ToolMixin is mixed in with the generated application Tool class.'''
 
 # ------------------------------------------------------------------------------
-import os, os.path, re, sys, types, urllib, cgi
+import os, os.path, re, sys, types, urllib.request, urllib.parse, urllib.error, cgi
 from appy import Object
 from appy.px import Px
 from appy.fields.workflow import UiTransition
@@ -15,6 +15,7 @@ from appy.shared import utils as sutils
 from appy.shared.data import rtlLanguages
 from appy.shared.xml_parser import XmlMarshaller, XmlUnmarshaller
 from appy.shared.diff import HtmlDiff
+import collections
 
 # ------------------------------------------------------------------------------
 NUMBERED_ID = re.compile('.+\d{4}$')
@@ -371,9 +372,9 @@ class BaseMixin:
         # p_errors object. Within this object, for every error message that is
         # not a string, we replace it with the standard validation error for the
         # corresponding field.
-        for key, value in errors.__dict__.iteritems():
+        for key, value in errors.__dict__.items():
             resValue = value
-            if not isinstance(resValue, basestring):
+            if not isinstance(resValue, str):
                 resValue = self.translate('field_invalid')
             setattr(errors, key, resValue)
         return msg
@@ -419,7 +420,7 @@ class BaseMixin:
         # Trigger field-specific validation
         self.intraFieldValidation(errors, values)
         if errors.__dict__:
-            for k,v in errors.__dict__.iteritems(): rq.set('%s_error' % k, v)
+            for k,v in errors.__dict__.items(): rq.set('%s_error' % k, v)
             self.say(errorMessage)
             return self.gotoEdit()
 
@@ -427,7 +428,7 @@ class BaseMixin:
         msg = self.interFieldValidation(errors, values)
         if not msg: msg = errorMessage
         if errors.__dict__:
-            for k,v in errors.__dict__.iteritems(): rq.set('%s_error' % k, v)
+            for k,v in errors.__dict__.items(): rq.set('%s_error' % k, v)
             self.say(msg)
             return self.gotoEdit()
 
@@ -506,7 +507,7 @@ class BaseMixin:
                 # Get the list of indexes that apply on this object. Else, Zope
                 # will reindex all indexes defined in the catalog, and through
                 # acquisition, wrong methods can be called on wrong objects.
-                iNames = self.wrapperClass.getIndexes().keys()
+                iNames = list(self.wrapperClass.getIndexes().keys())
                 catalog.catalog_object(self, path, idxs=iNames)
 
     def xml(self, action=None):
@@ -529,14 +530,14 @@ class BaseMixin:
                 elif isinstance(methodRes, file):
                     res = methodRes.read()
                     methodRes.close()
-                elif isinstance(methodRes, basestring) and \
+                elif isinstance(methodRes, str) and \
                      methodRes.startswith('<?xml'): # Already XML
                     return methodRes
                 else:
                     marshaller = XmlMarshaller()
                     oType = isinstance(methodRes, Object) and 'popo' or 'appy'
                     res = marshaller.marshall(methodRes, objectType=oType)
-            except Exception, e:
+            except Exception as e:
                 tb = sutils.Traceback.get()
                 res = XmlMarshaller(rootTag='exception').marshall(tb)
                 self.log(tb, type='error')
@@ -548,7 +549,7 @@ class BaseMixin:
         '''Prints a p_msg in the user interface. p_logLevel may be "info",
            "warning" or "error".'''
         rq = self.REQUEST
-        if 'messages' not in rq.SESSION.keys():
+        if 'messages' not in list(rq.SESSION.keys()):
             plist = self.getProductConfig().PersistentList
             messages = rq.SESSION['messages'] = plist()
         else:
@@ -619,7 +620,7 @@ class BaseMixin:
            For a multilingual string field, p_changes can contain a key for
            every language, of the form <field name>-<language>.'''
         # Add to the p_changes dict the field labels
-        for name in changes.keys():
+        for name in list(changes.keys()):
             # "name" can contain the language for multilingual fields.
             if '-' in name:
                 fieldName, lg = name.split('-')
@@ -646,7 +647,7 @@ class BaseMixin:
            historized fields, while p_self already contains the (potentially)
            modified values.'''
         # Remove from previousData all values that were not changed
-        for name in previousData.keys():
+        for name in list(previousData.keys()):
             field = self.getAppyType(name)
             prev = previousData[name]
             curr = field.getValue(self)
@@ -655,7 +656,7 @@ class BaseMixin:
                    ((prev == '') and (curr == None)):
                     del previousData[name]
                     continue
-            except UnicodeDecodeError, ude:
+            except UnicodeDecodeError as ude:
                 # The string comparisons above may imply silent encoding-related
                 # conversions that may produce this exception.
                 continue
@@ -743,15 +744,15 @@ class BaseMixin:
         else:
             klass = self.appy().klass
             moduleName = klass.__module__
-            exec 'import %s' % moduleName
-            exec 'reload(%s)' % moduleName
-            exec 'res = %s.%s' % (moduleName, klass.__name__)
+            exec('import %s' % moduleName)
+            exec('reload(%s)' % moduleName)
+            exec('res = %s.%s' % (moduleName, klass.__name__))
             # More manipulations may have occurred in m_update
             if hasattr(res, 'update'):
                 parentName= res.__bases__[-1].__name__
                 moduleName= 'Products.%s.wrappers' % self.getTool().getAppName()
-                exec 'import %s' % moduleName
-                exec 'parent = %s.%s' % (moduleName, parentName)
+                exec('import %s' % moduleName)
+                exec('parent = %s.%s' % (moduleName, parentName))
                 res.update(parent)
             return res
 
@@ -839,15 +840,15 @@ class BaseMixin:
         req = self.REQUEST
         for field in self.getAllAppyTypes():
             if field.page.name != pageName: continue
-            if field.masterValue and callable(field.masterValue):
+            if field.masterValue and isinstance(field.masterValue, collections.Callable):
                 # We have a slave field that is updated via ajax requests.
                 name = field.name
                 # Remember the request value for this field if present.
-                if req.has_key(name) and req[name]:
+                if name in req and req[name]:
                     requestValues[name] = req[name]
                 # Remember the validation error for this field if present.
                 errorKey = '%s_error' % name
-                if req.has_key(errorKey):
+                if errorKey in req:
                     errors[name] = req[errorKey]
         return sutils.getStringDict(requestValues), sutils.getStringDict(errors)
 
@@ -899,7 +900,7 @@ class BaseMixin:
                 del phases[res[i].name]
                 del res[i]
         # Compute next/previous phases of every phase
-        for ph in phases.itervalues():
+        for ph in phases.values():
             ph.computeNextPrevious(res)
             ph.totalNbOfPhases = len(res)
         # Restrict the result to the current phase if required
@@ -1208,7 +1209,7 @@ class BaseMixin:
                 # fields' old values by their formatted counterparts.
                 event = history[i].copy()
                 event['changes'] = {}
-                for name, oldValue in history[i]['changes'].iteritems():
+                for name, oldValue in history[i]['changes'].items():
                     # "name" can specify a language-specific part in a
                     # multilingual field. "oldValue" is a tuple
                     # (value, fieldName).
@@ -1455,7 +1456,7 @@ class BaseMixin:
         # Add users or groups having, locally, this role on this object.
         localRoles = getattr(self.aq_base, '__ac_local_roles__', None)
         if not localRoles: return res
-        for id, roles in localRoles.iteritems():
+        for id, roles in localRoles.items():
             for role in roles:
                 if role in res:
                     usr = 'user:%s' % id
@@ -1465,7 +1466,7 @@ class BaseMixin:
     def showState(self):
         '''Must I show self's current state ?'''
         stateShow = self.State(name=False).show
-        if callable(stateShow):
+        if isinstance(stateShow, collections.Callable):
             return stateShow(self.getWorkflow(), self.appy())
         return stateShow
 
@@ -1479,7 +1480,7 @@ class BaseMixin:
         if not hasattr(klass, 'showTransitions'): return (layoutType=='view')
         showValue = klass.showTransitions
         # This value can be a single value or a tuple/list of values.
-        if isinstance(showValue, basestring): return layoutType == showValue
+        if isinstance(showValue, str): return layoutType == showValue
         return layoutType in showValue
 
     getUrlDefaults = {'page':True, 'nav':True}
@@ -1524,8 +1525,8 @@ class BaseMixin:
         if 'nav'  not in kwargs: kwargs['nav'] = True
         # Create URL parameters from kwargs
         params = []
-        for name, value in kwargs.iteritems():
-            if isinstance(value, basestring):
+        for name, value in kwargs.items():
+            if isinstance(value, str):
                 params.append('%s=%s' % (name, value))
             elif self.REQUEST.get(name, ''):
                 params.append('%s=%s' % (name, self.REQUEST[name]))
@@ -1601,7 +1602,7 @@ class BaseMixin:
             # Find the name of the method to call.
             methodName = rq.QUERY_STRING.split('=')[1]
             return self.xml(action=methodName)
-        elif rq.has_key('do'):
+        elif 'do' in rq:
             # The user wants to call a method on this object and get its result
             # as XML.
             return self.xml(action=rq['do'])
@@ -1672,7 +1673,7 @@ class BaseMixin:
             if field.type != 'group':
                 fieldMapping = field.mapping[label]
                 if fieldMapping:
-                    if callable(fieldMapping):
+                    if isinstance(fieldMapping, collections.Callable):
                         fieldMapping = field.callMethod(self, fieldMapping)
                     mapping.update(fieldMapping)
             label = getattr(field, '%sId' % label)
@@ -1697,15 +1698,15 @@ class BaseMixin:
             # Perform replacements, according to p_format.
             res = self.formatText(res, format)
             # Perform variable replacements
-            for name, repl in mapping.iteritems():
-                if not isinstance(repl, basestring): repl = str(repl)
+            for name, repl in mapping.items():
+                if not isinstance(repl, str): repl = str(repl)
                 res = res.replace('${%s}' % name, repl)
         return res
 
     def getPageLayout(self, layoutType):
         '''Returns the layout corresponding to p_layoutType for p_self.'''
         res = self.wrapperClass.getPageLayouts()[layoutType]
-        if isinstance(res, basestring): res = Table(res)
+        if isinstance(res, str): res = Table(res)
         return res
 
     def download(self, name=None):

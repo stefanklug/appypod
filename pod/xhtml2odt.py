@@ -47,7 +47,7 @@ class HtmlElement:
         # but for a strange reason those attrs are back to None (probably for
         # performance reasons they become inaccessible after a while).
         self.classAttr = None
-        if attrs.has_key('class'):
+        if 'class' in attrs:
             self.classAttr = attrs['class']
         self.tagsToReopen = [] # When the HTML element corresponding to self
         # is completely dumped, if there was a problem related to tags
@@ -58,7 +58,7 @@ class HtmlElement:
         # to self, we may need to close other tags (ie closing a paragraph
         # before closing a cell). This list contains HtmlElement instances.
         self.elemType = self.elem
-        if self.elemTypes.has_key(self.elem):
+        if self.elem in self.elemTypes:
             self.elemType = self.elemTypes[self.elem]
         # If a conflict occurs on this element, we will note it.
         self.isConflictual = False
@@ -71,7 +71,7 @@ class HtmlElement:
     def getOdfTag(self, env):
         '''Gets the raw ODF tag that corresponds to me'''
         res = ''
-        if HTML_2_ODT.has_key(self.elem):
+        if self.elem in HTML_2_ODT:
             res += '%s:%s' % (env.textNs, HTML_2_ODT[self.elem])
         elif self.elem == 'a':
             res += '%s:a' % env.textNs
@@ -216,8 +216,8 @@ class HtmlTable:
         elems = str(time.time()).split('.')
         self.name= 'AppyTable%s%s%d' % (elems[0],elems[1],random.randint(1,100))
         self.styleNs = env.ns[OdfEnvironment.NS_STYLE]
-        self.res = u'' # The sub-buffer
-        self.tempRes = u'' # The temporary sub-buffer, into which we will
+        self.res = '' # The sub-buffer
+        self.tempRes = '' # The temporary sub-buffer, into which we will
         # dump all table sub-elements, until we encounter the end of the first
         # row. Then, we will know how much columns are defined in the table;
         # we will dump columns declarations into self.res and dump self.tempRes
@@ -294,8 +294,8 @@ class XhtmlEnvironment(XmlEnvironment):
         XmlEnvironment.__init__(self)
         self.renderer = renderer
         self.ns = renderer.currentParser.env.namespaces
-        self.res = u''
-        self.currentContent = u''
+        self.res = ''
+        self.currentContent = ''
         self.currentElements = [] # Stack of currently walked elements
         self.currentLists = [] # Stack of currently walked lists (ul or ol)
         self.currentTables = [] # Stack of currently walked tables
@@ -349,7 +349,7 @@ class XhtmlEnvironment(XmlEnvironment):
             # Dump and reinitialize the current content
             contentSize = len(self.currentContent)
             self.dumpString(escapeXml(self.currentContent))
-            self.currentContent = u''
+            self.currentContent = ''
         # If we are within a table cell, update the total size of cell content
         if not contentSize: return
         if self.currentTables and self.currentTables[-1].inCell:
@@ -363,7 +363,7 @@ class XhtmlEnvironment(XmlEnvironment):
         styleName = None
         if odtStyle:
             styleName = odtStyle.name
-        elif DEFAULT_ODT_STYLES.has_key(htmlElem.elem):
+        elif htmlElem.elem in DEFAULT_ODT_STYLES:
             styleName = DEFAULT_ODT_STYLES[htmlElem.elem]
         res = ''
         if styleName:
@@ -458,7 +458,7 @@ class XhtmlEnvironment(XmlEnvironment):
         elif elem in TABLE_CELL_TAGS:
             # Determine colspan
             colspan = 1
-            if attrs.has_key('colspan'): colspan = int(attrs['colspan'])
+            if 'colspan' in attrs: colspan = int(attrs['colspan'])
             table = self.currentTables[-1]
             table.inCell = colspan
             table.cellIndex += colspan
@@ -503,7 +503,7 @@ class XhtmlEnvironment(XmlEnvironment):
                     table.res+= '<%s:table-column %s:style-name="%s.%d"/>' % \
                                 (self.tableNs, self.tableNs, table.name, i)
                 table.res += table.tempRes
-                table.tempRes = u''
+                table.tempRes = ''
         elif elem in TABLE_CELL_TAGS:
             # Update attr "columnContentSizes" of the currently parsed table,
             # excepted if the cell spans several columns.
@@ -535,7 +535,7 @@ class XhtmlParser(XmlParser):
         resAttrs = attrs
         if attrs:
             resAttrs = {}
-            for attrName in attrs.keys():
+            for attrName in list(attrs.keys()):
                 resAttrs[attrName.lower()] = attrs[attrName]
         if attrs == None:
             return resElem
@@ -548,11 +548,11 @@ class XhtmlParser(XmlParser):
         currentElem = e.onElementStart(elem, attrs)
         odfTag = currentElem.getOdfTag(e)
 
-        if HTML_2_ODT.has_key(elem):
+        if elem in HTML_2_ODT:
             e.dumpStyledElement(currentElem, odfTag, attrs)
         elif elem == 'a':
             e.dumpString('<%s %s:type="simple"' % (odfTag, e.linkNs))
-            if attrs.has_key('href'):
+            if 'href' in attrs:
                 e.dumpString(' %s:href="%s"' % (e.linkNs,
                                                 escapeXml(attrs['href'])))
             e.dumpString('>')
@@ -577,13 +577,13 @@ class XhtmlParser(XmlParser):
         elif elem in TABLE_CELL_TAGS:
             e.dumpString('<%s %s:style-name="%s"' % \
                 (odfTag, e.tableNs, DEFAULT_ODT_STYLES[elem]))
-            if attrs.has_key('colspan'):
+            if 'colspan' in attrs:
                 e.dumpString(' %s:number-columns-spanned="%s"' % \
                              (e.tableNs, attrs['colspan']))
             e.dumpString('>')
         elif elem == 'img':
             style = None
-            if attrs.has_key('style'): style = attrs['style']
+            if 'style' in attrs: style = attrs['style']
             imgCode = e.renderer.importDocument(at=attrs['src'],
                                                 wrapInPara=False, style=style)
             e.dumpString(imgCode)

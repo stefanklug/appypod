@@ -47,7 +47,7 @@ class Computed(Field):
         # the user interface while m_method computes the value stored in the
         # catalog.
         self.formatMethod = formatMethod
-        if isinstance(self.method, basestring):
+        if isinstance(self.method, str):
             # A legacy macro identifier. Raise an exception
             raise Exception(self.WRONG_METHOD % self.method)
         # Does field computation produce plain text or XHTML?
@@ -99,6 +99,6 @@ class Computed(Field):
             res = self.formatMethod(obj, value)
         else:
             res = value
-        if not isinstance(res, basestring): res = str(res)
+        if not isinstance(res, str): res = str(res)
         return res
 # ------------------------------------------------------------------------------

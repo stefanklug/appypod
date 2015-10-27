@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------
 import types
 import appy.gen as gen
+import collections
 
 # Prototypical instances of every type -----------------------------------------
 class Protos:
@@ -49,7 +50,7 @@ class ModelClass:
         '''This method returns the code declaration for p_appyType.'''
         typeArgs = ''
         proto = Protos.get(appyType)
-        for name, value in appyType.__dict__.iteritems():
+        for name, value in appyType.__dict__.items():
             # Some attrs can't be given to the constructor
             if name in Protos.notInit: continue
             # If the given value corresponds to the default value, don't give it
@@ -74,7 +75,7 @@ class ModelClass:
                 # defined. So we initialize it to None. The post-init of the
                 # field must be done manually in wrappers.py.
                 value = 'None'
-            elif isinstance(value, basestring):
+            elif isinstance(value, str):
                 value = '"%s"' % value
             elif isinstance(value, gen.Ref):
                 if not value.isBack: continue
@@ -91,10 +92,10 @@ class ModelClass:
                 value = 'Grp("%s")' % value.name
             elif isinstance(value, gen.Page):
                 value = 'pges["%s"]' % value.name
-            elif callable(value):
+            elif isinstance(value, collections.Callable):
                 className = wrapperName
                 if (appyType.type == 'Ref') and appyType.isBack:
-                    className = value.im_class.__name__
+                    className = value.__self__.__class__.__name__
                 value = '%s.%s' % (className, value.__name__)
             typeArgs += '%s=%s,' % (name, value)
         return '%s(%s)' % (appyType.__class__.__name__, typeArgs)
@@ -118,17 +119,17 @@ class ModelClass:
         pages = {}
         layouts = []
         for name in klass._appy_attributes:
-            exec 'appyType = klass.%s' % name
+            exec('appyType = klass.%s' % name)
             if appyType.page.name not in pages:
                 pages[appyType.page.name] = appyType.page
         res += '    pges = {'
-        for page in pages.itervalues():
+        for page in pages.values():
             # Determine page "show" attributes
             pShow = ''
             for attr in ('',) + page.subElements:
                 attrName = 'show%s' % attr.capitalize()
                 pageShow = getattr(page, attrName)
-                if isinstance(pageShow, basestring): pageShow='"%s"' % pageShow
+                if isinstance(pageShow, str): pageShow='"%s"' % pageShow
                 elif callable(pageShow):
                     pageShow = '%s.%s' % (wrapperName, pageShow.__name__)
                 if pageShow != True:
@@ -142,7 +143,7 @@ class ModelClass:
         res += '}\n'
         # Secondly, dump every (not Ref.isBack) attribute
         for name in klass._appy_attributes:
-            exec 'appyType = klass.%s' % name
+            exec('appyType = klass.%s' % name)
             if (appyType.type == 'Ref') and appyType.isBack: continue
             typeBody = klass._appy_getTypeBody(appyType, wrapperName)
             res += '    %s=%s\n' % (name, typeBody)
@@ -305,12 +306,12 @@ class Tool(ModelClass):
     @classmethod
     def _appy_clean(klass):
         toClean = []
-        for k, v in klass.__dict__.iteritems():
+        for k, v in klass.__dict__.items():
             if not k.startswith('__') and (not k.startswith('_appy_')):
                 if k not in defaultToolFields:
                     toClean.append(k)
         for k in toClean:
-            exec 'del klass.%s' % k
+            exec('del klass.%s' % k)
         klass._appy_attributes = list(defaultToolFields)
         klass.folder = True
 # ------------------------------------------------------------------------------

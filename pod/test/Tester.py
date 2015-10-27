@@ -38,7 +38,7 @@ class AnnotationsRemover(OdfParser):
        machine-specific info, like absolute paths to the python files, etc.'''
     def __init__(self, env, caller):
         OdfParser.__init__(self, env, caller)
-        self.res = u''
+        self.res = ''
         self.inAnnotation = False # Are we parsing an annotation ?
         self.textEncountered = False # Within an annotation, have we already
         # met a text ?
@@ -58,7 +58,7 @@ class AnnotationsRemover(OdfParser):
                     self.ignore = True
         if not self.ignore:
             self.res += '<%s' % elem
-            for attrName, attrValue in attrs.items():
+            for attrName, attrValue in list(attrs.items()):
                 self.res += ' %s="%s"' % (attrName, attrValue)
             self.res += '>'
     def endElement(self, elem):
@@ -93,12 +93,12 @@ class Test(appy.shared.test.Test):
         if not os.path.exists(contextPy):
             raise TesterError(CONTEXT_NOT_FOUND % contextPy)
         contextPkg = 'appy.pod.test.contexts.%s' % contextName
-        exec 'import %s' % contextPkg
-        exec 'context = dir(%s)' % contextPkg
+        exec('import %s' % contextPkg)
+        exec('context = dir(%s)' % contextPkg)
         res = {}
         for elem in context:
             if not elem.startswith('__'):
-                exec 'res[elem] = %s.%s' % (contextPkg, elem)
+                exec('res[elem] = %s.%s' % (contextPkg, elem))
         return res
 
     def do(self):
