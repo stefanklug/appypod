@@ -118,8 +118,8 @@ class Hack:
         if verbose:
             pName = patchClass.__name__
             cName = klass.__name__
-            print '%d method(s) patched from %s to %s (%s)' % \
-                  (len(patched), pName, cName, str(patched))
-            print '%d method(s) and/or attribute(s) added from %s to %s (%s)'%\
-                  (len(added), pName, cName, str(added))
+            print('%d method(s) patched from %s to %s (%s)' % \
+                  (len(patched), pName, cName, str(patched)))
+            print('%d method(s) and/or attribute(s) added from %s to %s (%s)'%\
+                  (len(added), pName, cName, str(added)))
 # ------------------------------------------------------------------------------
