@@ -25,7 +25,8 @@
      be strictly greater than 1.'''
 
 # -----------------------------------------------------------------------------
-import re, sys, collections, UserDict
+import re, sys, collections
+from collections import UserDict
 from io import StringIO
 
 # -----------------------------------------------------------------------------
@@ -203,9 +204,9 @@ class Table(collections.UserList):
         return infoDict
 
 # -----------------------------------------------------------------------------
-class TableRow(UserDict.UserDict):
+class TableRow(UserDict):
     def __init__(self, table):
-        UserDict.UserDict.__init__(self)
+        UserDict.__init__(self)
         self.table = table
     def __getitem__(self, key):
         '''This method "implements" row inheritance: if the current row does
@@ -214,7 +215,7 @@ class TableRow(UserDict.UserDict):
         keyError = False
         t = self.table
         if key in self:
-            res = UserDict.UserDict.__getitem__(self, key)
+            res = UserDict.__getitem__(self, key)
         else:
             # Get the parent row
             if t.parent:

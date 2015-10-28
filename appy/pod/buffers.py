@@ -704,7 +704,7 @@ class MemoryBuffer(Buffer):
                         res, escape = evalEntry.evaluate(context)
                         if escape: result.dumpContent(res)
                         else: result.write(res)
-                    except EvaluationError, e:
+                    except EvaluationError as e:
                         # This exception has already been treated (see the 
                         # "except" block below). Simply re-raise it when needed.
                         if self.env.raiseOnError: raise e

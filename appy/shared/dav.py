@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 import os, re, http.client, sys, stat, urllib.parse, time, socket, xml.sax
 from urllib.parse import quote
-from StringIO import StringIO
+from io import StringIO
 from mimetypes import guess_type
 from base64 import encodestring
 from appy import Object

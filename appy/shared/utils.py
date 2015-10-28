@@ -542,7 +542,7 @@ class LinesCounter:
                 if analyser.numberOfFiles:
                     analyser.printReport()
                     total += analyser.numberOfLines()
-        print 'Total (including commented and blank): ***', total, '***'
+        print('Total (including commented and blank): ***', total, '***')
 
     def isExcluded(self, path):
         '''Must p_path be excluded from the analysis?'''
