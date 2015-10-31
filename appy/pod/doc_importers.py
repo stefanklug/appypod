@@ -23,11 +23,7 @@ from appy.pod.odf_parser import OdfEnvironment
 from appy.shared import mimeTypesExts
 from appy.shared.utils import FileWrapper
 from appy.shared.dav import Resource
-# The uuid module is there only if python >= 2.5
-try:
-    import uuid
-except ImportError:
-    uuid = None
+import uuid
 
 # ------------------------------------------------------------------------------
 FILE_NOT_FOUND = "'%s' does not exist or is not a file."

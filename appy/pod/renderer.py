@@ -18,11 +18,8 @@
 
 # ------------------------------------------------------------------------------
 import zipfile, shutil, xml.sax, os, os.path, re, mimetypes, time
-#python3 compat
-try:
-    from UserDict import UserDict
-except ImportError:
-    from collections import UserDict
+from collections import UserDict
+
 import appy.pod
 from appy.pod import PodError
 from appy.shared import mimeTypes, mimeTypesExts

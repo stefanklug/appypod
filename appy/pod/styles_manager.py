@@ -18,12 +18,7 @@
 
 # ------------------------------------------------------------------------------
 import re, os.path
-#python3 compat
-try:
-    from UserDict import UserDict
-except ImportError:
-    from collections import UserDict
-    
+from collections import UserDict
 import appy.pod
 from appy.pod import *
 from appy.pod.odf_parser import OdfEnvironment, OdfParser
