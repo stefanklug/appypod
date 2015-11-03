@@ -23,7 +23,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/stefanklug/appy',
+    url='https://github.com/stefanklug/appypod',
 
     # Author details
     author='Gaëtan Delannay, modified by Stefan Klug',
