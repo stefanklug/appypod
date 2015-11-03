@@ -318,24 +318,24 @@ class TableParser:
         self.state = TableParser.READING_CONTENT
         cWord = self.controlWordBuffer
         if cWord == 'trowd':
-            self.contentBuffer.truncate(0)
+            self.contentBuffer = StringIO()
         elif cWord == 'row':
             self.onRow()
-            self.contentBuffer.truncate(0)
+            self.contentBuffer = StringIO()
         elif cWord == 'cell':
             self.onColumn(self.contentBuffer.getvalue().strip())
-            self.contentBuffer.truncate(0)
+            self.contentBuffer = StringIO()
         elif cWord in ('bkmkstart', 'bkmkend'):
             self.state = TableParser.IGNORE
         self.controlWordBuffer = ''
+        
     def manageSpecialChar(self):
-        specialChar = int(self.specialCharBuffer)
-        self.specialCharBuffer = ''
-        if specialChar in self.specialChars:
-            self.contentBuffer.write(self.specialChars[specialChar])
-        else:
-            print(('Warning: char %d not known.' % specialChar))
-        self.state = TableParser.READING_CONTENT
+        if len(self.specialCharBuffer) == 2:
+            specialChar = bytes.fromhex(self.specialCharBuffer).decode('utf-8')
+            self.specialCharBuffer = ''
+            self.state = TableParser.READING_CONTENT
+            if specialChar is not '':
+                self.contentBuffer.write(specialChar)
     def bufferize(self, char):
         if self.state == TableParser.READING_CONTROL_WORD:
             self.controlWordBuffer += char
@@ -346,20 +346,16 @@ class TableParser:
     def parse(self):
         for line in self.input:
             for char in line:
+                if self.state == TableParser.READING_SPECIAL_CHAR:
+                    self.bufferize(char)
+                    self.manageSpecialChar()
+                    continue
                 if self.isGroupDelimiter(char):
-                    if self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
                     self.state = TableParser.READING_CONTENT
                 elif self.isControlWordStart(char):
-                    if self.state == TableParser.READING_CONTROL_WORD:
-                        self.manageControlWord()
-                    elif self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
-                    self.controlWordBuffer = ''
+                    self.manageControlWord()
                     self.state = TableParser.READING_CONTROL_WORD
                 elif self.isAlpha(char):
-                    if self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
                     self.bufferize(char)
                 elif self.isNumeric(char):
                     self.bufferize(char)
@@ -369,25 +365,15 @@ class TableParser:
                     elif self.state == TableParser.READING_CONTENT:
                         if char not in ['\n', '\r']:
                             self.contentBuffer.write(char)
-                    elif self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
-                        if char not in ['\n', '\r']:
-                            self.contentBuffer.write(char)
                 elif self.isQuote(char):
                     if (self.state == TableParser.READING_CONTROL_WORD) and \
                        not self.controlWordBuffer:
                         self.state = TableParser.READING_SPECIAL_CHAR
-                    elif self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
-                        self.bufferize(char)
                     else:
                         self.bufferize(char)
                 else:
-                    if self.state == TableParser.READING_CONTENT:
-                        self.contentBuffer.write(char)
-                    elif self.state == TableParser.READING_SPECIAL_CHAR:
-                        self.manageSpecialChar()
-                        self.contentBuffer.write(char)
+                    self.contentBuffer.write(char)
+                    
         if self.controlWordBuffer:
             self.manageControlWord()
         if self.currentTableName:
