@@ -1,2 +1,0 @@
-short='dev'
-verbose='dev'
