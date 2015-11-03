@@ -18,7 +18,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='appypod',
-    version='0.9.4',
+    version='0.9.6',
     description='AppyPod',
     long_description=long_description,
 
@@ -30,7 +30,7 @@ setup(
     author_email='klug.stefan@gmx.de',
 
     # Choose your license
-    license='LGPL-2',
+    license='GPL',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -56,5 +56,8 @@ setup(
 
     # What does your project relate to?
     keywords='odf template odf development',
-    packages=find_packages(exclude=[])
+    packages=find_packages(exclude=[]),
+    package_data={
+       'appy.pod': ['*.xml', 'imageNotFound.jpg'],
+    },
 )
