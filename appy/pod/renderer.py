@@ -177,8 +177,8 @@ class Renderer:
         self.unzipFolder = os.path.join(self.tempFolder, 'unzip')
         os.mkdir(self.unzipFolder)
         info = unzip(template, self.unzipFolder, odf=True)
-        self.contentXml = info['content.xml']
-        self.stylesXml = info['styles.xml']
+        self.contentXml = info['content.xml'].decode('utf-8')
+        self.stylesXml = info['styles.xml'].decode('utf-8')
         self.stylesManager = StylesManager(self.stylesXml)
         # From LibreOffice 3.5, it is not possible anymore to dump errors into
         # the resulting ods as annotations. Indeed, annotations can't reside
@@ -524,11 +524,11 @@ class Renderer:
                         os.path.join(self.unzipFolder, innerFile))
         # Insert dynamic styles
         contentXml = os.path.join(self.unzipFolder, 'content.xml')
-        f = file(contentXml)
+        f = open(contentXml, 'r+', encoding='utf-8')
         dynamicStyles = ''.join(self.dynamicStyles)
         content = f.read().replace('<!DYNAMIC_STYLES!>', dynamicStyles)
-        f.close()
-        f = file(contentXml, 'w')
+        f.seek(0)
+        f.truncate(0)
         f.write(content)
         f.close()
         # Call the user-defined "finalize" function when present

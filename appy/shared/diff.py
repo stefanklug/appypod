@@ -306,16 +306,16 @@ class HtmlDiff:
         else: tag = 'span'
         # What message will it show in its 'title' attribute?
         if not msg:
-            exec('msg = self.%sMsg' % type)
+            msg = eval('self.%sMsg' % type)
         # What CSS class (or, if none, tag-specific style) will be used ?
-        exec('cssClass = self.%sCss' % type)
+        cssClass = eval('self.%sCss' % type)
         if cssClass:
             style = 'class="%s"' % cssClass
         else:
-            exec('style = self.%sStyle' % type)
+            style = eval('self.%sStyle' % type)
             style = 'style="%s"' % style
         # The 'name' attribute of the tag indicates the type of the update.
-        exec('tagName = self.%sName' % type)
+        tagName = eval('self.%sName' % type)
         # The idea is: if there are several lines, every line must be surrounded
         # by a tag. This way, we know that a surrounding tag can't span several
         # lines, which is a prerequisite for managing cumulative diffs.

@@ -34,7 +34,7 @@ class FormDataEncoder:
 
     def encode(self):
         res = []
-        for name, value in self.data.iteritems():
+        for name, value in self.data.items():
             res.append(self.marshalValue(name, value))
         return '&'.join(res)
 

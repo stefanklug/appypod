@@ -222,7 +222,7 @@ class FileBuffer(Buffer):
     def __init__(self, env, result):
         Buffer.__init__(self, env, None)
         self.result = result
-        self.content = file(result, 'w')
+        self.content = open(result, 'w', encoding='utf-8')
         self.content.write(xmlPrologue)
 
     # getLength is used to manage insertions into sub-buffers. But in the case
@@ -231,10 +231,7 @@ class FileBuffer(Buffer):
     def getLength(self): return 0
 
     def write(self, something):
-        try:
-            self.content.write(something.encode('utf-8'))
-        except UnicodeDecodeError:
-            self.content.write(something)
+        self.content.write(something)
 
     def addExpression(self, expression, tiedHook=None):
         # At 2013-02-06, this method was not called within the whole test suite.
@@ -674,7 +671,7 @@ class MemoryBuffer(Buffer):
         # Find the start position of the deepest element to remove
         deepestElem = self.action.elem.DEEPEST_TO_REMOVE
         pos = self.content.find('<%s' % deepestElem.elem)
-        for index in self.elements.keys():
+        for index in list(self.elements.keys()):
             if index < pos: del self.elements[index]
 
     reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \

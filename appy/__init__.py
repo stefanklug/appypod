@@ -88,7 +88,7 @@ class Hack:
         '''Injects any method or attribute from p_patchClass into klass.'''
         patched = []
         added = []
-        for name, attr in patchClass.__dict__.iteritems():
+        for name, attr in patchClass.__dict__.items():
             if name.startswith('__'): continue # Ignore special methods
             # Unwrap functions from static methods
             if attr.__class__.__name__ == 'staticmethod':

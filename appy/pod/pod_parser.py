@@ -38,7 +38,7 @@ class OdInsert:
        styles). OdInsert instances define such 'inserts' (what to insert and
        when).'''
     def __init__(self, odtChunk, elem, nsUris={}):
-        self.odtChunk = odtChunk.decode('utf-8') # The odt chunk to insert
+        self.odtChunk = odtChunk # The odt chunk to insert
         self.elem = elem # The p_odtChunk will be inserted just after the p_elem
         # start, which must be an XmlElement instance. If more than one p_elem
         # is present in the odt file, the p_odtChunk will be inserted only at

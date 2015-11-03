@@ -10,7 +10,7 @@ def parseStyleAttribute(value, asDict=False):
     else:      res = []
     for attr in value.split(';'):
         if not attr.strip(): continue
-        name, value = attr.split(':')
+        name, value = attr.split(':', 1)
         if asDict: res[name.strip()] = value.strip()
         else:      res.append( (name.strip(), value.strip()) )
     return res
@@ -42,9 +42,9 @@ class CssStyles:
         '''Analyses styles as found in p_attrs and sets, for every found style,
            an attribute on self.'''
         # First, parse the "style" attr if present
-        if attrs.has_key('style'):
+        if 'style' in attrs.keys():
             styles = parseStyleAttribute(attrs['style'], asDict=True)
-            for name, value in styles.iteritems():
+            for name, value in styles.items():
                 if name in CssStyles.withUnit:
                     value = CssValue(value)
                 setattr(self, name.replace('-', ''), value)
@@ -52,12 +52,12 @@ class CssStyles:
         # override corresponding attributes from the "styles" attributes if
         # found.
         for name in ('width', 'height'):
-            if not hasattr(self, name) and attrs.has_key(name):
+            if not hasattr(self, name) and name in attrs.keys():
                 setattr(self, name, CssValue(attrs[name]))
 
     def __repr__(self):
         res = '<CSS'
-        for name, value in self.__dict__.iteritems():
+        for name, value in self.__dict__.items():
             res += ' %s:%s' % (name, value)
         return res + '>'
 # ------------------------------------------------------------------------------

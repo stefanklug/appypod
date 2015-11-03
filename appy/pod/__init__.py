@@ -69,7 +69,7 @@ class PodError(Exception):
                      '<%s:date>%s</%s:date><%s:p>' % \
                      (officeNs, dcNs, dcNs, dcNs,
                       time.strftime('%Y-%m-%dT%H:%M:%S'), dcNs, textNs))
-        buffer.dumpContent(message)
+        buffer.dumpContent(str(message))
         buffer.write('</%s:p>' % textNs)
         if dumpTb:
             # We don't dump the traceback if it is an expression error (it is

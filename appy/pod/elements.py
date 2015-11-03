@@ -150,7 +150,7 @@ class Expression(PodElement):
         if resultType == 'NoneType':
             res = ''
         elif resultType == 'str':
-            res = res.decode('utf-8')
+            pass
         elif resultType == 'unicode':
             pass # Don't perform any conversion, unicode is the target type.
         elif resultType == 'Px':

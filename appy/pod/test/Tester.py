@@ -94,7 +94,7 @@ class Test(appy.shared.test.Test):
             raise TesterError(CONTEXT_NOT_FOUND % contextPy)
         contextPkg = 'appy.pod.test.contexts.%s' % contextName
         exec('import %s' % contextPkg)
-        exec('context = dir(%s)' % contextPkg)
+        context = eval('dir(%s)' % contextPkg)
         res = {}
         for elem in context:
             if not elem.startswith('__'):
@@ -149,7 +149,7 @@ class Test(appy.shared.test.Test):
         zipFile = zipfile.ZipFile(odtFile)
         for zippedFile in zipFile.namelist():
             if zippedFile in self.interestingOdtContent:
-                f = file(os.path.join(self.tempFolder,
+                f = open(os.path.join(self.tempFolder,
                                       '%s.%s' % (filePrefix, zippedFile)), 'wb')
                 fileContent = zipFile.read(zippedFile)
                 if zippedFile == 'content.xml':
@@ -159,12 +159,10 @@ class Test(appy.shared.test.Test):
                     # to the other. So we remove those paths.
                     annotationsRemover = AnnotationsRemover(
                        OdfEnvironment(), self)
-                    annotationsRemover.parse(fileContent)
-                    fileContent = annotationsRemover.getResult()
-                try:
-                    f.write(fileContent.encode('utf-8'))
-                except UnicodeDecodeError:
-                    f.write(fileContent)
+                    annotationsRemover.parse(fileContent.decode('utf-8'))
+                    fileContent = annotationsRemover.getResult().encode('utf-8')
+               
+                f.write(fileContent)
                 f.close()
         zipFile.close()
 

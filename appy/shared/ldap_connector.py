@@ -83,7 +83,7 @@ class LdapConfig:
            dict of params usable for creating or updating the corresponding
            Appy user.'''
         res = {}
-        for name, appyName in self.ldapAttributes.iteritems():
+        for name, appyName in self.ldapAttributes.items():
             if not appyName: continue
             # Get the name of the attribute as known in the LDAP
             ldapName = getattr(self, name)
@@ -111,7 +111,7 @@ class LdapConfig:
         user = tool.search1('User', noSecurity=True, login=login)
         if user:
             # Yes. Update it with info about him from the LDAP
-            for name, value in attrs.iteritems():
+            for name, value in attrs.items():
                 currentValue = getattr(user, name)
                 if value != currentValue:
                     setattr(user, name, value)

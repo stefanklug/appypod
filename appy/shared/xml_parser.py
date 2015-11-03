@@ -222,7 +222,7 @@ class XmlParser(ContentHandler, ErrorHandler):
         '''This method is called every time expat does not recognize an entity.
            We provide here support for HTML entities.'''
         if name in HTML_ENTITIES:
-            self.characters(HTML_ENTITIES[name].decode('utf-8'))
+            self.characters(HTML_ENTITIES[name])
         else:
             # Put a question mark instead of raising an exception.
             self.characters('?')
@@ -245,23 +245,20 @@ class XmlParser(ContentHandler, ErrorHandler):
              - a file instance opened for reading. Note that in this case, this
                method will close it.
         '''
-        try:
-            from io import StringIO
-        except ImportError:
-            from io import StringIO
+        from io import BytesIO
         self._xml = xml
         self.parser.setContentHandler(self)
         self.parser.setErrorHandler(self)
         self.parser.setFeature(feature_external_ges, False)
         inputSource = InputSource()
         if source == 'string':
-            inputSource.setByteStream(StringIO(xml))
+            inputSource.setByteStream(BytesIO(xml.encode('utf-8')))
         else:
-            if not isinstance(xml, file):
-                xml = file(xml)
+            if isinstance(xml, str):
+                xml = open(xml,'rb')
             inputSource.setByteStream(xml)
         self.parser.parse(inputSource)
-        if isinstance(xml, file): xml.close()
+        if hasattr(xml, 'close'): xml.close()
         return self.res
 
 # ------------------------------------------------------------------------------
@@ -464,7 +461,7 @@ class XmlUnmarshaller(XmlParser):
                 # If not, try a standard conversion
                 elif e.currentBasicType in self.numericTypes:
                     try:
-                        exec('value = %s' % value)
+                        value = eval('%s' % value)
                     except SyntaxError:
                         raise AppyError(CONVERSION_ERROR % (
                             e.currentBasicType, value))
@@ -945,10 +942,10 @@ class XmlComparator:
         # Perform the comparison
         differ = difflib.Differ()
         if self.areXml:
-            f = file(self.fileNameA)
+            f = open(self.fileNameA, 'rb')
             contentA = f.read()
             f.close()
-            f = file(self.fileNameB)
+            f = open(self.fileNameB, 'rb')
             contentB = f.read()
             f.close()
             xmlHandler = XmlHandler(self.xmlTagsToIgnore, self.xmlAttrsToIgnore)
@@ -958,10 +955,10 @@ class XmlComparator:
             xml.sax.parseString(contentB, xmlHandler)
             contentB = xmlHandler.res.split('\n')
         else:
-            f = file(self.fileNameA)
+            f = open(self.fileNameA, 'r', encoding=encoding)
             contentA = f.readlines()
             f.close()
-            f = file(self.fileNameB)
+            f = open(self.fileNameB,  'r', encoding=encoding)
             contentB = f.readlines()
             f.close()
         diffResult = list(differ.compare(contentA, contentB))
@@ -975,17 +972,17 @@ class XmlComparator:
                 if not atLeastOneDiff:
                     msg = 'Difference(s) detected between files %s and %s:' % \
                           (self.fileNameA, self.fileNameB)
-                    if report: report.say(msg, encoding='utf-8')
+                    if report: report.say(msg)
                     else: print(msg)
                     atLeastOneDiff = True
                 if not lastLinePrinted:
                     if report: report.say('...')
                     else: print('...')
                 if self.areXml:
-                    if report: report.say(line, encoding=encoding)
+                    if report: report.say(line)
                     else: print(line)
                 else:
-                    if report: report.say(line[:-1], encoding=encoding)
+                    if report: report.say(line[:-1])
                     else: print((line[:-1]))
                 lastLinePrinted = True
             else:

@@ -282,7 +282,7 @@ class HtmlTable:
             decl = '<%s:style %s:name="%s.%d" %s:family="table-column">' \
                    '<%s:table-column-properties %s:rel-column-width="%d*"' \
                    '/></%s:style>' % (s, s, self.name, i, s, s, s, width, s)
-            renderer.dynamicStyles.append(decl.encode('utf-8'))
+            renderer.dynamicStyles.append(decl)
 
 # ------------------------------------------------------------------------------
 class XhtmlEnvironment(XmlEnvironment):
@@ -512,7 +512,7 @@ class XhtmlEnvironment(XmlEnvironment):
                 sizes = table.columnContentSizes
                 # Insert None values if the list is too small
                 while (len(sizes)-1) < table.cellIndex: sizes.append(None)
-                highest = max(sizes[table.cellIndex], table.cellContentSize, 5)
+                highest = max(sizes[table.cellIndex] or 0, table.cellContentSize, 5)
                 # Put a maximum
                 highest = min(highest, 100)
                 sizes[table.cellIndex] = highest

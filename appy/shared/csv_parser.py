@@ -111,15 +111,15 @@ class CsvParser:
            Python type specified in p_basicType (int, float, ...).'''
         if (basicType != str) and (basicType != str):
             try:
-                exec('res = %s' % str(value))
+                res = eval('%s' % str(value))
             except SyntaxError as se:
                 res = None
         else:   
             try:
-                exec('res = """%s"""' % str(value))
+                res = eval('"""%s"""' % str(value))
             except SyntaxError as se:
                 try:
-                    exec("res = '''%s'''" % str(value))
+                    res = eval("res = '''%s'''" % str(value))
                 except SyntaxError as se:
                     res = None
         return res

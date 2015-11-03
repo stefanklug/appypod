@@ -194,7 +194,7 @@ def flipDict(d):
     '''Flips dict p_d: keys become values, values become keys. p_d is left
        untouched: a new, flipped, dict is returned.'''
     res = {}
-    for k, v in d.iteritems(): res[v] = k
+    for k, v in d.items(): res[v] = k
     return res
 
 # ------------------------------------------------------------------------------
@@ -291,7 +291,7 @@ def normalizeString(s, usage='fileName'):
         for char in s:
             if char not in fileNameIgnore: res += char
     elif usage.startswith('alpha'):
-        exec('rex = %sRex' % usage)
+        rex = eval('%sRex' % usage)
         res = ''
         for char in s:
             if rex.match(char): res += char
