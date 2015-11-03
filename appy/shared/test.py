@@ -111,11 +111,11 @@ class Test:
         self.report.say('- Test %s.' % self.data['Name'])
         self.report.say('- %s\n' % self.description)
         # Prepare test data
-        self.tempFolder = os.path.join(self.testFolder, 'temp')
+        self.tempFolder = os.path.join(self.testFolder, 'temp', self.data['Name'])
         if os.path.exists(self.tempFolder):
             time.sleep(0.3) # Sometimes I can't remove it, so I wait
             FolderDeleter.delete(self.tempFolder)
-        os.mkdir(self.tempFolder)
+        os.makedirs(self.tempFolder)
         try:
             self.do()
             self.report.say('Checking result...')
