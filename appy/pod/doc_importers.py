@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,USA.
 
 # ------------------------------------------------------------------------------
-import os, os.path, time, shutil, struct, random, urllib.parse
+import os, os.path, time, shutil, struct, random, urllib.parse, io
 from appy.pod import PodError
 from appy.pod.odf_parser import OdfEnvironment
 from appy.shared import mimeTypesExts
@@ -75,11 +75,11 @@ class DocImporter:
             if isinstance(self.content, FileWrapper):
                 self.content.dump(self.importPath)
             else:
-                if isinstance(self.content, file):
+                if isinstance(self.content, io.IOBase):
                     fileContent = self.content.read()
                 else:
                     fileContent = self.content
-                f = file(self.importPath, 'wb')
+                f = open(self.importPath, 'wb')
                 f.write(fileContent)
                 f.close()
         # Some importers add specific attrs, through method init.
@@ -234,7 +234,7 @@ def getSize(filePath, fileType):
     x, y = (None, None)
     # Get fileType from filePath if not given.
     if not fileType: fileType = os.path.splitext(filePath)[1][1:]
-    f = file(filePath, 'rb')
+    f = open(filePath, 'rb')
     if fileType in jpgTypes:
         # Dummy read to skip header ID
         f.read(2)
@@ -281,7 +281,7 @@ class ImageImporter(DocImporter):
     def moveFile(self, at, importPath):
         '''Copies file at p_at into the ODT file at p_importPath.'''
         # Has this image already been imported ?
-        for imagePath, imageAt in self.fileNames.items():
+        for imagePath, imageAt in list(self.fileNames.items()): 
             if imageAt == at:
                 # Yes!
                 i = importPath.rfind(self.pictFolder) + 1
@@ -296,7 +296,7 @@ class ImageImporter(DocImporter):
             # At last, I can get the file format.
             self.format = mimeTypesExts[response.headers['Content-Type']]
             importPath += self.format
-            f = file(importPath, 'wb')
+            f = open(importPath, 'wb')
             f.write(response.body)
             f.close()
             return importPath
@@ -313,10 +313,10 @@ class ImageImporter(DocImporter):
             img = os.path.join(podFolder, 'imageNotFound.jpg')
             self.format = 'jpg'
             importPath += self.format
-            f = file(img)
+            f = open(img)
             imageContent = f.read()
             f.close()
-            f = file(importPath, 'wb')
+            f = open(importPath, 'wb')
             f.write(imageContent)
             f.close()
         else:
