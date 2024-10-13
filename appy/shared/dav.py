@@ -3,7 +3,7 @@ import os, re, http.client, sys, stat, urllib.parse, time, socket, xml.sax
 from urllib.parse import quote
 from io import StringIO
 from mimetypes import guess_type
-from base64 import encodestring
+from base64 import b64encode
 from appy import Object
 from appy.shared.utils import copyData, sequenceTypes
 from appy.shared.xml_parser import XmlUnmarshaller, XmlMarshaller
@@ -161,7 +161,7 @@ class Resource:
         if 'Authorization' in headers: return
         credentials = '%s:%s' % (self.username, self.password)
         credentials = credentials.replace('\012', '')
-        headers['Authorization'] = "Basic %s" % encodestring(credentials)
+        headers['Authorization'] = "Basic %s" % b64encode(credentials.encode()).decode()
         headers['User-Agent'] = 'Appy'
         headers['Host'] = self.host
         headers['Connection'] = 'close'
