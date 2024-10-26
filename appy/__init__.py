@@ -3,8 +3,11 @@
 # ------------------------------------------------------------------------------
 import os.path
 
+
 # ------------------------------------------------------------------------------
 def getPath(): return os.path.dirname(__file__)
+
+
 def versionIsGreaterThanOrEquals(version):
     '''This method returns True if the current Appy version is greater than or
        equals p_version. p_version must have a format like "0.5.0".'''
@@ -18,12 +21,16 @@ def versionIsGreaterThanOrEquals(version):
         return currentVersion >= paramVersion
 
 # ------------------------------------------------------------------------------
+
+
 class Object:
     '''At every place we need an object, but without any requirement on its
        class (methods, attributes,...) we will use this minimalist class.'''
+
     def __init__(self, **fields):
         for k, v in fields.items():
             setattr(self, k, v)
+
     def __repr__(self):
         res = '<Object '
         for attrName, attrValue in self.__dict__.items():
@@ -34,22 +41,28 @@ class Object:
                 res += '%s=%s ' % (attrName, v)
             except UnicodeDecodeError:
                 res += '%s=<encoding problem> ' % attrName
-        res  = res.strip() + '>'
+        res = res.strip() + '>'
         return res.encode('utf-8')
+
     def __bool__(self):
         return bool(self.__dict__)
+
     def get(self, name, default=None): return getattr(self, name, default)
     def __getitem__(self, k): return getattr(self, k)
+
     def update(self, other):
         '''Includes information from p_other into p_self.'''
         for k, v in other.__dict__.items():
             setattr(self, k, v)
+
     def clone(self):
         res = Object()
         res.update(self)
         return res
 
 # ------------------------------------------------------------------------------
+
+
 class Hack:
     '''This class proposes methods for patching some existing code with
        alternative methods.'''
@@ -89,7 +102,8 @@ class Hack:
         patched = []
         added = []
         for name, attr in patchClass.__dict__.items():
-            if name.startswith('__'): continue # Ignore special methods
+            if name.startswith('__'):
+                continue  # Ignore special methods
             # Unwrap functions from static methods
             if attr.__class__.__name__ == 'staticmethod':
                 attr = attr.__get__(attr)
@@ -118,8 +132,8 @@ class Hack:
         if verbose:
             pName = patchClass.__name__
             cName = klass.__name__
-            print('%d method(s) patched from %s to %s (%s)' % \
+            print('%d method(s) patched from %s to %s (%s)' %
                   (len(patched), pName, cName, str(patched)))
-            print('%d method(s) and/or attribute(s) added from %s to %s (%s)'%\
+            print('%d method(s) and/or attribute(s) added from %s to %s (%s)' %
                   (len(added), pName, cName, str(added)))
 # ------------------------------------------------------------------------------
