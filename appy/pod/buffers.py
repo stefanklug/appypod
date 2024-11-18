@@ -114,7 +114,7 @@ class BufferIterator:
 # ------------------------------------------------------------------------------
 class Buffer:
     '''Abstract class representing any buffer used during rendering.'''
-    elementRex = re.compile('([\w-]+:[\w-]+)\s*(.*?)>', re.S)
+    elementRex = re.compile(r'([\w-]+:[\w-]+)\s*(.*?)>', re.S)
 
     def __init__(self, env, parent):
         self.parent = parent
@@ -261,10 +261,10 @@ class FileBuffer(Buffer):
 
 # ------------------------------------------------------------------------------
 class MemoryBuffer(Buffer):
-    actionRex = re.compile('(?:(\w+)\s*\:\s*)?do\s+(\w+)(-)?' \
-                           '(?:\s+(for|if|else|with)\s*(.*))?')
-    forRex = re.compile('\s*([\w\-_]+)\s+in\s+(.*)')
-    varRex = re.compile('\s*(@?[\w\-_]+)\s*=\s*(.*)')
+    actionRex = re.compile(r'(?:(\w+)\s*\:\s*)?do\s+(\w+)(-)?' \
+                           r'(?:\s+(for|if|else|with)\s*(.*))?')
+    forRex = re.compile(r'\s*([\w\-_]+)\s+in\s+(.*)')
+    varRex = re.compile(r'\s*(@?[\w\-_]+)\s*=\s*(.*)')
 
     def __init__(self, env, parent):
         Buffer.__init__(self, env, parent)
@@ -674,8 +674,8 @@ class MemoryBuffer(Buffer):
         for index in list(self.elements.keys()):
             if index < pos: del self.elements[index]
 
-    reTagContent = re.compile('<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
-                              '(?P=f)>', re.S)
+    reTagContent = re.compile(r'<(?P<p>[\w-]+):(?P<f>[\w-]+)(.*?)>.*</(?P=p):' \
+                              r'(?P=f)>', re.S)
     def evaluate(self, result, context, subElements=True,
                  removeMainElems=False):
         '''Evaluates this buffer given the current p_context and add the result

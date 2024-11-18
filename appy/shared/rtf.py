@@ -278,8 +278,8 @@ class TableParser:
         self.input = open(fileName)
         self.state = None
         # RTF character types
-        self.alpha = re.compile('[a-zA-Z_\-\*]')
-        self.numeric = re.compile('[0-9]')
+        self.alpha = re.compile(r'[a-zA-Z_\-\*]')
+        self.numeric = re.compile(r'[0-9]')
         self.whiteSpaces = (' ', '\t', '\n', '\r', '\f', '\v')
         self.specialChars = {91:"'", 92:"'", 93:'"', 94:'"', 85:'...', 81:'�',
                              4:'', 5:''}
@@ -301,7 +301,7 @@ class TableParser:
         self.currentColumnTypes = None # ~[]~
         self.rowIsHeader = False
         # Table name regular expression
-        self.tableNameRex = re.compile('([^\(]+)(?:\((.*)\))?')
+        self.tableNameRex = re.compile(r'([^\(]+)(?:\((.*)\))?')
     def isGroupDelimiter(self, char):
         return (char == '{') or (char == '}')
     def isControlWordStart(self, char):
@@ -334,7 +334,7 @@ class TableParser:
             specialChar = bytes.fromhex(self.specialCharBuffer).decode('utf-8')
             self.specialCharBuffer = ''
             self.state = TableParser.READING_CONTENT
-            if specialChar is not '':
+            if specialChar != '':
                 self.contentBuffer.write(specialChar)
     def bufferize(self, char):
         if self.state == TableParser.READING_CONTROL_WORD:
