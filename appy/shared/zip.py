@@ -78,15 +78,14 @@ def zip(f, folder, odf=False):
             f.close()
         zipFile.write(mimetypeFile, 'mimetype', zipfile.ZIP_STORED)
     for dir, dirnames, filenames in os.walk(folder):
+        folderName = os.path.relpath(dir, folder)
         for name in filenames:
-            folderName = dir[len(folder)+1:]
             # For p_odf files, ignore file "mimetype" that was already inserted
-            if odf and (folderName == '') and (name == 'mimetype'): continue
+            if odf and (folderName == '.') and (name == 'mimetype'): continue
             zipFile.write(os.path.join(dir,name), os.path.join(folderName,name))
         if not dirnames and not filenames:
             # This is an empty leaf folder. We must create an entry in the
             # zip for him.
-            folderName = dir[len(folder):]
             zInfo = zipfile.ZipInfo("%s/" % folderName, time.localtime()[:6])
             zInfo.external_attr = 48
             zipFile.writestr(zInfo, '')
